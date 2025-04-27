@@ -1675,6 +1675,8 @@
 	"action.dissolve_edges.desc": "Dissolve selected edges in a mesh and merge the faces they divide",
 	"action.split_mesh": "Split Mesh",
 	"action.split_mesh.desc": "Split the selected faces of the mesh into a new mesh",
+	"action.split_spline": "Split Spline",
+	"action.split_spline.desc": "Splits the spline into two splines at the selected handle.",
 	"action.merge_vertices": "Merge Vertices",
 	"action.merge_vertices.desc": "Merge the selected vertices into the position of the first selected vertex",
 	"action.merge_vertices.merge_all": "Merge All",

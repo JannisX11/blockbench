@@ -277,7 +277,11 @@ BARS.defineActions(function() {
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['splines'], method: () => {
-			return (SplineMesh.selected[0] && SplineMesh.selected[0].getSelectedHandles().length)
+			let spline = SplineMesh.selected[0];
+			let selectedHandles = spline.getSelectedHandles(true);
+			let isFirstSelected = selectedHandles.includes(spline.getFirstHandle().key);
+			let isLastSelected = selectedHandles.includes(spline.getLastHandle().key);
+			return (spline && selectedHandles.length && (isFirstSelected || isLastSelected));
 		}},
 		click() {
 			function runEdit(amended, extend = 1) {
@@ -339,17 +343,6 @@ BARS.defineActions(function() {
 
 						spline.curves = {...cNewData, ...spline.curves};
 					}
-					console.log(isEnd);
-				}
-
-				function getCurveFromPoint(spline, vKey) {
-					for (let cKey of Object.keys(spline.curves)) {
-						if (spline.curves[cKey].start_ctrl == vKey || spline.curves[cKey].end_ctrl == vKey) {
-							return cKey;
-						}
-					}
-					console.error(`no curves contains point ${vKey}, this shouldn't happen. Especially if that point is "undefined"!`);
-					return null;
 				}
 
 				SplineMesh.selected.forEach(spline => {
@@ -359,14 +352,17 @@ BARS.defineActions(function() {
 					let lastHandleKey = spline.getLastHandle().key;
 					let lastHandleControl = spline.getLastHandle().data.control1;
 
-					if (spline.getSelectedHandles()[0] == lastHandleKey) {
-						let cKey = getCurveFromPoint(spline, lastHandleControl);
-						extrudeAlongSpline(spline, cKey, lastHandleKey, true);
-					};
-					if (spline.getSelectedHandles()[0] == firstHandleKey) {
-						let cKey = getCurveFromPoint(spline, firstHandleControl);
-						extrudeAlongSpline(spline, cKey, firstHandleKey);
-					}
+					spline.getSelectedHandles(true).forEach(hKey => {
+						if (hKey == lastHandleKey) {
+							let cKey = spline.getCurvesForPointKey(lastHandleControl)[0];
+							extrudeAlongSpline(spline, cKey, lastHandleKey, true);
+						} 
+						else if (hKey == firstHandleKey) {
+							let cKey = spline.getCurvesForPointKey(firstHandleControl)[0];
+							extrudeAlongSpline(spline, cKey, firstHandleKey);
+						}
+
+					})
 					
 				})
 
@@ -407,17 +403,104 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['splines'], method: () => (SplineMesh.selected.length >= 2)},
 		click() {
+			Undo.finishEdit('Merge splines');
 			updateSelection();
-			Undo.finishEdit('Merge splines')
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
 	})
 	new Action('split_spline', {
 		icon: 'call_split',
 		category: 'edit',
-		condition: {modes: ['edit'], features: ['splines'], method: () => (SplineMesh.selected[0] && SplineMesh.selected[0].getSelectedVertices().length)},
+		condition: {modes: ['edit'], features: ['splines'], method: () => {
+			let spline = SplineMesh.selected[0];
+			let selection = spline.getSelectedHandles(true);
+			let isFirstSelected = selection.includes(spline.getFirstHandle().key);
+			let isLastSelected = selection.includes(spline.getLastHandle().key);
+			return (spline && selection.length === 1 && !isFirstSelected && !isLastSelected)
+		}},
 		click() {
-			Undo.finishEdit('Merge splines');
+			let elements = SplineMesh.selected.slice();
+			Undo.initEdit({elements});
+
+			let spline = SplineMesh.selected[0];
+			let handle = spline.getSelectedHandles(true)[0];
+
+			let handleKeys = Object.keys(spline.handles)
+			let firstSplit = handleKeys.slice(0, handleKeys.indexOf(handle) + 1);
+			let secondSplit = handleKeys.slice(handleKeys.indexOf(handle));
+
+			function gatherVertices(hKey, obj) {
+				let control1 = spline.handles[hKey].control1;
+				let joint = spline.handles[hKey].joint;
+				let control2 = spline.handles[hKey].control2;
+
+				obj[control1] = spline.vertices[control1];
+				obj[joint] = spline.vertices[joint];
+				obj[control2] = spline.vertices[control2];
+			}
+
+			function createHandles(spline, vKeys) {
+				for (let i = 0; i < vKeys.length; i += 3) {
+					spline.addHandles(new SplineHandle(spline, { 
+						control1: vKeys[i],
+						joint: vKeys[i + 1],
+						control2: vKeys[i + 2]
+					}));
+				}
+			}
+
+			function createCurves(spline, hKeys) {
+				for (let i = 0; i < (hKeys.length - 1); i++) {
+					spline.addCurves([hKeys[i], hKeys[i + 1]]);
+				}
+			}
+
+			function createHalf(split) {
+				let newspline = new SplineMesh(spline);
+				newspline.vertices = {};
+				newspline.handles = {};
+				newspline.curves = {};
+				
+				let vertices = {};
+				split.forEach(hKey => gatherVertices(hKey, vertices));
+
+				for (let vKey in vertices) {
+					newspline.addVertices(vertices[vKey]);
+				}
+
+				createHandles(newspline, Object.keys(newspline.vertices));
+				createCurves(newspline, Object.keys(newspline.handles));
+
+				elements.push(newspline);
+				newspline.cyclic = false;
+				newspline.init();
+				return newspline;
+			}
+
+			let firstSpline = createHalf(firstSplit);
+			let secondSpline = createHalf(secondSplit);
+
+			let group = getCurrentGroup();
+			if (group) {
+				firstSpline.addTo(group);
+				secondSpline.addTo(group);
+
+				if (settings.inherit_parent_color.value) {
+					firstSpline.color = group.color;
+					secondSpline.color = group.color;
+				}
+			}
+
+			firstSpline.name += '_first_half';
+			secondSpline.name += '_second_half';
+			unselectAllElements();
+			firstSpline.select();
+
+			delete Project.mesh_selection[spline.uuid];
+			elements.remove(spline);
+			spline.remove(false);
+
+			Undo.finishEdit('Split spline');
 			updateSelection();
 			Canvas.updateView({elements, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}

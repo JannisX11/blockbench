@@ -1016,6 +1016,7 @@ SplineMesh.prototype.menu = new Menu([
     new MenuSeparator('spline_mesh_edit'),
     "extrude_spline_selection",
     "apply_spline_rotation",
+    "split_spline",
     new MenuSeparator('spline_mesh_combination'),
     ...Outliner.control_menu_group,
     new MenuSeparator('settings'),
