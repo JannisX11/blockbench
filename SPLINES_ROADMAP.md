@@ -26,7 +26,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [x] Implement `apply_spline_rotation` action.
 - [x] Implement spline creation dialog.
 - [x] Apply handle mode effects to Scaling and Rotating.
-- [ ] Make it so "local" transform mode aligns with spline control/handle normal.
+- [x] Make it so "local" transform mode aligns with spline control/handle normal.
 - [x] Implement `split_spline` action.
 - [x] Implement `subdivide_segment` action.
 
@@ -74,7 +74,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [ ] Spline Render Properties always display on the elements panel.
 - [ ] Spline handle gizmos cause a bit of frame drops.
 - [ ] Spline outline wireframe is missing one singular edge loop at the start of the spline.
-- [ ] Handle Gizmo joints will sometimes orient wrongly.
+- [^x] Handle Gizmo joints will sometimes orient wrongly.
 
 ### Deprecated matters
 - [ ] ~~handle deletion breaks cyclic splines.~~
