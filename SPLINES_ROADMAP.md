@@ -72,7 +72,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [ ] Spline Render Properties always display on the elements panel.
 - [ ] Spline handle gizmos cause a bit of frame drops.
 - [ ] Spline outline wireframe is missing one singular edge loop at the start of the spline.
-- [^x] Handle Gizmo joints will sometimes orient wrongly.
+- [x] Handle Gizmo joints will sometimes orient wrongly.
 
 ### Deprecated matters
 - [ ] ~~handle deletion breaks cyclic splines.~~
