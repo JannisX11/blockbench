@@ -654,8 +654,10 @@
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
 		constructor(data, handlePropertiesEdit = false) {
 			super();
-			let arrowGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
-			let pickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
+			let jointGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+			let ctrlGeometry = new THREE.BoxGeometry( 0.075, 0.075, 0.15 );
+			let jointPickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
+			let ctrlPickerGeometry = new THREE.BoxGeometry( 0.225, 0.225, 0.3 );
 
 			this.isTilt = handlePropertiesEdit;
 			this.spline = data.uuid;
@@ -682,11 +684,8 @@
 				let { quat1, quat2, quat3, euler1, euler2, euler3 } = Reusable;
 
 				// First matrix, which will give us our general control orient, and basis to properly orient the handle
-				let jointPos = new THREE.Vector3().fromArray(j);
-				let ctrl1Pos = new THREE.Vector3().fromArray(c1);
-				let ctrl2Pos = new THREE.Vector3().fromArray(c2);
-				let mat41 = new THREE.Matrix4().lookAt(jointPos, ctrl1Pos, new THREE.Vector3(0, 1, 0));
-				let mat42 = new THREE.Matrix4().lookAt(ctrl2Pos, jointPos, new THREE.Vector3(0, 1, 0));
+				let mat41 = new THREE.Matrix4().lookAt(j.V3_toThree(), c1.V3_toThree(), new THREE.Vector3(0, 1, 0));
+				let mat42 = new THREE.Matrix4().lookAt(c2.V3_toThree(), j.V3_toThree(), new THREE.Vector3(0, 1, 0));
 
 
 				// Matrix to fix the orientation of the previous one
@@ -705,35 +704,36 @@
 					combined: eulerJ.toArray()
 				};
 			}
-
+			
 			// if (!handlePropertiesEdit) { 
-				let lineCtrl1Geometry = new THREE.BufferGeometry();
-				let lineCtrl2Geometry = new THREE.BufferGeometry();
-				lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl1 ], 3 ) );
-				lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl2 ], 3 ) );
-				
-				let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
-				let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
+			let handleEuler = getHandleEuler(this.joint, this.ctrl1, this.ctrl2);
+			let lineCtrl1Geometry = new THREE.BufferGeometry();
+			let lineCtrl2Geometry = new THREE.BufferGeometry();
+			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl1 ], 3 ) );
+			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl2 ], 3 ) );
+			
+			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
+			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
 
-				this.handleGizmos = {
-					C1: [
-						[ new THREE.Mesh( arrowGeometry, mat() ), this.ctrl1 ],
-						[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
-					],
-					C2: [
-						[ new THREE.Mesh( arrowGeometry, mat() ), this.ctrl2 ],
-						[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
-					],
-					J: [
-						[ new THREE.Mesh( arrowGeometry, mat() ), this.joint ]
-					]
-				};
+			this.handleGizmos = {
+				C1: [
+					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl1, handleEuler.c1 ],
+					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
+				],
+				C2: [
+					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl2, handleEuler.c2 ],
+					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
+				],
+				J: [
+					[ new THREE.Mesh( jointGeometry, mat() ), this.joint, handleEuler.combined ]
+				]
+			};
 
-				this.pickerGizmos = {
-					C1: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), this.ctrl1  ] ],
-					C2: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), this.ctrl2  ] ],
-					J: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), this.joint ] ]
-				};
+			this.pickerGizmos = {
+				C1: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl1, handleEuler.c1 ] ],
+				C2: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl2, handleEuler.c2 ] ],
+				J: [ [ new THREE.Mesh( jointPickerGeometry, pickerMaterial ), this.joint, handleEuler.combined ] ]
+			};
 			// } 
 			// else { 
 				// let lineTiltGeometry = new THREE.BufferGeometry();

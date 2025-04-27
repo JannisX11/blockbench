@@ -72,6 +72,9 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [x] Extrusion can be used when the selection doesn't match the criterias for selecting.
 - [ ] Look into making splines animatable. (might not be feasible atm)
 - [ ] Spline Render Properties always display on the elements panel.
+- [ ] Spline handle gizmos cause a bit of frame drops.
+- [ ] Spline outline wireframe is missing one singular edge loop at the start of the spline.
+- [ ] Handle Gizmo joints will sometimes orient wrongly.
 
 ### Deprecated matters
 - [ ] ~~handle deletion breaks cyclic splines.~~

@@ -239,18 +239,18 @@ BARS.defineActions(function() {
 		condition: () => SplineMesh.hasSelected() && Modes.edit,
         onChange({value}) {
 			if (value === previous_selection_mode) return;
-			switch (value) {
-				case "object": {
-					SplineMesh.selected.forEach(spline => {
-						delete Project.spline_selection[spline.uuid];
-					})
-					Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
-				}
-				case "handles":
-					Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
-				// case "tilt":
-				// 	Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+			if (value === "object") {
+				SplineMesh.selected.forEach(spline => {
+					delete Project.spline_selection[spline.uuid];
+				})
+				Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+			} 
+			else if (value === "handles") {
+				Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
 			}
+			// else if (value === "tilt") {
+			// 	Interface.removeSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
+			// }
 
 			Transformer.updateSelection();
 			Transformer.setMode(Toolbox.selected.transformerMode);
