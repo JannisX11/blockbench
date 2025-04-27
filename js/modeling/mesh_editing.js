@@ -2187,7 +2187,7 @@ BARS.defineActions(function() {
 				};
 
 				for (let i = 0; i < tube.indices.length / 6; i++) {
-					// Tri (twice)
+					// Tri (twice, so it's a quad :P )
 					let vertices = [];
 					let uv_data = [];
 					for (let j = 0; j < 6; j++) {

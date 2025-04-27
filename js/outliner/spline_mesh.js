@@ -491,14 +491,31 @@ export class SplineMesh extends OutlinerElement {
             return range[1] - range[0];
         }
     }
-    // Aza assumption: Determines Gizmo locations
+    // Determines Gizmo locations
     getWorldCenter(ignore_mesh_selection) {
         let m = this.mesh;
         let pos = new THREE.Vector3();
         let vertex_count = 0;
+        let selected_handles = this.getSelectedHandles().slice();
+
+        // this will ensure our cursor places at the joint point of selected handles.
+        let control_to_joint = {};
+        let selected_joints = selected_handles.map(hKey => {
+            let handle = this.handles[hKey];
+            
+            control_to_joint[handle.control1] = handle.joint;
+            control_to_joint[handle.control2] = handle.joint;
+
+            return handle.joint;
+        })
 
         for (let key in this.vertices) {
-            if (ignore_mesh_selection || !Project.spline_selection[this.uuid] || (Project.spline_selection[this.uuid] && Project.spline_selection[this.uuid].vertices.includes(key))) {
+            let selection = Project.spline_selection[this.uuid];
+            let selection_is_empty = !selection;
+            let joint_is_selected = (selection && selected_joints.includes(key));
+            let control_is_selected = (!selected_joints.includes(control_to_joint[key]) && selection && selection.vertices.includes(key));
+            
+            if (ignore_mesh_selection || selection_is_empty || joint_is_selected || control_is_selected) {
                 let vector = this.vertices[key];
                 pos.x += vector[0];
                 pos.y += vector[1];
