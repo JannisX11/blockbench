@@ -741,6 +741,8 @@ export const BARS = {
 				'rotation_space',
 				'transform_pivot_space',
 				'selection_mode',
+				'spline_selection_mode',
+				'spline_handle_mode',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
@@ -867,7 +869,9 @@ export const BARS = {
 			no_wrap: true,
 			children: [
 				'vertex_snap_mode',
-				'selection_mode'
+				'selection_mode',
+				'spline_selection_mode',
+				'spline_handle_mode',
 			]
 		})
 		Toolbars.seam_tool = new Toolbar({
