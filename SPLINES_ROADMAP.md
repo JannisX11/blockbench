@@ -19,7 +19,6 @@ This is a roadmap for splines, listing all features I want to implement for them
 
 ## **M2** Editing functionality
 - [x] Fix texture not rendering on splines.
-  - > Will likely need polish later down the line, but I consider it down for now
 - [x] Create Gizmo for spline handles, to de-clutter preview controller geo.
 - [x] Add ability to extrude points from the curve.
 - [x] Add ability to scale & tilt handles. (radius & tilt)
@@ -29,7 +28,6 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [x] Make it so "local" transform mode aligns with spline control/handle normal.
 - [x] Implement `split_spline` action.
 - [x] Implement `subdivide_segment` action.
-
 - [x] Solid buffer order
   - All of the below features Require:
     - [x] to fix Undo for curves so that point orders don't get messed up.

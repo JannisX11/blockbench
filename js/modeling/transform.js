@@ -692,12 +692,15 @@ export function moveElementsInSpace(difference, axis) {
 
 			
 			let handle = el.getSelectedHandles()[0];
-			let selection_rotation = space == 2 && [...el.getHandleEuler(handle).combined].V3_toEuler();
+			let selection_rotation = space == 3 && [...el.getHandleEuler(handle).combined].V3_toEuler();
 			let selected_vertices = el.getSelectedVertices();
 			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
 
 			let difference_vec = [0, 0, 0];
 			if (space == 2) {
+				difference_vec[axis] += difference;
+
+			} else if (space == 3) {
 				let m = vector.set(0, 0, 0);
 				m[getAxisLetter(axis)] = difference;
 				m.applyEuler(selection_rotation);
@@ -1006,7 +1009,7 @@ BARS.defineActions(function () {
 		condition: {
 			modes: ['edit', 'animate'],
 			tools: ['move_tool', 'resize_tool'],
-			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && Mesh.all.length === 0)
+			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && (Mesh.all.length === 0 || SplineMesh.all.length === 0))
 		},
 		category: 'transform',
 		value: 'parent',
@@ -1014,7 +1017,7 @@ BARS.defineActions(function () {
 			global: true,
 			parent: true,
 			local: true,
-			normal: { condition: () => Mesh.selected.length, name: true }
+			normal: { condition: () => Mesh.selected.length || SplineMesh.selected.length, name: true }
 		},
 		onChange() {
 			updateSelection();

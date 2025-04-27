@@ -3,6 +3,8 @@
  * modified for Blockbench by jannisx11
  */
 
+import { SplineMesh } from "../outliner/spline_mesh";
+
  ( function () {
 
 	'use strict';
@@ -1294,7 +1296,7 @@
 					// Group local Space
 					return 2;
 				}
-				if (input_space === 'normal' && Mesh.selected.length) {
+				if (input_space === 'normal' && (Mesh.selected.length || SplineMesh.selected.length)) {
 					// Local Space
 					return 3;
 				}
@@ -1380,7 +1382,7 @@
 								let rotation = Mesh.selected[0].getSelectionRotation();
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
 							}
-							if (space === 2 && SplineMesh.selected[0]) {
+							if (space === 3 && SplineMesh.selected[0]) {
 								if (SplineMesh.selected[0].getSelectedHandles().length) {
 									let handle = SplineMesh.selected[0].getSelectedHandles()[0];
 									let euler_arr = SplineMesh.selected[0].getHandleEuler(handle).combined;
