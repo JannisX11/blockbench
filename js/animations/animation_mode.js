@@ -99,6 +99,12 @@ export const Animator = {
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 			}
 		})
+		for (let mesh of Mesh.all) {
+			let armature = mesh.getArmature();
+			if (armature) {
+				Mesh.preview_controller.updateGeometry(mesh);
+			}
+		}
 		if (!no_matrix_update) scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
@@ -281,6 +287,73 @@ export const Animator = {
 
 		scene.add(Animator.onion_skin_object);
 	},
+	displayMeshDeformation() {
+		const _matrix4 = new THREE.Matrix4();
+		const _basePosition = new THREE.Vector3();
+		const _vector3 = new THREE.Vector3();
+		const target = new THREE.Vector3();
+		
+		for (let mesh of Mesh.all) {
+			let armature = mesh.getArmature();
+			if (armature) {
+				let bones = armature.getAllBones();
+				if (!window._x) {
+					// TODO: Bind skeleton with edit mode pose
+					armature.skeleton = new THREE.Skeleton(bones.map(bone => bone.mesh));
+					window._x = true;
+				}
+				let skeleton = armature.skeleton;
+				//skeleton.pose();
+				let vertex_offsets = {};
+				for (let vkey in mesh.vertices) {
+
+					target.fromArray(mesh.vertices[vkey]);
+
+					// TODO: handle bind matrices
+					_basePosition.copy( target )//.applyMatrix4( this.bindMatrix );
+			
+					target.set(0, 0, 0);
+
+					let affecting_bones = bones.filter(bone => bone.vertex_weights[vkey]);
+					if (affecting_bones.length > 4) {
+						affecting_bones.sort((a, b) => a.vertex_weights[vkey] - b.vertex_weights[vkey]).slice(0, 4);
+					}
+					// Normalize weights
+					// The sum of all weights shold be 1, otherwise vertices are not influenced by bones equally and start drifting towards the mesh origin
+					let weights = [];
+					for ( let i = 0; i < 4; i ++ ) {
+						const weight = affecting_bones[i]?.vertex_weights[vkey] ?? 0;
+						weights.push(weight);
+					}
+					let weight_vector = new THREE.Vector4().fromArray(weights);
+					const scale = 1.0 / weight_vector.manhattanLength();
+					if ( scale !== Infinity ) {
+						weight_vector.multiplyScalar( scale );
+						weights = weight_vector.toArray();
+
+						for ( let i = 0; i < 4; i ++ ) {
+							const weight = weights[i];
+							if ( weight !== 0 && affecting_bones[i] ) {
+								const boneIndex = bones.indexOf(affecting_bones[i]);
+								_matrix4.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
+								target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
+							}		
+						}
+
+					} else {
+						// fallback
+						//weight_vector.set( 1, 0, 0, 0 ); 
+						target.copy(_basePosition)
+					}
+
+					target//.applyMatrix4( this.bindMatrixInverse );
+					vertex_offsets[vkey] = target.toArray().V3_subtract(mesh.vertices[vkey]);
+				}
+				console.log(vertex_offsets);
+				Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
+			}
+		}
+	},
 	stackAnimations(animations, in_loop, controller_blend_values = 0) {
 		if (animations.length > 1 && Animation.selected && animations.includes(Animation.selected)) {
 			// Ensure selected animation is applied last so that transform gizmo gets correct pre rotation
@@ -306,17 +379,7 @@ export const Animator = {
 			})
 		})
 
-		for (let mesh of Mesh.all) {
-			let array = mesh.getParentArray();
-			let mesh_index = array.indexOf(mesh);
-			let rig_root = array[mesh_index+1];
-			if (rig_root instanceof ArmatureBone) {
-				animations.forEach(animation => {
-					let animator = animation.getBoneAnimator(rig_root);
-					animator.displayMeshDeform(mesh);
-				});
-			}
-		}
+		Animator.displayMeshDeformation();
 
 		Animator.resetLastValues();
 		scene.updateMatrixWorld();

@@ -54,8 +54,11 @@ BARS.defineActions(function defineWeightBrush() {
 					let distance = vec2.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
 					let influence = Math.hermiteBlend(Math.clamp(1-(distance / 50), 0, 1));
 					let value = armature_bone.vertex_weights[vkey] ?? 0;
-	
-					if (event.ctrlOrCmd) {
+					
+					if (event.shiftKey || Pressing.overrides.shift) {
+						influence /= 8;
+					}
+					if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 						value = value * (1-influence);
 					} else {
 						value = value + (1-value) * influence;
@@ -86,7 +89,9 @@ BARS.defineActions(function defineWeightBrush() {
 			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		},
 		onUnselect() {
-			Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
+			setTimeout(() => {
+				Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
+			}, 0);
 			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		}
 	})

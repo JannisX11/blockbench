@@ -589,7 +589,8 @@ export class OutlinerElement extends OutlinerNode {
 		} else {
 			let all_children_selected = this.children instanceof Array && !this.children.find(child => child.selected == false);
 			unselectAllElements([this]);
-			this.markAsSelected(!all_children_selected);
+			let select_children = (this.getTypeBehavior('select_children') == 'self_first' && !this.selected) ? false : !all_children_selected;
+			this.markAsSelected(select_children);
 			just_selected.push(this)
 			if (settings.outliner_reveal_on_select.value) {
 				this.showInOutliner()
@@ -1939,6 +1940,7 @@ Interface.definePanels(function() {
 			'add_group',
 			'add_locator',
 			'add_null_object',
+			'add_armature',
 			'add_armature_bone',
 			'add_texture_mesh',
 			new MenuSeparator('copypaste'),

@@ -33,6 +33,9 @@ export class Armature extends OutlinerElement {
 	get skeleton() {
 		return this._static.properties.skeleton;
 	}
+	set skeleton(s) {
+		this._static.properties.skeleton = s;
+	}
 	extend(object) {
 		for (let key in Armature.properties) {
 			Armature.properties[key].merge(this, object)

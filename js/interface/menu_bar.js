@@ -246,6 +246,7 @@ export const MenuBar = {
 			'add_group',
 			'add_locator',
 			'add_null_object',
+			'add_armature',
 			'add_armature_bone',
 			'add_texture_mesh',
 			new MenuSeparator('modify_elements'),

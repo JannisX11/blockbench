@@ -38,8 +38,12 @@ export class ArmatureBone extends OutlinerElement {
 		Merge.boolean(this, object, 'visibility')
 		return this;
 	}
-	getMesh() {
-		return this.mesh;
+	getArmature() {
+		let parent = this.parent;
+		while (parent instanceof Armature == false && parent instanceof OutlinerNode) {
+			parent = parent.parent;
+		}
+		return parent;
 	}
 	init() {
 		super.init();
@@ -269,6 +273,7 @@ export class ArmatureBone extends OutlinerElement {
 		movable: true,
 		rotatable: true,
 		child_types: ['armature_bone'],
+		select_children: 'self_first',
 		hide_in_screenshot: true,
 	}
 }

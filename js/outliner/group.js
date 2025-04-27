@@ -436,6 +436,7 @@ export class Group extends OutlinerNode {
 	static behavior = {
 		unique_name: () => Format.bone_rig,
 		parent: true,
+		select_children: 'all_first',
 		rotatable: true,
 	}
 }

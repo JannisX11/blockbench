@@ -620,46 +620,6 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		}
 		return this;
 	}
-	displayMeshDeform(mesh) {
-		if (!mesh) return;
-
-		console.log('DISPLAY MESH DEFORM')
-
-		// Only gets called at the base bone of each rig
-
-		/*let matrices = {};
-		let bones = [];
-		let element = this.getElement();
-		let mesh_world_matrix_inverse = new THREE.Matrix4().copy(mesh.mesh.matrixWorld).invert();
-		let vertex_offsets = {};
-		let vector = new THREE.Vector3();
-		let vector2 = new THREE.Vector3();
-
-		element.parent.mesh.updateMatrixWorld();
-		element.forEachChild(bone => {
-			let matrix = new THREE.Matrix4().multiplyMatrices(bone.mesh.matrixWorld, mesh_world_matrix_inverse);
-			matrices[bone.uuid] = matrix;
-			bones.push(bone);
-
-		}, ArmatureBone, true);
-
-		for (let vkey in mesh.vertices) {
-
-			vector.fromArray(mesh.vertices[vkey]);
-			vector2.copy(vector2);
-
-			for (let bone of bones) {
-				let matrix = matrices[bone.uuid];
-				if (true) {
-					vector.applyMatrix4(matrix);
-				}
-			}
-			vector.sub(vector2);
-			//vector.lerpVectors();
-			vertex_offsets[vkey] = vector.toArray();
-		}
-		Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);*/
-	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getElement()
@@ -670,7 +630,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		if (!this.muted.rotation) {
 			this.displayRotation(this.interpolate('rotation'), multiplier);
 		}
-		this.displayMeshDeform();
+		this.element.mesh.updateMatrixWorld();
 	}
 }
 	ArmatureBoneAnimator.prototype.type = 'null_object';
