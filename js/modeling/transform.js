@@ -45,22 +45,34 @@ export function selectSplinePoints(spline, handle, axis) {
 	if (!toAdd[axis].some((value) => selection.includes(value))) {
 		if (addToPrevious) {
 			selection.push(...toAdd[axis]);
-		}
-		else {
+		} else {
 			selection.replace(toAdd[axis]);
 		}
 	} else {
 		if (addToPrevious) {
 			if (selection.includes(handle.joint) && (axis === "C1" || axis === "C2")) {
 				selection.remove(...toAdd["J"]);
-			} else {
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
 				selection.remove(...toAdd[axis]);
 			}
 		} else {
 			if (selectionLength > toAddLength) {
 				selection.empty();
 				selection.push(...toAdd[axis]);
-			} else {
+			} 
+			else if (selectionLength === toAddLength) {
+				selection.remove(...toAdd[axis]);
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
 				selection.remove(...toAdd[axis]);
 			}
 		}

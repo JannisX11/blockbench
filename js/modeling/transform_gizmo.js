@@ -649,6 +649,8 @@
 		}
 	};
 
+	// Commented out bits were part of an abandoned attempt at a handle tilt Gizmo.
+	// (similar to rotate gizmo, but on a single axis along the spline)
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
 		constructor(data, handlePropertiesEdit = false) {
 			super();
@@ -704,7 +706,7 @@
 				};
 			}
 
-			if (!handlePropertiesEdit) { 
+			// if (!handlePropertiesEdit) { 
 				let lineCtrl1Geometry = new THREE.BufferGeometry();
 				let lineCtrl2Geometry = new THREE.BufferGeometry();
 				lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl1 ], 3 ) );
@@ -732,27 +734,27 @@
 					C2: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), this.ctrl2  ] ],
 					J: [ [ new THREE.Mesh( pickerGeometry, pickerMaterial ), this.joint ] ]
 				};
-			} 
-			else { 
-				let lineTiltGeometry = new THREE.BufferGeometry();
-				lineTiltGeometry.setAttribute('position', new THREE.Float32BufferAttribute( [ ...this.ctrl1, ...this.joint, ...this.ctrl2 ], 3));
+			// } 
+			// else { 
+				// let lineTiltGeometry = new THREE.BufferGeometry();
+				// lineTiltGeometry.setAttribute('position', new THREE.Float32BufferAttribute( [ ...this.ctrl1, ...this.joint, ...this.ctrl2 ], 3));
 				
-				let tiltMat = () => new GizmoMaterial( { color: new THREE.Color(0xffffff) } );
-				let handleEuler = getHandleEuler(this.joint, this.ctrl1, this.ctrl2).combined;
+				// let tiltMat = () => new GizmoMaterial( { color: new THREE.Color(0xffffff) } );
+				// let handleEuler = getHandleEuler(this.joint, this.ctrl1, this.ctrl2).combined;
 
-				this.handleGizmos = {
-					T: [ 
-						[ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), tiltMat() ), this.joint, handleEuler ],
-						[ new THREE.Line( lineTiltGeometry, tiltMat() ) ]
-					],
-					// DEBUG_PICKER: [
-					// 	[ new THREE.Mesh( arrowGeometry, tiltMat() ) ]
-					// ]
-				};
+				// this.handleGizmos = {
+				// 	T: [ 
+				// 		[ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.02, 4, 32, Math.PI * 2 ), tiltMat() ), this.joint, handleEuler ],
+				// 		[ new THREE.Line( lineTiltGeometry, tiltMat() ) ]
+				// 	],
+				// 	DEBUG_PICKER: [
+				// 		[ new THREE.Mesh( arrowGeometry, tiltMat() ) ]
+				// 	]
+				// };
 
-				this.pickerGizmos = {
-					T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.12, 4, 12, Math.PI * 2 ), pickerMaterial ), this.joint, handleEuler ] ]
-				};
+				// this.pickerGizmos = {
+				// 	T: [ [ new THREE.Mesh( new THREE.TorusGeometry( 0.5, 0.12, 4, 12, Math.PI * 2 ), pickerMaterial ), this.joint, handleEuler ] ]
+				// };
 
 				// let plane = new THREE.Mesh( new THREE.PlaneGeometry( 50, 50, 2, 2 ), pickerMaterial );
 				// plane.applyQuaternion(Reusable.quat1.setFromEuler(Reusable.euler1.fromArray(handleEuler)));
@@ -762,7 +764,7 @@
 
 				// plane.material = new THREE.MeshBasicMaterial( { transparent: true, side: THREE.DoubleSide, opacity: 0.25 } )
 				// this.add(plane)
-			}
+			// }
 
 			this.positionDebugHit = function(newPos) {
 				this.handleGizmos["DEBUG_PICKER"][0][0].position.set( newPos.x, newPos.y, newPos.z );
@@ -901,8 +903,7 @@
 				let spline = SplineMesh.selected[0];
 
 				// Dispose of previous gizmos
-				this.remove(...this.spline_handles);
-				this.spline_handles.empty();
+				this.clear();
 	
 				// Create new Gizmos
 				for (let hKey of Object.keys(spline.handles)) {
@@ -971,9 +972,12 @@
 			}
 			this.verifyValidity = function() {
 				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object") {
-					this.remove(...this.spline_handles);
-					this.spline_handles.empty();
+					this.clear();
 				}
+			}
+			this.clear = function() {
+				this.remove(...this.spline_handles);
+				this.spline_handles.empty();
 			}
 			this.interesct = function(pointer, intersectMethod) {
 				let result = false;

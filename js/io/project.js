@@ -395,6 +395,9 @@ export class ModelProject {
 		}
 
 		if (force || Project.saved || await saveWarning()) {
+			// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
+			SplineGizmos.clear();
+
 			try {
 				if (isApp) {
 					updateRecentProjectData();

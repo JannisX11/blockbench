@@ -493,7 +493,36 @@ export class SplineMesh extends OutlinerElement {
         }
         return pos;
     }
-    // Code smell from mesh.js
+	moveVector(arr, axis, update = true) {
+		if (typeof arr == 'number') {
+			var n = arr;
+			arr = [0, 0, 0];
+			arr[axis||0] = n;
+		} else if (arr instanceof THREE.Vector3) {
+			arr = arr.toArray();
+		}
+		arr.forEach((val, i) => {
+			this.origin[i] += val;
+		})
+		if (update) {
+			this.preview_controller.updateTransform(this);
+		}
+		TickUpdates.selection = true;
+	}
+	getCenter(global) {
+		let center = [0, 0, 0];
+		let len = 0;
+		for (let vkey in this.vertices) {
+			center.V3_add(this.vertices[vkey]);
+			len++;
+		}
+		center.V3_divide(len);
+		if (global) {
+			return this.mesh.localToWorld(Reusable.vec1.set(...center)).toArray();
+		} else {
+			return center;
+		}
+	}
     transferOrigin(origin, update = true) {
         if (!this.mesh) return;
         var q = new THREE.Quaternion().copy(this.mesh.quaternion);

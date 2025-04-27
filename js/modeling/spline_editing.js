@@ -1,80 +1,38 @@
 SharedActions.add('delete', {
 	condition: () => Modes.edit && Prop.active_panel == 'preview' && SplineMesh.selected[0] && Project.spline_selection[SplineMesh.selected[0].uuid],
 	run() {
-		// TODO: Rethink this process entirely to be less stupid, and more reliable
 		let splines = SplineMesh.selected.slice();
-		let dissolve = BarItems.delete.keybind.additionalModifierTriggered(event, 'keep_vertices');
 		Undo.initEdit({elements: splines, outliner: true, selection: true})
 
-		SplineMesh.selected.forEach(spline => {
-			let selected_handles = spline.getSelectedHandles(true);
-	
-			// Actual deletion logic
-			if (BarItems.spline_selection_mode.value == "handles" && selected_handles.length > 0) {
-				selected_handles.forEach(hKey => {
+		splines.forEach(spline => {
+			let selectedHandles = spline.getSelectedHandles(true);
+			
+			// Actual deletion logic.
+			if (BarItems.spline_selection_mode.value == "handles" && selectedHandles.length > 0) {
+				for (let hKey in spline.handles) {
 					let handle = spline.handles[hKey];
+					let shouldDelete = selectedHandles.includes(hKey);
 	
-					for (let cKey in spline.curves) {
-						if (spline.curves[cKey].start === handle.joint || spline.curves[cKey].end === handle.joint) {
-							delete spline.curves[cKey];
-						}
-					}
-	
-					delete spline.handles[hKey];
-					selected_handles.remove(hKey);
-	
-					delete spline.vertices[handle.control1];
-					delete spline.vertices[handle.joint];
-					delete spline.vertices[handle.control2];
-				})
-
-				// this turned out to be trivially easy to perform :D
-				if (dissolve) {
-					let prevCurve;
-					let newCurves = {};
-
-					// Re-connect first handle
-					let firstHandleKey = spline.getFirstHandle().key;
-					let firstHandleIndex = Object.keys(spline.handles).indexOf(firstHandleKey);
-					if (spline.getCurvesForHandleKey(firstHandleKey).length == 0) {
-						let newCurve = spline.addCurves([ firstHandleKey, Object.keys(spline.handles)[firstHandleIndex + 1] ])
-						newCurves[newCurve[0]] = {...spline.curves[newCurve[0]]};
-						delete spline.curves[newCurve[0]];
-					}
-
-					// Re-connect any disconnected handle in the middle of the curve
-					for (let cKey in spline.curves) {
-						let curve = spline.curves[cKey];
+					if (shouldDelete) {
+						delete spline.handles[hKey];
+						selectedHandles.remove(hKey);
 		
-						if (prevCurve) {
-							if (curve.start !== prevCurve.end) {
-								let newCurve = spline.addCurves([
-									spline.getHandleKeyForPointKey(prevCurve.end), 
-									spline.getHandleKeyForPointKey(curve.start)
-								])
-								newCurves[newCurve[0]] = {...spline.curves[newCurve[0]]};
-							} 
-							newCurves[cKey] = spline.curves[cKey];
-						} else {
-							newCurves[cKey] = spline.curves[cKey];
-						}
-		
-						prevCurve = curve;
+						delete spline.vertices[handle.control1];
+						delete spline.vertices[handle.joint];
+						delete spline.vertices[handle.control2];
 					}
-					
-					// Re-connect last handle
-					let lastHandleKey = spline.getLastHandle().key;
-					let lastHandleIndex = Object.keys(spline.handles).indexOf(lastHandleKey);
-					if (spline.getCurvesForHandleKey(lastHandleKey).length == 0) {
-						let newCurve = spline.addCurves([ Object.keys(spline.handles)[lastHandleIndex - 1], lastHandleKey ])
-						newCurves[newCurve[0]] = {...spline.curves[newCurve[0]]};
-						delete spline.curves[newCurve[0]];
-					}
-
-					// Replace handle dict
-					spline.curves = newCurves;
 				}
-			} else {
+
+				// Just ditch all curves...
+				spline.curves = {};
+
+				// ... and remake them with the new handle order.
+				let heys = Object.keys(spline.handles);
+				for (let i = 0; i < (heys.length - 1); i++) {
+					spline.addCurves([heys[i], heys[i + 1]])
+				}
+			}
+			else {
 				splines.remove(spline);
 				spline.remove(false);
 			}
