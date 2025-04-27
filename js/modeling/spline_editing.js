@@ -42,6 +42,49 @@ SharedActions.add('delete', {
 		Canvas.updateView({elements: splines, selection: true, element_aspects: {geometry: true, faces: true, uv: splines.length > 0}});
 	}
 })
+SharedActions.add('select_all', {
+	condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected.length === Outliner.selected.length && BarItems.spline_selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		let selection_mode = BarItems.spline_selection_mode.value;
+		if (selection_mode == 'handles') {
+			let unselect = SplineMesh.selected[0].getSelectedVertices().length == Object.keys(SplineMesh.selected[0].vertices).length;
+			SplineMesh.selected.forEach(spline => {
+				if (unselect) {
+					spline.getSelectedVertices(true).empty();
+				} else {
+					spline.getSelectedVertices(true).replace(Object.keys(spline.vertices));
+				}
+			})
+		}
+		updateSelection();
+	}
+})
+SharedActions.add('unselect_all', {
+	condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected.length === Outliner.selected.length && BarItems.spline_selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		SplineMesh.selected.forEach(spline => {
+			delete Project.spline_selection[spline.uuid];
+		})
+		updateSelection();
+	}
+})
+SharedActions.add('invert_selection', {
+	condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected.length === Outliner.selected.length && BarItems.spline_selection_mode.value !== 'object',
+	priority: 1,
+	run() {
+		let selection_mode = BarItems.spline_selection_mode.value;
+		if (selection_mode == 'handles') {
+			SplineMesh.selected.forEach(spline => {
+				let selected = spline.getSelectedVertices();
+				let now_selected = Object.keys(spline.vertices).filter(vkey => !selected.includes(vkey));
+				spline.getSelectedVertices(true).replace(now_selected);
+			})
+		}
+		updateSelection();
+	}
+})
 
 BARS.defineActions(function() {
 	let add_spline_dialog = new Dialog({
