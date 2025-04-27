@@ -861,19 +861,17 @@ export class KnifeToolCubeContext {
 }
 KnifeToolCubeContext.map.magFilter = KnifeToolCubeContext.map.minFilter = THREE.NearestFilter;
 
-export async function autoFixMeshEdit() {
-	let meshes = Mesh.selected;
-	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
-
-	// Merge Vertices
+// this takes forever to complete on larger meshes, need to see how it can be optimized
+export function gatherGeoOverlaps(meshes, vertexGatherer) {
 	let overlaps = {};
 	let e = 0.004;
 	meshes.forEach(mesh => {
 		let mesh_overlaps = {};
-		let vertices = mesh.getSelectedVertices();
-		for (let vkey of vertices) {
+
+		for (let vkey of vertexGatherer(mesh)) {
 			let vertex = mesh.vertices[vkey];
 			let matches = [];
+
 			for (let vkey2 in mesh.vertices) {
 				if (vkey2 == vkey || mesh_overlaps[vkey2]) continue;
 				let vertex2 = mesh.vertices[vkey2];
@@ -882,12 +880,70 @@ export async function autoFixMeshEdit() {
 					matches.push(vkey2);
 				}
 			}
+			
 			if (matches.length) {
 				mesh_overlaps[vkey] = matches;
 			}
 		}
 		if (Object.keys(mesh_overlaps).length) overlaps[mesh.uuid] = mesh_overlaps;
 	})
+
+	return overlaps;
+}
+
+export function mergeVerticesOverlaps(meshes, overlaps) {
+	let merge_counter = 0;
+	let cluster_counter = 0;
+	for (let mesh_id in overlaps) {
+		let mesh = meshes.find(m => m.uuid == mesh_id);
+		let selected_vertices = mesh.getSelectedVertices(true);
+		for (let first_vertex in overlaps[mesh_id]) {
+			let other_vertices = overlaps[mesh_id][first_vertex];
+			cluster_counter++;
+
+			for (let vkey of other_vertices) {
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					let index = face.vertices.indexOf(vkey);
+					if (index === -1) continue;
+
+					if (face.vertices.includes(first_vertex)) {
+						face.vertices.remove(vkey);
+						delete face.uv[vkey];
+						if (face.vertices.length < 2) {
+							delete mesh.faces[fkey];
+						} else if (face.vertices.length == 2) {
+							// Find face that overlaps the remaining edge
+							for (let fkey2 in mesh.faces) {
+								let face2 = mesh.faces[fkey2];
+								if (face2.vertices.length >= 3 && face2.vertices.includes(face.vertices[0]) && face2.vertices.includes(face.vertices[1])) {
+									delete mesh.faces[fkey];
+								}
+							}
+						}
+					} else {
+						let uv = face.uv[vkey];
+						face.vertices.splice(index, 1, first_vertex);
+						face.uv[first_vertex] = uv;
+						delete face.uv[vkey];
+					}
+				}
+				delete mesh.vertices[vkey];
+				selected_vertices.remove(vkey);
+				merge_counter++;
+			}
+		}
+	}
+	return [merge_counter, cluster_counter];
+}
+
+export async function autoFixMeshEdit() {
+	let meshes = Mesh.selected;
+	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
+
+	// Merge Vertices
+	let overlaps = gatherGeoOverlaps(meshes, (mesh) => mesh.getSelectedVertices());
+
 	if (Object.keys(overlaps).length) {
 		await new Promise(resolve => {Blockbench.showMessageBox({
 			title: 'message.auto_fix_mesh_edit.title',
@@ -904,51 +960,12 @@ export async function autoFixMeshEdit() {
 
 				let meshes = Mesh.selected.filter(m => overlaps[m.uuid]);
 				Undo.initEdit({ elements: meshes });
-				let merge_counter = 0;
-				let cluster_counter = 0;
-				for (let mesh_id in overlaps) {
-					let mesh = Mesh.selected.find(m => m.uuid == mesh_id);
-					let selected_vertices = mesh.getSelectedVertices(true);
-					for (let first_vertex in overlaps[mesh_id]) {
-						let other_vertices = overlaps[mesh_id][first_vertex];
-						cluster_counter++;
 
-						for (let vkey of other_vertices) {
-							for (let fkey in mesh.faces) {
-								let face = mesh.faces[fkey];
-								let index = face.vertices.indexOf(vkey);
-								if (index === -1) continue;
+				let results = mergeVerticesOverlaps(meshes, overlaps);
 
-								if (face.vertices.includes(first_vertex)) {
-									face.vertices.remove(vkey);
-									delete face.uv[vkey];
-									if (face.vertices.length < 2) {
-										delete mesh.faces[fkey];
-									} else if (face.vertices.length == 2) {
-										// Find face that overlaps the remaining edge
-										for (let fkey2 in mesh.faces) {
-											let face2 = mesh.faces[fkey2];
-											if (face2.vertices.length >= 3 && face2.vertices.includes(face.vertices[0]) && face2.vertices.includes(face.vertices[1])) {
-												delete mesh.faces[fkey];
-											}
-										}
-									}
-								} else {
-									let uv = face.uv[vkey];
-									face.vertices.splice(index, 1, first_vertex);
-									face.uv[first_vertex] = uv;
-									delete face.uv[vkey];
-								}
-							}
-							delete mesh.vertices[vkey];
-							selected_vertices.remove(vkey);
-							merge_counter++;
-						}
-					}
-				}
 				Undo.finishEdit('Auto-merge vertices')
 				Canvas.updateView({elements: meshes, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
-				Blockbench.showQuickMessage(tl('message.merged_vertices', [merge_counter, cluster_counter]), 2000);
+				Blockbench.showQuickMessage(tl('message.merged_vertices', [results[0], results[1]]), 2000);
 			}
 			resolve();
 		})})
@@ -2150,17 +2167,10 @@ BARS.defineActions(function() {
 				rotation_euler.reorder('XYZ');
 				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
 
+				mesh.smooth_shading = spline.smooth_shading;
 				spline.updateShading(false); // Ensure we use exploitable data for the code to follow
 
 				let tube = spline.getTubeGeo();
-				let geo = new THREE.BufferGeometry(1, 1, 1);
-				geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-				geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-				geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2));
-				geo.setIndex(tube.indices);
-
-				let attr_position = geo.getAttribute('position');
-				let attr_uv = geo.getAttribute('uv');
 				let texture = Texture.getDefault();
 				
 				// Determine if we have a texture
@@ -2176,7 +2186,7 @@ BARS.defineActions(function() {
 					}
 				};
 
-				for (let i = 0; i < attr_position.count / 6; i++) {
+				for (let i = 0; i < tube.indices.length / 6; i++) {
 					// Tri (twice)
 					let vertices = [];
 					let uv_data = [];
@@ -2184,20 +2194,32 @@ BARS.defineActions(function() {
 						// Vertex
 						let arr_offset = ((i * 6) + j) * 3;
 						let pos = [
-							attr_position.array[arr_offset + 0],
-							attr_position.array[arr_offset + 1],
-							attr_position.array[arr_offset + 2],
+							tube.vertices[arr_offset + 0],
+							tube.vertices[arr_offset + 1],
+							tube.vertices[arr_offset + 2],
 						];
 						vertices.push(pos);
 						let uv_offset = ((i * 6) + j) * 2;
 						let uv = [
-							attr_uv.array[uv_offset + 0],
-							attr_uv.array[uv_offset + 1],
+							tube.uvs[uv_offset + 0],
+							tube.uvs[uv_offset + 1],
 						]
 						uv_data.push(uv);
 					}
 
-					let vertex_keys = vertices.map(pos =>  mesh.addVertices(pos)[0]);
+					// Avoid duplicate vertices on splines
+					let vertex_keys = vertices.map(pos => {
+						for (let vKey in mesh.vertices) {
+							let e = 0.004;
+							let vert = mesh.vertices[vKey];
+							let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+							
+							if (same_spot) {
+								return vKey;
+							}
+						}
+						return mesh.addVertices(pos)[0];
+					});
 
 					let uv = {};
 					let i2 = 0;

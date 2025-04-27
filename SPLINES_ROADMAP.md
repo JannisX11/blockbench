@@ -66,7 +66,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 
 ### Low Priority
 - [ ] Spline handles will sometimes be a little finnicky to select.
-- [ ] Converting a spline to a mesh creates a mesh with all faces detached from one another.
+- [x] Converting a spline to a mesh creates a mesh with all faces detached from one another.
 - [x] Handle Gizmos don't highlight anymore. (new system)
 - [x] Hint to press shift to select multiple spline points doesn't appear immediately when selection modes are switched.
 - [x] Extrusion can be used when the selection doesn't match the criterias for selecting.
