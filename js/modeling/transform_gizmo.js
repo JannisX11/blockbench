@@ -659,16 +659,6 @@
 			let jointPickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
 			let ctrlPickerGeometry = new THREE.BoxGeometry( 0.225, 0.225, 0.3 );
 
-			this.isTilt = handlePropertiesEdit;
-			this.spline = data.uuid;
-			this.handle = data.hKey;
-			this.joint = data.joint;
-			this.ctrl1 = data.ctrl1;
-			this.ctrl2 = data.ctrl2;
-			this.vKeyJoint = data.vKeyJoint;
-			this.vKeyCtrl1 = data.vKeyCtrl1;
-			this.vKeyCtrl2 = data.vKeyCtrl2;
-
 			function getHandleColor() {
 				let colors = {
 					"free": gizmo_colors.spline_handle_free,
@@ -679,34 +669,18 @@
 				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
 			}
 			
-			// Gather control point transform data, primarily to orient the handleGizmos correctly
-			function getHandleEuler(j, c1, c2) {
-				let { quat1, quat2, quat3, euler1, euler2, euler3 } = Reusable;
-
-				// First matrix, which will give us our general control orient, and basis to properly orient the handle
-				let mat41 = new THREE.Matrix4().lookAt(j.V3_toThree(), c1.V3_toThree(), new THREE.Vector3(0, 1, 0));
-				let mat42 = new THREE.Matrix4().lookAt(c2.V3_toThree(), j.V3_toThree(), new THREE.Vector3(0, 1, 0));
-
-
-				// Matrix to fix the orientation of the previous one
-				let reOrientMat4 = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
-				mat41.multiply(reOrientMat4);
-				mat42.multiply(reOrientMat4);
-
-				// Rotations
-				let eulerC1 = euler1.setFromQuaternion(quat1.setFromRotationMatrix(mat41));
-				let eulerC2 = euler2.setFromQuaternion(quat2.setFromRotationMatrix(mat42));
-				let eulerJ = euler3.setFromQuaternion(quat3.slerpQuaternions(quat1, quat2, 0.5)); // 50/50 mix between the two handle orients
-
-				return {
-					c1: eulerC1.toArray(),
-					c2: eulerC2.toArray(),
-					combined: eulerJ.toArray()
-				};
-			}
+			this.isTilt = handlePropertiesEdit;
+			this.spline = data.uuid;
+			this.handle = data.hKey;
+			this.joint = data.joint;
+			this.ctrl1 = data.ctrl1;
+			this.ctrl2 = data.ctrl2;
+			this.vKeyJoint = data.vKeyJoint;
+			this.vKeyCtrl1 = data.vKeyCtrl1;
+			this.vKeyCtrl2 = data.vKeyCtrl2;
+			this.handleEuler = OutlinerNode.uuids[this.spline].getHandleEuler(this.handle);
 			
 			// if (!handlePropertiesEdit) { 
-			let handleEuler = getHandleEuler(this.joint, this.ctrl1, this.ctrl2);
 			let lineCtrl1Geometry = new THREE.BufferGeometry();
 			let lineCtrl2Geometry = new THREE.BufferGeometry();
 			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl1 ], 3 ) );
@@ -717,22 +691,22 @@
 
 			this.handleGizmos = {
 				C1: [
-					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl1, handleEuler.c1 ],
+					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl1, this.handleEuler.c1 ],
 					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
 				],
 				C2: [
-					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl2, handleEuler.c2 ],
+					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl2, this.handleEuler.c2 ],
 					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
 				],
 				J: [
-					[ new THREE.Mesh( jointGeometry, mat() ), this.joint, handleEuler.combined ]
+					[ new THREE.Mesh( jointGeometry, mat() ), this.joint, this.handleEuler.combined ]
 				]
 			};
 
 			this.pickerGizmos = {
-				C1: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl1, handleEuler.c1 ] ],
-				C2: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl2, handleEuler.c2 ] ],
-				J: [ [ new THREE.Mesh( jointPickerGeometry, pickerMaterial ), this.joint, handleEuler.combined ] ]
+				C1: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl1, this.handleEuler.c1 ] ],
+				C2: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl2, this.handleEuler.c2 ] ],
+				J: [ [ new THREE.Mesh( jointPickerGeometry, pickerMaterial ), this.joint, this.handleEuler.combined ] ]
 			};
 			// } 
 			// else { 
@@ -1405,6 +1379,15 @@
 							if (space === 3 && Mesh.selected[0]) {
 								let rotation = Mesh.selected[0].getSelectionRotation();
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
+							}
+							if (space === 2 && SplineMesh.selected[0]) {
+								if (SplineMesh.selected[0].getSelectedHandles().length) {
+									let handle = SplineMesh.selected[0].getSelectedHandles()[0];
+									let euler_arr = SplineMesh.selected[0].getHandleEuler(handle).combined;
+
+									let rotation = euler_arr.V3_toEuler();
+									if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
+								}
 							}
 						
 						} else if (space instanceof Group) {

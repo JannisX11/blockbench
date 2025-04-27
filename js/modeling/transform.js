@@ -690,12 +690,18 @@ export function moveElementsInSpace(difference, axis) {
 		// Spline handle point translation
 		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
 
+			
+			let handle = el.getSelectedHandles()[0];
+			let selection_rotation = space == 2 && [...el.getHandleEuler(handle).combined].V3_toEuler();
 			let selected_vertices = el.getSelectedVertices();
 			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
 
 			let difference_vec = [0, 0, 0];
 			if (space == 2) {
-				difference_vec[axis] += difference;
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyEuler(selection_rotation);
+				difference_vec.V3_set(m.x, m.y, m.z);
 			} else {
 				let m = vector.set(0, 0, 0);
 				m[getAxisLetter(axis)] = difference;

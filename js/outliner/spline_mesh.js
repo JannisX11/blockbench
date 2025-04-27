@@ -491,6 +491,35 @@ export class SplineMesh extends OutlinerElement {
             return range[1] - range[0];
         }
     }
+    // Gather control point transform data, primarily to orient the handleGizmos correctly
+    getHandleEuler(hKey) {
+        let ctrl1 = this.vertices[this.handles[hKey].control1].slice();
+        let joint = this.vertices[this.handles[hKey].joint].slice();
+        let ctrl2 = this.vertices[this.handles[hKey].control2].slice();
+        let { quat1, quat2, quat3, euler1, euler2, euler3 } = Reusable;
+
+        // First matrix, which will give us our general control orient, and basis to properly orient the handle
+        let mat41 = new THREE.Matrix4().lookAt(joint.V3_toThree(), ctrl1.V3_toThree(), new THREE.Vector3(0, 1, 0));
+        let mat42 = new THREE.Matrix4().lookAt(ctrl2.V3_toThree(), joint.V3_toThree(), new THREE.Vector3(0, 1, 0));
+        let mat43 = new THREE.Matrix4().lookAt(ctrl2.V3_toThree(), ctrl1.V3_toThree(), new THREE.Vector3(0, 1, 0));
+
+        // Matrix to fix the orientation of the previous one
+        let reOrientMat4 = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
+        mat41.multiply(reOrientMat4);
+        mat42.multiply(reOrientMat4);
+        mat43.multiply(reOrientMat4);
+
+        // Rotations
+        let eulerC1 = euler1.setFromQuaternion(quat1.setFromRotationMatrix(mat41));
+        let eulerC2 = euler2.setFromQuaternion(quat2.setFromRotationMatrix(mat42));
+        let eulerJ = euler3.setFromQuaternion(quat3.setFromRotationMatrix(mat43));
+
+        return {
+            c1: eulerC1.toArray(),
+            c2: eulerC2.toArray(),
+            combined: eulerJ.toArray()
+        };
+    }
     // Determines Gizmo locations
     getWorldCenter(ignore_mesh_selection) {
         let m = this.mesh;
