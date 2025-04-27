@@ -1054,7 +1054,7 @@ BARS.defineActions(function () {
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function (obj, i) {
-			if (obj instanceof Mesh && obj.getSelectedVertices().length) {
+			if ((obj instanceof Mesh || obj instanceof SplineMesh) && obj.getSelectedVertices().length) {
 
 				let vertices = obj.getSelectedVertices();
 				vertices.forEach(vkey => {
@@ -1085,7 +1085,7 @@ BARS.defineActions(function () {
 	}
 	function getPos(axis) {
 		let element = Outliner.selected[0];
-		if (element instanceof Mesh && element.getSelectedVertices().length) {
+		if ((element instanceof Mesh || element instanceof SplineMesh) && element.getSelectedVertices().length) {
 			let vertices = element.getSelectedVertices();
 			let sum = 0;
 			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);

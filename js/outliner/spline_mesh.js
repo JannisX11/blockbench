@@ -493,6 +493,7 @@ export class SplineMesh extends OutlinerElement {
         }
         return pos;
     }
+    // Taken as-is from Mesh
 	moveVector(arr, axis, update = true) {
 		if (typeof arr == 'number') {
 			var n = arr;
@@ -509,6 +510,7 @@ export class SplineMesh extends OutlinerElement {
 		}
 		TickUpdates.selection = true;
 	}
+    // Taken as-is from Mesh
 	getCenter(global) {
 		let center = [0, 0, 0];
 		let len = 0;
@@ -523,6 +525,7 @@ export class SplineMesh extends OutlinerElement {
 			return center;
 		}
 	}
+    // Taken as-is from Mesh
     transferOrigin(origin, update = true) {
         if (!this.mesh) return;
         var q = new THREE.Quaternion().copy(this.mesh.quaternion);
@@ -595,7 +598,7 @@ export class SplineMesh extends OutlinerElement {
 			}
 		}
     }
-    // Code smell from mesh.js
+    // Taken as-is from Mesh
     resize(val, axis, negative, allow_negative, bidirectional) {
         let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
         let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -669,7 +672,6 @@ export class SplineMesh extends OutlinerElement {
                 vec1.applyMatrix4(matrix).add(pathPoint);
 
                 // Normals
-                // Code smell from: https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
                 vec3.x = cos * pathNormal.x + sin * vec2.x,
                 vec3.y = cos * pathNormal.y + sin * vec2.y,
                 vec3.z = cos * pathNormal.z + sin * vec2.z 

@@ -425,6 +425,7 @@ UndoSystem.save = class {
 					if (new_element) {
 						if (new_element instanceof SplineMesh) {
 							new_element.overwrite(element)
+							new_element.preview_controller.updateAll(new_element);
 						} 
 						else {
 							for (var face in new_element.faces) {
