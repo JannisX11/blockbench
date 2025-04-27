@@ -373,7 +373,8 @@ export class SplineMesh extends OutlinerElement {
         return selection;
     }
     /**
-    Readonly reading of selected handles, based on selected vertices.
+    Readonly list of selected handles, based on selected vertices.
+    @param {*} loose Tells the handle selection if it should count controls being selected without their joint.
     **/
     getSelectedHandles(loose = false) {
         let selection = this.getSelectedVertices();
@@ -398,6 +399,31 @@ export class SplineMesh extends OutlinerElement {
         }
 
         return selected_handles;
+    }
+    /**
+    Readonly list of selected curves, based on selected handles. See {@link getSelectedHandles()} for handle selection.
+    @param {*} loose Tells the handle selection if it should count controls being selected without their joint.
+    **/
+    getSelectedCurves(loose = false) {
+        let selection = this.getSelectedHandles(loose);
+
+        let selected_curves = [];
+        if (selection.length > 0) {
+            for (let cKey in this.curves) {
+                let curve = this.curves[cKey];
+
+                for (let i = 0; i < (selection.length - 1); i++) {
+                    let thisHandle = this.handles[selection[i]];
+                    let nextHandle = this.handles[selection[i + 1]];
+
+                    if (thisHandle.joint == curve.start && nextHandle.joint == curve.end) {
+                        selected_curves.push(cKey);
+                    }
+                }
+            }
+        }
+
+        return selected_curves;
     }
     getCurvesForHandleKey(hKey) {
         let curves = []
@@ -937,10 +963,10 @@ export class SplineMesh extends OutlinerElement {
         return this.getBézierForPoints(time, points.start, points.start_ctrl, points.end_ctrl, points.end);
     }
     getBézierForPoints(time, p1k, p2k, p3k, p4k) {
-        let p1 = this.vertices[p1k];
-        let p2 = this.vertices[p2k];
-        let p3 = this.vertices[p3k];
-        let p4 = this.vertices[p4k];
+        let p1 = this.vertices[p1k].slice();
+        let p2 = this.vertices[p2k].slice();
+        let p3 = this.vertices[p3k].slice();
+        let p4 = this.vertices[p4k].slice();
         return this.cubicBézier(time, p1, p2, p3, p4);
     }
     // Math: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
@@ -980,6 +1006,70 @@ export class SplineMesh extends OutlinerElement {
             tangent: tangentVec,
         };
     }
+    /**
+     * Splits a curve in two distinct paths using De Casteljau's algorithm.
+     * The split happens at the corresponding T (time) on the initial curve.
+     * 
+     * @param {float} time Point at which the split occurs (in % from 0 to 1)
+     * @param {array} point1 Start Point of the initial curve [x, y, z]
+     * @param {array} point2 Start Control Point of the initial curve [x, y, z]
+     * @param {array} point3 End Control Point of the initial curve [x, y, z]
+     * @param {array} point4 End Point of the initial curve [x, y, z]
+     * @returns {object} Adjusted and new points for our two new curves:
+     * - adjusted curve start
+     * - adjusted curve start control
+     * - new handle middle control 1
+     * - new handle middle
+     * - new handle middle control 2
+     * - adjusted curve end control
+     * - adjusted curve end
+     */
+    // source: https://stackoverflow.com/questions/8369488/splitting-a-bezier-curve
+    divideBézierCurve(time, point1, point2, point3, point4) {
+        let vert1 = this.vertices[point1].slice();
+        let vert2 = this.vertices[point2].slice();
+        let vert3 = this.vertices[point3].slice();
+        let vert4 = this.vertices[point4].slice();
+        let [ x1, y1, z1 ] = vert1;
+        let [ x2, y2, z2 ] = vert2;
+        let [ x3, y3, z3 ] = vert3;
+        let [ x4, y4, z4 ] = vert4;
+    
+        let x12 = ((x2 - x1) * time) + x1;
+        let y12 = ((y2 - y1) * time) + y1;
+        let z12 = ((z2 - z1) * time) + z1;
+    
+        let x23 = ((x3 - x2) * time) + x2;
+        let y23 = ((y3 - y2) * time) + y2;
+        let z23 = ((z3 - z2) * time) + z2;
+    
+        let x34 = ((x4 - x3) * time) + x3;
+        let y34 = ((y4 - y3) * time) + y3;
+        let z34 = ((z4 - z3) * time) + z3;
+    
+        let x123 = ((x23 - x12) * time) + x12;
+        let y123 = ((y23 - y12) * time) + y12;
+        let z123 = ((z23 - z12) * time) + z12;
+    
+        let x234 = ((x34 - x23) * time) + x23;
+        let y234 = ((y34 - y23) * time) + y23;
+        let z234 = ((z34 - z23) * time) + z23;
+    
+        let x1234 = ((x234 - x123) * time) + x123;
+        let y1234 = ((y234 - y123) * time) + y123;
+        let z1234 = ((z234 - z123) * time) + z123;
+
+        return {
+            start:          [x1,    y1,    z1   ],
+            start_ctrl:     [x12,   y12,   z12  ],
+            middle_ctrl1:   [x123,  y123,  z123 ],
+            middle:         [x1234, y1234, z1234],
+            middle_ctrl2:   [x234,  y234,  z234 ],
+            end_ctrl:       [x34,   y34,   z34  ],
+            end:            [x4,    y4,    z4   ]
+        }
+
+    }
 	getTexture() {
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
@@ -1016,9 +1106,10 @@ SplineMesh.prototype.type = 'spline';
 SplineMesh.prototype.icon = 'fas.fa-bezier-curve';
 SplineMesh.prototype.menu = new Menu([
     new MenuSeparator('spline_mesh_edit'),
-    "extrude_spline_selection",
     "apply_spline_rotation",
+    "extrude_spline_selection",
     "split_spline",
+    "divide_curve",
     new MenuSeparator('spline_mesh_combination'),
     ...Outliner.control_menu_group,
     new MenuSeparator('settings'),

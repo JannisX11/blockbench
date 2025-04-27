@@ -28,7 +28,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [x] Apply handle mode effects to Scaling and Rotating.
 - [ ] Make it so "local" transform mode aligns with spline control/handle normal.
 - [x] Implement `split_spline` action.
-- [ ] Implement `subdivide_segment` action.
+- [x] Implement `subdivide_segment` action.
 
 - [x] Solid buffer order
   - All of the below features Require:
