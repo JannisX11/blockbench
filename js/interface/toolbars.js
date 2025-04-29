@@ -838,6 +838,7 @@ export const BARS = {
 				}
 				// Fix spline properties being invisible on mobile
 				for (let child of Toolbars.element_spline_dimensions.children) {
+					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
 				}
 			})
