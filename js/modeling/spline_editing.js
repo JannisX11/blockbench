@@ -141,7 +141,8 @@ BARS.defineActions(function() {
 					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[6], joint: vertex_keys[7], control2: vertex_keys[8] }))
 					let handle_keys = Object.keys(spline.handles);
 
-					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]]);
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[0], end_handle: handle_keys[1] }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[1], end_handle: handle_keys[2] }));
 				}
 				if (result.shape == "square") {
 					let width_fac = (result.width / 8);
@@ -175,7 +176,9 @@ BARS.defineActions(function() {
 					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[9], joint: vertex_keys[10], control2: vertex_keys[11] }))
 					let handle_keys = Object.keys(spline.handles);
 
-					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]], [handle_keys[2], handle_keys[3]]);
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[0], end_handle: handle_keys[1] }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[1], end_handle: handle_keys[2] }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[2], end_handle: handle_keys[3] }));
 
 					spline.cyclic = true; // close circle
 
@@ -212,7 +215,9 @@ BARS.defineActions(function() {
 					spline.addHandles(new SplineHandle(spline, { control1: vertex_keys[9], joint: vertex_keys[10], control2: vertex_keys[11] }))
 					let handle_keys = Object.keys(spline.handles);
 
-					spline.addCurves([handle_keys[0], handle_keys[1]], [handle_keys[1], handle_keys[2]], [handle_keys[2], handle_keys[3]]);
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[0], end_handle: handle_keys[1] }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[1], end_handle: handle_keys[2] }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: handle_keys[2], end_handle: handle_keys[3] }));
 
 					spline.cyclic = true; // close circle
 				}
@@ -363,7 +368,6 @@ BARS.defineActions(function() {
 						let newHandles = spline.addHandles(newHandle);
 						let hKey2 = `${newHandles[0]}`;
 						let hData = {
-							spline: spline.handles[hKey2].spline, 
 							control1: spline.handles[hKey2].control1, 
 							joint: spline.handles[hKey2].joint, 
 							control2: spline.handles[hKey2].control2
@@ -371,18 +375,21 @@ BARS.defineActions(function() {
 
 						delete spline.handles[hKey2];
 						let hNewData = {};
-						hNewData[hKey2] = new SplineHandle(hData.spline, {control1: hData.control1,joint: hData.joint,control2: hData.control2});
+						hNewData[hKey2] = new SplineHandle(spline, {control1: hData.control1,joint: hData.joint,control2: hData.control2});
 
 						spline.handles = {...hNewData, ...spline.handles};
 
 						// Move new curve at front of curves object
 						let newCurves = spline.addCurves([hKey2, hKey]);
-						let cKey = `${newCurves[0]}`;
-						let cData = {...spline.curves[cKey]};
+						let cKey2 = `${newCurves[0]}`;
+						let cData = {
+							start_handle: spline.curves[cKey2].start_handle, 
+							end_handle: spline.curves[cKey2].end_handle
+						};
 
-						delete spline.curves[cKey];
+						delete spline.curves[cKey2];
 						let cNewData = {};
-						cNewData[cKey] = cData;
+						cNewData[cKey2] = new SplineCurve(spline, { start_handle: cData.start_handle, end_handle: cData.end_handle });
 
 						spline.curves = {...cNewData, ...spline.curves};
 					}
@@ -471,7 +478,7 @@ BARS.defineActions(function() {
 					let newCurves = {};
 					for (let i = 0; i < (hKeys.length - 1); i++) {
 						let cKey = spline.addCurves([hKeys[i], hKeys[i + 1]])[0];
-						newCurves[cKey] = {...spline.curves[cKey]};
+						newCurves[cKey] = spline.curves[cKey];
 						delete spline.curves[cKey];
 					}
 					return newCurves;
