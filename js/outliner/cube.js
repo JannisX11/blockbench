@@ -872,7 +872,7 @@ class Cube extends OutlinerElement {
 		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		let is_inverted = before < 0;
-		if (is_inverted) negative = !negative;
+		if (is_inverted && allow_negative == null) negative = !negative;
 		let modify = val instanceof Function ? val : n => (n + val);
 
 		if (bidirectional) {
