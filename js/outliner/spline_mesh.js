@@ -265,7 +265,7 @@ export class SplineMesh extends OutlinerElement {
                 handles: {}, // Main component of the spline
                 curves: {}, // Segments of the spline
                 vertices: {}, // Points of the handles
-                faces: {}
+                faces: {} // Solely here so we can paint on splines (yeah, that's a bit silly). These don't even get saved, they serve a runtime purpose.
             }
         }
         Object.freeze(this._static);

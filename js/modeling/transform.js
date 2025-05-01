@@ -790,7 +790,10 @@ export function moveElementsInSpace(difference, axis) {
 			}
 		}
 		if (el instanceof Cube) {
-			el.mapAutoUV()
+			el.mapAutoUV();
+		}
+		if (el instanceof SplineMesh) {
+			el.refreshTubeFaces();
 		}
 	})
 	Canvas.updateView({
@@ -989,6 +992,9 @@ export function rotateOnAxis(modify, axis, slider) {
 		}
 		if (obj instanceof Group) {
 			Canvas.updateView({ groups: [obj] });
+		}
+		if (obj instanceof SplineMesh) {
+			obj.refreshTubeFaces();
 		}
 	})
 }
@@ -1636,6 +1642,7 @@ BARS.defineActions(function () {
 				var v = modify(obj.resolution[0]);
 				obj.resolution[0] = Math.max(v, 3);
 				obj.preview_controller.updateGeometry(obj);
+				obj.refreshTubeFaces();
 			})
 		},
 		onBefore: function () {
@@ -1660,6 +1667,7 @@ BARS.defineActions(function () {
 				var v = modify(obj.resolution[1]);
 				obj.resolution[1] = Math.max(v, 1);
 				obj.preview_controller.updateGeometry(obj);
+				obj.refreshTubeFaces();
 			})
 		},
 		onBefore: function () {
@@ -1684,6 +1692,7 @@ BARS.defineActions(function () {
 				var v = modify(obj.radius_multiplier);
 				obj.radius_multiplier = Math.max(v, 0);
 				obj.preview_controller.updateGeometry(obj);
+				obj.refreshTubeFaces();
 			})
 		},
 		onBefore: function () {
@@ -1710,6 +1719,7 @@ BARS.defineActions(function () {
 					var v = modify(handle.tilt);
 					handle.tilt = v;
 					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
 				})
 			})
 		},
@@ -1737,6 +1747,7 @@ BARS.defineActions(function () {
 					var v = modify(handle.size);
 					handle.size = Math.max(0, v);
 					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
 				})
 			})
 		},

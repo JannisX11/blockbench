@@ -947,7 +947,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				// this.reportStatus();
 			}
 			this.verifyValidity = function() {
-				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object") {
+				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object" || !Modes.edit) {
 					this.clear();
 				}
 			}
