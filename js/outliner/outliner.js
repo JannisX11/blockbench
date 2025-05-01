@@ -1088,7 +1088,7 @@ SharedActions.add('duplicate', {
 
 		if (Animation.all.length) {
 			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
-			if (affected_anims) {
+			if (affected_anims.length) {
 				Blockbench.showMessageBox({
 					translateKey: 'duplicate_bone_copy_animation',
 					message: tl('message.duplicate_bone_copy_animation.message', [affected_anims.length]),
