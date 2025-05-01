@@ -361,8 +361,13 @@ BARS.defineActions(function() {
 					// Create new handle, and add it with a corresponding curve based on if this is the start or end of our curve
 					let newHandle = new SplineHandle(spline, {control1: newVerts[0], joint: newVerts[1], control2: newVerts[2]});
 					if (isEnd) {
-						let newHandles = spline.addHandles(newHandle);
-						spline.addCurves([hKey, newHandles[0]]);
+						spline.addHandles(newHandle);
+						spline.addCurves( new SplineCurve(spline, {
+							start: spline.handles[hKey].joint, 
+							start_ctrl: spline.handles[hKey].control2, 
+							end_ctrl: newVerts[0], 
+							end: newVerts[1]
+						}));
 					} else { // If we're extruding at the front of the spline, we will need to re-order its arrays for everything to work properly
 						// Move new handle at front of handles object
 						let newHandles = spline.addHandles(newHandle);
@@ -375,21 +380,28 @@ BARS.defineActions(function() {
 
 						delete spline.handles[hKey2];
 						let hNewData = {};
-						hNewData[hKey2] = new SplineHandle(spline, {control1: hData.control1,joint: hData.joint,control2: hData.control2});
+						hNewData[hKey2] = new SplineHandle(spline, hData);
 
 						spline.handles = {...hNewData, ...spline.handles};
 
 						// Move new curve at front of curves object
-						let newCurves = spline.addCurves([hKey2, hKey]);
+						let newCurves = spline.addCurves(new SplineCurve(spline, {
+							start: newVerts[1],
+							start_ctrl: newVerts[2], 
+							end_ctrl: spline.handles[hKey].control1,
+							end: spline.handles[hKey].joint
+						}));
 						let cKey2 = `${newCurves[0]}`;
 						let cData = {
-							start_handle: spline.curves[cKey2].start_handle, 
-							end_handle: spline.curves[cKey2].end_handle
+							start: spline.curves[cKey2].start, 
+							start_ctrl: spline.curves[cKey2].start_ctrl, 
+							end_ctrl: spline.curves[cKey2].end_ctrl,
+							end: spline.curves[cKey2].end
 						};
 
 						delete spline.curves[cKey2];
 						let cNewData = {};
-						cNewData[cKey2] = new SplineCurve(spline, { start_handle: cData.start_handle, end_handle: cData.end_handle });
+						cNewData[cKey2] = new SplineCurve(spline, cData);
 
 						spline.curves = {...cNewData, ...spline.curves};
 					}
@@ -397,18 +409,15 @@ BARS.defineActions(function() {
 
 				SplineMesh.selected.forEach(spline => {
 					let firstHandleKey = spline.getFirstHandle().key;
-					let firstHandleControl = spline.getFirstHandle().data.control2;
-
 					let lastHandleKey = spline.getLastHandle().key;
-					let lastHandleControl = spline.getLastHandle().data.control1;
 
 					spline.getSelectedHandles(true).forEach(hKey => {
 						if (hKey == lastHandleKey) {
-							let cKey = spline.getCurvesForPointKey(lastHandleControl)[0];
+							let cKey = spline.getCurvesOfHandle(lastHandleKey)[0];
 							extrudeAlongSpline(spline, cKey, lastHandleKey, true);
 						} 
 						else if (hKey == firstHandleKey) {
-							let cKey = spline.getCurvesForPointKey(firstHandleControl)[0];
+							let cKey = spline.getCurvesOfHandle(firstHandleKey)[0];
 							extrudeAlongSpline(spline, cKey, firstHandleKey);
 						}
 
@@ -494,7 +503,7 @@ BARS.defineActions(function() {
 						let p3 = curve.end_ctrl;
 						let p4 = curve.end;
 
-						let startHandle = spline.getHandleKeyForPointKey(p1);
+						let startHandle = spline.getHandleOfPoint(p1);
 						if (startHandle == hKey) {
 							let result = spline.divideBézierCurve((factor / 100.0), p1, p2, p3, p4);
 

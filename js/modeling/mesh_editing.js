@@ -2166,11 +2166,9 @@ BARS.defineActions(function() {
 				let rotation_euler = new THREE.Euler(0, 0, 0, 'ZYX').fromArray(spline.rotation.map(Math.degToRad));
 				rotation_euler.reorder('XYZ');
 				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
-
 				mesh.smooth_shading = spline.smooth_shading;
-				spline.updateShading(false); // Ensure we use exploitable data for the code to follow
 
-				let tube = spline.getTubeGeo();
+				let tube = spline.getTubeGeo(false);
 				let texture = Texture.getDefault();
 				
 				// Determine if we have a texture
