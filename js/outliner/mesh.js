@@ -1176,7 +1176,10 @@ new NodePreviewController(Mesh, {
 				if (tex && tex.uuid) {
 					materials.push(tex.getMaterial())
 				} else {
-					materials.push(Canvas.emptyMaterials[element.color])
+					// in most cases the color will be within the bounds of the emptyMaterials array,
+					// there is an edge case if you're loading a model that was saved with a color that is out of bounds
+					// see https://github.com/JannisX11/blockbench/issues/2777
+					materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
 				}
 			}
 			if (materials.allEqual(materials[0])) materials = materials[0];
