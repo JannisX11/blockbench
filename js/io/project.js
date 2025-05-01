@@ -331,6 +331,9 @@ export class ModelProject {
 		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
+		
+		// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
+		SplineGizmos.clear();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];
@@ -395,9 +398,6 @@ export class ModelProject {
 		}
 
 		if (force || Project.saved || await saveWarning()) {
-			// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
-			SplineGizmos.clear();
-
 			try {
 				if (isApp) {
 					updateRecentProjectData();
