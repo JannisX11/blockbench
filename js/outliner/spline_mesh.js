@@ -22,6 +22,82 @@ export class SplineTubeFace extends Face {
 
         return faceNormal;
 	}
+    getTexture() {
+        return this.spline.getTexture();
+    }
+    // (almost) Straight from MeshFace
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+
+		// Use non-truncated uv coordinates to select the correct triangle of a face.
+        let is_in_tri = pointInTriangle(uv, this.uvs[0], this.uvs[1], this.uvs[2]);
+		let vert_a = is_in_tri ? 0 : 0;
+		let vert_b = is_in_tri ? 1 : 2;
+		let vert_c = is_in_tri ? 2 : 3;
+
+		let p0 = this.uvs[vert_a];
+		let p1 = this.uvs[vert_b];
+		let p2 = this.uvs[vert_c];
+
+		let vertexa = this.vertices[vert_a];
+		let vertexb = this.vertices[vert_b];
+		let vertexc = this.vertices[vert_c];
+
+		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
+
+		function UVToLocal(uv) {
+			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
+			let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0;
+			let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0;
+			let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0;
+
+			return new THREE.Vector3(
+				vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+				vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+				vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3
+			)
+		}
+
+		let texel_pos = UVToLocal(uv);
+		let texel_x_axis = UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+		let texel_y_axis = UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+		texel_x_axis.sub(texel_pos);
+		texel_y_axis.sub(texel_pos);
+
+		let matrix = new THREE.Matrix4();
+		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+		matrix.setPosition(texel_pos);
+		return matrix;
+	}
+    // (almost) Straight from MeshFace
+	UVToLocal(uv) {
+
+		// Use non-truncated uv coordinates to select the correct triangle of a face.
+        let is_in_tri = pointInTriangle(uv, this.uvs[0], this.uvs[1], this.uvs[2]);
+		let vert_a = is_in_tri ? 0 : 0;
+		let vert_b = is_in_tri ? 1 : 2;
+		let vert_c = is_in_tri ? 2 : 3;
+
+		let p0 = this.uvs[vert_a];
+		let p1 = this.uvs[vert_b];
+		let p2 = this.uvs[vert_c];
+
+		let vertexa = this.vertices[vert_a];
+		let vertexb = this.vertices[vert_b];
+		let vertexc = this.vertices[vert_c];
+
+		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
+		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
+		let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
+		let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
+
+		let local_space = new THREE.Vector3(
+			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
+			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
+			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
+		)
+		return local_space;	
+	}
 }
 new Property(SplineTubeFace, 'array', 'vertices');
 new Property(SplineTubeFace, 'array', 'uvs');
@@ -175,7 +251,7 @@ export class SplineMesh extends OutlinerElement {
                 handles: {}, // Main component of the spline
                 curves: {}, // Segments of the spline
                 vertices: {}, // Points of the handles
-                faces: []
+                faces: {}
             }
         }
         Object.freeze(this._static);
@@ -380,9 +456,11 @@ export class SplineMesh extends OutlinerElement {
     }
     refreshTubeFaces() {
         // Dummy faces so we can easily convert this to mesh, and paint on it
+        // this feels super dirty, feel free to judge it :3
         if (Object.keys(this.curves).length) {
-            let tube = this.getTubeGeo(true);
-            this.faces = [];
+            let tube = this.getTubeGeo(false);
+            let face_arr = [];
+            this.faces = {};
 
             for (let i = 0; i < tube.indices.length / 6; i++) {
                 let i1 = tube.indices[i + 0];
@@ -409,11 +487,17 @@ export class SplineMesh extends OutlinerElement {
                 })
 
                 let face = new SplineTubeFace(this, {vertices: vertices, uvs: uvs});
-                this.faces.push(face);
+                face_arr.push(face);
             }
-        }
 
-        console.log(this.faces)
+            face_arr.map(face => {
+                let key;
+                while (!key || this.faces[key]) {
+                    key = bbuid(4);
+                }
+                this.faces[key] = face;
+            })
+        }
     }
     getUndoCopy(aspects = {}) {
         let copy = {};
@@ -1528,6 +1612,41 @@ new NodePreviewController(SplineMesh, {
         if (element.render_mesh) {
             let tube = element.getTubeGeo(element.smooth_shading);
 
+            // let arr_indices = [];
+            // let arr_vertices = [];
+            // let arr_normals = [];
+            // let arr_uvs = [];
+            // for (let i = 0; i < element.faces.length; i++) {
+                // let face = element.faces[i];
+
+				// let index_offset = arr_vertices.length / 3;
+				// let face_indices = [];
+				// face.vertices.forEach((arr, j) => {
+					// arr_vertices.push(...face.vertices[j])
+					// face_indices.push(index_offset + j);
+				// })
+                // 
+				// arr_indices.push(face_indices[0]);
+				// arr_indices.push(face_indices[1]);
+				// arr_indices.push(face_indices[2]);
+				// arr_indices.push(face_indices[0]);
+				// arr_indices.push(face_indices[2]);
+				// arr_indices.push(face_indices[3]);
+
+				// // Outline
+				// face.vertices.forEach((arr, k) => {
+					// mesh.outline.vertex_order.push(k);
+					// if (k != 0) mesh.outline.vertex_order.push(k);
+				// })
+				// mesh.outline.vertex_order.push(face.vertices[0]);
+            // }
+
+            // mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));
+            // mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(arr_normals), 3));
+            // mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(arr_uvs), 2));
+            // mesh.geometry.attributes.uv.needsUpdate = true;
+            // mesh.geometry.setIndex(arr_indices);
+
             mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
             mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
             mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2));
@@ -1536,16 +1655,28 @@ new NodePreviewController(SplineMesh, {
             
             // Add outlines for tube geo edges
             let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
-            for (let i = 0; i < tube.indices.length; i+=6) {
-                let v1 = tube.indices[i];
-                let v2 = tube.indices[i + 1];
-                let v3 = tube.indices[i + 4];
-                let v4 = tube.indices[i + 1];
+            for (let i = 0; i < tube.indices.length / 6; i++) {
+                let v1 = tube.indices[(i * 6) + 0];
+                let v2 = tube.indices[(i * 6) + 1];
+                let v3 = tube.indices[(i * 6) + 4];
+                let v4 = tube.indices[(i * 6) + 1];
+                let v_arr = [v2, v3, v4, v1]
+
+                // close off initial ring, this the outline method Mesh uses only fills 
+                // in a few of the edges for quads, and this tube can only have quads.
+                if (i < element.resolution[0]) { 
+                    v_arr.push(...[
+                        tube.indices[(i * 6) + 5],
+                        tube.indices[(i * 6) + 0],
+                        tube.indices[(i * 6) + 1],
+                        tube.indices[(i * 6) + 2]
+                    ])
+                }
     
                 // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
-                [v2, v3, v4, v1].forEach((index, i) => {
+                v_arr.forEach((index, i) => {
                     let vector = [
-                        tube.vertices[index * 3], 
+                        tube.vertices[(index * 3)], 
                         tube.vertices[(index * 3) + 1], 
                         tube.vertices[(index * 3) + 2]
                     ];

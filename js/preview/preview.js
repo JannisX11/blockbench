@@ -1,4 +1,5 @@
 import { THREE } from '../../lib/libs';
+import { SplineMesh } from '../outliner/spline_mesh';
 
 window.scene = null;
 window.main_preview = null;
@@ -450,6 +451,17 @@ export class Preview {
 							break; 
 						}
 						if (vertices.length == 3) index -= 1;
+						if (vertices.length == 4) index -= 2;
+					}
+				} else if (element instanceof SplineMesh) {
+					let index = intersects[0].faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
 						if (vertices.length == 4) index -= 2;
 					}
 				}
