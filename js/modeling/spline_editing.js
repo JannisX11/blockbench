@@ -29,9 +29,7 @@ SharedActions.add('delete', {
 				// ... and remake them with the new handle order.
 				let hKeys = Object.keys(spline.handles);
 				for (let i = 0; i < (hKeys.length - 1); i++) {
-					let handle1 = spline.handles[hKeys[i]];
-					let handle2 = spline.handles[hKeys[i + 1]];
-					spline.addCurves(new SplineCurve(spline, { start: handle1.joint, start_ctrl: handle1.control2, end_ctrl: handle2.control1, end: handle2.joint }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: hKeys[i], end_handle: hKeys[i + 1] }));
 				}
 			}
 			else {
@@ -363,13 +361,8 @@ BARS.defineActions(function() {
 					// Create new handle, and add it with a corresponding curve based on if this is the start or end of our curve
 					let newHandle = new SplineHandle(spline, {control1: newVerts[0], joint: newVerts[1], control2: newVerts[2]});
 					if (isEnd) {
-						spline.addHandles(newHandle);
-						spline.addCurves( new SplineCurve(spline, {
-							start: spline.handles[hKey].joint, 
-							start_ctrl: spline.handles[hKey].control2, 
-							end_ctrl: newVerts[0], 
-							end: newVerts[1]
-						}));
+						let newHandles = spline.addHandles(newHandle);
+						spline.addCurves(new SplineCurve(spline, { start_handle: hKey, end_handle: newHandles[0] }));
 					} else { // If we're extruding at the front of the spline, we will need to re-order its arrays for everything to work properly
 						// Move new handle at front of handles object
 						let newHandles = spline.addHandles(newHandle);
@@ -387,12 +380,7 @@ BARS.defineActions(function() {
 						spline.handles = {...hNewData, ...spline.handles};
 
 						// Move new curve at front of curves object
-						let newCurves = spline.addCurves(new SplineCurve(spline, {
-							start: newVerts[1],
-							start_ctrl: newVerts[2], 
-							end_ctrl: spline.handles[hKey].control1,
-							end: spline.handles[hKey].joint
-						}));
+						let newCurves = spline.addCurves(new SplineCurve(spline, { start_handle: hKey2, end_handle: hKey }));
 						let cKey2 = `${newCurves[0]}`;
 						let cData = {
 							start: spline.curves[cKey2].start, 
@@ -488,16 +476,7 @@ BARS.defineActions(function() {
 				function createCurves(hKeys) {
 					let newCurves = {};
 					for (let i = 0; i < (hKeys.length - 1); i++) {
-						let handle1 = spline.handles[hKeys[i]];
-						let handle2 = spline.handles[hKeys[i + 1]];
-
-						let cKey = spline.addCurves(new SplineCurve(spline, { 
-							start: handle1.joint, 
-							start_ctrl: handle1.control2, 
-							end_ctrl: handle2.control1, 
-							end: handle2.joint 
-						}))[0];
-
+						let cKey = spline.addCurves(new SplineCurve(spline, { start_handle: hKeys[i], end_handle: hKeys[i + 1] }))[0];
 						newCurves[cKey] = spline.curves[cKey];
 						delete spline.curves[cKey];
 					}
@@ -589,9 +568,7 @@ BARS.defineActions(function() {
 
 			function createCurves(spline, hKeys) {
 				for (let i = 0; i < (hKeys.length - 1); i++) {
-					let handle1 = spline.handles[hKeys[i]];
-					let handle2 = spline.handles[hKeys[i + 1]];
-					spline.addCurves(new SplineCurve(spline, { start: handle1.joint, start_ctrl: handle1.control2, end_ctrl: handle2.control1, end: handle2.joint }));
+					spline.addCurves(new SplineCurve(spline, { start_handle: hKeys[i], end_handle: hKeys[i + 1] }));
 				}
 			}
 

@@ -128,7 +128,7 @@ export class SplineCurve {
             this.constructor.properties[key].merge(this, data)
         }
 
-        // handles
+        // Handles
         if (data.start_handle) this.start_handle = data.start_handle;
         if (data.end_handle) this.end_handle = data.end_handle;
 
@@ -138,9 +138,23 @@ export class SplineCurve {
         if (data.end_ctrl) this.end_ctrl = data.end_ctrl;
         if (data.end) this.end = data.end;
 
-        // re-handles
-        if (!data.start_handle) this.start_handle = this.spline.getHandleOfPoint(data.start);
-        if (!data.end_handle) this.end_handle = this.spline.getHandleOfPoint(data.end);
+        // Below we handle cases where some parts of the data are not present
+        // re-Handles
+        if (data.start && data.end) {
+            if (!data.start_handle) this.start_handle = this.spline.getHandleOfPoint(data.start);
+            if (!data.end_handle) this.end_handle = this.spline.getHandleOfPoint(data.end);
+        }
+
+        // re-Points
+        if (data.start_handle && data.end_handle) {
+            let sh = this.spline.handles[data.start_handle];
+            let eh = this.spline.handles[data.end_handle];
+
+            if (!data.start) this.start = sh.joint;
+            if (!data.start_ctrl) this.start_ctrl = sh.control2;
+            if (!data.end_ctrl) this.end_ctrl = eh.control1;
+            if (!data.end) this.end = eh.joint;
+        }
             
         return this;
     }
@@ -279,10 +293,10 @@ export class SplineMesh extends OutlinerElement {
             let handle_keys = Object.keys(this.handles);
 
             // Objects representing Cubic bézier curves (P1, P2, P3, P4)
-            this.addCurves(new SplineCurve(this, { start: vertex_keys[ 1], start_ctrl: vertex_keys[ 2], end_ctrl: vertex_keys[ 3], end: vertex_keys[ 4] })); //  )
-            this.addCurves(new SplineCurve(this, { start: vertex_keys[ 4], start_ctrl: vertex_keys[ 5], end_ctrl: vertex_keys[ 6], end: vertex_keys[ 7] })); // (
-            this.addCurves(new SplineCurve(this, { start: vertex_keys[ 7], start_ctrl: vertex_keys[ 8], end_ctrl: vertex_keys[ 9], end: vertex_keys[10] })); //  )
-            this.addCurves(new SplineCurve(this, { start: vertex_keys[10], start_ctrl: vertex_keys[11], end_ctrl: vertex_keys[12], end: vertex_keys[13] })); // (
+            this.addCurves(new SplineCurve(this, { start_handle: handle_keys[0], end_handle: handle_keys[1] })); //  )
+            this.addCurves(new SplineCurve(this, { start_handle: handle_keys[1], end_handle: handle_keys[2] })); // (
+            this.addCurves(new SplineCurve(this, { start_handle: handle_keys[2], end_handle: handle_keys[3] })); //  )
+            this.addCurves(new SplineCurve(this, { start_handle: handle_keys[3], end_handle: handle_keys[4] })); // (
 
         }
         for (var key in SplineMesh.properties) {

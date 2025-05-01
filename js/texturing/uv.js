@@ -3652,6 +3652,7 @@ Interface.definePanels(function() {
 					this.mappable_elements.forEach(element => {
 						UVEditor.getSelectedFaces(element).forEach(fkey => {
 							if (element.faces[fkey].texture === null) return;
+							if (element instanceof SplineMesh) return;
 
 							let face = element.faces[fkey];
 							if (face instanceof CubeFace) {
