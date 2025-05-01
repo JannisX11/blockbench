@@ -1,4 +1,3 @@
-import { Reusable } from "../preview/canvas";
 import { Property } from "../util/property";
 
 export class SplineTubeFace extends Face {
