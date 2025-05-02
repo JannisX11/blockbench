@@ -468,9 +468,11 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
+    /**
+     * Refresh the dummy face object of this spline, so we can paint on it
+     * this feels super dirty, feel free to judge it :P
+     */
     refreshTubeFaces() {
-        // Dummy faces so we can easily convert this to mesh, and paint on it
-        // this feels super dirty, feel free to judge it :3
         if (Object.keys(this.curves).length) {
             let tube = this.getTubeGeo(false);
             let face_arr = [];
@@ -712,7 +714,11 @@ export class SplineMesh extends OutlinerElement {
             return range[1] - range[0];
         }
     }
-    // Gather control point transform data, primarily to orient the handleGizmos correctly
+    /** 
+     * Gather control point transform data, primarily to orient the handleGizmos correctly, but also for normal transform space.
+     * @param {*} hKey Key of the handle we want the transform of.
+     * @param {*} euler re-orientation Euler in case we need to re-orient the result of this to match another direction.
+    */
     getHandleEuler(hKey, euler = new THREE.Euler(0, 0, Math.PI / 2)) {
         let ctrl1 = this.vertices[this.handles[hKey].control1].slice();
         let joint = this.vertices[this.handles[hKey].joint].slice();
@@ -1508,7 +1514,8 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
         let outline_material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 4 })
-        let outline = new THREE.LineSegments(new THREE.BufferGeometry(), outline_material);
+        let dashed_outline_material = new THREE.LineDashedMaterial({ vertexColors: true, linewidth: 2, dashSize: 0.75, gapSize: 0.5 })
+        let outline = new THREE.LineSegments(new THREE.BufferGeometry(), [outline_material, dashed_outline_material]);
         outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         outline.no_export = true;
         outline.name = element.uuid + '_outline';
@@ -1597,9 +1604,9 @@ new NodePreviewController(SplineMesh, {
         let pointsToAdd = []
 
         // Add curve line points
-        let data = element.getBézierPath();
-        for (let ptIndex = 0; ptIndex < data.points.length; ptIndex++) {
-            pointsToAdd.push({point: data.points[ptIndex], addNext: data.connections[ptIndex]});
+        let pathData = element.getBézierPath();
+        for (let ptIndex = 0; ptIndex < pathData.points.length; ptIndex++) {
+            pointsToAdd.push({point: pathData.points[ptIndex], addNext: pathData.connections[ptIndex]});
         }
 
         // Add all points to line geometry
@@ -1620,46 +1627,10 @@ new NodePreviewController(SplineMesh, {
                 lineColors.push(...pathColor.toArray());
             }
         })
-        this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
 
         // Tube geometry
         if (element.render_mesh) {
             let tube = element.getTubeGeo(element.smooth_shading);
-
-            // let arr_indices = [];
-            // let arr_vertices = [];
-            // let arr_normals = [];
-            // let arr_uvs = [];
-            // for (let i = 0; i < element.faces.length; i++) {
-                // let face = element.faces[i];
-
-				// let index_offset = arr_vertices.length / 3;
-				// let face_indices = [];
-				// face.vertices.forEach((arr, j) => {
-					// arr_vertices.push(...face.vertices[j])
-					// face_indices.push(index_offset + j);
-				// })
-                // 
-				// arr_indices.push(face_indices[0]);
-				// arr_indices.push(face_indices[1]);
-				// arr_indices.push(face_indices[2]);
-				// arr_indices.push(face_indices[0]);
-				// arr_indices.push(face_indices[2]);
-				// arr_indices.push(face_indices[3]);
-
-				// // Outline
-				// face.vertices.forEach((arr, k) => {
-					// mesh.outline.vertex_order.push(k);
-					// if (k != 0) mesh.outline.vertex_order.push(k);
-				// })
-				// mesh.outline.vertex_order.push(face.vertices[0]);
-            // }
-
-            // mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));
-            // mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(arr_normals), 3));
-            // mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(arr_uvs), 2));
-            // mesh.geometry.attributes.uv.needsUpdate = true;
-            // mesh.geometry.setIndex(arr_indices);
 
             mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
             mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
@@ -1708,12 +1679,26 @@ new NodePreviewController(SplineMesh, {
             mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([]), 3));
             mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([]), 2));
         }
+        this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
+        
+        mesh.outline.geometry.clearGroups();
+        let start1 = 0;
+        let count1 = (element.resolution[1] * 2) * Object.keys(element.curves).length;
+        let start2 = count1;
+        let count2 = (element.resolution[1] * 2);
+        let start3 = start2 + count2;
+        let count3 = Math.abs(linePoints.length - start2 + count2);
 
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
+        mesh.outline.geometry.addGroup(start1, count1, 0);
+        mesh.outline.geometry.addGroup(start2, count2, 1);
+        if (element.render_mesh) mesh.outline.geometry.addGroup(start3, count3, 0);
+        // console.log(mesh.outline.geometry.groups);
 
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
+        mesh.outline.computeLineDistances();
 
         SplineMesh.preview_controller.updateHighlight(element);
 

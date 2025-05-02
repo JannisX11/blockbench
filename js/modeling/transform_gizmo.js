@@ -656,7 +656,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
 		constructor(data) {
 			super();
-			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.075, 0.3, 12, 1, false );
+			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.1125, 0.3, 12, 1, false );
 			let jointGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 			let ctrlGeometry = new THREE.BoxGeometry( 0.075, 0.075, 0.15 );
 			let jointPickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
