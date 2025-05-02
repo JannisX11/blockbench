@@ -391,6 +391,8 @@ export class Preview {
 					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
 						objects.push(element.mesh.outline);
 					}
+				} else if (element instanceof SplineMesh && element.mesh.outline.visible && !element.render_mesh) {
+					objects.push(element.mesh.outline);
 				}
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
@@ -425,7 +427,7 @@ export class Preview {
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
 		}
-		if (settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') {
+		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') || SplineMesh.hasAny()) {
 			let all_intersects = intersects;
 			intersects = intersects.filter(a => a.object.isLine);
 			if (intersects.length == 0) intersects = all_intersects;
@@ -505,7 +507,7 @@ export class Preview {
 			}
 		} else if (intersect_object.type == 'Points') {
 			var element = OutlinerNode.uuids[intersect_object.element_uuid];
-			let vertex = element instanceof Mesh || element instanceof SplineMesh
+			let vertex = element instanceof Mesh
 				? Object.keys(element.vertices)[intersect.index]
 				: intersect_object.vertices[intersect.index];
 			return {
@@ -519,7 +521,11 @@ export class Preview {
 			}
 		} else if (intersect_object.type == 'LineSegments') {
 			var element = OutlinerNode.uuids[intersect_object.parent.name];
-			let vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
+			let vertices = [];
+			if (!(element instanceof SplineMesh)) {
+				vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2)
+			}
+			console.log(intersects[0]);
 			return {
 				event,
 				type: 'line',
@@ -833,9 +839,9 @@ export class Preview {
 				spline_selection_mode = 'object';
 			}
 
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))) {
 				Undo.initSelection();
-				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
+				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh' && data.element.type != 'spline') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
 					if (data.element.selected && (multi_select || group_select)) {
 						face_selection.safePush(data.face);
@@ -847,7 +853,7 @@ export class Preview {
 				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (data.element instanceof Mesh == false || select_mode == 'object') && (
+				if (data.element.parent.type === 'group' && (data.element instanceof Mesh == false || data.element instanceof SplineMesh == false || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
 					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))

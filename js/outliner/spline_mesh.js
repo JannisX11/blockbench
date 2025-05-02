@@ -1524,7 +1524,6 @@ new NodePreviewController(SplineMesh, {
         outline.frustumCulled = false;
         mesh.outline = outline;
         mesh.add(outline);
-		outline.vertex_order = [];
 
         let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
         points.element_uuid = element.uuid;
@@ -1629,58 +1628,43 @@ new NodePreviewController(SplineMesh, {
         })
 
         // Tube geometry
+        let arr_vertices = [];
+        let arr_normals = [];
+        let arr_uvs = [];
+        let arr_indices = [];
         if (element.render_mesh) {
             let tube = element.getTubeGeo(element.smooth_shading);
-
-            mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(tube.vertices), 3));
-            mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(tube.normals), 3));
-            mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(tube.uvs), 2));
-            mesh.geometry.attributes.uv.needsUpdate = true;
-            mesh.geometry.setIndex(tube.indices);
+            arr_vertices = tube.vertices;
+            arr_normals = tube.normals;
+            arr_uvs = tube.uvs;
+            arr_indices = tube.indices;
             
             // Add outlines for tube geo edges
             let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
             for (let i = 0; i < tube.indices.length / 6; i++) {
-                let v1 = tube.indices[(i * 6) + 0];
-                let v2 = tube.indices[(i * 6) + 1];
-                let v3 = tube.indices[(i * 6) + 4];
-                let v4 = tube.indices[(i * 6) + 1];
-                let v_arr = [v2, v3, v4, v1]
+                let v_arr = [];
+                [0, 1, 4, 1].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
 
                 // close off initial ring, this the outline method Mesh uses only fills 
                 // in a few of the edges for quads, and this tube can only have quads.
-                if (i < element.resolution[0]) { 
-                    v_arr.push(...[
-                        tube.indices[(i * 6) + 5],
-                        tube.indices[(i * 6) + 0],
-                        tube.indices[(i * 6) + 1],
-                        tube.indices[(i * 6) + 2]
-                    ])
+                if (i < element.resolution[0]) {
+                    [5, 0, 1, 2].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
                 }
     
                 // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
                 v_arr.forEach((index, i) => {
-                    let vector = [
-                        tube.vertices[(index * 3)], 
-                        tube.vertices[(index * 3) + 1], 
-                        tube.vertices[(index * 3) + 2]
-                    ];
-                    linePoints.push(...vector);
+                    [0, 1, 2].forEach(add => linePoints.push(tube.vertices[(index * 3) + add]));
                     lineColors.push(...outlineColor);
                 })
             }
-
-            let tubeVertCount = mesh.geometry.attributes.position.array.length;
-            let highlightArray = mesh.geometry.attributes.highlight.array
-            mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(tubeVertCount).fill(highlightArray[0]), 1));
-        } 
-        else {
-            mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array([]), 3));
-            mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([]), 3));
-            mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array([]), 2));
         }
         this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
         
+        // Outlines
+        mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
+        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
+
+        // Groups for dashed and non-dashed lines on outlines
         mesh.outline.geometry.clearGroups();
         let start1 = 0;
         let count1 = (element.resolution[1] * 2) * Object.keys(element.curves).length;
@@ -1689,19 +1673,28 @@ new NodePreviewController(SplineMesh, {
         let start3 = start2 + count2;
         let count3 = Math.abs(linePoints.length - start2 + count2);
 
-        mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
-        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
         mesh.outline.geometry.addGroup(start1, count1, 0);
         mesh.outline.geometry.addGroup(start2, count2, 1);
-        if (element.render_mesh) mesh.outline.geometry.addGroup(start3, count3, 0);
-        // console.log(mesh.outline.geometry.groups);
+        mesh.outline.geometry.addGroup(start3, count3, 0);
+		mesh.outline.geometry.computeBoundingSphere();
+        mesh.outline.computeLineDistances();
+        
+        // Populate Tube geometry
+        mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));
+        mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(arr_normals), 3));
+        mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(arr_uvs), 2));
+        mesh.geometry.attributes.uv.needsUpdate = true;
+        mesh.geometry.setIndex(arr_indices);
 
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
-        mesh.outline.computeLineDistances();
 
+        let outlineArray = mesh.geometry.attributes.position.array.length / 3;
+        let highlightArray = mesh.geometry.attributes.highlight.array
+        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(outlineArray).fill(highlightArray[0]), 1));
+
+        // Send updates
         SplineMesh.preview_controller.updateHighlight(element);
-
         this.dispatchEvent('update_geometry', { element });
     },
     // partly code smell from mesh.js

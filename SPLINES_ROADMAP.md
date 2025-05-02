@@ -64,3 +64,5 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [ ] Spline handle gizmos cause a bit of frame drops.
 - [x] Spline outline wireframe is missing one singular edge loop at the start of the spline.
 - [x] Handle Gizmo joints will sometimes orient wrongly.
+
+export_gltf|export_obj|export_fbx|export_collada
