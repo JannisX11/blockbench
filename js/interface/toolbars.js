@@ -743,6 +743,7 @@ export const BARS = {
 				'selection_mode',
 				'spline_selection_mode',
 				'spline_handle_mode',
+				Blockbench.isMobile ? ('element_spline_dimensions') : '',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
@@ -833,11 +834,6 @@ export const BARS = {
 				Toolbars.element_rotation
 			].forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
-					if (toolbar.children.includes(child)) return;
-					toolbar.add(child);
-				}
-				// Fix spline properties being invisible on mobile
-				for (let child of Toolbars.element_spline_dimensions.children) {
 					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
 				}
