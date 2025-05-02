@@ -391,7 +391,7 @@ export const BARS = {
 				selectFace: true,
 				transformerMode: 'translate',
 				animation_channel: 'position',
-				toolbar: Blockbench.isMobile ? 'element_position' : 'main_tools',
+				toolbar: Blockbench.isMobile ? ['element_position', 'element_spline_dimensions'] : 'main_tools',
 				alt_tool: 'resize_tool',
 				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'v'}),
@@ -402,7 +402,7 @@ export const BARS = {
 				selectFace: true,
 				transformerMode: 'scale',
 				animation_channel: 'scale',
-				toolbar: Blockbench.isMobile ? 'element_size' : 'main_tools',
+				toolbar: Blockbench.isMobile ? ['element_size', 'element_spline_dimensions'] : 'main_tools',
 				alt_tool: 'move_tool',
 				modes: ['edit', 'display', 'animate'],
 				keybind: new Keybind({key: 's'}),
@@ -426,7 +426,7 @@ export const BARS = {
 				selectFace: true,
 				transformerMode: 'rotate',
 				animation_channel: 'rotation',
-				toolbar: Blockbench.isMobile ? 'element_rotation' : 'main_tools',
+				toolbar: Blockbench.isMobile ? ['element_rotation', 'element_spline_dimensions'] : 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'r'})
@@ -436,7 +436,7 @@ export const BARS = {
 				category: 'tools',
 				selectFace: true,
 				transformerMode: 'translate',
-				toolbar: Blockbench.isMobile ? 'element_origin' : 'main_tools',
+				toolbar: Blockbench.isMobile ? ['element_rotation', 'element_spline_dimensions'] : 'main_tools',
 				alt_tool: 'rotate_tool',
 				modes: ['edit', 'animate'],
 				keybind: new Keybind({key: 'p'}),
@@ -743,7 +743,6 @@ export const BARS = {
 				'selection_mode',
 				'spline_selection_mode',
 				'spline_handle_mode',
-				Blockbench.isMobile ? ('element_spline_dimensions') : '',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
@@ -831,7 +830,8 @@ export const BARS = {
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
-				Toolbars.element_rotation
+				Toolbars.element_rotation,
+				Toolbars.element_spline_dimensions
 			].forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;

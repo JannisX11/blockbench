@@ -490,10 +490,20 @@ export class Tool extends Action {
 			Project.view_mode = 'textured';
 			BarItems.view_mode.change('textured');
 		}
-		if (this.toolbar && Toolbars[this.toolbar]) {
-			Toolbars[this.toolbar].toPlace('tool_options')
-		} else {
-			$('.toolbar_wrapper.tool_options > .toolbar').detach()
+		if (this.toolbar) {
+			if (this.toolbar instanceof Array) {
+				this.toolbar.forEach(bar => {
+					if (Toolbars[bar]) {
+						Toolbars[bar].toPlace('tool_options');
+					}
+				})
+			} 
+			else if (Toolbars[this.toolbar]) {
+				Toolbars[this.toolbar].toPlace('tool_options');
+			}
+		}
+		else {
+			$('.toolbar_wrapper.tool_options > .toolbar').detach();
 		}
 
 		if (typeof this.onSelect == 'function') {

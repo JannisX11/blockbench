@@ -1629,6 +1629,7 @@ new NodePreviewController(SplineMesh, {
         let arr_normals = [];
         let arr_uvs = [];
         let arr_indices = [];
+        let arr_outline = [];
         if (element.render_mesh) {
             let tube = element.getTubeGeo(element.smooth_shading);
             arr_vertices = tube.vertices;
@@ -1650,7 +1651,7 @@ new NodePreviewController(SplineMesh, {
     
                 // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
                 v_arr.forEach((index, i) => {
-                    [0, 1, 2].forEach(add => linePoints.push(tube.vertices[(index * 3) + add]));
+                    [0, 1, 2].forEach(add => arr_outline.push(tube.vertices[(index * 3) + add]));
                     lineColors.push(...outlineColor);
                 })
             }

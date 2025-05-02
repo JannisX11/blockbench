@@ -691,7 +691,7 @@ export function moveElementsInSpace(difference, axis) {
 		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
 
 			
-			let handle = el.getSelectedHandles()[0];
+			let handle = el.getSelectedHandles(true)[0];
 			let selection_rotation = space == 3 && [...el.getHandleEuler(handle).combined].V3_toEuler();
 			let selected_vertices = el.getSelectedVertices();
 			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);

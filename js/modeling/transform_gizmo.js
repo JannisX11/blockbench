@@ -1389,8 +1389,8 @@ import { SplineMesh } from "../outliner/spline_mesh";
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
 							}
 							if (space === 3 && SplineMesh.selected[0]) {
-								if (SplineMesh.selected[0].getSelectedHandles().length) {
-									let handle = SplineMesh.selected[0].getSelectedHandles()[0];
+								if (SplineMesh.selected[0].getSelectedHandles(true).length) {
+									let handle = SplineMesh.selected[0].getSelectedHandles(true)[0];
 									let euler_arr = SplineMesh.selected[0].getHandleEuler(handle).combined;
 
 									let rotation = euler_arr.V3_toEuler();
