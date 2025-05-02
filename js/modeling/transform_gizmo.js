@@ -654,8 +654,9 @@ import { SplineMesh } from "../outliner/spline_mesh";
 	// Commented out bits were part of an abandoned attempt at a handle tilt Gizmo.
 	// (similar to rotate gizmo, but on a single axis along the spline)
 	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
-		constructor(data, handlePropertiesEdit = false) {
+		constructor(data) {
 			super();
+			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.075, 0.3, 12, 1, false );
 			let jointGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
 			let ctrlGeometry = new THREE.BoxGeometry( 0.075, 0.075, 0.15 );
 			let jointPickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
@@ -671,7 +672,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
 			}
 			
-			this.isTilt = handlePropertiesEdit;
+			// this.isTilt = handlePropertiesEdit;
 			this.spline = data.uuid;
 			this.handle = data.hKey;
 			this.joint = data.joint;
@@ -681,6 +682,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 			this.vKeyCtrl1 = data.vKeyCtrl1;
 			this.vKeyCtrl2 = data.vKeyCtrl2;
 			this.handleEuler = OutlinerNode.uuids[this.spline].getHandleEuler(this.handle);
+			this.arrowEuler = OutlinerNode.uuids[this.spline].getHandleEuler(this.handle, new THREE.Euler(Math.PI / 2, 0, Math.PI / 2, "ZXY"));
 			
 			// if (!handlePropertiesEdit) { 
 			let lineCtrl1Geometry = new THREE.BufferGeometry();
@@ -690,14 +692,16 @@ import { SplineMesh } from "../outliner/spline_mesh";
 			
 			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
 			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
+			let c1Angle = data.c1Arrow === true ? this.arrowEuler.c1 : this.handleEuler.c1;
+			let c2Angle = data.c2Arrow === true ? this.arrowEuler.c2 : this.handleEuler.c2;
 
 			this.handleGizmos = {
 				C1: [
-					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl1, this.handleEuler.c1 ],
+					[ new THREE.Mesh( data.c1Arrow ? arrowGeometry : ctrlGeometry, mat() ), this.ctrl1, c1Angle],
 					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
 				],
 				C2: [
-					[ new THREE.Mesh( ctrlGeometry, mat() ), this.ctrl2, this.handleEuler.c2 ],
+					[ new THREE.Mesh( data.c2Arrow ? arrowGeometry : ctrlGeometry, mat() ), this.ctrl2, c2Angle],
 					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
 				],
 				J: [
@@ -882,7 +886,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				this.clear();
 	
 				// Create new Gizmos
-				for (let hKey of Object.keys(spline.handles)) {
+				for (let hKey in spline.handles) {
 					let data = {};
 					data.joint = spline.vertices[spline.handles[hKey].joint];
 					data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
@@ -892,8 +896,10 @@ import { SplineMesh } from "../outliner/spline_mesh";
 					data.vKeyCtrl2 = spline.handles[hKey].control2;
 					data.uuid = spline.uuid;
 					data.hKey = hKey
+					data.c1Arrow = hKey == spline.getFirstHandle().key;
+					data.c2Arrow = hKey == spline.getLastHandle().key;
 
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data, false)); // tilt is always false, because I gave up on getting this method to work properly :D
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
 				}
 	
 				// Add new Gizmos to parent

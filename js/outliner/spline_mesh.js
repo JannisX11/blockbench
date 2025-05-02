@@ -713,7 +713,7 @@ export class SplineMesh extends OutlinerElement {
         }
     }
     // Gather control point transform data, primarily to orient the handleGizmos correctly
-    getHandleEuler(hKey) {
+    getHandleEuler(hKey, euler = new THREE.Euler(0, 0, Math.PI / 2)) {
         let ctrl1 = this.vertices[this.handles[hKey].control1].slice();
         let joint = this.vertices[this.handles[hKey].joint].slice();
         let ctrl2 = this.vertices[this.handles[hKey].control2].slice();
@@ -725,10 +725,10 @@ export class SplineMesh extends OutlinerElement {
         let mat43 = new THREE.Matrix4().lookAt(ctrl2.V3_toThree(), ctrl1.V3_toThree(), new THREE.Vector3(0, 1, 0));
 
         // Matrix to fix the orientation of the previous one
-        let reOrientMat4 = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
-        mat41.multiply(reOrientMat4);
-        mat42.multiply(reOrientMat4);
-        mat43.multiply(reOrientMat4);
+        let reOrient = new THREE.Matrix4().makeRotationFromEuler(euler);
+        mat41.multiply(reOrient);
+        mat42.multiply(reOrient);
+        mat43.multiply(reOrient);
 
         // Rotations
         let eulerC1 = euler1.setFromQuaternion(quat1.setFromRotationMatrix(mat41));
