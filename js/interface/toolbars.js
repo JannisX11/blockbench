@@ -830,8 +830,7 @@ export const BARS = {
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
-				Toolbars.element_rotation,
-				Toolbars.element_spline_dimensions
+				Toolbars.element_rotation
 			].forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;
