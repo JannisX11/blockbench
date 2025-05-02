@@ -25,7 +25,7 @@ export class SplineTubeFace extends Face {
     getTexture() {
         return this.spline.getTexture();
     }
-    // (almost) Straight from MeshFace
+    // (almost) Straight from MeshFace, but it doesn't work
 	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
 
 		// Use non-truncated uv coordinates to select the correct triangle of a face.
@@ -69,7 +69,7 @@ export class SplineTubeFace extends Face {
 		matrix.setPosition(texel_pos);
 		return matrix;
 	}
-    // (almost) Straight from MeshFace
+    // (almost) Straight from MeshFace, but it doesn't work
 	UVToLocal(uv) {
 
 		// Use non-truncated uv coordinates to select the correct triangle of a face.
