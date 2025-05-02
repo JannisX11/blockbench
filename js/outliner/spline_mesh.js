@@ -1472,27 +1472,16 @@ new Property(SplineMesh, 'boolean', 'render_mesh', {
 	}
 });
 // mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'show_normals', {
+new Property(SplineMesh, 'boolean', 'display_space', {
     default: false,
     inputs: {
         element_panel: {
-            input: {label: 'Show Normals', type: 'checkbox'},
+            input: {label: 'Display Space', type: 'checkbox'},
             onChange() {
                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
             }
         }
     }
-});
-new Property(SplineMesh, 'boolean', 'show_tangents', {
-	default: false,
-	inputs: {
-		element_panel: {
-			input: {label: 'Show Tangents', type: 'checkbox'},
-			onChange() {
-				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
-			}
-		}
-	}
 });
 
 new Property(SplineMesh, 'boolean', 'export', { default: true });
@@ -1517,6 +1506,7 @@ new NodePreviewController(SplineMesh, {
         let dashed_outline_material = new THREE.LineDashedMaterial({ vertexColors: true, linewidth: 2, dashSize: 0.75, gapSize: 0.5 })
         let outline = new THREE.LineSegments(new THREE.BufferGeometry(), [outline_material, dashed_outline_material]);
         outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
+        outline.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
         outline.no_export = true;
         outline.name = element.uuid + '_outline';
         outline.renderOrder = 2;
@@ -1551,36 +1541,39 @@ new NodePreviewController(SplineMesh, {
         let colorArray = [ color.r, color.g, color.b ];
         return [ colorArray, color ];
     },
-    debugDraw(element, linePoints, lineColors, renderParams = [true, true]) {
+    debugDraw(element, linePoints, lineColors, renderParams = [true, true, true]) {
         let debugTangentColor = [gizmo_colors.v.r, gizmo_colors.v.g, gizmo_colors.v.b];
         let debugNormalColor = [gizmo_colors.w.r, gizmo_colors.w.g, gizmo_colors.w.b];
+        let debugBiNormalColor = [gizmo_colors.u.r, gizmo_colors.u.g, gizmo_colors.u.b];
         let debugTangentPoints = [];
         let debugTangentColors = [];
         let debugNormalPoints = [];
         let debugNormalColors = [];
+        let debugBiNormalPoints = [];
+        let debugBiNormalColors = [];
         let pathData = element.getBézierPath();
 
         for (let ptIndex = 0; ptIndex < pathData.points.length; ptIndex++) {
             let tangent = pathData.tangents[ptIndex];
             let normal = pathData.normals[ptIndex];
+            let biNormal = new THREE.Vector3().crossVectors(tangent, normal).normalize();
             let point = pathData.points[ptIndex];
             
             let localTangent = new THREE.Vector3().addVectors(point, tangent);
             let localNormal = new THREE.Vector3().addVectors(point, normal);
-            let tangentColor = debugTangentColor;
-            let normalColor = debugNormalColor;
+            let localBiNormal = new THREE.Vector3().addVectors(point, biNormal);
 
             // Compile Tangents
-            debugTangentPoints.push(point);
-            debugTangentPoints.push(localTangent);
-            debugTangentColors.push(tangentColor);
-            debugTangentColors.push(tangentColor);
+            debugTangentPoints.push(point, localTangent);
+            debugTangentColors.push(debugTangentColor, debugTangentColor);
             
             // Compile Normals
-            debugNormalPoints.push(point);
-            debugNormalPoints.push(localNormal);
-            debugNormalColors.push(normalColor);
-            debugNormalColors.push(normalColor);
+            debugNormalPoints.push(point, localNormal);
+            debugNormalColors.push(debugNormalColor, debugNormalColor);
+            
+            // Compile Bi-Normals
+            debugBiNormalPoints.push(point, localBiNormal);
+            debugBiNormalColors.push(debugBiNormalColor, debugBiNormalColor);
         }
 
         // Add all points to line arrays for render
@@ -1591,6 +1584,10 @@ new NodePreviewController(SplineMesh, {
         if (renderParams[1]) {
             debugNormalPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
             debugNormalColors.forEach((array, i) => lineColors.push(...array))
+        }
+        if (renderParams[2]) {
+            debugBiNormalPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
+            debugBiNormalColors.forEach((array, i) => lineColors.push(...array))
         }
     },
     updateGeometry(element) {
@@ -1658,13 +1655,14 @@ new NodePreviewController(SplineMesh, {
                 })
             }
         }
-        this.debugDraw(element, linePoints, lineColors, [element.show_tangents, element.show_normals]);
+
+        // "Space" lines
+        this.debugDraw(element, linePoints, lineColors, [element.display_space, element.display_space, element.display_space]);
         
         // Outlines
         mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
         mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
 
-        // Groups for dashed and non-dashed lines on outlines
         mesh.outline.geometry.clearGroups();
         let start1 = 0;
         let count1 = (element.resolution[1] * 2) * Object.keys(element.curves).length;
@@ -1676,9 +1674,10 @@ new NodePreviewController(SplineMesh, {
         mesh.outline.geometry.addGroup(start1, count1, 0);
         mesh.outline.geometry.addGroup(start2, count2, 1);
         mesh.outline.geometry.addGroup(start3, count3, 0);
+
 		mesh.outline.geometry.computeBoundingSphere();
         mesh.outline.computeLineDistances();
-        
+
         // Populate Tube geometry
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));
         mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(arr_normals), 3));
@@ -1689,12 +1688,15 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.computeBoundingBox();
         mesh.geometry.computeBoundingSphere();
 
-        let outlineArray = mesh.geometry.attributes.position.array.length / 3;
-        let highlightArray = mesh.geometry.attributes.highlight.array
-        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(outlineArray).fill(highlightArray[0]), 1));
+        mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(arr_vertices.length / 3).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
         // Send updates
         SplineMesh.preview_controller.updateHighlight(element);
+
+        if (Project.view_mode == 'wireframe' && this.fixWireframe) {
+            this.fixWireframe(element);
+        }
+
         this.dispatchEvent('update_geometry', { element });
     },
     // partly code smell from mesh.js

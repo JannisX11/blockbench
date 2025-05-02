@@ -522,10 +522,7 @@ export class Preview {
 		} else if (intersect_object.type == 'LineSegments') {
 			var element = OutlinerNode.uuids[intersect_object.parent.name];
 			let vertices = [];
-			if (!(element instanceof SplineMesh)) {
-				vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2)
-			}
-			console.log(intersects[0]);
+			if (!(element instanceof SplineMesh)) vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
 			return {
 				event,
 				type: 'line',
