@@ -839,9 +839,7 @@ export const BARS = {
 					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
 				}
-			})
 
-			toolbars.forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
