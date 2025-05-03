@@ -68,6 +68,20 @@ export const Canvas = {
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
+	splinePathLineMaterial: new THREE.LineBasicMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true,
+	}),
+	splinePathDashedLineMaterial: new THREE.LineDashedMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true, 
+		dashSize: 0.75, 
+		gapSize: 0.5
+	}),
 	meshOutlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		depthTest: settings.seethrough_outline.value == false,

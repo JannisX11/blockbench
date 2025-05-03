@@ -1513,9 +1513,8 @@ new NodePreviewController(SplineMesh, {
         mesh.add(outline);
 
         // Spline Path line
-        let pathLine_material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 4 })
-        let dashed_pathLine_material = new THREE.LineDashedMaterial({ vertexColors: true, linewidth: 2, dashSize: 0.75, gapSize: 0.5 })
-        let pathLine = new THREE.LineSegments(new THREE.BufferGeometry(), [pathLine_material, dashed_pathLine_material]);
+        let materials = [Canvas.splinePathLineMaterial, Canvas.splinePathDashedLineMaterial];
+        let pathLine = new THREE.LineSegments(new THREE.BufferGeometry(), materials);
         pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         pathLine.no_export = true;
         pathLine.name = element.uuid + '_path_line';
