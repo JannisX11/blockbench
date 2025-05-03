@@ -254,8 +254,21 @@ export const Vertexsnap = {
 		if (!mesh.vertex_points) {
 			mesh.updateMatrixWorld()
 			let vectors = [];
+
 			if (mesh.geometry) {
 				let positions = mesh.geometry.attributes.position.array;
+
+				// If this is a spline, we need to merge the path geo into 
+				// positions, so we can snap to the start or end of the spline.
+				if (element instanceof SplineMesh) {
+					let mesh_position = positions.slice();			
+					let path_positions = mesh.pathLine.geometry.attributes.position.array;
+
+					positions = new Float32Array(mesh_position.length + path_positions.length);
+					positions.set(mesh_position);
+					positions.set(path_positions, mesh_position.length);
+				}
+
 				for (let i = 0; i < positions.length; i += 3) {
 					let vec = [positions[i], positions[i + 1], positions[i + 2]];
 					if (!vectors.find(vec2 => vec.equals(vec2))) {

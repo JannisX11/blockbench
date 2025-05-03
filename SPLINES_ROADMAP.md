@@ -36,7 +36,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 ## **M3** Advanced functionality & QoL
 - [ ] Add ability to choose a custom mesh for the spline's ring profile.
 - [ ] Implement `merge_splines` action. (This one might be a bit difficult to get right)
-- [ ] Implement exporting for `fbx`,  `GLtf` & other formats.
+- [ ] Implement exporting for `fbx`,  `GLtf` & other formats. (should already work?)
 - [x] Add indicators for start and end of a spline, displayed over their handles.
 - [ ] Make it impossible to shrink handles to size 0. (might not be necessary, but would be nice as QoL)
 - [ ] Code clean up, where/if required.
@@ -60,7 +60,7 @@ This is a roadmap for splines, listing all features I want to implement for them
 - [x] Handle Gizmos don't highlight anymore. (new system)
 - [x] Hint to press shift to select multiple spline points doesn't appear immediately when selection modes are switched.
 - [x] Extrusion can be used when the selection doesn't match the criterias for selecting.
-- [ ] Spline Render Properties always display on the elements panel.
+- [x] Spline Render Properties always display on the elements panel.
 - [ ] Spline handle gizmos cause a bit of frame drops.
 - [x] Spline outline wireframe is missing one singular edge loop at the start of the spline.
 - [x] Handle Gizmo joints will sometimes orient wrongly.

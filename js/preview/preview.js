@@ -1002,31 +1002,21 @@ export class Preview {
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
 				Undo.initSelection();
-				let isSPline = data.element instanceof SplineMesh
 				let list = data.element.getSelectedVertices(true);
 				let edges;
 				let faces;
 
-				// Check if this is a spline or a normal mesh
-				if (isSPline) {
-				}
-				else {
-					edges = data.element.getSelectedEdges(true);
-					faces = data.element.getSelectedEdges(true);
-				}
+				edges = data.element.getSelectedEdges(true);
+				faces = data.element.getSelectedEdges(true);
 
 				if (multi_select || group_select) {
 					list.toggle(data.vertex);
 				} else {
 					unselectOtherNodes();
 					list.replace([data.vertex]);
-					if (isSPline) {
 
-					}
-					else {
-						edges.empty();
-						faces.empty();
-					}
+					edges.empty();
+					faces.empty();
 				}
 				updateSelection();
 				Undo.finishSelection('Select vertex');
