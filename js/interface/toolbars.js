@@ -395,15 +395,6 @@ export const BARS = {
 				alt_tool: 'resize_tool',
 				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'v'}),
-				onSelect() {
-					if (Blockbench.isMobile) {
-						let toolbar = Toolbars.element_position;
-						for (let child of Toolbars.element_spline_dimensions.children) {
-							if (toolbar.children.includes(child)) return;
-							child.pushToolbar(toolbar);
-						}
-					}
-				}
 			})
 			new Tool('resize_tool', {
 				icon: 'open_with',
@@ -423,13 +414,6 @@ export const BARS = {
 							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
 						}
 					}
-					if (Blockbench.isMobile) {
-						let toolbar = Toolbars.element_size;
-						for (let child of Toolbars.element_spline_dimensions.children) {
-							if (toolbar.children.includes(child)) return;
-							child.pushToolbar(toolbar);
-						}
-					}
 				},
 				onUnselect() {
 					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
@@ -446,13 +430,6 @@ export const BARS = {
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate', 'pose'],
 				keybind: new Keybind({key: 'r'}),
-				onSelect() {
-					let toolbar = Toolbars.element_rotation;
-					for (let child of Toolbars.element_spline_dimensions.children) {
-						if (toolbar.children.includes(child)) return;
-						child.pushToolbar(toolbar);
-					}
-				}
 			})
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
@@ -463,13 +440,6 @@ export const BARS = {
 				alt_tool: 'rotate_tool',
 				modes: ['edit', 'animate'],
 				keybind: new Keybind({key: 'p'}),
-				onSelect() {
-					let toolbar = Toolbars.element_origin;
-					for (let child of Toolbars.element_spline_dimensions.children) {
-						if (toolbar.children.includes(child)) return;
-						child.pushToolbar(toolbar);
-					}
-				}
 			})
 			new Tool('vertex_snap_tool', {
 				icon: 'icon-vertexsnap',
@@ -773,6 +743,8 @@ export const BARS = {
 				'selection_mode',
 				'spline_selection_mode',
 				'spline_handle_mode',
+				'slider_spline_handle_tilt',
+				'slider_spline_handle_size',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
@@ -841,18 +813,6 @@ export const BARS = {
 				'slider_rotation_y',
 				'slider_rotation_z',
 				'rescale_toggle'
-			]
-		})
-		Toolbars.element_spline_dimensions = new Toolbar({
-			id: 'element_spline_dimensions',
-			name: 'panel.element.spline_dimensions',
-			label: true,
-			children: [
-				'slider_spline_resolution_u',
-				'slider_spline_resolution_v',
-				"slider_spline_radius",
-				"slider_spline_handle_tilt",
-				"slider_spline_handle_size",
 			]
 		})
 		if (Blockbench.isMobile) {

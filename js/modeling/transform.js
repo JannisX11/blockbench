@@ -1642,83 +1642,7 @@ BARS.defineActions(function () {
 	})
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
-
-	// Spline resolution
-	new NumSlider('slider_spline_resolution_u', {
-		name: tl('action.slider_spline_resolution', ['U']),
-		description: tl('action.slider_spline_resolution.desc', ['U', tl('action.slider_spline_resolution.u.desc_precision')]),
-		color: 'u',
-		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.selected.length,
-		getInterval: getSpatialInterval,
-		get: function () {
-			return SplineMesh.selected[0].resolution[0]
-		},
-		change: function (modify) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				var v = modify(obj.resolution[0]);
-				obj.resolution[0] = Math.max(v, 3);
-				obj.preview_controller.updateGeometry(obj);
-				obj.refreshTubeFaces();
-			})
-		},
-		onBefore: function () {
-			Undo.initEdit({ elements: SplineMesh.selected })
-		},
-		onAfter: function () {
-			Undo.finishEdit('Adjust resolution of splines')
-		}
-	})
-	new NumSlider('slider_spline_resolution_v', {
-		name: tl('action.slider_spline_resolution', ['V']),
-		description: tl('action.slider_spline_resolution.desc', ['V', tl('action.slider_spline_resolution.v.desc_precision')]),
-		color: 'v',
-		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.selected.length,
-		getInterval: getSpatialInterval,
-		get: function () {
-			return SplineMesh.selected[0].resolution[1]
-		},
-		change: function (modify) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				var v = modify(obj.resolution[1]);
-				obj.resolution[1] = Math.max(v, 1);
-				obj.preview_controller.updateGeometry(obj);
-				obj.refreshTubeFaces();
-			})
-		},
-		onBefore: function () {
-			Undo.initEdit({ elements: SplineMesh.selected })
-		},
-		onAfter: function () {
-			Undo.finishEdit('Adjust resolution of splines')
-		}
-	})
-	new NumSlider('slider_spline_radius', {
-		name: tl('action.slider_spline_radius'),
-		description: tl('action.slider_spline_radius.desc'),
-		color: 'w',
-		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.selected.length,
-		getInterval: getSpatialInterval,
-		get: function () {
-			return SplineMesh.selected[0].radius_multiplier;
-		},
-		change: function (modify) {
-			SplineMesh.selected.forEach(function (obj, i) {
-				var v = modify(obj.radius_multiplier);
-				obj.radius_multiplier = Math.max(v, 0);
-				obj.preview_controller.updateGeometry(obj);
-				obj.refreshTubeFaces();
-			})
-		},
-		onBefore: function () {
-			Undo.initEdit({ elements: SplineMesh.selected })
-		},
-		onAfter: function () {
-			Undo.finishEdit('Adjust radius of splines')
-		}
-	})
+	
 	new NumSlider('slider_spline_handle_tilt', {
 		name: tl('action.slider_spline_handle_tilt'),
 		description: tl('action.slider_spline_handle_tilt.desc'),
@@ -1775,8 +1699,7 @@ BARS.defineActions(function () {
 			Undo.finishEdit('Adjust tilt of selected handle')
 		}
 	})
-	let slider_vector_spline_resolution = [BarItems.slider_spline_resolution_u, BarItems.slider_spline_resolution_v, 
-		BarItems.slider_spline_radius, BarItems.slider_spline_handle_tilt, BarItems.slider_spline_handle_size];
+	let slider_vector_spline_resolution = [BarItems.slider_spline_handle_tilt, BarItems.slider_spline_handle_size];
 	slider_vector_spline_resolution.forEach(slider => slider.slider_vector = slider_vector_spline_resolution);
 
 	new Action('rotate_x_cw', {

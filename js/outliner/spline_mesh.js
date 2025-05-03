@@ -366,6 +366,18 @@ export class SplineMesh extends OutlinerElement {
         for (var key in SplineMesh.properties) {
             SplineMesh.properties[key].merge(this, data)
         }
+
+        // Handle some early testing files
+        if (data.resolution && data.resolution.length == 2) {
+            this.radial_resolution = data.resolution[0];
+            this.tubular_resolution = data.resolution[1];
+        }
+        if (data.resolution && data.resolution.length == 3) {
+            this.radial_resolution = data.resolution[0];
+            this.tubular_resolution = data.resolution[1];
+            this.radius_multiplier = data.resolution[2];
+        }
+
         // Identical to mesh
         if (typeof data.vertices == 'object') {
             for (let key in this.vertices) {
@@ -940,7 +952,7 @@ export class SplineMesh extends OutlinerElement {
         let vertexData = [];
 
         // Dimensions
-        let radialSegments = this.resolution[0];
+        let radialSegments = this.radial_resolution;
         let radius = 1 * this.radius_multiplier;
 
         // Reusables for next loop
@@ -1063,7 +1075,7 @@ export class SplineMesh extends OutlinerElement {
     }
     getBézierPath() {
         let { vec1 } = Reusable;
-        let tubularSegments = this.resolution[1];
+        let tubularSegments = this.tubular_resolution;
         let curveTangents = [];
         let curveNormals = [];
         let tubePoints = [];
@@ -1446,8 +1458,44 @@ new Property(SplineMesh, 'string', 'name', { default: 'spline' });
 new Property(SplineMesh, 'number', 'color', { default: Math.floor(Math.random() * markerColors.length) });
 new Property(SplineMesh, 'vector', 'origin');
 new Property(SplineMesh, 'vector', 'rotation');
-new Property(SplineMesh, 'vector', 'resolution', { default: [6, 12] }); // The U (radial) and V (tubular) resolution of the spline.
-new Property(SplineMesh, 'number', 'radius_multiplier', { default: 1 }); // Number to multiply each ring's radius by.
+new Property(SplineMesh, 'number', 'radial_resolution', {
+    // U (radial)
+    default: 6,
+	inputs: {
+		element_panel: {
+			input: {label: 'Ring Segments', type: 'num_slider', color: "u"},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+                SplineMesh.selected.forEach(element => element.refreshTubeFaces());
+			}
+		}
+	}
+});
+new Property(SplineMesh, 'number', 'tubular_resolution', {
+    // V (tubular)
+    default: 12,
+	inputs: {
+		element_panel: {
+			input: {label: 'Tube Segmpents', type: 'num_slider', color: "v"},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+                SplineMesh.selected.forEach(element => element.refreshTubeFaces());
+			}
+		}
+	}
+});
+new Property(SplineMesh, 'number', 'radius_multiplier', {
+    default: 1,
+	inputs: {
+		element_panel: {
+			input: {label: 'Radius Multiplier', type: 'num_slider', color: "w"},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+                SplineMesh.selected.forEach(element => element.refreshTubeFaces());
+			}
+		}
+	}
+});
 new Property(SplineMesh, 'boolean', 'smooth_shading', {
     default: false,
     inputs: {
@@ -1636,7 +1684,7 @@ new NodePreviewController(SplineMesh, {
 
                 // close off initial ring, this the outline method Mesh uses only fills 
                 // in a few of the edges for quads, and this tube can only have quads.
-                if (i < element.resolution[0]) {
+                if (i < element.radial_resolution) {
                     [5, 0, 1, 2].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
                 }
     
@@ -1656,9 +1704,9 @@ new NodePreviewController(SplineMesh, {
 
         mesh.pathLine.geometry.clearGroups();
         let start1 = 0;
-        let count1 = (element.resolution[1] * 2) * Object.keys(element.curves).length;
+        let count1 = (element.tubular_resolution * 2) * Object.keys(element.curves).length;
         let start2 = count1;
-        let count2 = (element.resolution[1] * 2);
+        let count2 = (element.tubular_resolution * 2);
         let start3 = start2 + count2;
         let count3 = Math.abs(arr_pathline.length - start2 + count2);
 

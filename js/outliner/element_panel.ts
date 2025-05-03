@@ -19,7 +19,6 @@ Interface.definePanels(function() {
 			Toolbars.element_stretch,
 			Toolbars.element_origin,
 			Toolbars.element_rotation,
-			Toolbars.element_spline_dimensions,
 		],
 		form: new InputForm({})
 	})

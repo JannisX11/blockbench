@@ -78,10 +78,7 @@ export function updateNslideValues() {
 			BarItems.slider_face_tint.update()
 		}
 
-		if (Condition(BarItems.slider_spline_resolution_u)) {
-			BarItems.slider_spline_resolution_u.update()
-			BarItems.slider_spline_resolution_v.update()
-			BarItems.slider_spline_radius.update()
+		if (Condition(BarItems.slider_spline_handle_tilt)) {
 			BarItems.slider_spline_handle_tilt.update()
 			BarItems.slider_spline_handle_size.update()
 		}
