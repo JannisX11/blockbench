@@ -825,13 +825,23 @@ export const BARS = {
 				"slider_spline_handle_size",
 			]
 		})
-		if (Blockbench.isMobile) {[	
+		if (Blockbench.isMobile) {
+			let toolbars = [	
 				Toolbars.element_position,
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
-			].forEach(toolbar => {
+			]
+
+			toolbars.forEach(toolbar => {
+				for (let child of Toolbars.element_spline_dimensions.children) {
+					if (toolbar.children.includes(child)) return;
+					toolbar.add(child);
+				}
+			})
+
+			toolbars.forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) return;
 					toolbar.add(child);
