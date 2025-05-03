@@ -96,9 +96,9 @@ BARS.defineActions(function() {
 				square: 'dialog.add_spline.shape.square',
 				circle: 'dialog.add_spline.shape.circle',
 			}},
-			sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'number', value: 4, min: 1, max: 48},
-			sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'number', value: 8, min: 3, max: 48},
-			radius: {label: 'dialog.add_spline.radius', type: 'number', value: 2, min: 1, max: 8},
+			sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: 8, min: 3, max: 48, color: "u"},
+			sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: 4, min: 1, max: 48, color: "v"},
+			radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: 2, min: 1, max: 8, color: "w"},
 			diameter: {label: 'dialog.add_spline.diameter', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["circle"].includes(shape)},
 			length: {label: 'dialog.add_spline.length', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["segment", "square"].includes(shape)},
 			width: {label: 'dialog.add_spline.width', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["square"].includes(shape)},
@@ -254,9 +254,9 @@ BARS.defineActions(function() {
 			runEdit(false, result);
 
 			Undo.amendEdit({
-				sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: result.sides_tubular, min: 1, max: 48},
-				sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: result.sides_radial, min: 3, max: 48},
-				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8},
+				sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: result.sides_radial, min: 3, max: 48, color: "u"},
+				sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: result.sides_tubular, min: 1, max: 48, color: "v"},
+				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8, color: "w"},
 				diameter: {label: 'dialog.add_spline.diameter', type: 'num_slider', value: result.diameter, min: 4, max: 64, interval_type: 'position', condition: ["circle"].includes(result.shape)},
 				length: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.length, min: 4, max: 64, interval_type: 'position', condition: ["segment", "square"].includes(result.shape)},
 				width: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.width, min: 4, max: 64, interval_type: 'position', condition: ["square"].includes(shape)},

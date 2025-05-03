@@ -1476,7 +1476,7 @@ new Property(SplineMesh, 'number', 'tubular_resolution', {
     default: 12,
 	inputs: {
 		element_panel: {
-			input: {label: 'Tube Segmpents', type: 'num_slider', color: "v"},
+			input: {label: 'Tube Segments', type: 'num_slider', color: "v"},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1488,7 +1488,7 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
     default: 1,
 	inputs: {
 		element_panel: {
-			input: {label: 'Radius Multiplier', type: 'num_slider', color: "w"},
+			input: {label: 'Tube Radius', type: 'num_slider', color: "w"},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
