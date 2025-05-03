@@ -222,7 +222,9 @@ BARS.defineActions(function() {
 					spline.cyclic = true; // close circle
 				}
 
-				spline.resolution = [result.sides_radial, result.sides_tubular, result.radius];
+				spline.tubular_resolution = result.sides_tubular;
+				spline.radial_resolution = result.sides_radial;
+				spline.radius_multiplier = result.radius;
 				
 				if (Texture.all.length && Format.single_texture) {
 					spline.texture = Texture.getDefault().uuid
