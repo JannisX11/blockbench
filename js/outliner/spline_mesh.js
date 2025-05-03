@@ -1504,9 +1504,10 @@ new NodePreviewController(SplineMesh, {
 
         let outline_material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 4 })
         let dashed_outline_material = new THREE.LineDashedMaterial({ vertexColors: true, linewidth: 2, dashSize: 0.75, gapSize: 0.5 })
-        let outline = new THREE.LineSegments(new THREE.BufferGeometry(), [outline_material, dashed_outline_material]);
+
+        // Mesh outline
+        let outline = new THREE.LineSegments(new THREE.BufferGeometry(), outline_material);
         outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
-        outline.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
         outline.no_export = true;
         outline.name = element.uuid + '_outline';
         outline.renderOrder = 2;
@@ -1514,6 +1515,16 @@ new NodePreviewController(SplineMesh, {
         outline.frustumCulled = false;
         mesh.outline = outline;
         mesh.add(outline);
+
+        // Spline Path line
+        let pathLine = new THREE.LineSegments(new THREE.BufferGeometry(), [outline_material, dashed_outline_material]);
+        pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
+        pathLine.no_export = true;
+        pathLine.name = element.uuid + '_path_line';
+        pathLine.renderOrder = 2;
+        pathLine.frustumCulled = false;
+        mesh.pathLine = pathLine;
+        mesh.add(pathLine);
 
         let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
         points.element_uuid = element.uuid;
@@ -1592,37 +1603,39 @@ new NodePreviewController(SplineMesh, {
     },
     updateGeometry(element) {
         let { mesh } = element;
-        let linePoints = [];
-        let lineColors = [];
-
-        // Bezier Curves
-        let pathColor = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
-        let pointsToAdd = []
+        let arr_pathline = [];
+        let arr_pathline_color = [];
+        let arr_pathline_data = [];
+        let pathline_color = new THREE.Color().set(markerColors[element.color].standard); // Color path with marker color
+        let outline_color = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
 
         // Add curve line points
         let pathData = element.getBézierPath();
         for (let ptIndex = 0; ptIndex < pathData.points.length; ptIndex++) {
-            pointsToAdd.push({point: pathData.points[ptIndex], addNext: pathData.connections[ptIndex]});
+            arr_pathline_data.push({point: pathData.points[ptIndex], addNext: pathData.connections[ptIndex]});
         }
 
         // Add all points to line geometry
-        pointsToAdd.forEach((data, i) => {
-            let shouldDouble = i > 0 && i < (pointsToAdd.length - 1); // Band-aid because I don't calculate indices for outlines.
+        arr_pathline_data.forEach((data, i) => {
+            let shouldDouble = i > 0 && i < (arr_pathline_data.length - 1); // Band-aid because I don't calculate indices for outlines.
 
             if (data.addNext) {
-                linePoints.push(...data.point.toArray(), ...((shouldDouble) ? data.point.toArray() : []));
-                lineColors.push(...pathColor.toArray(), ...((shouldDouble) ? pathColor.toArray() : []));
+                arr_pathline.push(...data.point.toArray(), ...((shouldDouble) ? data.point.toArray() : []));
+                arr_pathline_color.push(...pathline_color.toArray(), ...((shouldDouble) ? pathline_color.toArray() : []));
             }
             else { // render cuts in the spline path
                 if (shouldDouble) {
-                    linePoints.pop(); linePoints.pop(); linePoints.pop();
-                    lineColors.pop(); lineColors.pop(); lineColors.pop();
+                    arr_pathline.pop(); arr_pathline.pop(); arr_pathline.pop();
+                    arr_pathline_color.pop(); arr_pathline_color.pop(); arr_pathline_color.pop();
                 }
                 
-                linePoints.push(...data.point.toArray());
-                lineColors.push(...pathColor.toArray());
+                arr_pathline.push(...data.point.toArray());
+                arr_pathline_color.push(...pathline_color.toArray());
             }
         })
+
+        // "Space" lines
+        this.debugDraw(element, arr_pathline, arr_pathline_color, [element.display_space, element.display_space, element.display_space]);
 
         // Tube geometry
         let arr_vertices = [];
@@ -1630,6 +1643,7 @@ new NodePreviewController(SplineMesh, {
         let arr_uvs = [];
         let arr_indices = [];
         let arr_outline = [];
+        let arr_outline_color = [];
         if (element.render_mesh) {
             let tube = element.getTubeGeo(element.smooth_shading);
             arr_vertices = tube.vertices;
@@ -1638,7 +1652,6 @@ new NodePreviewController(SplineMesh, {
             arr_indices = tube.indices;
             
             // Add outlines for tube geo edges
-            let outlineColor = [gizmo_colors.outline.r, gizmo_colors.outline.g, gizmo_colors.outline.b];
             for (let i = 0; i < tube.indices.length / 6; i++) {
                 let v_arr = [];
                 [0, 1, 4, 1].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
@@ -1652,32 +1665,33 @@ new NodePreviewController(SplineMesh, {
                 // Roughly done like mesh.js's indexing for outllines, adapted for this use-case
                 v_arr.forEach((index, i) => {
                     [0, 1, 2].forEach(add => arr_outline.push(tube.vertices[(index * 3) + add]));
-                    lineColors.push(...outlineColor);
+                    arr_outline_color.push(...outline_color);
                 })
             }
         }
-
-        // "Space" lines
-        this.debugDraw(element, linePoints, lineColors, [element.display_space, element.display_space, element.display_space]);
         
         // Outlines
-        mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(linePoints), 3));
-        mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lineColors), 3));
+		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_outline), 3));
+		mesh.outline.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(arr_outline_color), 3));
+        
+        // Path Lines
+        mesh.pathLine.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_pathline), 3));
+        mesh.pathLine.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(arr_pathline_color), 3));
 
-        mesh.outline.geometry.clearGroups();
+        mesh.pathLine.geometry.clearGroups();
         let start1 = 0;
         let count1 = (element.resolution[1] * 2) * Object.keys(element.curves).length;
         let start2 = count1;
         let count2 = (element.resolution[1] * 2);
         let start3 = start2 + count2;
-        let count3 = Math.abs(linePoints.length - start2 + count2);
+        let count3 = Math.abs(arr_pathline.length - start2 + count2);
 
-        mesh.outline.geometry.addGroup(start1, count1, 0);
-        mesh.outline.geometry.addGroup(start2, count2, 1);
-        mesh.outline.geometry.addGroup(start3, count3, 0);
+        mesh.pathLine.geometry.addGroup(start1, count1, 0);
+        mesh.pathLine.geometry.addGroup(start2, count2, 1);
+        mesh.pathLine.geometry.addGroup(start3, count3, 0);
 
-		mesh.outline.geometry.computeBoundingSphere();
-        mesh.outline.computeLineDistances();
+		mesh.pathLine.geometry.computeBoundingSphere();
+        mesh.pathLine.computeLineDistances();
 
         // Populate Tube geometry
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));

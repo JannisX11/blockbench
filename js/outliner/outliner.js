@@ -686,8 +686,6 @@ export class NodePreviewController extends EventSystem {
 		if (mesh && mesh.outline) {
 			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
 				mesh.outline.visible = false;
-			} else if (element instanceof SplineMesh) { // render path if spline has no mesh attached
-				mesh.outline.visible = !element.render_mesh || element.selected;
 			} else {
 				mesh.outline.visible = element.selected;
 			}

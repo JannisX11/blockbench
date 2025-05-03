@@ -391,8 +391,8 @@ export class Preview {
 					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
 						objects.push(element.mesh.outline);
 					}
-				} else if (element instanceof SplineMesh && element.mesh.outline.visible && !element.render_mesh) {
-					objects.push(element.mesh.outline);
+				} else if (element instanceof SplineMesh && !element.render_mesh) {
+					objects.push(element.mesh.pathLine);
 				}
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
