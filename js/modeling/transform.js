@@ -1074,6 +1074,10 @@ BARS.defineActions(function () {
 				let vertices = obj.getSelectedVertices();
 				vertices.forEach(vkey => {
 					obj.vertices[vkey][axis] = modify(obj.vertices[vkey][axis]);
+
+					if (obj instanceof SplineMesh) {
+						obj.applyHandleModeOnVertex(vkey);
+					}
 				})
 				obj.preview_controller.updateGeometry(obj);
 
@@ -1682,7 +1686,7 @@ BARS.defineActions(function () {
 		description: tl('action.slider_spline_radius.desc'),
 		color: 'w',
 		category: 'transform',
-		condition: function () { return SplineMesh.selected.length && Modes.edit },
+		condition: () => Modes.edit && SplineMesh.selected.length,
 		getInterval: getSpatialInterval,
 		get: function () {
 			return SplineMesh.selected[0].radius_multiplier;
@@ -1706,7 +1710,7 @@ BARS.defineActions(function () {
 		name: tl('action.slider_spline_handle_tilt'),
 		description: tl('action.slider_spline_handle_tilt.desc'),
 		category: 'transform',
-		condition: function () { return SplineMesh.selected.length && Modes.edit && SplineMesh.selected[0].getSelectedHandles().length },
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
 		getInterval: getSpatialInterval,
 		get: function () {
 			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
@@ -1734,7 +1738,7 @@ BARS.defineActions(function () {
 		name: tl('action.slider_spline_handle_size'),
 		description: tl('action.slider_spline_handle_size.desc'),
 		category: 'transform',
-		condition: function () { return SplineMesh.selected.length && Modes.edit && SplineMesh.selected[0].getSelectedHandles().length },
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
 		getInterval: getSpatialInterval,
 		get: function () {
 			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
