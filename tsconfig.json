@@ -4,8 +4,7 @@
 		"types/**/*"
 	],
   "exclude": [
-    "lib/marked.min.js",
-    "lib/canvas2apng.js",
+		"types/generated/**/*"
   ],
   "compilerOptions": {
     "target": "ES2020",
@@ -22,6 +21,6 @@
 
     "declaration": true,
     "emitDeclarationOnly": true,
-    "outDir": "./dist-types"
+    "outDir": "./types/generated/"
   }
 }
