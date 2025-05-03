@@ -400,7 +400,7 @@ export const BARS = {
 						let toolbar = Toolbars.element_position;
 						for (let child of Toolbars.element_spline_dimensions.children) {
 							if (toolbar.children.includes(child)) return;
-							toolbar.add(child);
+							child.pushToolbar(toolbar);
 						}
 					}
 				}
@@ -427,7 +427,7 @@ export const BARS = {
 						let toolbar = Toolbars.element_size;
 						for (let child of Toolbars.element_spline_dimensions.children) {
 							if (toolbar.children.includes(child)) return;
-							toolbar.add(child);
+							child.pushToolbar(toolbar);
 						}
 					}
 				},
@@ -450,7 +450,7 @@ export const BARS = {
 					let toolbar = Toolbars.element_rotation;
 					for (let child of Toolbars.element_spline_dimensions.children) {
 						if (toolbar.children.includes(child)) return;
-						toolbar.add(child);
+						child.pushToolbar(toolbar);
 					}
 				}
 			})
@@ -467,7 +467,7 @@ export const BARS = {
 					let toolbar = Toolbars.element_origin;
 					for (let child of Toolbars.element_spline_dimensions.children) {
 						if (toolbar.children.includes(child)) return;
-						toolbar.add(child);
+						child.pushToolbar(toolbar);
 					}
 				}
 			})
