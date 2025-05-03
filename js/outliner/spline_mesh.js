@@ -1762,6 +1762,7 @@ Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
 });
 
 Object.assign(window, {
+    SplineTubeFace,
 	SplineCurve,
 	SplineHandle,
 	SplineMesh
