@@ -1,4 +1,5 @@
 import { THREE } from "../../lib/libs";
+import { gizmo_colors } from "../preview/preview";
 
 export class ArmatureBone extends OutlinerElement {
 	constructor(data, uuid) {
@@ -173,28 +174,8 @@ export class ArmatureBone extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter(with_animation) {
-		var pos = new THREE.Vector3();
-		var q = Reusable.quat1.set(0, 0, 0, 1);
-		if (this.parent instanceof OutlinerNode) {
-			THREE.fastWorldPosition(this.parent.mesh, pos);
-			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
-			pos.sub(offset2);
-		}
-		let offset;
-		if (with_animation && Animation.selected) {
-			offset = Reusable.vec3.copy(this.mesh.position);
-			if (this.parent instanceof Group) {
-				offset.x += this.parent.origin[0];
-				offset.y += this.parent.origin[1];
-				offset.z += this.parent.origin[2];
-			}
-		} else {
-			offset = Reusable.vec3.fromArray(this.origin);
-		}
-		offset.applyQuaternion(q);
-		pos.add(offset);
-
+		let pos = new THREE.Vector3();
+		this.mesh.localToWorld(pos);
 		return pos;
 	}
 	duplicate() {
@@ -212,6 +193,34 @@ export class ArmatureBone extends OutlinerElement {
 		copy.isOpen = true;
 		Canvas.updatePositions();
 		return copy;
+	}
+	flip(axis, center) {
+		var offset = this.position[axis] - center
+		this.position[axis] = center - offset;
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
+		// Name
+		flipNameOnAxis(this, axis);
+
+		this.createUniqueName();
+		this.preview_controller.updateTransform(this);
+		return this;
+	}
+	size(axis) {
+		if (typeof axis == 'number') {
+			return axis == 1 ? this.length : 0;
+		}
+		return [0, this.length, 0];
+	}
+	getSize() {
+		return [0, this.length, 0];
+	}
+	resize(move_value, axis_number, invert) {
+		if (axis_number == 1) {
+			this.length = this.oldScale + move_value * (invert ? -1 : 1);
+			this.preview_controller.updateTransform(this);
+		}
 	}
 	getSaveCopy(project) {
 		let copy = {
@@ -272,6 +281,7 @@ export class ArmatureBone extends OutlinerElement {
 		parent: true,
 		movable: true,
 		rotatable: true,
+		resizable: true,
 		child_types: ['armature_bone'],
 		select_children: 'self_first',
 		hide_in_screenshot: true,
@@ -300,9 +310,22 @@ OutlinerElement.registerType(ArmatureBone, 'armature_bone');
 
 new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
 new Property(ArmatureBone, 'vector', 'rotation');
+new Property(ArmatureBone, 'number', 'length', {default: 8});
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
 new NodePreviewController(ArmatureBone, {
+	material: new THREE.MeshLambertMaterial({
+		color: 0xaaacba,
+		depthTest: false,
+		depthWrite: false,
+		transparent: true
+	}),
+	material_selected: new THREE.MeshLambertMaterial({
+		color: gizmo_colors.outline,
+		depthTest: false,
+		depthWrite: false,
+		transparent: true
+	}),
 	setup(element) {
 		let object_3d = new THREE.Bone();
 		object_3d.rotation.order = 'ZYX';
@@ -311,21 +334,56 @@ new NodePreviewController(ArmatureBone, {
 		//object_3d.isElement = true;
 		Project.nodes_3d[element.uuid] = object_3d;
 
-
-		/*let length = 5;
-		let mesh = new THREE.Mesh(
-			new THREE.CapsuleGeometry(2, length, 1, 6),
-			Canvas.solidMaterial
-		);
+		let geometry = new THREE.BufferGeometry();
+		let r = 1, m = 0.2;
+		let vertices = [
+			0,0,0,r,m,r,-r,m,r,
+			r,m,-r,  0,0,0, -r,m,-r,
+			r,m,r,  0,0,0, r,m,-r,
+			0,0,0,-r,m,r,-r,m,-r,
+			r,m,r, 0,1,0, -r,m,r,
+			0,1,0, r,m,-r,  -r,m,-r,
+			0,1,0, r,m,r,  r,m,-r,
+			-r,m,r, 0,1,0, -r,m,-r,
+		];
+		let normals = [
+			0.0,-0.5,0.4,
+			0.0,-0.5,-0.4,
+			0.4,-0.5,0.0,
+			-0.4,-0.5,0.0,
+			0.0,0.2,0.6,
+			0.0,0.2,-0.6,
+			0.6,0.2,0.0,
+			-0.6,0.2,0.0,
+		];
+		let normals_array = [];
+		for (let i = 0; i < normals.length; i += 3) {
+			for (let j = 0; j < 3; j++) {
+				normals_array.push(normals[i], normals[i+1], normals[i+2]);
+			}
+		}
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+		geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals_array, 3));
+		geometry.normalizeNormals();
+		geometry.computeBoundingBox();
+		geometry.computeBoundingSphere();
+		let material = ArmatureBone.preview_controller.material;
+		let mesh = new THREE.Mesh(geometry, material);
+		mesh.renderOrder = 20;
 		mesh.visible = element.visibility;
 		mesh.no_export = true;
-		object_3d.add(mesh);*/
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+		object_3d.add(mesh);
 		object_3d.no_export = true;
 
 		object_3d.fix_position = new THREE.Vector3();
 		object_3d.fix_rotation = new THREE.Euler();
+		object_3d.inverse_fix_matrix = new THREE.Matrix4();
 
 		this.updateTransform(element);
+		this.updateSelection(element);
 
 		this.dispatchEvent('setup', {element});
 	},
@@ -338,21 +396,39 @@ new NodePreviewController(ArmatureBone, {
 		bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
 		if (element.parent instanceof OutlinerNode) {
-			//bone.position.x -=  element.parent.origin[0];
-			//bone.position.y -=  element.parent.origin[1];
-			//bone.position.z -=  element.parent.origin[2];
-			var parent_bone = element.parent.mesh;
+			let parent_bone = element.parent.mesh;
 			parent_bone.add(bone);
-		} else {
-			Project.model_3d.add(bone);
+			if (element.parent instanceof ArmatureBone) {
+				ArmatureBone.preview_controller.updateTransform(element.parent);
+			}
+		} else if (bone.parent) {
+			bone.parent.remove(bone);
 		}
 
-		bone.fix_position = bone.position.clone();
-		bone.fix_rotation = bone.rotation.clone();
+		let tail_bone = element.children[0];
+		if (tail_bone) {
+			let tail_offset = Reusable.vec1.fromArray(tail_bone.position);
+			bone.children[0].scale.y = tail_offset.length();
+			bone.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tail_offset.normalize());
+		} else {
+			bone.children[0].rotation.set(0,0,0);
+			bone.children[0].scale.y = element.length;
+		}
+
+		bone.fix_position.copy(bone.position);
+		bone.fix_rotation.copy(bone.rotation);
+		bone.inverse_fix_matrix.copy(bone.matrixWorld).invert();
+
+		for (let bone2 of bone.children) {
+			if (bone2.mesh) this.updateTransform(bone2);
+		}
 
 		bone.updateMatrixWorld();
 
 		this.dispatchEvent('update_transform', {element});
+	},
+	updateSelection(element) {
+		element.mesh.children[0].material = element.selected ? this.material_selected : this.material;
 	}
 })
 
@@ -375,6 +451,8 @@ BARS.defineActions(function() {
 	new Action('add_armature_bone', {
 		icon: 'humerus',
 		category: 'edit',
+		keybind: new Keybind({key: 'e', shift: true}),
+		condition: {modes: ['edit'], features: ['armatures'], selected: {mesh: false, armature_bone: true}},
 		condition: () => Modes.edit && (ArmatureBone.selected[0] || Armature.selected[0]),
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
@@ -383,7 +461,7 @@ BARS.defineActions(function() {
 				add_to_node = selected.last();
 			}
 			let new_instance = new ArmatureBone({
-				origin: add_to_node ? add_to_node.origin : undefined
+				origin: add_to_node instanceof ArmatureBone ? [0, add_to_node.length??8, 0] : undefined
 			})
 			new_instance.addTo(add_to_node)
 			new_instance.isOpen = true

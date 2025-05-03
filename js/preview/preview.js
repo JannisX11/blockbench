@@ -373,7 +373,8 @@ export class Preview {
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.mesh && element.mesh.geometry && element.visibility && !element.locked) {
+			if (element.visibility === false || element.locked === true) return;
+			if (element.mesh && element.mesh.geometry) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
 					if (element.mesh.vertex_points && (element.mesh.vertex_points.visible || options.vertices)) {
@@ -385,6 +386,8 @@ export class Preview {
 				}
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
+			} else if (element instanceof ArmatureBone) {
+				objects.push(element.mesh.children[0]);
 			}
 		})
 		for (let group of Group.multi_selected) {
@@ -414,7 +417,12 @@ export class Preview {
 				return a.distance - b.distance;
 			});
 		} else {
-			intersects.sort((a, b) => a.distance - b.distance);
+			intersects.sort((a, b) => {
+				if (a.object.renderOrder > 10 || b.object.renderOrder > 10) {
+					return b.object.renderOrder - a.object.renderOrder;
+				}
+				return a.distance - b.distance;
+			});
 		}
 		if (settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') {
 			let all_intersects = intersects;

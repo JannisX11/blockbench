@@ -885,7 +885,7 @@
 							break;
 						}
 					}
-					return bone instanceof Group ? bone : 0;
+					return bone instanceof OutlinerNode ? bone : 0;
 				}
 				// Global Space
 				return 0;
@@ -944,7 +944,7 @@
 								if (rotation && !scope.dragging) Transformer.rotation_selection.copy(rotation);
 							}
 						
-						} else if (space instanceof Group) {
+						} else if (space instanceof OutlinerNode && space.getTypeBehavior('parent')) {
 							Transformer.rotation_ref = space.mesh;
 
 						}
@@ -1144,12 +1144,20 @@
 								for (let key in obj.vertices) {
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
-							} else if (obj.getTypeBehavior('resizable')) {
-								obj.oldScale = obj.size(axisnr);
-								obj.oldStretch = obj.stretch.slice();
-								obj.oldUVOffset = obj.uv_offset.slice();
-								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
-							} 
+							} else {
+								if (obj.getTypeBehavior('resizable')) {
+									obj.oldScale = obj.size(axisnr);
+									if (obj.to) {
+										obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
+									}
+								}
+								if (obj.uv_offset instanceof Array) {
+									obj.oldUVOffset = obj.uv_offset.slice();
+								}
+								if (obj.getTypeBehavior('stretchable')) {
+									obj.oldStretch = obj.stretch.slice();
+								}
+							}
 						})
 					}
 					_has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';

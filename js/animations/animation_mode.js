@@ -289,6 +289,7 @@ export const Animator = {
 	},
 	displayMeshDeformation() {
 		const _matrix4 = new THREE.Matrix4();
+		const _matrix_inverse = new THREE.Matrix4();
 		const _basePosition = new THREE.Vector3();
 		const _vector3 = new THREE.Vector3();
 		const target = new THREE.Vector3();
@@ -297,19 +298,11 @@ export const Animator = {
 			let armature = mesh.getArmature();
 			if (armature) {
 				let bones = armature.getAllBones();
-				if (!window._x) {
-					// TODO: Bind skeleton with edit mode pose
-					armature.skeleton = new THREE.Skeleton(bones.map(bone => bone.mesh));
-					window._x = true;
-				}
-				let skeleton = armature.skeleton;
-				//skeleton.pose();
 				let vertex_offsets = {};
 				for (let vkey in mesh.vertices) {
 
 					target.fromArray(mesh.vertices[vkey]);
 
-					// TODO: handle bind matrices
 					_basePosition.copy( target )//.applyMatrix4( this.bindMatrix );
 			
 					target.set(0, 0, 0);
@@ -334,8 +327,7 @@ export const Animator = {
 						for ( let i = 0; i < 4; i ++ ) {
 							const weight = weights[i];
 							if ( weight !== 0 && affecting_bones[i] ) {
-								const boneIndex = bones.indexOf(affecting_bones[i]);
-								_matrix4.multiplyMatrices( skeleton.bones[ boneIndex ].matrixWorld, skeleton.boneInverses[ boneIndex ] );
+								_matrix4.multiplyMatrices( affecting_bones[i].mesh.matrixWorld, affecting_bones[i].mesh.inverse_fix_matrix );
 								target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
 							}		
 						}
@@ -349,7 +341,6 @@ export const Animator = {
 					target//.applyMatrix4( this.bindMatrixInverse );
 					vertex_offsets[vkey] = target.toArray().V3_subtract(mesh.vertices[vkey]);
 				}
-				console.log(vertex_offsets);
 				Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
 			}
 		}

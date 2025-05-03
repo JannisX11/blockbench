@@ -4,13 +4,6 @@ export class Armature extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
-		this._static = {
-			properties: {
-				skeleton: new THREE.Skeleton()
-			}
-		}
-		Object.freeze(this._static);
-
 		for (let key in Armature.properties) {
 			Armature.properties[key].reset(this);
 		}
@@ -23,18 +16,14 @@ export class Armature extends OutlinerElement {
 		this.parent = 'root';
 		this.isOpen = false;
 		this.visibility = true;
+		this.origin = [0, 0, 0];
+		this.rotation = [0, 0, 0];
 
 		if (typeof data === 'object') {
 			this.extend(data)
 		} else if (typeof data === 'string') {
 			this.name = data
 		}
-	}
-	get skeleton() {
-		return this._static.properties.skeleton;
-	}
-	set skeleton(s) {
-		this._static.properties.skeleton = s;
 	}
 	extend(object) {
 		for (let key in Armature.properties) {
@@ -54,13 +43,6 @@ export class Armature extends OutlinerElement {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {
 			this.constructor.preview_controller.setup(this);
-		}
-		return this;
-	}
-	select(event, isOutlinerClick) {
-		super.select(event, isOutlinerClick);
-		if (Animator.open && Animation.selected) {
-			Animation.selected.getBoneAnimator(this).select(true);
 		}
 		return this;
 	}
@@ -97,7 +79,6 @@ export class Armature extends OutlinerElement {
 		return this;
 	}
 	remove(undo) {
-		let scope = this;
 		let elements = [];
 		if (undo) {
 			this.forEachChild(function(element) {
@@ -105,13 +86,7 @@ export class Armature extends OutlinerElement {
 					elements.push(element)
 				}
 			})
-			let animations = [];
-			Animator.animations.forEach(animation => {
-				if (animation.animators && animation.animators[scope.uuid]) {
-					animations.push(animation);
-				}
-			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
+			Undo.initEdit({elements: elements, outliner: true, selection: true})
 		}
 		this.unselect()
 		super.remove();
@@ -120,20 +95,12 @@ export class Armature extends OutlinerElement {
 			this.children[i].remove(false)
 			i--;
 		}
-		Animator.animations.forEach(animation => {
-			if (animation.animators && animation.animators[scope.uuid]) {
-				animation.removeAnimator(scope.uuid);
-			}
-			if (animation.selected && Animator.open) {
-				updateKeyframeSelection();
-			}
-		})
 		TickUpdates.selection = true;
 		Project.elements.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			elements.empty();
-			Undo.finishEdit('Delete armature bone')
+			Undo.finishEdit('Delete armature')
 		}
 	}
 	showContextMenu(event) {
@@ -177,28 +144,8 @@ export class Armature extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter(with_animation) {
-		var pos = new THREE.Vector3();
-		var q = Reusable.quat1.set(0, 0, 0, 1);
-		if (this.parent instanceof OutlinerNode) {
-			THREE.fastWorldPosition(this.parent.mesh, pos);
-			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
-			pos.sub(offset2);
-		}
-		let offset;
-		if (with_animation && Animation.selected) {
-			offset = Reusable.vec3.copy(this.mesh.position);
-			if (this.parent instanceof Group) {
-				offset.x += this.parent.origin[0];
-				offset.y += this.parent.origin[1];
-				offset.z += this.parent.origin[2];
-			}
-		} else {
-			offset = Reusable.vec3.fromArray(this.origin);
-		}
-		offset.applyQuaternion(q);
-		pos.add(offset);
-
+		let pos = new THREE.Vector3();
+		this.mesh.localToWorld(pos);
 		return pos;
 	}
 	duplicate() {
@@ -244,18 +191,16 @@ export class Armature extends OutlinerElement {
 		return copy;
 	}
 	getChildlessCopy(keep_uuid) {
-		let base_bone = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
+		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
 		for (let key in Armature.properties) {
-			Armature.properties[key].copy(this, base_bone)
+			Armature.properties[key].copy(this, base_armature)
 		}
-		base_bone.name = this.name;
-		base_bone.origin.V3_set(this.origin);
-		base_bone.rotation.V3_set(this.rotation);
-		base_bone.locked = this.locked;
-		base_bone.visibility = this.visibility;
-		base_bone.export = this.export;
-		base_bone.isOpen = this.isOpen;
-		return base_bone;
+		base_armature.name = this.name;
+		base_armature.locked = this.locked;
+		base_armature.visibility = this.visibility;
+		base_armature.export = this.export;
+		base_armature.isOpen = this.isOpen;
+		return base_armature;
 	}
 	forEachChild(cb, type, forSelf) {
 		let i = 0
@@ -286,8 +231,6 @@ export class Armature extends OutlinerElement {
 	}
 	static behavior = {
 		parent: true,
-		movable: true,
-		rotatable: true,
 		child_types: ['armature_bone'],
 		hide_in_screenshot: true,
 	}
@@ -305,17 +248,12 @@ export class Armature extends OutlinerElement {
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
-		'apply_animation_preset',
 		new MenuSeparator('manage'),
 		'rename',
 		'delete'
 	]);
 
 OutlinerElement.registerType(Armature, 'armature');
-
-new Property(Armature, 'vector', 'origin', {default: [0, 0, 0]});
-new Property(Armature, 'vector', 'rotation');
-new Property(Armature, 'object', 'vertex_weights');
 
 new NodePreviewController(Armature, {
 	setup(element) {
@@ -328,54 +266,32 @@ new NodePreviewController(Armature, {
 
 		object_3d.no_export = true;
 
-		object_3d.fix_position = new THREE.Vector3();
-		object_3d.fix_rotation = new THREE.Euler();
-
 		this.updateTransform(element);
 
 		this.dispatchEvent('setup', {element});
 	},
 	updateTransform(element) {
-		/*let bone = element.mesh;
+		let mesh = element.mesh;
 
-		//bone.rotation.order = 'ZYX';
-		//bone.rotation.setFromDegreeArray(element.rotation);
-		//bone.position.fromArray(element.origin);
-		//bone.scale.x = bone.scale.y = bone.scale.z = 1;
-
-		if (element.parent instanceof OutlinerNode) {
-			//bone.position.x -=  element.parent.origin[0];
-			//bone.position.y -=  element.parent.origin[1];
-			//bone.position.z -=  element.parent.origin[2];
-			var parent_bone = element.parent.mesh;
-			parent_bone.add(bone);
-		} else {
-			Project.model_3d.add(bone);
+		if (Format.bone_rig) {
+			if (element.parent instanceof Group) {
+				element.parent.mesh.add(mesh);
+				mesh.position.x -= element.parent.origin[0]
+				mesh.position.y -= element.parent.origin[1]
+				mesh.position.z -= element.parent.origin[2]
+			} else if (mesh.parent !== Project.model_3d) {
+				Project.model_3d.add(mesh)
+			}
+		} else if (mesh.parent !== Project.model_3d) {
+			Project.model_3d.add(mesh)
 		}
 
-		//bone.fix_position = bone.position.clone();
-		//bone.fix_rotation = bone.rotation.clone();
+		mesh.updateMatrixWorld();
 
-		bone.updateMatrixWorld();
-
-		this.dispatchEvent('update_transform', {element});*/
+		this.dispatchEvent('update_transform', {element});
 	}
 })
 
-
-export function getAllArmatures() {
-	let ta = []
-	function iterate(array) {
-		for (let obj of array) {
-			if (obj instanceof Armature) {
-				ta.push(obj)
-				iterate(obj.children)
-			}
-		}
-	}
-	iterate(Outliner.root)
-	return ta;
-}
 
 BARS.defineActions(function() {
 	new Action('add_armature', {
@@ -388,30 +304,28 @@ BARS.defineActions(function() {
 			if (!add_to_node && selected.length) {
 				add_to_node = selected.last();
 			}
-			let new_instance = new Armature({
-				origin: add_to_node ? add_to_node.origin : undefined
-			})
-			new_instance.addTo(add_to_node)
-			new_instance.isOpen = true
-		
-			if (Format.bone_rig) {
-				new_instance.createUniqueName()
-			}
-			new_instance.init().select()
-			Undo.finishEdit('Add armature bone', {outliner: true, elements: [new_instance]});
+			let armature = new Armature();
+			armature.addTo(add_to_node);
+			armature.isOpen = true;
+			armature.createUniqueName();
+			armature.init().select();
+
+			let bone = new ArmatureBone()
+			bone.addTo(add_to_node)
+
+			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
-					new_instance.rename()
+					armature.rename()
 				}
-				new_instance.showInOutliner()
-				Blockbench.dispatchEvent( 'add_armature', {object: new_instance} )
+				armature.showInOutliner()
+				Blockbench.dispatchEvent( 'add_armature', {object: armature} )
 			})
 		}
 	})
 })
 
 Object.assign(window, {
-	Armature,
-	getAllArmatures
+	Armature
 })

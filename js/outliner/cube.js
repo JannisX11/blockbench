@@ -947,6 +947,7 @@ export class Cube extends OutlinerElement {
 		rotatable: true,
 		movable: true,
 		resizable: true,
+		stretchable: true,
 		cube_rotation_limit: true,
 		cube_size_limit: true,
 		unique_name: false

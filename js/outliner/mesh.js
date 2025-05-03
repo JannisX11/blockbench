@@ -1055,14 +1055,7 @@ new NodePreviewController(Mesh, {
 		if (mesh && mesh.parent) mesh.parent.remove(mesh);
 		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
 		let armature = element.getArmature();
-		if (armature && false) {
-			let old_raycast = mesh.raycast;
-			mesh = new THREE.SkinnedMesh(geometry, Canvas.emptyMaterials[0]);
-			mesh.raycast = old_raycast
-			mesh.bind(armature.skeleton);
-		} else {
-			mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
-		}
+		mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -1103,28 +1096,6 @@ new NodePreviewController(Mesh, {
 		mesh.visible = element.visibility;
 
 		this.dispatchEvent('setup', {element});
-	},
-	updateTransform(element) {
-		NodePreviewController.prototype.updateTransform.call(this, element);
-		
-		let armature = element.getArmature();
-		let mesh = element.mesh;
-
-		console.log(armature, mesh.isSkinnedMesh)
-		if ((!!armature) != (mesh.isSkinnedMesh == true)) {
-			//console.log('SETUP')
-			//this.setup(element);
-			mesh = element.mesh;
-		}
-		if (armature) {
-			let skeleton = armature.skeleton;
-			skeleton.bones.empty();
-			for (let bone of armature.getAllBones()) {
-				skeleton.bones.push(bone.mesh);
-			}
-			console.log(skeleton, mesh, mesh.isSkinnedMesh);
-			//mesh.bind(skeleton);
-		}
 	},
 	updateGeometry(element, vertex_offsets) {
 		

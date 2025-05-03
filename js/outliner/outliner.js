@@ -1144,7 +1144,8 @@ SharedActions.add('duplicate', {
 	run() {
 		let added_elements = [];
 		Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-		selected.forEachReverse(function(obj, i) {
+		Outliner.selected.forEachReverse(function(obj, i) {
+			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
 			let copy = obj.duplicate();
 			added_elements.push(copy);
 		})

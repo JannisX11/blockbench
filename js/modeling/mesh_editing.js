@@ -2200,7 +2200,7 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
+		condition: {modes: ['edit'], features: ['meshes'], selected: {mesh: true}, method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
 			function runEdit(amended, extend = 1, direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
