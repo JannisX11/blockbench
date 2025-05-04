@@ -136,6 +136,7 @@ function setupSettings() {
 	new Setting('gamepad_controls',			{category: 'controls', value: false, name: 'Gamepad Controls', description: 'Use a gamepad or 3D mouse to navigate the viewport'});
 	new Setting('double_click_switch_tools',{category: 'controls', value: true});
 	new Setting('canvas_unselect',  		{category: 'controls', value: false});
+	new Setting('double_click_select_reference',{category: 'controls', value: true});
 	new Setting('selection_tolerance', 		{category: 'controls', value: 10, type: 'number', min: 1, max: 50});
 
 	//Edit

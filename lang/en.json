@@ -1037,6 +1037,8 @@
 	"settings.canvas_unselect.desc": "Unselects all elements when clicking on the background behind the model or in the timeline",
 	"settings.double_click_switch_tools": "Switch Tools on Double Click",
 	"settings.double_click_switch_tools.desc": "Double click the viewport to switch between tools",
+	"settings.double_click_select_reference": "Select Reference Image on Double Click",
+	"settings.double_click_select_reference.desc": "Double click the viewport to select a reference image",
 	"settings.highlight_cubes": "Highlight Elements",
 	"settings.highlight_cubes.desc": "Highlight elements when you hover over them or select them",
 	"settings.outliner_reveal_on_select": "Reveal Elements on Select",
