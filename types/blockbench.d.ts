@@ -49,9 +49,19 @@
 /// <reference types="./math_util" />
 /// <reference types="./canvas_frame" />
 /// <reference types="./io" />
-
-import { settings } from "../js/interface/settings"
-
+/// <reference types="./generated/js/interface/settings" />
+/// <reference types="./generated/js/interface/form" />
+/// <reference types="./generated/js/io/formats" />
+/// <reference types="./generated/js/io/share" />
+/// <reference types="./generated/js/modeling/edit" />
+/// <reference types="./generated/js/outliner/collections" />
+/// <reference types="./generated/js/outliner/element_panel" />
+/// <reference types="./generated/js/util/json" />
+/// <reference types="./generated/js/util/event_system" />
+/// <reference types="./generated/js/api" />
+/// <reference types="./generated/js/languages" />
+/// <reference types="./generated/js/modes" />
+/// <reference types="./generated/js/plugin_loader" />
 
 
 declare namespace Blockbench {

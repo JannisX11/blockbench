@@ -11,8 +11,7 @@ function getArg(key) {
 	}
 }
 
-const out_path = getArg('out') || '../generated/'
-console.log(out_path)
+const out_path = getArg('out') || '../dist-docs/'
 
 async function main() {
 	const app = await TypeDoc.Application.bootstrap({
@@ -219,7 +218,7 @@ async function main() {
 		console.log(file.name)
 		if (skip_files.includes(file.name)) continue
 
-		let file_name = file.name.replace(/[^\w]/gi, '')
+		let file_name = file.name.split(/[\\\/]+/).at(-1).replace(/[^\w]/gi, '');
 		let display_name = toTitleCase(file.name)
 		let markdown_lines = ['---', `title: ${display_name}`, '---', '', `# ${display_name}`]
 		let addLine = (s, empty_after = false) => {

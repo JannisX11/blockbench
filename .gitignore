@@ -1,5 +1,6 @@
 /dist/
 /dist-electron/
+/dist-docs/
 /types/generated/
 electron-builder.env
 node_modules/
