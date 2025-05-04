@@ -152,7 +152,7 @@ var codec = new Codec('project', {
 	},
 	compile(options) {
 		if (!options) options = 0;
-		var model = {
+		let model = {
 			meta: {
 				format_version: FORMATV,
 				//creation_time: Math.round(new Date().getTime()/1000),
@@ -161,6 +161,9 @@ var codec = new Codec('project', {
 				box_uv: Project.box_uv
 			}
 		}
+		let save_relative_paths = settings.export_asset_paths.value == 'relative' || settings.export_asset_paths.value == 'both';
+		let save_absolute_paths = settings.export_asset_paths.value == 'absolute' || settings.export_asset_paths.value == 'both';
+		if (typeof options.absolute_paths == 'boolean') save_absolute_paths = options.absolute_paths;
 		
 		for (var key in ModelProject.properties) {
 			if (ModelProject.properties[key].export == false) continue;
@@ -233,18 +236,25 @@ var codec = new Codec('project', {
 			}
 		}
 
+		function handleAssetPath(object, key, relative_key) {
+			let path = object[key];
+			if (options.absolute_paths == false) object[key] = undefined;
+			if (!isApp || !Project.save_path || !path) return;
+			if (save_absolute_paths == false) object[key] = undefined;
+			if (PathModule.isAbsolute(path) && save_relative_paths) {
+				let relative = PathModule.relative(PathModule.dirname(Project.save_path), path);
+				object[relative_key??key] = relative.replace(/\\/g, '/');
+			}
+		}
+
 		model.textures = [];
 		Texture.all.forEach(tex => {
-			var t = tex.getSaveCopy();
-			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
-				let relative = PathModule.relative(PathModule.dirname(Project.save_path), tex.path);
-				t.relative_path = relative.replace(/\\/g, '/');
-			}
+			let t = tex.getSaveCopy();
+			handleAssetPath(t, 'path', 'relative_path');
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
 				t.source = tex.getDataURL()
 				t.internal = true;
 			}
-			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
 		for (let texture_group of TextureGroup.all) {
@@ -256,20 +266,25 @@ var codec = new Codec('project', {
 		let collections = [];
 		for (let collection of Collection.all) {
 			let copy = collection.getSaveCopy();
+			if (copy.export_path)
 			collections.push(copy);
 		}
 		if (collections.length) model.collections = collections;
 
 		if (Animation.all.length) {
 			model.animations = [];
-			Animation.all.forEach(a => {
-				model.animations.push(a.getUndoCopy({absolute_paths: options.absolute_paths}, true))
+			Animation.all.forEach(animation => {
+				let a = animation.getUndoCopy({absolute_paths: options.absolute_paths}, true);
+				model.animations.push(a);
+				handleAssetPath(a, 'path');
 			})
 		}
 		if (AnimationController.all.length) {
 			model.animation_controllers = [];
-			AnimationController.all.forEach(a => {
-				model.animation_controllers.push(a.getUndoCopy());
+			AnimationController.all.forEach(cont => {
+				let a = cont.getUndoCopy();
+				handleAssetPath(a, 'path');
+				model.animation_controllers.push(a);
 			})
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {

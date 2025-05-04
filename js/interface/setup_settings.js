@@ -255,6 +255,12 @@ function setupSettings() {
 	}});
 	new Setting('final_newline',		{category: 'export', value: false});
 	new Setting('minifiedout',			{category: 'export', value: false});
+	new Setting('export_asset_paths',	{category: 'export', condition: isApp, value: 'relative', type: 'select', options: {
+		relative: tl('settings.export_asset_paths.relative'),
+		absolute: tl('settings.export_asset_paths.absolute'),
+		both: tl('settings.export_asset_paths.both'),
+		none: tl('settings.export_asset_paths.none'),
+	}});
 	new Setting('embed_textures', 		{category: 'export', value: true});
 	new Setting('minify_bbmodel', 		{category: 'export', value: true});
 	new Setting('export_empty_groups',	{category: 'export', value: true});
