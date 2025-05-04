@@ -531,7 +531,7 @@
 		user-select: initial;
 		-webkit-user-select: initial;
 	}
-	bb-select {
+	.bb-select {
 		display: block;
 		position: relative;
 		background-color: var(--color-button);
@@ -546,11 +546,11 @@
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	bb-select:hover{
+	.bb-select:hover{
 		color: var(--color-light);
 	}
 
-	bb-select::before {
+	.bb-select::before {
 		content: "\f0d7";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;

@@ -788,7 +788,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	}
 	let options = typeof data.options == 'function' ? data.options() : data.options;
 	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
-	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
+	let select = Interface.createElement('div', {id, class: 'bb-select half', value: value}, getNameFor(options[value]));
 	function setKey(key, options, input_event) {
 		if (!options) {
 			options = typeof data.options == 'function' ? data.options() : data.options;

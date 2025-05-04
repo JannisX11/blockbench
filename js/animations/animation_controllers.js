@@ -2153,7 +2153,7 @@ Interface.definePanels(() => {
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
 										<li v-for="(transition, i) in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
-											<bb-select @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</bb-select>
+											<div class="bb-select" @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</div>
 											<vue-prism-editor 
 												class="molang_input animation_controller_text_input tab_target"
 												v-model="state.transitions[i].condition"

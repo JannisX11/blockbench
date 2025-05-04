@@ -1174,7 +1174,7 @@ export class BarSelect extends Widget {
 			}
 
 		} else {
-			let select = document.createElement('bb-select')
+			let select = document.createElement('div', {class: 'bb-select'});
 			this.node.append(select);
 			if (data.width) {
 				select.style.setProperty('width', data.width+'px');
@@ -1236,7 +1236,7 @@ export class BarSelect extends Widget {
 				}
 
 			} else {
-				let select = node.querySelector('bb-select');
+				let select = node.querySelector('.bb-select');
 				select && select.addEventListener('click', event => {
 					this.open(event)
 				})
@@ -1344,10 +1344,10 @@ export class BarSelect extends Widget {
 		} else {
 			let name = this.getNameFor(key);
 			this.nodes.forEach(node => {
-				$(node).find('bb-select').text(name)
+				$(node).find('.bb-select').text(name)
 			})
 			if (!this.nodes.includes(this.node)) {
-				$(this.node).find('bb-select').text(name)
+				$(this.node).find('.bb-select').text(name)
 			}
 		}
 		return this;
