@@ -474,7 +474,7 @@ export const MenuBar = {
 									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
 									icon: 'drag_handle',
 									context: panel,
-									children: panel.snap_menu.structure
+									children: panel.snap_menu?.structure
 								},
 								{
 									id: 'fold',

@@ -308,6 +308,7 @@
 	"message.update_res.title": "Texture Resolution",
 	"message.update_res.message": "Would you like to update the project resolution to the resolution of this texture? Click 'Cancel' if your texture has a higher resolution than normal.",
 	"message.update_res.update": "Update",
+	"message.invalid_texture_group_material_config_path": "The save path of the config file is invalid. Make sure to save the textures in a valid location first.",
 	"message.bedrock_overwrite_error.message": "Blockbench cannot combine this model with the old file",
 	"message.bedrock_overwrite_error.backup_overwrite": "Create Backup and Overwrite",
 	"message.bedrock_overwrite_error.overwrite": "Overwrite",

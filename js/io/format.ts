@@ -294,6 +294,7 @@ export class ModelFormat implements FormatOptions {
 		this.target = data.target;
 		this.show_on_start_screen = true;
 		this.confidential = false;
+		this.can_convert_to = true;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
