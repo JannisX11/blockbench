@@ -2236,7 +2236,7 @@ BARS.defineActions(function() {
 						let focal_length = preview.camera.getFocalLength();
 						let cam_distance = cam_boom.length();
 						let target_distance = Math.max(radius, height) * (focal_length / 10);
-						zoom_factor = target_distance / cam_distance;
+						let zoom_factor = target_distance / cam_distance;
 						zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
 					}
 				}

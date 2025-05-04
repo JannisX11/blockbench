@@ -912,7 +912,6 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 								break;
 							}
 						}
-						console.log(rotation_object)
 						if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
 							let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
 							rotation_object = undefined;

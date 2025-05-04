@@ -183,6 +183,21 @@ export class Billboard extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
+	moveVector(arr, axis, update = true) {
+		if (typeof arr == 'number') {
+			var n = arr;
+			arr = [0, 0, 0];
+			arr[axis||0] = n;
+		} else if (arr instanceof THREE.Vector3) {
+			arr = arr.toArray();
+		}
+		this.origin.V3_add(arr);
+		if (update) {
+			this.preview_controller.updateTransform(this);
+			this.preview_controller.updateGeometry(this);
+		}
+		TickUpdates.selection = true;
+	}
 	resize(val, axis, negative) {
 		if (axis == 2) return;
 		if (negative) val = -val;
@@ -198,10 +213,6 @@ export class Billboard extends OutlinerElement {
 		TickUpdates.selection = true;
 		return this;
 	}
-	mapAutoUV() {
-
-	}
-
 	static behavior = {
 		select_faces: false,
 		cube_faces: true,
@@ -269,7 +280,7 @@ new Property(Billboard, 'vector2', 'size', {default: [2, 2]});
 new Property(Billboard, 'vector2', 'offset', {
 	inputs: {
 		element_panel: {
-			input: {label: 'Offset', type: 'vector', dimensions: 2},
+			input: {label: 'billboard.offset', type: 'vector', dimensions: 2},
 			onChange() {
 				for (let billboard of Billboard.selected) {
 					Billboard.preview_controller.updateGeometry(billboard);
@@ -286,11 +297,11 @@ new Property(Billboard, 'enum', 'facing_mode', {
 	values: ['lookat', 'lookat_y', 'rotate', 'rotate_y'],
 	inputs: {
 		element_panel: {
-			input: {label: 'Facing Mode', type: 'select', options: {
-				lookat: 'Look At',
-				lookat_y: 'Look At Y',
-				rotate: 'Rotate',
-				rotate_y: 'Rotate Y',
+			input: {label: 'billboard.facing_mode', type: 'select', options: {
+				lookat: 'billboard.facing_mode.lookat',
+				lookat_y: 'billboard.facing_mode.lookat_y',
+				rotate: 'billboard.facing_mode.rotate',
+				rotate_y: 'billboard.facing_mode.rotate_y',
 			}},
 			onChange() {
 				for (let billboard of Billboard.selected) {

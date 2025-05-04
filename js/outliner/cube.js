@@ -275,7 +275,7 @@ export class Cube extends OutlinerElement {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
 			if (other_selected_faces?.length && !own_selected_faces?.length) {
-				own_selected_faces.replace(other_selected_faces);
+				own_selected_faces.replace(other_selected_faces.filter(fkey => this.faces[fkey]));
 			}
 		}
 		return this;

@@ -1473,6 +1473,8 @@
 	"action.add_cube.desc": "Adds a new cube",
 	"action.add_mesh": "Add Mesh",
 	"action.add_mesh.desc": "Adds a new mesh",
+	"action.add_billboard": "Add Billboard",
+	"action.add_billboard.desc": "Adds a new billboard",
 	"action.add_locator": "Add Locator",
 	"action.add_locator.desc": "Adds a new locator to control positions of particles, leashes etc",
 	"action.add_null_object": "Add Null Object",
@@ -2305,6 +2307,13 @@
 	"cube.color.lime": "Lime",
 	"cube.color.pink": "Pink",
 	"cube.color.silver": "Silver",
+
+	"billboard.offset": "Offset",
+	"billboard.facing_mode": "Facing Mode",
+	"billboard.facing_mode.lookat": "Look At",
+	"billboard.facing_mode.lookat_y": "Look At Y",
+	"billboard.facing_mode.rotate": "Rotate",
+	"billboard.facing_mode.rotate_y": "Rotate Y",
 
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",

@@ -504,20 +504,20 @@ export const UVEditor = {
 		this.vue.updateSize();
 	},
 	//Selection
-	reverseSelect(event) {
-		var scope = this;
+	reverseSelect(event, local_offset) {
+		let scope = this;
 		if (!this.vue.texture && !Format.single_texture) return this;
 		if (!event.target.classList.contains('uv_size_handle') && !event.target.id === 'uv_frame') {
 			return this;
 		}
-		var matches = [];
-		var face_matches = [];
-		var u = event.offsetX / this.vue.inner_width * this.getResolution(0);
-		var v = event.offsetY / this.vue.inner_height * this.getResolution(1);
+		let matches = [];
+		let face_matches = [];
+		let u = local_offset[0] / this.vue.inner_width * this.getResolution(0);
+		let v = local_offset[1] / this.vue.inner_height * this.getResolution(1);
 		Cube.all.forEach(cube => {
 			if (cube.locked) return;
-			for (var face in cube.faces) {
-				var uv = cube.faces[face].uv
+			for (let face in cube.faces) {
+				let uv = cube.faces[face].uv
 				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && (cube.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
 					matches.safePush(cube);
 					face_matches.push([cube, face]);
@@ -2986,10 +2986,12 @@ Interface.definePanels(function() {
 				reverseSelect(event) {
 					if (this.mode !== 'uv') return;
 					var offset = $(this.$refs.frame).offset();
-					event.offsetX = event.clientX - offset.left;
-					event.offsetY = event.clientY - offset.top;
+					let local_position = [
+						event.clientX - offset.left,
+						event.clientY - offset.top
+					];
 					if (!this.dragging_uv && !this.selection_rect.active && event.target.id == 'uv_frame') {
-						let results = UVEditor.reverseSelect(event)
+						let results = UVEditor.reverseSelect(event, local_position)
 						if (!(results && results.length)) {
 							if (UVEditor.isFaceUV()) {
 								for (let element of UVEditor.getMappableElements()) {
