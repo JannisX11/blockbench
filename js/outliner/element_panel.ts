@@ -51,7 +51,12 @@ Interface.definePanels(function() {
 				for (let key in result) {
 					let property_id = key.replace(element.type+'_', '');
 					if (element.constructor.properties[property_id]) {
-						element[property_id] = result[key];
+						if (typeof result[key] === "object") { // Prevent object properties from using the same objects across elements.
+							element[property_id] = {...result[key]};
+						}
+						else {
+							element[property_id] = result[key];
+						}
 					}
 				}
 			}
@@ -75,7 +80,12 @@ Interface.definePanels(function() {
 					let property = type.properties[prop_id];
 					if (property?.inputs?.element_panel) {
 						let input_id = type_id + '_' + prop_id;
-						values[input_id] = first_element[prop_id];
+						if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
+							values[input_id] = {...first_element[prop_id]};
+						}
+						else {
+							values[input_id] = first_element[prop_id];
+						}
 					}
 				}
 			}

@@ -368,6 +368,7 @@ export class SplineMesh extends OutlinerElement {
         }
 
         // Handle some early testing files
+        //TODO: this should be removed before merge
         if (data.resolution && data.resolution.length == 2) {
             this.radial_resolution = data.resolution[0];
             this.tubular_resolution = data.resolution[1];
@@ -376,6 +377,18 @@ export class SplineMesh extends OutlinerElement {
             this.radial_resolution = data.resolution[0];
             this.tubular_resolution = data.resolution[1];
             this.radius_multiplier = data.resolution[2];
+        }
+
+        if ("render_mesh" in data) {
+            this.render_mode = data.render_mesh ? "mesh" : "path";
+        }
+
+        if ("smooth_shading" in data && "display_space" in data) {
+            let prop = {
+                shade_smooth: data.smooth_shading, 
+                display_space: data.display_space
+            }
+            this.render_options = {...prop};
         }
 
         // Identical to mesh
@@ -1379,7 +1392,7 @@ export class SplineMesh extends OutlinerElement {
 		rotatable: true,
 	}
     updateShading(shade_smooth) {
-        this.smooth_shading = shade_smooth;
+        this.render_options.shade_smooth = shade_smooth;
         this.preview_controller.updateGeometry(this);
     }
 }
@@ -1463,7 +1476,7 @@ new Property(SplineMesh, 'number', 'radial_resolution', {
     default: 6,
 	inputs: {
 		element_panel: {
-			input: {label: 'Ring Segments', type: 'num_slider', color: "u"},
+			input: {label: 'action.spline_ring_segments', type: 'num_slider', color: "u", description: 'action.spline_ring_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1476,7 +1489,7 @@ new Property(SplineMesh, 'number', 'tubular_resolution', {
     default: 12,
 	inputs: {
 		element_panel: {
-			input: {label: 'Tube Segments', type: 'num_slider', color: "v"},
+			input: {label: 'action.spline_tube_segments', type: 'num_slider', color: "v", description: 'action.spline_tube_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1488,7 +1501,7 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
     default: 1,
 	inputs: {
 		element_panel: {
-			input: {label: 'Tube Radius', type: 'num_slider', color: "w"},
+			input: {label: 'action.spline_tube_radius', type: 'num_slider', color: "w", description: 'action.spline_tube_radius.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1496,11 +1509,18 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
 		}
 	}
 });
-new Property(SplineMesh, 'boolean', 'smooth_shading', {
-    default: false,
+// Display Space: mainly for debug, may be used for other purposes tho.
+new Property(SplineMesh, 'object', 'render_options', {
+    default: {shade_smooth: false, display_space: false},
     inputs: {
         element_panel: {
-            input: {label: 'Smooth Shading', type: 'checkbox'},
+            input: {
+                label: 'action.spline_render_options', 
+                type: 'inline_multi_select',  
+                options: { shade_smooth: 'Smooth', display_space: 'Space' },
+                value: { shade_smooth: false, display_space: false },
+                description: 'action.spline_render_options.desc'
+            },
             onChange() {
                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
             }
@@ -1508,28 +1528,20 @@ new Property(SplineMesh, 'boolean', 'smooth_shading', {
     }
 });
 // decide if you want this spline to render the "Mesh" part of its name or not.
-new Property(SplineMesh, 'boolean', 'render_mesh', {
-	default: true,
+new Property(SplineMesh, 'enum', 'render_mode', {
+	default: 'mesh',
+	values: ['mesh', 'path'],
 	inputs: {
 		element_panel: {
-			input: {label: 'Render Mesh', type: 'checkbox'},
+			input: {label: 'action.spline_render_mode', type: 'select', options: {
+				mesh: 'action.spline_render_mode.mesh',
+				path: 'action.spline_render_mode.path'
+			}, description: 'action.spline_render_mode.desc'},
 			onChange() {
-				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
-			}
-		}
-	}
-});
-// mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'boolean', 'display_space', {
-    default: false,
-    inputs: {
-        element_panel: {
-            input: {label: 'Display Space', type: 'checkbox'},
-            onChange() {
                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
             }
-        }
-    }
+		}
+	}
 });
 
 new Property(SplineMesh, 'boolean', 'export', { default: true });
@@ -1662,7 +1674,11 @@ new NodePreviewController(SplineMesh, {
         })
 
         // "Space" lines
-        this.debugDraw(element, arr_pathline, arr_pathline_color, [element.display_space, element.display_space, element.display_space]);
+        this.debugDraw(element, arr_pathline, arr_pathline_color, [
+            element.render_options.display_space, // Render Tangents
+            element.render_options.display_space, // Render Normals
+            element.render_options.display_space  // Render BiNormals
+        ]);
 
         // Tube geometry
         let arr_vertices = [];
@@ -1670,8 +1686,8 @@ new NodePreviewController(SplineMesh, {
         let arr_uvs = [];
         let arr_indices = [];
         let arr_outline = [];
-        if (element.render_mesh) {
-            let tube = element.getTubeGeo(element.smooth_shading);
+        if (element.render_mode == "mesh") {
+            let tube = element.getTubeGeo(element.render_options.shade_smooth);
             arr_vertices = tube.vertices;
             arr_normals = tube.normals;
             arr_uvs = tube.uvs;
