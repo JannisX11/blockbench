@@ -42,37 +42,46 @@ export function selectSplinePoints(spline, handle, axis) {
 	toAdd[axis].forEach((e) => toAddLength++);
 
 	// Determine which points to select
-	if (!toAdd[axis].some((value) => selection.includes(value))) {
+	if (!toAdd[axis].some((value) => selection.includes(value))) { // Selection doesn't include any of the points this axis would select.
 		if (addToPrevious) {
+			// Add axis points to the selection.
 			selection.push(...toAdd[axis]);
 		} else {
+			// Replace selection.
 			selection.replace(toAdd[axis]);
 		}
-	} else {
+	} else { // Selection includes some of the points this axis would select.
 		if (addToPrevious) {
 			if (selection.includes(handle.joint) && (axis === "C1" || axis === "C2")) {
+				// Attempted to unselect one control, unselect whole handle.
 				selection.remove(...toAdd["J"]);
 			} 
 			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
 				selection.remove(...toAdd[axis]);
 				selection.push(...toAdd[axis]);
 			} 
 			else {
+				// Simply clear this axis from the selection.
 				selection.remove(...toAdd[axis]);
 			}
 		} else {
 			if (selectionLength > toAddLength) {
+				// Clicked on a control, clear and select it.
 				selection.empty();
 				selection.push(...toAdd[axis]);
 			} 
 			else if (selectionLength === toAddLength) {
+				// Clicked on selected handle, unselect.
 				selection.remove(...toAdd[axis]);
 			} 
 			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
 				selection.remove(...toAdd[axis]);
 				selection.push(...toAdd[axis]);
 			} 
 			else {
+				// Simply clear this axis from the selection.
 				selection.remove(...toAdd[axis]);
 			}
 		}

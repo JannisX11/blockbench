@@ -922,7 +922,7 @@ export class SplineMesh extends OutlinerElement {
 			}
 		}
     }
-    // Taken as-is from Mesh
+    // Taken nearly as-is from Mesh
     resize(val, axis, negative, allow_negative, bidirectional) {
         let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
         let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
@@ -942,7 +942,12 @@ export class SplineMesh extends OutlinerElement {
             val = val(size) - size;
             if (bidirectional) val /= 2;
         }
-        let scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1)) / size;
+
+        // Clamp value to 1 if handles are selected.
+        let unit_scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1));
+        let clamped_unit_scale = Math.clamp(unit_scale, 1, Infinity);
+        let scale = (this.getSelectedHandles().length ? clamped_unit_scale : unit_scale) / size;
+
         if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
         if (scale < 0 && !allow_negative) scale = 0;
 
@@ -951,8 +956,18 @@ export class SplineMesh extends OutlinerElement {
             vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
             vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
             vec2.applyEuler(Transformer.rotation_selection); 
-            this.vertices[key].replace(vec2.toArray())
-            this.applyHandleModeOnVertex(key);
+            let vert = [...this.vertices[key]];
+            this.vertices[key].replace(vec2.toArray());
+
+            // prevent handle from flickering on a mis-aligned position when negatives are clamped to 0.
+            let e = 0.004;
+            let pos = vec2.toArray();
+            let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+
+            // Apply handle effect if applicable.
+            if (this.getSelectedHandles(true).length && !same_spot) { 
+                this.applyHandleModeOnVertex(key);
+            }
         })
         this.preview_controller.updateGeometry(this);
     }
@@ -1088,6 +1103,7 @@ export class SplineMesh extends OutlinerElement {
     }
     getBézierPath() {
         let { vec1 } = Reusable;
+        let MathUtils = THREE.MathUtils;
         let tubularSegments = this.tubular_resolution;
         let curveTangents = [];
         let curveNormals = [];
@@ -1102,8 +1118,6 @@ export class SplineMesh extends OutlinerElement {
         let prevCurveNormal;
         let prevEnd;
         for (let cKey in this.curves) {
-            // let handle1 = this.getHandleOfPoint(this.curves[cKey].start);
-            // let handle2 = this.getHandleOfPoint(this.curves[cKey].end);
             let handle1 = this.handles[this.curves[cKey].start_handle];
             let handle2 = this.handles[this.curves[cKey].end_handle];
             let tilt1 = handle1.tilt;
@@ -1116,6 +1130,7 @@ export class SplineMesh extends OutlinerElement {
 
             for (let tubePoint = 0; tubePoint <= tubularSegments; tubePoint++) {
                 let time = tubePoint / tubularSegments;
+                let smoothTime = MathUtils.smoothstep(time, 0, 1); // looks good, but doesn't handle gradual slopes as well
                 let tilt = Math.lerp(tilt1, tilt2, time);
                 let size = Math.lerp(size1, size2, time);
                 let curveData = this.getBézierForCurve(time, cKey);
