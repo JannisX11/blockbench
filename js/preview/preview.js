@@ -1757,6 +1757,7 @@ export class OrbitGizmo {
 					let limit = move_calls <= 2 ? 1 : 32;
 					scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
 					scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+					Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
 					last_event = e2;
 					move_calls++;
 				}
