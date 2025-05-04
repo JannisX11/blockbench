@@ -391,6 +391,11 @@ export class SplineMesh extends OutlinerElement {
             this.render_options = {...prop};
         }
 
+        if ("render_options" in data) {
+            this.smooth_shading = data.render_options.shade_smooth;
+            this.display_space = data.render_options.display_space;
+        }
+
         // Identical to mesh
         if (typeof data.vertices == 'object') {
             for (let key in this.vertices) {
@@ -1407,7 +1412,7 @@ export class SplineMesh extends OutlinerElement {
 		rotatable: true,
 	}
     updateShading(shade_smooth) {
-        this.render_options.shade_smooth = shade_smooth;
+        this.smooth_shading = shade_smooth;
         this.preview_controller.updateGeometry(this);
     }
 }
@@ -1524,24 +1529,24 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
 		}
 	}
 });
-// Display Space: mainly for debug, may be used for other purposes tho.
-new Property(SplineMesh, 'object', 'render_options', {
-    default: {shade_smooth: false, display_space: false},
-    inputs: {
-        element_panel: {
-            input: {
-                label: 'action.spline_render_options', 
-                type: 'inline_multi_select',  
-                options: { shade_smooth: 'Smooth', display_space: 'Space' },
-                value: { shade_smooth: false, display_space: false },
-                description: 'action.spline_render_options.desc'
-            },
-            onChange() {
-                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
-            }
-        }
-    }
-});
+// would have been cool, but Smooth Shading needs to comply with how it looks on Mesh
+// new Property(SplineMesh, 'object', 'render_options', {
+//     default: {shade_smooth: false, display_space: false},
+//     inputs: {
+//         element_panel: {
+//             input: {
+//                 label: 'action.spline_render_options', 
+//                 type: 'inline_multi_select',  
+//                 options: { shade_smooth: 'Smooth', display_space: 'Space' },
+//                 value: { shade_smooth: false, display_space: false },
+//                 description: 'action.spline_render_options.desc'
+//             },
+//             onChange() {
+//                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+//             }
+//         }
+//     }
+// });
 // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_mode', {
 	default: 'mesh',
@@ -1557,6 +1562,28 @@ new Property(SplineMesh, 'enum', 'render_mode', {
             }
 		}
 	}
+});
+new Property(SplineMesh, 'boolean', 'smooth_shading', {
+    default: false,
+    inputs: {
+        element_panel: {
+            input: {label: 'action.spline_smooth_shading', type: 'checkbox', description: 'action.spline_smooth_shading.desc'},
+            onChange() {
+                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+            }
+        }
+    }
+});
+new Property(SplineMesh, 'boolean', 'display_space', {
+    default: false,
+    inputs: {
+        element_panel: {
+            input: {label: 'action.spline_display_space', type: 'checkbox', description: 'action.spline_display_space.desc'},
+            onChange() {
+                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+            }
+        }
+    }
 });
 
 new Property(SplineMesh, 'boolean', 'export', { default: true });
@@ -1598,6 +1625,17 @@ new NodePreviewController(SplineMesh, {
         mesh.pathLine = pathLine;
         mesh.add(pathLine);
 
+        // Spline Space lines
+        let spaceLine = new THREE.LineSegments(new THREE.BufferGeometry(), Canvas.splinePathLineMaterial);
+        spaceLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
+        spaceLine.no_export = true;
+        spaceLine.name = element.uuid + '_space_line';
+        spaceLine.renderOrder = 2;
+        spaceLine.visible = element.display_space;
+        spaceLine.frustumCulled = false;
+        mesh.spaceLine = spaceLine;
+        mesh.add(spaceLine);
+
         // Update
         this.updateTransform(element);
         this.updateGeometry(element);
@@ -1607,16 +1645,12 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('setup', { element });
     },
-    debugDraw(element, linePoints, lineColors, renderParams = [true, true, true]) {
+    debugDraw(element, linePoints, lineColors) {
         let debugTangentColor = [gizmo_colors.v.r, gizmo_colors.v.g, gizmo_colors.v.b];
         let debugNormalColor = [gizmo_colors.w.r, gizmo_colors.w.g, gizmo_colors.w.b];
         let debugBiNormalColor = [gizmo_colors.u.r, gizmo_colors.u.g, gizmo_colors.u.b];
-        let debugTangentPoints = [];
-        let debugTangentColors = [];
-        let debugNormalPoints = [];
-        let debugNormalColors = [];
-        let debugBiNormalPoints = [];
-        let debugBiNormalColors = [];
+        let points = [];
+        let colors = [];
         let pathData = element.getBézierPath();
 
         for (let ptIndex = 0; ptIndex < pathData.points.length; ptIndex++) {
@@ -1630,31 +1664,21 @@ new NodePreviewController(SplineMesh, {
             let localBiNormal = new THREE.Vector3().addVectors(point, biNormal);
 
             // Compile Tangents
-            debugTangentPoints.push(point, localTangent);
-            debugTangentColors.push(debugTangentColor, debugTangentColor);
+            points.push(point, localTangent);
+            colors.push(debugTangentColor, debugTangentColor);
             
             // Compile Normals
-            debugNormalPoints.push(point, localNormal);
-            debugNormalColors.push(debugNormalColor, debugNormalColor);
+            points.push(point, localNormal);
+            colors.push(debugNormalColor, debugNormalColor);
             
             // Compile Bi-Normals
-            debugBiNormalPoints.push(point, localBiNormal);
-            debugBiNormalColors.push(debugBiNormalColor, debugBiNormalColor);
+            points.push(point, localBiNormal);
+            colors.push(debugBiNormalColor, debugBiNormalColor);
         }
 
         // Add all points to line arrays for render
-        if (renderParams[0]) {
-            debugTangentPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
-            debugTangentColors.forEach((array, i) => lineColors.push(...array))
-        }
-        if (renderParams[1]) {
-            debugNormalPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
-            debugNormalColors.forEach((array, i) => lineColors.push(...array))
-        }
-        if (renderParams[2]) {
-            debugBiNormalPoints.forEach((vector, i) => linePoints.push(...vector.toArray()))
-            debugBiNormalColors.forEach((array, i) => lineColors.push(...array))
-        }
+        points.forEach((vector, i) => linePoints.push(...vector.toArray()))
+        colors.forEach((array, i) => lineColors.push(...array))
     },
     updateGeometry(element) {
         let { mesh } = element;
@@ -1689,11 +1713,9 @@ new NodePreviewController(SplineMesh, {
         })
 
         // "Space" lines
-        this.debugDraw(element, arr_pathline, arr_pathline_color, [
-            element.render_options.display_space, // Render Tangents
-            element.render_options.display_space, // Render Normals
-            element.render_options.display_space  // Render BiNormals
-        ]);
+        let arr_spaceline = [];
+        let arr_spaceline_color = [];
+        this.debugDraw(element, arr_spaceline, arr_spaceline_color);
 
         // Tube geometry
         let arr_vertices = [];
@@ -1702,7 +1724,7 @@ new NodePreviewController(SplineMesh, {
         let arr_indices = [];
         let arr_outline = [];
         if (element.render_mode == "mesh") {
-            let tube = element.getTubeGeo(element.render_options.shade_smooth);
+            let tube = element.getTubeGeo(element.smooth_shading);
             arr_vertices = tube.vertices;
             arr_normals = tube.normals;
             arr_uvs = tube.uvs;
@@ -1732,6 +1754,11 @@ new NodePreviewController(SplineMesh, {
         // Path Lines
         mesh.pathLine.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_pathline), 3));
         mesh.pathLine.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(arr_pathline_color), 3));
+        
+        // Space Lines
+        mesh.spaceLine.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_spaceline), 3));
+        mesh.spaceLine.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(arr_spaceline_color), 3));
+        mesh.spaceLine.visible = element.display_space;
 
         mesh.pathLine.geometry.clearGroups();
         let start1 = 0;
