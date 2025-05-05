@@ -244,7 +244,7 @@ const Canvas = {
 			uniform bool SHADE;
 			uniform float DENSITY;
 
-			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value && Preview.selected?.renderer.capabilities.isWebGL2 ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
@@ -290,7 +290,7 @@ const Canvas = {
 
 			uniform bool SHADE;
 
-			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
+			${settings.antialiasing_bleed_fix.value && Preview.selected?.renderer.capabilities.isWebGL2 ? 'centroid' : ''} varying vec2 vUv;
 			varying float light;
 			varying float lift;
 
