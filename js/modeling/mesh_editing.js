@@ -2190,14 +2190,14 @@ BARS.defineActions(function() {
 					let uv_data = [];
 					for (let j = 0; j < 6; j++) {
 						// Vertex
-						let arr_offset = ((i * 6) + j) * 3;
+						let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
 						let pos = [
 							tube.vertices[arr_offset + 0],
 							tube.vertices[arr_offset + 1],
 							tube.vertices[arr_offset + 2],
 						];
 						vertices.push(pos);
-						let uv_offset = ((i * 6) + j) * 2;
+						let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
 						let uv = [
 							tube.uvs[uv_offset + 0],
 							tube.uvs[uv_offset + 1],

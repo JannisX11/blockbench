@@ -1,4 +1,5 @@
 import { THREE } from '../../lib/libs';
+import { electron } from '../desktop';
 import { SplineMesh } from '../outliner/spline_mesh';
 
 window.scene = null;
@@ -1150,8 +1151,9 @@ export class Preview {
 			let uv_factor_x = texture.getUVWidth() / texture.width;
 			let uv_factor_y = texture.getUVHeight() / texture.display_height;
 			let offset = 0;
-			let x = intersect.uv.x * texture.width;
-			let y = (1-intersect.uv.y) * texture.height;
+			let x = intersect.uv.x;
+			let y = (1-intersect.uv.y);
+
 			let truncated_x = x;
 			let truncated_y = y;
 			if (Condition(Toolbox.selected.brush.floor_coordinates)) {

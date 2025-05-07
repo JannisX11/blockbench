@@ -1,3 +1,4 @@
+import { THREE } from "../../lib/libs";
 import { Property } from "../util/property";
 
 export class SplineTubeFace extends Face {
@@ -20,27 +21,40 @@ export class SplineTubeFace extends Face {
         let vec2 = v3.V3_subtract(v1).V3_toThree();
         let faceNormal = new THREE.Vector3().crossVectors(vec1, vec2).normalize();
 
-        return faceNormal;
+        return faceNormal.toArray();
 	}
     getTexture() {
         return this.spline.getTexture();
     }
-    // (almost) Straight from MeshFace, but it doesn't work
 	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+        let tex = this.getTexture();
+        let uvFactorX = tex.getUVWidth() / tex.width;
+        let uvFactorY = tex.getUVHeight() / tex.display_height;
+        let texWidth = tex.width;
+        let texHeight = tex.height;
+        let [uv1, uv2, uv3, uv4] = this.uvs.slice();
 
+        // Account for Blockbench's UV scaling.
+        let uvs = [
+            [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)],
+            [(uv2[0] * texWidth * uvFactorX), (uv2[1] * texHeight * uvFactorY)],
+            [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)],
+            [(uv4[0] * texWidth * uvFactorX), (uv4[1] * texHeight * uvFactorY)]
+        ];
+        
 		// Use non-truncated uv coordinates to select the correct triangle of a face.
-        let is_in_tri = pointInTriangle(uv, this.uvs[0], this.uvs[1], this.uvs[2]);
-		let vert_a = is_in_tri ? 0 : 0;
-		let vert_b = is_in_tri ? 1 : 2;
-		let vert_c = is_in_tri ? 2 : 3;
+		let is_in_tri = pointInTriangle(uv, uvs[0], uvs[1], uvs[2]);
+		let vert_a = 0;
+		let vert_b = 1 + (is_in_tri ? 1 : 0);
+		let vert_c = 2 + (is_in_tri ? 1 : 0);
 
-		let p0 = this.uvs[vert_a];
-		let p1 = this.uvs[vert_b];
-		let p2 = this.uvs[vert_c];
+		let p0 = uvs[vert_a].slice();
+		let p1 = uvs[vert_b].slice();
+		let p2 = uvs[vert_c].slice();
 
-		let vertexa = this.vertices[vert_a];
-		let vertexb = this.vertices[vert_b];
-		let vertexc = this.vertices[vert_c];
+		let vertexa = this.vertices[vert_a].slice();
+		let vertexb = this.vertices[vert_b].slice();
+		let vertexc = this.vertices[vert_c].slice();
 
 		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
 
@@ -66,38 +80,45 @@ export class SplineTubeFace extends Face {
 
 		let matrix = new THREE.Matrix4();
 		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
-		matrix.setPosition(texel_pos);
+        matrix.setPosition(texel_pos);
 		return matrix;
 	}
-    // (almost) Straight from MeshFace, but it doesn't work
-	UVToLocal(uv) {
-
-		// Use non-truncated uv coordinates to select the correct triangle of a face.
-        let is_in_tri = pointInTriangle(uv, this.uvs[0], this.uvs[1], this.uvs[2]);
-		let vert_a = is_in_tri ? 0 : 0;
-		let vert_b = is_in_tri ? 1 : 2;
-		let vert_c = is_in_tri ? 2 : 3;
-
-		let p0 = this.uvs[vert_a];
-		let p1 = this.uvs[vert_b];
-		let p2 = this.uvs[vert_c];
-
-		let vertexa = this.vertices[vert_a];
-		let vertexb = this.vertices[vert_b];
-		let vertexc = this.vertices[vert_c];
-
-		let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1])
-		let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0
-		let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0
-		let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0
-
-		let local_space = new THREE.Vector3(
-			vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-			vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-			vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3,
-		)
-		return local_space;	
-	}
+    UVToLocal(uv) {
+        let tex = this.getTexture();
+        let uvFactorX = tex.getUVWidth() / tex.width;
+        let uvFactorY = tex.getUVHeight() / tex.display_height;
+        let texWidth = tex.width;
+        let texHeight = tex.height;
+        let [uv1, uv2, uv3, uv4] = this.uvs.slice();
+        let [v1, v2, v3, v4] = this.vertices.slice();
+        
+        uv1 = [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)];
+        uv3 = [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)];
+        let uNorm = (uv[0] - uv1[0]) / (uv3[0] - uv1[0]);
+        let vNorm = (uv[1] - uv1[1]) / (uv3[1] - uv1[1]);
+        
+  
+        let v12 = [
+            (1 - uNorm) * v1[0] + uNorm * v2[0],
+            (1 - uNorm) * v1[1] + uNorm * v2[1],
+            (1 - uNorm) * v1[2] + uNorm * v2[2]
+        ];
+        let v34 = [
+            (1 - uNorm) * v4[0] + uNorm * v3[0],
+            (1 - uNorm) * v4[1] + uNorm * v3[1],
+            (1 - uNorm) * v4[2] + uNorm * v3[2]
+        ];
+        let vLocal = [
+            (1 - vNorm) * v34[0] + vNorm * v12[0],
+            (1 - vNorm) * v34[1] + vNorm * v12[1],
+            (1 - vNorm) * v34[2] + vNorm * v12[2]
+        ];
+        
+        console.log(v1, v12, v2);
+        console.log(v3, v34, v4);
+        // console.log(vLocal);
+        return vLocal.V3_toThree();
+    }
 }
 new Property(SplineTubeFace, 'array', 'vertices');
 new Property(SplineTubeFace, 'array', 'uvs');
@@ -270,17 +291,15 @@ export class SplineMesh extends OutlinerElement {
         }
         Object.freeze(this._static);
 
+        // Base points of the curve, a chain of point triplets frorming a series of curve between their origins & control points.
+        // Math: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
+        // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Higher-order_curves
         if (!data.vertices) {
-            // Base points of the curve, a chain of point triplets frorming a series of curve between their origins & control points.
-            // Math: https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Cubic_B%C3%A9zier_curves
-            // https://en.wikipedia.org/wiki/B%C3%A9zier_curve#Higher-order_curves
-            this.addVertices(
-                [8, 0, 4], [8, 0.5, 0], [8, 1, -4],
-                [4, 2, -4], [4, 2.5, 0], [4, 3, 4],
-                [0, 4, 4], [0, 4.5, 0], [0, 5, -4],
-                [-4, 6, -4], [-4, 6.5, 0], [-4, 7, 4],
-                [-8, 8, 4], [-8, 8.5, 0], [-8, 9, -4]
-            );
+            this.addVertices([ 8, 0,  4], [ 8, 0.5, 0], [ 8, 1, -4]); // Handle 1 vertices ( 0,  1,  2)
+            this.addVertices([ 4, 2, -4], [ 4, 2.5, 0], [ 4, 3,  4]); // Handle 2 vertices ( 3,  4,  5)
+            this.addVertices([ 0, 4,  4], [ 0, 4.5, 0], [ 0, 5, -4]); // Handle 3 vertices ( 6,  7,  8)
+            this.addVertices([-4, 6, -4], [-4, 6.5, 0], [-4, 7,  4]); // Handle 4 vertices ( 9, 10, 11)
+            this.addVertices([-8, 8,  4], [-8, 8.5, 0], [-8, 9, -4]); // Handle 5 vertices (12, 13, 14)
             let vertex_keys = Object.keys(this.vertices);
 
             // Spline handles are made of two control points & one position point, forming patters as follows (. = point, ! = control, - = curve):
@@ -509,30 +528,29 @@ export class SplineMesh extends OutlinerElement {
             this.faces = {};
 
             for (let i = 0; i < tube.indices.length / 6; i++) {
-                let i1 = tube.indices[i + 0];
-                let i2 = tube.indices[i + 1];
-                let i3 = tube.indices[i + 2];
-                let i4 = tube.indices[i + 5];
+                let arr_vertices = [];
+                let arr_uvs = [];
+                for (let j = 0; j < 6; j++) {
+                    // Vertex
+                    let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                    let pos = [
+                        tube.vertices[arr_offset + 0],
+                        tube.vertices[arr_offset + 1],
+                        tube.vertices[arr_offset + 2],
+                    ];
+                    arr_vertices.push(pos);
+                    let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                    let uv = [
+                        tube.uvs[uv_offset + 0],
+                        tube.uvs[uv_offset + 1],
+                    ]
+                    arr_uvs.push(uv);
+                }
 
-                let vertices = [];
-                let uvs = [];
-                [i1, i2, i3, i4].forEach(index => {
-                    let v2Off = index*3;
-                    let v3Off = index*3;
-
-                    vertices.push([
-                        tube.vertices[v3Off], 
-                        tube.vertices[v3Off + 1],
-                        tube.vertices[v3Off + 2]
-                    ]);
-
-                    uvs.push([
-                        tube.uvs[v2Off], 
-                        tube.uvs[v2Off + 1]
-                    ]);
-                })
-
-                let face = new SplineTubeFace(this, {vertices: vertices, uvs: uvs});
+                let face = new SplineTubeFace(this, {
+                    vertices: [arr_vertices[0], arr_vertices[1], arr_vertices[2], arr_vertices[5]], 
+                    uvs: [arr_uvs[0], arr_uvs[1], arr_uvs[2], arr_uvs[5]]
+                });
                 face_arr.push(face);
             }
 
