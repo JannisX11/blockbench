@@ -679,7 +679,14 @@ skin_presets.steve = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -690,6 +697,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -699,6 +707,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -709,6 +718,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -753,7 +763,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -764,6 +781,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -773,6 +791,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -783,6 +802,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -823,7 +843,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -834,6 +861,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -843,6 +871,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 21.5, 0],
 				"pose": [-10, 0, 0],
@@ -853,6 +882,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 21.5, 0],
 				"pose": [12, 0, 0],
