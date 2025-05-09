@@ -2630,6 +2630,7 @@
 		cursor: pointer;
 		padding: 0 10px;
 		box-shadow: 0 0px 28px rgb(0 0 0 / 24%);
+		border-radius: 8px;
 	}
 	#tab_overview_grid > li:hover {
 		color: var(--color-light);

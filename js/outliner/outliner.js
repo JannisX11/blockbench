@@ -953,6 +953,8 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 
 //Misc
 export function renameOutliner(element) {
+	if (Format.id == 'skin') return;
+
 	stopRenameOutliner()
 
 	if (Group.first_selected && !element && !Project.EditSession) {
@@ -1040,7 +1042,7 @@ StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 SharedActions.add('rename', {
 	subject: 'outliner',
-	condition: {modes: ['edit', 'paint']},
+	condition: {modes: ['edit', 'paint'], method: () => Format.id != 'skin'},
 	priority: -1,
 	run() {
 		renameOutliner();

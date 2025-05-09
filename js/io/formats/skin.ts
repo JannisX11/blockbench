@@ -521,8 +521,108 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
-	new Action({
-		id: 'export_minecraft_skin',
+	new Action('convert_minecraft_skin_variant', {
+		icon: 'compare_arrows',
+		category: 'edit',
+		condition: {formats: ['skin'], method: () => Group.all.find(g => g.name == 'Right Arm')},
+		click() {
+			let is_slim = Cube.all.find(c => c.name.match(/arm/i)).size(0) == 3;
+			new Dialog('convert_minecraft_skin_variant', {
+				title: 'action.',
+				form: {
+					model: {
+						label: 'dialog.skin.model',
+						type: 'select',
+						value: is_slim ? 'steve' : 'alex',
+						options: {
+							steve: skin_presets.steve.display_name,
+							alex: skin_presets.alex.display_name,
+						}
+					},
+					adjust_texture: {
+						label: 'dialog.convert_skin.adjust_texture',
+						type: 'checkbox',
+						value: true,
+					}
+				},
+				onConfirm(result) {
+					let right_arm = Group.all.find(g => g.name == 'Right Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let left_arm = Group.all.find(g => g.name == 'Left Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let elements = right_arm.concat(left_arm);
+					Undo.initEdit({elements});
+					for (let cube of right_arm) {
+						cube.to[0] = result.model == 'alex' ? 7 : 8;
+					}
+					for (let cube of left_arm) {
+						cube.from[0] = result.model == 'alex' ? -7 : -8;
+					}
+					Canvas.updateView({elements: right_arm.concat(left_arm), element_aspects: {geometry: true, uv: true}, selection: true});
+					Undo.finishEdit('Convert Minecraft skin model');
+
+					if (result.adjust_texture) {
+						let textures = Texture.all.filter(tex => tex.selected || tex.multi_selected);
+						if (!textures.length) textures = [Texture.getDefault()]
+						if (!textures[0]) return;
+						
+						const arm_uv_positions: [number, number][] = [
+							[40, 16],
+							[40, 32],
+							[32, 48],
+							[48, 48],
+						];
+						type Translation = {area: [number, number, number, number], offset: [number, number]};
+						let translations: Translation[];
+						if (result.model == 'alex') {
+							translations = [
+								{area: [6, 0, 10, 16], offset: [-1, 0]},
+								{area: [9, 0, 2, 4], offset: [-1, 0]},
+								{area: [13, 4, 2, 12], offset: [-1, 0]},
+							];
+						} else {
+							translations = [
+								{area: [5, 0, 10, 16], offset: [1, 0]},
+								{area: [9, 0, 2, 4], offset: [1, 0]},
+								{area: [13, 4, 2, 12], offset: [1, 0]},
+							];
+						}
+						Undo.initEdit({textures, bitmap: true});
+						for (let texture of textures) {
+							if (texture.layers_enabled) {
+								texture.layers_enabled = false;
+								texture.selected_layer = null;
+								texture.layers.empty();
+							}
+							texture.edit(() => {
+								let ctx = texture.ctx;
+								for (let position of arm_uv_positions) {
+									for (let translation of translations) {
+										let data = ctx.getImageData(
+											position[0] + translation.area[0],
+											position[1] + translation.area[1],
+											translation.area[2],
+											translation.area[3],
+										);
+										ctx.putImageData(data,
+											position[0] + translation.area[0] + translation.offset[0],
+											position[1] + translation.area[1] + translation.offset[1]
+										);
+									}
+									if (result.model == 'alex') {
+										ctx.clearRect(position[0] + 10, position[1] + 0, 2, 4);
+										ctx.clearRect(position[0] + 14, position[1] + 4, 2, 12);
+									}
+								}
+							}, {no_undo: true});
+						}
+						UVEditor.vue.layer = null;
+						updateSelection();
+						Undo.finishEdit('Convert Minecraft skin texture');
+					}
+				}
+			}).show();
+		}
+	})
+	new Action('export_minecraft_skin', {
 		icon: 'icon-player',
 		category: 'file',
 		condition: () => Format == format && Texture.all[0],

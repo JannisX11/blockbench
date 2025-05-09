@@ -316,6 +316,16 @@ export const MenuBar = {
 			'merge_meshes',
 		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
 
+		new BarMenu('skin', [
+			new MenuSeparator('view'),
+			'custom_skin_poses',
+			'add_custom_skin_pose',
+			new MenuSeparator('edit'),
+			'toggle_skin_layer',
+			'explode_skin_model',
+			'convert_minecraft_skin_variant',
+		], {icon: 'icon-player', condition: {formats: ['skin']}})
+
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
 			icon: 'photo_size_select_large',
