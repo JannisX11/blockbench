@@ -21,54 +21,6 @@ export class SplineTubeFace extends MeshFace {
 		newFace.texture = this.texture;
         return newFace;
     }
-	// texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
-	// 	uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
-
-	// 	let texel_pos = this.UVToLocal(uv);
-	// 	let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
-	// 	let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
-
-	// 	texel_x_axis.sub(texel_pos);
-	// 	texel_y_axis.sub(texel_pos);
-
-	// 	let matrix = new THREE.Matrix4();
-	// 	matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
-    //     matrix.setPosition(texel_pos);
-	// 	return matrix;
-	// }
-    // UVToLocal(uv) {
-    //     let tex = this.getTexture()
-    //     let uvFactorX = tex.getUVWidth() / tex.width;
-    //     let uvFactorY = tex.getUVHeight() / tex.display_height;
-    //     let texWidth = tex.width;
-    //     let texHeight = tex.height;
-    //     let [uv1, uv2, uv3, uv4] = this.uvs.slice();
-    //     let [v1, v2, v3, v4] = this.vertices.slice();
-        
-    //     uv1 = [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)];
-    //     uv3 = [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)];
-    //     let uNorm = (uv[0] - uv1[0]) / (uv3[0] - uv1[0]);
-    //     let vNorm = (uv[1] - uv1[1]) / (uv3[1] - uv1[1]);
-        
-  
-    //     let v12 = [
-    //         (1 - uNorm) * v1[0] + uNorm * v2[0],
-    //         (1 - uNorm) * v1[1] + uNorm * v2[1],
-    //         (1 - uNorm) * v1[2] + uNorm * v2[2]
-    //     ];
-    //     let v34 = [
-    //         (1 - uNorm) * v4[0] + uNorm * v3[0],
-    //         (1 - uNorm) * v4[1] + uNorm * v3[1],
-    //         (1 - uNorm) * v4[2] + uNorm * v3[2]
-    //     ];
-    //     let vLocal = [
-    //         (1 - vNorm) * v34[0] + vNorm * v12[0],
-    //         (1 - vNorm) * v34[1] + vNorm * v12[1],
-    //         (1 - vNorm) * v34[2] + vNorm * v12[2]
-    //     ];
-        
-    //     return vLocal.V3_toThree();
-    // }
 }
 new Property(SplineTubeFace, 'array', 'vertices');
 new Property(SplineTubeFace, 'array', 'uvs');
@@ -1888,6 +1840,81 @@ new NodePreviewController(SplineMesh, {
 
         this.dispatchEvent('update_highlight', { element });
     },
+	updatePixelGrid(element) {
+		var mesh = element.mesh;
+		if (mesh === undefined) return;
+		mesh.remove(mesh.grid_box);
+		if (mesh.grid_box?.geometry) mesh.grid_box.geometry.dispose();
+		if (element.visibility == false) return;
+		if (element.render_mode != "mesh") return;
+
+		let grid_enabled = (Modes.paint && settings.painting_grid.value) || (Modes.edit && settings.pixel_grid.value)
+		if (!grid_enabled) return;
+
+		var positions = [];
+
+		for (let fkey in element.faces) {
+			let face = element.faces[fkey];
+			if (face.vertices.length <= 2) continue;
+			let offset = face.getNormal(true).V3_multiply(0.01);
+			let texture = face.getTexture();
+			var psize_x = texture ? texture.getUVWidth() / texture.width : 1;
+			var psize_y = texture ? texture.getUVHeight() / texture.display_height : 1;
+
+			let vertices = face.getSortedVertices();
+			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];
+			tris.forEach(tri_vertices => {
+				let x_memory = {};
+				let y_memory = {};
+				
+				tri_vertices.forEach((vkey1, i) => {
+					let vkey2 = tri_vertices[i+1] || tri_vertices[0];
+					let uv1 = face.uv[vkey1].slice();
+					let uv2 = face.uv[vkey2].slice();
+					let range_x = (uv1[0] > uv2[0]) ? [uv2[0], uv1[0]] : [uv1[0], uv2[0]];
+					let range_y = (uv1[1] > uv2[1]) ? [uv2[1], uv1[1]] : [uv1[1], uv2[1]];
+
+					for (let x = Math.ceil(range_x[0] / psize_x) * psize_x; x < range_x[1]; x += psize_x) {
+						if (!x_memory[x]) x_memory[x] = [];
+						let y = uv1[1] + (uv2[1] - uv1[1]) * Math.getLerp(uv1[0], uv2[0], x);
+						x_memory[x].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
+					}
+					for (let y = Math.ceil(range_y[0] / psize_y) * psize_y; y < range_y[1]; y += psize_y) {
+						if (!y_memory[y]) y_memory[y] = [];
+						let x = uv1[0] + (uv2[0] - uv1[0]) * Math.getLerp(uv1[1], uv2[1], y);
+						y_memory[y].push(face.UVToLocal([x, y], tri_vertices).toArray().V3_add(offset));
+					}
+				})
+
+				for (let key in x_memory) {
+					let points = x_memory[key];
+					if (points.length == 2) {
+						positions.push(...points[0], ...points[1]);
+					}
+				}
+				for (let key in y_memory) {
+					let points = y_memory[key];
+					if (points.length == 2) {
+						positions.push(...points[0], ...points[1]);
+					}
+				}
+			})
+		}
+
+		var geometry = new THREE.BufferGeometry();
+		geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+
+		let box = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: gizmo_colors.grid}));
+		box.no_export = true;
+
+		box.name = element.uuid+'_grid_box';
+		box.renderOrder = 2;
+		box.frustumCulled = false;
+		mesh.grid_box = box;
+		mesh.add(box);
+
+		this.dispatchEvent('update_painting_grid', {element});
+	},
 	fixWireframe(element) {
 		let geometry_orig = element.mesh.geometry;
 		if (!geometry_orig) return;
