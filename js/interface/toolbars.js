@@ -865,6 +865,13 @@ export const BARS = {
 				'select_seam'
 			]
 		})
+		Toolbars.weight_brush = new Toolbar({
+			id: 'weight_brush',
+			no_wrap: true,
+			children: [
+				'slider_weight_brush_size'
+			]
+		})
 
 		window.Toolbox = Toolbars.tools;
 		Toolbox.toggleTransforms = function() {

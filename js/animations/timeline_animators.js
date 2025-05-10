@@ -620,6 +620,14 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		}
 		return this;
 	}
+	displayScale(arr, multiplier = 1) {
+		if (!arr) return this;
+		var bone = this.element.mesh
+		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
+		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
+		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
+		return this;
+	}
 	displayFrame(multiplier = 1) {
 		if (!this.doRender()) return;
 		this.getElement()
@@ -630,13 +638,17 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		if (!this.muted.rotation) {
 			this.displayRotation(this.interpolate('rotation'), multiplier);
 		}
+		if (!this.muted.scale) {
+			this.displayScale(this.interpolate('scale'), multiplier);
+		}
 		this.element.mesh.updateMatrixWorld();
 	}
 }
-	ArmatureBoneAnimator.prototype.type = 'null_object';
+	ArmatureBoneAnimator.prototype.type = 'armature_bone';
 	ArmatureBoneAnimator.prototype.channels = {
 		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
 		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
+		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
 	}
 	ArmatureBone.animator = ArmatureBoneAnimator;
 

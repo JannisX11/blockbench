@@ -1113,7 +1113,6 @@ new NodePreviewController(Mesh, {
 		let skin_indices = [];
 		let skin_weights = [];
 		let armature = element.getArmature();
-		let armature_bones = armature && armature.getAllBones();
 
 		let armature_bone = Toolbox.selected.id === 'weight_brush' && (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
 
@@ -1121,7 +1120,18 @@ new NodePreviewController(Mesh, {
 			position_array.push(...vertices[vkey]);
 			if (armature_bone) {
 				let weight = armature_bone.vertex_weights[vkey] ?? 0;
-				color_array.push(0, weight, 0);
+				if (weight < 0.25) {
+					color_array.push(0, 0, weight * 4);
+				} else if (weight < 0.5) {
+					let fade = (weight-0.25) * 4;
+					color_array.push(0, fade, 1-fade);
+				} else if (weight < 0.75) {
+					let fade = (weight-0.5) * 4;
+					color_array.push(fade, 1, 0);
+				} else {
+					let fade = (weight-0.75) * 4;
+					color_array.push(1, 1-fade, 0);
+				}
 			}
 		}
 

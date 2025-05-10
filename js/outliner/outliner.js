@@ -875,7 +875,7 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 		var items = [];
 		// ensure elements are in displayed order
 		Outliner.root.forEach(node => {
-			if (node instanceof Group) {
+			if (node.forEachChild) {
 				node.forEachChild(child => {
 					if (child.selected && !child.parent.selected && (target instanceof OutlinerNode == false || !target.isChildOf?.(child))) {
 						items.push(child);
@@ -1287,7 +1287,16 @@ BARS.defineActions(function() {
 		category: 'edit',
 		searchable: true,
 		children(element) {
-			let groups = getAllGroups();
+			let elements = Outliner.elements.filter(element => {
+				if (!element.getTypeBehavior('parent')) return false;
+				if (Outliner.selected.includes(element)) return false;
+				let child_types = element.getTypeBehavior('child_types');
+				if (child_types) {
+					if (Outliner.selected.find(el => child_types.includes(el.type) == false)) return false;
+				}
+				return true;
+			});
+			let nodes = [...getAllGroups(), ...elements];
 			let root = {
 				name: 'Root',
 				icon: 'list_alt',
@@ -1295,13 +1304,13 @@ BARS.defineActions(function() {
 					moveOutlinerSelectionTo(element, undefined, event);
 				}
 			};
-			return [root, ...groups.map(group => {
+			return [root, ...nodes.map(node => {
 				return {
-					name: group.name,
-					icon: 'folder',
-					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
+					name: node.name,
+					icon: node.icon,
+					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
 					click(event) {
-						moveOutlinerSelectionTo(element, group, event);
+						moveOutlinerSelectionTo(element, node, event);
 						element.showInOutliner();
 					}
 				}
