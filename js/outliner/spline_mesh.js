@@ -982,12 +982,13 @@ export class SplineMesh extends OutlinerElement {
     // Partly Adapted from https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
     getTubeGeo(shadeSmooth) {
         let { vec1, vec2, vec3 } = Reusable;
-        let pathData = this.getBézierPath();
+        let pathData = this.getBézierPath(this.uv_mode === "per_segment");
 
         // Buffers
         let vertexData = [];
 
         // Dimensions
+        let tubularSegments = this.tubular_resolution;
         let radialSegments = this.radial_resolution;
         let radius = 1 * this.radius_multiplier;
         
@@ -1047,9 +1048,9 @@ export class SplineMesh extends OutlinerElement {
             let accuLength = 0;
             for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
                 let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
-                let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
-                let c = (radialSegments + 1) * tubePoint + ringPoint;
-                let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
+                let b = (radialSegments + 1) * (tubePoint - 0) + (ringPoint - 1);
+                let c = (radialSegments + 1) * (tubePoint - 0) + (ringPoint - 0);
+                let d = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 0);
 
                 let uva = (tubePoint - 1);
                 let uvb = tubePoint;
@@ -1075,12 +1076,27 @@ export class SplineMesh extends OutlinerElement {
                         normals.push(...faceNormal.toArray());
 
                         // UVs for duplicated indices (with comments for Aza's memory)
-                        // U: division tells us which ring we're at, divide by total of points to get value between 0 and 1 on U
                         // V: Remainder of division tells us which step of the ring we're at, divide by radial segments to get value between 0 and 1 on V
-                        // (U, V): Both combined give us a nice little point between (0, 0) and (1, 1) we can now push to this buffer
-                        let u = (pathData.lengths[uvPoints[i]] + pathData.accumulatedLengths[uvPoints[i]]) / pathData.pathLength;
-                        // let u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1); // uniform way
                         let v = (index % (radialSegments + 1)) / radialSegments;
+                        let u = 0;
+
+                        switch (this.uv_mode) {
+                            case "length_accurate": {
+                                // U: length of tube point + accumulated lengths of previous tube points, divided by path length gives us a value between 0 and 1 on U.
+                                u = (pathData.lengths[uvPoints[i]] + pathData.accumulatedLengths[uvPoints[i]]) / pathData.pathLength;
+                                break;
+                            }
+                            case "uniform": {
+                                // U: division tells us which ring we're at, divide by total of points to get value between 0 and 1 on U
+                                u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1);
+                                break;
+                            }
+                            case "per_segment": {
+                                u = (Math.floor(index / (radialSegments + 1)) % (tubularSegments + 1)) / tubularSegments;   
+                                break;
+                            }
+                        }
+
                         uvs.push(u, v);
                     });
                 } else { // Smooth shading: reuse vertices
@@ -1101,9 +1117,24 @@ export class SplineMesh extends OutlinerElement {
             
             for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
                 for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
-                    let u = (pathData.lengths[tubePoint] + pathData.accumulatedLengths[tubePoint]) / pathData.pathLength;
-		    		// let u = tubePoint / (pathData.points.length - 1); // uniform way
+                    let u = 0;
 		    		let v = ringPoint / radialSegments;
+
+                    switch (this.uv_mode) {
+                        case "length_accurate": {
+                            u = (pathData.lengths[tubePoint] + pathData.accumulatedLengths[tubePoint]) / pathData.pathLength;
+                            break;
+                        }
+                        case "uniform": {
+                            u = tubePoint / (pathData.points.length - 1);
+                            break;
+                        }
+                        case "per_segment": {
+                            u = (tubePoint % (tubularSegments + 1)) / tubularSegments;
+                            break;
+                        }
+                    }
+
                     uvs.push(u, v);
                 }
             }
@@ -1116,7 +1147,7 @@ export class SplineMesh extends OutlinerElement {
             uvs: uvs,
         };
     }
-    getBézierPath() {
+    getBézierPath(keepDoubles = false) {
         let { vec1 } = Reusable;
         let MathUtils = THREE.MathUtils;
         let tubularSegments = this.tubular_resolution;
@@ -1176,7 +1207,7 @@ export class SplineMesh extends OutlinerElement {
                     prevCurve = cKey;
                     
                     // continue early
-                    continue;
+                    if (!keepDoubles) continue;
                 }
     
                 // Store everything
@@ -1233,6 +1264,15 @@ export class SplineMesh extends OutlinerElement {
                     // replace the values we just removed
                     curveTangents.push(tangent);
                     curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
+
+                    // perform normal addition if we want doubles
+                    if (keepDoubles) {
+                        curveTangents.push(tangent);
+                        curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
+                        tubePoints.push(curveData.point);
+                        tubePointSizes.push(size);
+                        connectPoints.push(true);
+                    }
                 } 
                 else if (tubePoint == tubularSegments) { // The start and end of our tube meet, interpolate normals
                     let avgTangent = (new THREE.Vector3().addVectors(curveTangents[0], tangent)).multiplyScalar(0.5).normalize();
@@ -1435,6 +1475,7 @@ export class SplineMesh extends OutlinerElement {
 		movable: true,
 		resizable: true,
 		rotatable: true,
+		has_pivot: true,
 	}
     updateShading(shade_smooth) {
         this.smooth_shading = shade_smooth;
@@ -1554,24 +1595,6 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
 		}
 	}
 });
-// would have been cool, but Smooth Shading needs to comply with how it looks on Mesh
-// new Property(SplineMesh, 'object', 'render_options', {
-//     default: {shade_smooth: false, display_space: false},
-//     inputs: {
-//         element_panel: {
-//             input: {
-//                 label: 'action.spline_render_options', 
-//                 type: 'inline_multi_select',  
-//                 options: { shade_smooth: 'Smooth', display_space: 'Space' },
-//                 value: { shade_smooth: false, display_space: false },
-//                 description: 'action.spline_render_options.desc'
-//             },
-//             onChange() {
-//                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
-//             }
-//         }
-//     }
-// });
 // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_mode', {
 	default: 'mesh',
@@ -1587,6 +1610,22 @@ new Property(SplineMesh, 'enum', 'render_mode', {
             }
 		}
 	}
+});
+new Property(SplineMesh, 'enum', 'uv_mode', {
+    default: 'length_accurate',
+    inputs: {
+        element_panel: {
+			input: {label: 'action.spline_uv_mode', type: 'select', options: {
+				length_accurate: 'action.spline_uv_mode.length_accurate',
+				uniform: 'action.spline_uv_mode.uniform',
+				per_segment: 'action.spline_uv_mode.per_segment'
+			}, description: 'action.spline_uv_mode.desc'},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+                SplineMesh.selected.forEach(element => element.refreshTubeFaces());
+			}
+        }
+    }
 });
 new Property(SplineMesh, 'boolean', 'smooth_shading', {
     default: false,
