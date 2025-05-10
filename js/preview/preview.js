@@ -1806,6 +1806,7 @@ export class OrbitGizmo {
 					let limit = move_calls <= 2 ? 1 : 32;
 					scope.preview.controls.rotateLeft((e1.touches ? (e2.clientX - last_event.clientX) : Math.clamp(e2.movementX, -limit, limit)) / 40);
 					scope.preview.controls.rotateUp((e1.touches ? (e2.clientY - last_event.clientY) : Math.clamp(e2.movementY, -limit, limit)) / 40);
+					Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
 					last_event = e2;
 					move_calls++;
 				}
@@ -2287,7 +2288,7 @@ BARS.defineActions(function() {
 						let focal_length = preview.camera.getFocalLength();
 						let cam_distance = cam_boom.length();
 						let target_distance = Math.max(radius, height) * (focal_length / 10);
-						zoom_factor = target_distance / cam_distance;
+						let zoom_factor = target_distance / cam_distance;
 						zoom_offset = cam_boom.multiplyScalar((zoom_factor-1) / 6);
 					}
 				}

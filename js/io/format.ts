@@ -110,6 +110,10 @@ interface FormatOptions {
 	 */
 	texture_meshes: boolean
 	/**
+	 * Enable billboards
+	 */
+	billboards: boolean
+	/**
 	 * Enable locators
 	 */
 	locators: boolean
@@ -244,6 +248,7 @@ export class ModelFormat implements FormatOptions {
 	integer_size: boolean
 	meshes: boolean
 	texture_meshes: boolean
+	billboards: boolean
 	locators: boolean
 	rotation_limit: boolean
 	rotation_snap: boolean
@@ -289,6 +294,7 @@ export class ModelFormat implements FormatOptions {
 		this.target = data.target;
 		this.show_on_start_screen = true;
 		this.confidential = false;
+		this.can_convert_to = true;
 
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].reset(this);
@@ -377,7 +383,7 @@ export class ModelFormat implements FormatOptions {
 		Project.export_path = '';
 		Project.unhandled_root_fields = {};
 
-		var old_format = Format;
+		var old_format = Blockbench.Format as ModelFormat;
 		this.select();
 		Modes.options.edit.select()
 
@@ -389,14 +395,14 @@ export class ModelFormat implements FormatOptions {
 			})
 		}
 
-		if (!Format.per_texture_uv_size && old_format.per_texture_uv_size) {
+		if (!this.per_texture_uv_size && old_format.per_texture_uv_size) {
 			let tex = Texture.getDefault();
 			if (tex) {
 				Project.texture_width = tex.uv_width;
 				Project.texture_height = tex.uv_height;
 			}
 		}
-		if (Format.per_texture_uv_size && !old_format.per_texture_uv_size) {
+		if (this.per_texture_uv_size && !old_format.per_texture_uv_size) {
 			Texture.all.forEach(tex => {
 				tex.uv_width = Project.texture_width;
 				tex.uv_height = Project.texture_height;
@@ -404,12 +410,12 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Bone Rig
-		if (!Format.bone_rig && old_format.bone_rig) {
+		if (!this.bone_rig && old_format.bone_rig) {
 			Group.all.forEach(group => {
 				group.rotation.V3_set(0, 0, 0);
 			})
 		}
-		if (Format.bone_rig && !old_format.bone_rig) {
+		if (this.bone_rig && !old_format.bone_rig) {
 			var loose_stuff = []
 			Outliner.root.forEach(el => {
 				if (el instanceof Group == false) {
@@ -428,13 +434,13 @@ export class ModelFormat implements FormatOptions {
 				Project.geometry_name = Project.name;
 			}
 		}
-		if (Format.bone_rig) {
+		if (this.bone_rig) {
 			Group.all.forEach(group => {
 				group.createUniqueName();
 			})
 		}
-		if (Format.centered_grid != old_format.centered_grid) {
-			let offset = Format.centered_grid ? -8 : 8;
+		if (this.centered_grid != old_format.centered_grid) {
+			let offset = this.centered_grid ? -8 : 8;
 			Cube.all.forEach(cube => {
 				for (let axis of [0, 2]) {
 					cube.from[axis] += offset;
@@ -448,7 +454,7 @@ export class ModelFormat implements FormatOptions {
 			})
 		}
 
-		if (!Format.single_texture && old_format.single_texture && Texture.all.length) {
+		if (!this.single_texture && old_format.single_texture && Texture.all.length) {
 			let texture = Texture.getDefault();
 			Outliner.elements.filter((el: OutlinerElement) => 'applyTexture' in el).forEach(el => {
 				// @ts-ignore
@@ -457,14 +463,14 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Rotate Cubes
-		if (!Format.rotate_cubes && old_format.rotate_cubes) {
+		if (!this.rotate_cubes && old_format.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				cube.rotation.V3_set(0, 0, 0)
 			})
 		}
 
 		//Meshes
-		if (!Format.meshes && old_format.meshes) {
+		if (!this.meshes && old_format.meshes) {
 			Mesh.all.slice().forEach(mesh => {
 				mesh.remove()
 			})
@@ -478,35 +484,43 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Locators
-		if (!Format.locators && old_format.locators) {
+		if (!this.locators && old_format.locators) {
 			Locator.all.slice().forEach(locator => {
 				locator.remove()
 			})
 		}
 
 		//Texture Meshes
-		if (!Format.texture_meshes && old_format.texture_meshes) {
+		if (!this.texture_meshes && old_format.texture_meshes) {
 			TextureMesh.all.slice().forEach(tm => {
 				tm.remove()
 			})
 		}
 
+		//Billboards
+		if (!this.billboards && old_format.billboards) {
+			// @ts-ignore
+			Billboard.all.slice().forEach(b => {
+				b.remove()
+			})
+		}
+
 		//Canvas Limit
-		if (Format.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+		if (this.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 			Cube.all.forEach(cube => {
-				Format.cube_size_limiter.move(cube);
+				this.cube_size_limiter.move(cube);
 			})
 			Cube.all.forEach(cube => {
-				Format.cube_size_limiter.clamp(cube);
+				this.cube_size_limiter.clamp(cube);
 			})
 		}
 
 		//Rotation Limit
-		if (Format.rotation_limit && !old_format.rotation_limit && Format.rotate_cubes) {
+		if (this.rotation_limit && !old_format.rotation_limit && this.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
 					var axis = (getAxisNumber(cube.rotationAxis())) || 0;
-					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
+					var cube_rotation = this.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
 					var angle = limitNumber( cube_rotation, -45, 45 );
 					cube.rotation.V3_set(0, 0, 0)
 					cube.rotation[axis] = angle;
@@ -515,7 +529,7 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Animation Mode
-		if (!Format.animation_mode && old_format.animation_mode) {
+		if (!this.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
 		}
 
@@ -562,6 +576,7 @@ new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'splines');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
+new Property(ModelFormat, 'boolean', 'billboards');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');

@@ -581,11 +581,11 @@
 		justify-content: right;
 		margin-bottom: 8px;
 	}
-	#settings_profile_wrapper > bb-select {
+	#settings_profile_wrapper > .bb-select {
 		min-width: 126px;
 		margin-left: 6px;
 	}
-	#settings_profile_wrapper > bb-select.profile_is_selected {
+	#settings_profile_wrapper > .bb-select.profile_is_selected {
 		background-color: var(--color-profile);
 		color: #000;
 	}
@@ -606,6 +606,7 @@
 		border: 1px solid var(--color-profile);
 		padding: 1px 0;
 		position: relative;
+		border-radius: 6px;
 	}
 	.settings_list .setting_profile_clear_button {
 		position: absolute;
@@ -791,7 +792,7 @@
 		flex-shrink: 0;
 		width: 0;
 	}
-	.keybind_item_variations > li > bb-select {
+	.keybind_item_variations > li > .bb-select {
 		margin-right: 54px;
 	}
 	.keybind_variation_conflict {
@@ -2545,7 +2546,7 @@
 		gap: 6px;
 		padding: 4px;
 	}
-	#predicate_override_list .predicate_list > li > bb-select {
+	#predicate_override_list .predicate_list > li > .bb-select {
 		flex-grow: 1;
 	}
 	#predicate_override_list .predicate_list .numeric_input {
@@ -2581,7 +2582,7 @@
 		height: 46px;
 		padding: 7px 4px;
 	}
-	#predicate_override_generator bb-select {
+	#predicate_override_generator .bb-select {
 		flex-grow: 1;
 	}
 	#predicate_override_generator label {
@@ -2629,6 +2630,7 @@
 		cursor: pointer;
 		padding: 0 10px;
 		box-shadow: 0 0px 28px rgb(0 0 0 / 24%);
+		border-radius: 8px;
 	}
 	#tab_overview_grid > li:hover {
 		color: var(--color-light);

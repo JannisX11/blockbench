@@ -290,8 +290,12 @@ export class Texture {
 		return copy
 	}
 	getSaveCopy(bitmap) {
-		var copy = {};
-		for (var key in Texture.properties) {
+		let copy = {
+			name: undefined,
+			path: undefined,
+			relative_path: undefined,
+		};
+		for (let key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
 		copy.visible = this.visible;

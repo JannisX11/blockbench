@@ -245,6 +245,7 @@ export const MenuBar = {
 			'add_mesh',
 			'add_spline',
 			'add_group',
+			'add_billboard',
 			'add_locator',
 			'add_null_object',
 			'add_texture_mesh',
@@ -316,6 +317,16 @@ export const MenuBar = {
 			'split_mesh',
 			'merge_meshes',
 		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
+
+		new BarMenu('skin', [
+			new MenuSeparator('view'),
+			'custom_skin_poses',
+			'add_custom_skin_pose',
+			new MenuSeparator('edit'),
+			'toggle_skin_layer',
+			'explode_skin_model',
+			'convert_minecraft_skin_variant',
+		], {icon: 'icon-player', condition: {formats: ['skin']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
@@ -475,7 +486,7 @@ export const MenuBar = {
 									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
 									icon: 'drag_handle',
 									context: panel,
-									children: panel.snap_menu.structure
+									children: panel.snap_menu?.structure
 								},
 								{
 									id: 'fold',

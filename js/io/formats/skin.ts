@@ -1,23 +1,119 @@
-export const skin_presets = {};
+import { StateMemory } from "../../api"
+import { setProjectTitle } from "../../interface/interface"
+import { getAllGroups } from "../../outliner/group"
+import { DefaultCameraPresets } from "../../preview/preview"
+import { TextureGenerator } from "../../texturing/texture_generator"
+
+type SkinPreset = {
+	display_name: string
+	pose?: boolean
+	model?: string
+	model_java?: string
+	model_bedrock?: string
+	variants?: {
+		[key: string]: {
+			name: string
+			model: string
+		}
+	}
+}
+export const skin_presets: Record<string, SkinPreset> = {};
+
+type SkinPoseData = Record<string, ArrayVector3 | {rotation: ArrayVector3, offset: ArrayVector3}>
+const DefaultPoses: Record<string, SkinPoseData> = {
+	none: {
+		Head: [0, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [0, 0, 0],
+		LeftArm: [0, 0, 0],
+		RightLeg: [0, 0, 0],
+		LeftLeg: [0, 0, 0],
+	},
+	natural: {
+		Head: [6, -5, 0],
+		Body: [0, 0, 0],
+		RightArm: [10, 0, 0],
+		LeftArm: [-12, 0, 0],
+		RightLeg: [-11, 0, 2],
+		LeftLeg: [10, 0, -2],
+	},
+	walking: {
+		Head: [-2, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [-35, 0, 0],
+		LeftArm: [35, 0, 0],
+		RightLeg: [42, 0, 2],
+		LeftLeg: [-42, 0, -2]
+	},
+	crouching: {
+		Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
+		Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
+		RightArm: [-15, 0, 0],
+		LeftArm: [-40, 0, 0],
+		RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
+		LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
+	},
+	sitting: {
+		Head: [5.5, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [36, 0, 0],
+		LeftArm: [36, 0, 0],
+		RightLeg: [72, -18, 0],
+		LeftLeg: [72, 18, 0]
+	},
+	jumping: {
+		Head: [20, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
+		LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
+		RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
+		LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
+	},
+	aiming: {
+		Head: [8, -35, 0],
+		Body: [-2, 0, 0],
+		RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
+		LeftArm: [104, -44, -10],
+		RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
+		LeftLeg: [-28, 0, 0]
+	},
+};
 
 export const codec = new Codec('skin_model', {
 	name: 'Skin Model',
 	remember: false,
 	compile(options) {
 		if (options === undefined) options = 0;
-		var entitymodel = {
-			name: Project.geometry_name.split('.')[0]
+		type BoneData = {
+			name: string
+			parent?: string
+			pivot?: ArrayVector3
+			rotation?: ArrayVector3
+			reset?: boolean
+			mirror?: boolean
+			cubes?: CubeData[]
 		}
-		entitymodel.texturewidth = Project.texture_width;
-		entitymodel.textureheight = Project.texture_height;
-		var bones = []
+		type CubeData = {
+			origin: ArrayVector3
+			size: ArrayVector3
+			inflate?: number
+		}
+		let entitymodel = {
+			name: Project.geometry_name.split('.')[0],
+			texturewidth: Project.texture_width,
+			textureheight: Project.texture_height,
+			bones: undefined as undefined | BoneData[]
+		}
+		let bones = []
 
-		var groups = getAllGroups();
+		let groups = getAllGroups();
 
 		groups.forEach(function(g) {
 			if (g.type !== 'group') return;
 			//Bone
-			var bone = {}
+			let bone: BoneData = {
+				name: g.name
+			}
 			bone.name = g.name
 			if (g.parent.type === 'group') {
 				bone.parent = g.parent.name
@@ -35,15 +131,11 @@ export const codec = new Codec('skin_model', {
 			if (g.mirror_uv) bone.mirror = true;
 
 			//Elements
-			var cubes = []
-			for (var obj of g.children) {
-				if (obj.export) {
-					if (obj instanceof Cube) {
-
-						let template = Codecs.bedrock.compileCube(obj, g);
-						cubes.push(template)
-
-					}
+			let cubes = []
+			for (let obj of g.children) {
+				if (obj.export && obj instanceof Cube) {
+					let template = Codecs.bedrock.compileCube(obj, g);
+					cubes.push(template)
 				}
 			}
 			if (cubes.length) {
@@ -58,23 +150,23 @@ export const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
-	parse(data, resolution, texture_file, pose = true, layer_template) {
+	parse(data: any, resolution: number, texture_file, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
 
 		Interface.Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ? 'natural' : 'none';
 
-		var bones = {}
-		var template_cubes = {};
+		let bones = {}
+		let template_cubes = {};
 
 		if (data.bones) {
-			var included_bones = []
+			let included_bones = []
 			data.bones.forEach(function(b) {
 				included_bones.push(b.name)
 			})
 			data.bones.forEach(function(b, bi) {
-				var group = new Group({
+				let group = new Group({
 					name: b.name,
 					origin: b.pivot,
 					rotation: (pose && b.pose) ? b.pose : b.rotation
@@ -104,7 +196,7 @@ export const codec = new Codec('skin_model', {
 						cg.addTo(group)
 					})
 				}
-				var parent_group = 'root';
+				let parent_group = 'root';
 				if (b.parent) {
 					if (bones[b.parent]) {
 						parent_group = bones[b.parent]
@@ -122,10 +214,11 @@ export const codec = new Codec('skin_model', {
 		if (!Cube.all.find(cube => cube.box_uv)) {
 			Project.box_uv = false;
 		}
+		let texture: Texture | undefined;
 		if (texture_file) {
-			var texture = new Texture().fromFile(texture_file).add(false);
+			texture = new Texture().fromFile(texture_file).add(false);
 		} else if (resolution) {
-			var texture = generateTemplate(
+			texture = generateTemplate(
 				Project.texture_width*resolution,
 				Project.texture_height*resolution,
 				template_cubes,
@@ -134,7 +227,7 @@ export const codec = new Codec('skin_model', {
 				layer_template
 			)
 		}
-		for (var index in template_cubes) {
+		for (let index in template_cubes) {
 			if (template_cubes[index].visibility === false) {
 				Cube.all[index].visibility = false;
 			}
@@ -154,7 +247,7 @@ export const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
-codec.rebuild = function(model_id, pose) {
+codec.rebuild = function(model_id: string, pose?: string) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
@@ -162,7 +255,7 @@ codec.rebuild = function(model_id, pose) {
 	codec.parse(model, undefined, undefined, pose && pose !== 'none');
 	if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
-			Panels.skin_pose.inside_vue.setPose(pose);
+			setDefaultPose(pose);
 		}, 1)
 	}
 }
@@ -200,15 +293,62 @@ format.new = function() {
 }
 format.presets = skin_presets;
 
-export function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
 
-	var texture = new Texture({
-		mode: 'bitmap',
+function setDefaultPose(pose_id: string) {
+	let angles = DefaultPoses[pose_id];
+	loadPose(angles);
+	Panels.skin_pose.inside_vue.pose = pose_id;
+	Project.skin_pose = pose_id;
+}
+function loadPose(pose_data: SkinPoseData) {
+	Panels.skin_pose.inside_vue.pose = '';
+	Group.all.forEach(group => {
+		if (!group.skin_original_origin) return;
+		let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
+		group.origin.V3_set(group.skin_original_origin);
+	})
+	for (let name in pose_data) {
+		let group = Group.all.find(g => g.name == name || g.name.replace(/\s/g, '') == name);
+		if (group) {
+			if (pose_data[name] instanceof Array) {
+				group.extend({rotation: pose_data[name]});
+			} else {
+				group.extend({rotation: pose_data[name].rotation});
+				group.origin.V3_add(pose_data[name].offset);
+			}
+		}
+	}
+	Canvas.updateView({
+		groups: Group.all,
+		group_aspects: {transform: true}
+	})
+}
+function getPoseData(): SkinPoseData {
+	const data: SkinPoseData = {};
+	for (let group of Group.all) {
+		if (!group.skin_original_origin) continue;
+		let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
+		let rotation = group.rotation.slice();
+		if (offset.allEqual(0) == false) {
+			data[group.name] = {
+				offset, rotation
+			}
+		} else if (rotation.allEqual(0) == false) {
+			data[group.name] = rotation;
+		}
+	}
+	return data;
+}
+
+export function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template): Texture {
+
+	let texture = new Texture({
+		internal: true,
 		name: name+'.png'
 	})
 
-	var canvas = document.createElement('canvas')
-	var ctx = canvas.getContext('2d');
+	let canvas = document.createElement('canvas')
+	let ctx = canvas.getContext('2d');
 	canvas.width = width;
 	canvas.height = height;
 
@@ -226,7 +366,7 @@ export function generateTemplate(width = 64, height = 64, cubes, name = 'name', 
 		ctx.fillRect(1, 1, width-2, height-2)
 	}
 	if (eyes) {
-		var res_multiple = canvas.width/Project.texture_width;
+		let res_multiple = canvas.width/Project.texture_width;
 		ctx.fillStyle = '#cdefff';
 		eyes.forEach(eye => {
 			ctx.fillRect(
@@ -237,12 +377,12 @@ export function generateTemplate(width = 64, height = 64, cubes, name = 'name', 
 			)
 		})
 	}
-	var dataUrl = canvas.toDataURL();
+	let dataUrl = canvas.toDataURL();
 	texture.fromDataURL(dataUrl).add(false);
 	return texture;
 }
 
-export const model_options = {};
+export const model_options: Record<string, string> = {};
 let selected_model = '';
 export const skin_dialog = new Dialog({
 	title: tl('dialog.skin.title'),
@@ -261,8 +401,8 @@ export const skin_dialog = new Dialog({
 				java_edition: 'Java Edition',
 				bedrock_edition: 'Bedrock Edition',
 			},
-			condition(form) {
-				return skin_presets[form.model].model_bedrock;
+			condition(form: Record<string, FormResultValue>) {
+				return skin_presets[form.model as string].model_bedrock;
 			}
 		},
 		variant: {
@@ -297,11 +437,11 @@ export const skin_dialog = new Dialog({
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
 	},
 	onFormChange(result) {
-		selected_model = result.model;
-		let variants = skin_presets[result.model].variants;
+		selected_model = result.model as string;
+		let variants = skin_presets[result.model as string].variants;
 		if (variants) {
 			for (let key in variants) {
-				if (!result.variant || !variants[result.variant]) {
+				if (!result.variant || !variants[result.variant as string]) {
 					result.variant = key;
 					skin_dialog.setFormValues({variant: key}, false);
 					break;
@@ -346,6 +486,11 @@ export const skin_dialog = new Dialog({
 });
 format.setup_dialog = skin_dialog;
 
+type SkinPose = {
+	name: string
+	data: SkinPoseData
+}
+StateMemory.init('skin_poses', 'array');
 
 BARS.defineActions(function() {
 	new Mode('pose', {
@@ -376,8 +521,108 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
-	new Action({
-		id: 'export_minecraft_skin',
+	new Action('convert_minecraft_skin_variant', {
+		icon: 'compare_arrows',
+		category: 'edit',
+		condition: {formats: ['skin'], method: () => Group.all.find(g => g.name == 'Right Arm')},
+		click() {
+			let is_slim = Cube.all.find(c => c.name.match(/arm/i)).size(0) == 3;
+			new Dialog('convert_minecraft_skin_variant', {
+				title: 'action.',
+				form: {
+					model: {
+						label: 'dialog.skin.model',
+						type: 'select',
+						value: is_slim ? 'steve' : 'alex',
+						options: {
+							steve: skin_presets.steve.display_name,
+							alex: skin_presets.alex.display_name,
+						}
+					},
+					adjust_texture: {
+						label: 'dialog.convert_skin.adjust_texture',
+						type: 'checkbox',
+						value: true,
+					}
+				},
+				onConfirm(result) {
+					let right_arm = Group.all.find(g => g.name == 'Right Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let left_arm = Group.all.find(g => g.name == 'Left Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let elements = right_arm.concat(left_arm);
+					Undo.initEdit({elements});
+					for (let cube of right_arm) {
+						cube.to[0] = result.model == 'alex' ? 7 : 8;
+					}
+					for (let cube of left_arm) {
+						cube.from[0] = result.model == 'alex' ? -7 : -8;
+					}
+					Canvas.updateView({elements: right_arm.concat(left_arm), element_aspects: {geometry: true, uv: true}, selection: true});
+					Undo.finishEdit('Convert Minecraft skin model');
+
+					if (result.adjust_texture) {
+						let textures = Texture.all.filter(tex => tex.selected || tex.multi_selected);
+						if (!textures.length) textures = [Texture.getDefault()]
+						if (!textures[0]) return;
+						
+						const arm_uv_positions: [number, number][] = [
+							[40, 16],
+							[40, 32],
+							[32, 48],
+							[48, 48],
+						];
+						type Translation = {area: [number, number, number, number], offset: [number, number]};
+						let translations: Translation[];
+						if (result.model == 'alex') {
+							translations = [
+								{area: [6, 0, 10, 16], offset: [-1, 0]},
+								{area: [9, 0, 2, 4], offset: [-1, 0]},
+								{area: [13, 4, 2, 12], offset: [-1, 0]},
+							];
+						} else {
+							translations = [
+								{area: [5, 0, 10, 16], offset: [1, 0]},
+								{area: [9, 0, 2, 4], offset: [1, 0]},
+								{area: [13, 4, 2, 12], offset: [1, 0]},
+							];
+						}
+						Undo.initEdit({textures, bitmap: true});
+						for (let texture of textures) {
+							if (texture.layers_enabled) {
+								texture.layers_enabled = false;
+								texture.selected_layer = null;
+								texture.layers.empty();
+							}
+							texture.edit(() => {
+								let ctx = texture.ctx;
+								for (let position of arm_uv_positions) {
+									for (let translation of translations) {
+										let data = ctx.getImageData(
+											position[0] + translation.area[0],
+											position[1] + translation.area[1],
+											translation.area[2],
+											translation.area[3],
+										);
+										ctx.putImageData(data,
+											position[0] + translation.area[0] + translation.offset[0],
+											position[1] + translation.area[1] + translation.offset[1]
+										);
+									}
+									if (result.model == 'alex') {
+										ctx.clearRect(position[0] + 10, position[1] + 0, 2, 4);
+										ctx.clearRect(position[0] + 14, position[1] + 4, 2, 12);
+									}
+								}
+							}, {no_undo: true});
+						}
+						UVEditor.vue.layer = null;
+						updateSelection();
+						Undo.finishEdit('Convert Minecraft skin texture');
+					}
+				}
+			}).show();
+		}
+	})
+	new Action('export_minecraft_skin', {
 		icon: 'icon-player',
 		category: 'file',
 		condition: () => Format == format && Texture.all[0],
@@ -414,67 +659,67 @@ BARS.defineActions(function() {
 		explode_skin_model.value = !!Project.exploded_view;
 		explode_skin_model.updateEnabledState();
 	})
+
+	
+	new Action('custom_skin_poses', {
+		icon: 'format_list_bulleted',
+		category: 'view',
+		condition: {formats: ['skin'], modes: ['pose']},
+		click(e) {
+			new Menu(this.children()).open(e.target);
+		},
+		children() {
+			let options = [];
+			let memory_list = StateMemory.get('skin_poses') as SkinPose[];
+			memory_list.forEach((pose: SkinPose, i: number) => {
+				let option = {
+					name: pose.name,
+					icon: 'accessibility',
+					id: i.toString(),
+					click() {
+						loadPose(pose.data);
+					},
+					children: [
+						{icon: 'update', name: 'action.custom_skin_poses.update', description: 'action.custom_skin_poses.update.desc', click() {
+							pose.data = getPoseData();
+							StateMemory.save('skin_poses');
+						}},
+						{icon: 'delete', name: 'generic.delete', click() {
+							memory_list.remove(pose);
+							StateMemory.save('skin_poses');
+						}}
+					]
+				}
+				options.push(option);
+			})
+			
+			options.push(
+				'_',
+				'add_custom_skin_pose'
+			);
+			return options;
+		}
+	})
+	new Action('add_custom_skin_pose', {
+		icon: 'add',
+		category: 'view',
+		condition: {formats: ['skin'], modes: ['pose']},
+		click(e) {
+			Blockbench.textPrompt('generic.name', 'new pose', value => {
+				let pose: SkinPose = {
+					name: value,
+					data: getPoseData()
+				};
+				let memory_list = StateMemory.get('skin_poses') as SkinPose[];
+				memory_list.push(pose);
+				StateMemory.save('skin_poses');
+			})
+		}
+	})
 })
 
+// @ts-ignore
 Interface.definePanels(function() {
-	const poses = {
-		none: {
-			Head: [0, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [0, 0, 0],
-			LeftArm: [0, 0, 0],
-			RightLeg: [0, 0, 0],
-			LeftLeg: [0, 0, 0],
-		},
-		natural: {
-			Head: [6, -5, 0],
-			Body: [0, 0, 0],
-			RightArm: [10, 0, 0],
-			LeftArm: [-12, 0, 0],
-			RightLeg: [-11, 0, 2],
-			LeftLeg: [10, 0, -2],
-		},
-		walking: {
-			Head: [-2, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [-35, 0, 0],
-			LeftArm: [35, 0, 0],
-			RightLeg: [42, 0, 2],
-			LeftLeg: [-42, 0, -2]
-		},
-		crouching: {
-			Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
-			Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
-			RightArm: [-15, 0, 0],
-			LeftArm: [-40, 0, 0],
-			RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
-			LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
-		},
-		sitting: {
-			Head: [5.5, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [36, 0, 0],
-			LeftArm: [36, 0, 0],
-			RightLeg: [72, -18, 0],
-			LeftLeg: [72, 18, 0]
-		},
-		jumping: {
-			Head: [20, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
-			LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
-			RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
-			LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
-		},
-		aiming: {
-			Head: [8, -35, 0],
-			Body: [-2, 0, 0],
-			RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
-			LeftArm: [104, -44, -10],
-			RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
-			LeftLeg: [-28, 0, 0]
-		},
-	};
 	new Panel('skin_pose', {
 		icon: 'icon-player',
 		condition: {modes: ['pose']},
@@ -484,42 +729,21 @@ Interface.definePanels(function() {
 			float_size: [300, 80],
 			height: 80
 		},
+		toolbars: [
+			new Toolbar('skin_pose', {
+				children: [
+					'custom_skin_poses',
+					'add_custom_skin_pose'
+				]
+			})
+		],
 		component: {
 			data() {return {
 				pose: 'default'
 			}},
 			methods: {
 				setPose(pose) {
-					/*let old_angles = poses[this.pose];
-					for (let name in old_angles) {
-						if (old_angles[name].offset) {
-						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
-							if (group) {
-								group.origin.V3_subtract(old_angles[name].offset);
-							}
-						}
-					}*/
-					Group.all.forEach(group => {
-						if (!group.skin_original_origin) return;
-						let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
-						group.origin.V3_set(group.skin_original_origin);
-					})
-					this.pose = pose;
-					Project.skin_pose = pose;
-					let angles = poses[pose];
-					for (let name in angles) {
-						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
-						if (group) {
-							group.extend({rotation: angles[name].rotation || angles[name]});
-							if (angles[name].offset) {
-								group.origin.V3_add(angles[name].offset);
-							}
-						}
-					}
-					Canvas.updateView({
-						groups: Group.all,
-						group_aspects: {transform: true}
-					})
+					setDefaultPose(pose);
 				}
 			},
 			template: `
@@ -555,7 +779,14 @@ skin_presets.steve = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -566,6 +797,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -575,6 +807,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -585,6 +818,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -629,7 +863,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -640,6 +881,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -649,6 +891,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -659,6 +902,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -699,7 +943,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -710,6 +961,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -719,6 +971,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 21.5, 0],
 				"pose": [-10, 0, 0],
@@ -729,6 +982,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 21.5, 0],
 				"pose": [12, 0, 0],
@@ -8006,6 +8260,6 @@ skin_presets.zombie_villager_2 = {
 	}`
 };
 
-for (var id in skin_presets) {
+for (let id in skin_presets) {
 	model_options[id] = skin_presets[id].display_name;
 }

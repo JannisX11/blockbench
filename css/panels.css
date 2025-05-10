@@ -1895,7 +1895,7 @@
 	width: calc(200% + 20px);
 	box-shadow: 0 0 0 1px var(--color-accent);
 }
-.controller_transition bb-select {
+.controller_transition .bb-select {
 	flex-grow: 1;
 }
 .controller_transition .prism-editor-component {

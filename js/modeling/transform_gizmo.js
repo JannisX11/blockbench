@@ -3,7 +3,7 @@
  * modified for Blockbench by jannisx11
  */
 
-import { SplineMesh } from "../outliner/spline_mesh";
+import { getPivotObjects, getRotationObjects } from "./transform";
 
  ( function () {
 
@@ -1338,8 +1338,20 @@ import { SplineMesh } from "../outliner/spline_mesh";
 				if (!scope.dragging) Transformer.rotation_selection.set(0, 0, 0);
 				if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 					if (Transformer.visible) {
-						let rotation_tool = Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool'
-						let rotation_object = getRotationObjects()
+						let rotation_tool = false;
+						let rotation_object;
+						switch (Toolbox.selected.id) {
+							case 'rotate_tool': {
+								rotation_tool = true;
+								rotation_object = getRotationObjects();
+								break;
+							}
+							case 'pivot_tool': {
+								rotation_tool = true;
+								rotation_object = getPivotObjects();
+								break;
+							}
+						}
 						if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
 							let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
 							rotation_object = undefined;
@@ -1624,11 +1636,13 @@ import { SplineMesh } from "../outliner/spline_mesh";
 									obj.oldVertices[key] = obj.vertices[key].slice();
 								}
 							} else if (obj.getTypeBehavior('resizable')) {
-								obj.oldScale = obj.size(axisnr);
-								obj.oldStretch = obj.stretch.slice();
-								obj.oldUVOffset = obj.uv_offset.slice();
-								obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
-							} 
+								obj.old_size = typeof obj.size == 'function' ? obj.size(axisnr) : obj.size.slice();
+								if (obj.stretch) obj.oldStretch = obj.stretch.slice();
+								if (obj.uv_offset) obj.oldUVOffset = obj.uv_offset.slice();
+								if (obj.to && obj.to) obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
+							} else if (obj.size) {
+								obj.old_size = obj.size.slice();
+							}
 						})
 					}
 					_has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
@@ -2190,7 +2204,7 @@ import { SplineMesh } from "../outliner/spline_mesh";
 						if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
 							//Scale and stretch
 							selected.forEach(function(obj) {
-								delete obj.oldScale;
+								delete obj.old_size;
 								delete obj.oldStretch;
 								delete obj.oldCenter;
 								delete obj.oldUVOffset;

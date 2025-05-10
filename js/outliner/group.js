@@ -437,6 +437,7 @@ export class Group extends OutlinerNode {
 	static behavior = {
 		unique_name: () => Format.bone_rig,
 		rotatable: true,
+		has_pivot: true,
 	}
 }
 	Group.prototype.title = tl('data.group');

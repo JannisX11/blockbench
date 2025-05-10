@@ -1260,6 +1260,14 @@ export const Painter = {
 				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'darken':
+				mix[ch] = (Math.min(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'lighten':
+				mix[ch] = (Math.max(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
 				case 'screen':
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
@@ -1355,6 +1363,8 @@ export const Painter = {
 			//case 'divide': return 'color-burn';
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
+			case 'darken': return 'darken';
+			case 'lighten': return 'lighten';
 			case 'screen': return 'screen';
 			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
@@ -1694,6 +1704,8 @@ export const Painter = {
 					//divide: 'action.blend_mode.divide',
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
+					lighten: 'action.blend_mode.lighten',
+					darken: 'action.blend_mode.darken',
 					screen: 'action.blend_mode.screen',
 					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
@@ -2871,6 +2883,8 @@ BARS.defineActions(function() {
 			//divide: true,
 			add: true,
 			//subtract: true,
+			lighten: true,
+			darken: true,
 			screen: true,
 			overlay: true,
 			difference: true,
