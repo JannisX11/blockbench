@@ -419,6 +419,16 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
+    /**
+     * Refresh the dummy face object of this spline, so we can paint on it
+     * this feels super dirty, feel free to judge it :P
+     */
+    refreshTubeFaces() {
+        if (Object.keys(this.curves).length) {
+            let tubeData = this.getTubeData();
+            this.faces = tubeData.faces;
+        }
+    }
     getTubeData(removeDoubles = false) {
         let tube = this.getTubeGeo(false);
         let add_texture = false;
@@ -447,6 +457,20 @@ export class SplineMesh extends OutlinerElement {
                 dummyMesh.faces[key] = face;
                 return key;
             })
+        }
+
+        // Avoid duplicate vertices on splines
+        function getOriginalVkey(pos) {
+            for (let vKey in dummyMesh.vertices) {
+                let e = 0.004;
+                let vert = dummyMesh.vertices[vKey];
+                let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+                
+                if (same_spot) {
+                    return vKey;
+                }
+            }
+            return null;
         }
         
 		let texture = Texture.getDefault();
@@ -482,22 +506,10 @@ export class SplineMesh extends OutlinerElement {
                 uv_data.push(uv);
             }
 
-            // Avoid duplicate vertices on splines
-            function getOriginalVkey(pos) {
-                for (let vKey in dummyMesh.vertices) {
-                    let e = 0.004;
-                    let vert = dummyMesh.vertices[vKey];
-                    let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
-                    
-                    if (same_spot) {
-                        return vKey;
-                    }
-                }
-                return null;
-            }
+            // Create or Collect vertex keys for our new face
             let vertex_keys = vertices.map(pos => {
                 let ogVkey;
-                
+
                 if (removeDoubles) {
                     let copyCheck = getOriginalVkey(pos);
                     if (copyCheck) ogVkey = copyCheck;
@@ -529,24 +541,6 @@ export class SplineMesh extends OutlinerElement {
         }
         
         return dummyMesh;
-    }
-    /**
-     * Refresh the dummy face object of this spline, so we can paint on it
-     * this feels super dirty, feel free to judge it :P
-     */
-    refreshTubeFaces() {
-        if (Object.keys(this.curves).length) {
-            let tubeData = this.getTubeData();
-            this.faces = {};
-
-            for (let key in tubeData.faces) {
-                let face = tubeData.faces[key];
-                while (!key || this.faces[key]) {
-                    key = bbuid(4);
-                }
-                this.faces[key] = face;
-            }
-        }
     }
     getUndoCopy(aspects = {}) {
         let copy = {};
@@ -1297,10 +1291,10 @@ export class SplineMesh extends OutlinerElement {
         let d = [0, 1, 2*time, 3*timeP2]; // Derivative Power matrix (Tangent)
 
         // Characteristic "matrix" for the original Bézier curve ("pc" variable is backwards to respect operation order)
-        let pc1 = [ 1, 0,  0, 0];
-        let pc2 = [-3, 3,  0, 0];
-        let pc3 = [ 3, -6, 3, 0];
-        let pc4 = [-1, 3, -3, 1];
+        let pc1 = [ 1,  0,  0, 0];
+        let pc2 = [-3,  3,  0, 0];
+        let pc3 = [ 3, -6,  3, 0];
+        let pc4 = [-1,  3, -3, 1];
         let pc = [pc4, pc3, pc2, pc1];
 
         // Bernstein polynomial function

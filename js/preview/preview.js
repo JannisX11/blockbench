@@ -1134,6 +1134,7 @@ export class Preview {
 				return;
 			}
 			if (!data.element.faces) return;
+			if (data.element instanceof SplineMesh && data.element.render_mode !== "mesh") return;
 			let face = data.element.faces[data.face];
 			let texture = face.getTexture();
 			if (!texture) {
