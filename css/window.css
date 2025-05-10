@@ -479,9 +479,6 @@
 		height: auto;
 		max-height: 100%;
 	}
-	body.is_mobile #main_toolbar > div.tool_options {
-		background-color: var(--color-back);
-	}
 	body.is_mobile .preview .preview_menu {
 		left: 0;
 		right: unset;
@@ -654,6 +651,7 @@
 		width: 42px;
 		height: 36px;
 		padding-top: 3px;
+		border-radius: 5px;
 	}
 	#mobile_menu_bar > .tool.selected {
 		background-color: var(--color-accent);

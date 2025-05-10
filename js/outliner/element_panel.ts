@@ -5,7 +5,7 @@ import { Panel } from "../interface/panels";
 Interface.definePanels(function() {
 	let element_panel = new Panel('element', {
 		icon: 'fas.fa-cube',
-		condition: !Blockbench.isMobile && {modes: ['edit', 'pose']},
+		condition: {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		default_position: {
 			slot: 'right_bar',
