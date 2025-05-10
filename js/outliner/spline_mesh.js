@@ -1092,6 +1092,7 @@ export class SplineMesh extends OutlinerElement {
                                 break;
                             }
                             case "per_segment": {
+                                // U: first division removes ring offset, remainder tells us where we are on the curve, last division scales this value back to a 0-1 range on U.
                                 u = (Math.floor(index / (radialSegments + 1)) % (tubularSegments + 1)) / tubularSegments;   
                                 break;
                             }
