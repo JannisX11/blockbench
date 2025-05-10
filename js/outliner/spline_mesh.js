@@ -1,9 +1,9 @@
-import { THREE } from "../../lib/libs";
 import { Property } from "../util/property";
 
-export class SplineTubeFace extends Face {
-	constructor(spline, data) {
-		super(data);
+// Add dummy Mesh with vertex keys
+export class SplineTubeFace extends MeshFace {
+	constructor(mesh, spline, data) {
+		super(mesh, data);
 		this.spline = spline;
 		this.texture = false;
 		if (data) {
@@ -13,112 +13,62 @@ export class SplineTubeFace extends Face {
 	get element() {
 		return this.spline;
 	}
-	getNormal() {
-        let v1 = this.vertices[0].slice();
-        let v2 = this.vertices[1].slice();
-        let v3 = this.vertices[2].slice();
-        let vec1 = v2.V3_subtract(v1).V3_toThree();
-        let vec2 = v3.V3_subtract(v1).V3_toThree();
-        let faceNormal = new THREE.Vector3().crossVectors(vec1, vec2).normalize();
-
-        return faceNormal.toArray();
-	}
     getTexture() {
         return this.spline.getTexture();
     }
-	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
-        let tex = this.getTexture();
-        let uvFactorX = tex.getUVWidth() / tex.width;
-        let uvFactorY = tex.getUVHeight() / tex.display_height;
-        let texWidth = tex.width;
-        let texHeight = tex.height;
-        let [uv1, uv2, uv3, uv4] = this.uvs.slice();
+    toMeshFace() {
+        let newFace = new MeshFace(this.mesh, { vertices: this.vertices, uv: this.uv });
+		newFace.texture = this.texture;
+        return newFace;
+    }
+	// texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv) {
+	// 	uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
 
-        // Account for Blockbench's UV scaling.
-        let uvs = [
-            [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)],
-            [(uv2[0] * texWidth * uvFactorX), (uv2[1] * texHeight * uvFactorY)],
-            [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)],
-            [(uv4[0] * texWidth * uvFactorX), (uv4[1] * texHeight * uvFactorY)]
-        ];
+	// 	let texel_pos = this.UVToLocal(uv);
+	// 	let texel_x_axis = this.UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
+	// 	let texel_y_axis = this.UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
+
+	// 	texel_x_axis.sub(texel_pos);
+	// 	texel_y_axis.sub(texel_pos);
+
+	// 	let matrix = new THREE.Matrix4();
+	// 	matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
+    //     matrix.setPosition(texel_pos);
+	// 	return matrix;
+	// }
+    // UVToLocal(uv) {
+    //     let tex = this.getTexture()
+    //     let uvFactorX = tex.getUVWidth() / tex.width;
+    //     let uvFactorY = tex.getUVHeight() / tex.display_height;
+    //     let texWidth = tex.width;
+    //     let texHeight = tex.height;
+    //     let [uv1, uv2, uv3, uv4] = this.uvs.slice();
+    //     let [v1, v2, v3, v4] = this.vertices.slice();
         
-		// Use non-truncated uv coordinates to select the correct triangle of a face.
-		let is_in_tri = pointInTriangle(uv, uvs[0], uvs[1], uvs[2]);
-		let vert_a = 0;
-		let vert_b = 1 + (is_in_tri ? 1 : 0);
-		let vert_c = 2 + (is_in_tri ? 1 : 0);
-
-		let p0 = uvs[vert_a].slice();
-		let p1 = uvs[vert_b].slice();
-		let p2 = uvs[vert_c].slice();
-
-		let vertexa = this.vertices[vert_a].slice();
-		let vertexb = this.vertices[vert_b].slice();
-		let vertexc = this.vertices[vert_c].slice();
-
-		uv = truncated_uv == null || truncated_uv[0] == null || truncated_uv[1] == null ? [...uv] : [...truncated_uv];
-
-		function UVToLocal(uv) {
-			let b0 = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]);
-			let b1 = ((p1[0] - uv[0]) * (p2[1] - uv[1]) - (p2[0] - uv[0]) * (p1[1] - uv[1])) / b0;
-			let b2 = ((p2[0] - uv[0]) * (p0[1] - uv[1]) - (p0[0] - uv[0]) * (p2[1] - uv[1])) / b0;
-			let b3 = ((p0[0] - uv[0]) * (p1[1] - uv[1]) - (p1[0] - uv[0]) * (p0[1] - uv[1])) / b0;
-
-			return new THREE.Vector3(
-				vertexa[0] * b1 + vertexb[0] * b2 + vertexc[0] * b3,
-				vertexa[1] * b1 + vertexb[1] * b2 + vertexc[1] * b3,
-				vertexa[2] * b1 + vertexb[2] * b2 + vertexc[2] * b3
-			)
-		}
-
-		let texel_pos = UVToLocal(uv);
-		let texel_x_axis = UVToLocal([uv[0] + truncate_factor[0], uv[1]]);
-		let texel_y_axis = UVToLocal([uv[0], uv[1] + truncate_factor[1]]);
-
-		texel_x_axis.sub(texel_pos);
-		texel_y_axis.sub(texel_pos);
-
-		let matrix = new THREE.Matrix4();
-		matrix.makeBasis(texel_x_axis, texel_y_axis, new THREE.Vector3(0, 0, 1));
-        matrix.setPosition(texel_pos);
-		return matrix;
-	}
-    UVToLocal(uv) {
-        let tex = this.getTexture();
-        let uvFactorX = tex.getUVWidth() / tex.width;
-        let uvFactorY = tex.getUVHeight() / tex.display_height;
-        let texWidth = tex.width;
-        let texHeight = tex.height;
-        let [uv1, uv2, uv3, uv4] = this.uvs.slice();
-        let [v1, v2, v3, v4] = this.vertices.slice();
-        
-        uv1 = [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)];
-        uv3 = [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)];
-        let uNorm = (uv[0] - uv1[0]) / (uv3[0] - uv1[0]);
-        let vNorm = (uv[1] - uv1[1]) / (uv3[1] - uv1[1]);
+    //     uv1 = [(uv1[0] * texWidth * uvFactorX), (uv1[1] * texHeight * uvFactorY)];
+    //     uv3 = [(uv3[0] * texWidth * uvFactorX), (uv3[1] * texHeight * uvFactorY)];
+    //     let uNorm = (uv[0] - uv1[0]) / (uv3[0] - uv1[0]);
+    //     let vNorm = (uv[1] - uv1[1]) / (uv3[1] - uv1[1]);
         
   
-        let v12 = [
-            (1 - uNorm) * v1[0] + uNorm * v2[0],
-            (1 - uNorm) * v1[1] + uNorm * v2[1],
-            (1 - uNorm) * v1[2] + uNorm * v2[2]
-        ];
-        let v34 = [
-            (1 - uNorm) * v4[0] + uNorm * v3[0],
-            (1 - uNorm) * v4[1] + uNorm * v3[1],
-            (1 - uNorm) * v4[2] + uNorm * v3[2]
-        ];
-        let vLocal = [
-            (1 - vNorm) * v34[0] + vNorm * v12[0],
-            (1 - vNorm) * v34[1] + vNorm * v12[1],
-            (1 - vNorm) * v34[2] + vNorm * v12[2]
-        ];
+    //     let v12 = [
+    //         (1 - uNorm) * v1[0] + uNorm * v2[0],
+    //         (1 - uNorm) * v1[1] + uNorm * v2[1],
+    //         (1 - uNorm) * v1[2] + uNorm * v2[2]
+    //     ];
+    //     let v34 = [
+    //         (1 - uNorm) * v4[0] + uNorm * v3[0],
+    //         (1 - uNorm) * v4[1] + uNorm * v3[1],
+    //         (1 - uNorm) * v4[2] + uNorm * v3[2]
+    //     ];
+    //     let vLocal = [
+    //         (1 - vNorm) * v34[0] + vNorm * v12[0],
+    //         (1 - vNorm) * v34[1] + vNorm * v12[1],
+    //         (1 - vNorm) * v34[2] + vNorm * v12[2]
+    //     ];
         
-        console.log(v1, v12, v2);
-        console.log(v3, v34, v4);
-        // console.log(vLocal);
-        return vLocal.V3_toThree();
-    }
+    //     return vLocal.V3_toThree();
+    // }
 }
 new Property(SplineTubeFace, 'array', 'vertices');
 new Property(SplineTubeFace, 'array', 'uvs');
@@ -517,50 +467,120 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
+    getTubeData() {
+        let tube = this.getTubeGeo(false);
+        let add_texture = false;
+        let dummyMesh = {
+            faces: {},
+            vertices: {},
+        };
+
+        function addDummyVertices(...vectors) {
+		    return vectors.map(vector => {
+		    	let key;
+		    	while (!key || dummyMesh.vertices[key]) {
+		    		key = bbuid(4);
+		    	}
+		    	dummyMesh.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
+		    	return key;
+		    })
+        }
+
+        function addTubeFaces(...faces) {
+            return faces.map(face => {
+                let key;
+                while (!key || dummyMesh.faces[key]) {
+                    key = bbuid(8);
+                }
+                dummyMesh.faces[key] = face;
+                return key;
+            })
+        }
+        
+		let texture = Texture.getDefault();
+        if (this.texture) {
+            if (this.texture instanceof Texture) {
+                texture = this.texture;
+                add_texture = true;
+            }
+            else if (typeof this.texture === "string") {
+                texture = Texture.all.findInArray('uuid', this.texture);
+                add_texture = true;
+            }
+        };
+
+        for (let i = 0; i < tube.indices.length / 6; i++) {
+            // Tri (twice, so it's a quad :P )
+            let vertices = [];
+            let uv_data = [];
+            for (let j = 0; j < 6; j++) {
+                // Vertex
+                let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let pos = [
+                    tube.vertices[arr_offset + 0],
+                    tube.vertices[arr_offset + 1],
+                    tube.vertices[arr_offset + 2],
+                ];
+                vertices.push(pos);
+                let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let uv = [
+                    tube.uvs[uv_offset + 0],
+                    tube.uvs[uv_offset + 1],
+                ]
+                uv_data.push(uv);
+            }
+
+            // Avoid duplicate vertices on splines
+            let vertex_keys = vertices.map(pos => {
+                for (let vKey in dummyMesh.vertices) {
+                    let e = 0.004;
+                    let vert = dummyMesh.vertices[vKey];
+                    let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+                    
+                    if (same_spot) {
+                        return vKey;
+                    }
+                }
+                return addDummyVertices(pos)[0];
+            });
+
+            let uv = {};
+            let i2 = 0;
+            for (let vkey of vertex_keys) {
+                uv[vkey] = [
+                    uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
+                    (1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
+                ];
+                i2++;
+            }
+
+            let new_face = new SplineTubeFace(dummyMesh, this, {
+                vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
+                uv
+            })
+            if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
+
+            let [fkey] = addTubeFaces(new_face);
+        }
+        
+        return dummyMesh;
+    }
     /**
      * Refresh the dummy face object of this spline, so we can paint on it
      * this feels super dirty, feel free to judge it :P
      */
     refreshTubeFaces() {
         if (Object.keys(this.curves).length) {
-            let tube = this.getTubeGeo(false);
-            let face_arr = [];
+            let tubeData = this.getTubeData();
             this.faces = {};
 
-            for (let i = 0; i < tube.indices.length / 6; i++) {
-                let arr_vertices = [];
-                let arr_uvs = [];
-                for (let j = 0; j < 6; j++) {
-                    // Vertex
-                    let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                    let pos = [
-                        tube.vertices[arr_offset + 0],
-                        tube.vertices[arr_offset + 1],
-                        tube.vertices[arr_offset + 2],
-                    ];
-                    arr_vertices.push(pos);
-                    let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                    let uv = [
-                        tube.uvs[uv_offset + 0],
-                        tube.uvs[uv_offset + 1],
-                    ]
-                    arr_uvs.push(uv);
-                }
-
-                let face = new SplineTubeFace(this, {
-                    vertices: [arr_vertices[0], arr_vertices[1], arr_vertices[2], arr_vertices[5]], 
-                    uvs: [arr_uvs[0], arr_uvs[1], arr_uvs[2], arr_uvs[5]]
-                });
-                face_arr.push(face);
-            }
-
-            face_arr.map(face => {
-                let key;
+            for (let key in tubeData.faces) {
+                let face = tubeData.faces[key];
                 while (!key || this.faces[key]) {
                     key = bbuid(4);
                 }
                 this.faces[key] = face;
-            })
+            }
         }
     }
     getUndoCopy(aspects = {}) {

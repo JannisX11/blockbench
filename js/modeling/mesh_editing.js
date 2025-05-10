@@ -2168,75 +2168,85 @@ BARS.defineActions(function() {
 				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
 				mesh.smooth_shading = spline.smooth_shading;
 
-				let tube = spline.getTubeGeo(false);
-				let texture = Texture.getDefault();
-				
-				// Determine if we have a texture
-				let add_texture = false;
-				if (spline.texture) {
-					if (spline.texture instanceof Texture) {
-						texture = spline.texture;
-						add_texture = true;
-					}
-					else if (typeof spline.texture === "string") {
-						texture = Texture.all.findInArray('uuid', spline.texture);
-						add_texture = true;
-					}
-				};
-
-				for (let i = 0; i < tube.indices.length / 6; i++) {
-					// Tri (twice, so it's a quad :P )
-					let vertices = [];
-					let uv_data = [];
-					for (let j = 0; j < 6; j++) {
-						// Vertex
-						let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-						let pos = [
-							tube.vertices[arr_offset + 0],
-							tube.vertices[arr_offset + 1],
-							tube.vertices[arr_offset + 2],
-						];
-						vertices.push(pos);
-						let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-						let uv = [
-							tube.uvs[uv_offset + 0],
-							tube.uvs[uv_offset + 1],
-						]
-						uv_data.push(uv);
-					}
-
-					// Avoid duplicate vertices on splines
-					let vertex_keys = vertices.map(pos => {
-						for (let vKey in mesh.vertices) {
-							let e = 0.004;
-							let vert = mesh.vertices[vKey];
-							let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
-							
-							if (same_spot) {
-								return vKey;
-							}
-						}
-						return mesh.addVertices(pos)[0];
-					});
-
-					let uv = {};
-					let i2 = 0;
-					for (let vkey of vertex_keys) {
-						uv[vkey] = [
-							uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
-							(1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
-						];
-						i2++;
-					}
-
-					let new_face = new MeshFace(mesh, {
-						vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
-						uv
-					})
-					if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
-
-					let [fkey] = mesh.addFaces(new_face);
+				let tubeData = spline.getTubeData();
+				for (let vKey in tubeData.vertices) {
+					mesh.addVertices(tubeData.vertices[vKey]);
 				}
+				mesh.vertices = tubeData.vertices;
+				for (let fKey in tubeData.faces) {
+					let newFace = tubeData.faces[fKey].toMeshFace();
+					mesh.addFaces(newFace);
+				}
+
+				// let tube = spline.getTubeGeo(false);
+				// let texture = Texture.getDefault();
+				
+				// // Determine if we have a texture
+				// let add_texture = false;
+				// if (spline.texture) {
+				// 	if (spline.texture instanceof Texture) {
+				// 		texture = spline.texture;
+				// 		add_texture = true;
+				// 	}
+				// 	else if (typeof spline.texture === "string") {
+				// 		texture = Texture.all.findInArray('uuid', spline.texture);
+				// 		add_texture = true;
+				// 	}
+				// };
+
+				// for (let i = 0; i < tube.indices.length / 6; i++) {
+				// 	// Tri (twice, so it's a quad :P )
+				// 	let vertices = [];
+				// 	let uv_data = [];
+				// 	for (let j = 0; j < 6; j++) {
+				// 		// Vertex
+				// 		let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+				// 		let pos = [
+				// 			tube.vertices[arr_offset + 0],
+				// 			tube.vertices[arr_offset + 1],
+				// 			tube.vertices[arr_offset + 2],
+				// 		];
+				// 		vertices.push(pos);
+				// 		let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+				// 		let uv = [
+				// 			tube.uvs[uv_offset + 0],
+				// 			tube.uvs[uv_offset + 1],
+				// 		]
+				// 		uv_data.push(uv);
+				// 	}
+
+				// 	// Avoid duplicate vertices on splines
+				// 	let vertex_keys = vertices.map(pos => {
+				// 		for (let vKey in mesh.vertices) {
+				// 			let e = 0.004;
+				// 			let vert = mesh.vertices[vKey];
+				// 			let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+							
+				// 			if (same_spot) {
+				// 				return vKey;
+				// 			}
+				// 		}
+				// 		return mesh.addVertices(pos)[0];
+				// 	});
+
+				// 	let uv = {};
+				// 	let i2 = 0;
+				// 	for (let vkey of vertex_keys) {
+				// 		uv[vkey] = [
+				// 			uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
+				// 			(1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
+				// 		];
+				// 		i2++;
+				// 	}
+
+				// 	let new_face = new MeshFace(mesh, {
+				// 		vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
+				// 		uv
+				// 	})
+				// 	if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
+
+				// 	let [fkey] = mesh.addFaces(new_face);
+				// }
 
 				mesh.sortInBefore(spline).init();
 				new_meshes.push(mesh);
