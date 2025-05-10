@@ -12,6 +12,18 @@ type CanvasClickData = {event: MouseEvent} | {
 
 BARS.defineActions(function defineWeightBrush() {
 	let brush_outline: HTMLElement;
+	function updateBrushOutline(event: PointerEvent) {
+		if (!brush_outline) return;
+		let preview = Preview.selected as Preview;
+		let preview_offset = $(preview.canvas).offset();
+		let click_pos = [
+			event.clientX - preview_offset.left,
+			event.clientY - preview_offset.top,
+		]
+		preview.node.append(brush_outline);
+		brush_outline.style.left = click_pos[0] + 'px';
+		brush_outline.style.top = click_pos[1] + 'px';
+	}
 	new Tool('weight_brush', {
 		icon: 'stylus_highlighter',
 		category: 'tools',
@@ -47,17 +59,17 @@ BARS.defineActions(function defineWeightBrush() {
 			const raycaster = new THREE.Raycaster();
 			const depth_check = true;
 			
+			let last_click_pos = [0, 0];
 			const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
+				let radius = (BarItems.slider_weight_brush_size as NumSlider).get();
 				let click_pos = [
 					event.clientX - preview_offset.left,
 					event.clientY - preview_offset.top,
-				]
-				// Outline
-				if (brush_outline) {
-					preview.node.append(brush_outline);
-					brush_outline.style.left = click_pos[0] + 'px';
-					brush_outline.style.top = click_pos[1] + 'px';
+				];
+				if (Math.pow(last_click_pos[0]-click_pos[0], 2) + Math.pow(last_click_pos[1]-click_pos[1], 2) < 30) {
+					return;
 				}
+				last_click_pos = click_pos;
 
 				data = data ?? preview.raycast(event);
 				if (!data || 'element' in data == false) return;
@@ -80,7 +92,7 @@ BARS.defineActions(function defineWeightBrush() {
 					}
 					let screen_pos = preview.vectorToScreenPosition(pos.clone());
 					let distance = vec2.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
-					let influence = Math.hermiteBlend(Math.clamp(1-(distance / 50), 0, 1));
+					let influence = Math.hermiteBlend(Math.clamp(1-(distance / radius), 0, 1));
 					let value = armature_bone.vertex_weights[vkey] ?? 0;
 					
 					if (event.shiftKey || Pressing.overrides.shift) {
@@ -119,6 +131,7 @@ BARS.defineActions(function defineWeightBrush() {
 			Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 
 			brush_outline = Interface.createElement('div', {id: 'weight_brush_outline'});
+			document.addEventListener('pointermove', updateBrushOutline);
 		},
 		onUnselect() {
 			setTimeout(() => {
@@ -127,6 +140,7 @@ BARS.defineActions(function defineWeightBrush() {
 			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 			if (brush_outline) brush_outline.remove()
+			document.removeEventListener('pointermove', updateBrushOutline);
 		}
 	})
 	let slider = new NumSlider('slider_weight_brush_size', {
