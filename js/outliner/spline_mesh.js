@@ -419,7 +419,7 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
-    getTubeData() {
+    getTubeData(removeDoubles = false) {
         let tube = this.getTubeGeo(false);
         let add_texture = false;
         let dummyMesh = {
@@ -483,7 +483,7 @@ export class SplineMesh extends OutlinerElement {
             }
 
             // Avoid duplicate vertices on splines
-            let vertex_keys = vertices.map(pos => {
+            function getOriginalVkey(pos) {
                 for (let vKey in dummyMesh.vertices) {
                     let e = 0.004;
                     let vert = dummyMesh.vertices[vKey];
@@ -493,7 +493,20 @@ export class SplineMesh extends OutlinerElement {
                         return vKey;
                     }
                 }
-                return addDummyVertices(pos)[0];
+                return null;
+            }
+            let vertex_keys = vertices.map(pos => {
+                let ogVkey;
+                
+                if (removeDoubles) {
+                    let copyCheck = getOriginalVkey(pos);
+                    if (copyCheck) ogVkey = copyCheck;
+                    else ogVkey = addDummyVertices(pos)[0]
+                } else {
+                    ogVkey = addDummyVertices(pos)[0]
+                }
+
+                return ogVkey;
             });
 
             let uv = {};
