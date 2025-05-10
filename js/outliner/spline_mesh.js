@@ -1802,8 +1802,7 @@ new NodePreviewController(SplineMesh, {
                 let v_arr = [];
                 [0, 1, 4, 1].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
 
-                // close off initial ring, this the outline method Mesh uses only fills 
-                // in a few of the edges for quads, and this tube can only have quads.
+                // close off initial ring.
                 if (i < element.radial_resolution) {
                     [5, 0, 1, 2].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
                 }
