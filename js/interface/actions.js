@@ -1137,7 +1137,6 @@ export class BarSelect extends Widget {
 			id = data.id;
 		}
 		super(id, data);
-		var scope = this;
 		this.type = 'select'
 		this.icon = 'list'
 		this.icon_mode = !!data.icon_mode;
@@ -1174,7 +1173,7 @@ export class BarSelect extends Widget {
 			}
 
 		} else {
-			let select = document.createElement('div', {class: 'bb-select'});
+			let select = Interface.createElement('div', {class: 'bb-select'});
 			this.node.append(select);
 			if (data.width) {
 				select.style.setProperty('width', data.width+'px');
@@ -1183,7 +1182,7 @@ export class BarSelect extends Widget {
 				select.style.setProperty('min-width', data.min_width+'px');
 			}
 			select.addEventListener('click', event => {
-				scope.open(event)
+				this.open(event)
 			})
 		}
 		if (data.options) {
@@ -1209,7 +1208,7 @@ export class BarSelect extends Widget {
 			this.onChange = data.onChange
 		}
 		$(this.node).on('wheel', event => {
-			scope.trigger(event.originalEvent);
+			this.trigger(event.originalEvent);
 		})
 	}
 	getNode(ignore_disconnected) {
