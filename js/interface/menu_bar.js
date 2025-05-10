@@ -243,6 +243,7 @@ export const MenuBar = {
 			new MenuSeparator('add_element'),
 			'add_cube',
 			'add_mesh',
+			'add_spline',
 			'add_group',
 			'add_billboard',
 			'add_locator',
@@ -291,6 +292,7 @@ export const MenuBar = {
 				'toggle_locked',
 				'toggle_export',
 				'toggle_autouv',
+				'toggle_cyclic',
 				'toggle_shade',
 				'toggle_mirror_uv'
 			]}

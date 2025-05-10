@@ -59,6 +59,7 @@ export class ModelProject {
 		this.selected_elements = [];
 		this.selected_groups = [];
 		this.mesh_selection = {};
+		this.spline_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.texture_groups = [];
@@ -330,6 +331,9 @@ export class ModelProject {
 		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
+		
+		// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
+		SplineGizmos.clear();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];

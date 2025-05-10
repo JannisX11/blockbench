@@ -73,6 +73,10 @@ export interface FormElementOptions {
 	 */
 	step?: number
 	/**
+	 * On num slider inputs, The color of the slider
+	 */
+	color?: string
+	/**
 	 * If enabled, the value is forced to multiples of the "step" value. This can be used to create integer-only inputs etc.
 	 */
 	force_step?: boolean
@@ -715,6 +719,7 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 			onChange: () => {
 				this.change();
 			},
+			color: this.options.color || "",
 			getInterval,
 			settings: {
 				default: this.options.value || 0,
