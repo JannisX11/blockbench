@@ -543,125 +543,9 @@ export class SplineMesh extends OutlinerElement {
     // since we don't always need to re-build a whole new tube.
     refreshTubeFaces() {
         if (Object.keys(this.curves).length) {
-            let tubeData = this.getTubeData();
-            this.faces = tubeData.faces;
+            let tubeMesh = this.getTubeMesh();
+            this.faces = tubeMesh.faces;
         }
-    }
-    getTubeData(removeDoubles = false) {
-        let tube = this.getTubeGeo(false);
-        let add_texture = false;
-        let dummyMesh = {
-            faces: {},
-            vertices: {},
-        };
-
-        // Copy of Mesh.addVertices()
-        function addDummyVertices(...vectors) {
-		    return vectors.map(vector => {
-		    	let key;
-		    	while (!key || dummyMesh.vertices[key]) {
-		    		key = bbuid(4);
-		    	}
-		    	dummyMesh.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
-		    	return key;
-		    })
-        }
-
-        // Copy of Mesh.addFaces()
-        function addTubeFaces(...faces) {
-            return faces.map(face => {
-                let key;
-                while (!key || dummyMesh.faces[key]) {
-                    key = bbuid(8);
-                }
-                dummyMesh.faces[key] = face;
-                return key;
-            })
-        }
-
-        // Avoid duplicate vertices.
-        function getOriginalVkey(pos) {
-            for (let vKey in dummyMesh.vertices) {
-                let e = 0.004;
-                let vert = dummyMesh.vertices[vKey];
-                let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
-                
-                if (same_spot) {
-                    return vKey;
-                }
-            }
-            return null;
-        }
-        
-        // Obtain texture.
-		let texture = Texture.getDefault();
-        if (this.texture) {
-            if (this.texture instanceof Texture) {
-                texture = this.texture;
-                add_texture = true;
-            }
-            else if (typeof this.texture === "string") {
-                texture = Texture.all.findInArray('uuid', this.texture);
-                add_texture = true;
-            }
-        };
-
-        for (let i = 0; i < tube.indices.length / 6; i++) {
-            // Tri (twice, so it's a quad :P )
-            let vertices = [];
-            let uv_data = [];
-            for (let j = 0; j < 6; j++) {
-                // Vertex
-                let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                let pos = [
-                    tube.vertices[arr_offset + 0],
-                    tube.vertices[arr_offset + 1],
-                    tube.vertices[arr_offset + 2],
-                ];
-                vertices.push(pos);
-                let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                let uv = [
-                    tube.uvs[uv_offset + 0],
-                    tube.uvs[uv_offset + 1],
-                ]
-                uv_data.push(uv);
-            }
-
-            // Create or Collect vertex keys for our new face
-            let vertex_keys = vertices.map(pos => {
-                let ogVkey;
-
-                if (removeDoubles) {
-                    let copyCheck = getOriginalVkey(pos);
-                    if (copyCheck) ogVkey = copyCheck;
-                    else ogVkey = addDummyVertices(pos)[0]
-                } else {
-                    ogVkey = addDummyVertices(pos)[0]
-                }
-
-                return ogVkey;
-            });
-
-            let uv = {};
-            let i2 = 0;
-            for (let vkey of vertex_keys) {
-                uv[vkey] = [
-                    uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
-                    (1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
-                ];
-                i2++;
-            }
-
-            let new_face = new SplineTubeFace(dummyMesh, this, {
-                vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
-                uv
-            })
-            if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
-
-            let [fkey] = addTubeFaces(new_face);
-        }
-        
-        return dummyMesh;
     }
     getSelectedVertices(make) {
         if (make && !Project.spline_selection[this.uuid]) Project.spline_selection[this.uuid] = { vertices: [] };
@@ -1018,6 +902,120 @@ export class SplineMesh extends OutlinerElement {
             }
         })
         this.preview_controller.updateGeometry(this);
+    }
+    getTubeMesh(removeDoubles = false, mesh = {faces: {}, vertices: {}}) {
+        let tube = this.getTubeGeo(false);
+        let add_texture = false;
+
+        // Copy of Mesh.addVertices()
+        function addTubeVertices(...vectors) {
+            if (mesh instanceof Mesh) return mesh.addVertices(...vectors);
+
+		    return vectors.map(vector => {
+		    	let key;
+		    	while (!key || mesh.vertices[key]) {
+		    		key = bbuid(4);
+		    	}
+		    	mesh.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
+		    	return key;
+		    })
+        }
+
+        // Copy of Mesh.addFaces()
+        function addTubeFaces(...faces) {
+            if (mesh instanceof Mesh) return mesh.addFaces(...faces);
+
+            return faces.map(face => {
+                let key;
+                while (!key || mesh.faces[key]) {
+                    key = bbuid(8);
+                }
+                mesh.faces[key] = face;
+                return key;
+            })
+        }
+
+        // Avoid duplicate vertices.
+        function getOriginalVkey(pos) {
+            for (let vKey in mesh.vertices) {
+                let e = 0.004;
+                let vert = mesh.vertices[vKey];
+                let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+                
+                if (same_spot) return vKey;
+            }
+            return null;
+        }
+        
+        // Obtain texture.
+		let texture = Texture.getDefault();
+        if (this.texture) {
+            if (this.texture instanceof Texture) {
+                texture = this.texture;
+                add_texture = true;
+            }
+            else if (typeof this.texture === "string") {
+                texture = Texture.all.findInArray('uuid', this.texture);
+                add_texture = true;
+            }
+        };
+
+        for (let i = 0; i < tube.indices.length / 6; i++) {
+            // Tri (twice, so it's a quad :P )
+            let vertices = [];
+            let uv_data = [];
+            for (let j = 0; j < 6; j++) {
+                // Vertex
+                let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let pos = [
+                    tube.vertices[arr_offset + 0],
+                    tube.vertices[arr_offset + 1],
+                    tube.vertices[arr_offset + 2],
+                ];
+                vertices.push(pos);
+                let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let uv = [
+                    tube.uvs[uv_offset + 0],
+                    tube.uvs[uv_offset + 1],
+                ]
+                uv_data.push(uv);
+            }
+
+            // Create or Collect vertex keys for our new face
+            let vertex_keys = vertices.map(pos => {
+                if (!removeDoubles) return addTubeVertices(pos)[0];
+                    
+                let copyCheck = getOriginalVkey(pos);
+                if (copyCheck) return copyCheck;
+
+                return addTubeVertices(pos)[0];
+            });
+
+            // Compose UVs
+            let uv = {};
+            for (let i2 = 0; i2 < vertex_keys.length; i2++) {
+                let u = uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16);
+                let v = (1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16);
+
+                uv[vertex_keys[i2]] = [u, v];
+            }
+
+            // Reconstitute tube quad
+            let faceData = { vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], uv: uv };
+
+            // We create a different face based on what our mesh is.
+            let new_face;
+            if (mesh instanceof Mesh) {
+                new_face = new MeshFace(mesh, faceData);
+            } else {
+                new_face = new SplineTubeFace(mesh, this, faceData);
+            }
+
+            if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
+            let [fkey] = addTubeFaces(new_face);
+        }
+        
+        return mesh;
     }
     // Partly Adapted from https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
     getTubeGeo(shadeSmooth) {

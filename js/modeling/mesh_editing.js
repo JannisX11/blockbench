@@ -2167,11 +2167,7 @@ BARS.defineActions(function() {
 				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
 				mesh.smooth_shading = spline.smooth_shading;
 
-				let tubeData = spline.getTubeData(true);
-				for (let fKey in tubeData.faces) {
-					mesh.addFaces(tubeData.faces[fKey].toMeshFace());
-				}
-				mesh.vertices = tubeData.vertices;
+				spline.getTubeMesh(true, mesh);
 				
 				mesh.sortInBefore(spline).init();
 				new_meshes.push(mesh);
