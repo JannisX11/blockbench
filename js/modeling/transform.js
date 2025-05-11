@@ -1036,7 +1036,6 @@ export function afterRotateOnAxis() {
 		if (BarItems.spline_selection_mode.value == "handles") {
 			spline.refreshTubeFaces();
 		}
-		// spline.refreshTubeFaces();
 	});
 }
 

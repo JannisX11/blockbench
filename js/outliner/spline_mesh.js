@@ -1593,7 +1593,7 @@ new Property(SplineMesh, 'number', 'radial_resolution', {
     default: 6,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_ring_segments', type: 'num_slider', color: "u", description: 'action.spline_ring_segments.desc'},
+			input: {label: 'action.spline_ring_segments', type: 'num_slider', min: 3, color: "u", description: 'action.spline_ring_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1606,7 +1606,7 @@ new Property(SplineMesh, 'number', 'tubular_resolution', {
     default: 12,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_tube_segments', type: 'num_slider', color: "v", description: 'action.spline_tube_segments.desc'},
+			input: {label: 'action.spline_tube_segments', type: 'num_slider', min: 1, color: "v", description: 'action.spline_tube_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1618,7 +1618,7 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
     default: 1,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_tube_radius', type: 'num_slider', color: "w", description: 'action.spline_tube_radius.desc'},
+			input: {label: 'action.spline_tube_radius', type: 'num_slider', min: 0, color: "w", description: 'action.spline_tube_radius.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
