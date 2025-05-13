@@ -1463,7 +1463,6 @@ Interface.definePanels(function() {
 						Project.variable_placeholders = processed;
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
-						Animator.preview()
 					}
 				}
 			},
