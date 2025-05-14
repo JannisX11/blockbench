@@ -449,6 +449,7 @@
 		flex-direction: column;
 		overflow-x: hidden;
 		overflow-y: auto;
+		border-bottom-left-radius: 6px;
 	}
 	.dialog_content {
 		display: block;
@@ -600,7 +601,10 @@
 	}
 	.settings_list li {
 		padding: 2px 1px;
-		margin: 4px 0;
+		margin: 8px 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 	}
 	.settings_list li.has_profile_override {
 		border: 1px solid var(--color-profile);
@@ -617,16 +621,11 @@
 		color: var(--color-light);
 	}
 	.settings_list .setting_element {
-		width: 50px;
+		width: 60px;
 		text-align: center;
 		float: left;
 		margin-top: 12px;
-	}
-	.settings_list input[type=checkbox] {
-		margin-top: -6px;
-	}
-	.settings_list input[type=checkbox]::before {
-		font-size: 18pt;
+		flex-shrink: 0;
 	}
 	.settings_list li > .setting_icon {
 		margin-top: 8px;
@@ -634,7 +633,8 @@
 	.settings_list li > .setting_label {
 		display: inline-block;
 		margin-left: 8px;
-		width: calc(100% - 60px);
+		width: calc(100% - 70px);
+		flex-shrink: 1;
 	}
 	.settings_list .setting_name {
 		font-size: 1.1em;
@@ -745,15 +745,15 @@
 	}
 	.keybind_line > div.keybindslot {
 		width: calc(51% - 32px);
-		padding: 4px;
-		padding-left: 8px;
-		height: 30px;
+		padding: 6px;
+		margin-bottom: 2px;
+		height: 32px;
 		background-color: var(--color-back);
-		border: 1px solid var(--color-border);
 		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
-		cursor: text;
+		cursor: pointer;
+		border-radius: 6px;
 	}
 	.keybind_line > div.keybindslot:hover {
 		color: var(--color-light);
@@ -767,6 +767,7 @@
 	.keybindslot .modifier, .keybindslot .key {
 		background: var(--color-button);
 		padding: 2px 5px;
+		border-radius: 5px;
 	}
 	.keybindslot .optional {
 		color: var(--color-subtle_text);
@@ -833,6 +834,7 @@
 		margin: 4px;
 		display: inline-block;
 		vertical-align: top;
+		border-radius: 6px;
 	}
 	.prism-editor-wrapper .prism-editor__line-numbers {
 		background-color: var(--color-back) !important;
@@ -962,6 +964,7 @@
 		position: absolute;
 		left: 31px;
 		z-index: 1;
+		border-radius: 2px;
 	}
 	.theme_preview_menu_header {
 		height: 20px;
@@ -989,10 +992,11 @@
 		border-left: 2px solid var(--color-border);
 	}
 	.theme_backup_bar {
-		padding: 2px 6px;
+		padding: 2px 8px;
 		border: 2px solid var(--color-accent);
 		margin-bottom: 7px;
 		cursor: pointer;
+		border-radius: 6px;
 	}
 	.theme_backup_bar:hover {
 		color: var(--color-light);
@@ -1037,6 +1041,7 @@
 		text-decoration: none;
 		padding: 6px;
 		padding-top: 10px;
+		border-radius: 6px;
 	}
 	dialog#about div.socials a:hover {
 		background-color: var(--color-accent);
@@ -1092,16 +1097,18 @@
 	}
 	#import_texture_list li {
 		min-height: 112px;
-		width: 150px;
+		width: 148px;
 		margin: 6px 3px;
 		position: relative;
 		display: inline-block;
 		background-repeat: no-repeat;
 		background-size: 112px;
 		background-position-x: center;
+		background-position-y: 6px;
 		box-sizing: content-box;
 		border: 2px solid transparent;
 		vertical-align: top;
+		cursor: pointer;
 	}
 	#import_texture_list li:hover {
 		background-color: var(--color-selected);;
@@ -1131,6 +1138,8 @@
 		color: var(--color-subtle_text);
 		overflow-wrap: anywhere;
 		text-align: center;
+		cursor: inherit;
+		background-color: inherit;
 	}
 	#import_texture_list li:hover label {
 		color: var(--color-text);
@@ -1472,8 +1481,8 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 		height: 25px;
-		padding: 1px 6px;
-		border-radius: 5px;
+		padding: 1px 10px;
+		border-radius: 12px;
 		margin: 2px;
 		white-space: nowrap;
 		overflow: hidden;
@@ -1483,7 +1492,7 @@
 	#plugin_list .plugin_tag_list li {
 		height: 22px;
 		font-size: 0.9em;
-		padding: 1px 4px;
+		padding: 1px 9px;
 	}
 	.plugin_tag_list li.plugin_tag_source {
 		background-color: #ff7a52;

@@ -289,9 +289,7 @@
 /*Display*/
 
 	.tabs_small input[type="radio"]:checked+label {
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		border-radius: 5px;
+		border-bottom: 3px solid var(--color-accent);
 	}
 	.tabs_small input[type="radio"] {
 		display: none;
@@ -2681,7 +2679,7 @@ span.controller_state_section_info {
 	}
 	.uv_painter_info span {
 		margin: 3px 6px;
-		flex: 1 1 auto;
+		flex: 1 1 100px;
 		overflow: hidden;
 		white-space: nowrap;
 		text-align: center;

@@ -818,7 +818,7 @@ onVueSetup(function() {
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+								<div class="setting_element"><input type="checkbox" class="toggle_switch" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
 							</template>
 
 							<div class="setting_label">

@@ -617,6 +617,7 @@
 	}
 	#mode_selector li:hover {
 		color: var(--color-light);
+		background-color: var(--color-elevated);
 	}
 	#mode_selector li.selected {
 		background-color: var(--color-accent);
@@ -915,7 +916,7 @@
 	}
 	#status_bar .status_bar_modifier_key kbd {
 		font-family: inherit;
-		border-radius: 2px;
+		border-radius: 4px;
 		background-color: var(--color-button);
 		padding: 1px 5px;
 	}
@@ -1241,7 +1242,7 @@
 /* Amend Edit Menu */
 	#amend_edit_menu {
 		position: absolute;
-		bottom: 0;
+		bottom: 1px;
 		left: 0;
 		right: 0;
 		padding-right: 30px;
@@ -1252,6 +1253,7 @@
 	#amend_edit_menu > div.form {
 		background-color: var(--color-ui);
 		padding: 2px 10px;
+		border-radius: 6px;
 	}
 	.amend_edit_close_button {
 		position: absolute;

@@ -154,7 +154,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 										<ul id="import_texture_list" class="y_scrollable">
 											<li v-for="(texture, index) in textures"
 												:title="getName(texture)" :arr_index="index"
-												:class="{selected: selected_textures.includes(texture)}"
+												:class="{elevated: true, selected: selected_textures.includes(texture)}"
 												:style="{backgroundImage: getBackground(texture)}"
 												@click="clickTexture(texture)"
 												@dblclick="dblclickTexture(texture)"
