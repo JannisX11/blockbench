@@ -91,8 +91,8 @@ export const Interface = {
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		modes: {
 			paint_2d: {
-				left_bar: ['uv', 'color', , 'display', 'animations', 'keyframe', 'variable_placeholders'],
-				right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
+				left_bar: ['uv', 'color', 'palette', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+				right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
 				panels: {
 					layers: {
 						slot: 'right_bar',
@@ -110,8 +110,8 @@ export const Interface = {
 				}
 			}
 		},
-		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'outliner', 'chat'],
+		left_bar: ['uv', 'color', 'palette', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'outliner', 'chat'],
 		panels: {
 			paint: {
 				slot: 'left_bar',
@@ -318,7 +318,7 @@ export const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
@@ -338,7 +338,7 @@ export const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getBottomPanel();

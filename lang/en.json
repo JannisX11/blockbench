@@ -2213,6 +2213,7 @@
 
 	"menu.panel.enable": "Enable",
 	"menu.panel.move_to": "Move To",
+	"menu.panel.attach_to": "Attach To",
 	"menu.panel.move_to.left_bar": "Left Sidebar",
 	"menu.panel.move_to.right_bar": "Right Sidebar",
 	"menu.panel.move_to.top": "Top",
@@ -2383,9 +2384,7 @@
 	"panel.textures.images": "Images",
 	"panel.layers": "Layers",
 	"panel.color": "Color",
-	"panel.color.picker": "Picker",
-	"panel.color.palette": "Palette",
-	"panel.color.both": "Both",
+	"panel.palette": "Palette",
 	"panel.color.picker_options": "Color Picker Options",
 	"panel.outliner": "Outliner",
 	"panel.collections": "Collections",
@@ -2412,6 +2411,7 @@
 	"panel.skin_pose.aiming": "Aiming",
 
 	"panel.element": "Element",
+	"panel.transform": "Transform",
 	"panel.element.position": "Position",
 	"panel.element.size": "Size",
 	"panel.element.stretch": "Stretch",
