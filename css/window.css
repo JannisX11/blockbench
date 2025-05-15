@@ -980,7 +980,7 @@
 		width: 16px;
 		height: 16px;
 		margin: -8px;
-		border-radius: 5px;
+		border-radius: 50%;
 		z-index: 1;
 		text-align: center;
 		font-size: 12px;

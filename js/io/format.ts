@@ -2,6 +2,7 @@ import { Vue } from "../../lib/libs";
 import { Blockbench } from "../api";
 import { setProjectTitle } from "../interface/interface";
 import { Settings } from "../interface/settings";
+import { TickUpdates } from "../misc";
 import { Mode, Modes } from "../modes";
 import { Group } from "../outliner/group";
 import { Canvas } from "../preview/canvas";
@@ -362,7 +363,7 @@ export class ModelFormat implements FormatOptions {
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
 		if (Modes.vue) Modes.vue.$forceUpdate();
-		updateInterfacePanels();
+		TickUpdates.interface = true;
 		Canvas.updateShading();
 		Canvas.updateRenderSides()
 		Blockbench.dispatchEvent('select_format', {format: this, project: Project});

@@ -301,8 +301,9 @@ export const AutoBackup = {
 		let transaction = AutoBackup.db.transaction('projects', 'readwrite');
 		let store = transaction.objectStore('projects');
 
-		let model = Codecs.project.compile({compressed: false, backup: true, raw: false});
-		store.put({uuid: Project.uuid, data: model});
+		let model = Codecs.project.compile({compressed: false, backup: true, raw: true});
+		let model_json = JSON.stringify(model)
+		store.put({uuid: Project.uuid, data: model_json});
 		
 		await new Promise((resolve) => {
 			transaction.oncomplete = resolve;
