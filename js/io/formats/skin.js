@@ -64,6 +64,7 @@ const codec = new Codec('skin_model', {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
+		if (data.texture_resolution_factor) resolution *= data.texture_resolution_factor;
 
 		Interface.Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ? 'natural' : 'none';
 
@@ -277,15 +278,16 @@ const skin_dialog = new Dialog({
 				return skin_presets[form.model].variants;
 			}
 		},
-		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-			16: 'generic.default',
+		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 1, options: {
+			1: 'generic.default',
+			16: '16x',
 			32: '32x',
 			64: '64x',
 			128: '128x',
 		}},
 		resolution_warning: {
 			type: 'info', text: 'dialog.skin.high_res_texture',
-			condition: (form) => form.resolution != 16 && (form.model == 'steve' || form.model == 'alex')
+			condition: (form) => form.resolution > 16 && (form.model == 'steve' || form.model == 'alex')
 		},
 		texture: {
 			label: 'dialog.skin.texture',
@@ -331,7 +333,11 @@ const skin_dialog = new Dialog({
 					raw_model = preset.model;
 				}
 				let model = JSON.parse(raw_model);
-				codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
+				let resolution = result.resolution;
+				if (resolution == 1) {
+					resolution = model.default_resolution ?? 16;
+				}
+				codec.parse(model, resolution / 16, result.texture, result.pose, result.layer_template);
 				Project.skin_model = result.model;
 				if (preset.model_bedrock) {
 					Project.skin_model += '.' + (result.game_edition == 'java_edition' ? 'java' : 'bedrock');
@@ -3996,9 +4002,10 @@ skin_presets.ghast = {
 		"name": "ghast",
 		"texturewidth": 64,
 		"textureheight": 32,
+		"default_resolution": 32,
 		"eyes": [
-			[18, 24, 3, 1],
-			[27, 24, 3, 1]
+			[19, 21, 3, 1],
+			[26, 21, 3, 1]
 		],
 		"bones": [
 			{
@@ -4322,6 +4329,7 @@ skin_presets.happy_ghast = {
 		"name": "happy_ghast",
 		"texturewidth": 64,
 		"textureheight": 64,
+		"default_resolution": 32,
 		"eyes": [
 			[18, 24, 3, 1],
 			[27, 24, 3, 1]
@@ -4405,6 +4413,32 @@ skin_presets.happy_ghast = {
 				"pivot": [6.3, 1, 5],
 				"cubes": [
 					{"origin": [5.3, -4, 4], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.harness = {
+	display_name: 'Happy Ghast Harness',
+	model: `{
+		"name": "harness",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"default_resolution": 32,
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0.5, -8], "size": [16, 16, 16], "inflate": 0.5, "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "goggles",
+				"parent": "body",
+				"pivot": [0, 11.5, -5.5],
+				"cubes": [
+					{"origin": [-8, 7.5, -8], "size": [16, 5, 5], "inflate": 0.65, "uv": [0, 32]}
 				]
 			}
 		]
