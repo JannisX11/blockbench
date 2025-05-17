@@ -315,6 +315,7 @@ export class Panel extends EventSystem {
 				let target_panel: Panel;
 				let target_before = false;
 				let attach_to = false;
+				let move_attached_panels = e1.shiftKey || Pressing.overrides.shift;
 				function updateTargetHighlight() {
 					$(`.panel_container[order]`).attr('order', null);
 					$(`.panel_container.attach_target`).removeClass('attach_target');
@@ -346,6 +347,14 @@ export class Panel extends EventSystem {
 					convertTouchEvent(e2);
 					if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2)) > 15) {
 						started = true;
+						let attached_panels = this.getAttachedPanels();
+						if (attached_panels.length && !move_attached_panels) {
+							let first = attached_panels.splice(0, 1)[0];
+							first.moveTo(this.slot, this);
+							for (let other of attached_panels) {
+								first.attachPanel(other);
+							}
+						}
 						if (this.slot !== 'float') {
 							this.moveTo('float');
 							this.moveToFront();
@@ -570,9 +579,15 @@ export class Panel extends EventSystem {
 		panels.sort((a, b) => b.attached_index - a.attached_index);
 		return panels;
 	}
+	/**
+	 * Get the host panel if this panel is attached to another panel
+	 */
 	getHostPanel(): Panel|undefined {
 		return Panels[this.attached_to];
 	}
+	/**
+	 * Get the panel that acts as the container for this panel. If the panel is not attached to another panel, returns itself
+	 */
 	getContainerPanel(): Panel {
 		return Panels[this.attached_to] || this;
 	}
@@ -585,7 +600,7 @@ export class Panel extends EventSystem {
 		if (old_host_panel) {
 			old_host_panel.update();
 		}
-		updateSidebarOrder();
+		updateInterfacePanels()
 	}
 	selectTab(panel: Panel = this): this{
 		if (this.open_attached_panel != panel) {
@@ -1051,10 +1066,10 @@ Panel.prototype.snap_menu = new Menu([
 	{
 		id: 'fold',
 		name: 'menu.panel.fold',
-		icon: (panel: Panel) => panel.getHostPanel().folded == true,
-		condition: (panel: Panel) => panel.getHostPanel().slot != 'hidden',
+		icon: (panel: Panel) => panel.getContainerPanel().folded == true,
+		condition: (panel: Panel) => panel.getContainerPanel().slot != 'hidden',
 		click(panel: Panel) {
-			panel.getHostPanel().fold();
+			panel.getContainerPanel().fold();
 		}
 	}
 ])

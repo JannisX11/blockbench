@@ -606,7 +606,7 @@
 		margin-right: 0;
 		text-align: right;
 	}
-	#mode_selector li {
+	#mode_selector > li {
 		display: inline-block;
 		height: 30px;
 		overflow: hidden;
@@ -615,16 +615,19 @@
 		font-size: 1.1em;
 		cursor: pointer;
 	}
-	#mode_selector li:hover {
+	#mode_selector > li:hover {
 		color: var(--color-light);
 		background-color: var(--color-elevated);
 	}
-	#mode_selector li.selected {
+	#mode_selector > li.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	#mode_selector li > .icon {
+	#mode_selector > li > .icon {
 		vertical-align: text-bottom;
+	}
+	#mode_selector > li:not(.selected) > .icon {
+		color: var(--color-accent);
 	}
 	#update_menu .tool > .icon {
 		margin-top: 3px;
