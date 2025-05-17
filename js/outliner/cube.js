@@ -643,12 +643,12 @@ class Cube extends OutlinerElement {
 		if (this.box_uv) {
 			if (this.faces.west.uv[2] < this.faces.east.uv[0]) {
 				this.mirror_uv = true;
-				this.uv_offset[0] = this.faces.west.uv[2];
+				this.uv_offset[0] = Math.round(this.faces.west.uv[2]);
 			} else {
 				this.mirror_uv = false;
-				this.uv_offset[0] = this.faces.east.uv[0];
+				this.uv_offset[0] = Math.round(this.faces.east.uv[0]);
 			}
-			this.uv_offset[1] = this.faces.up.uv[3];
+			this.uv_offset[1] = Math.round(this.faces.up.uv[3]);
 			let texture = Texture.getDefault();
 			for (let fkey in this.faces) {
 				if (this.faces[fkey].texture) {
