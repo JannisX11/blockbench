@@ -1162,7 +1162,7 @@ new NodePreviewController(Cube, {
 			mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
+			mesh.material = Canvas.getSolidColorMaterial(element.color)
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -1178,7 +1178,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(element.color);
 
 		} else {
 			let materials = [];
@@ -1188,7 +1188,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(tex.getMaterial())
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
+						materials.push(Canvas.getEmptyMaterial(element.color))
 					}
 				}
 			})

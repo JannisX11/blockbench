@@ -1274,7 +1274,7 @@ BARS.defineActions(function() {
 				return {
 					name: group.name,
 					icon: 'folder',
-					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
+					color: markerColors[group.color % markerColors.length]?.standard,
 					click(event) {
 						moveOutlinerSelectionTo(element, group, event);
 						element.showInOutliner();
