@@ -3996,6 +3996,10 @@ skin_presets.ghast = {
 		"name": "ghast",
 		"texturewidth": 64,
 		"textureheight": 32,
+		"eyes": [
+			[18, 24, 3, 1],
+			[27, 24, 3, 1]
+		],
 		"bones": [
 			{
 				"name": "body",
@@ -4307,6 +4311,100 @@ skin_presets.guardian = {
 				"rotation": [90, 135, 0],
 				"cubes": [
 					{"name": "spikepart8", "origin": [-1, 32.5, -17], "size": [2, 9, 2], "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.happy_ghast = {
+	display_name: 'Happy Ghast',
+	model: `{
+		"name": "happy_ghast",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[18, 24, 3, 1],
+			[27, 24, 3, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0, -8], "size": [16, 16, 16], "uv": [0, 0]},
+					{"origin": [-8, 0, -8], "size": [16, 16, 16], "inflate": -0.5, "uv": [0, 32]}
+				]
+			},
+			{
+				"name": "tentacles_0",
+				"parent": "body",
+				"pivot": [-3.8, 1, -5],
+				"cubes": [
+					{"origin": [-4.8, -4, -6], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_1",
+				"parent": "body",
+				"pivot": [1.3, 1, -5],
+				"cubes": [
+					{"origin": [0.3, -6, -6], "size": [2, 7, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_2",
+				"parent": "body",
+				"pivot": [6.3, 1, -5],
+				"cubes": [
+					{"origin": [5.3, -3, -6], "size": [2, 4, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_3",
+				"parent": "body",
+				"pivot": [-6.3, 1, 0],
+				"cubes": [
+					{"origin": [-7.3, -4, -1], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_4",
+				"parent": "body",
+				"pivot": [-1.3, 1, 0],
+				"cubes": [
+					{"origin": [-2.3, -4, -1], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_5",
+				"parent": "body",
+				"pivot": [3.8, 1, 0],
+				"cubes": [
+					{"origin": [2.8, -6, -1], "size": [2, 7, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_6",
+				"parent": "body",
+				"pivot": [-3.8, 1, 5],
+				"cubes": [
+					{"origin": [-4.8, -7, 4], "size": [2, 8, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_7",
+				"parent": "body",
+				"pivot": [1.3, 1, 5],
+				"cubes": [
+					{"origin": [0.3, -7, 4], "size": [2, 8, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_8",
+				"parent": "body",
+				"pivot": [6.3, 1, 5],
+				"cubes": [
+					{"origin": [5.3, -4, 4], "size": [2, 5, 2], "uv": [0, 0]}
 				]
 			}
 		]
