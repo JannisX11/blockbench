@@ -644,12 +644,12 @@ export class Cube extends OutlinerElement {
 		if (this.box_uv) {
 			if (this.faces.west.uv[2] < this.faces.east.uv[0]) {
 				this.mirror_uv = true;
-				this.uv_offset[0] = this.faces.west.uv[2];
+				this.uv_offset[0] = Math.round(this.faces.west.uv[2]);
 			} else {
 				this.mirror_uv = false;
-				this.uv_offset[0] = this.faces.east.uv[0];
+				this.uv_offset[0] = Math.round(this.faces.east.uv[0]);
 			}
-			this.uv_offset[1] = this.faces.up.uv[3];
+			this.uv_offset[1] = Math.round(this.faces.up.uv[3]);
 			let texture = Texture.getDefault();
 			for (let fkey in this.faces) {
 				if (this.faces[fkey].texture) {
@@ -873,7 +873,7 @@ export class Cube extends OutlinerElement {
 		let before = this.old_size != undefined ? this.old_size : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		let is_inverted = before < 0;
-		if (is_inverted) negative = !negative;
+		if (is_inverted && allow_negative == null) negative = !negative;
 		let modify = val instanceof Function ? val : n => (n + val);
 
 		if (bidirectional) {
@@ -1182,7 +1182,7 @@ new NodePreviewController(Cube, {
 			mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
+			mesh.material = Canvas.getSolidColorMaterial(element.color)
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -1198,7 +1198,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(element.color);
 
 		} else {
 			let materials = [];
@@ -1208,7 +1208,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(tex.getMaterial())
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
+						materials.push(Canvas.getEmptyMaterial(element.color))
 					}
 				}
 			})

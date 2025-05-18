@@ -243,7 +243,7 @@ BARS.defineActions(function() {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
 					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
 					marked: node.uuid == NullObject.selected[0].ik_target,
-					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
+					color: markerColors[node.color % markerColors.length]?.standard,
 					click() {
 						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {
@@ -284,7 +284,7 @@ BARS.defineActions(function() {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_source ? ' (✔)' : ''),
 					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
 					marked: node.uuid == NullObject.selected[0].ik_source,
-					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
+					color: markerColors[node.color % markerColors.length]?.standard,
 					click() {
 						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {

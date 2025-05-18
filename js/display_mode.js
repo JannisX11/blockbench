@@ -33,7 +33,8 @@ export class DisplaySlot {
 			scale: this.scale.slice(),
 			rotation_pivot: this.rotation_pivot.slice(),
 			scale_pivot: this.scale_pivot.slice(),
-			mirror: this.mirror.slice()
+			mirror: this.mirror.slice(),
+			fit_to_frame: this.fit_to_frame
 		}
 	}
 	export() {
@@ -91,7 +92,8 @@ export class DisplaySlot {
 			if (data.translation) Merge.number(this.translation, data.translation, i)
 			if (data.rotation_pivot) Merge.number(this.rotation_pivot, data.rotation_pivot, i)
 			if (data.scale_pivot) Merge.number(this.scale_pivot, data.scale_pivot, i)
-			this.scale[i] = Math.abs(this.scale[i])
+			this.scale[i] = Math.abs(this.scale[i]);
+			this.rotation[i] = Math.trimDeg(this.rotation[i]);
 			if (data.scale && data.scale[i] < 0) this.mirror[i] = true;
 		}
 		if (typeof data.fit_to_frame == 'boolean') this.fit_to_frame = data.fit_to_frame;
@@ -2103,7 +2105,7 @@ Interface.definePanels(function() {
 							<input type="range" :style="{'--color-thumb': \`var(--color-axis-\${getAxisLetter(axis)})\`}" class="tool disp_range" v-model.number="slot.rotation[axis]" v-bind:trigger_type="'rotation.'+axis"
 								min="-180" max="180" step="1" value="0"
 								@input="change(axis, 'rotation')" @mousedown="start()" @change="save">
-							<numeric-input class="tool disp_text" v-model.number="slot.rotation[axis]" :min="-180" :max="180" :step="0.5" @input="change(axis, 'rotation')" @focusout="focusout(axis, 'rotation');save()" @mousedown="start()" />
+							<numeric-input class="tool disp_text" v-model.number="slot.rotation[axis]" :min="-180" :max="180" :step="0.5" @input="change(axis, 'rotation')" @change="focusout(axis, 'rotation');save()" @mousedown="start()" />
 						</div>
 						
 						<div class="bar display_slot_section_bar">
@@ -2116,7 +2118,7 @@ Interface.definePanels(function() {
 								v-bind:max="Math.abs(slot.translation[axis]) < 10 ?  20 : (slot.translation[axis] < 0 ? 70*3-10 : 80)"
 								v-bind:step="Math.abs(slot.translation[axis]) < 10 ? 0.25 : 1"
 								value="0" @input="change(axis, 'translation')" @mousedown="start()" @change="save">
-							<numeric-input class="tool disp_text" v-model.number="slot.translation[axis]" :min="-80" :max="80" :step="0.5" @input="change(axis, 'translation')" @focusout="focusout(axis, 'translation');save()" @mousedown="start()" />
+							<numeric-input class="tool disp_text" v-model.number="slot.translation[axis]" :min="-80" :max="80" :step="0.5" @input="change(axis, 'translation');" @change="focusout(axis, 'translation');save()" @mousedown="start()" />
 						</div>
 
 						<div class="bar display_slot_section_bar">
@@ -2134,7 +2136,7 @@ Interface.definePanels(function() {
 								v-bind:max="slot.scale[axis] > 1 ? 4 : 2"
 								step="0.01"
 								value="0" @input="change(axis, 'scale')" @mousedown="start(axis, 'scale')" @change="save(axis, 'scale')">
-							<numeric-input class="tool disp_text" v-model.number="slot.scale[axis]" :min="0" :max="4" :step="0.01" @input="change(axis, 'scale')" @focusout="focusout(axis, 'scale');save()" @mousedown="start()" />
+							<numeric-input class="tool disp_text" v-model.number="slot.scale[axis]" :min="0" :max="4" :step="0.01" @input="change(axis, 'scale')" @change="focusout(axis, 'scale');save()" @mousedown="start()" />
 						</div>
 						<div class="bar" v-if="isBedrockStyle() && slot.slot_id == 'gui'" @click="toggleFitToFrame()">
 							<input type="checkbox" :checked="slot.fit_to_frame == true">
@@ -2164,7 +2166,7 @@ Interface.definePanels(function() {
 									v-model.number="slot.rotation_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'rotation_pivot')"
-									@focusout="focusout(axis, 'rotation_pivot');save()"
+									@change="focusout(axis, 'rotation_pivot');save()"
 									@mousedown="start()"
 								/>
 							</div>
@@ -2180,7 +2182,7 @@ Interface.definePanels(function() {
 									v-model.number="slot.scale_pivot[axis]"
 									:min="-10" :max="10" :step="0.05"
 									@input="change(axis, 'scale_pivot')"
-									@focusout="focusout(axis, 'scale_pivot');save()"
+									@change="focusout(axis, 'scale_pivot');save()"
 									@mousedown="start()"
 								/>
 							</div>

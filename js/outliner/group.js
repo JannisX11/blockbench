@@ -821,7 +821,7 @@ BARS.defineActions(function() {
 				})
 			}
 			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.multi_selected) {
+			for (let group of Group.multi_selected.slice()) {
 				group.resolve(false);
 			}
 			Undo.finishEdit('Resolve group');

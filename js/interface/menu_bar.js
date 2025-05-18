@@ -222,7 +222,7 @@ export const MenuBar = {
 							list.push({
 								name: profile.name,
 								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
-								color: markerColors[profile.color].standard,
+								color: markerColors[profile.color % markerColors.length].standard,
 								click: () => {
 									profile.select();
 								}

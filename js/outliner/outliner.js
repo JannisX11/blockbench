@@ -1100,7 +1100,7 @@ SharedActions.add('duplicate', {
 
 		if (Animation.all.length) {
 			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
-			if (affected_anims) {
+			if (affected_anims.length) {
 				Blockbench.showMessageBox({
 					translateKey: 'duplicate_bone_copy_animation',
 					message: tl('message.duplicate_bone_copy_animation.message', [affected_anims.length]),
@@ -1288,7 +1288,7 @@ BARS.defineActions(function() {
 				return {
 					name: group.name,
 					icon: 'folder',
-					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
+					color: markerColors[group.color % markerColors.length]?.standard,
 					click(event) {
 						moveOutlinerSelectionTo(element, group, event);
 						element.showInOutliner();

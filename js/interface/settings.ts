@@ -482,7 +482,7 @@ export const Settings = {
 	},
 	updateProfileButton() {
 		let profile = SettingsProfile.selected;
-		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color].standard : '';
+		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color % markerColors.length].standard : '';
 		Settings.profile_menu_button.classList.toggle('hidden', SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') == -1);
 	},
 	import(file) {
@@ -704,7 +704,7 @@ onVueSetup(function() {
 						items.push({
 							name: profile.name,
 							icon: 'manage_accounts',
-							color: markerColors[profile.color].standard,
+							color: markerColors[profile.color % markerColors.length].standard,
 							click: () => {
 								this.profile = profile;
 								if (profile.condition.type == 'selectable') {
@@ -738,8 +738,8 @@ onVueSetup(function() {
 					});
 				},
 				getProfileColor(profile?: SettingsProfile) {
-					if (profile && markerColors[profile.color]) {
-						return markerColors[profile.color].standard
+					if (profile && markerColors[profile.color % markerColors.length]) {
+						return markerColors[profile.color % markerColors.length].standard
 					}
 					return '';
 				},

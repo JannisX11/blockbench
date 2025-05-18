@@ -16,6 +16,7 @@ export const Animator = {
 	onion_skin_object: new THREE.Object3D(),
 	motion_trail_lock: false,
 	_last_values: {},
+	global_variable_lines: {},
 	resetLastValues() {
 		for (let channel in BoneAnimator.prototype.channels) {
 			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
@@ -39,6 +40,7 @@ export const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones();
 		Animator.MolangParser.resetVariables();
+		processVariablePlaceholderText(Project.variable_placeholders);
 
 		scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
@@ -1476,8 +1478,10 @@ Interface.definePanels(function() {
 				text(text) {
 					if (Project && typeof text == 'string') {
 						Project.variable_placeholders = text;
+						processVariablePlaceholderText(text)
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
+						Timeline.vue.updateGraph();
 					}
 				}
 			},
@@ -1510,6 +1514,26 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+function processVariablePlaceholderText(text) {
+	const res = text
+			.replaceAll(/(\s*)(v\.)/g, '$1variable.')
+			.replaceAll(/(\s*)(q\.)/g, '$1query.')
+			.replaceAll(/(\s*)(t\.)/g, '$1temp.')
+			.replaceAll(/(\s*)(c\.)/g, '$1context.')
+
+	Animator.global_variable_lines = {}
+	for (const line of res.split('\n')) {
+		let [key, val] = line.split(/=\s*(.+)/)
+		if(val === undefined) {
+			continue
+		}
+		key = key.replace(/[\s;]/g, '')
+		Animator.global_variable_lines[key] = val.trim()
+	}
+
+	return res
+}
 
 Object.assign(window, {
 	Animator,
