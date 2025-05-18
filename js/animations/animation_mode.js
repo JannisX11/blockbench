@@ -1464,6 +1464,7 @@ Interface.definePanels(function() {
 						processVariablePlaceholderText(text)
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
+						Timeline.vue.updateGraph();
 					}
 				}
 			},

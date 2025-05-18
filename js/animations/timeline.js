@@ -1030,6 +1030,12 @@ Interface.definePanels(() => {
 						this.graph_size += 1e-5;
 					}
 				},
+				updateGraph() {
+					if (this.graph_editor_open) {
+						this.graph_size++;
+						this.graph_size--;
+					}
+				},
 				toggleAnimator(animator) {
 					animator.expanded = !animator.expanded;
 				},
