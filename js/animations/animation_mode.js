@@ -36,6 +36,7 @@ const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones();
 		Animator.MolangParser.resetVariables();
+		processVariablePlaceholderText(Project.variable_placeholders);
 
 		scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
@@ -1459,8 +1460,8 @@ Interface.definePanels(function() {
 			watch: {
 				text(text) {
 					if (Project && typeof text == 'string') {
-						const processed = processVariablePlaceholderText(text)
-						Project.variable_placeholders = processed;
+						Project.variable_placeholders = text;
+						processVariablePlaceholderText(text)
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
 					}
