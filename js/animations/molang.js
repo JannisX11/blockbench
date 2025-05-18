@@ -89,20 +89,21 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-Animator.MolangParser.variableHandler = function (variable, variables) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n')
-	var i = 0
+Animator.MolangParser.variableHandler = function (variable, variables, args) {
+	let inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n')
+	let i = 0;
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => "'"+arg+"'").join(',')})`;
 	while (i < inputs.length) {
-		let key, val
-		;[key, val] = inputs[i].split(/=\s*(.+)/)
-		key = key.replace(/[\s;]/g, '')
+		let key, val;
+		[key, val] = inputs[i].split(/=\s*(.+)/);
+		key = key.replace(/[\s;]/g, '');
 		key = key
 			.replace(/^v\./, 'variable.')
 			.replace(/^q\./, 'query.')
 			.replace(/^t\./, 'temp.')
 			.replace(/^c\./, 'context.')
 
-		if (key === variable && val !== undefined) {
+		if ((key === variable || key == variable_with_args) && val !== undefined) {
 			val = val.trim()
 
 			if (val.match(/^(slider|toggle|impulse)\(/)) {

@@ -426,6 +426,9 @@ export const UVEditor = {
 	},
 	getSelectedFaces(element, create) {
 		if (!element) return [];
+		if (element.getTypeBehavior('select_faces') == false) {
+			return Object.keys(element.faces);
+		}
 		if (element.getSelectedFaces) {
 			return element.getSelectedFaces(create);
 		} else {
@@ -501,20 +504,20 @@ export const UVEditor = {
 		this.vue.updateSize();
 	},
 	//Selection
-	reverseSelect(event) {
-		var scope = this;
+	reverseSelect(event, local_offset) {
+		let scope = this;
 		if (!this.vue.texture && !Format.single_texture) return this;
 		if (!event.target.classList.contains('uv_size_handle') && !event.target.id === 'uv_frame') {
 			return this;
 		}
-		var matches = [];
-		var face_matches = [];
-		var u = event.offsetX / this.vue.inner_width * this.getResolution(0);
-		var v = event.offsetY / this.vue.inner_height * this.getResolution(1);
+		let matches = [];
+		let face_matches = [];
+		let u = local_offset[0] / this.vue.inner_width * this.getResolution(0);
+		let v = local_offset[1] / this.vue.inner_height * this.getResolution(1);
 		Cube.all.forEach(cube => {
 			if (cube.locked) return;
-			for (var face in cube.faces) {
-				var uv = cube.faces[face].uv
+			for (let face in cube.faces) {
+				let uv = cube.faces[face].uv
 				if (uv && Math.isBetween(u, uv[0], uv[2]) && Math.isBetween(v, uv[1], uv[3]) && (cube.faces[face].getTexture() === scope.vue.texture || Format.single_texture)) {
 					matches.safePush(cube);
 					face_matches.push([cube, face]);
@@ -1390,6 +1393,9 @@ export const UVEditor = {
 				Property.resetUniqueValues(MeshFace, new_face);
 				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
+			} else if (element instanceof Billboard) {
+				new_face = new BillboardFace(key, tag);
+				Property.resetUniqueValues(BillboardFace, new_face);
 			} else {
 				new_face = new CubeFace(key, tag);
 				Property.resetUniqueValues(CubeFace, new_face);
@@ -1554,22 +1560,22 @@ export const UVEditor = {
 			let on = 'far.fa-dot-circle';
 			return [
 				{icon: (!reference_face.rotation ? on : off), name: '0°', click() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
 					UVEditor.setRotation(0)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 90 ? on : off), name: '90°', click() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
 					UVEditor.setRotation(90)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 180 ? on : off), name: '180°', click() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
 					UVEditor.setRotation(180)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 270 ? on : off), name: '270°', click() {
-					Undo.initEdit({elements: Cube.selected, uv_only: true})
+					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
 					UVEditor.setRotation(270)
 					Undo.finishEdit('Rotate UV')
 				}}
@@ -2980,10 +2986,12 @@ Interface.definePanels(function() {
 				reverseSelect(event) {
 					if (this.mode !== 'uv') return;
 					var offset = $(this.$refs.frame).offset();
-					event.offsetX = event.clientX - offset.left;
-					event.offsetY = event.clientY - offset.top;
+					let local_position = [
+						event.clientX - offset.left,
+						event.clientY - offset.top
+					];
 					if (!this.dragging_uv && !this.selection_rect.active && event.target.id == 'uv_frame') {
-						let results = UVEditor.reverseSelect(event)
+						let results = UVEditor.reverseSelect(event, local_position)
 						if (!(results && results.length)) {
 							if (UVEditor.isFaceUV()) {
 								for (let element of UVEditor.getMappableElements()) {
@@ -4134,6 +4142,7 @@ Interface.definePanels(function() {
 				},
 				isFaceSelected(element, fkey) {
 					if (!element) element = this.mappable_elements[0];
+					if (element.getTypeBehavior('select_faces') == false) return true;
 					return UVEditor.getSelectedFaces(element).indexOf(fkey) != -1;
 				},
 				isTransformingLayer() {
@@ -4262,7 +4271,7 @@ Interface.definePanels(function() {
 						</div>
 					</div>
 
-					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].type != 'mesh' && !box_uv">
+					<div class="bar" id="uv_cube_face_bar" ref="uv_cube_face_bar" v-if="mode == 'uv' && mappable_elements[0] && mappable_elements[0].getTypeBehavior('select_faces') && !box_uv">
 						<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 							:class="{selected: isFaceSelected(null, key), disabled: mappable_elements[0].faces[key].texture === null}"
 							@mousedown="selectFace(null, key, $event, false, true)"
@@ -4383,7 +4392,7 @@ Interface.definePanels(function() {
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
 									<div class="cube_uv_face uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key))"
+										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
 										:title="face_names[key]"
 										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
@@ -4581,7 +4590,7 @@ Interface.definePanels(function() {
 
 					<div :class="{joined_uv_bar: width >= 720}" ref="uv_toolbars">
 						<div v-show="mode == 'uv'" class="bar uv_editor_sliders" ref="slider_bar" style="margin-left: 2px;"></div>
-						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor"></div>
+						<div v-show="mode == 'uv'" class="toolbar_wrapper uv_editor" toolbar="uv_editor"></div>
 					</div>
 				</div>
 			`

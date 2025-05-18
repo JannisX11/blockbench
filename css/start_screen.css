@@ -474,10 +474,10 @@
 		line-height: 26px;
 	}
 	.format_target span {
-		padding: 2px 4px;
+		padding: 2px 10px;
 		margin: 0 2px;
 		background-color: var(--color-accent);
-		border-radius: 5px;
+		border-radius: 16px;
 		color: var(--color-accent_text);
 	}
 	#start_files .button_bar {
@@ -558,7 +558,7 @@
 		min-width: 120px;
 		display: inline-block;
 	}
-	section#quick_setup > div bb-select {
+	section#quick_setup > div .bb-select {
 		flex-grow: 1;
 	}
 	section#quick_setup > div > p {

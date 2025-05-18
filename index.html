@@ -200,7 +200,7 @@
 		if (!window.Blockbench?.setup_successful) {
 			document.getElementById('loading_error_message').style.display = 'block'
 			if (window.require) {
-				require('electron').remote.getCurrentWindow().webContents.openDevTools()
+				require('@electron/remote').getCurrentWindow().webContents.openDevTools();
 			}
 		} else {
 			document.getElementById('loading_error_message').innerHTML = 'No loading errors...'

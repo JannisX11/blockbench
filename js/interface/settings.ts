@@ -737,6 +737,12 @@ onVueSetup(function() {
 						return profile.settings[key] !== undefined;
 					});
 				},
+				getProfileColor(profile?: SettingsProfile) {
+					if (profile && markerColors[profile.color]) {
+						return markerColors[profile.color].standard
+					}
+					return '';
+				},
 				getIconNode: Blockbench.getIconNode,
 				tl,
 				Condition
@@ -783,10 +789,10 @@ onVueSetup(function() {
 				}
 			},
 			template: `
-				<div :style="{'--color-profile': profile ? markerColors[profile.color] && markerColors[profile.color].standard : ''}">
+				<div :style="{'--color-profile': getProfileColor(profile)}">
 					<div id="settings_profile_wrapper">
 						Profile:
-						<bb-select ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</bb-select>
+						<div class="bb-select" ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</div>
 						<div class="tool" @click="profileButtonPress()"><i class="material-icons">{{ profile ? 'build' : 'add' }}</i></div>
 					</div>
 
@@ -812,14 +818,14 @@ onVueSetup(function() {
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+								<div class="setting_element"><input type="checkbox" class="toggle_switch" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
 							</template>
 
 							<div class="setting_label">
 								<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
 								<div class="setting_profile_value_indicator"
 									v-for="profile_here in getProfileValuesForSetting(key)"
-									:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+									:style="{'--color-profile': getProfileColor(profile_here)}"
 									:class="{active: profile_here.isActive()}"
 									:title="tl('Has override in profile ' + profile_here.name)"
 									@click.stop="profile = (profile == profile_here) ? null : profile_here"

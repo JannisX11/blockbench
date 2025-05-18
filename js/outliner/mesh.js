@@ -904,6 +904,7 @@ export class Mesh extends OutlinerElement {
 		movable: true,
 		resizable: true,
 		rotatable: true,
+		has_pivot: true,
 	}
 }
 	Mesh.prototype.title = tl('data.mesh');

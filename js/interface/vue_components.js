@@ -37,7 +37,6 @@ Vue.component('select-input', {
 	}},
 	methods: {
 		set(value) {
-			this.value = value;
 			this.$emit('input', value);
 		},
 		getNameFor(key) {
@@ -74,9 +73,9 @@ Vue.component('select-input', {
 		}
 	},
 	template: `
-		<bb-select @click="open($event)">
+		<div class="bb-select" @click="open($event)">
 			{{ getNameFor(value) }}
-		</bb-select>
+		</div>
 	`
 })
 

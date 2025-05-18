@@ -1381,7 +1381,8 @@ BARS.defineActions(function() {
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				capitalizeFirstLetter,
-				tl
+				tl,
+				Condition
 			},
 			mount_directly: true,
 			template: `
@@ -1581,7 +1582,7 @@ BARS.defineActions(function() {
 									<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 								</template>
 								<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-									<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
+									<div class="setting_element"><input type="checkbox" class="toggle_switch" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
 								</template>
 
 								<div class="setting_label">

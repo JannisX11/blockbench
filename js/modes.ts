@@ -38,7 +38,6 @@ export class Mode extends KeybindItem {
 	hide_toolbars: boolean
 	hide_sidebars: boolean
 	hide_status_bar: boolean
-	condition: ConditionResolvable
 	vue?: Vue
 
 	onSelect?: () => void
@@ -117,12 +116,10 @@ export class Mode extends KeybindItem {
 		UVEditor.beforeMoving();
 		if (!Blockbench.isMobile) {
 			for (let id in Panels) {
-				let old_pos_data = Panels[id].position_data;
-				Panels[id].position_data = Interface.getModeData().panels[id];
-				if (!Panels[id].position_data) {
-					Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
-				}
-				Panels[id].updateSlot();
+				let panel = Panels[id];
+				panel.updatePositionData();
+				panel.updateSlot();
+
 			}
 			updateSidebarOrder();
 		}

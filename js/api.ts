@@ -407,6 +407,9 @@ export const StateMemory = {
 	save(key: string) {
 		let serialized = JSON.stringify(StateMemory[key])
 		localStorage.setItem(`StateMemory.${key}`, serialized)
+	},
+	get(key: string): string|number|[]|boolean|any {
+		return StateMemory[key];
 	}
 }
 

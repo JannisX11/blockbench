@@ -368,6 +368,10 @@ export class TextureGroupMaterialConfig {
 		let path = this.getFilePath();
 		if (!path) return;
 		if (isApp) {
+			if (fs.existsSync(PathModule.dirname(path)) == false) {
+				Blockbench.showQuickMessage('message.invalid_texture_group_material_config_path')
+				return;
+			}
 			fs.writeFileSync(path, file, {encoding: 'utf-8'});
 			this.saved = true;
 		} else {
@@ -671,6 +675,7 @@ BARS.defineActions(function() {
 		click() {
 			let texture = Texture.selected;
 			let texture_group = new TextureGroup({is_material: true});
+			texture_group.material_config.saved = false;
 			texture_group.name = (texture?.name || 'New') + ' material';
 			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
 			Undo.initEdit({texture_groups: [], textures: textures_to_add});

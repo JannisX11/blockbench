@@ -586,7 +586,6 @@ BARS.defineActions(() => {
 
 //Close
 window.onbeforeunload = function (event) {
-	console.log('BEFORE UNLOAD')
 	try {
 		updateRecentProjectData()
 	} catch(err) {}

@@ -737,6 +737,13 @@ export function getRotationObjects() {
 	})
 	if (elements.length) return elements;
 }
+export function getPivotObjects() {
+	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
+	let elements = Outliner.selected.filter(element => {
+		return (element.getTypeBehavior('has_pivot')) && (element instanceof Cube == false || Format.rotate_cubes);
+	})
+	if (elements.length) return elements;
+}
 export function rotateOnAxis(modify, axis, slider) {
 	var things = getRotationObjects();
 	if (!things) return;
@@ -1098,6 +1105,8 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[0]
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[0];
 			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(0, true);
 			}
@@ -1123,6 +1132,8 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[1]
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[1];
 			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(1, true);
 			}
@@ -1148,6 +1159,8 @@ BARS.defineActions(function() {
 		get: function() {
 			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[2]
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[2];
 			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(2, true);
 			}
@@ -1410,7 +1423,7 @@ BARS.defineActions(function() {
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {
-		var rotation_objects = getRotationObjects()
+		var rotation_objects = getPivotObjects()
 
 		if (rotation_objects && rotation_objects[0] instanceof Group) {
 			let elements_to_update = [];
@@ -1445,7 +1458,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
@@ -1472,7 +1485,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
@@ -1499,7 +1512,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
@@ -2033,6 +2046,7 @@ Object.assign(window, {
 	getSpatialInterval,
 	getRotationInterval,
 	getRotationObjects,
+	getPivotObjects,
 	rotateOnAxis,
 	afterRotateOnAxis
 });

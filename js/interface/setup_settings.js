@@ -136,6 +136,7 @@ function setupSettings() {
 	new Setting('gamepad_controls',			{category: 'controls', value: false, name: 'Gamepad Controls', description: 'Use a gamepad or 3D mouse to navigate the viewport'});
 	new Setting('double_click_switch_tools',{category: 'controls', value: true});
 	new Setting('canvas_unselect',  		{category: 'controls', value: false});
+	new Setting('double_click_select_reference',{category: 'controls', value: true});
 	new Setting('selection_tolerance', 		{category: 'controls', value: 10, type: 'number', min: 1, max: 50});
 
 	//Edit
@@ -255,6 +256,12 @@ function setupSettings() {
 	}});
 	new Setting('final_newline',		{category: 'export', value: false});
 	new Setting('minifiedout',			{category: 'export', value: false});
+	new Setting('export_asset_paths',	{category: 'export', condition: isApp, value: 'relative', type: 'select', options: {
+		relative: tl('settings.export_asset_paths.relative'),
+		absolute: tl('settings.export_asset_paths.absolute'),
+		both: tl('settings.export_asset_paths.both'),
+		none: tl('settings.export_asset_paths.none'),
+	}});
 	new Setting('embed_textures', 		{category: 'export', value: true});
 	new Setting('minify_bbmodel', 		{category: 'export', value: true});
 	new Setting('export_empty_groups',	{category: 'export', value: true});
