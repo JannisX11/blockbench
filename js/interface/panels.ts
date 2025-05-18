@@ -147,7 +147,7 @@ export class Panel extends EventSystem {
 			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
 		}
 
-		this.handle = Interface.createElement('div', {class: 'panel_handle'}, Interface.createElement('span', {}, this.name));
+		this.handle = Interface.createElement('div', {class: 'panel_handle', panel_id: this.id}, Interface.createElement('span', {}, this.name));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`});
 		this.tab_bar = Interface.createElement('div', {class: 'panel_tab_bar'}, [
 			Interface.createElement('div', {class: 'panel_tab_list'}, this.handle)
@@ -312,16 +312,24 @@ export class Panel extends EventSystem {
 				let original_show_right_bar = Prop.show_right_bar;
 
 				let target_slot: PanelSlot | undefined;
-				let target_panel: Panel;
+				let target_panel: Panel | null;
 				let target_before = false;
 				let attach_to = false;
 				let move_attached_panels = e1.shiftKey || Pressing.overrides.shift;
-				function updateTargetHighlight() {
-					$(`.panel_container[order]`).attr('order', null);
+				function updateTargetHighlight(event: MouseEvent) {
+					$(`.panel_container[order], .panel_handle[order]`).attr('order', null);
 					$(`.panel_container.attach_target`).removeClass('attach_target');
 
-					if (attach_to) {
+					if (attach_to && target_panel) {
 						target_panel.container.classList.add('attach_target');
+						let panel_container_offset = $(target_panel.container).offset()?.left ?? 0;
+						let attached_panels = [target_panel].concat(target_panel.getAttachedPanels());
+						let target_handle_panel = attached_panels.findLast(handle_panel => {
+							return event.clientX + 20 > panel_container_offset + handle_panel.handle.offsetLeft + handle_panel.handle.clientWidth;
+						}) ?? attached_panels[0];
+						if (target_handle_panel) {
+							target_handle_panel.handle.setAttribute('order', '1');
+						}
 					} else if (target_panel) {
 						target_panel.container.setAttribute('order', (target_before ? -1 : 1).toString());
 					}
@@ -355,7 +363,7 @@ export class Panel extends EventSystem {
 								first.attachPanel(other);
 							}
 						}
-						if (this.slot !== 'float') {
+						if (this.slot !== 'float' || this.attached_to) {
 							this.moveTo('float');
 							this.moveToFront();
 						}
@@ -377,8 +385,10 @@ export class Panel extends EventSystem {
 						target_slot = 'left_bar';
 						for (let child of Interface.left_bar.childNodes) {
 							if (!child.clientHeight) continue;
+							let y = $(child).offset()?.top;
+							if (!y) continue;
 							target_panel = Panels[child.getAttribute('panel_id')];
-							if (e2.clientY > y && e2.clientY < (y + 40)) {
+							if (e2.clientY > y && e2.clientY < (y + 75)) {
 								attach_to = true;
 								target_slot = undefined;
 								break;
@@ -386,7 +396,6 @@ export class Panel extends EventSystem {
 								target_before = true;
 								break;
 							}
-							y += child.clientHeight;
 						}
 
 					} else if (e2.clientX > document.body.clientWidth - Math.max(Interface.right_bar_width, threshold)) {
@@ -395,9 +404,10 @@ export class Panel extends EventSystem {
 						target_slot = 'right_bar';
 						for (let child of Interface.right_bar.childNodes) {
 							if (!child.clientHeight) continue;
+							let y = $(child).offset()?.top;
+							if (!y) continue;
 							target_panel = Panels[child.getAttribute('panel_id')];
-							console.log(e2.clientY, y, e2.clientY > y && e2.clientY < (y + 40))
-							if (e2.clientY > y && e2.clientY < (y + 40)) {
+							if (e2.clientY > y && e2.clientY < (y + 75)) {
 								attach_to = true;
 								target_slot = undefined;
 								break;
@@ -405,7 +415,6 @@ export class Panel extends EventSystem {
 								target_before = true;
 								break;
 							}
-							y += child.clientHeight;
 						}
 
 					} else if (
@@ -421,7 +430,7 @@ export class Panel extends EventSystem {
 						target_slot = 'bottom'
 
 					}
-					updateTargetHighlight();
+					updateTargetHighlight(e2);
 					this.update(true);
 					this.dispatchEvent('drag', {event: e2, target_before, attach_to, target_panel, target_slot});
 				}
@@ -429,7 +438,7 @@ export class Panel extends EventSystem {
 					convertTouchEvent(e2);
 					this.node.classList.remove('dragging');
 					Interface.center_screen.removeAttribute('snapside');
-					$(`.panel_container[order]`).attr('order', null);
+					$(`.panel_container[order], .panel_handle[order]`).attr('order', null);
 					Interface.left_bar.classList.remove('drop_target');
 					Interface.right_bar.classList.remove('drop_target');
 					$(`.panel_container.attach_target`).removeClass('attach_target');
@@ -709,7 +718,7 @@ export class Panel extends EventSystem {
 		addEventListeners(corners[3], 'mousedown touchstart', (event) => resize(event, 1, 1));
 
 		let handles = Interface.createElement('div', {class: 'panel_resize_handle_wrapper'}, [...sides, ...corners]);
-		this.node.append(handles);
+		this.container.append(handles);
 		this.resize_handles = handles;
 		return this;
 	}
@@ -770,7 +779,7 @@ export class Panel extends EventSystem {
 					Interface.getModeData()[slot].splice(Interface.getModeData()[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
 				}
 			} else {
-				document.getElementById(slot).append(this.node);
+				document.getElementById(slot)!.append(this.node);
 				Interface.getModeData()[slot].safePush(this.id);
 			}
 
@@ -779,14 +788,14 @@ export class Panel extends EventSystem {
 			if (top_panel && top_panel !== this && !Condition.mutuallyExclusive(this.condition, top_panel.condition)) {
 				top_panel.moveTo(top_panel.previous_slot);
 			}
-			document.getElementById('top_slot').append(this.node);
+			document.getElementById('top_slot')!.append(this.node);
 
 		} else if (slot == 'bottom') {
 			let bottom_panel = Interface.getBottomPanel();
 			if (bottom_panel && bottom_panel !== this && !Condition.mutuallyExclusive(this.condition, bottom_panel.condition)) {
 				bottom_panel.moveTo(bottom_panel.previous_slot);
 			}
-			document.getElementById('bottom_slot').append(this.node);
+			document.getElementById('bottom_slot')!.append(this.node);
 
 		} else if (slot == 'float' && !Blockbench.isMobile) {
 			Interface.work_screen.append(this.node);
@@ -818,14 +827,14 @@ export class Panel extends EventSystem {
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
 
-			document.getElementById(slot).append(this.container);
+			document.getElementById(slot)!.append(this.container);
 			Interface.getModeData()[slot].safePush(this.id);
 
 		} else if (slot == 'top') {
-			document.getElementById('top_slot').append(this.container);
+			document.getElementById('top_slot')!.append(this.container);
 
 		} else if (slot == 'bottom') {
-			document.getElementById('bottom_slot').append(this.container);
+			document.getElementById('bottom_slot')!.append(this.container);
 
 		} else if (slot == 'float' && !Blockbench.isMobile) {
 			Interface.work_screen.append(this.container);
@@ -871,6 +880,7 @@ export class Panel extends EventSystem {
 		let is_sidebar = slot == 'left_bar' || slot == 'right_bar';
 		if (show) {
 			this.container.classList.remove('hidden');
+			this.node.classList.remove('attached');
 			if (slot == 'float') {
 				if (!dragging && work_screen.clientWidth) {
 					this.position_data.float_position[0] = Math.clamp(this.position_data.float_position[0], 0, work_screen.clientWidth - this.width);
@@ -937,6 +947,9 @@ export class Panel extends EventSystem {
 				this.container.classList.add('topmost_panel');
 			}
 
+			if (this.node.clientHeight) {
+				this.container.style.setProperty('--main-panel-height', this.node.clientHeight + 'px');
+			}
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
 			this.container.classList.add('hidden');
@@ -959,6 +972,7 @@ export class Panel extends EventSystem {
 				this.container.querySelector('.panel').remove();
 			}
 			this.container.append(this.open_attached_panel.node);
+			this.open_attached_panel.node.classList.add('attached');
 			this.tab_bar.classList.toggle('single_tab', tab_amount <= 1);
 		}
 
@@ -1111,7 +1125,7 @@ export function updateInterfacePanels() {
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
 
-	let height = document.getElementById('center').clientHeight;
+	let height = document.getElementById('center')!.clientHeight;
 	height -= Interface.getBottomPanel()?.height || 0;
 	height -= Interface.getTopPanel()?.height || 0;
 	Interface.preview.style.height = height > 0 ? (height + 'px') : '';

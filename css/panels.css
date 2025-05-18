@@ -45,6 +45,9 @@
 	.panel_container.floating.dragging {
 		opacity: 0.6;
 	}
+	.panel.attached {
+		min-height: var(--main-panel-height);
+	}
 	body.is_mobile .panel {
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -63,7 +66,7 @@
 		background-color: var(--color-ui);
 	}
 	.panel_container.attach_target .panel_tab_bar {
-		background-color: var(--color-accent);
+		background-color: color-mix(in srgb, var(--color-accent) 40%, transparent 60%);
 	}
 	.panel_tab_list {
 		display: flex;
@@ -97,6 +100,20 @@
 	.panel_tab_list > .panel_handle span {
 		flex-shrink: 1;
 		overflow: hidden;
+	}
+	.panel_tab_list > .panel_handle[order] {
+		position: relative;
+	}
+	.panel_tab_list > .panel_handle[order="1"]::after {
+		content: "";
+		display: block;
+		position: absolute;
+		width: 3px;
+		height: 30px;
+		border-radius: 2px;
+		background-color: var(--color-accent);
+		top: 4px;
+		right: 0px;
 	}
 	/*h3.panel_handle {
 		display: flex;
