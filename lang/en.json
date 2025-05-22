@@ -778,7 +778,10 @@
 	"dialog.skin.model": "Model",
 	"dialog.skin.variant": "Variant",
 	"dialog.skin.high_res_texture": "Please note that skins with the selected resolution will not work as regular Minecraft skins. Select a lower resolution.",
-	"dialog.skin.texture": "Texture (Optional)",
+	"dialog.skin.texture_source": "Texture Source",
+	"dialog.skin.texture_source.template": "Generate Template",
+	"dialog.skin.texture_source.load_texture": "Load from Minecraft",
+	"dialog.skin.texture_file": "Texture File",
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
 
