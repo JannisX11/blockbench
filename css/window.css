@@ -779,7 +779,7 @@
 	#tab_bar .project_tab_close_button > * {
 		pointer-events: none;
 		font-size: 19px;
-		padding-top: 3px;
+		padding-top: 2px;
 	}
 	#tab_bar .project_tab:hover .project_tab_close_button,
 	#tab_bar .project_tab.selected .project_tab_close_button,
