@@ -603,8 +603,10 @@
 		padding: 2px 1px;
 		margin: 8px 0;
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
+	}
+	.settings_list li.full_width_input {
+		flex-wrap: wrap;
 	}
 	.settings_list li.has_profile_override {
 		border: 1px solid var(--color-profile);
@@ -633,7 +635,7 @@
 	.settings_list li > .setting_label {
 		display: inline-block;
 		margin-left: 8px;
-		width: calc(100% - 70px);
+		width: 100%;
 		flex-shrink: 1;
 	}
 	.settings_list .setting_name {
@@ -642,6 +644,20 @@
 	}
 	.settings_list .setting_description {
 		font-size: 0.94em;
+		color: var(--color-subtle_text);
+	}
+	.settings_list .setting_plugin_label {
+		padding: 3px 10px;
+		font-size: 15px;
+		float: right;
+		border-radius: 5px;
+		background-color: var(--color-back);
+		cursor: pointer;
+	}
+	.settings_list .setting_plugin_label:hover {
+		color: var(--color-light);
+	}
+	.settings_list .setting_plugin_label > span {
 		color: var(--color-subtle_text);
 	}
 	.setting_profile_value_indicator {

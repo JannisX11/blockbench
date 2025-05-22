@@ -832,6 +832,7 @@
 	"dialog.settings.search_results": "Search Results",
 	"dialog.settings.reset_to_default": "Reset to Default",
 	"dialog.settings.create_profile": "Create Profile...",
+	"dialog.settings.clear_profile_value": "Clear profile value",
 
 	"keybindings.reset": "Reset",
 	"keybindings.clear": "Empty",
