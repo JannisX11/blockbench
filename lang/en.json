@@ -238,6 +238,7 @@
 	"modifier_actions.snap_direction": "Snap Direction",
 	"modifier_actions.snap_to_center": "Snap to Center",
 	"modifier_actions.snap_to_pixels": "Snap to Pixels",
+	"modifier_actions.move_panel_without_docking": "Move without docking",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",

@@ -368,6 +368,8 @@ export class Panel extends EventSystem {
 							this.moveToFront();
 						}
 						this.node.classList.add('dragging');
+
+						Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.move_panel_without_docking');
 					}
 					if (!started) return;
 					
@@ -442,6 +444,8 @@ export class Panel extends EventSystem {
 					Interface.left_bar.classList.remove('drop_target');
 					Interface.right_bar.classList.remove('drop_target');
 					$(`.panel_container.attach_target`).removeClass('attach_target');
+					
+					Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.move_panel_without_docking');
 
 					if (attach_to) {
 						this.fixed_height = false;
