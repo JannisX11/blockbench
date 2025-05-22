@@ -1713,7 +1713,6 @@
 	.plugins_suggested_row > ul {
 		display: flex;
 		gap: 12px;
-		background-color: var(--color-back);
 		overflow-x: scroll;
 		padding: 12px 32px;
 		width: calc(100% + 48px);
@@ -1726,8 +1725,6 @@
 		text-align: center;
 		flex-shrink: 0;
 		flex-grow: 0;
-		padding-top: 5px;
-		background-color: var(--color-ui);
 		overflow: hidden;
 		cursor: pointer;
 		padding: 4px 4px;
