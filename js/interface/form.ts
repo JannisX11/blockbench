@@ -177,6 +177,18 @@ export class InputForm extends EventSystem {
 			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
 			jq_node.append(bar);
 		}
+		this.updateLabelWidth();
+	}
+	updateLabelWidth(ignore_hidden: boolean = false) {
+		this.max_label_width = 0;
+		for (let form_id in this.form_config) {
+			form_id = form_id.replace(/"/g, '');
+			let form_element = this.form_data[form_id];
+			if (ignore_hidden && !Condition(form_element.condition)) continue;
+
+			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
+			this.max_label_width = Math.max(form_element.label_width, this.max_label_width);
+		}
 		this.node.style.setProperty('--max_label_width', this.max_label_width+'px');
 	}
 	update(form_result: FormValues) {
@@ -204,7 +216,7 @@ export class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			let form_element = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
-			if ('setValue' in form_element && values[form_id] != undefined && typeof input_config == 'object') {
+			if (form_element && 'setValue' in form_element && values[form_id] != undefined && typeof input_config == 'object') {
 				form_element.setValue(values[form_id]);
 			}
 		}
@@ -255,6 +267,7 @@ export class FormElement extends EventSystem {
 	options: FormElementOptions
 	bar: HTMLElement
 	input_toggle?: HTMLInputElement
+	label_width: number
 	constructor(id: string, options: FormElementOptions, form: InputForm) {
 		super();
 		this.id = id;
@@ -267,8 +280,8 @@ export class FormElement extends EventSystem {
 		if (typeof this.options.label == 'string') {
 			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label)+((this.options.nocolon || !this.options.label)?'':':'))
 			bar.append(label);
-			if (!this.options.full_width && this.condition !== false) {
-				this.form.max_label_width = Math.max(getStringWidth(label.textContent), this.form.max_label_width)
+			if (!this.options.full_width && this.condition !== false/*Weed out inputs where the condition is always false*/) {
+				this.label_width = getStringWidth(label.textContent);
 			}
 		}
 		if (this.options.full_width) {

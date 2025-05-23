@@ -1910,21 +1910,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Center individual pivots');
 		}
 	})
-	new Action('rescale_toggle', {
-		icon: 'check_box_outline_blank',
-		category: 'transform',
-		condition: function() {return Format.rotation_limit && Cube.selected.length;},
-		click() {
-			Undo.initEdit({elements: Cube.selected})
-			var value = !Cube.selected[0].rescale
-			Cube.selected.forEach(function(cube) {
-				cube.rescale = value
-			})
-			Canvas.updatePositions()
-			updateNslideValues()
-			Undo.finishEdit('Toggle cube rescale')
-		}
-	})
 	new Action('bone_reset_toggle', {
 		icon: 'check_box_outline_blank',
 		category: 'transform',

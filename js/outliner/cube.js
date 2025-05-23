@@ -1032,9 +1032,6 @@ export class Cube extends OutlinerElement {
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
-new Property(Cube, 'boolean', 'rescale');
-new Property(Cube, 'boolean', 'locked');
-new Property(Cube, 'number', 'light_emission');
 new Property(Cube, 'enum', 'render_order', {
 	default: 'default',
 	values: ['default', 'behind', 'in_front'],
@@ -1045,7 +1042,31 @@ new Property(Cube, 'enum', 'render_order', {
 				behind: 'action.element_render_order.behind',
 				in_front: 'action.element_render_order.in_front'
 			}},
-			onChange() {}
+			onChange() {
+				Cube.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
+new Property(Cube, 'boolean', 'rescale', {
+	condition: () => Format.rotation_limit,
+	inputs: {
+		element_panel: {
+			input: {label: 'cube.rescale', description: 'cube.rescale.desc', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: Cube.all, element_aspects: {transform: true}})
+			}
+		}
+	}
+});
+new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'number', 'light_emission', {
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'action.cube_light_emission', type: 'checkbox'},
 		}
 	}
 });
@@ -1107,10 +1128,12 @@ new NodePreviewController(Cube, {
 		let mesh = element.mesh;
 
 		if (Format.rotate_cubes && element.rescale === true) {
-			var axis = element.rotationAxis()||'y';
-			var rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
+			let axis = element.rotationAxis()||'y';
+			let rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
 			mesh.scale.set(rescale, rescale, rescale);
 			mesh.scale[axis] = 1;
+		} else {
+			mesh.scale.set(1, 1, 1);
 		}
 
 		this.dispatchEvent('update_transform', {element});

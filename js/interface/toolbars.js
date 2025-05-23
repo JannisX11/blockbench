@@ -808,7 +808,6 @@ export const BARS = {
 				'slider_rotation_x',
 				'slider_rotation_y',
 				'slider_rotation_z',
-				'rescale_toggle'
 			]
 		})
 		if (Blockbench.isMobile) {

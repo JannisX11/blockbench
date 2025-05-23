@@ -88,8 +88,6 @@ export function updateNslideValues() {
 		BarItems.slider_rotation_z.update()
 		if (Format.bone_rig) {
 			BarItems.bone_reset_toggle.setIcon(Group.first_selected && Group.first_selected.reset ? 'check_box' : 'check_box_outline_blank')
-		} else {
-			BarItems.rescale_toggle.setIcon(Outliner.selected[0].rescale ? 'check_box' : 'check_box_outline_blank')
 		}
 	}
 	if (Texture.all.length) {

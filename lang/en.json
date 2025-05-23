@@ -1833,8 +1833,6 @@
 	"action.origin_to_geometry.desc": "Set the pivot point to the center of the selection",
 	"action.center_individual_pivots": "Center Individual Pivots",
 	"action.center_individual_pivots.desc": "Set the pivot point of each selected element to its center",
-	"action.rescale_toggle": "Toggle Rescale",
-	"action.rescale_toggle.desc": "Rescale cubes based on their current rotation",
 	"action.bone_reset_toggle": "Reset Bone",
 	"action.bone_reset_toggle.desc": "Stop the bone from displaying cubes from the parent model",
 	"action.reload": "Reload Blockbench",
@@ -2323,6 +2321,12 @@
 
 	"interface.streamer_mode_on": "Streamer Mode Enabled",
 
+	"group.bedrock_binding": "Binding",
+	"group.cem_attach": "CEM Attach",
+	"group.cem_scale": "CEM Scale",
+
+	"cube.rescale": "Rotation Rescale",
+	"cube.rescale.desc": "Rescale cube to compensate for the rotation angle",
 	"cube.color.light_blue": "Light Blue",
 	"cube.color.yellow": "Yellow",
 	"cube.color.orange": "Orange",
