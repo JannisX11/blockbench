@@ -573,8 +573,7 @@ export class Plugin {
 		this.remember();
 	}
 	showContextMenu(event) {
-		//if (!this.installed) return;
-		this.menu.open(event, this);
+		Plugin.menu.open(event, this);
 	}
 	isReloadable() {
 		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
@@ -698,7 +697,7 @@ export class Plugin {
 		}
 		if (this.source == 'store') {
 			if (!this.details.bug_tracker) {
-				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title.replace(/\s/g, '')}]`;
+				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title.replace(/[+&]/g, 'and')}]`;
 			}
 			if (!this.details.repository) {
 				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
@@ -727,6 +726,76 @@ export class Plugin {
 	}
 
 	static selected: Plugin|null = null
+	
+	static menu = new Menu([
+		new MenuSeparator('installation'),
+		{
+			name: 'generic.share',
+			icon: 'share',
+			condition: plugin => Plugins.json[plugin.id],
+			click(plugin) {
+				let url = `https://www.blockbench.net/plugins/${plugin.id}`;
+				new Dialog('share_plugin', {
+					title: tl('generic.share') + ': ' + plugin.title,
+					icon: 'extension',
+					form: {
+						link: {type: 'text', value: url, readonly: true, share_text: true}
+					}
+				}).show();
+			}
+		},
+		'_',
+		{
+			name: 'dialog.plugins.install',
+			icon: 'add',
+			condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
+			click(plugin) {
+				plugin.install();
+			}
+		},
+		{
+			name: 'dialog.plugins.uninstall',
+			icon: 'delete',
+			condition: plugin => (plugin.installed),
+			click(plugin) {
+				plugin.uninstall();
+			}
+		},
+		{
+			name: 'dialog.plugins.disable',
+			icon: 'bedtime',
+			condition: plugin => (plugin.installed && !plugin.disabled),
+			click(plugin) {
+				plugin.toggleDisabled();
+			}
+		},
+		{
+			name: 'dialog.plugins.enable',
+			icon: 'bedtime',
+			condition: plugin => (plugin.installed && plugin.disabled),
+			click(plugin) {
+				plugin.toggleDisabled();
+			}
+		},
+		new MenuSeparator('developer'),
+		{
+			name: 'dialog.plugins.reload',
+			icon: 'refresh',
+			condition: plugin => (plugin.installed && plugin.isReloadable()),
+			click(plugin) {
+				plugin.reload();
+			}
+		},
+		{
+			name: 'menu.animation.open_location',
+			icon: 'folder',
+			condition: plugin => (isApp && plugin.source == 'file'),
+			click(plugin) {
+				showItemInFolder(plugin.path);
+			}
+		},
+	])
+
 	static register(id: string, data: PluginOptions) {
 		if (typeof id !== 'string' || typeof data !== 'object') {
 			console.warn('Plugin.register: not enough arguments, string and object required.')
@@ -759,74 +828,6 @@ export class Plugin {
 		return plugin;
 	}
 }
-Plugin.prototype.menu = new Menu([
-	new MenuSeparator('installation'),
-	{
-		name: 'generic.share',
-		icon: 'share',
-		condition: plugin => Plugins.json[plugin.id],
-		click(plugin) {
-			let url = `https://www.blockbench.net/plugins/${plugin.id}`;
-			new Dialog('share_plugin', {
-				title: tl('generic.share') + ': ' + plugin.title,
-				icon: 'extension',
-				form: {
-					link: {type: 'text', value: url, readonly: true, share_text: true}
-				}
-			}).show();
-		}
-	},
-	'_',
-	{
-		name: 'dialog.plugins.install',
-		icon: 'add',
-		condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
-		click(plugin) {
-			plugin.install();
-		}
-	},
-	{
-		name: 'dialog.plugins.uninstall',
-		icon: 'delete',
-		condition: plugin => (plugin.installed),
-		click(plugin) {
-			plugin.uninstall();
-		}
-	},
-	{
-		name: 'dialog.plugins.disable',
-		icon: 'bedtime',
-		condition: plugin => (plugin.installed && !plugin.disabled),
-		click(plugin) {
-			plugin.toggleDisabled();
-		}
-	},
-	{
-		name: 'dialog.plugins.enable',
-		icon: 'bedtime',
-		condition: plugin => (plugin.installed && plugin.disabled),
-		click(plugin) {
-			plugin.toggleDisabled();
-		}
-	},
-	new MenuSeparator('developer'),
-	{
-		name: 'dialog.plugins.reload',
-		icon: 'refresh',
-		condition: plugin => (plugin.installed && plugin.isReloadable()),
-		click(plugin) {
-			plugin.reload();
-		}
-	},
-	{
-		name: 'menu.animation.open_location',
-		icon: 'folder',
-		condition: plugin => (isApp && plugin.source == 'file'),
-		click(plugin) {
-			showItemInFolder(plugin.path);
-		}
-	},
-]);
 
 
 // Alias for typescript
