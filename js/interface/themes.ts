@@ -6,6 +6,7 @@ import { patchedAtob } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
+import { FSWatcher } from 'original-fs'
 
 
 type ThemeData = {
@@ -26,17 +27,17 @@ type ThemeData = {
 	path?: string
 }
 
-const CustomThemeOptions: ThemeData[] = [
+const BuiltInThemes: ThemeData[] = [
 	DarkTheme,
 	LightTheme,
 	ContrastTheme
 ]
-for (let theme of CustomThemeOptions) {
+for (let theme of BuiltInThemes) {
 	theme.source = 'built_in';
 }
 
-export const CustomTheme = {
-	data: {
+export class CustomTheme {
+	static data: ThemeData = {
 		id: 'dark',
 		name: '',
 		author: '',
@@ -48,11 +49,12 @@ export const CustomTheme = {
 		css: '',
 		thumbnail: '',
 		colors: {},
-	} as ThemeData,
-	themes: [
-		...CustomThemeOptions
-	] as ThemeData[],
-	defaultColors: {
+	}
+	static backup_data: string | null = null
+	static themes: ThemeData[] = [
+		...BuiltInThemes
+	]
+	static defaultColors = {
 		ui: '#282c34',
 		back: '#21252b',
 		dark: '#17191d',
@@ -71,9 +73,10 @@ export const CustomTheme = {
 		grid: '#495061',
 		wireframe: '#576f82',
 		checkerboard: '#1c2026',
-	},
-	sideloaded_themes: [] as string[],
-	setup() {
+	}
+	static sideloaded_themes: string[] = []
+	static dialog: Dialog|null = null
+	static setup() {
 
 		function saveChanges() {
 			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
@@ -91,13 +94,13 @@ export const CustomTheme = {
 					localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
 					Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
 						files.forEach(file => {
-							let data = JSON.parse(file.content as string);
+							let data = CustomTheme.parseBBTheme(file.content as string);
 							data.id = file.name.replace(/\.\w+$/, '');
 							if (!data.name) data.name = data.id;
 							data.sideloaded = true;
 							data.source = 'file';
 							data.path = file.path;
-							CustomTheme.themes.remove(CustomTheme.themes.find(theme => theme.id == data.id));
+							CustomTheme.themes.remove(CustomTheme.themes.find((t2: ThemeData) => t2.id == data.id));
 							CustomTheme.themes.push(data);
 
 						})
@@ -108,6 +111,8 @@ export const CustomTheme = {
 			CustomTheme.loadThumbnailStyles();
 		}
 
+		const theme_watchers: Record<string, FSWatcher> = {};
+		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
 			id: 'theme',
 			title: 'dialog.settings.theme',
@@ -147,13 +152,13 @@ export const CustomTheme = {
 				}
 			},
 			onOpen() {
-				if (!CustomTheme.remote_themes_loaded) {
-					CustomTheme.remote_themes_loaded = true;
+				if (!remote_themes_loaded) {
+					remote_themes_loaded = true;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
 						files.forEach(async file => {
 							try {
 								let {content} = await $.getJSON(file.git_url);
-								let theme = JSON.parse(patchedAtob(content));
+								let theme = CustomTheme.parseBBTheme(patchedAtob(content));
 								if (theme.desktop_only && Blockbench.isMobile) return false;
 								theme.id = file.name.replace(/\.\w+/, '');
 								theme.source = 'repository';
@@ -216,7 +221,7 @@ export const CustomTheme = {
 					}
 				},
 				methods: {
-					selectTheme(theme) {
+					selectTheme(theme: ThemeData) {
 						CustomTheme.loadTheme(theme);
 						saveChanges();
 					},
@@ -232,7 +237,7 @@ export const CustomTheme = {
 					customizeTheme() {
 						CustomTheme.customizeTheme();
 					},
-					getThemeThumbnailStyle(theme) {
+					getThemeThumbnailStyle(theme: ThemeData) {
 						let style = {};
 						for (let key in CustomTheme.defaultColors) {
 							style[`--color-${key}`] = CustomTheme.defaultColors[key];
@@ -242,8 +247,9 @@ export const CustomTheme = {
 						}
 						return style;
 					},
-					openContextMenu(theme, event) {
+					openContextMenu(theme: ThemeData, event: MouseEvent) {
 						if (!theme.sideloaded) return;
+						let selected = theme.id == this.data.id;
 						let menu = new Menu([
 							{
 								name: 'menu.texture.folder',
@@ -256,6 +262,39 @@ export const CustomTheme = {
 										return;
 									}
 									shell.showItemInFolder(theme.path);
+								}
+							},
+							{
+								name: 'layout.file.watch_changes',
+								icon: theme_watchers[theme.path] != undefined,
+								condition: isApp && selected,
+								click: () => {
+									if (theme_watchers[theme.path]) {
+										theme_watchers[theme.path].close();
+										delete theme_watchers[theme.path];
+
+									} else if (fs.existsSync(theme.path)) {
+										let timeout: number = 0;
+										theme_watchers[theme.path] = fs.watch(theme.path, (eventType) => {
+											if (eventType == 'change') {
+												if (timeout) {
+													clearTimeout(timeout);
+													timeout = 0;
+												}
+												timeout = window.setTimeout(() => {
+													CustomTheme.reloadThemeFile(theme);
+												}, 60)
+											}
+										})
+									}
+								}
+							},
+							{
+								name: 'generic.reload',
+								icon: 'refresh',
+								condition: isApp && selected,
+								click: () => {
+									CustomTheme.reloadThemeFile(theme);
 								}
 							},
 							{
@@ -408,8 +447,8 @@ export const CustomTheme = {
 				Settings.save();
 			}
 		})
-	},
-	setupDialog() {
+	}
+	static setupDialog() {
 		var wrapper = $('#color_wrapper');
 		for (var key in CustomTheme.defaultColors) {
 			(() => {
@@ -447,8 +486,8 @@ export const CustomTheme = {
 			})()
 		}
 		CustomTheme.dialog_is_setup = true;
-	},
-	customizeTheme() {
+	}
+	static customizeTheme() {
 		if (!CustomTheme.data.customized) {
 			CustomTheme.data.customized = true;
 			CustomTheme.data.name = CustomTheme.data.name ? ('Copy of ' + CustomTheme.data.name) : 'Custom Theme';
@@ -461,8 +500,8 @@ export const CustomTheme = {
 			}
 			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
 		}
-	},
-	updateColors() {		
+	}
+	static updateColors() {		
 		
 		for (var key in CustomTheme.data.colors) {
 			var hex = CustomTheme.data.colors[key];
@@ -495,8 +534,8 @@ export const CustomTheme = {
 				c.updateColors();
 			})
 		}
-	},
-	updateSettings() {
+	}
+	static updateSettings() {
 		document.body.style.setProperty('--font-custom-main', CustomTheme.data.main_font);
 		document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
@@ -504,8 +543,8 @@ export const CustomTheme = {
 		document.getElementById('theme_css').textContent = `@layer theme {${CustomTheme.data.css}};`
 		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
-	},
-	loadThumbnailStyles() {
+	}
+	static loadThumbnailStyles() {
 		// @ts-ignore
 		let split_regex = (isApp || window.chrome) ? new RegExp('(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")', 'g') : null;
 		if (!split_regex) return;
@@ -530,8 +569,8 @@ export const CustomTheme = {
 		}
 		document.head.removeChild(style);
 		$('style#theme_thumbnail_css').text(thumbnailStyles);
-	},
-	loadTheme(theme: ThemeData) {
+	}
+	static loadTheme(theme: ThemeData) {
 		var app = CustomTheme.data;
 
 		if (app.customized && app.name) {
@@ -568,9 +607,38 @@ export const CustomTheme = {
 		Merge.string(app, theme, 'thumbnail');
 		this.updateColors();
 		this.updateSettings();
-	},
-	import(file: FileResult) {
+	}
+	static reloadThemeFile(theme: ThemeData) {
+		let content = fs.readFileSync(theme.path, {encoding: 'utf8'});
+		if (!content) return;
+		let new_theme = CustomTheme.parseBBTheme(content);
+		for (let key in theme) {
+			if (new_theme[key] != undefined) theme[key] = new_theme[key];
+		}
+		CustomTheme.loadTheme(theme);
+	}
+	static import(file: FileResult) {
 		let content = file.content as string;
+
+		let theme = CustomTheme.parseBBTheme(content);
+
+		theme.id = file.name.replace(/\.\w+$/, '');
+		if (!theme.name) theme.name = theme.id;
+
+		theme.sideloaded = true;
+		theme.source = 'file';
+		theme.path = file.path;
+
+		CustomTheme.loadTheme(theme);
+		CustomTheme.themes.remove(CustomTheme.themes.find((t2: ThemeData) => t2.id == theme.id));
+		CustomTheme.themes.push(theme);
+
+		if (isApp) {
+			CustomTheme.sideloaded_themes.safePush(file.path);
+			localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+		}
+	}
+	static parseBBTheme(content: string): ThemeData | undefined {
 		let data: ThemeData;
 		if (content.startsWith('{')) {
 			// Lecagy format
@@ -654,25 +722,11 @@ export const CustomTheme = {
 				}
 			}
 			data.thumbnail = thumbnail_lines.join('\n');
-			data.css = lines.slice(skip_lines).join('\n');
+			data.css = lines.slice(skip_lines-1).join('\n');
 		}
-		data.id = file.name.replace(/\.\w+$/, '');
-		if (!data.name) data.name = data.id;
-
-		data.sideloaded = true;
-		data.source = 'file';
-		data.path = file.path;
-
-		CustomTheme.loadTheme(data);
-		CustomTheme.themes.remove(CustomTheme.themes.find(theme => theme.id == data.id));
-		CustomTheme.themes.push(data);
-
-		if (isApp) {
-			CustomTheme.sideloaded_themes.safePush(file.path);
-			localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
-		}
-	},
-	compileBBTheme(data: ThemeData = CustomTheme.data): string {
+		return data;
+	}
+	static compileBBTheme(data: ThemeData = CustomTheme.data): string {
 		let theme = '/*';
 		let metadata = {
 			name: data.name,
@@ -767,5 +821,4 @@ BARS.defineActions(function() {
 
 Object.assign(window, {
 	CustomTheme,
-	CustomThemeOptions,
 });
