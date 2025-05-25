@@ -1,13 +1,37 @@
 import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
+import { patchedAtob } from '../util/util'
 
-window.CustomThemeOptions = [
+import { Dialog } from './dialog'
+import { settings, Settings } from './settings'
+import tinycolor from 'tinycolor2'
+
+
+type ThemeData = {
+	name: string
+	author: string
+	borders?: boolean
+	thumbnail?: string
+	css: string
+	id: string
+	customized?: boolean,
+	main_font?: string
+	headline_font?: string
+	code_font?: string
+	colors: Record<string, string>,
+
+	source?: 'built_in' | 'file' | 'repository';
+	sideloaded?: boolean
+	path?: string
+}
+
+const CustomThemeOptions: ThemeData[] = [
 	DarkTheme,
 	LightTheme,
 	ContrastTheme
 ]
-for (let theme of window.CustomThemeOptions) {
+for (let theme of CustomThemeOptions) {
 	theme.source = 'built_in';
 }
 
@@ -24,10 +48,10 @@ export const CustomTheme = {
 		css: '',
 		thumbnail: '',
 		colors: {},
-	},
+	} as ThemeData,
 	themes: [
 		...CustomThemeOptions
-	],
+	] as ThemeData[],
 	defaultColors: {
 		ui: '#282c34',
 		back: '#21252b',
@@ -48,7 +72,7 @@ export const CustomTheme = {
 		wireframe: '#576f82',
 		checkerboard: '#1c2026',
 	},
-	sideloaded_themes: [],
+	sideloaded_themes: [] as string[],
 	setup() {
 
 		function saveChanges() {
@@ -67,12 +91,13 @@ export const CustomTheme = {
 					localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
 					Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
 						files.forEach(file => {
-							let data = JSON.parse(file.content);
+							let data = JSON.parse(file.content as string);
 							data.id = file.name.replace(/\.\w+$/, '');
 							if (!data.name) data.name = data.id;
 							data.sideloaded = true;
 							data.source = 'file';
 							data.path = file.path;
+							CustomTheme.themes.remove(CustomTheme.themes.find(theme => theme.id == data.id));
 							CustomTheme.themes.push(data);
 
 						})
@@ -132,7 +157,9 @@ export const CustomTheme = {
 								if (theme.desktop_only && Blockbench.isMobile) return false;
 								theme.id = file.name.replace(/\.\w+/, '');
 								theme.source = 'repository';
-								CustomTheme.themes.push(theme);
+								if (CustomTheme.themes.find(t2 => t2.id == theme.id)) {
+									CustomTheme.themes.push(theme);
+								}
 							} catch (err) {
 								console.error(err);
 							}
@@ -396,6 +423,7 @@ export const CustomTheme = {
 					color: hex,
 					showAlpha: false,
 					showInput: true,
+					// @ts-ignore Added in the customized version of spectrum but not in types
 					defaultColor: CustomTheme.defaultColors[key],
 					resetText: tl('generic.reset'),
 					cancelText: tl('dialog.cancel'),
@@ -463,6 +491,7 @@ export const CustomTheme = {
 			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
 			
 			Canvas.pivot_marker.children.forEach(c => {
+				// @ts-ignore
 				c.updateColors();
 			})
 		}
@@ -472,11 +501,12 @@ export const CustomTheme = {
 		document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
 		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
 		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
-		$('style#theme_css').text(CustomTheme.data.css);
+		document.getElementById('theme_css').textContent = `@layer theme {${CustomTheme.data.css}};`
 		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
 	},
 	loadThumbnailStyles() {
+		// @ts-ignore
 		let split_regex = (isApp || window.chrome) ? new RegExp('(?<!\\[[^\\]]*),(?![^\\[]*\\])|(?<!"[^"]*),(?![^"]*")', 'g') : null;
 		if (!split_regex) return;
 		let thumbnailStyles = '\n';
@@ -486,22 +516,22 @@ export const CustomTheme = {
 			style.textContent = theme.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				if (!(rule as CSSStyleRule).selectorText) continue;
+				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		if (CustomTheme.data.customized) {
 			style.textContent = CustomTheme.data.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
-				if (!rule.selectorText) continue;
-				thumbnailStyles += `${rule.selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				if (!(rule as CSSStyleRule).selectorText) continue;
+				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);
 		$('style#theme_thumbnail_css').text(thumbnailStyles);
 	},
-	loadTheme(theme) {
+	loadTheme(theme: ThemeData) {
 		var app = CustomTheme.data;
 
 		if (app.customized && app.name) {
@@ -539,44 +569,159 @@ export const CustomTheme = {
 		this.updateColors();
 		this.updateSettings();
 	},
-	import(file) {
-		var data = JSON.parse(file.content)
-		if (data && data.colors) {
-			data.id = file.name.replace(/\.\w+$/, '');
-			if (!data.name) data.name = data.id;
+	import(file: FileResult) {
+		let content = file.content as string;
+		let data: ThemeData;
+		if (content.startsWith('{')) {
+			// Lecagy format
+			data = JSON.parse(content);
+			if (!data || !data.colors) return;
 
-			data.sideloaded = true;
-			data.source = 'file';
-			data.path = file.path;
+		} else {
+			data = {
+				id: '',
+				name: '',
+				author: '',
+				borders: false,
+				css: '',
+				colors: {}
+			};
+			let lines = content.split(/\n/g);
+			enum SectionType {None, Metadata, Variables, Thumbnail}
+			let section = SectionType.None;
+			let thumbnail_lines: string[] = [];
+			let thumbnail_depth = 1;
+			let skip_lines = 0;
 
-			CustomTheme.loadTheme(data);
-			CustomTheme.themes.push(data);
+			for (let line of lines) {
+				skip_lines++;
+				if (!line) continue;
 
-			if (isApp) {
-				CustomTheme.sideloaded_themes.push(file.path);
-				localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+				if (section == SectionType.None) {
+					// Start section
+					line = line.trim();
+					if (line == '/*') {
+						section = SectionType.Metadata;
+						
+					} else if (line == 'body {') {
+						section = SectionType.Variables;
+						
+					} else if (line == '@scope (thumbnail) {') {
+						section = SectionType.Thumbnail;
+					} else {
+						break;
+					}
+
+				} else if (section == SectionType.Metadata) {
+					line = line.trim();
+					let key: string;
+					let value: string | boolean;
+					[key, value] = line.split(/:\s*/);
+					if (key && value) {
+						if (value == 'true') value = true;
+						if (value == 'false') value = false;
+						data[key] = value;
+					} else if (key.includes('*/')) {
+						section = SectionType.None;
+					}
+				} else if (section == SectionType.Variables) {
+					line = line.trim();
+					if (line.startsWith('--color')) {
+						let [key, value] = line.replace('--color-', '').split(/:\s*/);
+						data.colors[key] = value.replace(/;/, '');
+					} else if (line.startsWith('--font-custom')) {
+						let [key, value] = line.replace('--font-custom-', '').split(/:\s*/);
+						value = value.replace(';', '');
+						switch (key) {
+							case 'main': data.main_font = value; break;
+							case 'headline': data.headline_font = value; break;
+							case 'code': data.code_font = value; break;
+						}
+					} else if (line.startsWith('}')) {
+						section = SectionType.None;
+					}
+					
+				} else if (section == SectionType.Thumbnail) {
+					for (let char of line) {
+						if (char == '{') thumbnail_depth++;
+						if (char == '}') thumbnail_depth--;
+					}
+					if (thumbnail_depth) {
+						thumbnail_lines.push(line);
+					} else {
+						section = SectionType.None;
+					}
+				}
 			}
+			data.thumbnail = thumbnail_lines.join('\n');
+			data.css = lines.slice(skip_lines).join('\n');
 		}
+		data.id = file.name.replace(/\.\w+$/, '');
+		if (!data.name) data.name = data.id;
+
+		data.sideloaded = true;
+		data.source = 'file';
+		data.path = file.path;
+
+		CustomTheme.loadTheme(data);
+		CustomTheme.themes.remove(CustomTheme.themes.find(theme => theme.id == data.id));
+		CustomTheme.themes.push(data);
+
+		if (isApp) {
+			CustomTheme.sideloaded_themes.safePush(file.path);
+			localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+		}
+	},
+	compileBBTheme(data: ThemeData = CustomTheme.data): string {
+		let theme = '/*';
+		let metadata = {
+			name: data.name,
+			author: data.author,
+			borders: data.name,
+		}
+		for (let key in metadata) {
+			theme += `\n${key}: ${metadata[key].toString()}`;
+		}
+		theme += '\n*/\n';
+		// Variables
+		theme += 'body {';
+		for (let color in data.colors) {
+			let color_value = data.colors[color];
+			theme += `\n\t--color-${color}: ${color_value};`;
+		}
+		if (data.main_font) 	theme += `\n\t--font-custom-main: ${data.main_font};`;
+		if (data.headline_font) theme += `\n\t--font-custom-headline: ${data.headline_font};`;
+		if (data.code_font) 	theme += `\n\t--font-custom-code: ${data.code_font};`;
+
+		theme += '\n}\n';
+		if (data.thumbnail) {
+			theme += '@scope (thumbnail) {\n'
+			theme += data.thumbnail.replace(/\n/g, '\n\t');
+			theme += '\n}\n';
+		}
+		if (data.css) {
+			theme += data.css;
+		}
+		return theme;
 	}
 };
 
-(function() {
-
-	var stored_theme = 0;
+export function loadThemes() {
+	let stored_theme: ThemeData | undefined;
 	try {
 		if (localStorage.getItem('theme')) {
 			stored_theme = JSON.parse(localStorage.getItem('theme'))
 		}
 	} catch (err) {}
 
-	for (var key in CustomTheme.defaultColors) {
+	for (let key in CustomTheme.defaultColors) {
 		CustomTheme.data.colors[key] = CustomTheme.defaultColors[key];
 	}
 	if (stored_theme) {
 		CustomTheme.loadTheme(stored_theme);
 		if (stored_theme.customized) CustomTheme.data.customized = true;
 	}
-})()
+}
 
 
 BARS.defineActions(function() {
@@ -605,16 +750,14 @@ BARS.defineActions(function() {
 		icon: 'style',
 		category: 'blockbench',
 		click: function () {
-			let theme = {};
-			Object.assign(theme, CustomTheme.data);
-			delete theme.customized;
-			delete theme.id;
+			let id = CustomTheme.data.id || '';
+			let content = CustomTheme.compileBBTheme();
 			Blockbench.export({
 				resource_id: 'config',
 				type: 'Blockbench Theme',
 				extensions: ['bbtheme'],
-				name: theme.id,
-				content: compileJSON(theme)
+				name: id,
+				content
 			})
 		}
 	})
@@ -623,5 +766,6 @@ BARS.defineActions(function() {
 })
 
 Object.assign(window, {
-	CustomTheme
+	CustomTheme,
+	CustomThemeOptions,
 });
