@@ -1,4 +1,5 @@
-
+@layer reset, lib, base, theme, theme-override;
+@layer base {
 /*INIT*/
 	* {
 		margin: 0;
@@ -13,6 +14,9 @@
 	body.is_mobile * {
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	[hidden], template {
+		display: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -825,3 +829,4 @@
 	.y_scrollable {
 		overflow-y: scroll;
 	}
+}

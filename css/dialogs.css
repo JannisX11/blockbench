@@ -1,3 +1,4 @@
+@layer base {
 /*Dialog*/
 	#blackout {
 		display: none;
@@ -2677,3 +2678,4 @@
 	#tab_overview_grid > li label {
 		cursor: inherit;
 	}
+}
