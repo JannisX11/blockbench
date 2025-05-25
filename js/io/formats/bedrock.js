@@ -96,7 +96,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					}
 				}
 				if (valid_textures_list.length == 1) {
-					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					let texture = new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
@@ -169,14 +170,15 @@ window.BedrockEntityManager = class BedrockEntityManager {
 							cancelIndex: 2,
 							onButton(index) {
 								dialog.hide();
+								let textures_to_import = [];
 								if (index == 1) {
-									valid_textures_list.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = valid_textures_list;
 								} else if (index == 0) {
-									selected_textures.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = selected_textures;
+								}
+								for (let path of textures_to_import) {
+									let texture = new Texture({keep_size: true, render_mode}).fromPath(path).add();
+									if (isApp) loadAdjacentTextureSet(texture);
 								}
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
@@ -322,7 +324,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			} else {
 				function tryItWith(extension) {
 					if (fs.existsSync(texture_path+'.'+extension)) {
-						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
+						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add();
+						loadAdjacentTextureSet(texture);
 						return true;
 					}
 				}
@@ -454,6 +457,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				])
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (target == '*') {
 						texture.use_as_default = true;
 

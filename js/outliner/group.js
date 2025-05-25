@@ -739,7 +739,7 @@ BARS.defineActions(function() {
 						showPresetMenu(event) {
 							new Menu([
 								{
-									name: 'Main Hand',
+									name: 'Item Slot',
 									icon: 'build',
 									click: () => {
 										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';

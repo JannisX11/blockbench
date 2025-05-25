@@ -535,6 +535,8 @@ window.MessageBox = class MessageBox extends Dialog {
 		super(options.id, options);
 		this.options = options;
 		if (!options.buttons) this.buttons = ['dialog.ok'];
+		this.cancelIndex = Math.min(this.buttons.length-1, this.cancelIndex);
+		this.confirmIndex = Math.min(this.buttons.length-1, this.confirmIndex);
 		this.callback = callback;
 	}
 	close(button, result, event) {

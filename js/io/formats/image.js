@@ -1,7 +1,7 @@
 (function() {
 
 let codec = new Codec('image', {
-	name: tl('format.name'),
+	name: tl('format.image'),
 	extension: 'png',
 	remember: true,
 	load_filter: {
