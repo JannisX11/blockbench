@@ -51,6 +51,13 @@ function buildComponent(dialog) {
 	dialog.component.name = 'dialog-content'
 	dialog.content_vue = new Vue(dialog.component).$mount(mount);
 }
+function buildToolbars(dialog) {
+	let dialog_content = $(dialog.object).find('.dialog_content')
+	for (let id in dialog.toolbars) {
+		let toolbar = dialog.toolbars[id];
+		dialog_content.append(toolbar.node);
+	}
+}
 
 const toggle_sidebar = window.innerWidth < 640;
 export class DialogSidebar {
@@ -150,6 +157,7 @@ export class Dialog {
 		this.title = options.title || options.name;
 		
 		this.lines = options.lines
+		this.toolbars = options.toolbars
 		this.form_config = options.form
 		this.component = options.component
 		this.content_vue = null;
@@ -282,6 +290,7 @@ export class Dialog {
 		this.part_order.forEach(part => {
 			if (part == 'form' && this.form_config) buildForm(this);
 			if (part == 'lines' && this.lines) buildLines(this);
+			if (part == 'toolbars' && this.toolbars) buildToolbars(this);
 			if (part == 'component' && this.component) buildComponent(this);
 		})
 
@@ -666,49 +675,13 @@ export class MessageBox extends Dialog {
 	}
 }
 
-export class ToolConfig extends Dialog {
+export class ConfigDialog extends Dialog {
 	constructor(id, options) {
 		super(id, options);
-
-		this.options = {};
-		let config_saved_data = localStorage.getItem(`tool_config.${this.id}`);
-		try {
-			config_saved_data = JSON.parse(config_saved_data);
-			if (!config_saved_data) config_saved_data = {};
-		} catch (err) {
-			config_saved_data = {};
-		}
-		for (let key in options.form) {
-			if (key == 'enabled' && BarItem.constructing instanceof Toggle) {
-				this.options[key] = BarItem.constructing.value;
-				continue;
-			}
-			this.options[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
-		}
-	}
-	save() {
-		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.options));
-		return this;
-	}
-	changeOptions(options) {
-		for (let key in options) {
-			this.options[key] = options[key];
-		}
-		if (this.form) {
-			this.form.setValues(options);
-		}
-		this.save();
-		return this;
-	}
-	close(button, event) {
-		this.save();
-		this.hide();
 	}
 	show(anchor) {
 		super.show()
 		$('#blackout').hide();
-
-		this.setFormValues(this.options, false);
 		
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
@@ -720,14 +693,14 @@ export class ToolConfig extends Dialog {
 	build() {
 		if (this.object) this.object.remove();
 		this.object = document.createElement('dialog');
-		this.object.className = 'dialog tool_config';
+		this.object.className = 'dialog config_dialog';
 
 		this.max_label_width = 140;
 		this.uses_wide_inputs = false;
 
 		let title_bar;
 		if (this.title) {
-			title_bar = Interface.createElement('div', {class: 'tool_config_title'}, tl(this.title));
+			title_bar = Interface.createElement('div', {class: 'config_dialog_title'}, tl(this.title));
 			this.object.append(title_bar);
 		}
 
@@ -745,11 +718,17 @@ export class ToolConfig extends Dialog {
 		this.max_label_width = Math.max(this.max_label_width, this.form.max_label_width);
 		if (this.form.uses_wide_inputs) this.uses_wide_inputs = true;
 		this.form.on('change', ({result}) => {
-			for (let key in result) {
-				this.options[key] = result[key];
+			if (this.options) {
+				for (let key in result) {
+					this.options[key] = result[key];
+				}
 			}
 			if (this.onFormChange) this.onFormChange(result);
 		})
+
+		if (this.toolbars) {
+			buildToolbars(this);
+		}
 
 		let close_button = document.createElement('div');
 		close_button.classList.add('dialog_close_button');
@@ -772,6 +751,49 @@ export class ToolConfig extends Dialog {
 	delete() {
 		if (this.object) this.object.remove()
 		this.object = null;
+	}
+}
+export class ToolConfig extends ConfigDialog {
+	constructor(id, options) {
+		super(id, options);
+
+		this.options = {};
+		let config_saved_data = localStorage.getItem(`tool_config.${this.id}`);
+		try {
+			config_saved_data = JSON.parse(config_saved_data);
+			if (!config_saved_data) config_saved_data = {};
+		} catch (err) {
+			config_saved_data = {};
+		}
+		for (let key in options.form) {
+			if (key == 'enabled' && BarItem.constructing instanceof Toggle) {
+				this.options[key] = BarItem.constructing.value;
+				continue;
+			}
+			this.options[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
+		}
+	}
+	show(anchor) {
+		super.show(anchor);
+		this.setFormValues(this.options, false);
+	}
+	save() {
+		localStorage.setItem(`tool_config.${this.id}`, JSON.stringify(this.options));
+		return this;
+	}
+	changeOptions(options) {
+		for (let key in options) {
+			this.options[key] = options[key];
+		}
+		if (this.form) {
+			this.form.setValues(options);
+		}
+		this.save();
+		return this;
+	}
+	close(button, event) {
+		this.save();
+		this.hide();
 	}
 }
 
