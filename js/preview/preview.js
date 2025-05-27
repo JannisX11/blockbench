@@ -1,4 +1,7 @@
 import { THREE } from '../../lib/libs';
+import { StateMemory } from '../api';
+import { ConfigDialog } from '../interface/dialog';
+import { toSnakeCase } from '../util/util';
 
 window.scene = null;
 window.main_preview = null;
@@ -151,7 +154,7 @@ export class Preview {
 			<div class="preview_menu">
 				<div class="tool preview_fullscreen_button quad_view_only"><i class="material-icons">fullscreen</i></div>
 				<div class="tool preview_view_mode_menu one_is_enough"><i class="material-icons">image</i></div>
-				<div class="shading_placeholder"></div>
+				<div class="tool preview_view_options one_is_enough"><i class="material-icons">discover_tune</i></div>
 				<div class="tool preview_main_menu"><i class="material-icons">menu</i></div>
 			</div>`)[0];
 		/*menu.querySelector('.preview_reference_menu').onclick = (event) => {
@@ -159,6 +162,12 @@ export class Preview {
 		}*/
 		menu.querySelector('.preview_main_menu').onclick = (event) => {
 			this.menu.open(menu, this);
+		}
+		menu.querySelector('.preview_view_options').onclick = (event) => {
+			ViewOptionsDialog.show(menu);
+			let preview_rect = Interface.preview.getBoundingClientRect();
+			ViewOptionsDialog.object.style.left = 'auto';
+			ViewOptionsDialog.object.style.right = (window.innerWidth-preview_rect.right) + 'px';
 		}
 		menu.querySelector('.preview_fullscreen_button').onclick = (event) => {
 			this.fullscreen();
@@ -178,6 +187,10 @@ export class Preview {
 			name: tl('action.edit_reference_images'),
 			node: menu.querySelector('.preview_reference_menu')
 		})*/
+		BarItem.prototype.addLabel(false, {
+			name: tl('dialog.preview_options.title'),
+			node: menu.querySelector('.preview_view_options')
+		})
 		BarItem.prototype.addLabel(false, {
 			name: tl('data.preview'),
 			node: menu.querySelector('.preview_main_menu')
@@ -1451,6 +1464,12 @@ export class Preview {
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',
+		new MenuSeparator('references'),
+		'add_reference_image',
+		'reference_image_from_clipboard',
+		'toggle_all_reference_images',
+		'edit_reference_images',
+		'preview_scene',
 		{
 			icon: 'icon-player',
 			name: 'settings.display_skin',
@@ -1460,13 +1479,6 @@ export class Preview {
 				changeDisplaySkin()
 			}
 		},
-		'preview_checkerboard',
-		new MenuSeparator('reference_images'),
-		'add_reference_image',
-		'reference_image_from_clipboard',
-		'toggle_all_reference_images',
-		'edit_reference_images',
-		'preview_scene',
 		new MenuSeparator('controls'),
 		'focus_on_selection',
 		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
@@ -1623,6 +1635,102 @@ Blockbench.on('update_camera_position', e => {
 		}
 	})
 })
+
+StateMemory.init('viewport_background_color', 'string');
+export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
+	title: 'dialog.preview_options.title',
+	width: 320,
+	form: {
+		background: {
+			label: 'dialog.preview_options.background',
+			type: 'select',
+			options: {
+				checkerboard: 'dialog.preview_options.background.checkerboard',
+				solid: 'dialog.preview_options.background.solid',
+				custom_color: 'dialog.preview_options.background.custom_color',
+			}
+		},
+		custom_background_color: {
+			type: 'color', label: 'dialog.preview_options.background.custom_color',
+			condition: result => result.background == 'custom_color'
+		},
+		preview_scene: {
+			label: 'action.preview_scene',
+			type: 'select',
+			options() {
+				let result = {};
+				for (let category in PreviewScene.menu_categories) {
+					let options = PreviewScene.menu_categories[category];
+					if (options._label) {
+						let group_id = 'options_'+toSnakeCase(options._label);
+						result[group_id] = new MenuSeparator(group_id, options._label);
+					}
+					for (let key in options) {
+						if (key.startsWith('_')) continue;
+						result[key] = options[key];
+					}
+				}
+				return result;
+			}
+		},
+		shading: { label: 'settings.shading', type: 'checkbox' },
+		grids: { label: 'settings.grids', type: 'checkbox' },
+		ground_plane: { label: 'settings.ground_plane', type: 'checkbox' },
+		pixel_grid: { label: 'settings.pixel_grid', condition: () => !Modes.paint, type: 'checkbox' },
+		painting_grid: { label: 'settings.painting_grid', condition: () => Modes.paint, type: 'checkbox' },
+	},
+	onOpen() {
+		let custom_color = StateMemory.get('viewport_background_color');
+		this.form.setValues({
+			background: custom_color ? 'custom_color' : (settings.preview_checkerboard.value ? 'checkerboard' : 'solid'),
+			custom_background_color: custom_color,
+			preview_scene: PreviewScene.active ? PreviewScene.active.id : 'none',
+			shading: settings.shading.value,
+			grids: settings.grids.value,
+			ground_plane: settings.ground_plane.value,
+			pixel_grid: settings.pixel_grid.value,
+			painting_grid: settings.painting_grid.value,
+		});
+	},
+	onFormChange(result) {
+		let preview_scene_id = PreviewScene.active ? PreviewScene.active.id : 'none';
+		if (preview_scene_id != result.preview_scene) {
+			if (result.preview_scene == 'none') {
+				PreviewScene.active.unselect();
+			} else {
+				PreviewScene.scenes[result.preview_scene]?.select();
+			}
+		}
+		if (result.background == 'checkerboard') {
+			settings.preview_checkerboard.set(true);
+		} else {
+			settings.preview_checkerboard.set(false);
+		}
+		if (result.background == 'custom_color') {
+			let hex = '#'+result.custom_background_color.toHex();
+			document.body.style.setProperty('--custom-preview-background', hex);
+			StateMemory.set('viewport_background_color', hex);
+		} else {
+			document.body.style.setProperty('--custom-preview-background', '');
+			StateMemory.set('viewport_background_color', '');
+		}
+		if (settings.shading.value != result.shading) {
+			settings.shading.set(result.shading);
+		}
+		if (settings.ground_plane.value != result.ground_plane) {
+			settings.ground_plane.set(result.ground_plane);
+		}
+		if (settings.grids.value != result.grids) {
+			settings.grids.set(result.grids);
+		}
+		if (settings.pixel_grid.value != result.pixel_grid) {
+			settings.pixel_grid.set(result.pixel_grid);
+		}
+		if (settings.painting_grid.value != result.painting_grid) {
+			settings.painting_grid.set(result.painting_grid);
+		}
+	}
+});
 
 export function editCameraPreset(preset, presets) {
 	let {name, projection, position, target, zoom} = preset;
@@ -2129,12 +2237,6 @@ BARS.defineActions(function() {
 		category: 'view',
 		linked_setting: 'shading'
 	})
-	Preview.all.forEach(preview => {
-		if (preview.offscreen) return;
-		let node = BarItems.toggle_shading.getNode(true);
-		node.classList.add('one_is_enough')
-		preview.node.querySelector('.preview_menu .shading_placeholder').replaceWith(node);
-	})
 	new Toggle('toggle_all_grids', {
 		name: tl('settings.grids'),
 		description: tl('settings.grids.desc'),
@@ -2365,6 +2467,7 @@ Object.assign(window, {
 	gizmo_colors,
 	DefaultCameraPresets,
 	Preview,
+	ViewOptionsDialog,
 	editCameraPreset,
 	OrbitGizmo,
 	initCanvas,

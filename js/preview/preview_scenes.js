@@ -1,3 +1,5 @@
+import { toSnakeCase } from "../util/util";
+
 export class PreviewScene {
 	constructor(id, data = 0) {
 		PreviewScene.scenes[id] = this;
@@ -770,7 +772,7 @@ BARS.defineActions(function() {
 			for (let category in PreviewScene.menu_categories) {
 				let options = PreviewScene.menu_categories[category];
 				if (options._label) {
-					list.push(new MenuSeparator('options', options._label));
+					list.push(new MenuSeparator('options_'+toSnakeCase(options._label), options._label));
 				}
 				for (let key in options) {
 					if (key.startsWith('_')) continue;
@@ -801,9 +803,6 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			if (!BarItems.toggle_all_grids.menu_node.isConnected) {
-				list.push(BarItems.toggle_all_grids);
-			}
 			return list;
 
 		}

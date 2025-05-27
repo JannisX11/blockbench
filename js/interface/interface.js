@@ -555,6 +555,11 @@ export function setupInterface() {
 		}
 	})
 
+	// Background color
+	if (StateMemory.get('viewport_background_color')) {
+		document.body.style.setProperty('--custom-preview-background', StateMemory.get('viewport_background_color'));
+	}
+
 
 
 
