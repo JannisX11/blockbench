@@ -15,7 +15,7 @@ function buildLines(dialog) {
 
 			let bar = Interface.createElement('div', {class: 'dialog_bar'});
 			if (l.label) {
-				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label)+(l.nocolon?'':':'))
+				label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label))
 				bar.append(label);
 				dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
 			}
