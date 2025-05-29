@@ -1551,6 +1551,7 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 	Canvas.updateRenderSides();
 	DisplayMode.updateGUILight();
 	Toolbars.display.update();
+	updateGUISlotCrop();
 }
 DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
@@ -1693,6 +1694,44 @@ DisplayMode.scrollSlider = function(type, value, el) {
 	DisplayMode.slot.update()
 	Undo.finishEdit('Change display slot')
 }
+
+let clip_planes = [
+	new THREE.Plane(new THREE.Vector3(1, 0, 0), 3.2001),
+	new THREE.Plane(new THREE.Vector3(-1, 0, 0), 3.2001),
+	new THREE.Plane(new THREE.Vector3(0, 1, 0), 3.2001),
+	new THREE.Plane(new THREE.Vector3(0, -1, 0), 3.2001)
+];
+function updateGUISlotCrop() {
+	if (!display_preview?.canvas) return;
+	if (DisplayMode.display_slot == 'gui' && Format.id == 'java_block' && Project.java_block_version == '1.21.6') {
+		for (let texture of Texture.all) {
+			texture.material.clippingPlanes = clip_planes;
+		}
+		Preview.selected.renderer.localClippingEnabled = true;
+		/*let cam_zoom = display_preview.camOrtho.zoom;
+		let cam_pos = [
+			display_preview.camOrtho.position.x * 40 * cam_zoom,
+			display_preview.camOrtho.position.y * 40 * cam_zoom,
+		];
+		let size = 256 * cam_zoom;
+		let left = display_preview.canvas.width/2 - cam_pos[0] - (size/2);
+		let right = display_preview.canvas.width/2 + cam_pos[0] - (size/2);
+		let top = display_preview.canvas.height/2 + cam_pos[1] - (size/2);
+		let bottom = display_preview.canvas.height/2 - cam_pos[1] - (size/2);
+
+		display_preview.canvas.style.clipPath = `inset(${top}px ${right}px ${bottom}px ${left}px)`;*/
+	} else {
+		for (let texture of Texture.all) {
+			texture.material.clippingPlanes = null;
+		}
+		Preview.selected.renderer.localClippingEnabled = false;
+	}
+}
+Blockbench.on('update_camera_position', e => {
+	if (Modes.display) {
+		updateGUISlotCrop();
+	}
+})
 
 window.changeDisplaySkin = function() {
 	var commands = {

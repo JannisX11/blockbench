@@ -1,6 +1,8 @@
 #ifdef GL_ES
 precision highp float;
 #endif
+#include <common>
+#include <clipping_planes_pars_fragment>
 
 uniform sampler2D map;
 
@@ -38,4 +40,5 @@ void main(void)
 		gl_FragColor.r = gl_FragColor.r * 0.6;
 		gl_FragColor.g = gl_FragColor.g * 0.7;
 	}
+	#include <clipping_planes_fragment>
 }
