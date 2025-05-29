@@ -59,6 +59,7 @@ export const Canvas = {
 	// Pivot marker
 	pivot_marker: new THREE.Object3D(),
 	gizmos: [],
+	show_gizmos: true,
 	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
@@ -796,7 +797,7 @@ export const Canvas = {
 		if (Canvas.pivot_marker.parent) {
 			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
-		if (settings.origin_size.value > 0) {
+		if (settings.origin_size.value > 0 && Canvas.show_gizmos) {
 			if (Group.first_selected && Format.bone_rig) {
 				if (Group.first_selected.visibility) {
 					Group.first_selected.mesh.add(Canvas.pivot_marker)

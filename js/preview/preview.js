@@ -1678,6 +1678,7 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 		ground_plane: { label: 'settings.ground_plane', type: 'checkbox' },
 		pixel_grid: { label: 'settings.pixel_grid', condition: () => !Modes.paint, type: 'checkbox' },
 		painting_grid: { label: 'settings.painting_grid', condition: () => Modes.paint, type: 'checkbox' },
+		show_gizmos: { label: 'dialog.preview_options.show_gizmos', type: 'checkbox', value: true },
 	},
 	onOpen() {
 		let custom_color = StateMemory.get('viewport_background_color');
@@ -1690,6 +1691,7 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 			ground_plane: settings.ground_plane.value,
 			pixel_grid: settings.pixel_grid.value,
 			painting_grid: settings.painting_grid.value,
+			show_gizmos: Canvas.show_gizmos,
 		});
 	},
 	onFormChange(result) {
@@ -1728,6 +1730,10 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 		}
 		if (settings.painting_grid.value != result.painting_grid) {
 			settings.painting_grid.set(result.painting_grid);
+		}
+		if (Canvas.show_gizmos != result.show_gizmos) {
+			Canvas.show_gizmos = result.show_gizmos;
+			updateSelection();
 		}
 	}
 });
