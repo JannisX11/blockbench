@@ -1061,11 +1061,6 @@ new NodePreviewController(Mesh, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 
-		if (armature) {
-			mesh.geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(new Uint8Array(24), 4));
-			mesh.geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(new Array(24).fill(1), 4));
-		}
-
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(24), 1));
 
 		// Outline
@@ -1109,10 +1104,6 @@ new NodePreviewController(Mesh, {
 		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
-
-		let skin_indices = [];
-		let skin_weights = [];
-		let armature = element.getArmature();
 
 		let armature_bone = Toolbox.selected.id === 'weight_brush' && (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
 
@@ -1245,11 +1236,6 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
 		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(color_array), 3));
 		mesh.geometry.setIndex(indices);
-
-		if (armature) {
-			mesh.geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skin_indices, 4));
-			mesh.geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skin_weights, 4));
-		}
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 
