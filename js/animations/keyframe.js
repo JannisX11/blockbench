@@ -875,7 +875,7 @@ BARS.defineActions(function() {
 		icon: 'arrow_back',
 		category: 'transform',
 		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
-		keybind: new Keybind({key: 38}),
+		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
 		click(e) {
 			slideKeyframes(1, e);
 			Animator.preview()
@@ -885,7 +885,7 @@ BARS.defineActions(function() {
 		icon: 'arrow_forward',
 		category: 'transform',
 		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
-		keybind: new Keybind({key: 40}),
+		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
 		click(e) {
 			slideKeyframes(-1, e);
 			Animator.preview()
