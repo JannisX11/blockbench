@@ -1983,6 +1983,8 @@
 	"action.save_timeline_setup.desc": "Save a preset for the currently selected animators and channels",
 	"action.move_keyframe_back": "Move Keyframes Back",
 	"action.move_keyframe_forth": "Move Keyframes Forth",
+	"action.move_graph_keyframes_up": "Move Keyframe Graph Up",
+	"action.move_graph_keyframes_down": "Move Keyframe Graph Down",
 	"action.previous_keyframe": "Previous Keyframe",
 	"action.previous_keyframe.desc": "Jump to the previous keyframe",
 	"action.next_keyframe": "Next Keyframe",
