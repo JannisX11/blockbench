@@ -1,7 +1,7 @@
 import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
-import { patchedAtob } from '../util/util'
+import { compareVersions, patchedAtob } from '../util/util'
 
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
@@ -12,6 +12,7 @@ import { FSWatcher } from 'original-fs'
 type ThemeData = {
 	name: string
 	author: string
+	version?: string
 	borders?: boolean
 	thumbnail?: string
 	css: string
@@ -22,9 +23,10 @@ type ThemeData = {
 	code_font?: string
 	colors: Record<string, string>,
 
-	source?: 'built_in' | 'file' | 'repository';
+	source?: 'built_in' | 'file' | 'repository' | 'custom';
 	sideloaded?: boolean
 	path?: string
+	desktop_only?: boolean
 }
 
 const BuiltInThemes: ThemeData[] = [
@@ -155,14 +157,14 @@ export class CustomTheme {
 				if (!remote_themes_loaded) {
 					remote_themes_loaded = true;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
-						files.forEach(async file => {
+						files.forEach(async (file) => {
 							try {
 								let {content} = await $.getJSON(file.git_url);
 								let theme = CustomTheme.parseBBTheme(patchedAtob(content));
 								if (theme.desktop_only && Blockbench.isMobile) return false;
 								theme.id = file.name.replace(/\.\w+/, '');
 								theme.source = 'repository';
-								if (CustomTheme.themes.find(t2 => t2.id == theme.id)) {
+								if (!CustomTheme.themes.find(t2 => t2.id == theme.id)) {
 									CustomTheme.themes.push(theme);
 								}
 							} catch (err) {
@@ -384,6 +386,11 @@ export class CustomTheme {
 								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.author">
 							</div>
 
+							<div class="dialog_bar" v-if="data.customized">
+								<label class="name_space_left" for="layout_name">${tl('layout.version')}</label>
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version">
+							</div>
+
 							<hr />
 
 							<div class="dialog_bar">
@@ -491,8 +498,9 @@ export class CustomTheme {
 		if (!CustomTheme.data.customized) {
 			CustomTheme.data.customized = true;
 			CustomTheme.data.name = CustomTheme.data.name ? ('Copy of ' + CustomTheme.data.name) : 'Custom Theme';
-			CustomTheme.data.author = settings.username.value;
+			CustomTheme.data.author = settings.username.value as string;
 			CustomTheme.data.id = 'custom_theme';
+			CustomTheme.data.source = 'custom';
 			let i = 0;
 			while (CustomTheme.themes.find(theme => theme.id == CustomTheme.data.id)) {
 				i++;
@@ -591,10 +599,14 @@ export class CustomTheme {
 		Merge.string(app, theme, 'id')
 		Merge.string(app, theme, 'name')
 		Merge.string(app, theme, 'author')
+		Merge.string(app, theme, 'version')
+		Merge.string(app, theme, 'source')
+
 		Merge.boolean(app, theme, 'borders')
 		Merge.string(app, theme, 'main_font')
 		Merge.string(app, theme, 'headline_font')
 		Merge.string(app, theme, 'code_font')
+
 		for (var key in app.colors) {
 			if (theme.colors[key]) {
 				Merge.string(app.colors, theme.colors, key);
@@ -650,6 +662,7 @@ export class CustomTheme {
 				id: '',
 				name: '',
 				author: '',
+				version: '',
 				borders: false,
 				css: '',
 				colors: {}
@@ -731,6 +744,7 @@ export class CustomTheme {
 		let metadata = {
 			name: data.name,
 			author: data.author,
+			version: data.version,
 			borders: data.name,
 		}
 		for (let key in metadata) {
@@ -774,6 +788,24 @@ export function loadThemes() {
 	if (stored_theme) {
 		CustomTheme.loadTheme(stored_theme);
 		if (stored_theme.customized) CustomTheme.data.customized = true;
+
+		// Check for updates
+		if (stored_theme.source == 'repository' && stored_theme.id) {
+			fetch(`https://cdn.jsdelivr.net/gh/JannisX11/blockbench-themes/themes/${stored_theme.id}.bbtheme`).then(async (result) => {
+				let text_content = await result.text();
+				if (!text_content) return;
+				let theme = CustomTheme.parseBBTheme(text_content);
+
+				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && compareVersions(theme.version, stored_theme.version))) {
+					// Update theme
+					theme.source = 'repository';
+					CustomTheme.loadTheme(theme);
+					console.log(`Updated Theme "${stored_theme.id}" to v${theme.version}`);
+					localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
+				}
+
+			})
+		}
 	}
 }
 
