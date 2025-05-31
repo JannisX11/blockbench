@@ -127,9 +127,6 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		function saveChanges() {
-			CustomTheme.selected.save();
-		}
 		if (isApp && localStorage.getItem('themes_sideloaded')) {
 			try {
 				let sideloaded = JSON.parse(localStorage.getItem('themes_sideloaded'));
@@ -203,7 +200,6 @@ export class CustomTheme {
 				this.content_vue.data = CustomTheme.data;
 				if (!remote_themes_loaded) {
 					remote_themes_loaded = true;
-					return;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
 						files.forEach(async (file) => {
 							try {
@@ -237,44 +233,44 @@ export class CustomTheme {
 				components: {
 					VuePrismEditor
 				},
-				/*watch: {
+				watch: {
 					'data.main_font'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.headline_font'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.code_font'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.borders'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.css'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.thumbnail'() {
 						CustomTheme.updateSettings();
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					'data.colors': {
 						handler() {
 							CustomTheme.updateColors();
-							saveChanges();
+							CustomTheme.selected.save();
 						},
 						deep: true
 					}
-				},*/
+				},
 				methods: {
 					selectTheme(theme: CustomTheme) {
 						theme.load();
 						this.data = theme;
-						saveChanges();
+						CustomTheme.selected.save();
 					},
 					loadBackup() {
 						let theme = new CustomTheme(JSON.parse(CustomTheme.backup_data));
@@ -287,7 +283,6 @@ export class CustomTheme {
 						CustomTheme.backup_data = null;
 					},
 					customizeTheme() {
-						return;
 						CustomTheme.customizeTheme();
 					},
 					getThemeThumbnailStyle(theme: CustomTheme) {
@@ -546,7 +541,7 @@ export class CustomTheme {
 	static dialog_is_setup = false;
 	static customizeTheme() {
 		if (!CustomTheme.selected.customized) {
-			let theme = CustomTheme.selected = new CustomTheme(CustomTheme.selected);
+			let theme = new CustomTheme(CustomTheme.selected);
 			theme.extend({
 				customized: true,
 				name: theme.name ? ('Copy of ' + theme.name) : 'Custom Theme',
@@ -555,7 +550,7 @@ export class CustomTheme {
 				source: 'custom',
 			})
 			let i = 0;
-			while (CustomTheme.themes.find(theme => theme.id == theme.id)) {
+			while (CustomTheme.themes.find(t2 => theme.id == t2.id)) {
 				i++;
 				theme.id = 'custom_theme_'+i;
 			}
@@ -763,7 +758,7 @@ export class CustomTheme {
 			name: this.name,
 			author: this.author,
 			version: this.version,
-			borders: this.name,
+			borders: this.borders,
 		}
 		for (let key in metadata) {
 			if (metadata[key] == undefined) continue;
