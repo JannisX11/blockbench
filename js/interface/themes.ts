@@ -24,7 +24,6 @@ type ThemeData = {
 	source?: ThemeSource
 	path?: string
 	desktop_only?: boolean
-	customized?: boolean
 }
 
 const DEFAULT_COLORS = {
@@ -63,7 +62,6 @@ export class CustomTheme {
 	source?: 'built_in' | 'file' | 'repository' | 'custom';
 	path?: string
 	desktop_only?: boolean
-	customized?: boolean
 
 	constructor(data?: Partial<ThemeData>) {
 		this.id = '';
@@ -73,7 +71,6 @@ export class CustomTheme {
 		this.headline_font = '';
 		this.code_font = '';
 		this.borders = false;
-		this.customized = false;
 		this.thumbnail = '';
 		this.css = '';
 		this.colors = structuredClone(DEFAULT_COLORS);
@@ -87,7 +84,6 @@ export class CustomTheme {
 		Merge.string(this, data, 'author')
 		Merge.string(this, data, 'version')
 		Merge.string(this, data, 'source')
-		Merge.boolean(this, data, 'customized')
 		Merge.string(this, data, 'path')
 		Merge.boolean(this, data, 'desktop_only')
 		Merge.boolean(this, data, 'borders')
@@ -274,7 +270,6 @@ export class CustomTheme {
 					},
 					loadBackup() {
 						let theme = new CustomTheme(JSON.parse(CustomTheme.backup_data));
-						theme.customized = true;
 						theme.load();
 						this.clearBackup();
 					},
@@ -362,7 +357,7 @@ export class CustomTheme {
 				computed: {
 					listed_themes() {
 						let themes = this.themes.slice();
-						if (this.data.customized) {
+						if (this.data.source == 'custom') {
 							themes.splice(0, 0, this.data);
 						}
 						return themes;
@@ -422,17 +417,17 @@ export class CustomTheme {
 						<div v-if="open_category == 'options'">
 							<h2 class="i_b">${tl('layout.options')}</h2>
 
-							<div class="dialog_bar" v-if="data.customized">
+							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.name')}</label>
 								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.name">
 							</div>
 
-							<div class="dialog_bar" v-if="data.customized">
+							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.author')}</label>
 								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.author">
 							</div>
 
-							<div class="dialog_bar" v-if="data.customized">
+							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.version')}</label>
 								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version">
 							</div>
@@ -540,10 +535,9 @@ export class CustomTheme {
 	}
 	static dialog_is_setup = false;
 	static customizeTheme() {
-		if (!CustomTheme.selected.customized) {
+		if (CustomTheme.selected.source != 'custom') {
 			let theme = new CustomTheme(CustomTheme.selected);
 			theme.extend({
-				customized: true,
 				name: theme.name ? ('Copy of ' + theme.name) : 'Custom Theme',
 				author: settings.username.value as string,
 				id: 'custom_theme',
@@ -616,7 +610,7 @@ export class CustomTheme {
 				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
-		if (CustomTheme.selected.customized) {
+		if (CustomTheme.selected.source == 'custom') {
 			style.textContent = CustomTheme.selected.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
@@ -628,7 +622,7 @@ export class CustomTheme {
 		$('style#theme_thumbnail_css').text(thumbnailStyles);
 	}
 	load() {
-		if (CustomTheme.selected.customized && CustomTheme.selected.name) {
+		if (CustomTheme.selected.source == 'custom' && CustomTheme.selected.name) {
 			// Backup
 			if (!CustomTheme.dialog.content_vue) CustomTheme.dialog.build();
 			CustomTheme.dialog.content_vue.backup = CustomTheme.selected.name;
