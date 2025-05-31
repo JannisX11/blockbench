@@ -8,7 +8,7 @@ import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
 import { FSWatcher } from 'original-fs'
 
-
+type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
 	name: string
 	author: string
@@ -17,71 +17,118 @@ type ThemeData = {
 	thumbnail?: string
 	css: string
 	id: string
-	customized?: boolean,
 	main_font?: string
 	headline_font?: string
 	code_font?: string
-	colors: Record<string, string>,
-
-	source?: 'built_in' | 'file' | 'repository' | 'custom';
-	sideloaded?: boolean
+	colors: Record<string, string>
+	source?: ThemeSource
 	path?: string
 	desktop_only?: boolean
+	customized?: boolean
 }
 
-const BuiltInThemes: ThemeData[] = [
-	DarkTheme,
-	LightTheme,
-	ContrastTheme
-]
-for (let theme of BuiltInThemes) {
-	theme.source = 'built_in';
+const DEFAULT_COLORS = {
+	ui: '#282c34',
+	back: '#21252b',
+	dark: '#17191d',
+	border: '#181a1f',
+	selected: '#474d5d',
+	elevated: '#323640',
+	button: '#3a3f4b',
+	bright_ui: '#f4f3ff',
+	accent: '#3e90ff',
+	frame: '#121418',
+	text: '#cacad4',
+	light: '#f4f3ff',
+	accent_text: '#000006',
+	bright_ui_text: '#000006',
+	subtle_text: '#848891',
+	grid: '#495061',
+	wireframe: '#576f82',
+	checkerboard: '#1c2026',
 }
 
 export class CustomTheme {
-	static data: ThemeData = {
-		id: 'dark',
-		name: '',
-		author: '',
-		customized: false,
-		borders: false,
-		main_font: '',
-		headline_font: '',
-		code_font: '',
-		css: '',
-		thumbnail: '',
-		colors: {},
+	name: string
+	author: string
+	version?: string
+	borders: boolean
+	thumbnail?: string
+	css: string
+	id: string
+	main_font: string
+	headline_font: string
+	code_font: string
+	colors: Record<string, string>
+	source?: 'built_in' | 'file' | 'repository' | 'custom';
+	path?: string
+	desktop_only?: boolean
+	customized?: boolean
+
+	constructor(data?: Partial<ThemeData>) {
+		this.id = '';
+		this.name = '';
+		this.author = '';
+		this.main_font = '';
+		this.headline_font = '';
+		this.code_font = '';
+		this.borders = false;
+		this.customized = false;
+		this.thumbnail = '';
+		this.css = '';
+		this.colors = structuredClone(DEFAULT_COLORS);
+		if (data) {
+			this.extend(data);
+		}
+	}
+	extend(data: Partial<ThemeData>) {
+		Merge.string(this, data, 'id')
+		Merge.string(this, data, 'name')
+		Merge.string(this, data, 'author')
+		Merge.string(this, data, 'version')
+		Merge.string(this, data, 'source')
+		Merge.boolean(this, data, 'customized')
+		Merge.string(this, data, 'path')
+		Merge.boolean(this, data, 'desktop_only')
+		Merge.boolean(this, data, 'borders')
+		Merge.string(this, data, 'main_font')
+		Merge.string(this, data, 'headline_font')
+		Merge.string(this, data, 'code_font')
+		Merge.string(this, data, 'css');
+		Merge.string(this, data, 'thumbnail');
+
+		if (data.colors) {
+			for (let key in this.colors) {
+				if (data.colors[key]) {
+					Merge.string(this.colors, data.colors, key);
+				} else {
+					CustomTheme.selected.colors[key] = DEFAULT_COLORS[key];
+				}
+			}
+		}
+	}
+
+	static selected: CustomTheme = new CustomTheme({id: 'dark'})
+	static get data(): CustomTheme {
+		return CustomTheme.selected
 	}
 	static backup_data: string | null = null
-	static themes: ThemeData[] = [
-		...BuiltInThemes
-	]
-	static defaultColors = {
-		ui: '#282c34',
-		back: '#21252b',
-		dark: '#17191d',
-		border: '#181a1f',
-		selected: '#474d5d',
-		elevated: '#323640',
-		button: '#3a3f4b',
-		bright_ui: '#f4f3ff',
-		accent: '#3e90ff',
-		frame: '#121418',
-		text: '#cacad4',
-		light: '#f4f3ff',
-		accent_text: '#000006',
-		bright_ui_text: '#000006',
-		subtle_text: '#848891',
-		grid: '#495061',
-		wireframe: '#576f82',
-		checkerboard: '#1c2026',
-	}
+	static themes: CustomTheme[] = [
+		DarkTheme,
+		LightTheme,
+		ContrastTheme
+	].map(theme_data => {
+		let theme = new CustomTheme().parseBBTheme(theme_data, true);
+		theme.source = 'built_in';
+		return theme;
+	})
+	static defaultColors = DEFAULT_COLORS
 	static sideloaded_themes: string[] = []
 	static dialog: Dialog|null = null
 	static setup() {
 
 		function saveChanges() {
-			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
+			CustomTheme.selected.save();
 		}
 		if (isApp && localStorage.getItem('themes_sideloaded')) {
 			try {
@@ -96,14 +143,13 @@ export class CustomTheme {
 					localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
 					Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
 						files.forEach(file => {
-							let data = CustomTheme.parseBBTheme(file.content as string);
-							data.id = file.name.replace(/\.\w+$/, '');
-							if (!data.name) data.name = data.id;
-							data.sideloaded = true;
-							data.source = 'file';
-							data.path = file.path;
-							CustomTheme.themes.remove(CustomTheme.themes.find((t2: ThemeData) => t2.id == data.id));
-							CustomTheme.themes.push(data);
+							let theme = new CustomTheme().parseBBTheme(file.content as string);
+							theme.id = file.name.replace(/\.\w+$/, '');
+							if (!theme.name) theme.name = theme.id;
+							theme.source = 'file';
+							theme.path = file.path;
+							CustomTheme.themes.remove(CustomTheme.themes.find((t2) => t2.id == theme.id));
+							CustomTheme.themes.push(theme);
 
 						})
 					})
@@ -154,13 +200,15 @@ export class CustomTheme {
 				}
 			},
 			onOpen() {
+				this.content_vue.data = CustomTheme.data;
 				if (!remote_themes_loaded) {
 					remote_themes_loaded = true;
+					return;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
 						files.forEach(async (file) => {
 							try {
 								let {content} = await $.getJSON(file.git_url);
-								let theme = CustomTheme.parseBBTheme(patchedAtob(content));
+								let theme = new CustomTheme().parseBBTheme(patchedAtob(content));
 								if (theme.desktop_only && Blockbench.isMobile) return false;
 								theme.id = file.name.replace(/\.\w+/, '');
 								theme.source = 'repository';
@@ -189,7 +237,7 @@ export class CustomTheme {
 				components: {
 					VuePrismEditor
 				},
-				watch: {
+				/*watch: {
 					'data.main_font'() {
 						CustomTheme.updateSettings();
 						saveChanges();
@@ -221,15 +269,17 @@ export class CustomTheme {
 						},
 						deep: true
 					}
-				},
+				},*/
 				methods: {
-					selectTheme(theme: ThemeData) {
-						CustomTheme.loadTheme(theme);
+					selectTheme(theme: CustomTheme) {
+						theme.load();
+						this.data = theme;
 						saveChanges();
 					},
 					loadBackup() {
-						CustomTheme.loadTheme(JSON.parse(CustomTheme.backup_data));
-						CustomTheme.data.customized = true;
+						let theme = new CustomTheme(JSON.parse(CustomTheme.backup_data));
+						theme.customized = true;
+						theme.load();
 						this.clearBackup();
 					},
 					clearBackup() {
@@ -237,9 +287,10 @@ export class CustomTheme {
 						CustomTheme.backup_data = null;
 					},
 					customizeTheme() {
+						return;
 						CustomTheme.customizeTheme();
 					},
-					getThemeThumbnailStyle(theme: ThemeData) {
+					getThemeThumbnailStyle(theme: CustomTheme) {
 						let style = {};
 						for (let key in CustomTheme.defaultColors) {
 							style[`--color-${key}`] = CustomTheme.defaultColors[key];
@@ -249,8 +300,8 @@ export class CustomTheme {
 						}
 						return style;
 					},
-					openContextMenu(theme: ThemeData, event: MouseEvent) {
-						if (!theme.sideloaded) return;
+					openContextMenu(theme: CustomTheme, event: MouseEvent) {
+						if (theme.source != 'file') return;
 						let selected = theme.id == this.data.id;
 						let menu = new Menu([
 							{
@@ -284,7 +335,7 @@ export class CustomTheme {
 													timeout = 0;
 												}
 												timeout = window.setTimeout(() => {
-													CustomTheme.reloadThemeFile(theme);
+													theme.reloadThemeFile();
 												}, 60)
 											}
 										})
@@ -296,7 +347,7 @@ export class CustomTheme {
 								icon: 'refresh',
 								condition: isApp && selected,
 								click: () => {
-									CustomTheme.reloadThemeFile(theme);
+									theme.reloadThemeFile();
 								}
 							},
 							{
@@ -456,67 +507,70 @@ export class CustomTheme {
 		})
 	}
 	static setupDialog() {
-		var wrapper = $('#color_wrapper');
-		for (var key in CustomTheme.defaultColors) {
-			(() => {
-				var scope_key = key;
-				var hex = CustomTheme.data.colors[scope_key];
-				var last_color = hex;
-				var field = wrapper.find(`#color_field_${scope_key} .layout_color_preview`);
+		let wrapper = $('#color_wrapper');
+		for (let key in CustomTheme.defaultColors) {
+			let scope_key = key;
+			let hex = CustomTheme.selected.colors[scope_key];
+			let last_color = hex;
+			let field = wrapper.find(`#color_field_${scope_key} .layout_color_preview`);
 
-				field.spectrum({
-					preferredFormat: "hex",
-					color: hex,
-					showAlpha: false,
-					showInput: true,
-					// @ts-ignore Added in the customized version of spectrum but not in types
-					defaultColor: CustomTheme.defaultColors[key],
-					resetText: tl('generic.reset'),
-					cancelText: tl('dialog.cancel'),
-					chooseText: tl('dialog.confirm'),
-					move(c) {
-						CustomTheme.data.colors[scope_key] = c.toHexString();
-						CustomTheme.customizeTheme();
-					},
-					change(c) {
-						last_color = c.toHexString();
-					},
-					hide(c) {
-						CustomTheme.data.colors[scope_key] = last_color;
-						field.spectrum('set', last_color);
-					},
-					beforeShow() {
-						last_color = CustomTheme.data.colors[scope_key];
-						field.spectrum('set', last_color);
-					}
-				});
-			})()
+			field.spectrum({
+				preferredFormat: "hex",
+				color: hex,
+				showAlpha: false,
+				showInput: true,
+				// @ts-ignore Added in the customized version of spectrum but not in types
+				defaultColor: CustomTheme.defaultColors[key],
+				resetText: tl('generic.reset'),
+				cancelText: tl('dialog.cancel'),
+				chooseText: tl('dialog.confirm'),
+				move(c) {
+					CustomTheme.selected.colors[scope_key] = c.toHexString();
+					CustomTheme.customizeTheme();
+				},
+				change(c) {
+					last_color = c.toHexString();
+				},
+				hide(c) {
+					CustomTheme.selected.colors[scope_key] = last_color;
+					field.spectrum('set', last_color);
+				},
+				beforeShow() {
+					last_color = CustomTheme.selected.colors[scope_key];
+					field.spectrum('set', last_color);
+				}
+			});
 		}
 		CustomTheme.dialog_is_setup = true;
 	}
+	static dialog_is_setup = false;
 	static customizeTheme() {
-		if (!CustomTheme.data.customized) {
-			CustomTheme.data.customized = true;
-			CustomTheme.data.name = CustomTheme.data.name ? ('Copy of ' + CustomTheme.data.name) : 'Custom Theme';
-			CustomTheme.data.author = settings.username.value as string;
-			CustomTheme.data.id = 'custom_theme';
-			CustomTheme.data.source = 'custom';
+		if (!CustomTheme.selected.customized) {
+			let theme = CustomTheme.selected = new CustomTheme(CustomTheme.selected);
+			theme.extend({
+				customized: true,
+				name: theme.name ? ('Copy of ' + theme.name) : 'Custom Theme',
+				author: settings.username.value as string,
+				id: 'custom_theme',
+				source: 'custom',
+			})
 			let i = 0;
-			while (CustomTheme.themes.find(theme => theme.id == CustomTheme.data.id)) {
+			while (CustomTheme.themes.find(theme => theme.id == theme.id)) {
 				i++;
-				CustomTheme.data.id = 'custom_theme_'+i;
+				theme.id = 'custom_theme_'+i;
 			}
-			localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
+			if (CustomTheme.dialog.content_vue) CustomTheme.dialog.content_vue.data = theme;
+			theme.load();
 		}
 	}
 	static updateColors() {		
 		
-		for (var key in CustomTheme.data.colors) {
-			var hex = CustomTheme.data.colors[key];
+		for (let key in CustomTheme.selected.colors) {
+			let hex = CustomTheme.selected.colors[key];
 			document.body.style.setProperty('--color-'+key, hex);
 		}
-		$('meta[name=theme-color]').attr('content', CustomTheme.data.colors.frame);
-		document.body.classList.toggle('light_mode', new tinycolor(CustomTheme.data.colors.ui).isLight());
+		$('meta[name=theme-color]').attr('content', CustomTheme.selected.colors.frame);
+		document.body.classList.toggle('light_mode', new tinycolor(CustomTheme.selected.colors.ui).isLight());
 
 		if (typeof gizmo_colors != 'undefined') {
 			let preview_style = window.getComputedStyle(document.getElementById('preview'));
@@ -544,11 +598,11 @@ export class CustomTheme {
 		}
 	}
 	static updateSettings() {
-		document.body.style.setProperty('--font-custom-main', CustomTheme.data.main_font);
-		document.body.style.setProperty('--font-custom-headline', CustomTheme.data.headline_font);
-		document.body.style.setProperty('--font-custom-code', CustomTheme.data.code_font);
-		document.body.classList.toggle('theme_borders', !!CustomTheme.data.borders);
-		document.getElementById('theme_css').textContent = `@layer theme {${CustomTheme.data.css}};`
+		document.body.style.setProperty('--font-custom-main', CustomTheme.selected.main_font);
+		document.body.style.setProperty('--font-custom-headline', CustomTheme.selected.headline_font);
+		document.body.style.setProperty('--font-custom-code', CustomTheme.selected.code_font);
+		document.body.classList.toggle('theme_borders', !!CustomTheme.selected.borders);
+		document.getElementById('theme_css').textContent = `@layer theme {${CustomTheme.selected.css}};`
 		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
 	}
@@ -567,82 +621,54 @@ export class CustomTheme {
 				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
-		if (CustomTheme.data.customized) {
-			style.textContent = CustomTheme.data.thumbnail;
+		if (CustomTheme.selected.customized) {
+			style.textContent = CustomTheme.selected.thumbnail;
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!(rule as CSSStyleRule).selectorText) continue;
-				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.data.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.selected.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);
 		$('style#theme_thumbnail_css').text(thumbnailStyles);
 	}
-	static loadTheme(theme: ThemeData) {
-		var app = CustomTheme.data;
-
-		if (app.customized && app.name) {
+	load() {
+		if (CustomTheme.selected.customized && CustomTheme.selected.name) {
 			// Backup
 			if (!CustomTheme.dialog.content_vue) CustomTheme.dialog.build();
-			CustomTheme.dialog.content_vue.backup = app.name;
-			CustomTheme.backup_data = JSON.stringify(app);
+			CustomTheme.dialog.content_vue.backup = CustomTheme.selected.name;
+			CustomTheme.backup_data = JSON.stringify(CustomTheme.selected);
 		}
+		CustomTheme.selected = this;
+		if (CustomTheme.dialog.content_vue) CustomTheme.dialog.content_vue.data = this;
 
-		app.id = '';
-		app.name = '';
-		app.author = '';
-		app.main_font = '';
-		app.headline_font = '';
-		app.code_font = '';
-		app.borders = false;
-		app.customized = false;
-		Merge.string(app, theme, 'id')
-		Merge.string(app, theme, 'name')
-		Merge.string(app, theme, 'author')
-		Merge.string(app, theme, 'version')
-		Merge.string(app, theme, 'source')
-
-		Merge.boolean(app, theme, 'borders')
-		Merge.string(app, theme, 'main_font')
-		Merge.string(app, theme, 'headline_font')
-		Merge.string(app, theme, 'code_font')
-
-		for (var key in app.colors) {
-			if (theme.colors[key]) {
-				Merge.string(app.colors, theme.colors, key);
-			} else {
-				CustomTheme.data.colors[key] = CustomTheme.defaultColors[key];
-			}
-		}
-		Merge.string(app, theme, 'css');
-		if (!theme.thumbnail) theme.thumbnail = '';
-		Merge.string(app, theme, 'thumbnail');
-		this.updateColors();
-		this.updateSettings();
+		CustomTheme.updateColors();
+		CustomTheme.updateSettings();
+		this.save();
 	}
-	static reloadThemeFile(theme: ThemeData) {
-		let content = fs.readFileSync(theme.path, {encoding: 'utf8'});
+	static loadTheme(theme: CustomTheme) {
+		theme.load();
+	}
+	reloadThemeFile() {
+		let content = fs.readFileSync(this.path, {encoding: 'utf8'});
 		if (!content) return;
-		let new_theme = CustomTheme.parseBBTheme(content);
-		for (let key in theme) {
-			if (new_theme[key] != undefined) theme[key] = new_theme[key];
-		}
-		CustomTheme.loadTheme(theme);
+		let new_theme = new CustomTheme().parseBBTheme(content);
+		this.extend(new_theme);
+		this.load();
 	}
 	static import(file: FileResult) {
 		let content = file.content as string;
 
-		let theme = CustomTheme.parseBBTheme(content);
+		let theme = new CustomTheme().parseBBTheme(content);
 
 		theme.id = file.name.replace(/\.\w+$/, '');
 		if (!theme.name) theme.name = theme.id;
 
-		theme.sideloaded = true;
 		theme.source = 'file';
 		theme.path = file.path;
 
 		CustomTheme.loadTheme(theme);
-		CustomTheme.themes.remove(CustomTheme.themes.find((t2: ThemeData) => t2.id == theme.id));
+		CustomTheme.themes.remove(CustomTheme.themes.find((t2: CustomTheme) => t2.id == theme.id));
 		CustomTheme.themes.push(theme);
 
 		if (isApp) {
@@ -650,29 +676,20 @@ export class CustomTheme {
 			localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
 		}
 	}
-	static parseBBTheme(content: string): ThemeData | undefined {
-		let data: ThemeData;
+	parseBBTheme(content: string, include_id?: boolean): this {
 		if (content.startsWith('{')) {
 			// Lecagy format
-			data = JSON.parse(content);
-			if (!data || !data.colors) return;
+			let json_data = JSON.parse(content);
+			this.extend(json_data);
 
 		} else {
-			data = {
-				id: '',
-				name: '',
-				author: '',
-				version: '',
-				borders: false,
-				css: '',
-				colors: {}
-			};
 			let lines = content.split(/\n/g);
 			enum SectionType {None, Metadata, Variables, Thumbnail}
 			let section = SectionType.None;
 			let thumbnail_lines: string[] = [];
 			let thumbnail_depth = 1;
 			let skip_lines = 0;
+			let data: Partial<ThemeData> = {};
 
 			for (let line of lines) {
 				skip_lines++;
@@ -709,14 +726,14 @@ export class CustomTheme {
 					line = line.trim();
 					if (line.startsWith('--color')) {
 						let [key, value] = line.replace('--color-', '').split(/:\s*/);
-						data.colors[key] = value.replace(/;/, '');
+						this.colors[key] = value.replace(/;/, '');
 					} else if (line.startsWith('--font-custom')) {
 						let [key, value] = line.replace('--font-custom-', '').split(/:\s*/);
 						value = value.replace(';', '');
 						switch (key) {
-							case 'main': data.main_font = value; break;
-							case 'headline': data.headline_font = value; break;
-							case 'code': data.code_font = value; break;
+							case 'main': this.main_font = value; break;
+							case 'headline': this.headline_font = value; break;
+							case 'code': this.code_font = value; break;
 						}
 					} else if (line.startsWith('}')) {
 						section = SectionType.None;
@@ -734,77 +751,83 @@ export class CustomTheme {
 					}
 				}
 			}
-			data.thumbnail = thumbnail_lines.join('\n');
-			data.css = lines.slice(skip_lines-1).join('\n');
+			this.extend(data);
+			this.thumbnail = thumbnail_lines.join('\n');
+			this.css = lines.slice(skip_lines-1).join('\n');
 		}
-		return data;
+		return this;
 	}
-	static compileBBTheme(data: ThemeData = CustomTheme.data): string {
+	compileBBTheme(): string {
 		let theme = '/*';
 		let metadata = {
-			name: data.name,
-			author: data.author,
-			version: data.version,
-			borders: data.name,
+			name: this.name,
+			author: this.author,
+			version: this.version,
+			borders: this.name,
 		}
 		for (let key in metadata) {
+			if (metadata[key] == undefined) continue;
 			theme += `\n${key}: ${metadata[key].toString()}`;
 		}
 		theme += '\n*/\n';
 		// Variables
 		theme += 'body {';
-		for (let color in data.colors) {
-			let color_value = data.colors[color];
+		for (let color in this.colors) {
+			let color_value = this.colors[color];
 			theme += `\n\t--color-${color}: ${color_value};`;
 		}
-		if (data.main_font) 	theme += `\n\t--font-custom-main: ${data.main_font};`;
-		if (data.headline_font) theme += `\n\t--font-custom-headline: ${data.headline_font};`;
-		if (data.code_font) 	theme += `\n\t--font-custom-code: ${data.code_font};`;
+		if (this.main_font) 	theme += `\n\t--font-custom-main: ${this.main_font};`;
+		if (this.headline_font) theme += `\n\t--font-custom-headline: ${this.headline_font};`;
+		if (this.code_font) 	theme += `\n\t--font-custom-code: ${this.code_font};`;
 
 		theme += '\n}\n';
-		if (data.thumbnail) {
+		if (this.thumbnail) {
 			theme += '@scope (thumbnail) {\n'
-			theme += data.thumbnail.replace(/\n/g, '\n\t');
+			theme += this.thumbnail.replace(/\n/g, '\n\t');
 			theme += '\n}\n';
 		}
-		if (data.css) {
-			theme += data.css;
+		if (this.css) {
+			theme += this.css;
 		}
 		return theme;
+	}
+	save() {
+		localStorage.setItem('theme', JSON.stringify(this));
 	}
 };
 
 export function loadThemes() {
-	let stored_theme: ThemeData | undefined;
+	let stored_theme_data: ThemeData | undefined;
 	try {
 		if (localStorage.getItem('theme')) {
-			stored_theme = JSON.parse(localStorage.getItem('theme'))
+			stored_theme_data = JSON.parse(localStorage.getItem('theme'))
 		}
 	} catch (err) {}
 
-	for (let key in CustomTheme.defaultColors) {
-		CustomTheme.data.colors[key] = CustomTheme.defaultColors[key];
-	}
-	if (stored_theme) {
+	if (stored_theme_data) {
+		let stored_theme = new CustomTheme(stored_theme_data);
 		CustomTheme.loadTheme(stored_theme);
-		if (stored_theme.customized) CustomTheme.data.customized = true;
 
 		// Check for updates
 		if (stored_theme.source == 'repository' && stored_theme.id) {
 			fetch(`https://cdn.jsdelivr.net/gh/JannisX11/blockbench-themes/themes/${stored_theme.id}.bbtheme`).then(async (result) => {
 				let text_content = await result.text();
 				if (!text_content) return;
-				let theme = CustomTheme.parseBBTheme(text_content);
+				let theme = new CustomTheme().parseBBTheme(text_content);
 
 				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && compareVersions(theme.version, stored_theme.version))) {
 					// Update theme
-					theme.source = 'repository';
-					CustomTheme.loadTheme(theme);
+					stored_theme.extend(theme);
+					stored_theme.source = 'repository';
+					stored_theme.load();
 					console.log(`Updated Theme "${stored_theme.id}" to v${theme.version}`);
-					localStorage.setItem('theme', JSON.stringify(CustomTheme.data));
 				}
-
 			})
+		} else if (stored_theme.source == 'built_in' && stored_theme.id) {
+			let match = CustomTheme.themes.find(t => t.id == stored_theme.id);
+			if (match) match.load();
+		} else if (stored_theme.source == 'file' && stored_theme.path) {
+			stored_theme.reloadThemeFile();
 		}
 	}
 }
@@ -836,8 +859,8 @@ BARS.defineActions(function() {
 		icon: 'style',
 		category: 'blockbench',
 		click: function () {
-			let id = CustomTheme.data.id || '';
-			let content = CustomTheme.compileBBTheme();
+			let id = CustomTheme.selected.id || '';
+			let content = CustomTheme.selected.compileBBTheme();
 			Blockbench.export({
 				resource_id: 'config',
 				type: 'Blockbench Theme',

@@ -1,6 +1,5 @@
 @layer reset, lib, base, theme, theme-override;
-@layer base {
-/*INIT*/
+@layer reset {
 	* {
 		margin: 0;
 		padding: 0;
@@ -11,6 +10,29 @@
 		user-select: none;
 		-webkit-user-select: none;
 	}
+	div {
+		cursor: default;
+		box-sizing: border-box;
+	}
+	a {
+		text-decoration: none;
+		cursor: default;
+		color: inherit;
+	}
+	i {
+		cursor: inherit;
+	}
+
+	b {
+		font-weight: bolder;
+	}
+	li {
+		list-style: none;
+		cursor: default;
+	}
+}
+@layer base {
+/*INIT*/
 	body.is_mobile * {
 		user-select: none;
 		-webkit-user-select: none;
@@ -390,26 +412,6 @@
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
 		forced-color-adjust: none;
-	}
-	div {
-		cursor: default;
-		box-sizing: border-box;
-	}
-	a {
-		text-decoration: none;
-		cursor: default;
-		color: inherit;
-	}
-	i {
-		cursor: inherit;
-	}
-
-	b {
-		font-weight: bolder;
-	}
-	li {
-		list-style: none;
-		cursor: default;
 	}
 	hr {
 		border-top: 1px solid var(--color-border);
