@@ -738,6 +738,13 @@
 	"dialog.save_angle.zoom": "Zoom",
 	"dialog.save_angle.fov": "FOV",
 
+	"dialog.preview_options.title": "Preview Options",
+	"dialog.preview_options.background": "Background",
+	"dialog.preview_options.background.checkerboard": "Checkerboard",
+	"dialog.preview_options.background.solid": "Solid",
+	"dialog.preview_options.background.custom_color": "Custom Color",
+	"dialog.preview_options.show_gizmos": "Show Gizmos",
+
 	"dialog.input.title": "Input",
 
 	"dialog.view_backups.open_folder": "Open Folder",
@@ -1978,6 +1985,8 @@
 	"action.save_timeline_setup.desc": "Save a preset for the currently selected animators and channels",
 	"action.move_keyframe_back": "Move Keyframes Back",
 	"action.move_keyframe_forth": "Move Keyframes Forth",
+	"action.move_graph_keyframes_up": "Move Keyframe Graph Up",
+	"action.move_graph_keyframes_down": "Move Keyframe Graph Down",
 	"action.previous_keyframe": "Previous Keyframe",
 	"action.previous_keyframe.desc": "Jump to the previous keyframe",
 	"action.next_keyframe": "Next Keyframe",

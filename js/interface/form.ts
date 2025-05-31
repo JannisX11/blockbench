@@ -29,10 +29,6 @@ export interface FormElementOptions {
 		| 'num_slider'
 		| 'buttons'
 	/**
-	 * If true, the label will be displayed without colon at the end
-	 */
-	nocolon?: boolean
-	/**
 	 * Stretch the input field across the whole width of the form
 	 */
 	full_width?: boolean
@@ -184,7 +180,7 @@ export class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			form_id = form_id.replace(/"/g, '');
 			let form_element = this.form_data[form_id];
-			if (ignore_hidden && !Condition(form_element.condition)) continue;
+			if (!form_element || (ignore_hidden && !Condition(form_element.condition))) continue;
 
 			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
 			this.max_label_width = Math.max(form_element.label_width, this.max_label_width);
@@ -278,7 +274,7 @@ export class FormElement extends EventSystem {
 	build(bar: HTMLDivElement) {
 		this.bar = bar;
 		if (typeof this.options.label == 'string') {
-			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label)+((this.options.nocolon || !this.options.label)?'':':'))
+			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label))
 			bar.append(label);
 			if (!this.options.full_width && this.condition !== false/*Weed out inputs where the condition is always false*/) {
 				this.label_width = getStringWidth(label.textContent);
@@ -407,9 +403,22 @@ FormElement.types.info = class FormElementInfo extends FormElement {
 	}
 	build(bar: HTMLDivElement) {
 		this.bar = bar;
-		let html_content = pureMarked(tl(this.options.text))
-		bar.innerHTML = `<p>${html_content}</p>`;
-		bar.classList.add('small_text');
+		if (typeof this.options.label == 'string') {
+			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label))
+			bar.append(label);
+			if (!this.options.full_width && this.condition !== false/*Weed out inputs where the condition is always false*/) {
+				this.label_width = getStringWidth(label.textContent);
+			}
+		}
+		if (this.options.full_width) {
+			bar.classList.add('full_width_dialog_bar');
+		}
+		if (this.options.description) {
+			bar.setAttribute('title', tl(this.options.description));
+		}
+		let content = Interface.createElement('div', {class: 'small_text'});
+		content.innerHTML = pureMarked(tl(this.options.text));
+		bar.append(content);
 	}
 };
 FormElement.types.text = class FormElementText extends FormElement {
@@ -852,6 +861,9 @@ FormElement.types.color = class FormElementColor extends FormElement {
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
+		this.colorpicker.on('modify_color', ({color}) => {
+			scope.change();
+		})
 		bar.append(this.colorpicker.getNode())
 	}
 	getValue(): tinycolor.Instance {

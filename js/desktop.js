@@ -341,7 +341,6 @@ export function changeImageEditor(texture, not_found) {
 			}},
 			file: {
 				label: 'message.image_editor.file',
-				nocolon: true,
 				type: 'file',
 				file_type: 'Program',
 				extensions: app_file_extension[Blockbench.platform],

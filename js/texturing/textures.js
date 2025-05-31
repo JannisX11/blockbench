@@ -77,6 +77,7 @@ export class Texture {
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
 			side: Canvas.getRenderSide(this),
 			transparent: true,
+			clipping: true
 		});
 		mat.map = tex;
 		mat.name = this.name;

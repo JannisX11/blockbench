@@ -859,6 +859,38 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Move keyframes forwards')
 		}
 	})
+	function slideKeyframes(difference, event) {
+		Undo.initEdit({keyframes: Timeline.selected});
+		let round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+		if (Toolbox.selected.id === 'resize_tool') {
+			round_num *= 0.1;
+		}
+		difference *= round_num;
+		for (let kf of Timeline.selected) {
+			kf.offset(Timeline.vue.graph_editor_axis, difference);
+		}
+		Undo.finishEdit('Move keyframe graph');
+	}
+	new Action('move_graph_keyframes_up', {
+		icon: 'arrow_back',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(1, e);
+			Animator.preview()
+		}
+	})
+	new Action('move_graph_keyframes_down', {
+		icon: 'arrow_forward',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(-1, e);
+			Animator.preview()
+		}
+	})
 	new Action('previous_keyframe', {
 		icon: 'fa-arrow-circle-left',
 		category: 'animation',

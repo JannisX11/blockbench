@@ -1191,6 +1191,7 @@ Interface.definePanels(() => {
 					let values_changed;
 					let is_setup = false;
 					let old_bezier_values = {};
+					let scope = this;
 
 					function setup() {
 						dragging_range = [Infinity, 0];
@@ -1222,8 +1223,8 @@ Interface.definePanels(() => {
 						if (Timeline.vue.graph_editor_open) {
 							// Find dragging restriction
 							dragging_restriction = [-Infinity, Infinity];
-							let ba = this.graph_editor_animator || 0;
-							let all_keyframes = ba[this.graph_editor_channel];
+							let ba = scope.graph_editor_animator || 0;
+							let all_keyframes = ba[scope.graph_editor_channel];
 							if (all_keyframes) {
 
 								let frst_keyframe;
@@ -1500,6 +1501,8 @@ Interface.definePanels(() => {
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
+					let dragging_range;
+					let previousValue;
 					let is_setup = false;
 					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
 					let original_range = this.getSelectedGraphRange();
@@ -1515,7 +1518,7 @@ Interface.definePanels(() => {
 						is_setup = true;
 
 						for (let kf of keyframes) {
-							original_values[kf.uuid] = kf.display_value || kf.get(this.graph_editor_axis);
+							original_values[kf.uuid] = kf.display_value || kf.get(axis);
 						}
 					}
 
@@ -1540,7 +1543,7 @@ Interface.definePanels(() => {
 							if (e2.altKey) {
 								origin = Math.lerp(original_range[0], original_range[1], 0.5);
 							}
-							target_value = (original_values[kf.uuid] - origin) * value + origin;
+							let target_value = (original_values[kf.uuid] - origin) * value + origin;
 							kf.offset(axis, -kf.get(axis) + target_value);
 							values_changed = true;
 						}

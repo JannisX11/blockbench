@@ -1,4 +1,6 @@
 attribute float highlight;
+#include <common>
+#include <clipping_planes_pars_vertex>
 
 uniform bool SHADE;
 uniform int LIGHTSIDE;
@@ -61,5 +63,8 @@ void main()
 	
 	vUv = uv;
 	vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+
+	#include <clipping_planes_vertex>
+
 	gl_Position = projectionMatrix * mvPosition;
 }

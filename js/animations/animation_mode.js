@@ -723,7 +723,7 @@ export const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true};
 			keys.push(key);
 		}
 		file.json = json;

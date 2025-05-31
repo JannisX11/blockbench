@@ -19,7 +19,7 @@ export const ModelScaler = {
 		],
 		form: {
 			origin: {label: 'data.origin', type: 'vector', dimensions: 3, value: [0, 0, 0]},
-			pivot_options: {label: ' ', nocolon: true, type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
+			pivot_options: {label: ' ', type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
 				ModelScaler.setPivot(['pivot', 'selection'][index]);
 			}},
 			scale: {type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},

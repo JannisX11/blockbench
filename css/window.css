@@ -77,7 +77,7 @@
 
 	#center {
 		grid-area: center;
-		background-color: var(--color-dark);
+		background-color: var(--custom-preview-background, var(--color-dark));
 		min-width: 100px;
 		display: flex;
 		flex-direction: column;

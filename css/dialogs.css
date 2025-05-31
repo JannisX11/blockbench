@@ -141,16 +141,16 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
-	dialog.dialog.tool_config {
+	dialog.dialog.config_dialog {
 		margin-right: 0;
 		margin-left: 0;
 		width: fit-content;
 		min-width: 200px;
 	}
-	.dialog.tool_config > div > .dialog_content {
+	.dialog.config_dialog > div > .dialog_content {
 		margin: 4px 12px;
 	}
-	.tool_config_title {
+	.config_dialog_title {
 		padding: 4px 12px;
 		margin-bottom: -6px;
 		margin-right: 18px;
@@ -160,11 +160,11 @@
 		color: var(--color-subtle_text);
 		border-radius: inherit;
 	}
-	.dialog .tool_config_title > .dialog_close_button {
+	.dialog .config_dialog_title > .dialog_close_button {
 		right: 0;
 		top: 0;
 	}
-	.dialog.tool_config hr {
+	.dialog.config_dialog hr {
 		margin: 6px 0;
 	}
 	.dialog:not(.resizable) {
@@ -181,6 +181,7 @@
 	}
 	.dialog_bar.form_bar {
 		display: flex;
+		align-items: center;
 	}
 	label.name_space_left {
 		float: left;

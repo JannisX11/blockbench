@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
+import { ConfigDialog } from "./dialog";
 
 export class ResizeLine {
 	constructor(id, data) {
@@ -468,7 +469,7 @@ export function unselectInterface(event) {
 		}
 		document.addEventListener('click', mouseUp);
 	}
-	if (Dialog.open instanceof ToolConfig && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
+	if (Dialog.open instanceof ConfigDialog && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
 		Dialog.open.close();
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
@@ -553,6 +554,11 @@ export function setupInterface() {
 			tooltip.css('right', '0')
 		}
 	})
+
+	// Background color
+	if (StateMemory.get('viewport_background_color')) {
+		document.body.style.setProperty('--custom-preview-background', StateMemory.get('viewport_background_color'));
+	}
 
 
 
@@ -811,6 +817,10 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		for (let key in options) {
 			let val = options[key];
 			if (!val) continue;
+			if (val instanceof MenuSeparator) {
+				items.push(val);
+				continue;
+			}
 			items.push({
 				name: getNameFor(options[key]),
 				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),

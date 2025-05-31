@@ -656,7 +656,7 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 
 			this.attach = function ( object ) {
 				this.elements.safePush(object);
-				this.visible = true;
+				this.visible = Canvas.show_gizmos;
 			};
 
 			this.detach = function () {
