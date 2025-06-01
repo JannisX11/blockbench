@@ -1,10 +1,11 @@
-import { StateMemory } from "./api";
+import StateMemory from "./util/state_memory";
 import { Dialog } from "./interface/dialog";
 import { Settings, SettingsProfile } from "./interface/settings";
 import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
+import { FileSystem } from "./file_system";
 
 export const Plugins = {
 	dialog: null as null|Dialog,
@@ -392,7 +393,7 @@ export class Plugin {
 			}
 		});
 	}
-	async loadFromFile(file: FileResult, first = false) {
+	async loadFromFile(file: FileSystem.FileResult, first = false) {
 		var scope = this;
 		if (!isApp && !first) return this;
 		if (first) {

@@ -1,4 +1,5 @@
 import { Clipbench } from "../copy_paste"
+import { FileSystem } from "../file_system"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
 import { Interface } from "./interface"
@@ -903,7 +904,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 };
 
 class FormElementFile extends FormElement {
-	file: FileResult
+	file: FileSystem.FileResult
 	value: string
 	content: any
 	input: HTMLInputElement
@@ -976,7 +977,7 @@ class FormElementFile extends FormElement {
 			}
 		})
 	}
-	getValue(): FileResult | string | any {
+	getValue(): FileSystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
 			return this.file;
 		} else {

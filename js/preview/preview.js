@@ -1,5 +1,5 @@
 import { THREE } from '../../lib/libs';
-import { StateMemory } from '../api';
+import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 
