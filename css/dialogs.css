@@ -908,24 +908,21 @@
 		cursor: inherit;
 	}
 	.theme_name {
-		display: inline-block;
+		padding-left: 2px;
 	}
-	.theme_author_bar {
+	.theme_details_bar {
 		display: flex;
 		align-items: center;
 		width: 100%;
 	}
 	.theme_author {
 		color: var(--color-subtle_text);
-		display: inline-block;
 		margin-right: auto;
 	}
 	.theme_type_icon {
-		float: right;
-		margin-right: 5px;
-	}
-	.theme_type_icon > i {
 		color: var(--color-subtle_text);
+		height: 24px;
+		margin-right: 2px;
 	}
 
 	#theme_list .theme_preview, .custom_thumbnail_preview {

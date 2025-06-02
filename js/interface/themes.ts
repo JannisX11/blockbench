@@ -80,7 +80,6 @@ export class CustomTheme {
 
 	constructor(data?: Partial<ThemeData>) {
 		let num = Math.round(Math.random()*100)
-		console.trace('CONSTRUCT', num)
 		this.id = '';
 		this.name = '';
 		this.author = '';
@@ -172,42 +171,13 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		if (isApp && localStorage.getItem('themes_sideloaded')) {
-			try {
-				let sideloaded = JSON.parse(localStorage.getItem('themes_sideloaded'));
-				if (sideloaded instanceof Array && sideloaded.length) {
-					CustomTheme.sideloaded_themes = sideloaded;
-					CustomTheme.sideloaded_themes.forEachReverse(path => {
-						if (!fs.existsSync(path)) {
-							CustomTheme.sideloaded_themes.remove(path);
-						}
-					})
-					localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
-					Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
-						files.forEach(file => {
-							let theme = new CustomTheme().parseBBTheme(file.content as string);
-							theme.id = file.name.replace(/\.\w+$/, '');
-							if (!theme.name) theme.name = theme.id;
-							theme.source = 'file';
-							theme.path = file.path;
-							CustomTheme.themes.remove(CustomTheme.themes.find((t2) => t2.id == theme.id));
-							CustomTheme.themes.push(theme);
-
-						})
-					})
-				}
-			} catch (err) {}
-
-			CustomTheme.loadThumbnailStyles();
-		}
-
 		const theme_watchers: Record<string, FSWatcher> = {};
 		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
 			id: 'theme',
 			title: 'dialog.settings.theme',
 			singleButton: true,
-			width: 920,
+			width: 950,
 			title_menu: new Menu([
 				'settings_window',
 				'keybindings_window',
@@ -245,7 +215,6 @@ export class CustomTheme {
 				this.content_vue.data = CustomTheme.data;
 				if (!remote_themes_loaded) {
 					remote_themes_loaded = true;
-					return;
 					$.getJSON('https://api.github.com/repos/JannisX11/blockbench-themes/contents/themes').then(files => {
 						files.forEach(async (file) => {
 							try {
@@ -444,10 +413,11 @@ export class CustomTheme {
 										</div>
 									</div>
 									<div class="theme_name">{{ theme.name }}</div>
-									<div class="theme_type_icon">
-										<i class="material-icons icon">{{ theme_icons[theme.source] }}</i>
-									</div>
-									<div class="theme_author_bar">
+
+									<div class="theme_details_bar">
+										<div class="theme_type_icon">
+											<i class="material-icons icon">{{ theme_icons[theme.source] }}</i>
+										</div>
 										<div class="theme_author">{{ theme.author }}</div>
 										<div class="tool" v-if="theme.options" @click.stop="theme.openOptions()">
 											<i class="material-icons icon">tune</i>
@@ -643,9 +613,9 @@ export class CustomTheme {
 		for (let key in CustomTheme.selected.colors) {
 			variables['--color-'+key] = CustomTheme.selected.colors[key];
 		}
-		variables['--font-custom-main'] = theme.main_font;
-		variables['--font-custom-headline'] = theme.headline_font;
-		variables['--font-custom-code'] = theme.code_font;
+		variables['--font-custom-main'] = `'${theme.main_font}'`;
+		variables['--font-custom-headline'] = `'${theme.headline_font}'`;
+		variables['--font-custom-code'] = `'${theme.code_font}'`;
 		let variable_section = `body {\n`;
 		for (let key in variables) {
 			variable_section += `\n\t${key}: ${variables[key]};`
@@ -655,7 +625,9 @@ export class CustomTheme {
 		document.body.classList.toggle('theme_borders', !!theme.borders);
 		// Options
 		for (let attribute of document.body.attributes) {
-			if (attribute.name.startsWith('theme-')) document.body.removeAttribute(attribute.name);
+			if (attribute.name.startsWith('theme-') && (!theme.options || theme.options[attribute.name.substring(6)] == undefined)) {
+				document.body.removeAttribute(attribute.name);
+			}
 		}
 		for (let key in (theme.options??{})) {
 			if (theme.option_values[key] == undefined) continue;
@@ -698,13 +670,11 @@ export class CustomTheme {
 			CustomTheme.dialog.content_vue.backup = CustomTheme.selected.name;
 			CustomTheme.backup_data = JSON.stringify(CustomTheme.selected);
 		}
-		console.log(CustomTheme.selected == this, CustomTheme.selected.id, this.id);
 		CustomTheme.selected = this;
 		if (CustomTheme.dialog.content_vue) CustomTheme.dialog.content_vue.data = this;
 
 		CustomTheme.updateSettings();
 		this.save();
-		console.log(CustomTheme.selected == this, CustomTheme.selected.id, this.id);
 	}
 	static loadTheme(theme: CustomTheme) {
 		theme.load();
@@ -824,6 +794,34 @@ export class CustomTheme {
 	}
 };
 
+if (isApp && localStorage.getItem('themes_sideloaded')) {
+	try {
+		let sideloaded = JSON.parse(localStorage.getItem('themes_sideloaded'));
+		if (sideloaded instanceof Array && sideloaded.length) {
+			CustomTheme.sideloaded_themes = sideloaded;
+			CustomTheme.sideloaded_themes.forEachReverse(path => {
+				if (!fs.existsSync(path)) {
+					CustomTheme.sideloaded_themes.remove(path);
+				}
+			})
+			localStorage.setItem('themes_sideloaded', JSON.stringify(CustomTheme.sideloaded_themes));
+			Blockbench.read(CustomTheme.sideloaded_themes, {errorbox: false}, files => {
+				files.forEach(file => {
+					let id = file.name.replace(/\.\w+$/, '');
+					let theme = new CustomTheme().parseBBTheme(file.content as string);
+					theme.id = id;
+					if (!theme.name) theme.name = theme.id;
+					theme.source = 'file';
+					theme.path = file.path;
+					CustomTheme.themes.push(theme);
+				})
+			})
+		}
+	} catch (err) {}
+
+	CustomTheme.loadThumbnailStyles();
+}
+
 export function loadThemes() {
 	let stored_theme_data: ThemeData | undefined;
 	try {
@@ -834,10 +832,10 @@ export function loadThemes() {
 
 	if (stored_theme_data) {
 		let stored_theme = new CustomTheme(stored_theme_data);
-		CustomTheme.loadTheme(stored_theme);
 
 		// Check for updates
 		if (stored_theme.source == 'repository' && stored_theme.id) {
+			CustomTheme.loadTheme(stored_theme);
 			fetch(`https://cdn.jsdelivr.net/gh/JannisX11/blockbench-themes/themes/${stored_theme.id}.bbtheme`).then(async (result) => {
 				let text_content = await result.text();
 				if (!text_content) return;
@@ -850,13 +848,16 @@ export function loadThemes() {
 					stored_theme.load();
 					console.log(`Updated Theme "${stored_theme.id}" to v${theme.version}`);
 				}
-			})
-		} else if (stored_theme.source == 'built_in' && stored_theme.id) {
+			});
+		} else if ((stored_theme.source == 'built_in' || stored_theme.source == 'file') && stored_theme.id) {
 			let match = CustomTheme.themes.find(t => t.id == stored_theme.id);
 			if (match) {
 				match.option_values = stored_theme.option_values;
 				match.load();
 			}
+			
+		} else if (stored_theme.source == 'custom') {
+			CustomTheme.loadTheme(stored_theme);
 		}
 	}
 }
