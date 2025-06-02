@@ -910,8 +910,15 @@
 	.theme_name {
 		display: inline-block;
 	}
+	.theme_author_bar {
+		display: flex;
+		align-items: center;
+		width: 100%;
+	}
 	.theme_author {
 		color: var(--color-subtle_text);
+		display: inline-block;
+		margin-right: auto;
 	}
 	.theme_type_icon {
 		float: right;

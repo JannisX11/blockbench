@@ -31,7 +31,10 @@
 		if (localStorage.getItem('theme')) {
 			try {
 				stored_theme = JSON.parse(localStorage.getItem('theme'));
-				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+				let dark_color = stored_theme.colors.dark;
+				if (dark_color) {
+					document.getElementById('theme_css').textContent = `@layer theme {body {--color-dark: ${dark_color};}};`
+				}
 			} catch (err) {}
 		}
 		window.ErrorLog = [];
