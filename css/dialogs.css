@@ -516,6 +516,22 @@
 		right: 6px;
 		margin-top: -17px;
 	}
+	.dialog_sidebar_separator {
+		min-height: 4px;
+		color: var(--color-subtle_text);
+		margin-bottom: -1px;
+		margin-top: 4px;
+		text-indent: 16px;
+		display: flex;
+		align-items: center;
+	}
+	.dialog_sidebar_separator > span {
+		background-color: var(--color-button);
+		width: 0;
+		height: 2px;
+		flex-grow: 1;
+		margin: 0 5px;
+	}
 	
 	.dialog_sidebar .dialog_sidebar_actions {
 		bottom: 10px;
