@@ -469,8 +469,8 @@ BARS.defineActions(function() {
 					status: {type: 'info', text: `**${tl('edit_session.status')}**: ${(session && session.hosting) ? tl('edit_session.hosting') : tl('edit_session.connected')}`, condition: !!session},
 				},
 				buttons: session
-					? ['edit_session.quit', 'dialog.close']
-					: ['edit_session.join', 'edit_session.create', 'dialog.close'],
+					? ['edit_session.quit']
+					: ['edit_session.join', 'edit_session.create'],
 				onButton(button) {
 					let result = this.getFormResult();
 					if (session && button == 0) {
