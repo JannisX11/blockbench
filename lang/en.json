@@ -856,6 +856,8 @@
 	"layout.color": "Color Scheme",
 	"layout.css": "Custom CSS",
 	"layout.thumbnail": "Custom Thumbnail CSS",
+	"layout.section.customize": "Customize",
+	"layout.theme.configure": "Configure",
 	"layout.documentation": "Documentation",
 	"layout.restore_backup": "Your customized theme \"%0\" was overwritten. Click here to restore it.",
 	"layout.color.back": "Back",

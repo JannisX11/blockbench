@@ -128,6 +128,7 @@ export class CustomTheme {
 	openOptions() {
 		let form: InputFormConfig = {};
 		if (!this.options) return;
+		if (CustomTheme.selected != this) this.load();
 		let theme = this;
 		for (let key in this.options) {
 			let opt = this.options[key];
@@ -141,7 +142,7 @@ export class CustomTheme {
 			}
 		}
 		new Dialog('theme_configuration', {
-			name: 'Configure',
+			name: 'layout.theme.configure',
 			form,
 			singleButton: true,
 			onFormChange(result: Record<string, string>) {
@@ -187,6 +188,7 @@ export class CustomTheme {
 			sidebar: {
 				pages: {
 					select: tl('layout.select'),
+					_customize: new MenuSeparator('customize', 'layout.section.customize'),
 					options: tl('layout.options'),
 					color: tl('layout.color'),
 					css: tl('layout.css'),
@@ -421,7 +423,7 @@ export class CustomTheme {
 										<div class="theme_author">{{ theme.author }}</div>
 										<div class="tool" v-if="theme.options" @click.stop="theme.openOptions()">
 											<i class="material-icons icon">tune</i>
-											<div class="tooltip">Configure...</div>
+											<div class="tooltip">${tl('layout.theme.configure')}...</div>
 										</div>
 									</div>
 								</div>
