@@ -40,19 +40,18 @@ export class Codec extends EventSystem {
 		return options;
 	}
 	//Import
-	load(model, file, add) {
+	load(model, file, args = {}) {
 		if (!this.parse) return false;
-		if (!add) {
+		if (!args.importToCurrentProject) {
 			setupProject(this.format)
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
-			
 		}
 
-		this.parse(model, file.path)
+		this.parse(model, file.path, args)
 
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			loadDataFromModelMemory();

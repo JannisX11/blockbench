@@ -258,7 +258,7 @@ var codec = new Codec('java_block', {
 			return autoStringify(blockmodel)
 		}
 	},
-	parse(model, path, add) {
+	parse(model, path, args = {}) {
 		if (!model.elements && !model.parent && !model.display && !model.textures) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_model',
@@ -269,10 +269,13 @@ var codec = new Codec('java_block', {
 
 		this.dispatchEvent('parse', {model});
 
-		var previous_texture_length = add ? Texture.all.length : 0
+		// Backwards compatibility with the old "add" third argument
+		const importToCurrentProject = typeof args === "boolean" ? args : args.importToCurrentProject
+
+		var previous_texture_length = importToCurrentProject ? Texture.all.length : 0
 		var new_cubes = [];
 		var new_textures = [];
-		if (add) {
+		if (importToCurrentProject) {
 			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
 			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
@@ -280,7 +283,7 @@ var codec = new Codec('java_block', {
 
 		//Load
 		if (typeof (model.credit || model.__comment) == 'string') Project.credit = (model.credit || model.__comment);
-		if (model.texture_size instanceof Array && !add) {
+		if (model.texture_size instanceof Array && !importToCurrentProject) {
 			Project.texture_width  = Math.clamp(parseInt(model.texture_size[0]), 1, Infinity)
 			Project.texture_height = Math.clamp(parseInt(model.texture_size[1]), 1, Infinity)
 		}
@@ -309,7 +312,7 @@ var codec = new Codec('java_block', {
 					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
 						link = texture_arr[link.substring(1)];
 					}
-					let texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice()).add();
+					let texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
 					texture_paths[texture_arr[key].replace(/^minecraft:/, '')] = texture_ids[key] = texture;
 					new_textures.push(texture);
 				}
@@ -322,7 +325,7 @@ var codec = new Codec('java_block', {
 				if (texture_paths[link.replace(/^minecraft:/, '')]) {
 					texture_paths[link.replace(/^minecraft:/, '')].enableParticle()
 				} else {
-					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice()).enableParticle().add();
+					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).enableParticle().add();
 					texture_paths[link.replace(/^minecraft:/, '')] = texture_ids.particle = texture;
 					new_textures.push(texture);
 				}
@@ -401,7 +404,7 @@ var codec = new Codec('java_block', {
 					}
 				}
 
-				if (!add) {
+				if (!importToCurrentProject) {
 					Outliner.root.push(base_cube)
 					base_cube.parent = 'root'
 				} else if (import_group) {
@@ -413,7 +416,7 @@ var codec = new Codec('java_block', {
 			})
 		}
 		if (model.groups && model.groups.length > 0) {
-			if (!add) {
+			if (!importToCurrentProject) {
 				parseGroups(model.groups)
 			} else if (import_group) {
 				parseGroups(model.groups, import_group, oid)
@@ -449,7 +452,7 @@ var codec = new Codec('java_block', {
 					open: 'message.child_model_only.open',
 					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
 				}
-			}, (result) => {
+			}, async result => {
 				if (typeof result == 'string') {
 					let parent = model.parent.replace(/\w+:/, '');
 					let path_arr = path.split(osfs);
@@ -458,21 +461,40 @@ var codec = new Codec('java_block', {
 					path_arr.push('models', ...parent.split('/'));
 					let parent_path = path_arr.join(osfs) + '.json';
 
-					Blockbench.read([parent_path], {}, (files) => {
-						loadModelFile(files[0]);
+					function loadParentModel(file) {
+						loadModelFile(file, args);
 
 						if (result == 'open_with_textures') {
 							Texture.all.forEachReverse(tex => {
 								if (tex.error == 3 && tex.name.startsWith('#')) {
 									let loaded_tex = texture_ids[tex.name.replace(/#/, '')];
 									if (loaded_tex) {
-										tex.fromPath(loaded_tex.path);
+										tex.fromPath(loaded_tex.path, args.externalDataLoader);
 										tex.namespace = loaded_tex.namespace;
 									}
 								}
 							})
 						}
-					})
+					}
+
+					let loaded;
+					if (args.externalDataLoader) {
+						const external = args.externalDataLoader(parent_path);
+						if (external) {
+							try {
+								loadParentModel({
+									name: PathModule.basename(parent_path),
+									path: parent_path,
+									content: external.toString()
+								});
+								loaded = true;
+							} catch {}
+						}
+					}
+
+					if (!loaded) {
+						Blockbench.read([parent_path], {}, files => loadParentModel(files[0]));
+					}
 				}
 			})
 		}
@@ -497,7 +519,7 @@ var codec = new Codec('java_block', {
 		}
 
 		this.dispatchEvent('parsed', {model});
-		if (add) {
+		if (importToCurrentProject) {
 			Undo.finishEdit('Add block model')
 		}
 		Validator.validate()
@@ -618,7 +640,9 @@ BARS.defineActions(function() {
 			}, function(files) {
 				files.forEach(file => {
 					var model = autoParseJSON(file.content)
-					codec.parse(model, file.path, true)
+					codec.parse(model, file.path, {
+						importToCurrentProject: true
+					})
 				})
 			})
 		}
