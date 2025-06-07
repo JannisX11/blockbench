@@ -317,7 +317,7 @@ export namespace FileSystem {
 	/**
 	 * Pick a directory. Desktop app only.
 	 */
-	export function pickDirectory(options: PickDirOptions): string | undefined {
+	export function pickDirectory(options: PickDirOptions = {}): string | undefined {
 		if (isApp) {
 
 			if (!options.startpath && options.resource_id) {
