@@ -472,6 +472,7 @@ BARS.defineActions(function() {
 				
 				let spline = SplineMesh.selected[0];
 				let selectedCurves = spline.getSelectedCurves(true);
+				let selectedPoints = spline.getSelectedVertices();
 				let handleOrder = {};
 
 				function createCurves(hKeys) {
@@ -489,29 +490,25 @@ BARS.defineActions(function() {
 
 					selectedCurves.forEach(cKey => {
 						let curve = spline.curves[cKey];
-						let p1 = curve.start;
-						let p2 = curve.start_ctrl;
-						let p3 = curve.end_ctrl;
-						let p4 = curve.end;
+						let startHandle = curve.start_handle;
 
-						let startHandle = spline.getHandleOfPoint(p1);
 						if (startHandle == hKey) {
-							let result = spline.divideBézierCurve((factor / 100.0), p1, p2, p3, p4);
+							let result = curve.split((factor / 100.0));
 
-							spline.vertices[p2] = result.start_ctrl;
-							spline.vertices[p3] = result.end_ctrl;
+							spline.vertices[curve.start_ctrl] = result.start_ctrl;
+							spline.vertices[curve.end_ctrl] = result.end_ctrl;
 
 							let newVerts = spline.addVertices(result.middle_ctrl1, result.middle, result.middle_ctrl2);
 							let newHandle = spline.addHandles(new SplineHandle(this, { control1: newVerts[0], joint: newVerts[1], control2: newVerts[2] }))[0];
 
 							handleOrder[newHandle] = spline.handles[newHandle];
+							selectedPoints.push(...newVerts);
 						}
 					})
 				}
 
 				spline.handles = handleOrder;
 				spline.curves = createCurves(Object.keys(spline.handles));
-
 
 				updateSelection();
 				Undo.finishEdit('Divide spline curve');

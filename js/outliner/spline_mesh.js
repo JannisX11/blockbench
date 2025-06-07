@@ -1,14 +1,11 @@
 import { Property } from "../util/property";
+// import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 
 // Add dummy Mesh with vertex keys
 export class SplineTubeFace extends MeshFace {
 	constructor(mesh, spline, data) {
 		super(mesh, data);
 		this.spline = spline;
-		this.texture = false;
-		if (data) {
-			this.extend(data);
-		}
 	}
 	get element() {
 		return this.spline;
@@ -16,14 +13,7 @@ export class SplineTubeFace extends MeshFace {
     getTexture() {
         return this.spline.getTexture();
     }
-    toMeshFace() {
-        let newFace = new MeshFace(this.mesh, { vertices: this.vertices, uv: this.uv });
-		newFace.texture = this.texture;
-        return newFace;
-    }
 }
-new Property(SplineTubeFace, 'array', 'vertices');
-new Property(SplineTubeFace, 'array', 'uvs');
 
 export class SplineCurve {
     constructor(spline, data) {
@@ -111,6 +101,46 @@ export class SplineCurve {
         let copy = new this.constructor(this.spline, this);
         delete copy.spline;
         return copy;
+    }
+    /**
+     * Splits a curve in two distinct paths using De Casteljau's algorithm.
+     * The split happens at the corresponding T (time) on the initial curve.
+     * 
+     * @param {float} time Point at which the split occurs (in % from 0 to 1)
+     * @returns {array} Adjusted and new points for our two new curves, as two Objects, one per curve.
+     */
+    // source: https://stackoverflow.com/questions/8369488/splitting-a-bezier-curve
+    split(time) {
+        let vert1 = this.spline.vertices[this.start].slice();
+        let vert2 = this.spline.vertices[this.start_ctrl].slice();
+        let vert3 = this.spline.vertices[this.end_ctrl].slice();
+        let vert4 = this.spline.vertices[this.end].slice();
+
+        function interpolate(poses) {
+            let v1 = poses[0].slice();
+            let v2 = poses[1].slice();
+            return v2.V3_subtract(v1).V3_multiply(time).V3_add(v1);;
+        }
+
+        let arr1 = [[vert1, vert2], [vert2, vert3], [vert3, vert4]];
+        let fusions1 = arr1.map((poses) => interpolate(poses));
+        
+        let arr2 = [[fusions1[0], fusions1[1]], [fusions1[1], fusions1[2]]];
+        let fusions2 = arr2.map((poses) => interpolate(poses));
+
+        let arr3 = [[fusions2[0], fusions2[1]]];
+        let fusions3 = arr3.map((poses) => interpolate(poses));
+
+        return {
+            start:          vert1,
+            start_ctrl:     fusions1[0],
+            middle_ctrl1:   fusions2[0],
+            middle:         fusions3[0],
+            middle_ctrl2:   fusions2[1],
+            end_ctrl:       fusions1[2],
+            end:            vert4
+        }
+
     }
 }
 
@@ -419,129 +449,6 @@ export class SplineMesh extends OutlinerElement {
         this.sanitizeName();
         return this;
     }
-    /**
-     * Refresh the dummy face object of this spline, so we can paint on it
-     * this feels super dirty, feel free to judge it :P
-     */
-    refreshTubeFaces() {
-        if (Object.keys(this.curves).length) {
-            let tubeData = this.getTubeData();
-            this.faces = tubeData.faces;
-        }
-    }
-    getTubeData(removeDoubles = false) {
-        let tube = this.getTubeGeo(false);
-        let add_texture = false;
-        let dummyMesh = {
-            faces: {},
-            vertices: {},
-        };
-
-        function addDummyVertices(...vectors) {
-		    return vectors.map(vector => {
-		    	let key;
-		    	while (!key || dummyMesh.vertices[key]) {
-		    		key = bbuid(4);
-		    	}
-		    	dummyMesh.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
-		    	return key;
-		    })
-        }
-
-        function addTubeFaces(...faces) {
-            return faces.map(face => {
-                let key;
-                while (!key || dummyMesh.faces[key]) {
-                    key = bbuid(8);
-                }
-                dummyMesh.faces[key] = face;
-                return key;
-            })
-        }
-
-        // Avoid duplicate vertices on splines
-        function getOriginalVkey(pos) {
-            for (let vKey in dummyMesh.vertices) {
-                let e = 0.004;
-                let vert = dummyMesh.vertices[vKey];
-                let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
-                
-                if (same_spot) {
-                    return vKey;
-                }
-            }
-            return null;
-        }
-        
-		let texture = Texture.getDefault();
-        if (this.texture) {
-            if (this.texture instanceof Texture) {
-                texture = this.texture;
-                add_texture = true;
-            }
-            else if (typeof this.texture === "string") {
-                texture = Texture.all.findInArray('uuid', this.texture);
-                add_texture = true;
-            }
-        };
-
-        for (let i = 0; i < tube.indices.length / 6; i++) {
-            // Tri (twice, so it's a quad :P )
-            let vertices = [];
-            let uv_data = [];
-            for (let j = 0; j < 6; j++) {
-                // Vertex
-                let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                let pos = [
-                    tube.vertices[arr_offset + 0],
-                    tube.vertices[arr_offset + 1],
-                    tube.vertices[arr_offset + 2],
-                ];
-                vertices.push(pos);
-                let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
-                let uv = [
-                    tube.uvs[uv_offset + 0],
-                    tube.uvs[uv_offset + 1],
-                ]
-                uv_data.push(uv);
-            }
-
-            // Create or Collect vertex keys for our new face
-            let vertex_keys = vertices.map(pos => {
-                let ogVkey;
-
-                if (removeDoubles) {
-                    let copyCheck = getOriginalVkey(pos);
-                    if (copyCheck) ogVkey = copyCheck;
-                    else ogVkey = addDummyVertices(pos)[0]
-                } else {
-                    ogVkey = addDummyVertices(pos)[0]
-                }
-
-                return ogVkey;
-            });
-
-            let uv = {};
-            let i2 = 0;
-            for (let vkey of vertex_keys) {
-                uv[vkey] = [
-                    uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16),
-                    (1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16),
-                ];
-                i2++;
-            }
-
-            let new_face = new SplineTubeFace(dummyMesh, this, {
-                vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], // Reconstitute the spline quad
-                uv
-            })
-            if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
-
-            let [fkey] = addTubeFaces(new_face);
-        }
-        
-        return dummyMesh;
-    }
     getUndoCopy(aspects = {}) {
         let copy = {};
         for (var key in SplineMesh.properties) {
@@ -615,6 +522,84 @@ export class SplineMesh extends OutlinerElement {
         this.color = index;
         if (this.visibility) {
             this.preview_controller.updateFaces(this);
+        }
+    }
+	roll(axis, steps, origin_arg) {
+		function rotateCoord(array, rotation_origin) {
+			var a, b;
+			array.forEach(function(s, i) {
+				if (i == axis) {
+					//
+				} else {
+					if (a == undefined) {
+						a = s - rotation_origin[i]
+						b = i
+					} else {
+						array[b] = s - rotation_origin[i]
+						array[b] = rotation_origin[b] - array[b]
+						array[i] = rotation_origin[i] + a;
+					}
+				}
+			})
+			return array
+		}
+		while (steps > 0) {
+			steps--;
+			for (let vkey in this.vertices) {
+				rotateCoord(this.vertices[vkey], [0, 0, 0]);
+			}
+			if (origin_arg) {
+				rotateCoord(this.origin, origin_arg)
+			}
+		}
+		//Rotations
+		var i = 0;
+		var temp_rot = undefined;
+		var temp_i = undefined;
+		while (i < 3) {
+			if (i !== axis) {
+				if (temp_rot === undefined) {
+					temp_rot = this.rotation[i]
+					temp_i = i
+				} else {
+					this.rotation[temp_i] = -this.rotation[i]
+					this.rotation[i] = temp_rot
+				}
+			}
+			i++;
+		}
+        this.refreshTubeFaces();
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		return this;
+	}
+	flip(axis, center) {
+		for (let vkey in this.vertices) {
+			this.vertices[vkey][axis] *= -1;
+		}
+
+		this.origin[axis] *= -1;
+		this.rotation.forEach((n, i) => {
+			if (i != axis) this.rotation[i] = -n;
+		})
+
+		flipNameOnAxis(this, axis);
+
+        this.refreshTubeFaces();
+		this.preview_controller.updateTransform(this);
+		this.preview_controller.updateGeometry(this);
+		return this;
+	}
+    /**
+     * Refresh the dummy face object of this spline, allowing us to paint on it, or to convert it to a Mesh.
+     */
+    // ideally this should be split into a "update tube shape" and a 
+    // "recreate tube", calling this for every operation is not ideal 
+    // since we don't always need to re-build a whole new tube.
+    refreshTubeFaces() {
+        if (Object.keys(this.curves).length) {
+            let tubeMesh = this.getTubeMesh();
+            this.faces = tubeMesh.faces;
         }
     }
     getSelectedVertices(make) {
@@ -971,20 +956,136 @@ export class SplineMesh extends OutlinerElement {
                 this.applyHandleModeOnVertex(key);
             }
         })
+        this.refreshTubeFaces();
         this.preview_controller.updateGeometry(this);
+    }
+    getTubeMesh(removeDoubles = false, mesh = {faces: {}, vertices: {}}) {
+        let tube = this.getTubeGeo(false);
+        let add_texture = false;
+
+        // Copy of Mesh.addVertices()
+        function addTubeVertices(...vectors) {
+            if (mesh instanceof Mesh) return mesh.addVertices(...vectors);
+
+		    return vectors.map(vector => {
+		    	let key;
+		    	while (!key || mesh.vertices[key]) {
+		    		key = bbuid(4);
+		    	}
+		    	mesh.vertices[key] = [vector[0] || 0, vector[1] || 0, vector[2] || 0];
+		    	return key;
+		    })
+        }
+
+        // Copy of Mesh.addFaces()
+        function addTubeFaces(...faces) {
+            if (mesh instanceof Mesh) return mesh.addFaces(...faces);
+
+            return faces.map(face => {
+                let key;
+                while (!key || mesh.faces[key]) {
+                    key = bbuid(8);
+                }
+                mesh.faces[key] = face;
+                return key;
+            })
+        }
+
+        // Avoid duplicate vertices.
+        function getOriginalVkey(pos) {
+            for (let vKey in mesh.vertices) {
+                let e = 0.004;
+                let vert = mesh.vertices[vKey];
+                let same_spot = Math.epsilon(pos[0], vert[0], e) && Math.epsilon(pos[1], vert[1], e) && Math.epsilon(pos[2], vert[2], e);
+                
+                if (same_spot) return vKey;
+            }
+            return null;
+        }
+        
+        // Obtain texture.
+		let texture = Texture.getDefault();
+        if (this.texture) {
+            if (this.texture instanceof Texture) {
+                texture = this.texture;
+                add_texture = true;
+            }
+            else if (typeof this.texture === "string") {
+                texture = Texture.all.findInArray('uuid', this.texture);
+                add_texture = true;
+            }
+        };
+
+        for (let i = 0; i < tube.indices.length / 6; i++) {
+            // Tri (twice, so it's a quad :P )
+            let vertices = [];
+            let uv_data = [];
+            for (let j = 0; j < 6; j++) {
+                // Vertex
+                let arr_offset = ((i * 6) + j) * 3; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let pos = [
+                    tube.vertices[arr_offset + 0],
+                    tube.vertices[arr_offset + 1],
+                    tube.vertices[arr_offset + 2],
+                ];
+                vertices.push(pos);
+                let uv_offset = ((i * 6) + j) * 2; // ( ( (point index) * (quad length) ) + (position in quad) ) * (point length)
+                let uv = [
+                    tube.uvs[uv_offset + 0],
+                    tube.uvs[uv_offset + 1],
+                ]
+                uv_data.push(uv);
+            }
+
+            // Create or Collect vertex keys for our new face
+            let vertex_keys = vertices.map(pos => {
+                if (!removeDoubles) return addTubeVertices(pos)[0];
+                    
+                let copyCheck = getOriginalVkey(pos);
+                if (copyCheck) return copyCheck;
+
+                return addTubeVertices(pos)[0];
+            });
+
+            // Compose UVs
+            let uv = {};
+            for (let i2 = 0; i2 < vertex_keys.length; i2++) {
+                let u = uv_data[i2][0] * (add_texture ? Project.getUVWidth(texture) : 16);
+                let v = (1 - uv_data[i2][1]) * (add_texture ? Project.getUVHeight(texture) : 16);
+
+                uv[vertex_keys[i2]] = [u, v];
+            }
+
+            // Reconstitute tube quad
+            let faceData = { vertices: [vertex_keys[0], vertex_keys[1], vertex_keys[2], vertex_keys[5]], uv: uv };
+
+            // We create a different face based on what our mesh is.
+            let new_face;
+            if (mesh instanceof Mesh) {
+                new_face = new MeshFace(mesh, faceData);
+            } else {
+                new_face = new SplineTubeFace(mesh, this, faceData);
+            }
+
+            if (add_texture) new_face.texture = (texture instanceof Texture) ? texture.uuid : texture;
+            let [fkey] = addTubeFaces(new_face);
+        }
+        
+        return mesh;
     }
     // Partly Adapted from https://github.com/mrdoob/three.js/blob/master/src/geometries/TubeGeometry.js
     getTubeGeo(shadeSmooth) {
         let { vec1, vec2, vec3 } = Reusable;
-        let pathData = this.getBézierPath();
+        let pathData = this.getBézierPath(this.uv_mode === "per_segment");
 
         // Buffers
         let vertexData = [];
 
         // Dimensions
+        let tubularSegments = this.tubular_resolution;
         let radialSegments = this.radial_resolution;
         let radius = 1 * this.radius_multiplier;
-
+        
         // Reusables for next loop
         let matrix = new THREE.Matrix4();
 
@@ -1038,11 +1139,17 @@ export class SplineMesh extends OutlinerElement {
         // Re-use vertex data gathered above to finalize base geo
         for (let tubePoint = 1; tubePoint < pathData.points.length; tubePoint++) {
             let addNextTube = pathData.connections[tubePoint];
+            let accuLength = 0;
             for (let ringPoint = 1; ringPoint <= radialSegments; ringPoint++) {
                 let a = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 1);
-                let b = (radialSegments + 1) * tubePoint + (ringPoint - 1);
-                let c = (radialSegments + 1) * tubePoint + ringPoint;
-                let d = (radialSegments + 1) * (tubePoint - 1) + ringPoint;
+                let b = (radialSegments + 1) * (tubePoint - 0) + (ringPoint - 1);
+                let c = (radialSegments + 1) * (tubePoint - 0) + (ringPoint - 0);
+                let d = (radialSegments + 1) * (tubePoint - 1) + (ringPoint - 0);
+
+                let uva = (tubePoint - 1);
+                let uvb = tubePoint;
+                let uvc = tubePoint;
+                let uvd = (tubePoint - 1);
 
                 if (!shadeSmooth) { // Flat shading: duplicate vertices for each face
                     let faceNormal = new THREE.Vector3().crossVectors(
@@ -1057,16 +1164,34 @@ export class SplineMesh extends OutlinerElement {
                         indices.push(startIndex + 3, startIndex + 4, startIndex + 5);
                     }
 
-                    [a, b, c, a, c, d].forEach((index) => {
+                    let uvPoints = [uva, uvb, uvc, uva, uvc, uvd];
+                    [a, b, c, a, c, d].forEach((index, i) => {
                         vertices.push(...vertexData[index].vector);
                         normals.push(...faceNormal.toArray());
 
                         // UVs for duplicated indices (with comments for Aza's memory)
-                        // U: division tells us which ring we're at, divide by total of points to get value between 0 and 1 on U
                         // V: Remainder of division tells us which step of the ring we're at, divide by radial segments to get value between 0 and 1 on V
-                        // (U, V): Both combined give us a nice little point between (0, 0) and (1, 1) we can now push to this buffer
-                        let u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1);
                         let v = (index % (radialSegments + 1)) / radialSegments;
+                        let u = 0;
+
+                        switch (this.uv_mode) {
+                            case "length_accurate": {
+                                // U: length of tube point + accumulated lengths of previous tube points, divided by path length gives us a value between 0 and 1 on U.
+                                u = (pathData.lengths[uvPoints[i]] + pathData.accumulatedLengths[uvPoints[i]]) / pathData.pathLength;
+                                break;
+                            }
+                            case "uniform": {
+                                // U: division tells us which ring we're at, divide by total of points to get value between 0 and 1 on U
+                                u = Math.floor(index / (radialSegments + 1)) / (pathData.points.length - 1);
+                                break;
+                            }
+                            case "per_segment": {
+                                // U: first division removes ring offset, remainder tells us where we are on the curve, last division scales this value back to a 0-1 range on U.
+                                u = (Math.floor(index / (radialSegments + 1)) % (tubularSegments + 1)) / tubularSegments;   
+                                break;
+                            }
+                        }
+
                         uvs.push(u, v);
                     });
                 } else { // Smooth shading: reuse vertices
@@ -1078,22 +1203,36 @@ export class SplineMesh extends OutlinerElement {
             }
         }
 
-        for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
-            for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
-                if (shadeSmooth)  {
-					let u = tubePoint / (pathData.points.length - 1);
-					let v = ringPoint / radialSegments;
-                    uvs.push(u, v);
-                }
-            }
-        }
-        
         // Smooth shading: populate vertices, normals, and uvs
-        if (shadeSmooth) {
+        if (shadeSmooth) { 
             vertexData.forEach((vertex) => {
                 vertices.push(...vertex.vector);
                 normals.push(...vertex.normal);
             });
+            
+            for (let tubePoint = 0; tubePoint < pathData.points.length; tubePoint++) {
+                for (let ringPoint = 0; ringPoint <= radialSegments; ringPoint++) {
+                    let u = 0;
+		    		let v = ringPoint / radialSegments;
+
+                    switch (this.uv_mode) {
+                        case "length_accurate": {
+                            u = (pathData.lengths[tubePoint] + pathData.accumulatedLengths[tubePoint]) / pathData.pathLength;
+                            break;
+                        }
+                        case "uniform": {
+                            u = tubePoint / (pathData.points.length - 1);
+                            break;
+                        }
+                        case "per_segment": {
+                            u = (tubePoint % (tubularSegments + 1)) / tubularSegments;
+                            break;
+                        }
+                    }
+
+                    uvs.push(u, v);
+                }
+            }
         }
 
         return {
@@ -1103,7 +1242,7 @@ export class SplineMesh extends OutlinerElement {
             uvs: uvs,
         };
     }
-    getBézierPath() {
+    getBézierPath(keepDoubles = false) {
         let { vec1 } = Reusable;
         let MathUtils = THREE.MathUtils;
         let tubularSegments = this.tubular_resolution;
@@ -1163,7 +1302,7 @@ export class SplineMesh extends OutlinerElement {
                     prevCurve = cKey;
                     
                     // continue early
-                    continue;
+                    if (!keepDoubles) continue;
                 }
     
                 // Store everything
@@ -1220,6 +1359,15 @@ export class SplineMesh extends OutlinerElement {
                     // replace the values we just removed
                     curveTangents.push(tangent);
                     curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
+
+                    // perform normal addition if we want doubles
+                    if (keepDoubles) {
+                        curveTangents.push(tangent);
+                        curveNormals.push(new THREE.Vector3().copy(normal).applyAxisAngle(tangent, Math.degToRad(tilt)));
+                        tubePoints.push(curveData.point);
+                        tubePointSizes.push(size);
+                        connectPoints.push(true);
+                    }
                 } 
                 else if (tubePoint == tubularSegments) { // The start and end of our tube meet, interpolate normals
                     let avgTangent = (new THREE.Vector3().addVectors(curveTangents[0], tangent)).multiplyScalar(0.5).normalize();
@@ -1250,12 +1398,27 @@ export class SplineMesh extends OutlinerElement {
             }
         }
 
+        let edgeLengths = [];
+        let accumulatedEdgeLengths = [];
+        let pathLength = 0;
+        for (let point = 0; point < tubePoints.length; point++) {
+            let length = new THREE.Vector3().subVectors(tubePoints[point], tubePoints[point - (point > 0 ? 1 : 0)]).length();
+
+            edgeLengths.push(length);
+            accumulatedEdgeLengths.push(pathLength);
+
+            pathLength += length;
+        }
+
         return {
             tangents: curveTangents,
             normals: curveNormals,
             points: tubePoints,
             sizes: tubePointSizes,
-            connections: connectPoints
+            connections: connectPoints,
+            lengths: edgeLengths,
+            accumulatedLengths: accumulatedEdgeLengths,
+            pathLength: pathLength
         }
     }
     getBézierNormal(tangent, up = null) {
@@ -1318,70 +1481,6 @@ export class SplineMesh extends OutlinerElement {
             tangent: tangentVec,
         };
     }
-    /**
-     * Splits a curve in two distinct paths using De Casteljau's algorithm.
-     * The split happens at the corresponding T (time) on the initial curve.
-     * 
-     * @param {float} time Point at which the split occurs (in % from 0 to 1)
-     * @param {array} point1 Start Point of the initial curve [x, y, z]
-     * @param {array} point2 Start Control Point of the initial curve [x, y, z]
-     * @param {array} point3 End Control Point of the initial curve [x, y, z]
-     * @param {array} point4 End Point of the initial curve [x, y, z]
-     * @returns {object} Adjusted and new points for our two new curves:
-     * - adjusted curve start
-     * - adjusted curve start control
-     * - new handle middle control 1
-     * - new handle middle
-     * - new handle middle control 2
-     * - adjusted curve end control
-     * - adjusted curve end
-     */
-    // source: https://stackoverflow.com/questions/8369488/splitting-a-bezier-curve
-    divideBézierCurve(time, point1, point2, point3, point4) {
-        let vert1 = this.vertices[point1].slice();
-        let vert2 = this.vertices[point2].slice();
-        let vert3 = this.vertices[point3].slice();
-        let vert4 = this.vertices[point4].slice();
-        let [ x1, y1, z1 ] = vert1;
-        let [ x2, y2, z2 ] = vert2;
-        let [ x3, y3, z3 ] = vert3;
-        let [ x4, y4, z4 ] = vert4;
-    
-        let x12 = ((x2 - x1) * time) + x1;
-        let y12 = ((y2 - y1) * time) + y1;
-        let z12 = ((z2 - z1) * time) + z1;
-    
-        let x23 = ((x3 - x2) * time) + x2;
-        let y23 = ((y3 - y2) * time) + y2;
-        let z23 = ((z3 - z2) * time) + z2;
-    
-        let x34 = ((x4 - x3) * time) + x3;
-        let y34 = ((y4 - y3) * time) + y3;
-        let z34 = ((z4 - z3) * time) + z3;
-    
-        let x123 = ((x23 - x12) * time) + x12;
-        let y123 = ((y23 - y12) * time) + y12;
-        let z123 = ((z23 - z12) * time) + z12;
-    
-        let x234 = ((x34 - x23) * time) + x23;
-        let y234 = ((y34 - y23) * time) + y23;
-        let z234 = ((z34 - z23) * time) + z23;
-    
-        let x1234 = ((x234 - x123) * time) + x123;
-        let y1234 = ((y234 - y123) * time) + y123;
-        let z1234 = ((z234 - z123) * time) + z123;
-
-        return {
-            start:          [x1,    y1,    z1   ],
-            start_ctrl:     [x12,   y12,   z12  ],
-            middle_ctrl1:   [x123,  y123,  z123 ],
-            middle:         [x1234, y1234, z1234],
-            middle_ctrl2:   [x234,  y234,  z234 ],
-            end_ctrl:       [x34,   y34,   z34  ],
-            end:            [x4,    y4,    z4   ]
-        }
-
-    }
 	getTexture() {
 		if (typeof this.texture === 'string') {
 			return Texture.all.findInArray('uuid', this.texture)
@@ -1407,6 +1506,7 @@ export class SplineMesh extends OutlinerElement {
 		movable: true,
 		resizable: true,
 		rotatable: true,
+		has_pivot: true,
 	}
     updateShading(shade_smooth) {
         this.smooth_shading = shade_smooth;
@@ -1493,7 +1593,7 @@ new Property(SplineMesh, 'number', 'radial_resolution', {
     default: 6,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_ring_segments', type: 'num_slider', color: "u", description: 'action.spline_ring_segments.desc'},
+			input: {label: 'action.spline_ring_segments', type: 'num_slider', min: 3, color: "u", description: 'action.spline_ring_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1506,7 +1606,7 @@ new Property(SplineMesh, 'number', 'tubular_resolution', {
     default: 12,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_tube_segments', type: 'num_slider', color: "v", description: 'action.spline_tube_segments.desc'},
+			input: {label: 'action.spline_tube_segments', type: 'num_slider', min: 1, color: "v", description: 'action.spline_tube_segments.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1518,7 +1618,7 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
     default: 1,
 	inputs: {
 		element_panel: {
-			input: {label: 'action.spline_tube_radius', type: 'num_slider', color: "w", description: 'action.spline_tube_radius.desc'},
+			input: {label: 'action.spline_tube_radius', type: 'num_slider', min: 0, color: "w", description: 'action.spline_tube_radius.desc'},
 			onChange() {
 				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
                 SplineMesh.selected.forEach(element => element.refreshTubeFaces());
@@ -1526,24 +1626,6 @@ new Property(SplineMesh, 'number', 'radius_multiplier', {
 		}
 	}
 });
-// would have been cool, but Smooth Shading needs to comply with how it looks on Mesh
-// new Property(SplineMesh, 'object', 'render_options', {
-//     default: {shade_smooth: false, display_space: false},
-//     inputs: {
-//         element_panel: {
-//             input: {
-//                 label: 'action.spline_render_options', 
-//                 type: 'inline_multi_select',  
-//                 options: { shade_smooth: 'Smooth', display_space: 'Space' },
-//                 value: { shade_smooth: false, display_space: false },
-//                 description: 'action.spline_render_options.desc'
-//             },
-//             onChange() {
-//                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
-//             }
-//         }
-//     }
-// });
 // decide if you want this spline to render the "Mesh" part of its name or not.
 new Property(SplineMesh, 'enum', 'render_mode', {
 	default: 'mesh',
@@ -1559,6 +1641,22 @@ new Property(SplineMesh, 'enum', 'render_mode', {
             }
 		}
 	}
+});
+new Property(SplineMesh, 'enum', 'uv_mode', {
+    default: 'length_accurate',
+    inputs: {
+        element_panel: {
+			input: {label: 'action.spline_uv_mode', type: 'select', options: {
+				length_accurate: 'action.spline_uv_mode.length_accurate',
+				uniform: 'action.spline_uv_mode.uniform',
+				per_segment: 'action.spline_uv_mode.per_segment'
+			}, description: 'action.spline_uv_mode.desc'},
+			onChange() {
+				Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+                SplineMesh.selected.forEach(element => element.refreshTubeFaces());
+			}
+        }
+    }
 });
 new Property(SplineMesh, 'boolean', 'smooth_shading', {
     default: false,
@@ -1614,6 +1712,8 @@ new NodePreviewController(SplineMesh, {
         // Spline Path line
         let materials = [Canvas.splinePathLineMaterial, Canvas.splinePathDashedLineMaterial];
         let pathLine = new THREE.LineSegments(new THREE.BufferGeometry(), materials);
+        // let pathLine = new LineSegments2();
+        // pathLine.material = materials;
         pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(240).fill(1), 3));
         pathLine.no_export = true;
         pathLine.name = element.uuid + '_path_line';
@@ -1732,8 +1832,7 @@ new NodePreviewController(SplineMesh, {
                 let v_arr = [];
                 [0, 1, 4, 1].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
 
-                // close off initial ring, this the outline method Mesh uses only fills 
-                // in a few of the edges for quads, and this tube can only have quads.
+                // close off initial ring.
                 if (i < element.radial_resolution) {
                     [5, 0, 1, 2].forEach(add => v_arr.push(tube.indices[(i * 6) + add]))
                 }

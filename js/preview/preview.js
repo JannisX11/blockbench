@@ -439,6 +439,7 @@ export class Preview {
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
 		}
+		//TODO: investigate potential mesh edit problems with present splines
 		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') || SplineMesh.hasAny()) {
 			let all_intersects = intersects;
 			intersects = intersects.filter(a => a.object.isLine);
@@ -476,7 +477,8 @@ export class Preview {
 							face = key;
 							break; 
 						}
-						if (vertices.length == 4) index -= 2;
+						
+						index -= 2;
 					}
 				}
 
@@ -841,11 +843,6 @@ export class Preview {
 			let select_mode = BarItems.selection_mode.value
 			if (!Condition(BarItems.selection_mode.condition)) {
 				select_mode = 'object';
-			}
-
-			let spline_selection_mode = BarItems.spline_selection_mode.value
-			if (!Condition(BarItems.spline_selection_mode.condition)) {
-				spline_selection_mode = 'object';
 			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))) {

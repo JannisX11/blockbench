@@ -107,13 +107,10 @@ export class Property {
 				instance[this.name].replace(data[this.name]);
 			}
 		}
-		else if (this.isInstance || this.isObject) {
+		else if (this.isInstance) {
 			if (typeof data[this.name] === 'object') {
-				instance[this.name] = {...data[this.name]};
+				instance[this.name] = data[this.name];
 			}
-		}
-		else if (this.isBoolean) {
-			Merge.boolean(instance, data, this.name, this.merge_validation)
 		}
 	}
 	copy(instance, target) {

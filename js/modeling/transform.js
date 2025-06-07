@@ -814,7 +814,7 @@ export function moveElementsInSpace(difference, axis) {
 		if (el instanceof Cube) {
 			el.mapAutoUV();
 		}
-		if (el instanceof SplineMesh) {
+		if (el instanceof SplineMesh && BarItems.spline_selection_mode.value == "handles") {
 			el.refreshTubeFaces();
 		}
 	})
@@ -1022,9 +1022,6 @@ export function rotateOnAxis(modify, axis, slider) {
 		if (obj instanceof Group) {
 			Canvas.updateView({ groups: [obj] });
 		}
-		if (obj instanceof SplineMesh) {
-			obj.refreshTubeFaces();
-		}
 	})
 }
 export function afterRotateOnAxis() {
@@ -1035,6 +1032,11 @@ export function afterRotateOnAxis() {
 		})
 		Canvas.updateView({ elements: Cube.selected, element_aspects: { transform: true, geometry: true } })
 	}
+	SplineMesh.selected.forEach((spline) => {
+		if (BarItems.spline_selection_mode.value == "handles") {
+			spline.refreshTubeFaces();
+		}
+	});
 }
 
 BARS.defineActions(function () {
