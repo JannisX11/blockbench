@@ -454,7 +454,7 @@ export class Texture {
 				if (external) {
 					if (typeof external === "string") {
 						this.source = external
-					} else if (isApp && external instanceof Buffer) {
+					} else if (external instanceof Uint8Array) {
 						// If the returned data is a Buffer, infer the data type and turn it into a data URL
 						const u8 = new Uint8Array(external)
 						let mime
@@ -466,7 +466,13 @@ export class Texture {
 							mime = 'image/webp'
 						}
 						if (mime) {
-							this.source = `data:${mime};base64,${external.toString("base64")}`
+							let base64
+							if (typeof Buffer !== "undefined" && external instanceof Buffer) {
+								base64 = external.toString("base64")
+							} else {
+								base64 = btoa(String.fromCharCode(...u8))
+							}
+							this.source = `data:${mime};base64,${base64}`
 						}
 					}
 				}
@@ -497,6 +503,9 @@ export class Texture {
 			let mcmeta_text;
 			if (externalDataLoader) {
 				mcmeta_text = externalDataLoader(mcmeta_path);
+				if (mcmeta_text instanceof Uint8Array) {
+					mcmeta_text = new TextDecoder().decode(mcmeta_text);
+				}
 			}
 			if (mcmeta_text || fs.existsSync(mcmeta_path)) {
 				let mcmeta;
