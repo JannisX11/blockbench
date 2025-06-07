@@ -9,8 +9,7 @@ export const https = require('https');
 export const PathModule = require('path');
 
 export const currentwindow = electron.getCurrentWindow();
-var dialog_win	 = null,
-	latest_version = false;
+
 export const recent_projects = (function() {
 	let array = [];
 	var raw = localStorage.getItem('recent_projects')
@@ -122,9 +121,7 @@ export function loadOpenWithBlockbenchFile() {
 		load(path);
 	}
 }
-(function() {
-	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
-})()
+console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 
 window.confirm = function(message, title) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {

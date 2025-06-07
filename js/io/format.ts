@@ -1,7 +1,7 @@
 import { Vue } from "../../lib/libs";
 import { Blockbench } from "../api";
 import { setProjectTitle } from "../interface/interface";
-import { Settings } from "../interface/settings";
+import { settings, Settings } from "../interface/settings";
 import { TickUpdates } from "../misc";
 import { Mode, Modes } from "../modes";
 import { Group } from "../outliner/group";

@@ -2,6 +2,8 @@ import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
 
+let tex_version = 1;
+
 //Textures
 export class Texture {
 	constructor(data, uuid) {
