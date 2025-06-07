@@ -61,6 +61,7 @@ export const Canvas = {
 	// Pivot marker
 	pivot_marker: new THREE.Object3D(),
 	gizmos: [],
+	show_gizmos: true,
 	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
@@ -139,7 +140,13 @@ export const Canvas = {
 		})
 	})(),
 	emptyMaterials: [],
-	coloredSolidMaterials:[],
+	coloredSolidMaterials: [],
+	getEmptyMaterial(index) {
+		return Canvas.emptyMaterials[index % Canvas.emptyMaterials.length];
+	},
+	getSolidColorMaterial(index) {
+		return Canvas.coloredSolidMaterials[index % Canvas.coloredSolidMaterials.length];
+	},
 	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -806,7 +813,7 @@ export const Canvas = {
 		if (Canvas.pivot_marker.parent) {
 			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
-		if (settings.origin_size.value > 0) {
+		if (settings.origin_size.value > 0 && Canvas.show_gizmos) {
 			if (Group.first_selected && Format.bone_rig) {
 				if (Group.first_selected.visibility) {
 					Group.first_selected.mesh.add(Canvas.pivot_marker)
@@ -919,7 +926,7 @@ export const Canvas = {
 			mesh.material = Canvas.monochromaticSolidMaterial
 
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[cube.color]
+			mesh.material = Canvas.getSolidColorMaterial(cube.color);
 
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -929,7 +936,7 @@ export const Canvas = {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(cube.color);
 
 		} else {
 			var materials = []
@@ -943,7 +950,7 @@ export const Canvas = {
 					if (tex && tex.uuid) {
 						materials.push(tex.getMaterial())
 					} else {
-						materials.push(Canvas.emptyMaterials[cube.color])
+						materials.push(Canvas.getEmptyMaterial(cube.color));
 					}
 				}
 			})

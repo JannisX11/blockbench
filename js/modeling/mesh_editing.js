@@ -1338,7 +1338,8 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements, selection: true}, amended);
 				let mesh = new Mesh({
 					name: result.shape,
-					vertices: {}
+					vertices: {},
+					color: Math.floor(Math.random()*markerColors.length)
 				});
 				let group = getCurrentGroup();
 				if (group) {

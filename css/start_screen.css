@@ -474,10 +474,10 @@
 		line-height: 26px;
 	}
 	.format_target span {
-		padding: 2px 4px;
+		padding: 2px 10px;
 		margin: 0 2px;
 		background-color: var(--color-accent);
-		border-radius: 5px;
+		border-radius: 16px;
 		color: var(--color-accent_text);
 	}
 	#start_files .button_bar {

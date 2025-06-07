@@ -1,3 +1,6 @@
+import { Blockbench } from "../api";
+import { FileSystem } from "../file_system";
+
 export class AnimationItem {
 	constructor() {}
 	getShortName() {
@@ -1031,7 +1034,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-Blockbench.addDragHandler('animation', {
+FileSystem.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},

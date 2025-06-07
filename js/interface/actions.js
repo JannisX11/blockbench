@@ -1432,6 +1432,9 @@ export class ColorPicker extends Widget {
 			},
 			change: function(c) {
 				scope.change(c)
+			},
+			move(arg) {
+				scope.dispatchEvent('modify_color', {color: arg});
 			}
 		})
 	}

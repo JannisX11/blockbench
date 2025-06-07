@@ -992,7 +992,7 @@ export class Mesh extends OutlinerElement {
 	];
 
 new Property(Mesh, 'string', 'name', {default: 'mesh'})
-new Property(Mesh, 'number', 'color', {default: Math.floor(Math.random()*markerColors.length)});
+new Property(Mesh, 'number', 'color');
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'boolean', 'smooth_shading', {
@@ -1190,7 +1190,7 @@ new NodePreviewController(Mesh, {
 			mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[element.color]
+			mesh.material = Canvas.getSolidColorMaterial(element.color);
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -1206,7 +1206,7 @@ new NodePreviewController(Mesh, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(element.color);
 
 		} else {
 			let faces = element.faces;
@@ -1217,7 +1217,7 @@ new NodePreviewController(Mesh, {
 				if (tex && tex.uuid) {
 					materials.push(tex.getMaterial())
 				} else {
-					materials.push(Canvas.emptyMaterials[element.color])
+					materials.push(Canvas.getEmptyMaterial(element.color));
 				}
 			}
 			if (materials.allEqual(materials[0])) materials = materials[0];
