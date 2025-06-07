@@ -1,15 +1,15 @@
 Blockbench.queries = {};
-(function() {
-	let query_string = location.search || location.hash;
-	if (query_string) {
-		query_string = decodeURIComponent(query_string.substring(1));
-		let queries = query_string.split('&');
-		queries.forEach(string => {
-			let [key, value] = string.split(/=\s*(.+)/);
-			Blockbench.queries[key] = value || true;
-		})
-	}
-})()
+
+let query_string = location.search || location.hash;
+if (query_string) {
+	query_string = decodeURIComponent(query_string.substring(1));
+	let queries = query_string.split('&');
+	queries.forEach(string => {
+		let [key, value] = string.split(/=\s*(.+)/);
+		Blockbench.queries[key] = value || true;
+	})
+}
+
 
 export function initializeWebApp() {
 	

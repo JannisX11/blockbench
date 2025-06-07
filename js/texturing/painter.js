@@ -1711,7 +1711,7 @@ export const Painter = {
 					difference: 'action.blend_mode.difference',
 				}},
 				size: {
-					label: 'action.slider_brush_size', nocolon: true,
+					label: 'action.slider_brush_size',
 					description: 'action.slider_brush_size.desc',
 					type: 'number',
 					value: 1, min: 1, max: 100,
@@ -1719,14 +1719,14 @@ export const Painter = {
 					toggle_default: true
 				},
 				opacity: {
-					label: 'action.slider_brush_opacity', nocolon: true,
+					label: 'action.slider_brush_opacity',
 					description: 'action.slider_brush_opacity.desc', type: 'number',
 					value: 255, min: 0, max: 255,
 					toggle_enabled: true,
 					toggle_default: true
 				},
 				softness: {
-					label: 'action.slider_brush_softness', nocolon: true,
+					label: 'action.slider_brush_softness',
 					description: 'action.slider_brush_softness.desc', type: 'number',
 					value: 0, min: 0, max: 100,
 					toggle_enabled: true,
@@ -1737,7 +1737,7 @@ export const Painter = {
 					type: 'checkbox',
 				},
 				color: {
-					label: 'data.color', nocolon: true,
+					label: 'data.color',
 					description: 'action.brush_shape.desc', type: 'color',
 					toggle_enabled: true,
 					toggle_default: true

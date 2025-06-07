@@ -462,6 +462,9 @@ export function pluralS(arr) {
 		return 's';
 	}
 }
+export function toSnakeCase(input) {
+	return input.replace(/[A-Z]/g, (char) => ('_'+char)).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+}
 export function pathToName(path, extension) {
 	var path_array = path.split('/').join('\\').split('\\')
 	if (extension === true) {

@@ -105,6 +105,7 @@
 		padding-top: 1px;
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
+		border-radius: 5px;
 	}
 	.prism-editor__autocomplete {
 		background-color: var(--color-back);

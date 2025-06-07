@@ -482,7 +482,7 @@ export const Settings = {
 	},
 	updateProfileButton() {
 		let profile = SettingsProfile.selected;
-		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color].standard : '';
+		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color % markerColors.length].standard : '';
 		Settings.profile_menu_button.classList.toggle('hidden', SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') == -1);
 	},
 	import(file) {
@@ -704,7 +704,7 @@ onVueSetup(function() {
 						items.push({
 							name: profile.name,
 							icon: 'manage_accounts',
-							color: markerColors[profile.color].standard,
+							color: markerColors[profile.color % markerColors.length].standard,
 							click: () => {
 								this.profile = profile;
 								if (profile.condition.type == 'selectable') {
@@ -737,11 +737,25 @@ onVueSetup(function() {
 						return profile.settings[key] !== undefined;
 					});
 				},
-				getProfileColor(profile?: SettingsProfile) {
-					if (profile && markerColors[profile.color]) {
-						return markerColors[profile.color].standard
+				getProfileColor(profile?: SettingsProfile): string {
+					if (profile && markerColors[profile.color % markerColors.length]) {
+						return markerColors[profile.color % markerColors.length].standard
 					}
 					return '';
+				},
+				isFullWidth(setting: Setting): boolean {
+					return ['text', 'password', 'select'].includes(setting.type);
+				},
+				getPluginName(plugin_id: string): string {
+					let plugin = Plugins.all.find(p => p.id == plugin_id);
+					return plugin?.title ?? plugin_id;
+				},
+				revealPlugin(plugin_id: string) {
+					let plugin = Plugins.all.find(p => p.id == plugin_id);
+					if (!plugin) return;
+					
+					Plugins.dialog.show();
+					Plugins.dialog.content_vue.selectPlugin!(plugin);
 				},
 				getIconNode: Blockbench.getIconNode,
 				tl,
@@ -804,10 +818,10 @@ onVueSetup(function() {
 
 						<li v-for="(setting, key) in list" v-if="Condition(setting.condition)"
 							v-on="setting.click ? {click: setting.click} : {}"
-							:class="{has_profile_override: profile && profile.settings[key] !== undefined}"
+							:class="{has_profile_override: profile && profile.settings[key] !== undefined, full_width_input: isFullWidth(setting)}"
 							@contextmenu="settingContextMenu(setting, $event)"
 						>
-							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('Clear profile value')}">
+							<div class="tool setting_profile_clear_button" v-if="profile && profile.settings[key] !== undefined" @click.stop="profile.clear(key)" title="${tl('dialog.settings.clear_profile_value')}">
 								<i class="material-icons">clear</i>
 							</div>
 
@@ -818,11 +832,16 @@ onVueSetup(function() {
 								<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 							</template>
 							<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-								<div class="setting_element"><input type="checkbox" v-model="setting.ui_value" v-bind:id="'setting_'+key" v-on:click="saveSettings()"></div>
+								<div class="setting_element"><input type="checkbox" class="toggle_switch" v-model="setting.ui_value" v-bind:id="'setting_'+key" :key="key" v-on:click="saveSettings()"></div>
 							</template>
 
 							<div class="setting_label">
-								<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
+								<label class="setting_name" v-bind:for="'setting_'+key">
+									{{ setting.name }}
+								 </label>
+								<div class="setting_plugin_label" v-if="setting.plugin" @click="revealPlugin(setting.plugin)">
+									<span>${tl('data.plugin')}:</span> {{ getPluginName(setting.plugin) }}
+								</div>
 								<div class="setting_profile_value_indicator"
 									v-for="profile_here in getProfileValuesForSetting(key)"
 									:style="{'--color-profile': getProfileColor(profile_here)}"

@@ -1,6 +1,8 @@
 #ifdef GL_ES
 precision highp float;
 #endif
+#include <common>
+#include <clipping_planes_pars_fragment>
 
 uniform sampler2D map;
 
@@ -38,12 +40,6 @@ void main(void)
 		gl_FragColor.r = gl_FragColor.r * 0.6;
 		gl_FragColor.g = gl_FragColor.g * 0.7;
 	}
-
-	// Experimental shader-based Grid draw
-	ivec2 textureSize2d = textureSize(map, 0);
-    float textureSizeX = float(textureSize2d.x);
-    float textureSizeY = float(textureSize2d.y);
-	vec2 grid_uv = abs(fract(vUv * vec2(textureSizeX, textureSizeY)) - vec2(0.5, 0.5));
-	float grid = max(grid_uv.x, grid_uv.y) > 0.48 ? 1.0 : 0.0;
-	// gl_FragColor = mix(gl_FragColor, vec4(1.0), grid);
+  
+	#include <clipping_planes_fragment>
 }

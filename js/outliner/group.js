@@ -562,10 +562,31 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
-new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
+new Property(Group, 'string', 'bedrock_binding', {
+	condition: {formats: ['bedrock']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.bedrock_binding', description: 'action.edit_bedrock_binding.desc', type: 'text'}
+		}
+	}
+});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'boolean', 'cem_attach', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_attach', type: 'checkbox'}
+		}
+	}
+});
+new Property(Group, 'number', 'cem_scale', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_scale', type: 'number'}
+		}
+	}
+});
 new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
@@ -821,7 +842,7 @@ BARS.defineActions(function() {
 				})
 			}
 			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.multi_selected) {
+			for (let group of Group.multi_selected.slice()) {
 				group.resolve(false);
 			}
 			Undo.finishEdit('Resolve group');

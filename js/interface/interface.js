@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
+import { ConfigDialog } from "./dialog";
 
 export class ResizeLine {
 	constructor(id, data) {
@@ -91,8 +92,8 @@ export const Interface = {
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		modes: {
 			paint_2d: {
-				left_bar: ['uv', 'color', , 'display', 'animations', 'keyframe', 'variable_placeholders'],
-				right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
+				left_bar: ['uv', 'color', 'palette', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+				right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
 				panels: {
 					layers: {
 						slot: 'right_bar',
@@ -110,8 +111,8 @@ export const Interface = {
 				}
 			}
 		},
-		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'outliner', 'chat'],
+		left_bar: ['uv', 'color', 'palette', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
+		right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'outliner', 'chat'],
 		panels: {
 			paint: {
 				slot: 'left_bar',
@@ -318,7 +319,7 @@ export const Interface = {
 			condition() { return !Blockbench.isMobile && Interface.getTopPanel() },
 			get() {
 				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
@@ -340,7 +341,7 @@ export const Interface = {
 			condition() { return !Blockbench.isMobile && Interface.getBottomPanel() },
 			get() {
 				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getBottomPanel();
@@ -472,7 +473,7 @@ export function unselectInterface(event) {
 		}
 		document.addEventListener('click', mouseUp);
 	}
-	if (Dialog.open instanceof ToolConfig && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
+	if (Dialog.open instanceof ConfigDialog && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
 		Dialog.open.close();
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
@@ -557,6 +558,11 @@ export function setupInterface() {
 			tooltip.css('right', '0')
 		}
 	})
+
+	// Background color
+	if (StateMemory.get('viewport_background_color')) {
+		document.body.style.setProperty('--custom-preview-background', StateMemory.get('viewport_background_color'));
+	}
 
 
 
@@ -815,6 +821,10 @@ Interface.CustomElements.SelectInput = function (id, data) {
 		for (let key in options) {
 			let val = options[key];
 			if (!val) continue;
+			if (val instanceof MenuSeparator) {
+				items.push(val);
+				continue;
+			}
 			items.push({
 				name: getNameFor(options[key]),
 				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),

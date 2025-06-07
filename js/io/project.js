@@ -573,11 +573,11 @@ export function setupProject(format, uuid) {
 	new ModelProject({format}, uuid).select();
 
 	if (format.edit_mode) {
-		Modes.options.edit.select();
+		if (Mode.selected != Modes.options.edit) Modes.options.edit.select();
 	} else if (format.paint_mode) {
-		Modes.options.paint.select();
+		if (Mode.selected != Modes.options.paint) Modes.options.paint.select();
 	} else if (format.animation_mode) {
-		Modes.options.animate.select();
+		if (Mode.selected != Modes.options.animate) Modes.options.animate.select();
 	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, false)
@@ -591,9 +591,9 @@ export function newProject(format) {
 	new ModelProject({format}).select();
 
 	if (format.edit_mode) {
-		Modes.options.edit.select();
+		if (Mode.selected != Modes.options.edit) Modes.options.edit.select();
 	} else if (format.paint_mode) {
-		Modes.options.paint.select();
+		if (Mode.selected != Modes.options.paint) Modes.options.paint.select();
 	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, true)

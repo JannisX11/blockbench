@@ -240,6 +240,7 @@
 	"modifier_actions.snap_to_center": "Snap to Center",
 	"modifier_actions.snap_to_pixels": "Snap to Pixels",
 	"modifier_actions.spline_select_multiple_points": "Select multiple Points or Handles",
+	"modifier_actions.move_panel_without_docking": "Move without docking",
 
 	"message.canvas_limit_error.title": "Canvas Limit Error",
 	"message.canvas_limit_error.message": "The action could not be performed correctly because the format limits the canvas to 48 units. Shift the pivot point to prevent this.",
@@ -748,6 +749,13 @@
 	"dialog.save_angle.zoom": "Zoom",
 	"dialog.save_angle.fov": "FOV",
 
+	"dialog.preview_options.title": "Preview Options",
+	"dialog.preview_options.background": "Background",
+	"dialog.preview_options.background.checkerboard": "Checkerboard",
+	"dialog.preview_options.background.solid": "Solid",
+	"dialog.preview_options.background.custom_color": "Custom Color",
+	"dialog.preview_options.show_gizmos": "Show Gizmos",
+
 	"dialog.input.title": "Input",
 
 	"dialog.view_backups.open_folder": "Open Folder",
@@ -790,7 +798,10 @@
 	"dialog.skin.model": "Model",
 	"dialog.skin.variant": "Variant",
 	"dialog.skin.high_res_texture": "Please note that skins with the selected resolution will not work as regular Minecraft skins. Select a lower resolution.",
-	"dialog.skin.texture": "Texture (Optional)",
+	"dialog.skin.texture_source": "Texture Source",
+	"dialog.skin.texture_source.template": "Generate Template",
+	"dialog.skin.texture_source.load_texture": "Load from Minecraft",
+	"dialog.skin.texture_file": "Texture File",
 	"dialog.skin.pose": "Pose",
 	"dialog.skin.layer_template": "Layer Texture",
 
@@ -838,6 +849,7 @@
 	"dialog.settings.search_results": "Search Results",
 	"dialog.settings.reset_to_default": "Reset to Default",
 	"dialog.settings.create_profile": "Create Profile...",
+	"dialog.settings.clear_profile_value": "Clear profile value",
 
 	"keybindings.reset": "Reset",
 	"keybindings.clear": "Empty",
@@ -1864,8 +1876,6 @@
 	"action.origin_to_geometry.desc": "Set the pivot point to the center of the selection",
 	"action.center_individual_pivots": "Center Individual Pivots",
 	"action.center_individual_pivots.desc": "Set the pivot point of each selected element to its center",
-	"action.rescale_toggle": "Toggle Rescale",
-	"action.rescale_toggle.desc": "Rescale cubes based on their current rotation",
 	"action.bone_reset_toggle": "Reset Bone",
 	"action.bone_reset_toggle.desc": "Stop the bone from displaying cubes from the parent model",
 	"action.reload": "Reload Blockbench",
@@ -2009,6 +2019,8 @@
 	"action.save_timeline_setup.desc": "Save a preset for the currently selected animators and channels",
 	"action.move_keyframe_back": "Move Keyframes Back",
 	"action.move_keyframe_forth": "Move Keyframes Forth",
+	"action.move_graph_keyframes_up": "Move Keyframe Graph Up",
+	"action.move_graph_keyframes_down": "Move Keyframe Graph Down",
 	"action.previous_keyframe": "Previous Keyframe",
 	"action.previous_keyframe.desc": "Jump to the previous keyframe",
 	"action.next_keyframe": "Next Keyframe",
@@ -2248,6 +2260,7 @@
 
 	"menu.panel.enable": "Enable",
 	"menu.panel.move_to": "Move To",
+	"menu.panel.attach_to": "Attach To",
 	"menu.panel.move_to.left_bar": "Left Sidebar",
 	"menu.panel.move_to.right_bar": "Right Sidebar",
 	"menu.panel.move_to.top": "Top",
@@ -2354,6 +2367,12 @@
 
 	"interface.streamer_mode_on": "Streamer Mode Enabled",
 
+	"group.bedrock_binding": "Binding",
+	"group.cem_attach": "CEM Attach",
+	"group.cem_scale": "CEM Scale",
+
+	"cube.rescale": "Rotation Rescale",
+	"cube.rescale.desc": "Rescale cube to compensate for the rotation angle",
 	"cube.color.light_blue": "Light Blue",
 	"cube.color.yellow": "Yellow",
 	"cube.color.orange": "Orange",
@@ -2413,9 +2432,7 @@
 	"panel.textures.images": "Images",
 	"panel.layers": "Layers",
 	"panel.color": "Color",
-	"panel.color.picker": "Picker",
-	"panel.color.palette": "Palette",
-	"panel.color.both": "Both",
+	"panel.palette": "Palette",
 	"panel.color.picker_options": "Color Picker Options",
 	"panel.outliner": "Outliner",
 	"panel.collections": "Collections",
@@ -2442,6 +2459,7 @@
 	"panel.skin_pose.aiming": "Aiming",
 
 	"panel.element": "Element",
+	"panel.transform": "Transform",
 	"panel.element.position": "Position",
 	"panel.element.size": "Size",
 	"panel.element.stretch": "Stretch",
