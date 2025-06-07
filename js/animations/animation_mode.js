@@ -514,14 +514,22 @@ export const Animator = {
 							}
 						})
 					}
-					function getKeyframeDataPoints(source) {
+					function getKeyframeDataPoints(source, channel) {
 						if (source instanceof Array) {
 							source.forEach(processPlaceholderVariables);
-							return [{
+							let vec = {
 								x: source[0],
 								y: source[1],
 								z: source[2],
-							}]
+							}
+							if (channel == 'position') {
+								vec.x *= -1;
+							}
+							if (channel == 'rotation') {
+								vec.x *= -1;
+								vec.y *= -1;
+							}
+							return [vec];
 						} else if (['number', 'string'].includes(typeof source)) {
 							processPlaceholderVariables(source);
 							return [{
@@ -530,10 +538,10 @@ export const Animator = {
 						} else if (typeof source == 'object') {
 							let points = [];
 							if (source.pre) {
-								points.push(getKeyframeDataPoints(source.pre)[0])
+								points.push(getKeyframeDataPoints(source.pre)[0], channel)
 							}
 							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
-								points.push(getKeyframeDataPoints(source.post)[0])
+								points.push(getKeyframeDataPoints(source.post)[0], channel)
 							}
 							return points;
 						}
@@ -554,7 +562,7 @@ export const Animator = {
 									time: 0,
 									channel,
 									uniform: !(b[channel] instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								})
 							} else if (typeof b[channel] === 'object' && b[channel].post) {
 								ba.addKeyframe({
@@ -562,7 +570,7 @@ export const Animator = {
 									channel,
 									interpolation: b[channel].lerp_mode,
 									uniform: !(b[channel].post instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								});
 							} else if (typeof b[channel] === 'object') {
 								for (var timestamp in b[channel]) {
@@ -571,7 +579,7 @@ export const Animator = {
 										channel,
 										interpolation: b[channel][timestamp].lerp_mode,
 										uniform: !(b[channel][timestamp] instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel][timestamp]),
+										data_points: getKeyframeDataPoints(b[channel][timestamp], channel),
 									});
 								}
 							}

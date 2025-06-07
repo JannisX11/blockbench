@@ -1,3 +1,5 @@
+import './molang'
+
 //Blockbench
 export function compareVersions(string1/*new*/, string2/*old*/) {
 	// Is string1 newer than string2 ?

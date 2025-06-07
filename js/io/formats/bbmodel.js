@@ -1,3 +1,5 @@
+import { invertMolang } from '../../util/molang';
+import { compareVersions } from '../../util/util';
 import LZUTF8 from './../../../lib/lzutf8'
 
 const FORMATV = '4.10';
@@ -62,6 +64,23 @@ function processCompatibility(model) {
 		if (isApp && compareVersions('4.10', model.meta.format_version)) {
 			for (let texture of model.textures) {
 				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
+			}
+		}
+	}
+	if (model.animations && compareVersions('5.0', model.meta.format_version)) {
+		for (let anim of model.animations) {
+			for (let uuid in anim.animators) {
+				let animator = anim.animators[uuid]
+				for (let keyframe of animator.keyframes) {
+					for (let data_point of keyframe.data_points) {
+						if ((keyframe.channel == 'position' || keyframe.channel == 'rotation') && data_point.x) {
+							data_point.x = invertMolang(data_point.x);
+						}
+						if (keyframe.channel == 'rotation' && data_point.y) {
+							data_point.y = invertMolang(data_point.y);
+						}
+					}
+				}
 			}
 		}
 	}
