@@ -144,7 +144,7 @@ export function moveElementsRelative(difference, index, event) { //Multiple
 	autoFixMeshEdit()
 }
 //Rotate
-function rotateSelected(axis, steps) {
+export function rotateSelected(axis, steps) {
 	let affected = [...Cube.selected, ...Mesh.selected, ...SplineMesh.selected];
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
@@ -1939,8 +1939,8 @@ BARS.defineActions(function() {
 	new Toggle('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
-		condition: { modes: ['edit'] },
-		onChange() { toggleCubeProperty('autouv') }
+		condition: {modes: ['edit']},
+		onChange() {toggleCubeProperty('autouv')}
 	})
 	new Toggle('toggle_cyclic', {
 		icon: 'fas.fa-circle-nodes',
