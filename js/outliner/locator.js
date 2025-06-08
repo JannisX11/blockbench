@@ -93,20 +93,6 @@ export class Locator extends OutlinerElement {
 	Locator.prototype.menu = new Menu([
 			...Outliner.control_menu_group,
 			new MenuSeparator('settings'),
-			{
-				id: 'ignore_inherited_scale',
-				name: 'menu.locator.ignore_inherited_scale',
-				icon: locator => locator.ignore_inherited_scale ? 'check_box' : 'check_box_outline_blank',
-				click(clicked_locator) {
-					let value = !clicked_locator.ignore_inherited_scale;
-					let affected = Locator.selected.filter(locator => locator.ignore_inherited_scale != value);
-					Undo.initEdit({elements: affected});
-					affected.forEach(locator => {
-						locator.ignore_inherited_scale = value;
-					})
-					Undo.finishEdit('Change locator ignore inherit scale option');
-				}
-			},
 			new MenuSeparator('manage'),
 			'rename',
 			'toggle_visibility',
@@ -116,75 +102,79 @@ export class Locator extends OutlinerElement {
 new Property(Locator, 'string', 'name', {default: 'locator'})
 new Property(Locator, 'vector', 'position')
 new Property(Locator, 'vector', 'rotation')
-new Property(Locator, 'boolean', 'ignore_inherited_scale')
+new Property(Locator, 'boolean', 'ignore_inherited_scale', {
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.locator.ignore_inherited_scale', description: 'cube.rescale.desc', type: 'checkbox'},
+		}
+	}
+})
 new Property(Locator, 'boolean', 'visibility', {default: true});
 new Property(Locator, 'boolean', 'locked');
 
 OutlinerElement.registerType(Locator, 'locator');
 
-(function() {
 
-	const map = new THREE.TextureLoader().load( 'assets/locator.png' );
-	map.magFilter = map.minFilter = THREE.NearestFilter;
+const map = new THREE.TextureLoader().load( 'assets/locator.png' );
+map.magFilter = map.minFilter = THREE.NearestFilter;
 
-	new NodePreviewController(Locator, {
-		setup(element) {
-			let mesh = new THREE.Object3D();
-			Project.nodes_3d[element.uuid] = mesh;
-			mesh.name = element.uuid;
-			mesh.type = element.type;
-			mesh.isElement = true;
-			mesh.visible = element.visibility;
-			mesh.rotation.order = 'ZYX';
+new NodePreviewController(Locator, {
+	setup(element) {
+		let mesh = new THREE.Object3D();
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX';
 
-			let material = new THREE.SpriteMaterial({
-				map,
-				alphaTest: 0.1,
-				sizeAttenuation: false
-			});
-			let sprite = new THREE.Sprite(material);
-			sprite.name = element.uuid;
-			sprite.type = element.type;
-			sprite.isElement = true;
-			mesh.add(sprite);
-			mesh.sprite = sprite;
+		let material = new THREE.SpriteMaterial({
+			map,
+			alphaTest: 0.1,
+			sizeAttenuation: false
+		});
+		let sprite = new THREE.Sprite(material);
+		sprite.name = element.uuid;
+		sprite.type = element.type;
+		sprite.isElement = true;
+		mesh.add(sprite);
+		mesh.sprite = sprite;
 
-			this.updateTransform(element);
+		this.updateTransform(element);
 
-			this.dispatchEvent('setup', {element});
-		},
-		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform.call(this, element);
-			this.updateWindowSize(element);
-		},
-		updateSelection(element) {
-			let {mesh} = element;
+		this.dispatchEvent('setup', {element});
+	},
+	updateTransform(element) {
+		NodePreviewController.prototype.updateTransform.call(this, element);
+		this.updateWindowSize(element);
+	},
+	updateSelection(element) {
+		let {mesh} = element;
 
-			mesh.sprite.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
-			mesh.sprite.material.depthTest = !element.selected;
-			mesh.renderOrder = element.selected ? 100 : 0;
+		mesh.sprite.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+		mesh.sprite.material.depthTest = !element.selected;
+		mesh.renderOrder = element.selected ? 100 : 0;
 
-			this.dispatchEvent('update_selection', {element});
-		},
-		updateWindowSize(element) {
-			let size = 0.4 * Preview.selected.camera.fov / Preview.selected.height;
-			element.mesh.sprite.scale.set(size, size, size);
-		}
-	})
-
-	let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
-	document.body.append(locator_suggestion_list);
-	
-	Locator.updateAutocompleteList = function() {
-		locator_suggestion_list.innerHTML = '';
-		Locator.all.forEach(locator => {
-			let option = document.createElement('option');
-			option.value = locator.name;
-			locator_suggestion_list.append(option);
-		})
+		this.dispatchEvent('update_selection', {element});
+	},
+	updateWindowSize(element) {
+		let size = 0.4 * Preview.selected.camera.fov / Preview.selected.height;
+		element.mesh.sprite.scale.set(size, size, size);
 	}
+})
 
-})()
+let locator_suggestion_list = $('<datalist id="locator_suggestion_list" hidden></datalist>').get(0);
+document.body.append(locator_suggestion_list);
+
+Locator.updateAutocompleteList = function() {
+	locator_suggestion_list.innerHTML = '';
+	Locator.all.forEach(locator => {
+		let option = document.createElement('option');
+		option.value = locator.name;
+		locator_suggestion_list.append(option);
+	})
+}
+
 
 
 BARS.defineActions(function() {

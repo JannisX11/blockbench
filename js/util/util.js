@@ -1,3 +1,5 @@
+import './molang'
+
 //Blockbench
 export function compareVersions(string1/*new*/, string2/*old*/) {
 	// Is string1 newer than string2 ?
@@ -55,18 +57,14 @@ export const Condition = function(condition, context) {
 			if (condition.selected.texture === false && Texture.selected) return false;
 			if (condition.selected.element === true && !Outliner.selected.length) return false;
 			if (condition.selected.element === false && Outliner.selected.length) return false;
-			if (condition.selected.cube === true && !Cube.selected.length) return false;
-			if (condition.selected.cube === false && Cube.selected.length) return false;
-			if (condition.selected.mesh === true && !Mesh.selected.length) return false;
-			if (condition.selected.mesh === false && Mesh.selected.length) return false;
-			if (condition.selected.locator === true && !Locator.selected.length) return false;
-			if (condition.selected.locator === false && Locator.selected.length) return false;
-			if (condition.selected.null_object === true && !NullObject.selected.length) return false;
-			if (condition.selected.null_object === false && NullObject.selected.length) return false;
-			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
-			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
 			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.first_selected)) return false;
 			if (condition.selected.outliner === false && (Outliner.selected.length || Group.first_selected)) return false;
+			for (let key in condition.selected) {
+				if (OutlinerElement.types[key]) {
+					if (condition.selected[key] === true && !OutlinerElement.types[key].selected.length) return false;
+					if (condition.selected[key] === false && OutlinerElement.types[key].selected.length) return false;
+				}
+			}
 		}
 		if (condition.project && !Project) return false;
 
@@ -466,6 +464,9 @@ export function pluralS(arr) {
 		return 's';
 	}
 }
+export function toSnakeCase(input) {
+	return input.replace(/[A-Z]/g, (char) => ('_'+char)).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+}
 export function pathToName(path, extension) {
 	var path_array = path.split('/').join('\\').split('\\')
 	if (extension === true) {
@@ -773,5 +774,7 @@ Object.assign(window, {
 	cameraTargetToRotation,
 	cameraRotationToTarget,
 	getDateDisplay,
-	wait
+	wait,
+	Rectangle,
+	getKeyByValue,
 });

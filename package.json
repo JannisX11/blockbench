@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "4.12.4",
+	"version": "5.0.0-beta.0",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -165,7 +165,7 @@
 		"molangjs": "^1.6.5",
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
-		"three": "^0.150.1",
+		"three": "^0.150.0",
 		"tinycolor2": "^1.6.0",
 		"vue": "^2.7.16",
 		"vue-sortable": "^0.1.3",

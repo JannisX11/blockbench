@@ -1,3 +1,5 @@
+import { invertMolang } from "../util/molang";
+
 export class KeyframeDataPoint {
 	constructor(keyframe) {
 		this.keyframe = keyframe;
@@ -158,32 +160,18 @@ export class Keyframe {
 	}
 	flip(axis) {
 		if (!this.transform || this.channel == 'scale') return this;
-		function negate(value) {
-			if (!value || value === '0') {
-				return value;
-			}
-			if (typeof value === 'number') {
-				return -value;
-			}
-			var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
-			if (start) {
-				var number = parseFloat( start[0].substr(0, start[0].length-1) );
-				return trimFloatNumber(-number) + value.substr(start[0].length-1);
-			} else {
-				return `-(${value})`;
-			}
-		}
+
 		this.data_points.forEach((data_point, data_point_i) => {
 			if (this.channel == 'rotation') {
 				for (var i = 0; i < 3; i++) {
 					if (i != axis) {
 						let l = getAxisLetter(i)
-						this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+						this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 					}
 				}
 			} else if (this.channel == 'position') {
 				let l = getAxisLetter(axis)
-				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+				this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 			}
 		})
 		if (this.interpolation == 'bezier') {
@@ -316,13 +304,22 @@ export class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-
+			let flipArray = array => {
+				if (this.channel == 'position') {
+					array[0] *= -1;
+				}
+				if (this.channel == 'position') {
+					array[0] *= -1;
+					array[1] *= -1;
+				}
+				return array;
+			}
 			if (this.interpolation == 'catmullrom') {
 				let previous = this.getPreviousKeyframe();
 				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
-					pre: include_pre ? this.getArray(0) : undefined,
-					post: this.getArray(include_pre ? 1 : 0),
+					pre: include_pre ? flipArray(this.getArray(0)) : undefined,
+					post: flipArray(this.getArray(include_pre ? 1 : 0)),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
@@ -330,15 +327,15 @@ export class Keyframe {
 				if (previous && previous.interpolation == 'step') {
 					return new oneLiner({
 						pre:  previous.getArray(1),
-						post: this.getArray(),
+						post: flipArray(this.getArray()),
 					})
 				} else {
-					return this.getArray();
+					return flipArray(this.getArray());
 				}
 			} else {
 				return new oneLiner({
-					pre:  this.getArray(0),
-					post: this.getArray(1),
+					pre:  flipArray(this.getArray(0)),
+					post: flipArray(this.getArray(1)),
 				})
 			}
 		} else if (this.channel == 'timeline') {
@@ -857,6 +854,38 @@ BARS.defineActions(function() {
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('Move keyframes forwards')
+		}
+	})
+	function slideKeyframes(difference, event) {
+		Undo.initEdit({keyframes: Timeline.selected});
+		let round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+		if (Toolbox.selected.id === 'resize_tool') {
+			round_num *= 0.1;
+		}
+		difference *= round_num;
+		for (let kf of Timeline.selected) {
+			kf.offset(Timeline.vue.graph_editor_axis, difference);
+		}
+		Undo.finishEdit('Move keyframe graph');
+	}
+	new Action('move_graph_keyframes_up', {
+		icon: 'arrow_back',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(1, e);
+			Animator.preview()
+		}
+	})
+	new Action('move_graph_keyframes_down', {
+		icon: 'arrow_forward',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(-1, e);
+			Animator.preview()
 		}
 	})
 	new Action('previous_keyframe', {

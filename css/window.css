@@ -77,7 +77,7 @@
 
 	#center {
 		grid-area: center;
-		background-color: var(--color-dark);
+		background-color: var(--custom-preview-background, var(--color-dark));
 		min-width: 100px;
 		display: flex;
 		flex-direction: column;
@@ -479,9 +479,6 @@
 		height: auto;
 		max-height: 100%;
 	}
-	body.is_mobile #main_toolbar > div.tool_options {
-		background-color: var(--color-back);
-	}
 	body.is_mobile .preview .preview_menu {
 		left: 0;
 		right: unset;
@@ -609,7 +606,7 @@
 		margin-right: 0;
 		text-align: right;
 	}
-	#mode_selector li {
+	#mode_selector > li {
 		display: inline-block;
 		height: 30px;
 		overflow: hidden;
@@ -618,15 +615,19 @@
 		font-size: 1.1em;
 		cursor: pointer;
 	}
-	#mode_selector li:hover {
+	#mode_selector > li:hover {
 		color: var(--color-light);
+		background-color: var(--color-elevated);
 	}
-	#mode_selector li.selected {
+	#mode_selector > li.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	#mode_selector li > .icon {
+	#mode_selector > li > .icon {
 		vertical-align: text-bottom;
+	}
+	#mode_selector > li:not(.selected) > .icon {
+		color: var(--color-accent);
 	}
 	#update_menu .tool > .icon {
 		margin-top: 3px;
@@ -654,6 +655,7 @@
 		width: 42px;
 		height: 36px;
 		padding-top: 3px;
+		border-radius: 5px;
 	}
 	#mobile_menu_bar > .tool.selected {
 		background-color: var(--color-accent);
@@ -777,7 +779,7 @@
 	#tab_bar .project_tab_close_button > * {
 		pointer-events: none;
 		font-size: 19px;
-		padding-top: 3px;
+		padding-top: 2px;
 	}
 	#tab_bar .project_tab:hover .project_tab_close_button,
 	#tab_bar .project_tab.selected .project_tab_close_button,
@@ -917,7 +919,7 @@
 	}
 	#status_bar .status_bar_modifier_key kbd {
 		font-family: inherit;
-		border-radius: 2px;
+		border-radius: 4px;
 		background-color: var(--color-button);
 		padding: 1px 5px;
 	}
@@ -981,7 +983,7 @@
 		width: 16px;
 		height: 16px;
 		margin: -8px;
-		border-radius: 5px;
+		border-radius: 50%;
 		z-index: 1;
 		text-align: center;
 		font-size: 12px;
@@ -1243,7 +1245,7 @@
 /* Amend Edit Menu */
 	#amend_edit_menu {
 		position: absolute;
-		bottom: 0;
+		bottom: 1px;
 		left: 0;
 		right: 0;
 		padding-right: 30px;
@@ -1254,6 +1256,7 @@
 	#amend_edit_menu > div.form {
 		background-color: var(--color-ui);
 		padding: 2px 10px;
+		border-radius: 6px;
 	}
 	.amend_edit_close_button {
 		position: absolute;

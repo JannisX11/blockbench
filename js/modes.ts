@@ -117,12 +117,10 @@ export class Mode extends KeybindItem {
 		UVEditor.beforeMoving();
 		if (!Blockbench.isMobile) {
 			for (let id in Panels) {
-				let old_pos_data = Panels[id].position_data;
-				Panels[id].position_data = Interface.getModeData().panels[id];
-				if (!Panels[id].position_data) {
-					Panels[id].position_data = Interface.getModeData().panels[id] = JSON.parse(JSON.stringify(old_pos_data))
-				}
-				Panels[id].updateSlot();
+				let panel = Panels[id];
+				panel.updatePositionData();
+				panel.updateSlot();
+
 			}
 			updateSidebarOrder();
 		}
@@ -133,11 +131,9 @@ export class Mode extends KeybindItem {
 		if (selected_tool instanceof Tool && Condition(selected_tool.condition)) {
 			selected_tool.select();
 		} else if (default_tool instanceof Tool) {
-			// @ts-ignore
-			if (!default_tool == Toolbox.selected) default_tool.select();
+			if (default_tool != Toolbox.selected) default_tool.select();
 		} else {
-			// @ts-ignore
-			if (!BarItems.move_tool == Toolbox.selected) BarItems.move_tool.select();
+			if (BarItems.move_tool != Toolbox.selected) (BarItems.move_tool as Tool).select();
 		}
 		// @ts-ignore
 		TickUpdates.interface = true;

@@ -345,13 +345,13 @@ export class BoneAnimator extends GeneralAnimator {
 		if (arr) {
 			if (arr.length === 4) {
 				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-				bone.rotation.x -= added_rotation.x * multiplier
-				bone.rotation.y -= added_rotation.y * multiplier
+				bone.rotation.x += added_rotation.x * multiplier
+				bone.rotation.y += added_rotation.y * multiplier
 				bone.rotation.z += added_rotation.z * multiplier
 			} else {
-				arr.forEach((n, i) => {
-					bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-				})
+				bone.rotation.x += Math.degToRad(arr[0]) * multiplier
+				bone.rotation.y += Math.degToRad(arr[1]) * multiplier
+				bone.rotation.z += Math.degToRad(arr[2]) * multiplier
 			}
 		}
 		if (this.rotation_global) {
@@ -365,7 +365,7 @@ export class BoneAnimator extends GeneralAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.group.mesh
 		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
+			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
 		}
@@ -596,7 +596,7 @@ export class NullObjectAnimator extends BoneAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.element.mesh
 		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
+			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
 		}

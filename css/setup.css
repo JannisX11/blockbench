@@ -531,7 +531,7 @@
 		user-select: initial;
 		-webkit-user-select: initial;
 	}
-	bb-select {
+	div.bb-select {
 		display: block;
 		position: relative;
 		background-color: var(--color-button);
@@ -546,11 +546,11 @@
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	bb-select:hover{
+	div.bb-select:hover{
 		color: var(--color-light);
 	}
 
-	bb-select::before {
+	div.bb-select::before {
 		content: "\f0d7";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
@@ -664,6 +664,39 @@
 	input[type=checkbox][disabled=disabled] {
 		color: var(--color-subtle_text);
 	}
+	input[type=checkbox].toggle_switch {
+		height: 22px;
+		width: 42px;
+		background-color: var(--color-button);
+		position: relative;
+		--color: var(--color-text);
+		border-radius: 12px;
+		box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+		cursor: pointer;
+		transition: background-color 70ms ease-out;
+	}
+	input[type=checkbox].toggle_switch:checked {
+		height: 22px;
+		width: 46px;
+		border-radius: 12px;
+		background-color: var(--color-accent);
+		--color: var(--color-light);
+	}
+	input[type=checkbox].toggle_switch::before {
+		content: "";
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		margin: 6px;
+		position: absolute;
+		left: 0;
+		transition: left 120ms ease-out, background-color 120ms ease-out;
+		background-color: var(--color);
+	}
+	input[type=checkbox].toggle_switch:checked::before {
+		left: calc(100% - 22px);
+	}
+
 	input[type=radio]::before {
 		content: "\f111";
 		font-family: 'Font Awesome 6 Free';

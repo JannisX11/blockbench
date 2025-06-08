@@ -114,6 +114,7 @@ export class CubeFace extends Face {
 		return vector;
 	}
 }
+CubeFace.prototype.is_rectangular = true;
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
 new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
@@ -274,7 +275,7 @@ export class Cube extends OutlinerElement {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
 			if (other_selected_faces?.length && !own_selected_faces?.length) {
-				own_selected_faces.replace(other_selected_faces);
+				own_selected_faces.replace(other_selected_faces.filter(fkey => this.faces[fkey]));
 			}
 		}
 		return this;
@@ -643,12 +644,12 @@ export class Cube extends OutlinerElement {
 		if (this.box_uv) {
 			if (this.faces.west.uv[2] < this.faces.east.uv[0]) {
 				this.mirror_uv = true;
-				this.uv_offset[0] = this.faces.west.uv[2];
+				this.uv_offset[0] = Math.round(this.faces.west.uv[2]);
 			} else {
 				this.mirror_uv = false;
-				this.uv_offset[0] = this.faces.east.uv[0];
+				this.uv_offset[0] = Math.round(this.faces.east.uv[0]);
 			}
-			this.uv_offset[1] = this.faces.up.uv[3];
+			this.uv_offset[1] = Math.round(this.faces.up.uv[3]);
 			let texture = Texture.getDefault();
 			for (let fkey in this.faces) {
 				if (this.faces[fkey].texture) {
@@ -869,10 +870,10 @@ export class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		let before = this.old_size != undefined ? this.old_size : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		let is_inverted = before < 0;
-		if (is_inverted) negative = !negative;
+		if (is_inverted && allow_negative == null) negative = !negative;
 		let modify = val instanceof Function ? val : n => (n + val);
 
 		if (bidirectional) {
@@ -941,12 +942,12 @@ export class Cube extends OutlinerElement {
 	}
 
 	static behavior = {
-		uv: 'cube',
 		select_faces: 'enum',
 		cube_faces: true,
 		rotatable: true,
 		movable: true,
 		resizable: true,
+		has_pivot: true,
 		cube_rotation_limit: true,
 		cube_size_limit: true,
 		unique_name: false
@@ -1031,9 +1032,6 @@ export class Cube extends OutlinerElement {
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
-new Property(Cube, 'boolean', 'rescale');
-new Property(Cube, 'boolean', 'locked');
-new Property(Cube, 'number', 'light_emission');
 new Property(Cube, 'enum', 'render_order', {
 	default: 'default',
 	values: ['default', 'behind', 'in_front'],
@@ -1044,7 +1042,31 @@ new Property(Cube, 'enum', 'render_order', {
 				behind: 'action.element_render_order.behind',
 				in_front: 'action.element_render_order.in_front'
 			}},
-			onChange() {}
+			onChange() {
+				Cube.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
+new Property(Cube, 'boolean', 'rescale', {
+	condition: () => Format.rotation_limit,
+	inputs: {
+		element_panel: {
+			input: {label: 'cube.rescale', description: 'cube.rescale.desc', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: Cube.all, element_aspects: {transform: true}})
+			}
+		}
+	}
+});
+new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'number', 'light_emission', {
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'action.cube_light_emission', type: 'checkbox'},
 		}
 	}
 });
@@ -1106,10 +1128,12 @@ new NodePreviewController(Cube, {
 		let mesh = element.mesh;
 
 		if (Format.rotate_cubes && element.rescale === true) {
-			var axis = element.rotationAxis()||'y';
-			var rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
+			let axis = element.rotationAxis()||'y';
+			let rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
 			mesh.scale.set(rescale, rescale, rescale);
 			mesh.scale[axis] = 1;
+		} else {
+			mesh.scale.set(1, 1, 1);
 		}
 
 		this.dispatchEvent('update_transform', {element});
@@ -1181,7 +1205,7 @@ new NodePreviewController(Cube, {
 			mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[element.color % Canvas.emptyMaterials.length]
+			mesh.material = Canvas.getSolidColorMaterial(element.color)
 		
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -1197,7 +1221,7 @@ new NodePreviewController(Cube, {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(element.color);
 
 		} else {
 			let materials = [];
@@ -1207,7 +1231,7 @@ new NodePreviewController(Cube, {
 					if (tex && tex.uuid) {
 						materials.push(tex.getMaterial())
 					} else {
-						materials.push(Canvas.emptyMaterials[element.color % Canvas.emptyMaterials.length])
+						materials.push(Canvas.getEmptyMaterial(element.color))
 					}
 				}
 			})

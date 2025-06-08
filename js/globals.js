@@ -13,6 +13,7 @@ Blockbench.TextureMesh = TextureMesh;
 Blockbench.Face = Face;
 Blockbench.CubeFace = CubeFace;
 Blockbench.MeshFace = MeshFace;
+Blockbench.BillboardFace = BillboardFace;
 Blockbench.NodePreviewController = NodePreviewController;
 
 Blockbench.Animator = Animator;

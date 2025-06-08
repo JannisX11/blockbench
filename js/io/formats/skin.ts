@@ -1,23 +1,121 @@
-export const skin_presets = {};
+import { CanvasFrame } from "../../../lib/CanvasFrame"
+import StateMemory from "../../util/state_memory";
+import { setProjectTitle } from "../../interface/interface"
+import { getAllGroups } from "../../outliner/group"
+import { DefaultCameraPresets } from "../../preview/preview"
+import { MinecraftEULA } from "../../preview/preview_scenes"
+import { TextureGenerator } from "../../texturing/texture_generator"
+
+type SkinPreset = {
+	display_name: string
+	pose?: boolean
+	model?: string
+	model_java?: string
+	model_bedrock?: string
+	variants?: {
+		[key: string]: {
+			name: string
+			model: string
+		}
+	}
+}
+export const skin_presets: Record<string, SkinPreset> = {};
+
+type SkinPoseData = Record<string, ArrayVector3 | {rotation: ArrayVector3, offset: ArrayVector3}>
+const DefaultPoses: Record<string, SkinPoseData> = {
+	none: {
+		Head: [0, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [0, 0, 0],
+		LeftArm: [0, 0, 0],
+		RightLeg: [0, 0, 0],
+		LeftLeg: [0, 0, 0],
+	},
+	natural: {
+		Head: [6, -5, 0],
+		Body: [0, 0, 0],
+		RightArm: [10, 0, 0],
+		LeftArm: [-12, 0, 0],
+		RightLeg: [-11, 0, 2],
+		LeftLeg: [10, 0, -2],
+	},
+	walking: {
+		Head: [-2, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [-35, 0, 0],
+		LeftArm: [35, 0, 0],
+		RightLeg: [42, 0, 2],
+		LeftLeg: [-42, 0, -2]
+	},
+	crouching: {
+		Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
+		Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
+		RightArm: [-15, 0, 0],
+		LeftArm: [-40, 0, 0],
+		RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
+		LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
+	},
+	sitting: {
+		Head: [5.5, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: [36, 0, 0],
+		LeftArm: [36, 0, 0],
+		RightLeg: [72, -18, 0],
+		LeftLeg: [72, 18, 0]
+	},
+	jumping: {
+		Head: [20, 0, 0],
+		Body: [0, 0, 0],
+		RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
+		LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
+		RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
+		LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
+	},
+	aiming: {
+		Head: [8, -35, 0],
+		Body: [-2, 0, 0],
+		RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
+		LeftArm: [104, -44, -10],
+		RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
+		LeftLeg: [-28, 0, 0]
+	},
+};
 
 export const codec = new Codec('skin_model', {
 	name: 'Skin Model',
 	remember: false,
 	compile(options) {
 		if (options === undefined) options = 0;
-		var entitymodel = {
-			name: Project.geometry_name.split('.')[0]
+		type BoneData = {
+			name: string
+			parent?: string
+			pivot?: ArrayVector3
+			rotation?: ArrayVector3
+			reset?: boolean
+			mirror?: boolean
+			cubes?: CubeData[]
 		}
-		entitymodel.texturewidth = Project.texture_width;
-		entitymodel.textureheight = Project.texture_height;
-		var bones = []
+		type CubeData = {
+			origin: ArrayVector3
+			size: ArrayVector3
+			inflate?: number
+		}
+		let entitymodel = {
+			name: Project.geometry_name.split('.')[0],
+			texturewidth: Project.texture_width,
+			textureheight: Project.texture_height,
+			bones: undefined as undefined | BoneData[]
+		}
+		let bones = []
 
-		var groups = getAllGroups();
+		let groups = getAllGroups();
 
 		groups.forEach(function(g) {
 			if (g.type !== 'group') return;
 			//Bone
-			var bone = {}
+			let bone: BoneData = {
+				name: g.name
+			}
 			bone.name = g.name
 			if (g.parent.type === 'group') {
 				bone.parent = g.parent.name
@@ -35,15 +133,11 @@ export const codec = new Codec('skin_model', {
 			if (g.mirror_uv) bone.mirror = true;
 
 			//Elements
-			var cubes = []
-			for (var obj of g.children) {
-				if (obj.export) {
-					if (obj instanceof Cube) {
-
-						let template = Codecs.bedrock.compileCube(obj, g);
-						cubes.push(template)
-
-					}
+			let cubes = []
+			for (let obj of g.children) {
+				if (obj.export && obj instanceof Cube) {
+					let template = Codecs.bedrock.compileCube(obj, g);
+					cubes.push(template)
 				}
 			}
 			if (cubes.length) {
@@ -58,23 +152,24 @@ export const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
-	parse(data, resolution, texture_file, pose = true, layer_template) {
+	parse(data: any, resolution: number, texture_file: undefined | false | {name: string, path: string, content: string}, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
 		Project.texture_height = data.textureheight || 64;
+		if (data.texture_resolution_factor) resolution *= data.texture_resolution_factor;
 
 		Interface.Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ? 'natural' : 'none';
 
-		var bones = {}
-		var template_cubes = {};
+		let bones = {}
+		let template_cubes = {};
 
 		if (data.bones) {
-			var included_bones = []
+			let included_bones = []
 			data.bones.forEach(function(b) {
 				included_bones.push(b.name)
 			})
 			data.bones.forEach(function(b, bi) {
-				var group = new Group({
+				let group = new Group({
 					name: b.name,
 					origin: b.pivot,
 					rotation: (pose && b.pose) ? b.pose : b.rotation
@@ -104,7 +199,7 @@ export const codec = new Codec('skin_model', {
 						cg.addTo(group)
 					})
 				}
-				var parent_group = 'root';
+				let parent_group = 'root';
 				if (b.parent) {
 					if (bones[b.parent]) {
 						parent_group = bones[b.parent]
@@ -122,10 +217,11 @@ export const codec = new Codec('skin_model', {
 		if (!Cube.all.find(cube => cube.box_uv)) {
 			Project.box_uv = false;
 		}
-		if (texture_file) {
-			var texture = new Texture().fromFile(texture_file).add(false);
-		} else if (resolution) {
-			var texture = generateTemplate(
+		let texture: Texture | undefined;
+		if (typeof texture_file == 'object') {
+			texture = new Texture().fromFile(texture_file).add(false);
+		} else if (texture_file != false && resolution) {
+			texture = generateTemplate(
 				Project.texture_width*resolution,
 				Project.texture_height*resolution,
 				template_cubes,
@@ -134,7 +230,7 @@ export const codec = new Codec('skin_model', {
 				layer_template
 			)
 		}
-		for (var index in template_cubes) {
+		for (let index in template_cubes) {
 			if (template_cubes[index].visibility === false) {
 				Cube.all[index].visibility = false;
 			}
@@ -154,15 +250,15 @@ export const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
-codec.rebuild = function(model_id, pose) {
+codec.rebuild = function(model_id: string, pose?: string) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
 	let model = JSON.parse(model_raw);
-	codec.parse(model, undefined, undefined, pose && pose !== 'none');
+	codec.parse(model, undefined, true, pose && pose !== 'none');
 	if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
-			Panels.skin_pose.inside_vue.setPose(pose);
+			setDefaultPose(pose);
 		}, 1)
 	}
 }
@@ -200,15 +296,62 @@ format.new = function() {
 }
 format.presets = skin_presets;
 
-export function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template) {
 
-	var texture = new Texture({
-		mode: 'bitmap',
+function setDefaultPose(pose_id: string) {
+	let angles = DefaultPoses[pose_id];
+	loadPose(angles);
+	Panels.skin_pose.inside_vue.pose = pose_id;
+	Project.skin_pose = pose_id;
+}
+function loadPose(pose_data: SkinPoseData) {
+	Panels.skin_pose.inside_vue.pose = '';
+	Group.all.forEach(group => {
+		if (!group.skin_original_origin) return;
+		let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
+		group.origin.V3_set(group.skin_original_origin);
+	})
+	for (let name in pose_data) {
+		let group = Group.all.find(g => g.name == name || g.name.replace(/\s/g, '') == name);
+		if (group) {
+			if (pose_data[name] instanceof Array) {
+				group.extend({rotation: pose_data[name]});
+			} else {
+				group.extend({rotation: pose_data[name].rotation});
+				group.origin.V3_add(pose_data[name].offset);
+			}
+		}
+	}
+	Canvas.updateView({
+		groups: Group.all,
+		group_aspects: {transform: true}
+	})
+}
+function getPoseData(): SkinPoseData {
+	const data: SkinPoseData = {};
+	for (let group of Group.all) {
+		if (!group.skin_original_origin) continue;
+		let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
+		let rotation = group.rotation.slice();
+		if (offset.allEqual(0) == false) {
+			data[group.name] = {
+				offset, rotation
+			}
+		} else if (rotation.allEqual(0) == false) {
+			data[group.name] = rotation;
+		}
+	}
+	return data;
+}
+
+export function generateTemplate(width = 64, height = 64, cubes, name = 'name', eyes, layer_template): Texture {
+
+	let texture = new Texture({
+		internal: true,
 		name: name+'.png'
 	})
 
-	var canvas = document.createElement('canvas')
-	var ctx = canvas.getContext('2d');
+	let canvas = document.createElement('canvas')
+	let ctx = canvas.getContext('2d');
 	canvas.width = width;
 	canvas.height = height;
 
@@ -226,7 +369,7 @@ export function generateTemplate(width = 64, height = 64, cubes, name = 'name', 
 		ctx.fillRect(1, 1, width-2, height-2)
 	}
 	if (eyes) {
-		var res_multiple = canvas.width/Project.texture_width;
+		let res_multiple = canvas.width/Project.texture_width;
 		ctx.fillStyle = '#cdefff';
 		eyes.forEach(eye => {
 			ctx.fillRect(
@@ -237,12 +380,12 @@ export function generateTemplate(width = 64, height = 64, cubes, name = 'name', 
 			)
 		})
 	}
-	var dataUrl = canvas.toDataURL();
+	let dataUrl = canvas.toDataURL();
 	texture.fromDataURL(dataUrl).add(false);
 	return texture;
 }
 
-export const model_options = {};
+export const model_options: Record<string, string> = {};
 let selected_model = '';
 export const skin_dialog = new Dialog({
 	title: tl('dialog.skin.title'),
@@ -261,8 +404,8 @@ export const skin_dialog = new Dialog({
 				java_edition: 'Java Edition',
 				bedrock_edition: 'Bedrock Edition',
 			},
-			condition(form) {
-				return skin_presets[form.model].model_bedrock;
+			condition(form: Record<string, FormResultValue>) {
+				return skin_presets[form.model as string].model_bedrock;
 			}
 		},
 		variant: {
@@ -275,18 +418,29 @@ export const skin_dialog = new Dialog({
 				return skin_presets[form.model].variants;
 			}
 		},
-		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 16, options: {
-			16: 'generic.default',
+		resolution: {label: 'dialog.create_texture.resolution', type: 'select', value: 1, options: {
+			1: 'generic.default',
+			16: '16x',
 			32: '32x',
 			64: '64x',
 			128: '128x',
 		}},
 		resolution_warning: {
 			type: 'info', text: 'dialog.skin.high_res_texture',
-			condition: (form) => form.resolution != 16 && (form.model == 'steve' || form.model == 'alex')
+			condition: (form) => form.resolution > 16 && (form.model == 'steve' || form.model == 'alex')
 		},
-		texture: {
-			label: 'dialog.skin.texture',
+		texture_source: {
+			label: 'dialog.skin.texture_source',
+			type: 'select',
+			options: {
+				template: 'dialog.skin.texture_source.template',
+				load_texture: navigator.onLine ? 'dialog.skin.texture_source.load_texture' : undefined,
+				upload_texture: 'dialog.skin.texture_file',
+			}
+		},
+		texture_file: {
+			label: 'dialog.skin.texture_file',
+			condition: result => result.texture_source == 'upload_texture',
 			type: 'file',
 			extensions: ['png'],
 			readtype: 'image',
@@ -297,11 +451,11 @@ export const skin_dialog = new Dialog({
 		layer_template: {type: 'checkbox', label: 'dialog.skin.layer_template', value: false}
 	},
 	onFormChange(result) {
-		selected_model = result.model;
-		let variants = skin_presets[result.model].variants;
+		selected_model = result.model as string;
+		let variants = skin_presets[result.model as string].variants;
 		if (variants) {
 			for (let key in variants) {
-				if (!result.variant || !variants[result.variant]) {
+				if (!result.variant || !variants[result.variant as string]) {
 					result.variant = key;
 					skin_dialog.setFormValues({variant: key}, false);
 					break;
@@ -309,7 +463,7 @@ export const skin_dialog = new Dialog({
 			}
 		}
 	},
-	onConfirm(result) {
+	onConfirm: async function(result) {
 		if (result.model == 'flat_texture') {
 			if (result.texture) {
 				Codecs.image.load(result.texture);
@@ -329,12 +483,46 @@ export const skin_dialog = new Dialog({
 					raw_model = preset.model;
 				}
 				let model = JSON.parse(raw_model);
-				codec.parse(model, result.resolution/16, result.texture, result.pose, result.layer_template);
+				let resolution = result.resolution;
+				if (resolution == 1) {
+					resolution = model.default_resolution ?? 16;
+				}
+				let texture: string | undefined | false;
+				if (result.texture_source == 'upload_texture') {
+					texture = result.texture_file;
+				} else if (result.texture_source == 'load_texture') {
+					if (!model.external_textures) {
+						Blockbench.showQuickMessage('This skin model does not support loading textures from Minecraft at the moment', 3000);
+					} else if (!navigator.onLine) {
+						Blockbench.showQuickMessage('Failed to load skin texture from Minecraft. Check your internet connection.', 3000);
+					} else {
+						texture = false;
+					}
+				}
+				codec.parse(model, resolution / 16, texture, result.pose, result.layer_template);
 				Project.skin_model = result.model;
 				if (preset.model_bedrock) {
 					Project.skin_model += '.' + (result.game_edition == 'java_edition' ? 'java' : 'bedrock');
 				} else if (preset.variants) {
 					Project.skin_model += '.' + result.variant;
+				}
+				if (result.texture_source == 'load_texture' && navigator.onLine) {
+					let accepted = await MinecraftEULA.promptUser('skin');
+					if (accepted != true) return false;
+					if (model.external_textures) {
+						for (let path of model.external_textures) {
+							let frame = new CanvasFrame();
+							let resource_path = `https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/textures/${path}?raw=true`;
+							frame.loadFromURL(resource_path).then(() => {
+								let dataUrl = (frame.canvas as HTMLCanvasElement).toDataURL();
+								let texture = new Texture({
+									internal: true,
+									name: pathToName(path, true)
+								});
+								texture.fromDataURL(dataUrl).add(false);
+							});
+						}
+					}
 				}
 			}
 		}
@@ -346,6 +534,11 @@ export const skin_dialog = new Dialog({
 });
 format.setup_dialog = skin_dialog;
 
+type SkinPose = {
+	name: string
+	data: SkinPoseData
+}
+StateMemory.init('skin_poses', 'array');
 
 BARS.defineActions(function() {
 	new Mode('pose', {
@@ -376,8 +569,108 @@ BARS.defineActions(function() {
 			Canvas.updateVisibility()
 		}
 	})
-	new Action({
-		id: 'export_minecraft_skin',
+	new Action('convert_minecraft_skin_variant', {
+		icon: 'compare_arrows',
+		category: 'edit',
+		condition: {formats: ['skin'], method: () => Group.all.find(g => g.name == 'Right Arm')},
+		click() {
+			let is_slim = Cube.all.find(c => c.name.match(/arm/i)).size(0) == 3;
+			new Dialog('convert_minecraft_skin_variant', {
+				title: 'action.',
+				form: {
+					model: {
+						label: 'dialog.skin.model',
+						type: 'select',
+						value: is_slim ? 'steve' : 'alex',
+						options: {
+							steve: skin_presets.steve.display_name,
+							alex: skin_presets.alex.display_name,
+						}
+					},
+					adjust_texture: {
+						label: 'dialog.convert_skin.adjust_texture',
+						type: 'checkbox',
+						value: true,
+					}
+				},
+				onConfirm(result) {
+					let right_arm = Group.all.find(g => g.name == 'Right Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let left_arm = Group.all.find(g => g.name == 'Left Arm')?.children?.filter(el => el instanceof Cube) ?? [];
+					let elements = right_arm.concat(left_arm);
+					Undo.initEdit({elements});
+					for (let cube of right_arm) {
+						cube.to[0] = result.model == 'alex' ? 7 : 8;
+					}
+					for (let cube of left_arm) {
+						cube.from[0] = result.model == 'alex' ? -7 : -8;
+					}
+					Canvas.updateView({elements: right_arm.concat(left_arm), element_aspects: {geometry: true, uv: true}, selection: true});
+					Undo.finishEdit('Convert Minecraft skin model');
+
+					if (result.adjust_texture) {
+						let textures = Texture.all.filter(tex => tex.selected || tex.multi_selected);
+						if (!textures.length) textures = [Texture.getDefault()]
+						if (!textures[0]) return;
+						
+						const arm_uv_positions: [number, number][] = [
+							[40, 16],
+							[40, 32],
+							[32, 48],
+							[48, 48],
+						];
+						type Translation = {area: [number, number, number, number], offset: [number, number]};
+						let translations: Translation[];
+						if (result.model == 'alex') {
+							translations = [
+								{area: [6, 0, 10, 16], offset: [-1, 0]},
+								{area: [9, 0, 2, 4], offset: [-1, 0]},
+								{area: [13, 4, 2, 12], offset: [-1, 0]},
+							];
+						} else {
+							translations = [
+								{area: [5, 0, 10, 16], offset: [1, 0]},
+								{area: [9, 0, 2, 4], offset: [1, 0]},
+								{area: [13, 4, 2, 12], offset: [1, 0]},
+							];
+						}
+						Undo.initEdit({textures, bitmap: true});
+						for (let texture of textures) {
+							if (texture.layers_enabled) {
+								texture.layers_enabled = false;
+								texture.selected_layer = null;
+								texture.layers.empty();
+							}
+							texture.edit(() => {
+								let ctx = texture.ctx;
+								for (let position of arm_uv_positions) {
+									for (let translation of translations) {
+										let data = ctx.getImageData(
+											position[0] + translation.area[0],
+											position[1] + translation.area[1],
+											translation.area[2],
+											translation.area[3],
+										);
+										ctx.putImageData(data,
+											position[0] + translation.area[0] + translation.offset[0],
+											position[1] + translation.area[1] + translation.offset[1]
+										);
+									}
+									if (result.model == 'alex') {
+										ctx.clearRect(position[0] + 10, position[1] + 0, 2, 4);
+										ctx.clearRect(position[0] + 14, position[1] + 4, 2, 12);
+									}
+								}
+							}, {no_undo: true});
+						}
+						UVEditor.vue.layer = null;
+						updateSelection();
+						Undo.finishEdit('Convert Minecraft skin texture');
+					}
+				}
+			}).show();
+		}
+	})
+	new Action('export_minecraft_skin', {
 		icon: 'icon-player',
 		category: 'file',
 		condition: () => Format == format && Texture.all[0],
@@ -414,67 +707,67 @@ BARS.defineActions(function() {
 		explode_skin_model.value = !!Project.exploded_view;
 		explode_skin_model.updateEnabledState();
 	})
+
+	
+	new Action('custom_skin_poses', {
+		icon: 'format_list_bulleted',
+		category: 'view',
+		condition: {formats: ['skin'], modes: ['pose']},
+		click(e) {
+			new Menu(this.children()).open(e.target);
+		},
+		children() {
+			let options = [];
+			let memory_list = StateMemory.get('skin_poses') as SkinPose[];
+			memory_list.forEach((pose: SkinPose, i: number) => {
+				let option = {
+					name: pose.name,
+					icon: 'accessibility',
+					id: i.toString(),
+					click() {
+						loadPose(pose.data);
+					},
+					children: [
+						{icon: 'update', name: 'action.custom_skin_poses.update', description: 'action.custom_skin_poses.update.desc', click() {
+							pose.data = getPoseData();
+							StateMemory.save('skin_poses');
+						}},
+						{icon: 'delete', name: 'generic.delete', click() {
+							memory_list.remove(pose);
+							StateMemory.save('skin_poses');
+						}}
+					]
+				}
+				options.push(option);
+			})
+			
+			options.push(
+				'_',
+				'add_custom_skin_pose'
+			);
+			return options;
+		}
+	})
+	new Action('add_custom_skin_pose', {
+		icon: 'add',
+		category: 'view',
+		condition: {formats: ['skin'], modes: ['pose']},
+		click(e) {
+			Blockbench.textPrompt('generic.name', 'new pose', value => {
+				let pose: SkinPose = {
+					name: value,
+					data: getPoseData()
+				};
+				let memory_list = StateMemory.get('skin_poses') as SkinPose[];
+				memory_list.push(pose);
+				StateMemory.save('skin_poses');
+			})
+		}
+	})
 })
 
+// @ts-ignore
 Interface.definePanels(function() {
-	const poses = {
-		none: {
-			Head: [0, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [0, 0, 0],
-			LeftArm: [0, 0, 0],
-			RightLeg: [0, 0, 0],
-			LeftLeg: [0, 0, 0],
-		},
-		natural: {
-			Head: [6, -5, 0],
-			Body: [0, 0, 0],
-			RightArm: [10, 0, 0],
-			LeftArm: [-12, 0, 0],
-			RightLeg: [-11, 0, 2],
-			LeftLeg: [10, 0, -2],
-		},
-		walking: {
-			Head: [-2, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [-35, 0, 0],
-			LeftArm: [35, 0, 0],
-			RightLeg: [42, 0, 2],
-			LeftLeg: [-42, 0, -2]
-		},
-		crouching: {
-			Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
-			Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
-			RightArm: [-15, 0, 0],
-			LeftArm: [-40, 0, 0],
-			RightLeg: {rotation: [-14, 0, 0], offset: [0, 3, 3.75]},
-			LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
-		},
-		sitting: {
-			Head: [5.5, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: [36, 0, 0],
-			LeftArm: [36, 0, 0],
-			RightLeg: [72, -18, 0],
-			LeftLeg: [72, 18, 0]
-		},
-		jumping: {
-			Head: [20, 0, 0],
-			Body: [0, 0, 0],
-			RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
-			LeftArm: {rotation: [-170, 0, 15], offset: [0, 2, 0]},
-			RightLeg: {rotation: [-5, 0, 15], offset: [0, -1, 0]},
-			LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
-		},
-		aiming: {
-			Head: [8, -35, 0],
-			Body: [-2, 0, 0],
-			RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
-			LeftArm: [104, -44, -10],
-			RightLeg: {rotation: [2.5, 0, 0], offset: [0, 1, -2]},
-			LeftLeg: [-28, 0, 0]
-		},
-	};
 	new Panel('skin_pose', {
 		icon: 'icon-player',
 		condition: {modes: ['pose']},
@@ -484,42 +777,21 @@ Interface.definePanels(function() {
 			float_size: [300, 80],
 			height: 80
 		},
+		toolbars: [
+			new Toolbar('skin_pose', {
+				children: [
+					'custom_skin_poses',
+					'add_custom_skin_pose'
+				]
+			})
+		],
 		component: {
 			data() {return {
 				pose: 'default'
 			}},
 			methods: {
 				setPose(pose) {
-					/*let old_angles = poses[this.pose];
-					for (let name in old_angles) {
-						if (old_angles[name].offset) {
-						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
-							if (group) {
-								group.origin.V3_subtract(old_angles[name].offset);
-							}
-						}
-					}*/
-					Group.all.forEach(group => {
-						if (!group.skin_original_origin) return;
-						let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
-						group.origin.V3_set(group.skin_original_origin);
-					})
-					this.pose = pose;
-					Project.skin_pose = pose;
-					let angles = poses[pose];
-					for (let name in angles) {
-						let group = Group.all.find(g => g.name.replace(/\s/g, '') == name);
-						if (group) {
-							group.extend({rotation: angles[name].rotation || angles[name]});
-							if (angles[name].offset) {
-								group.origin.V3_add(angles[name].offset);
-							}
-						}
-					}
-					Canvas.updateView({
-						groups: Group.all,
-						group_aspects: {transform: true}
-					})
+					setDefaultPose(pose);
 				}
 			},
 			template: `
@@ -555,7 +827,14 @@ skin_presets.steve = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -566,6 +845,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -575,6 +855,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -585,6 +866,7 @@ skin_presets.steve = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -629,7 +911,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -640,6 +929,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -649,6 +939,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 22, 0],
 				"pose": [-10, 0, 0],
@@ -659,6 +950,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 22, 0],
 				"pose": [12, 0, 0],
@@ -699,7 +991,14 @@ skin_presets.alex = {
 		],
 		"bones": [
 			{
+				"name": "Waist",
+				"color": 0,
+				"pivot": [0, 12, 0],
+				"pose": [0, 0, 0]
+			},
+			{
 				"name": "Head",
+				"parent": "Waist",
 				"color": 1,
 				"pivot": [0, 24, 0],
 				"pose": [-6, 5, 0],
@@ -710,6 +1009,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Body",
+				"parent": "Waist",
 				"color": 3,
 				"pivot": [0, 24, 0],
 				"cubes": [
@@ -719,6 +1019,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Right Arm",
+				"parent": "Waist",
 				"color": 5,
 				"pivot": [-5, 21.5, 0],
 				"pose": [-10, 0, 0],
@@ -729,6 +1030,7 @@ skin_presets.alex = {
 			},
 			{
 				"name": "Left Arm",
+				"parent": "Waist",
 				"color": 0,
 				"pivot": [5, 21.5, 0],
 				"pose": [12, 0, 0],
@@ -819,6 +1121,7 @@ skin_presets.allay = {
 	display_name: 'Allay',
 	model: `{
 		"name": "allay",
+		"external_textures": ["entity/allay/allay.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"eyes": [
@@ -892,6 +1195,7 @@ skin_presets.armadillo = {
 	display_name: 'Armadillo',
 	model: `{
 		"name": "armadillo",
+		"external_textures": ["entity/armadillo.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -983,6 +1287,7 @@ skin_presets.armor_main = {
 	pose: true,
 	model: `{
 		"name": "armor_main",
+		"external_textures": ["models/armor/iron_1.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -1048,6 +1353,7 @@ skin_presets.armor_leggings = {
 	pose: true,
 	model: `{
 		"name": "armor_leggings",
+		"external_textures": ["models/armor/iron_2.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -1084,6 +1390,7 @@ skin_presets.armor_stand = {
 	display_name: 'Armor Stand',
 	model: `{
 		"name": "armor_stand",
+		"external_textures": ["entity/armor_stand.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -1159,6 +1466,7 @@ skin_presets.axolotl = {
 	display_name: 'Axolotl',
 	model: `{
 		"name": "axolotl",
+		"external_textures": ["entity/axolotl/axolotl_lucy.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -1263,6 +1571,7 @@ skin_presets.bamboo_raft = {
 	display_name: 'Bamboo Raft',
 	model: `{
 		"name": "",
+		"external_textures": ["entity/boat/bamboo_raft.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -1331,6 +1640,7 @@ skin_presets.bat = {
 			name: 'New',
 			model: `{
 				"name": "bat_v2",
+				"external_textures": ["entity/bat_v2.png"],
 				"texturewidth": 32,
 				"textureheight": 32,
 				"eyes": [
@@ -1415,6 +1725,7 @@ skin_presets.bat = {
 			name: 'Classic',
 			model: `{
 				"name": "bat",
+				"external_textures": ["entity/bat.png"],
 				"texturewidth": 64,
 				"textureheight": 64,
 				"bones": [
@@ -1498,6 +1809,7 @@ skin_presets.bed = {
 	display_name: 'Bed',
 	model_bedrock: `{
 		"name": "bed",
+		"external_textures": ["entity/bed/white.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -1527,6 +1839,7 @@ skin_presets.bed = {
 	}`,
 	model_java: `{
 		"name": "bed",
+		"external_textures": ["entity/bed/white.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -1577,6 +1890,7 @@ skin_presets.bee = {
 	display_name: 'Bee',
 	model: `{
 		"name": "bee",
+		"external_textures": ["entity/bee/bee.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -1650,6 +1964,7 @@ skin_presets.bell = {
 	display_name: 'Bell',
 	model: `{
 		"name": "bell",
+		"external_textures": ["entity/bell.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -1773,6 +2088,7 @@ skin_presets.boat = {
 	display_name: 'Boat',
 	model: `{
 		"name": "boat",
+		"external_textures": ["entity/boat/boat_oak.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -1847,6 +2163,7 @@ skin_presets.bogged = {
 	display_name: 'Bogged',
 	model: `{
 		"name": "bogged",
+		"external_textures": ["entity/skeleton/bogged.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -1939,6 +2256,7 @@ skin_presets.bogged_layer = {
 	display_name: 'Bogged/Stray Layer',
 	model: `{
 		"name": "bogged_layer",
+		"external_textures": ["entity/skeleton/bogged_clothes.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -2005,6 +2323,7 @@ skin_presets.breeze = {
 	display_name: 'Breeze',
 	model: `{
 		"name": "breeze",
+		"external_textures": ["entity/breeze/breeze.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"eyes": [
@@ -2051,6 +2370,7 @@ skin_presets.breeze_tornado = {
 	display_name: 'Breeze Tornado',
 	model: `{
 		"name": "breeze_wind",
+		"external_textures": ["entity/breeze/breeze_wind.png"],
 		"texturewidth": 128,
 		"textureheight": 128,
 		"bones": [
@@ -2093,6 +2413,7 @@ skin_presets.camel = {
 	display_name: 'Camel',
 	model: `{
 		"name": "camel",
+		"external_textures": ["entity/camel/camel.png"],
 		"texturewidth": 128,
 		"textureheight": 128,
 		"eyes": [
@@ -2225,6 +2546,7 @@ skin_presets.cat = {
 	display_name: 'Cat',
 	model: `{
 		"name": "cat",
+		"external_textures": ["entity/cat/calico.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -2309,6 +2631,7 @@ skin_presets.cape_elytra = {
 	display_name: 'Cape + Elytra',
 	model: `{
 		"name": "cape and elytra",
+		"external_textures": ["entity/models/armor/elytra.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -2348,6 +2671,7 @@ skin_presets.chest = {
 	display_name: 'Chest',
 	model: `{
 		"name": "chest",
+		"external_textures": ["entity/chest/normal.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -2368,6 +2692,7 @@ skin_presets.chest_left = {
 	display_name: 'Chest Left',
 	model: `{
 		"name": "chest_left",
+		"external_textures": ["entity/chest/double_normal.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -2388,6 +2713,7 @@ skin_presets.chest_right = {
 	display_name: 'Chest Right',
 	model: `{
 		"name": "chest_right",
+		"external_textures": ["entity/chest/double_normal.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -2411,6 +2737,7 @@ skin_presets.chicken = {
 			name: 'Regular',
 			model: `{
 				"name": "chicken",
+				"external_textures": ["entity/chicken/chicken.png"],
 				"texturewidth": 64,
 				"textureheight": 32,
 				"bones": [
@@ -2480,6 +2807,7 @@ skin_presets.chicken = {
 			name: 'Cold',
 			model: `{
 				"name": "chicken_cold",
+				"external_textures": ["entity/chicken/chicken_cold.png"],
 				"texturewidth": 64,
 				"textureheight": 32,
 				"bones": [
@@ -2552,6 +2880,7 @@ skin_presets.cod = {
 	display_name: 'Cod',
 	model: `{
 		"name": "cod",
+		"external_textures": ["entity/fish/cod.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -2614,6 +2943,7 @@ skin_presets.cow = {
 			name: 'Regular',
 			model: `{
 				"name": "cow",
+				"external_textures": ["entity/cow/cow.png"],
 				"texturewidth": 64,
 				"textureheight": 64,
 				"eyes": [
@@ -2686,6 +3016,7 @@ skin_presets.cow = {
 			name: 'Cold',
  			model: `{
 				"name": "cow_cold",
+				"external_textures": ["entity/cow/cow_cold.png"],
 				"texturewidth": 64,
 				"textureheight": 64,
 				"eyes": [
@@ -2759,6 +3090,7 @@ skin_presets.cow = {
 			name: 'Warm',
  			model: `{
 				"name": "cow_warm",
+				"external_textures": ["entity/cow/cow_warm.png"],
 				"texturewidth": 64,
 				"textureheight": 64,
 				"eyes": [
@@ -2897,6 +3229,7 @@ skin_presets.creaking = {
 	display_name: 'Creaking',
 	model: `{
 		"name": "creaking",
+		"external_textures": ["entity/creaking/creaking.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -2979,6 +3312,7 @@ skin_presets.creeper = {
 	display_name: 'Creeper',
 	model: `{
 		"name": "creeper",
+		"external_textures": ["entity/creeper/creeper.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -3041,6 +3375,7 @@ skin_presets.dolphin = {
 	pose: true,
 	model_bedrock: `{
 		"name": "dolphin",
+		"external_textures": ["entity/dolphin.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -3116,6 +3451,7 @@ skin_presets.dolphin = {
 	}`,
 	model_java: `{
 		"name": "dolphin",
+		"external_textures": ["entity/dolphin.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -3610,6 +3946,7 @@ skin_presets.endermite = {
 	display_name: 'Endermite',
 	model: `{
 		"name": "endermite",
+		"external_textures": ["entity/endermite.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -3651,6 +3988,7 @@ skin_presets.evocation_fang = {
 	display_name: 'Evocation Fang',
 	model: `{
 		"name": "evocation_fang",
+		"external_textures": ["entity/illager/fangs.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -3686,6 +4024,7 @@ skin_presets.evoker = {
 	display_name: 'Evoker',
 	model: `{
 		"name": "evoker",
+		"external_textures": ["entity/illager/evoker.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -3764,6 +4103,7 @@ skin_presets.fox = {
 	display_name: 'Fox',
 	model_bedrock: `{
 		"name": "fox",
+		"external_textures": ["entity/fox/fox.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -3890,6 +4230,7 @@ skin_presets.frog = {
 	display_name: 'Frog',
 	model: `{
 		"name": "frog",
+		"external_textures": ["entity/frog/temperate_frog.png"],
 		"texturewidth": 48,
 		"textureheight": 48,
 		"eyes": [
@@ -3999,8 +4340,14 @@ skin_presets.ghast = {
 	display_name: 'Ghast',
 	model: `{
 		"name": "ghast",
+		"external_textures": ["entity/ghast/ghast.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
+		"default_resolution": 32,
+		"eyes": [
+			[19, 21, 3, 1],
+			[26, 21, 3, 1]
+		],
 		"bones": [
 			{
 				"name": "body",
@@ -4088,6 +4435,7 @@ skin_presets.goat = {
 	display_name: 'Goat',
 	model: `{
 		"name": "goat",
+		"external_textures": ["entity/goat/goat.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -4155,6 +4503,7 @@ skin_presets.guardian = {
 	display_name: 'Guardian',
 	model: `{
 		"name": "guardian",
+		"external_textures": ["entity/guardian.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -4317,10 +4666,134 @@ skin_presets.guardian = {
 		]
 	}`
 };
+skin_presets.happy_ghast = {
+	display_name: 'Happy Ghast',
+	model: `{
+		"name": "happy_ghast",
+		"external_textures": ["entity/happy_ghast/adult.png"],
+		"texturewidth": 64,
+		"textureheight": 64,
+		"default_resolution": 32,
+		"eyes": [
+			[18, 24, 3, 1],
+			[27, 24, 3, 1]
+		],
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0, -8], "size": [16, 16, 16], "uv": [0, 0]},
+					{"origin": [-8, 0, -8], "size": [16, 16, 16], "inflate": -0.5, "uv": [0, 32]}
+				]
+			},
+			{
+				"name": "tentacles_0",
+				"parent": "body",
+				"pivot": [-3.8, 1, -5],
+				"cubes": [
+					{"origin": [-4.8, -4, -6], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_1",
+				"parent": "body",
+				"pivot": [1.3, 1, -5],
+				"cubes": [
+					{"origin": [0.3, -6, -6], "size": [2, 7, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_2",
+				"parent": "body",
+				"pivot": [6.3, 1, -5],
+				"cubes": [
+					{"origin": [5.3, -3, -6], "size": [2, 4, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_3",
+				"parent": "body",
+				"pivot": [-6.3, 1, 0],
+				"cubes": [
+					{"origin": [-7.3, -4, -1], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_4",
+				"parent": "body",
+				"pivot": [-1.3, 1, 0],
+				"cubes": [
+					{"origin": [-2.3, -4, -1], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_5",
+				"parent": "body",
+				"pivot": [3.8, 1, 0],
+				"cubes": [
+					{"origin": [2.8, -6, -1], "size": [2, 7, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_6",
+				"parent": "body",
+				"pivot": [-3.8, 1, 5],
+				"cubes": [
+					{"origin": [-4.8, -7, 4], "size": [2, 8, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_7",
+				"parent": "body",
+				"pivot": [1.3, 1, 5],
+				"cubes": [
+					{"origin": [0.3, -7, 4], "size": [2, 8, 2], "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "tentacles_8",
+				"parent": "body",
+				"pivot": [6.3, 1, 5],
+				"cubes": [
+					{"origin": [5.3, -4, 4], "size": [2, 5, 2], "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.harness = {
+	display_name: 'Happy Ghast Harness',
+	model: `{
+		"name": "harness",
+		"external_textures": ["entity/harness/harness_white.png"],
+		"texturewidth": 64,
+		"textureheight": 64,
+		"default_resolution": 32,
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 0, 0],
+				"cubes": [
+					{"origin": [-8, 0.5, -8], "size": [16, 16, 16], "inflate": 0.5, "uv": [0, 0]}
+				]
+			},
+			{
+				"name": "goggles",
+				"parent": "body",
+				"pivot": [0, 11.5, -5.5],
+				"cubes": [
+					{"origin": [-8, 7.5, -8], "size": [16, 5, 5], "inflate": 0.65, "uv": [0, 32]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.hoglin = {
 	display_name: 'Hoglin',
 	model: `{
 		"name": "hoglin",
+		"external_textures": ["entity/hoglin/hoglin.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -4396,6 +4869,7 @@ skin_presets.horse = {
 	display_name: 'Horse',
 	model: `{
 		"name": "horse",
+		"external_textures": ["entity/horse2/horse_gray.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -4561,6 +5035,7 @@ skin_presets.irongolem = {
 	display_name: 'Iron Golem',
 	model: `{
 		"name": "irongolem",
+		"external_textures": ["entity/iron_golem.png"],
 		"texturewidth": 128,
 		"textureheight": 128,
 		"bones": [
@@ -4621,6 +5096,7 @@ skin_presets.llama = {
 	display_name: 'Llama',
 	model: `{
 		"name": "llama",
+		"external_textures": ["entity/llama/llama.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"eyes": [
@@ -4826,6 +5302,7 @@ skin_presets.minecart = {
 	display_name: 'Minecart',
 	model: `{
 		"name": "minecart",
+		"external_textures": ["entity/minecart.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -4880,6 +5357,7 @@ skin_presets.panda = {
 	display_name: 'Panda',
 	model: `{
 		"name": "panda",
+		"external_textures": ["entity/panda/panda.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -4940,6 +5418,7 @@ skin_presets.parrot = {
 	display_name: 'Parrot',
 	model: `{
 		"name": "parrot",
+		"external_textures": ["entity/parrot/parrot_red_blue.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -5009,6 +5488,7 @@ skin_presets.phantom = {
 	display_name: 'Phantom',
 	model: `{
 		"name": "phantom",
+		"external_textures": ["entity/llama/llama.png"],
 		"eyes": [
 			[5, 6, 2, 1],
 			[10, 6, 2, 1]
@@ -5097,6 +5577,7 @@ skin_presets.pig = {
 			name: 'New',
 			model: `{
 				"name": "pig",
+				"external_textures": ["entity/pig/pig.png"],
 				"texturewidth": 64,
 				"textureheight": 64,
 				"eyes": [
@@ -5167,6 +5648,7 @@ skin_presets.pig = {
 			name: 'Classic',
 			model: `{
 				"name": "pig",
+				"external_textures": ["entity/pig/pig.png"],
 				"texturewidth": 64,
 				"textureheight": 32,
 				"eyes": [
@@ -5229,6 +5711,7 @@ skin_presets.piglin = {
 	display_name: 'Piglin',
 	model: `{
 		"name": "piglin",
+		"external_textures": ["entity/piglin/piglin.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -5315,6 +5798,7 @@ skin_presets.pillager = {
 	display_name: 'Pillager',
 	model: `{
 		"name": "pillager",
+		"external_textures": ["entity/pillager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -5383,6 +5867,7 @@ skin_presets.polarbear = {
 	display_name: 'Polarbear',
 	model: `{
 		"name": "polarbear",
+		"external_textures": ["entity/polarbear.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -5441,6 +5926,7 @@ skin_presets.pufferfish = {
 	display_name: 'Pufferfish',
 	model: `{
 		"name": "pufferfish",
+		"external_textures": ["entity/fish/pufferfish.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -5703,6 +6189,7 @@ skin_presets.rabbit = {
 	display_name: 'Rabbit',
 	model: `{
 		"name": "rabbit",
+		"external_textures": ["entity/rabbit/salt.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -5817,6 +6304,7 @@ skin_presets.ravager = {
 	display_name: 'Ravager',
 	model: `{
 		"name": "ravager",
+		"external_textures": ["entity/illager/ravager.png"],
 		"texturewidth": 128,
 		"textureheight": 128,
 		"bones": [
@@ -5898,6 +6386,7 @@ skin_presets.salmon = {
 	display_name: 'Salmon',
 	model: `{
 		"name": "salmon",
+		"external_textures": ["entity/fish/salmon.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -6032,6 +6521,7 @@ skin_presets.shield = {
 	display_name: 'Shield',
 	model: `{
 		"name": "shield",
+		"external_textures": ["entity/shield.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -6050,6 +6540,7 @@ skin_presets.shulker = {
 	display_name: 'Shulker',
 	model: `{
 		"name": "shulker",
+		"external_textures": ["entity/shulker/shulker_white.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -6083,6 +6574,7 @@ skin_presets.shulker_bullet = {
 	display_name: 'Shulker Bullet',
 	model: `{
 		"name": "shulker_bullet",
+		"external_textures": ["entity/shulker/shulker_white.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -6102,6 +6594,7 @@ skin_presets.silverfish = {
 	display_name: 'Silverfish',
 	model: `{
 		"name": "silverfish",
+		"external_textures": ["entity/silverfish.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -6191,6 +6684,7 @@ skin_presets.skeleton = {
 	display_name: 'Skeleton/Stray',
 	model: `{
 		"name": "skeleton",
+		"external_textures": ["entity/skeleton/skeleton.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -6260,6 +6754,7 @@ skin_presets.slime = {
 	display_name: 'Slime',
 	model: `{
 		"name": "slime",
+		"external_textures": ["entity/slime/slime.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -6290,6 +6785,7 @@ skin_presets.sniffer = {
 	display_name: 'Sniffer',
 	model: `{
 		"name": "sniffer",
+		"external_textures": ["entity/sniffer/sniffer.png"],
 		"texturewidth": 192,
 		"textureheight": 192,
 		"eyes": [
@@ -6407,6 +6903,7 @@ skin_presets.snowgolem = {
 	display_name: 'Snowgolem',
 	model: `{
 		"name": "snowgolem",
+		"external_textures": ["entity/snow_golem.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -6557,6 +7054,7 @@ skin_presets.spyglass = {
 	display_name: 'Spyglass',
 	model: `{
 		"name": "spyglass",
+		"external_textures": ["entity/spyglass.png"],
 		"texturewidth": 16,
 		"textureheight": 16,
 		"bones": [
@@ -6575,6 +7073,7 @@ skin_presets.squid = {
 	display_name: 'Squid',
 	model: `{
 		"name": "squid",
+		"external_textures": ["entity/squid.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -6659,6 +7158,7 @@ skin_presets.strider = {
 	display_name: 'Strider',
 	model: `{
 		"name": "strider",
+		"external_textures": ["entity/strider/strider.png"],
 		"texturewidth": 64,
 		"textureheight": 128,
 		"eyes": [
@@ -6752,6 +7252,7 @@ skin_presets.tadpole = {
 	display_name: 'Tadpole',
 	model: `{
 		"name": "tadpole",
+		"external_textures": ["entity/tadpole/tadpole.png"],
 		"texturewidth": 16,
 		"textureheight": 16,
 		"eyes": [
@@ -6786,6 +7287,7 @@ skin_presets.tropicalfish_a = {
 	display_name: 'Tropicalfish A',
 	model: `{
 		"name": "tropicalfish_a",
+		"external_textures": ["entity/fish/tropical_a.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -6830,6 +7332,7 @@ skin_presets.tropicalfish_b = {
 	display_name: 'Tropicalfish B',
 	model: `{
 		"name": "tropicalfish_b",
+		"external_textures": ["entity/fish/tropical_b.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"bones": [
@@ -6875,6 +7378,7 @@ skin_presets.turtle = {
 	display_name: 'Turtle',
 	model_bedrock: `{
 		"name": "sea_turtle",
+		"external_textures": ["entity/sea_turtle.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -6936,6 +7440,7 @@ skin_presets.turtle = {
 	}`,
 	model_java: `{
 		"name": "big_sea_turtle",
+		"external_textures": ["entity/sea_turtle.png"],
 		"texturewidth": 128,
 		"textureheight": 64,
 		"bones": [
@@ -7000,6 +7505,7 @@ skin_presets.vex = {
 	display_name: 'Vex',
 	model: `{
 		"name": "vex",
+		"external_textures": ["entity/vex/vex.png"],
 		"texturewidth": 32,
 		"textureheight": 32,
 		"eyes": [
@@ -7067,6 +7573,7 @@ skin_presets.villager = {
 	display_name: 'Villager (Old)',
 	model: `{
 		"name": "villager",
+		"external_textures": ["entity/villager/villager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7124,6 +7631,7 @@ skin_presets.villager_v2 = {
 	display_name: 'Villager (New)',
 	model_java: `{
 		"name": "villager_v2",
+		"external_textures": ["entity/villager2/villager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7277,6 +7785,7 @@ skin_presets.vindicator = {
 	display_name: 'Vindicator',
 	model: `{
 		"name": "vindicator",
+		"external_textures": ["entity/vindicator.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7349,6 +7858,7 @@ skin_presets.warden = {
 	display_name: 'Warden',
 	model: `{
 		"name": "warden",
+		"external_textures": ["entity/warden/warden.png"],
 		"texturewidth": 128,
 		"textureheight": 128,
 		"eyes": [
@@ -7446,6 +7956,7 @@ skin_presets.witch = {
 	display_name: 'Witch',
 	model: `{
 		"name": "witch",
+		"external_textures": ["entity/witch.png"],
 		"texturewidth": 64,
 		"textureheight": 128,
 		"bones": [
@@ -7539,6 +8050,7 @@ skin_presets.witherBoss = {
 	display_name: 'Wither',
 	model: `{
 		"name": "witherBoss",
+		"external_textures": ["entity/wither_boss/wither.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7600,6 +8112,7 @@ skin_presets.wolf = {
 	display_name: 'Wolf',
 	model: `{
 		"name": "wolf",
+		"external_textures": ["entity/wolf/wolf.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -7673,6 +8186,7 @@ skin_presets.zombie = {
 	pose: true,
 	model_java: `{
 		"name": "zombie",
+		"external_textures": ["entity/zombie/zombie.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
@@ -7734,6 +8248,7 @@ skin_presets.zombie = {
 	}`,
 	model_bedrock: `{
 		"name": "zombie",
+		"external_textures": ["entity/zombie/zombie.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"eyes": [
@@ -7798,6 +8313,7 @@ skin_presets.zombie_villager_1 = {
 	display_name: 'Zombie Villager (Old)',
 	model: `{
 		"name": "zombie_villager_1",
+		"external_textures": ["entity/zombie_villager/zombie_villager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7858,6 +8374,7 @@ skin_presets.zombie_villager_2 = {
 	display_name: 'Zombie Villager (New)',
 	model_java: `{
 		"name": "zombie_villager_2",
+		"external_textures": ["entity/zombie_villager2/zombie-villager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7894,6 +8411,7 @@ skin_presets.zombie_villager_2 = {
 				"name": "brim",
 				"parent": "Head",
 				"pivot": [0, 24, 0],
+				"rotation": [-90, 0, 0],
 				"cubes": [
 					{"name": "brim", "origin": [-8, 16, -6], "size": [16, 16, 1], "uv": [30, 47], "inflate": 0.1}
 				]
@@ -7932,6 +8450,7 @@ skin_presets.zombie_villager_2 = {
 	}`,
 	model_bedrock: `{
 		"name": "zombie_villager_2",
+		"external_textures": ["entity/zombie_villager2/zombie-villager.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"bones": [
@@ -7968,6 +8487,7 @@ skin_presets.zombie_villager_2 = {
 				"name": "brim",
 				"parent": "Head",
 				"pivot": [0, 24, 0],
+				"rotation": [-90, 0, 0],
 				"cubes": [
 					{"name": "brim", "origin": [-8, 16, -6], "size": [16, 16, 1], "uv": [30, 47], "inflate": 0.1}
 				]
@@ -8006,6 +8526,6 @@ skin_presets.zombie_villager_2 = {
 	}`
 };
 
-for (var id in skin_presets) {
+for (let id in skin_presets) {
 	model_options[id] = skin_presets[id].display_name;
 }

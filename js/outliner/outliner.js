@@ -641,16 +641,12 @@ export class NodePreviewController extends EventSystem {
 			mesh.rotation.x = Math.degToRad(element.rotation[0]);
 			mesh.rotation.y = Math.degToRad(element.rotation[1]);
 			mesh.rotation.z = Math.degToRad(element.rotation[2]);
-		} else {
-			mesh.rotation.set(0, 0, 0);
 		}
 
-		if (element.scalable) {
+		if (element.getTypeBehavior('scalable')) {
 			mesh.scale.x = element.scale[0] || 1e-7;
 			mesh.scale.y = element.scale[1] || 1e-7;
 			mesh.scale.z = element.scale[2] || 1e-7;
-		} else {
-			mesh.scale.set(1, 1, 1);
 		}
 
 		if (Format.bone_rig) {
@@ -965,6 +961,8 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 
 //Misc
 export function renameOutliner(element) {
+	if (Format.id == 'skin') return;
+
 	stopRenameOutliner()
 
 	if (Group.first_selected && !element && !Project.EditSession) {
@@ -1052,7 +1050,7 @@ StateMemory.init('advanced_outliner_toggles', 'boolean')
 
 SharedActions.add('rename', {
 	subject: 'outliner',
-	condition: {modes: ['edit', 'paint']},
+	condition: {modes: ['edit', 'paint'], method: () => Format.id != 'skin'},
 	priority: -1,
 	run() {
 		renameOutliner();
@@ -1110,7 +1108,7 @@ SharedActions.add('duplicate', {
 
 		if (Animation.all.length) {
 			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
-			if (affected_anims) {
+			if (affected_anims.length) {
 				Blockbench.showMessageBox({
 					translateKey: 'duplicate_bone_copy_animation',
 					message: tl('message.duplicate_bone_copy_animation.message', [affected_anims.length]),
@@ -1298,7 +1296,7 @@ BARS.defineActions(function() {
 				return {
 					name: group.name,
 					icon: 'folder',
-					color: markerColors[group.color % markerColors.length] && markerColors[group.color % markerColors.length].standard,
+					color: markerColors[group.color % markerColors.length]?.standard,
 					click(event) {
 						moveOutlinerSelectionTo(element, group, event);
 						element.showInOutliner();
@@ -1938,6 +1936,7 @@ Interface.definePanels(function() {
 			'add_mesh',
 			'add_cube',
 			'add_texture_mesh',
+			'add_billboard',
 			'add_group',
 			new MenuSeparator('copypaste'),
 			'paste',

@@ -1,10 +1,12 @@
-import { Blockbench, StateMemory } from "./api";
+import { Blockbench } from "./api";
+import StateMemory from "./util/state_memory";
 import { Dialog } from "./interface/dialog";
 import { settings, Settings, SettingsProfile } from "./interface/settings";
 import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
+import { FileSystem } from "./file_system";
 
 interface FileResult {
 	name: string
@@ -487,7 +489,7 @@ export class Plugin {
 			}
 		});
 	}
-	async loadFromFile(file: FileResult, first = false) {
+	async loadFromFile(file: FileSystem.FileResult, first = false) {
 		var scope = this;
 		if (!isApp && !first) return this;
 		if (first) {
@@ -668,8 +670,7 @@ export class Plugin {
 		this.remember();
 	}
 	showContextMenu(event) {
-		//if (!this.installed) return;
-		this.menu.open(event, this);
+		Plugin.menu.open(event, this);
 	}
 	isReloadable() {
 		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
@@ -793,7 +794,7 @@ export class Plugin {
 		}
 		if (this.source == 'store') {
 			if (!this.details.bug_tracker) {
-				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title}]`;
+				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title.replace(/[+&]/g, 'and')}]`;
 			}
 			if (!this.details.repository) {
 				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
@@ -822,6 +823,76 @@ export class Plugin {
 	}
 
 	static selected: Plugin|null = null
+	
+	static menu = new Menu([
+		new MenuSeparator('installation'),
+		{
+			name: 'generic.share',
+			icon: 'share',
+			condition: plugin => Plugins.json[plugin.id],
+			click(plugin) {
+				let url = `https://www.blockbench.net/plugins/${plugin.id}`;
+				new Dialog('share_plugin', {
+					title: tl('generic.share') + ': ' + plugin.title,
+					icon: 'extension',
+					form: {
+						link: {type: 'text', value: url, readonly: true, share_text: true}
+					}
+				}).show();
+			}
+		},
+		'_',
+		{
+			name: 'dialog.plugins.install',
+			icon: 'add',
+			condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
+			click(plugin) {
+				plugin.install();
+			}
+		},
+		{
+			name: 'dialog.plugins.uninstall',
+			icon: 'delete',
+			condition: plugin => (plugin.installed),
+			click(plugin) {
+				plugin.uninstall();
+			}
+		},
+		{
+			name: 'dialog.plugins.disable',
+			icon: 'bedtime',
+			condition: plugin => (plugin.installed && !plugin.disabled),
+			click(plugin) {
+				plugin.toggleDisabled();
+			}
+		},
+		{
+			name: 'dialog.plugins.enable',
+			icon: 'bedtime',
+			condition: plugin => (plugin.installed && plugin.disabled),
+			click(plugin) {
+				plugin.toggleDisabled();
+			}
+		},
+		new MenuSeparator('developer'),
+		{
+			name: 'dialog.plugins.reload',
+			icon: 'refresh',
+			condition: plugin => (plugin.installed && plugin.isReloadable()),
+			click(plugin) {
+				plugin.reload();
+			}
+		},
+		{
+			name: 'menu.animation.open_location',
+			icon: 'folder',
+			condition: plugin => (isApp && plugin.source == 'file'),
+			click(plugin) {
+				showItemInFolder(plugin.path);
+			}
+		},
+	])
+
 	static register(id: string, data: PluginOptions) {
 		if (typeof id !== 'string' || typeof data !== 'object') {
 			console.warn('Plugin.register: not enough arguments, string and object required.')
@@ -854,74 +925,6 @@ export class Plugin {
 		return plugin;
 	}
 }
-Plugin.prototype.menu = new Menu([
-	new MenuSeparator('installation'),
-	{
-		name: 'generic.share',
-		icon: 'share',
-		condition: plugin => Plugins.json[plugin.id],
-		click(plugin) {
-			let url = `https://www.blockbench.net/plugins/${plugin.id}`;
-			new Dialog('share_plugin', {
-				title: tl('generic.share') + ': ' + plugin.title,
-				icon: 'extension',
-				form: {
-					link: {type: 'text', value: url, readonly: true, share_text: true}
-				}
-			}).show();
-		}
-	},
-	'_',
-	{
-		name: 'dialog.plugins.install',
-		icon: 'add',
-		condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
-		click(plugin) {
-			plugin.install();
-		}
-	},
-	{
-		name: 'dialog.plugins.uninstall',
-		icon: 'delete',
-		condition: plugin => (plugin.installed),
-		click(plugin) {
-			plugin.uninstall();
-		}
-	},
-	{
-		name: 'dialog.plugins.disable',
-		icon: 'bedtime',
-		condition: plugin => (plugin.installed && !plugin.disabled),
-		click(plugin) {
-			plugin.toggleDisabled();
-		}
-	},
-	{
-		name: 'dialog.plugins.enable',
-		icon: 'bedtime',
-		condition: plugin => (plugin.installed && plugin.disabled),
-		click(plugin) {
-			plugin.toggleDisabled();
-		}
-	},
-	new MenuSeparator('developer'),
-	{
-		name: 'dialog.plugins.reload',
-		icon: 'refresh',
-		condition: plugin => (plugin.installed && plugin.isReloadable()),
-		click(plugin) {
-			plugin.reload();
-		}
-	},
-	{
-		name: 'menu.animation.open_location',
-		icon: 'folder',
-		condition: plugin => (isApp && plugin.source == 'file'),
-		click(plugin) {
-			showItemInFolder(plugin.path);
-		}
-	},
-]);
 
 
 // Alias for typescript
@@ -1090,13 +1093,20 @@ export async function loadInstalledPlugins() {
 }
 
 BARS.defineActions(function() {
-
+	let actions_setup = false;
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
 		title: 'dialog.plugins.title',
 		buttons: [],
 		width: 1200,
 		resizable: 'xy',
+		onOpen() {
+			if (!actions_setup) {
+				BarItems.load_plugin.toElement(document.getElementById('plugins_list_main_bar'));
+				BarItems.load_plugin_from_url.toElement(document.getElementById('plugins_list_main_bar'));
+				actions_setup = true;
+			}
+		},
 		component: {
 			data: {
 				tab: 'installed',
@@ -1476,7 +1486,8 @@ BARS.defineActions(function() {
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
 				capitalizeFirstLetter,
-				tl
+				tl,
+				Condition
 			},
 			mount_directly: true,
 			template: `
@@ -1676,7 +1687,7 @@ BARS.defineActions(function() {
 									<div class="setting_element setting_icon" v-html="getIconNode(setting.icon).outerHTML"></div>
 								</template>
 								<template v-else-if="setting.type == 'toggle'"><!--TOGGLE-->
-									<div class="setting_element"><input type="checkbox" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
+									<div class="setting_element"><input type="checkbox" class="toggle_switch" v-model="setting.master_value" v-bind:id="'setting_'+key" @click="changePluginSetting(setting)"></div>
 								</template>
 
 								<div class="setting_label">
@@ -1736,7 +1747,7 @@ BARS.defineActions(function() {
 						<div v-for="row in suggested_rows" class="plugins_suggested_row">
 							<h3>{{row.title}}</h3>
 							<ul>
-								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)">
+								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)" class="elevated">
 									<div class="plugin_icon_area">
 										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
 										<dynamic-icon v-else :icon="plugin.icon" />
@@ -1753,7 +1764,6 @@ BARS.defineActions(function() {
 		}
 	})
 
-	let actions_setup = false;
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
@@ -1769,11 +1779,6 @@ BARS.defineActions(function() {
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
-			if (!actions_setup) {
-				BarItems.load_plugin.toElement(document.getElementById('plugins_list_main_bar'));
-				BarItems.load_plugin_from_url.toElement(document.getElementById('plugins_list_main_bar'));
-				actions_setup = true;
-			}
 			$('dialog#plugins #plugin_search_bar input').trigger('focus')
 		}
 	})

@@ -1,5 +1,6 @@
 import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
+import { FileSystem } from "../file_system"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
 import { Interface } from "./interface"
@@ -37,10 +38,6 @@ export interface FormElementOptions {
 		| 'info'
 		| 'num_slider'
 		| 'buttons'
-	/**
-	 * If true, the label will be displayed without colon at the end
-	 */
-	nocolon?: boolean
 	/**
 	 * Stretch the input field across the whole width of the form
 	 */
@@ -186,6 +183,18 @@ export class InputForm extends EventSystem {
 			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
 			jq_node.append(bar);
 		}
+		this.updateLabelWidth();
+	}
+	updateLabelWidth(ignore_hidden: boolean = false) {
+		this.max_label_width = 0;
+		for (let form_id in this.form_config) {
+			form_id = form_id.replace(/"/g, '');
+			let form_element = this.form_data[form_id];
+			if (!form_element || (ignore_hidden && !Condition(form_element.condition))) continue;
+
+			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
+			this.max_label_width = Math.max(form_element.label_width, this.max_label_width);
+		}
 		this.node.style.setProperty('--max_label_width', this.max_label_width+'px');
 	}
 	update(form_result: FormValues) {
@@ -213,7 +222,7 @@ export class InputForm extends EventSystem {
 		for (let form_id in this.form_config) {
 			let form_element = this.form_data[form_id];
 			let input_config = this.form_config[form_id];
-			if ('setValue' in form_element && values[form_id] != undefined && typeof input_config == 'object') {
+			if (form_element && 'setValue' in form_element && values[form_id] != undefined && typeof input_config == 'object') {
 				form_element.setValue(values[form_id]);
 			}
 		}
@@ -250,7 +259,7 @@ export class InputForm extends EventSystem {
 		if (set_value) return set_value;
 		let type = FormElement.types[input_config.type];
 		if (type) {
-			return type.prototype.getDefault();
+			return type.prototype.getDefault.call({options: input_config});
 		}
 		return '';
 	}
@@ -264,6 +273,7 @@ export class FormElement extends EventSystem {
 	options: FormElementOptions
 	bar: HTMLElement
 	input_toggle?: HTMLInputElement
+	label_width: number
 	constructor(id: string, options: FormElementOptions, form: InputForm) {
 		super();
 		this.id = id;
@@ -274,10 +284,10 @@ export class FormElement extends EventSystem {
 	build(bar: HTMLDivElement) {
 		this.bar = bar;
 		if (typeof this.options.label == 'string') {
-			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label)+((this.options.nocolon || !this.options.label)?'':':'))
+			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label))
 			bar.append(label);
-			if (!this.options.full_width && this.condition !== false) {
-				this.form.max_label_width = Math.max(getStringWidth(label.textContent), this.form.max_label_width)
+			if (!this.options.full_width && this.condition !== false/*Weed out inputs where the condition is always false*/) {
+				this.label_width = getStringWidth(label.textContent);
 			}
 		}
 		if (this.options.full_width) {
@@ -403,9 +413,22 @@ FormElement.types.info = class FormElementInfo extends FormElement {
 	}
 	build(bar: HTMLDivElement) {
 		this.bar = bar;
-		let html_content = pureMarked(tl(this.options.text))
-		bar.innerHTML = `<p>${html_content}</p>`;
-		bar.classList.add('small_text');
+		if (typeof this.options.label == 'string') {
+			let label = Interface.createElement('label', {class: 'name_space_left', for: this.id}, tl(this.options.label))
+			bar.append(label);
+			if (!this.options.full_width && this.condition !== false/*Weed out inputs where the condition is always false*/) {
+				this.label_width = getStringWidth(label.textContent);
+			}
+		}
+		if (this.options.full_width) {
+			bar.classList.add('full_width_dialog_bar');
+		}
+		if (this.options.description) {
+			bar.setAttribute('title', tl(this.options.description));
+		}
+		let content = Interface.createElement('div', {class: 'small_text'});
+		content.innerHTML = pureMarked(tl(this.options.text));
+		bar.append(content);
 	}
 };
 FormElement.types.text = class FormElementText extends FormElement {
@@ -848,6 +871,9 @@ FormElement.types.color = class FormElementColor extends FormElement {
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
+		this.colorpicker.on('modify_color', ({color}) => {
+			scope.change();
+		})
 		bar.append(this.colorpicker.getNode())
 	}
 	getValue(): tinycolor.Instance {
@@ -887,7 +913,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 };
 
 class FormElementFile extends FormElement {
-	file: FileResult
+	file: FileSystem.FileResult
 	value: string
 	content: any
 	input: HTMLInputElement
@@ -960,7 +986,7 @@ class FormElementFile extends FormElement {
 			}
 		})
 	}
-	getValue(): FileResult | string | any {
+	getValue(): FileSystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
 			return this.file;
 		} else {

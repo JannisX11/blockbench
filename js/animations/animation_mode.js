@@ -16,6 +16,7 @@ export const Animator = {
 	onion_skin_object: new THREE.Object3D(),
 	motion_trail_lock: false,
 	_last_values: {},
+	global_variable_lines: {},
 	resetLastValues() {
 		for (let channel in BoneAnimator.prototype.channels) {
 			if (BoneAnimator.prototype.channels[channel].transform) Animator._last_values[channel] = [0, 0, 0];
@@ -39,6 +40,7 @@ export const Animator = {
 		Animator.open = true;
 		Canvas.updateAllBones();
 		Animator.MolangParser.resetVariables();
+		processVariablePlaceholderText(Project.variable_placeholders);
 
 		scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
@@ -49,7 +51,7 @@ export const Animator = {
 			Animator.timeline_node = Panels.timeline.node;
 		}
 		updateInterface()
-		if (Panels.element) {
+		if (Panels.transform) {
 			Toolbars.element_origin.toPlace('bone_origin')
 		}
 		if (!Timeline.is_setup) {
@@ -84,8 +86,8 @@ export const Animator = {
 		Animator.showDefaultPose();
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 
-		if (Panels.element) {
-			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+		if (Panels.transform) {
+			let anchor = Panels.transform.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 	},
@@ -512,14 +514,22 @@ export const Animator = {
 							}
 						})
 					}
-					function getKeyframeDataPoints(source) {
+					function getKeyframeDataPoints(source, channel) {
 						if (source instanceof Array) {
 							source.forEach(processPlaceholderVariables);
-							return [{
+							let vec = {
 								x: source[0],
 								y: source[1],
 								z: source[2],
-							}]
+							}
+							if (channel == 'position') {
+								vec.x *= -1;
+							}
+							if (channel == 'rotation') {
+								vec.x *= -1;
+								vec.y *= -1;
+							}
+							return [vec];
 						} else if (['number', 'string'].includes(typeof source)) {
 							processPlaceholderVariables(source);
 							return [{
@@ -528,10 +538,10 @@ export const Animator = {
 						} else if (typeof source == 'object') {
 							let points = [];
 							if (source.pre) {
-								points.push(getKeyframeDataPoints(source.pre)[0])
+								points.push(getKeyframeDataPoints(source.pre)[0], channel)
 							}
 							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
-								points.push(getKeyframeDataPoints(source.post)[0])
+								points.push(getKeyframeDataPoints(source.post)[0], channel)
 							}
 							return points;
 						}
@@ -552,7 +562,7 @@ export const Animator = {
 									time: 0,
 									channel,
 									uniform: !(b[channel] instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								})
 							} else if (typeof b[channel] === 'object' && b[channel].post) {
 								ba.addKeyframe({
@@ -560,7 +570,7 @@ export const Animator = {
 									channel,
 									interpolation: b[channel].lerp_mode,
 									uniform: !(b[channel].post instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								});
 							} else if (typeof b[channel] === 'object') {
 								for (var timestamp in b[channel]) {
@@ -569,7 +579,7 @@ export const Animator = {
 										channel,
 										interpolation: b[channel][timestamp].lerp_mode,
 										uniform: !(b[channel][timestamp] instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel][timestamp]),
+										data_points: getKeyframeDataPoints(b[channel][timestamp], channel),
 									});
 								}
 							}
@@ -721,7 +731,7 @@ export const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true};
 			keys.push(key);
 		}
 		file.json = json;
@@ -1476,8 +1486,10 @@ Interface.definePanels(function() {
 				text(text) {
 					if (Project && typeof text == 'string') {
 						Project.variable_placeholders = text;
+						processVariablePlaceholderText(text)
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
+						Timeline.vue.updateGraph();
 					}
 				}
 			},
@@ -1510,6 +1522,26 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+function processVariablePlaceholderText(text) {
+	const res = text
+			.replaceAll(/(\s*)(v\.)/g, '$1variable.')
+			.replaceAll(/(\s*)(q\.)/g, '$1query.')
+			.replaceAll(/(\s*)(t\.)/g, '$1temp.')
+			.replaceAll(/(\s*)(c\.)/g, '$1context.')
+
+	Animator.global_variable_lines = {}
+	for (const line of res.split('\n')) {
+		let [key, val] = line.split(/=\s*(.+)/)
+		if(val === undefined) {
+			continue
+		}
+		key = key.replace(/[\s;]/g, '')
+		Animator.global_variable_lines[key] = val.trim()
+	}
+
+	return res
+}
 
 Object.assign(window, {
 	Animator,

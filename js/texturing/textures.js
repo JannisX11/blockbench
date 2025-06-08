@@ -2,6 +2,8 @@ import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
 
+let tex_version = 1;
+
 //Textures
 export class Texture {
 	constructor(data, uuid) {
@@ -77,6 +79,7 @@ export class Texture {
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
 			side: Canvas.getRenderSide(this),
 			transparent: true,
+			clipping: true
 		});
 		mat.map = tex;
 		mat.name = this.name;
@@ -290,8 +293,12 @@ export class Texture {
 		return copy
 	}
 	getSaveCopy(bitmap) {
-		var copy = {};
-		for (var key in Texture.properties) {
+		let copy = {
+			name: undefined,
+			path: undefined,
+			relative_path: undefined,
+		};
+		for (let key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
 		copy.visible = this.visible;

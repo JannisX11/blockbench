@@ -1,3 +1,6 @@
+import { Blockbench } from "../api";
+import { FileSystem } from "../file_system";
+
 export class AnimationItem {
 	constructor() {}
 	getShortName() {
@@ -37,6 +40,9 @@ export class Animation extends AnimationItem {
 	extend(data) {
 		for (var key in Animation.properties) {
 			Animation.properties[key].merge(this, data)
+		}
+		if (data.path && isApp && !PathModule.isAbsolute(this.path) && Project.save_path) {
+			this.path = PathModule.resolve(PathModule.dirname(Project.save_path), this.path);
 		}
 		Merge.string(this, data, 'name')
 		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
@@ -128,7 +134,6 @@ export class Animation extends AnimationItem {
 		if (this.markers.length) {
 			copy.markers = this.markers.map(marker => marker.getUndoCopy());
 		}
-		if (options.absolute_paths == false) delete copy.path;
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
 			for (var uuid in this.animators) {
@@ -1029,7 +1034,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-Blockbench.addDragHandler('animation', {
+FileSystem.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},

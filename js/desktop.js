@@ -9,8 +9,7 @@ export const https = require('https');
 export const PathModule = require('path');
 
 export const currentwindow = electron.getCurrentWindow();
-var dialog_win	 = null,
-	latest_version = false;
+
 export const recent_projects = (function() {
 	let array = [];
 	var raw = localStorage.getItem('recent_projects')
@@ -122,9 +121,7 @@ export function loadOpenWithBlockbenchFile() {
 		load(path);
 	}
 }
-(function() {
-	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
-})()
+console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 
 window.confirm = function(message, title) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {
@@ -341,7 +338,6 @@ export function changeImageEditor(texture, not_found) {
 			}},
 			file: {
 				label: 'message.image_editor.file',
-				nocolon: true,
 				type: 'file',
 				file_type: 'Program',
 				extensions: app_file_extension[Blockbench.platform],
@@ -586,7 +582,6 @@ BARS.defineActions(() => {
 
 //Close
 window.onbeforeunload = function (event) {
-	console.log('BEFORE UNLOAD')
 	try {
 		updateRecentProjectData()
 	} catch(err) {}

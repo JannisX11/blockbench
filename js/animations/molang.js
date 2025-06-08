@@ -89,36 +89,25 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-Animator.MolangParser.variableHandler = function (variable, variables) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n')
-	var i = 0
-	while (i < inputs.length) {
-		let key, val
-		;[key, val] = inputs[i].split(/=\s*(.+)/)
-		key = key.replace(/[\s;]/g, '')
-		key = key
-			.replace(/^v\./, 'variable.')
-			.replace(/^q\./, 'query.')
-			.replace(/^t\./, 'temp.')
-			.replace(/^c\./, 'context.')
 
-		if (key === variable && val !== undefined) {
-			val = val.trim()
+Animator.MolangParser.variableHandler = function (variable, variables, args) {
+	let variable_with_args = args?.length ? `${variable}(${args.map(arg => "'"+arg+"'").join(',')})` : variable;
+	const val = Animator.global_variable_lines[variable_with_args]
+	if (val === undefined) {
+		return
+	}
 
-			if (val.match(/^(slider|toggle|impulse)\(/)) {
-				let [type, content] = val.substring(0, val.length - 1).split(/\(/)
-				let [id] = content.split(/\(|, */)
-				id = id.replace(/['"]/g, '')
+	if (val.match(/^(slider|toggle|impulse)\(/)) {
+		let [type, content] = val.substring(0, val.length - 1).split(/\(/)
+		let [id] = content.split(/\(|, */)
+		id = id.replace(/['"]/g, '')
 
-				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
-					(b) => b.id === id && b.type == type
-				)
-				return button ? parseFloat(button.value) : 0
-			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables)
-			}
-		}
-		i++
+		let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
+			(b) => b.id === id && b.type == type
+		)
+		return button ? parseFloat(button.value) : 0
+	} else {
+		return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables)
 	}
 }
 

@@ -1321,7 +1321,8 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements, selection: true}, amended);
 				let mesh = new Mesh({
 					name: result.shape,
-					vertices: {}
+					vertices: {},
+					color: Math.floor(Math.random()*markerColors.length)
 				});
 				let group = getCurrentGroup();
 				if (group) {
@@ -2788,6 +2789,7 @@ BARS.defineActions(function() {
 				if (offset == undefined) offset = length / (cuts+1);
 				Mesh.selected.forEach(mesh => {
 					let selected_vertices = mesh.getSelectedVertices();
+					let selected_faces = mesh.getSelectedFaces().map(fkey => mesh.faces[fkey]);
 					let start_face;
 					let start_face_quality = 1;
 					for (let fkey in mesh.faces) {
@@ -3063,6 +3065,14 @@ BARS.defineActions(function() {
 					}
 
 					let start_vertices = start_face.getSortedVertices().filter((vkey, i) => selected_vertices.includes(vkey));
+
+					// find start edge between start face and other selected face to determine loop direction
+					selected_faces.remove(start_face);
+					let aligned_edge = start_face.getEdges().find(edge => {
+						return edge.allAre(vkey => selected_vertices.includes(vkey)) && selected_faces.find(face => face.vertices.includes(edge[0]) && face.vertices.includes(edge[1]))
+					})
+					if (aligned_edge) start_vertices = aligned_edge;
+
 					let start_edge = [start_vertices[direction % start_vertices.length], start_vertices[(direction+1) % start_vertices.length]];
 					if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
 
