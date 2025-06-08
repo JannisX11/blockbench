@@ -1875,7 +1875,6 @@ new NodePreviewController(SplineMesh, {
         mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr_vertices), 3));
         mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(arr_normals), 3));
         mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(arr_uvs), 2));
-        mesh.geometry.attributes.uv.needsUpdate = true;
         mesh.geometry.setIndex(arr_indices);
 
         mesh.geometry.computeBoundingBox();
@@ -1885,6 +1884,7 @@ new NodePreviewController(SplineMesh, {
 
         // Send updates
         SplineMesh.preview_controller.updateHighlight(element);
+        SplineMesh.preview_controller.updatePixelGrid(element);
 
         if (Project.view_mode == 'wireframe' && this.fixWireframe) {
             this.fixWireframe(element);
@@ -1938,9 +1938,29 @@ new NodePreviewController(SplineMesh, {
             Modes.edit &&
             !force_off
         ) ? 1 : 0;
+        
+        let color_selected = new THREE.Color().set(markerColors[element.color].pastel);
+        let color_normal = new THREE.Color().set(markerColors[element.color].standard);
+
+		let color;
+		if (BarItems.spline_selection_mode.value == 'object' && element.render_mode !== "mesh" && highlighted == 1) {
+			color = color_selected;
+        } else {
+			color = color_normal;
+		}
+
+        let line_colors = [];
+		let pos_attr = mesh.pathLine.geometry.getAttribute("position").array.slice();
+		pos_attr.forEach((v, i) => {
+			if ((i + 1) % 3 == 0) {
+			    line_colors.push(color.r, color.g, color.b);
+			}
+		});
+
+		mesh.pathLine.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
+		mesh.pathLine.geometry.needsUpdate = true;
 
         let array = new Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
-
         mesh.geometry.attributes.highlight.array.set(array);
         mesh.geometry.attributes.highlight.needsUpdate = true;
 

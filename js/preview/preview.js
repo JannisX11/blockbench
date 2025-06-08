@@ -1243,20 +1243,29 @@ export class Preview {
 			} else {
 				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 			}
-		} else if (Condition(BarItems.spline_selection_mode.condition) && SplineMesh.hasAny() && data && data.element instanceof SplineMesh) {
-			if (BarItems.spline_selection_mode.value == 'handle' && data.type == 'vertex') {
-				let pos = Reusable.vec1.fromArray(data.element.vertices[data.vertex]);
-				data.element.mesh.localToWorld(pos);
+		} else if (SplineMesh.hasAny() && data && data.element instanceof SplineMesh) { 
+			// Highlight meshless splines
+			if (BarItems.spline_selection_mode.value == 'object' && data.type == 'line' && data.element.render_mode == "path") {
+				let path = data.element.mesh.pathLine;
+				let array = [];
+				let pos_attr = path.geometry.getAttribute("position").array.slice();
 
-				let scale = Preview.selected.calculateControlScale(pos);
-				let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
-				z_offset.multiplyScalar(-scale / 3);
-				pos.add(z_offset);
-				Canvas.hover_helper_vertex.position.copy(pos);
+				pos_attr.forEach((v, i) => {
+					if ((i + 1) % 3 == 0) {
+						let pos = [pos_attr[i - 2], pos_attr[i - 1], v].V3_toThree();
+						data.element.mesh.localToWorld(pos);
 
-				Canvas.scene.add(Canvas.hover_helper_vertex);
-			} else {
-				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
+						let z_scalar = Preview.selected.calculateControlScale(pos) / 8;
+						let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
+						z_offset.multiplyScalar(-z_scalar);
+						pos.add(z_offset);
+
+						array.push(pos.x, pos.y, pos.z);
+					}
+				});
+
+				Canvas.hover_helper_line.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(array), 3));
+				Canvas.scene.add(Canvas.hover_helper_line);
 			}
 		} else {
 			if (Canvas.hover_helper_line.parent) Canvas.hover_helper_line.parent.remove(Canvas.hover_helper_line);
