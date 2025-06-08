@@ -901,14 +901,12 @@ export function openTouchKeyboardModifierMenu(node) {
 			}
 		}),
 		'_',
-		{
-			icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
+		{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
 			let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
 			return length;
-			}, click() {
-				Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
-			}
-		},
+		}, click() {
+			Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
+		}},
 	])
 	menu.open(node);
 }
