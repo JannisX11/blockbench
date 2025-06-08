@@ -404,7 +404,7 @@ var codec = new Codec('java_block', {
 					}
 				}
 
-				if (!importToCurrentProject) {
+				if (!import_to_current_project) {
 					Outliner.root.push(base_cube)
 					base_cube.parent = 'root'
 				} else if (import_group) {
@@ -416,7 +416,7 @@ var codec = new Codec('java_block', {
 			})
 		}
 		if (model.groups && model.groups.length > 0) {
-			if (!importToCurrentProject) {
+			if (!import_to_current_project) {
 				parseGroups(model.groups)
 			} else if (import_group) {
 				parseGroups(model.groups, import_group, oid)
@@ -479,7 +479,7 @@ var codec = new Codec('java_block', {
 
 					let loaded;
 					if (args.externalDataLoader) {
-						let external = args.externalDataLoader(parent_path);
+						let external = args.externalDataLoader(parent_path.replaceAll("\\", "/"));
 						if (external) {
 							if (external instanceof Uint8Array) {
 								external = new TextDecoder().decode(external);
@@ -522,7 +522,7 @@ var codec = new Codec('java_block', {
 		}
 
 		this.dispatchEvent('parsed', {model});
-		if (importToCurrentProject) {
+		if (import_to_current_project) {
 			Undo.finishEdit('Add block model')
 		}
 		Validator.validate()
@@ -644,7 +644,7 @@ BARS.defineActions(function() {
 				files.forEach(file => {
 					var model = autoParseJSON(file.content)
 					codec.parse(model, file.path, {
-						importToCurrentProject: true
+						import_to_current_project: true
 					})
 				})
 			})

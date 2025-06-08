@@ -42,7 +42,7 @@ export class Codec extends EventSystem {
 	//Import
 	load(model, file, args = {}) {
 		if (!this.parse) return false;
-		if (!args.importToCurrentProject) {
+		if (!args.import_to_current_project) {
 			setupProject(this.format)
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {

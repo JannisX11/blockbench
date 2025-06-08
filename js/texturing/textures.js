@@ -435,7 +435,7 @@ export class Texture {
 			let load_path = path
 			const targa_loader = new Targa()
 			if (externalDataLoader) {
-				const external = externalDataLoader(path)
+				const external = externalDataLoader(path.replaceAll("\\", "/"))
 				if (external) {
 					if (typeof external === "string") {
 						load_path = external
@@ -468,7 +468,7 @@ export class Texture {
 			this.source = path
 		} else {
 			if (externalDataLoader) {
-				const external = externalDataLoader(path)
+				const external = externalDataLoader(path.replaceAll("\\", "/"))
 				if (external) {
 					if (typeof external === "string") {
 						this.source = external
@@ -520,7 +520,7 @@ export class Texture {
 			let mcmeta_path = this.path + '.mcmeta';
 			let mcmeta_text;
 			if (externalDataLoader) {
-				mcmeta_text = externalDataLoader(mcmeta_path);
+				mcmeta_text = externalDataLoader(mcmeta_path.replaceAll("\\", "/"));
 				if (mcmeta_text instanceof Uint8Array) {
 					mcmeta_text = new TextDecoder().decode(mcmeta_text);
 				}
