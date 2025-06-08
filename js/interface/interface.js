@@ -18,8 +18,8 @@ export class ResizeLine {
 		this.set = data.set;
 		this.reset = data.reset;
 		this.node = document.createElement('div');
-		this.node.className = 'resizer ' + (data.horizontal ? 'horizontal' : 'vertical');
-		this.node.id = 'resizer_' + this.id;
+		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
+		this.node.id = 'resizer_'+this.id;
 
 		this.node.addEventListener('pointerdown', event => {
 			this.before = data.get();
@@ -64,22 +64,22 @@ export class ResizeLine {
 	}
 	setPosition(data) {
 		var jq = $(this.node)
-		jq.css('top', data.top !== undefined ? data.top + 'px' : '')
-		jq.css('bottom', data.bottom !== undefined ? data.bottom + 'px' : '')
-		jq.css('left', data.left !== undefined ? data.left + 'px' : '')
-		jq.css('right', data.right !== undefined ? data.right + 'px' : '')
+		jq.css('top', 	data.top 	!== undefined ? data.top+	'px' : '')
+		jq.css('bottom',data.bottom !== undefined ? data.bottom+'px' : '')
+		jq.css('left', 	data.left 	!== undefined ? data.left+	'px' : '')
+		jq.css('right', data.right 	!== undefined ? data.right+	'px' : '')
 
 		if (data.top !== undefined) {
-			jq.css('top', data.top + 'px')
+			jq.css('top', data.top+'px')
 		}
 		if (data.bottom !== undefined && (!this.horizontal || data.top === undefined)) {
-			jq.css('bottom', data.bottom + 'px')
+			jq.css('bottom', data.bottom+'px')
 		}
 		if (data.left !== undefined) {
-			jq.css('left', data.left + 'px')
+			jq.css('left', data.left+'px')
 		}
 		if (data.right !== undefined && (this.horizontal || data.left === undefined)) {
-			jq.css('right', data.right + 'px')
+			jq.css('right', data.right+'px')
 		}
 	}
 }
@@ -118,18 +118,18 @@ export const Interface = {
 				slot: 'left_bar',
 				float_position: [300, 0],
 				float_size: [500, 600],
-				height: window.innerHeight / 2 - 50
+				height: window.innerHeight/2-50
 			}
 		}
 	},
 	get left_bar_width() {
-		if (Prop.show_left_bar && Interface.getLeftPanels().length) {
+		if (Prop.show_left_bar && Interface.getLeftPanels().length) { 
 			return Interface.getModeData()?.left_bar_width ?? Interface.data.left_bar_width;
 		}
 		return 0;
 	},
 	get right_bar_width() {
-		if (Prop.show_right_bar && Interface.getRightPanels().length) {
+		if (Prop.show_right_bar && Interface.getRightPanels().length) { 
 			return Interface.getModeData()?.right_bar_width ?? Interface.data.right_bar_width;
 		}
 		return 0;
@@ -184,7 +184,7 @@ export const Interface = {
 	},
 	getModeData(ui_mode = Interface.getUIMode()) {
 		if (ui_mode && ui_mode != 'start') {
-			if (!Interface.data.modes[ui_mode]) { Interface.data.modes[ui_mode] = {}; }
+			if (!Interface.data.modes[ui_mode]) {Interface.data.modes[ui_mode] = {};}
 			let mode_data = Interface.data.modes[ui_mode];
 			if (mode_data.left_bar_width == undefined) mode_data.left_bar_width = Interface.data.left_bar_width;
 			if (mode_data.right_bar_width == undefined) mode_data.right_bar_width = Interface.data.right_bar_width;
@@ -208,12 +208,12 @@ export const Interface = {
 					}
 				}
 			},
-			get() { return Interface.left_bar_width },
+			get() {return Interface.left_bar_width},
 			set(o, diff) {
 				let min = 128;
-				let calculated = limitNumber(o + diff, min, window.innerWidth - 120 - Interface.right_bar_width)
+				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.right_bar_width)
 				Interface.getModeData().left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
-
+				
 				if (calculated == min) {
 					Prop.show_left_bar = false;
 					Interface.getModeData().left_bar_width = Interface.default_data.left_bar_width;
@@ -229,7 +229,7 @@ export const Interface = {
 				this.setPosition({
 					top: 0,
 					bottom: 0,
-					left: Interface.left_bar_width + 2
+					left: Interface.left_bar_width+2
 				})
 			}
 		}),
@@ -244,12 +244,12 @@ export const Interface = {
 					}
 				}
 			},
-			get() { return Interface.right_bar_width },
+			get() {return Interface.right_bar_width},
 			set(o, diff) {
 				let min = 128;
-				let calculated = limitNumber(o - diff, min, window.innerWidth - 120 - Interface.left_bar_width);
+				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.left_bar_width);
 				Interface.getModeData().right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
-
+				
 				if (calculated == min) {
 					Prop.show_right_bar = false;
 					Interface.getModeData().right_bar_width = Interface.default_data.right_bar_width;
@@ -265,14 +265,14 @@ export const Interface = {
 				this.setPosition({
 					top: 30,
 					bottom: 0,
-					right: Interface.right_bar_width - 2
+					right: Interface.right_bar_width-2
 				})
 			}
 		}),
 		quad_view_x: new ResizeLine('quad_view_x', {
-			condition() { return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal' },
-			get() { return Interface.data.quad_view_x },
-			set(o, diff) { Interface.data.quad_view_x = limitNumber(o + diff / Interface.preview.clientWidth * 100, 5, 95) },
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
+			get() {return Interface.data.quad_view_x},
+			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
 			reset() {
 				Interface.data.quad_view_x = Interface.default_data.quad_view_x;
 			},
@@ -281,21 +281,21 @@ export const Interface = {
 				if (!p) return;
 				let top = 32;
 				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
-				let left = Interface.left_bar_width + p.clientWidth * Interface.data.quad_view_x / 100;
+				let left = Interface.left_bar_width + p.clientWidth*Interface.data.quad_view_x/100;
 				if (Preview.split_screen.mode == 'triple_top') {
-					top = top + p.clientHeight * (Interface.data.quad_view_y / 100);
+					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
 				} else if (Preview.split_screen.mode == 'triple_bottom') {
-					bottom = bottom + p.clientHeight * (1 - Interface.data.quad_view_y / 100);
+					bottom = bottom + p.clientHeight * (1 - Interface.data.quad_view_y/100);
 				}
-				this.setPosition({ top, bottom, left });
+				this.setPosition({top, bottom, left});
 			}
 		}),
 		quad_view_y: new ResizeLine('quad_view_y', {
 			horizontal: true,
-			condition() { return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_vertical' },
-			get() { return Interface.data.quad_view_y },
+			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_vertical'},
+			get() {return Interface.data.quad_view_y},
 			set(o, diff) {
-				Interface.data.quad_view_y = limitNumber(o + diff / Interface.preview.clientHeight * 100, 5, 95)
+				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
 			},
 			reset() {
 				Interface.data.quad_view_y = Interface.default_data.quad_view_y;
@@ -303,20 +303,20 @@ export const Interface = {
 			position() {
 				let p = Interface.preview;
 				if (!p) return;
-				let left = Interface.left_bar_width + 2;
-				let right = Interface.right_bar_width + 2;
-				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight * Interface.data.quad_view_y / 100;
+				let left = Interface.left_bar_width+2;
+				let right = Interface.right_bar_width+2;
+				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
 				if (Preview.split_screen.mode == 'triple_left') {
-					left = left + p.clientWidth * (Interface.data.quad_view_x / 100);
+					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
 				} else if (Preview.split_screen.mode == 'triple_right') {
-					right = right + p.clientWidth * (1 - Interface.data.quad_view_x / 100);
+					right = right + p.clientWidth * (1 - Interface.data.quad_view_x/100);
 				}
-				this.setPosition({ left, right, top });
+				this.setPosition({left, right, top});
 			}
 		}),
 		top: new ResizeLine('top', {
 			horizontal: true,
-			condition() { return !Blockbench.isMobile && Interface.getTopPanel() },
+			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
 				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
@@ -328,17 +328,15 @@ export const Interface = {
 				panel.update();
 				if (Interface.getBottomPanel()) Interface.getBottomPanel().update();
 			},
-			position() {
-				this.setPosition({
-					left: Interface.left_bar_width + 2,
-					right: Interface.right_bar_width + 2,
-					top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
-				})
-			}
+			position() {this.setPosition({
+				left: Interface.left_bar_width+2,
+				right: Interface.right_bar_width+2,
+				top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
+			})}
 		}),
 		bottom: new ResizeLine('bottom', {
 			horizontal: true,
-			condition() { return !Blockbench.isMobile && Interface.getBottomPanel() },
+			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
 				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
@@ -350,18 +348,16 @@ export const Interface = {
 				panel.update();
 				if (Interface.getTopPanel()) Interface.getTopPanel().update();
 			},
-			position() {
-				this.setPosition({
-					left: Interface.left_bar_width + 2,
-					right: Interface.right_bar_width + 2,
-					top: Interface.work_screen.clientHeight - document.getElementById('status_bar').clientHeight - this.get()
-				})
-			}
+			position() {this.setPosition({
+				left: Interface.left_bar_width+2,
+				right: Interface.right_bar_width+2,
+				top: Interface.work_screen.clientHeight - document.getElementById('status_bar').clientHeight - this.get()
+			})}
 		}),
 		timeline_head: new ResizeLine('timeline_head', {
 			horizontal: false,
-			condition() { return Modes.animate && !Blockbench.isMobile },
-			get() { return Interface.data.timeline_head },
+			condition() {return Modes.animate && !Blockbench.isMobile},
+			get() {return Interface.data.timeline_head},
 			set(o, diff) {
 				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);
 				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
@@ -417,11 +413,11 @@ export const Interface = {
 
 export const Panels = Interface.Panels;
 Interface.panel_definers = []
-Interface.definePanels = function (callback) {
+Interface.definePanels = function(callback) {
 	Interface.panel_definers.push(callback);
 };
 
-(function () {
+(function() {
 	Interface.data = $.extend(true, {}, Interface.default_data)
 	var interface_data = localStorage.getItem('interface_data')
 	if (!interface_data) return;
@@ -490,7 +486,7 @@ export function unselectInterface(event) {
 	) {
 		ReferenceImageMode.deactivate();
 	}
-	Blockbench.dispatchEvent('unselect_interface', { event });
+	Blockbench.dispatchEvent('unselect_interface', {event});
 }
 export function setupInterface() {
 
@@ -506,7 +502,7 @@ export function setupInterface() {
 	document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 
 	setupPanels()
-
+	
 	Interface.status_bar.menu = new Menu([
 		'project_window',
 		'open_model_folder',
@@ -514,7 +510,7 @@ export function setupInterface() {
 		'save',
 		'cancel_gif',
 	])
-
+	
 	if (Blockbench.isMobile) {
 		setupMobilePanelSelector()
 		Prop.show_right_bar = false;
@@ -537,7 +533,7 @@ export function setupInterface() {
 	}
 
 	//Tooltip Fix
-	$(document).on('mouseenter', '.tool', function () {
+	$(document).on('mouseenter', '.tool', function() {
 		var tooltip = $(this).find('div.tooltip')
 		if (!tooltip || typeof tooltip.offset() !== 'object') return;
 		//Left
@@ -569,7 +565,7 @@ export function setupInterface() {
 
 	// Click binds
 	Interface.preview.addEventListener('click', e => setActivePanel(Format.image_editor ? 'uv' : 'preview'));
-
+	
 	Interface.work_screen.addEventListener('dblclick', event => {
 		if (settings.double_click_select_reference.value == false) return;
 		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
@@ -669,7 +665,7 @@ export function resizeWindow(event) {
 	if (Interface.data) {
 		updateInterfacePanels()
 	}
-	Preview.all.forEach(function (prev) {
+	Preview.all.forEach(function(prev) {
 		if (prev.canvas.isConnected) {
 			prev.resize()
 			if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) {
@@ -686,13 +682,13 @@ export function resizeWindow(event) {
 	if (Format.image_editor) {
 		UVEditor.updateSize();
 	}
-	var dialog = $('dialog#' + open_dialog)
+	var dialog = $('dialog#'+open_dialog)
 	if (dialog.length) {
 		if (dialog.outerWidth() + dialog.offset().left > window.innerWidth) {
-			dialog.css('left', limitNumber(window.innerWidth - dialog.outerWidth(), 0, 4e3) + 'px')
+			dialog.css('left', limitNumber(window.innerWidth-dialog.outerWidth(), 0, 4e3) + 'px')
 		}
 		if (dialog.outerHeight() + dialog.offset().top > window.innerHeight) {
-			dialog.css('top', limitNumber(window.innerHeight - dialog.outerHeight(), 0, 4e3) + 'px')
+			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
 		}
 	}
 	Blockbench.dispatchEvent('resize_window', event);
@@ -704,16 +700,16 @@ export function setProjectTitle(title) {
 		title = Project.name
 	}
 	if (title) {
-		if (Project) {
+		if (Project) {		
 			Prop.file_name = Prop.file_name_alt = title
-			if (!Project.name) {
-				Project.name = title
-			}
-			if (Format.bone_rig) {
-				title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
-			}
+		if (!Project.name) {
+			Project.name = title
 		}
-		window_title = title + ' - Blockbench';
+		if (Format.bone_rig) {
+			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+		}
+	}
+		window_title = title+' - Blockbench';
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
 	}
@@ -728,8 +724,8 @@ export function setZoomLevel(mode) {
 	if (Prop.active_panel === 'uv') {
 		var zoom = UVEditor.zoom
 		switch (mode) {
-			case 'in': zoom *= 1.5; break;
-			case 'out': zoom *= 0.66; break;
+			case 'in':	zoom *= 1.5;  break;
+			case 'out':   zoom *= 0.66;  break;
 			case 'reset': zoom = 1; break;
 		}
 		UVEditor.setZoom(zoom);
@@ -739,27 +735,27 @@ export function setZoomLevel(mode) {
 		}
 
 	} else if (Prop.active_panel == 'timeline') {
-
+		
 		let body = document.getElementById('timeline_body');
 		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
-
+		
 		if (mode == 'reset') {
 			let original_size = Timeline.vue._data.size
 			Timeline.vue._data.size = 200;
-
+			
 			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
 		} else {
 			let zoom = mode == 'in' ? 1.2 : 0.8;
 			let original_size = Timeline.vue._data.size
 			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
 			Timeline.vue._data.size = updated_size;
-
+			
 			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
 	} else {
 		switch (mode) {
-			case 'in': Preview.selected.controls.dollyIn(1.16); break;
-			case 'out': Preview.selected.controls.dollyOut(1.16); break;
+			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
 		}
 	}
 }
@@ -769,7 +765,7 @@ export function setProgressBar(id, val, time) {
 	if (!id || id === 'main') {
 		Prop.progress = val
 	} else {
-		$('#' + id + ' > .progress_bar_inner').animate({ width: val * 488 }, time - 1)
+		$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
 	}
 	if (isApp) {
 		currentwindow.setProgressBar(val)
@@ -780,7 +776,7 @@ export function setProgressBar(id, val, time) {
 export function showShiftTooltip() {
 	$(':hover').find('.tooltip_shift').css('display', 'inline')
 }
-$(document).keyup(function (event) {
+$(document).keyup(function(event) {
 	if (event.which === 16) {
 		$('.tooltip_shift').hide()
 	}
@@ -789,7 +785,7 @@ $(document).keyup(function (event) {
 
 // Custom Elements
 Interface.CustomElements.ResizeLine = ResizeLine;
-Interface.CustomElements.SelectInput = function (id, data) {
+Interface.CustomElements.SelectInput = function(id, data) {
 	function getNameFor(val) {
 		if (val) {
 			return tl(val.name || val);
@@ -814,7 +810,7 @@ Interface.CustomElements.SelectInput = function (id, data) {
 			data.onInput(value, input_event);
 		}
 	}
-	select.addEventListener('click', function (event) {
+	select.addEventListener('click', function(event) {
 		if (Menu.closed_in_this_click == id) return this;
 		let items = [];
 		let options = typeof data.options == 'function' ? data.options() : data.options;
@@ -835,17 +831,17 @@ Interface.CustomElements.SelectInput = function (id, data) {
 				}
 			})
 		}
-		let menu = new Menu(id, items, { searchable: items.length > 16 });
-		menu.node.style['min-width'] = select.clientWidth + 'px';
+		let menu = new Menu(id, items, {searchable: items.length > 16});
+		menu.node.style['min-width'] = select.clientWidth+'px';
 		menu.open(select);
 	})
 	this.node = select;
 	this.set = setKey;
 }
-Interface.CustomElements.NumericInput = function (id, data) {
-	let input = Interface.createElement('input', { id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : '' });
-	let slider = Interface.createElement('div', { class: 'tool numeric_input_slider' }, Blockbench.getIconNode('code'));
-	this.node = Interface.createElement('div', { class: 'numeric_input' }, [
+Interface.CustomElements.NumericInput = function(id, data) {
+	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : ''});
+	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
+	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider
 	])
 
@@ -907,8 +903,8 @@ export function openTouchKeyboardModifierMenu(node) {
 		'_',
 		{
 			icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
-				let { length } = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
-				return length;
+			let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
+			return length;
 			}, click() {
 				Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
 			}
@@ -984,7 +980,7 @@ onVueSetup(function() {
 							mesh.forAllFaces(face => {
 								let vertices = face.getSortedVertices();
 								vertices.forEach((vkey, i) => {
-									let vkey2 = vertices[i + 1] || vertices[0];
+									let vkey2 = vertices[i+1] || vertices[0];
 									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
 										processed_lines.push([vkey, vkey2]);
 										total += 1;
@@ -1098,8 +1094,8 @@ onVueSetup(function() {
 })
 
 
-BARS.defineActions(function () {
-
+BARS.defineActions(function() {
+	
 	new Action('reset_layout', {
 		icon: 'replay',
 		category: 'blockbench',
