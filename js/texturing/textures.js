@@ -432,13 +432,31 @@ export class Texture {
 	fromPath(path, externalDataLoader) {
 		var scope = this;
 		if (path && pathToExtension(path) === 'tga') {
-			var targa_loader = new Targa()
-			targa_loader.open(path, function() {
+			let load_path = path
+			const targa_loader = new Targa()
+			if (externalDataLoader) {
+				const external = externalDataLoader(path)
+				if (external) {
+					if (typeof external === "string") {
+						load_path = external
+					} else if (external instanceof Uint8Array) {
+						const u8 = new Uint8Array(external)
+						let base64
+						if (typeof Buffer !== "undefined" && external instanceof Buffer) {
+							base64 = external.toString("base64")
+						} else {
+							base64 = btoa(String.fromCharCode(...u8))
+						}
+						load_path = `data:image/x-tga;base64,${base64}`
+					}
+				}
+			}
+			targa_loader.open(load_path, function() {
 				scope.fromFile({
 					name: pathToName(path, true),
 					path: path,
 					content: targa_loader.getDataURL()
-				}, externalDataLoader)
+				})
 			})
 			return this;
 		}
