@@ -439,8 +439,7 @@ export class Preview {
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
 		}
-		//TODO: investigate potential mesh edit problems with present splines
-		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') || SplineMesh.hasAny()) {
+		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge')) {
 			let all_intersects = intersects;
 			intersects = intersects.filter(a => a.object.isLine);
 			if (intersects.length == 0) intersects = all_intersects;
