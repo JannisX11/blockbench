@@ -1244,7 +1244,7 @@ export class Preview {
 			}
 		} else if (SplineMesh.hasAny() && data && data.element instanceof SplineMesh) { 
 			// Highlight meshless splines
-			if (BarItems.spline_selection_mode.value == 'object' && data.type == 'line' && data.element.render_mode == "path") {
+			if (data.type == 'line' && data.element.render_mode == "path") {
 				let path = data.element.mesh.pathLine;
 				let array = [];
 				let pos_attr = path.geometry.getAttribute("position").array.slice();
