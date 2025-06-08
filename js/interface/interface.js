@@ -700,15 +700,15 @@ export function setProjectTitle(title) {
 		title = Project.name
 	}
 	if (title) {
-		if (Project) {		
+		if (Project) {
 			Prop.file_name = Prop.file_name_alt = title
-		if (!Project.name) {
-			Project.name = title
+			if (!Project.name) {
+				Project.name = title
+			}
+			if (Format.bone_rig) {
+				title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+			}
 		}
-		if (Format.bone_rig) {
-			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
-		}
-	}
 		window_title = title+' - Blockbench';
 	} else {
 		Prop.file_name = Prop.file_name_alt = ''
