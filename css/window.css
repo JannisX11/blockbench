@@ -1,4 +1,4 @@
-
+@layer base {
 /*Layout*/
 	#page_wrapper {
 		height: calc(100% - var(--menu-bar-height));
@@ -1270,3 +1270,4 @@
 	.amend_edit_close_button:hover {
 		color: var(--color-light);
 	}
+}

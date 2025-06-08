@@ -1,5 +1,6 @@
 import { Blockbench } from "./api";
 import { updateStreamerModeNotification } from "./interface/setup_settings";
+import { loadThemes } from "./interface/themes";
 import { translateUI } from "./languages";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
@@ -11,7 +12,7 @@ Interface.right_bar = document.getElementById('right_bar');
 Interface.left_bar = document.getElementById('left_bar');
 Interface.preview = document.getElementById('preview');
 
-CustomTheme.setup()
+CustomTheme.setup();
 
 StateMemory.init('dialog_paths', 'object')
 
@@ -52,6 +53,7 @@ BARS.setupToolbars()
 BARS.setupVue()
 MenuBar.setup()
 translateUI()
+loadThemes()
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + Blockbench.version + (isApp

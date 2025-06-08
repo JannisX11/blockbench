@@ -4,7 +4,7 @@ https://github.com/bgrins/spectrum
 Author: Brian Grinstead
 License: MIT
 ***/
-
+@layer lib {
 .sp-container {
     position:absolute;
     top:0;
@@ -484,4 +484,5 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 .sp-clear-display {
     background-repeat:no-repeat;
     background-position: center;
+}
 }

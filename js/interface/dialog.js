@@ -78,8 +78,14 @@ export class DialogSidebar {
 		this.node.append(page_list);
 		this.page_menu = {};
 		for (let key in this.pages) {
-			let li = document.createElement('li');
 			let page = this.pages[key];
+			if (page instanceof MenuSeparator) {
+				let expander = Interface.createElement('span');
+				let node = Interface.createElement('div', {class: 'dialog_sidebar_separator'}, page.label ? [page.label, expander] : expander);
+				page_list.append(node);
+				continue;
+			}
+			let li = document.createElement('li');
 			if (typeof page == 'object' && page.icon) {
 				li.append(Blockbench.getIconNode(page.icon, page.color));
 			}
