@@ -15,17 +15,32 @@ interface FileResult {
 }
 
 export const Plugins = {
+	/**
+	 * The plugins window
+	 */
 	dialog: null as null|Dialog,
 	Vue: null as Vue | null,
+	/**
+	 * Data about which plugins are installed
+	 */
 	installed: [] as PluginInstallation[],
 	json: undefined,
 	download_stats: {},
+	/**
+	 * All loaded plugins, including plugins from the store that are not installed
+	 */
 	all: [] as Plugin[],
 	registered: {} as Record<string, Plugin>,
 	currently_loading: '',
 	loading_promise: null as null | Promise<void>,
+	/**
+	 * The currently used path to the plugin API
+	 */
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	path: '',
+	/**
+	 * Dev reload all side-loaded plugins
+	 */
 	devReload() {
 		let reloads = 0;
 		for (let i = Plugins.all.length-1; i >= 0; i--) {
