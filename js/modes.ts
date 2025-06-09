@@ -1,4 +1,4 @@
-import { Vue } from "../lib/libs"
+import { Vue } from "./lib/libs"
 import { Blockbench } from "./api"
 import { Interface, Panels } from "./interface/interface"
 import { MenuBar } from "./interface/menu_bar"

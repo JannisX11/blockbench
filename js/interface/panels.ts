@@ -3,7 +3,7 @@ import { EventSystem } from "../util/event_system";
 import { InputForm } from "./form";
 import { Interface, Panels, openTouchKeyboardModifierMenu, resizeWindow, updateInterface } from "./interface";
 import {Toolbar} from './toolbars'
-import { Vue } from "../../lib/libs";
+import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
 
 interface PanelPositionData {

@@ -1,4 +1,4 @@
-import { THREE } from '../../lib/libs';
+import { THREE } from '../lib/libs';
 import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';

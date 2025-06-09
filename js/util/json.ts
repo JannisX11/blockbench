@@ -1,4 +1,4 @@
-import LZUTF8 from '../../lib/lzutf8';
+import LZUTF8 from '../lib/lzutf8';
 
 interface JSONCompileOptions {
 	/**

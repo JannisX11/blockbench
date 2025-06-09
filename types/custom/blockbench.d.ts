@@ -49,19 +49,6 @@
 /// <reference types="./math_util" />
 /// <reference types="./canvas_frame" />
 /// <reference types="./io" />
-/// <reference types="./generated/js/interface/settings" />
-/// <reference types="./generated/js/interface/form" />
-/// <reference types="./generated/js/io/formats" />
-/// <reference types="./generated/js/io/share" />
-/// <reference types="./generated/js/modeling/edit" />
-/// <reference types="./generated/js/outliner/collections" />
-/// <reference types="./generated/js/outliner/element_panel" />
-/// <reference types="./generated/js/util/json" />
-/// <reference types="./generated/js/util/event_system" />
-/// <reference types="./generated/js/api" />
-/// <reference types="./generated/js/languages" />
-/// <reference types="./generated/js/modes" />
-/// <reference types="./generated/js/plugin_loader" />
 
 
 declare namespace Blockbench {
@@ -309,16 +296,13 @@ declare namespace Blockbench {
 	const EffectAnimator: BlockbenchTypeEffectAnimator
 	const TimelineMarker: BlockbenchTypeTimelineMarker
 	const Panel: BlockbenchTypePanel
-	const Mode: BlockbenchTypeMode
 	const Dialog: BlockbenchTypeDialog
-	const Setting: BlockbenchTypeSetting
 	const Plugin: BlockbenchTypePlugin
 	const Preview: BlockbenchTypePreview
 	const Toolbar: BlockbenchTypeToolbar
 	const Language: BlockbenchTypeLanguage
 	const Painter: BlockbenchTypePainter
 	const Screencam: BlockbenchTypeScreencam
-	const Settings: BlockbenchTypeSettings
 	const TextureAnimator: BlockbenchTypeTextureAnimator
 	const Toolbox: BlockbenchTypeToolbox
 	const BarItems: BlockbenchTypeBarItems
@@ -356,4 +340,12 @@ declare const NativeGlobals: {
 		): Animation
 		prototype: Animation
 	}
+}
+
+/**
+ * Shader support
+ */
+declare module "*.glsl" {
+	const value: string;
+	export default value;
 }

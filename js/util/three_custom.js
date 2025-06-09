@@ -1,4 +1,4 @@
-import { THREE } from "../../lib/libs";
+import { THREE } from "../lib/libs";
 
 THREE.BufferGeometry.prototype.setShape = function(from, to) {
 	let {position} = this.attributes;

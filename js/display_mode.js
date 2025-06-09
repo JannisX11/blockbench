@@ -1,4 +1,4 @@
-import { THREE } from "../lib/libs";
+import { THREE } from "./lib/libs";
 import { Mode } from "./modes";
 
 var ground_timer = 0

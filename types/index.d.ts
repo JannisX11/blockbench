@@ -1,6 +1,2 @@
-/// <reference path="./blockbench.d.ts"/>
-
-declare module "*.glsl" {
-	const value: string;
-	export default value;
-}
+/// <reference path="./custom/blockbench.d.ts"/>
+/// <reference path="./generated/main.d.ts"/>
