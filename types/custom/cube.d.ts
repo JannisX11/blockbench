@@ -39,6 +39,10 @@ declare class Cube extends OutlinerElement {
 	 */
 	mirror_uv: boolean
 	/**
+	 * If the cube is using Box UV
+	 */
+	box_uv: boolean
+	/**
 	 * Inflate adds an inflation value to all sides equally
 	 */
 	inflate: number

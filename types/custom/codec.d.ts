@@ -59,7 +59,7 @@ declare class Codec extends Deletable {
 	 * @param file
 	 * @param add
 	 */
-	load(model: any, file: any, add?: boolean): void
+	load(model: any, file?: any, add?: boolean): void
 	/**
 	 * Compiles the file content
 	 * @param options
@@ -147,6 +147,11 @@ declare class Codec extends Deletable {
 	export_options: {
 		[key: string]: FormElement
 	}
+
+	/**
+	 * Additional properties
+	 */
+	[key: string]: any
 
 	format: ModelFormat
 

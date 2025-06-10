@@ -1,10 +1,11 @@
 import { CanvasFrame } from "../../lib/CanvasFrame"
 import StateMemory from "../../util/state_memory";
-import { setProjectTitle } from "../../interface/interface"
+import { Panels, setProjectTitle } from "../../interface/interface"
 import { getAllGroups } from "../../outliner/group"
 import { DefaultCameraPresets } from "../../preview/preview"
 import { MinecraftEULA } from "../../preview/preview_scenes"
 import { TextureGenerator } from "../../texturing/texture_generator"
+import { Panel } from "../../interface/panels";
 
 type SkinPreset = {
 	display_name: string
@@ -136,6 +137,7 @@ export const codec = new Codec('skin_model', {
 			let cubes = []
 			for (let obj of g.children) {
 				if (obj.export && obj instanceof Cube) {
+					// @ts-ignore
 					let template = Codecs.bedrock.compileCube(obj, g);
 					cubes.push(template)
 				}
@@ -152,6 +154,7 @@ export const codec = new Codec('skin_model', {
 		this.dispatchEvent('compile', {model: entitymodel, options});
 		return entitymodel
 	},
+	// @ts-ignore
 	parse(data: any, resolution: number, texture_file: undefined | false | {name: string, path: string, content: string}, pose = true, layer_template) {
 		this.dispatchEvent('parse', {model: data});
 		Project.texture_width = data.texturewidth || 64;
@@ -184,7 +187,7 @@ export const codec = new Codec('skin_model', {
 				
 				group.mirror_uv = b.mirror === true
 				group.reset = b.reset === true
-				group.skin_original_origin = group.origin.slice();
+				group.skin_original_origin = group.origin.slice() as ArrayVector3;
 
 				if (b.cubes) {
 					b.cubes.forEach(function(cube) {
@@ -199,7 +202,7 @@ export const codec = new Codec('skin_model', {
 						cg.addTo(group)
 					})
 				}
-				let parent_group = 'root';
+				let parent_group: 'root' | OutlinerNode = 'root';
 				if (b.parent) {
 					if (bones[b.parent]) {
 						parent_group = bones[b.parent]
@@ -241,6 +244,7 @@ export const codec = new Codec('skin_model', {
 			}
 		}
 		if (data.camera_angle) {
+			// @ts-ignore
 			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
 		}
 		Canvas.updateAllBones()
@@ -255,6 +259,7 @@ codec.rebuild = function(model_id: string, pose?: string) {
 	let preset = skin_presets[preset_id];
 	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
 	let model = JSON.parse(model_raw);
+	// @ts-ignore
 	codec.parse(model, undefined, true, pose && pose !== 'none');
 	if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
@@ -294,7 +299,7 @@ format.new = function() {
 	skin_dialog.show();
 	return true;
 }
-format.presets = skin_presets;
+skin_presets;
 
 
 function setDefaultPose(pose_id: string) {
@@ -331,7 +336,7 @@ function getPoseData(): SkinPoseData {
 	for (let group of Group.all) {
 		if (!group.skin_original_origin) continue;
 		let offset = group.origin.slice().V3_subtract(group.skin_original_origin);
-		let rotation = group.rotation.slice();
+		let rotation = group.rotation.slice() as ArrayVector3;
 		if (offset.allEqual(0) == false) {
 			data[group.name] = {
 				offset, rotation
@@ -499,6 +504,7 @@ export const skin_dialog = new Dialog({
 						texture = false;
 					}
 				}
+				// @ts-ignore
 				codec.parse(model, resolution / 16, texture, result.pose, result.layer_template);
 				Project.skin_model = result.model;
 				if (preset.model_bedrock) {
@@ -683,7 +689,7 @@ BARS.defineActions(function() {
 		icon: () => 'open_in_full',
 		category: 'edit',
 		condition: {formats: ['skin']},
-		value: false,
+		default: false,
 		onChange(exploded_view) {
 			Undo.initEdit({elements: Cube.all, exploded_view: !exploded_view});
 			Cube.all.forEach(cube => {
@@ -694,8 +700,8 @@ BARS.defineActions(function() {
 				]
 				let offset = cube.name.toLowerCase().includes('leg') ? 1 : 0.5;
 				center.V3_multiply(exploded_view ? offset : -offset/(1+offset));
-				cube.from.V3_add(center);
-				cube.to.V3_add(center);
+				cube.from.V3_add(center as ArrayVector3);
+				cube.to.V3_add(center as ArrayVector3);
 			})
 			Project.exploded_view = exploded_view;
 			Undo.finishEdit(exploded_view ? 'Explode skin model' : 'Revert exploding skin model', {elements: Cube.all, exploded_view: exploded_view});
@@ -714,7 +720,7 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: {formats: ['skin'], modes: ['pose']},
 		click(e) {
-			new Menu(this.children()).open(e.target);
+			new Menu(this.children()).open(e.target as HTMLElement);
 		},
 		children() {
 			let options = [];

@@ -871,7 +871,7 @@ FormElement.types.color = class FormElementColor extends FormElement {
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
-		this.colorpicker.on('modify_color', ({color}) => {
+		this.colorpicker.on('modify_color', () => {
 			scope.change();
 		})
 		bar.append(this.colorpicker.getNode())

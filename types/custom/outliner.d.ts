@@ -22,7 +22,7 @@ declare class OutlinerNode {
 	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
 	 */
 	init(): this
-	addTo(target?: OutlinerNode): this
+	addTo(target?: OutlinerNode | 'root'): this
 	sortInBefore(target?: OutlinerNode, index_modifier?: number): this
 	select(event?: any, isOutlinerClick?: boolean): this | void
 	getParentArray(): OutlinerNode[]

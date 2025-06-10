@@ -19,6 +19,8 @@ declare class ModelProject {
 	uuid: UUID
 	selected: boolean
 	model_identifier: string
+	get geometry_name(): string
+	set geometry_name(): string
 	parent: string
 	/**
 	 * When set to true, the project tab can no longer be selected or unselected
@@ -91,6 +93,7 @@ declare class ModelProject {
 	get nodes_3d(): {
 		[uuid: UUID]: THREE.Object3D
 	}
+	[key: string]: any
 
 	getDisplayName(): string
 	openSettings(): void

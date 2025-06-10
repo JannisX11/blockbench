@@ -124,6 +124,7 @@ export class Panel extends EventSystem {
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
 		this.optional = data.optional ?? true;
+		// @ts-ignore "Plugins" is loaded after so it cannot be imported
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;

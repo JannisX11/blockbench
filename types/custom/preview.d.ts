@@ -25,6 +25,8 @@ type RaycastResult = {
 	element?: OutlinerElement
 }
 
+type SplitScreenMode = 'single'|'double_horizontal'|'double_vertical'|'quad'|'triple_left'|'triple_right'|'triple_top'|'triple_bottom'
+
 /**
  * Previews are 3D viewports, that can either be used as a viewport for the user, or as an offscreen view to record media.
  */
@@ -99,6 +101,30 @@ declare class Preview extends Deletable {
 	 * The last used preview
 	 */
 	static selected: Preview
+
+	/**
+	 * Utility regarding split screen preview mode
+	 */
+	static split_screen: {
+		/**
+		 * Whether the split screen is enabled
+		 */
+		enabled: boolean
+		/**
+		 * The current split screen mode
+		 */
+		mode: SplitScreenMode
+		previews: Preview[]
+		lazyLoadPreview(index: number, camera_preset): Preview
+		/**
+		 * Set a split screen mode
+		 */
+		setMode(mode: SplitScreenMode = 'single')
+		/**
+		 * Update the size of the split screens
+		 */
+		updateSize()
+	}
 }
 
 declare function animate(): void

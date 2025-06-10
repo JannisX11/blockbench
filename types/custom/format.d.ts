@@ -4,7 +4,7 @@ interface FormatPage {
 	component?: Vue.Component
 	content?: (
 		| {
-				type: 'image' | 'h2' | 'h3' | 'h4' | 'text' | 'label' | 'image' | ''
+				type?: 'image' | 'h2' | 'h3' | 'h4' | 'text' | 'label' | 'image' | ''
 				text?: string
 				source?: string
 				width?: number
@@ -55,6 +55,7 @@ interface FormatOptions {
 	confidential?: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen?: boolean
+	can_convert_to?: boolean
 	format_page?: FormatPage
 	onFormatPage?(): void
 	onStart?(): void
@@ -246,10 +247,13 @@ declare class ModelFormat extends Deletable implements FormatOptions {
 	confidential: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen: boolean
+	can_convert_to: boolean
 	format_page?: FormatPage
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(): void
+
+	setup_dialog?: Dialog
 
 	codec?: Codec
 

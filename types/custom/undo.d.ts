@@ -24,6 +24,10 @@ interface UndoAspects {
 	 * Save which texture is selected
 	 */
 	selected_texture?: boolean
+	/**
+	 * Set to true to include the image content of the specified textures
+	 */
+	bitmap?: boolean
 	settings?: {}
 	uv_mode?: boolean
 	animations?: _Animation[]

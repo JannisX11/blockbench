@@ -17,6 +17,7 @@ interface GroupOptions {
 	export: boolean
 	/**Auto UV setting for the children. Can be 0, 1 or 2. */
 	autouv: 0 | 1 | 2
+	mirror_uv: boolean
 }
 
 declare class Group extends OutlinerNode {
@@ -53,6 +54,7 @@ declare class Group extends OutlinerNode {
 	selected: boolean
 	visibility: boolean
 	autouv: 0 | 1 | 2
+	mirror_uv: boolean
 	isOpen: boolean
 	ik_enabled: boolean
 	ik_chain_length: number
@@ -63,6 +65,8 @@ declare class Group extends OutlinerNode {
 	cem_attach?: boolean
 	cem_scale?: number
 	mesh: THREE.Mesh
+
+	[key: string]: any
 
 	static preview_controller: NodePreviewController
 

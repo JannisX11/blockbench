@@ -221,17 +221,12 @@ declare class Rectangle {
 	expandTo(x: number, y: number): void
 }
 
-interface CompileJSONOptions {
-	/**
-	 * Character or string used for indentation
-	 */
-	indentation?: string
-	/**
-	 * If true, compile everything in one line and without spaces
-	 */
-	small?: boolean
-}
 /**
- * Blockbench's JSON compilation / stringify implementation
+ * TGA / Targa library
  */
-declare function compileJSON(json: any, options?: CompileJSONOptions): string
+declare class Targa {
+	constructor()
+	load(data: Uint8Array)
+	getDataURL(): string
+	open(file: any, callback: () => void)
+}

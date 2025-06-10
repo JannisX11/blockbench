@@ -255,7 +255,7 @@ export namespace FileSystem {
 				let reader = new FileReader()
 				reader.onloadend = function() {
 					let result;
-					if (reader.result.byteLength && pathToExtension(name) === 'tga') {
+					if (typeof reader.result != 'string' && reader.result.byteLength && pathToExtension(name) === 'tga') {
 						let arr = new Uint8Array(reader.result)
 						let targa_loader = new Targa()
 						targa_loader.load(arr)
@@ -263,7 +263,7 @@ export namespace FileSystem {
 					} else {
 						result = reader.result
 					}
-					results[this.i] = {
+					results[i] = {
 						name,
 						path: name,
 						content: result,
@@ -406,7 +406,7 @@ export namespace FileSystem {
 				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
 					let blob = options.content instanceof Blob
 							 ? options.content
-							 : new Blob(options.content, {type: "octet/stream"});
+							 : new Blob([options.content], {type: "octet/stream"});
 					saveAs(blob, file_name)
 
 				} else {
@@ -460,9 +460,9 @@ export namespace FileSystem {
 	// MARK: Write
 	type WriteType = 'text' | 'buffer' | 'binary' | 'zip' | 'image'
 	interface WriteOptions {
-		content: string | ArrayBuffer
+		content?: string | ArrayBuffer | Blob
 		savetype?: WriteType | ((file: string) => WriteType)
-		custom_writer?: (content: string | ArrayBuffer, file_path: string, callback?: (file_path: string) => void) => void
+		custom_writer?: (content: string | ArrayBuffer | Blob, file_path: string, callback?: (file_path: string) => void) => void
 	}
 	/**
 	 * Writes a file to the file system. Desktop app only.
@@ -494,13 +494,13 @@ export namespace FileSystem {
 		} else if (options.savetype === 'zip') {
 			let fileReader = new FileReader();
 			fileReader.onload = function(event) {
-				let buffer = Buffer.from(new Uint8Array(this.result));
+				let buffer = Buffer.from(new Uint8Array(this.result as ArrayBuffer));
 				fs.writeFileSync(file_path, buffer)
 				if (callback) {
 					callback(file_path)
 				}
 			};
-			fileReader.readAsArrayBuffer(options.content);
+			fileReader.readAsArrayBuffer(options.content as Blob);
 
 		} else {
 			//text or binary
@@ -508,7 +508,7 @@ export namespace FileSystem {
 			if (content instanceof ArrayBuffer) {
 				content = Buffer.from(content);
 			}
-			fs.writeFileSync(file_path, content)
+			fs.writeFileSync(file_path, content as string)
 			if (callback) {
 				callback(file_path)
 			}

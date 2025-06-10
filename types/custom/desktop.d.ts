@@ -12,3 +12,4 @@ declare function openDefaultTexturePath(): void
 declare function findExistingFile(paths: string[]): any
 declare function createBackup(init: any): void
 declare function closeBlockbenchWindow(): any
+declare const currentwindow: any

@@ -149,6 +149,7 @@ declare global {
 		| 'changed'
 		| 'update'
 		| 'open'
+		| 'modify_color'
 	interface BarItemOptions extends KeybindItemOptions {
 		name?: string
 		description?: string
@@ -192,19 +193,19 @@ declare global {
 		 * @param event_name The event type to listen for
 		 * @param callback
 		 */
-		on(event_name: ActionEventName, callback: (data: object) => void): void
+		on(event_name: ActionEventName, callback: (data: Record<string, any>) => void): void
 		/**
 		 * Adds a single-use event listener to the item
 		 * @param event_name The event type to listen for
 		 * @param callback
 		 */
-		once(event_name: ActionEventName, callback: (data: object) => void): void
+		once(event_name: ActionEventName, callback: (data: Record<string, any>) => void): void
 		/**
 		 * Removes an event listener from the item
 		 * @param event_name
 		 * @param callback
 		 */
-		removeListener(event_name: ActionEventName, callback: (data: object) => void): void
+		removeListener(event_name: ActionEventName, callback: (data: Record<string, any>) => void): void
 		constructor(id: string, options: BarItemOptions)
 		conditionMet(): boolean
 		/**
@@ -235,7 +236,7 @@ declare global {
 		 * Icon color. Can be a CSS color string, or an axis letter to use an axis color.
 		 */
 		color?: string
-		children?: any[]
+		children?: any[] | (() => any[])
 		/**
 		 * Show the full label in toolbars
 		 */
@@ -293,6 +294,7 @@ declare global {
 		 * Method that gets called when the user changes the value of the toggle
 		 */
 		onChange?(value: boolean): void
+		icon: IconString | (() => selected_layer)
 	}
 	/**
 	 * A toggle is a type of action that can be on or off. The state is not persistent between restarts by default.
@@ -310,6 +312,7 @@ declare global {
 		linked_setting?: string
 		set(value: boolean): this
 		setIcon(icon: IconString): void
+		icon: IconString | (() => selected_layer)
 	}
 
 	type RGBAColor = { r: number; g: number; b: number; a: number }
@@ -543,7 +546,7 @@ declare global {
 		get(): tinycolor.Instance
 	}
 	interface ToolbarOptions {
-		id: string
+		id?: string
 		name?: string
 		/**
 		 * If true, the toolbar will display a label abovee

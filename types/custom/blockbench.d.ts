@@ -65,6 +65,7 @@ declare namespace Blockbench {
 	 * Time when Blockbench was opened
 	 */
 	export const openTime: Date
+	export const isTouch: boolean
 
 	/**
 	 * Reloads the Blockbench window
@@ -206,6 +207,9 @@ declare namespace Blockbench {
 		event_names: E,
 		callback: (data: any) => void
 	): void
+
+	export let Format: ModelFormat | 0
+	export let Project: ModelProject | 0
 
 }
 

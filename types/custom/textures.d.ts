@@ -44,6 +44,10 @@ declare global {
 		 */
 		saved?: boolean
 		/**
+		 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
+		 */
+		internal: boolean
+		/**
 		 * Flag to indicate that the texture was manually resized, and on load it should not try to automatically adjust UV size
 		 */
 		keep_size?: boolean
@@ -88,6 +92,7 @@ declare global {
 		readonly ratio: number
 		static selected?: Texture
 
+		uuid: UUID
 		path?: string
 		name: string
 		/** Relative path to the file's directory, used by some formats such as Java Block/Item*/
@@ -111,7 +116,15 @@ declare global {
 
 		/** HTML-style source of the texture's displayed data. Can be a path (desktop app only), or a base64 data URL */
 		source: string
-		selected?: boolean
+		/**
+		 * Whether the texture is directly selected
+		 */
+		selected: boolean
+		/**
+		 * Whether the texture is multi selected
+		 */
+		multi_selected: boolean
+		selected_layer: TextureLayer | null
 		show_icon: boolean
 		error: number
 		/** Whether the texture is visible. Used for layered textures mode */
@@ -132,7 +145,10 @@ declare global {
 		 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
 		 */
 		internal: boolean
-		uuid: UUID
+		/**
+		 * Set a function that will run once the next time the texture is loaded
+		 */
+		load_callback?: null | ((texture: Texture) => void)
 
 		/**
 		 * Texture selection in paint mode

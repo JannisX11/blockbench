@@ -38,6 +38,19 @@ interface UpdateViewOptions {
 	 */
 	groups?: Group[]
 	/**
+	 * Which aspects of the groups to update
+	 */
+	group_aspects?: {
+		/**
+		 * Update the transform of elements
+		 */
+		transform?: boolean
+		/**
+		 * Update visibility of elements
+		 */
+		visibility?: boolean
+	}
+	/**
 	 * Whether to update the selection (updates the selection outlines and interface)
 	 */
 	selection?: boolean
