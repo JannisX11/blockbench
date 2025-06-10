@@ -49,7 +49,7 @@ type UndoSave = {
 	outliner?: []
 	group?: {}
 	groups?: {}[]
-	collections: {}[]
+	collections?: {}[]
 	textures?: {}
 	texture_order?: UUID[]
 	selected_texture?: UUID | null

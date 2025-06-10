@@ -18,6 +18,7 @@ interface GroupOptions {
 	/**Auto UV setting for the children. Can be 0, 1 or 2. */
 	autouv: 0 | 1 | 2
 	mirror_uv: boolean
+	color: number
 }
 
 declare class Group extends OutlinerNode {
@@ -55,6 +56,7 @@ declare class Group extends OutlinerNode {
 	visibility: boolean
 	autouv: 0 | 1 | 2
 	mirror_uv: boolean
+	color: number
 	isOpen: boolean
 	ik_enabled: boolean
 	ik_chain_length: number

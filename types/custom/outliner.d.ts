@@ -198,6 +198,7 @@ declare const markerColors: {
 	pastel: string
 	standard: string
 	id: string
+	name?: string
 }[]
 
 declare function compileGroups(undo: boolean, lut?: { [index: number]: number }): any[]
