@@ -1,7 +1,11 @@
 {
 	"include": [
-		"js/**/*"
+		"js/**/*",
+		"types/custom/**/*"
 	],
+  "exclude": [
+		"types/generated/**/*"
+  ],
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -11,9 +15,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "noEmit": true,
-    "allowJs": true
+    "allowJs": true,
+    "rootDir": "js",
+
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "stripInternal": true,
+    "outDir": "./types/generated/"
   }
 }

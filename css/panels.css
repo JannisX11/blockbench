@@ -2258,7 +2258,7 @@ span.controller_state_section_info {
 		margin: auto;
 		position: relative;
 		overflow: hidden;
-		scrollbar-color: var(--color-selected) var(--color-dark);
+		scrollbar-color: var(--color-selected) var(--color-background);
 	}
 	#uv_frame {
 		height: 320px;

@@ -7,7 +7,9 @@
  * @author WestLangley / http://github.com/WestLangley
  * @author erich666 / http://erichaines.com
  */
-THREE.OrbitControls = function ( object, preview ) {
+class OrbitControls extends THREE.EventDispatcher {
+constructor ( object, preview ) {
+	super();
 
 	this.object = object;
 	this.preview = preview
@@ -801,8 +803,10 @@ THREE.OrbitControls = function ( object, preview ) {
 	window.addEventListener( 'keydown', onKeyDown, false );
 
 	this.update();
-
+}
 };
 
-THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls;
+// OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+// OrbitControls.prototype.constructor = OrbitControls;
+
+export default OrbitControls;

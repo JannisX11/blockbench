@@ -1,4 +1,4 @@
-import { THREE } from "../../lib/libs";
+import { THREE } from "../lib/libs";
 
 export class BillboardFace extends CubeFace {
 	constructor(data, billboard) {

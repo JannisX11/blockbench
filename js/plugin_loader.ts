@@ -1,24 +1,47 @@
+import { Blockbench } from "./api";
 import StateMemory from "./util/state_memory";
 import { Dialog } from "./interface/dialog";
-import { Settings, SettingsProfile } from "./interface/settings";
+import { settings, Settings, SettingsProfile } from "./interface/settings";
 import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
-import { FileSystem } from "./file_system";
+import { Filesystem } from "./file_system";
+import { Panels } from "./interface/interface";
+
+interface FileResult {
+	name: string
+	path: string
+	content: string | ArrayBuffer
+}
 
 export const Plugins = {
+	/**
+	 * The plugins window
+	 */
 	dialog: null as null|Dialog,
 	Vue: null as Vue | null,
+	/**
+	 * Data about which plugins are installed
+	 */
 	installed: [] as PluginInstallation[],
 	json: undefined,
 	download_stats: {},
+	/**
+	 * All loaded plugins, including plugins from the store that are not installed
+	 */
 	all: [] as Plugin[],
 	registered: {} as Record<string, Plugin>,
 	currently_loading: '',
 	loading_promise: null as null | Promise<void>,
+	/**
+	 * The currently used path to the plugin API
+	 */
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	path: '',
+	/**
+	 * Dev reload all side-loaded plugins
+	 */
 	devReload() {
 		let reloads = 0;
 		for (let i = Plugins.all.length-1; i >= 0; i--) {
@@ -121,6 +144,95 @@ type PluginChangelog = Record<string, {
 	}[]
 }>
 
+interface PluginOptions {
+	title: string
+	author: string
+	/**
+	 * Description text in the plugin browser
+	 */
+	description: string
+	/**
+	 * The about text appears when the user unfolds the plugin in the plugin browser. It can contain additional information and usage instructions
+	 */
+	about?: string
+	/**
+	 * The version of the plugin.
+	 */
+	version?: string
+	icon: string
+	/**
+	 * Plugin tags that will show up in the plugin store. You can provide up to 3 tags.
+	 */
+	tags?: [string, string?, string?]
+	/**
+	 * Where the plugin can be installed. Desktop refers to the electron app, web refers to the web app and PWA
+	 */
+	variant: 'both' | 'desktop' | 'web'
+	/**
+	 * Minimum Blockbench version in which the plugin can be installed
+	 */
+	min_version?: string
+	/**
+	 * Maximum Blockbench version in which the plugin can be installed
+	 */
+	max_version?: string
+	/**
+	 * Set to true if the plugin must finish loading before a project is opened, i. e. because it adds a format
+	 */
+	await_loading?: boolean
+	/**
+	 * Use the new repository format where plugin, iron, and about are stored in a separate folder
+	 */
+	new_repository_format?: boolean
+	/**
+	 * Can be used to specify which features a plugin adds. This allows Blockbench to be aware of and suggest even plugins that are not installed.
+	 */
+	contributes?: {
+		formats: string[]
+	}
+	has_changelog?: boolean
+	/**
+	 * In combination with a "Deprecated" tag, this can be used to provide context on why a plugin is deprecated
+	 */
+	deprecation_note?: string
+	/*
+	 * Link to the plugin's website
+	 */
+	website?: string
+	/*
+	 * Link to the repository that contains the source for the plugin
+	 */
+	repository?: string
+	/*
+	 * Link to where users can report issues with the plugin
+	 */
+	bug_tracker?: string
+	/*
+	 * List of secondary contributors to the plugin, excluding the main author(s)
+	 */
+	contributors?: string[]
+	disabled?: boolean
+	/**
+	 * Runs when the plugin loads
+	 */
+	onload?(): void
+	/**
+	 * Runs when the plugin unloads
+	 */
+	onunload?(): void
+	/**
+	 * Runs when the user manually installs the plugin
+	 */
+	oninstall?(): void
+	/**
+	 * Runs when the user manually uninstalls the plugin
+	 */
+	onuninstall?(): void
+}
+interface PluginSetupOptions {
+	disabled?: boolean
+}
+
 export class Plugin {
 	id: string
 	installed: boolean
@@ -160,7 +272,7 @@ export class Plugin {
 	oninstall?: () => void
 	onuninstall?: () => void
 
-	constructor(id: string = 'unknown', data?: PluginOptions) {
+	constructor(id: string = 'unknown', data?: PluginOptions | PluginSetupOptions) {
 		this.id = id;
 		this.installed = false;
 		this.title = '';
@@ -393,7 +505,7 @@ export class Plugin {
 			}
 		});
 	}
-	async loadFromFile(file: FileSystem.FileResult, first = false) {
+	async loadFromFile(file: Filesystem.FileResult, first = false) {
 		var scope = this;
 		if (!isApp && !first) return this;
 		if (first) {
@@ -930,7 +1042,7 @@ export async function loadInstalledPlugins() {
 				// Dev Plugins
 				if (isApp && fs.existsSync(installation.path)) {
 					var instance = new Plugin(installation.id, {disabled: installation.disabled});
-					install_promises.push(instance.loadFromFile({path: installation.path}, false));
+					install_promises.push(instance.loadFromFile({path: installation.path, name: installation.path, content: ''}, false));
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
 				} else {

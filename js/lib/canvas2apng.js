@@ -24,31 +24,33 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ========================================================================     */
 
-function APNGencoder(iCanvas) {
-	// Generate APNG byte array from a series of canvas images.
-	// See: https://en.wikipedia.org/wiki/APNG
+export class APNGencoder {
+	constructor(iCanvas) {
+		// Generate APNG byte array from a series of canvas images.
+		// See: https://en.wikipedia.org/wiki/APNG
 
-	// To hide this-variables, put them in an object (e.g. variable state)
-	// and replace this and self by state.
-	var self = this;  // !!! copy this to context of object
-	this.whoami = "apng png animation encoder canvas";  // keywords to identify
-	this.canvas = iCanvas;  // Canvas element
-	this.repeat = 0;  // number of repeats; 0 indefinitely
-	this.frame = -1;  // frame number (0 is first frame)
-	this.seqNumber = -1;  // Sequence number for fcTL and fdAT chunks
-	this.delay_num = 1; // Frame delay fraction numerator (int16, 2 bytes)
-	this.delay_den = 1; // Frame delay fraction denominator (int16, 2 bytes) 0 == 1/100 sec
-	this.dispose = 0;     // Type of frame area disposal; values 0, 1, 2
-	this.blend = 1;     // Type of frame area rendering: values 0, 1
+		// To hide this-variables, put them in an object (e.g. variable state)
+		// and replace this and self by state.
+		var self = this;  // !!! copy this to context of object
+		this.whoami = "apng png animation encoder canvas";  // keywords to identify
+		this.canvas = iCanvas;  // Canvas element
+		this.repeat = 0;  // number of repeats; 0 indefinitely
+		this.frame = -1;  // frame number (0 is first frame)
+		this.seqNumber = -1;  // Sequence number for fcTL and fdAT chunks
+		this.delay_num = 1; // Frame delay fraction numerator (int16, 2 bytes)
+		this.delay_den = 1; // Frame delay fraction denominator (int16, 2 bytes) 0 == 1/100 sec
+		this.dispose = 0;     // Type of frame area disposal; values 0, 1, 2
+		this.blend = 1;     // Type of frame area rendering: values 0, 1
 
-	this.apngBytes;     // APNG output stream (ByteArray)
-	this.frameBytes;  // Byte stream of current frame image (ByteArray)
+		this.apngBytes;     // APNG output stream (ByteArray)
+		this.frameBytes;  // Byte stream of current frame image (ByteArray)
 
-	// Flags
-	this.started = false;     // ready to output frames
-	this.closeStream = false; // close stream when finished
+		// Flags
+		this.started = false;     // ready to output frames
+		this.closeStream = false; // close stream when finished
+	}
 
-	this.start = function() {
+	start() {
 			// Creates APNG output stream on which images are written.
 			this.started = true;
 			this.closeStream = false;
@@ -59,7 +61,7 @@ function APNGencoder(iCanvas) {
 			return 0;
 		}   // start
 
-	this.setDelay = function(d100) {
+	setDelay(d100) {
 		// Sets the delay time between each frame.
 		// Applies to the last frame added and for subsequent frames.
 		// Parameter: d100 int delay time in 1/100 sec.
@@ -68,7 +70,7 @@ function APNGencoder(iCanvas) {
 		return 0;
 	}  // setDelay
 
-	this.setRepeat = function(iter) {
+	setRepeat(iter) {
 		// Sets the number of times the set of APNG frames should be played.
 		// Default is 1; 0 means play indefinitely.
 		// Must be invoked before the first image is added.
@@ -77,7 +79,7 @@ function APNGencoder(iCanvas) {
 		return 0;
 	}  // setRepeat
 
-	this.setDispose = function(d) {
+	setDispose(d) {
 		// 0: APNG_DISPOSE_OP_NONE: no disposal is done on this frame before rendering the next;
 		//   the contents of the output buffer are left as is.
 		// 1: APNG_DISPOSE_OP_BACKGROUND: the frame's region of the output buffer is to be cleared
@@ -89,7 +91,7 @@ function APNGencoder(iCanvas) {
 		return 0;
 	} // setDispose
 
-	this.setBlend = function(b) {
+	setBlend(b) {
 		// 0: APNG_BLEND_OP_SOURCE all color components of the frame, including alpha, overwrite
 		//   the current contents of the frame's output buffer region.
 		// 1: APNG_BLEND_OP_OVER the frame should be composited onto the output buffer based
@@ -99,7 +101,7 @@ function APNGencoder(iCanvas) {
 		return 0;
 	} // setBlend
 
-	this.addFrame = function(canvas) {
+	addFrame(canvas) {
 		// The addFrame method takes a canvas element to create each frame.
 		if ((this.canvas === null) || !this.started || this.apngBytes === null) {
 			throw new Error("Please call start method before calling addFrame");
@@ -213,7 +215,7 @@ function APNGencoder(iCanvas) {
 		return 0;
 	}  // addFrame
 	
-	this.finish = function() {
+	finish() {
 		// Adds final chunk to the APNG stream.
 		// If you don't call the finish method the APNG stream will not be valid.
 		if (!this.started) return false;
@@ -245,21 +247,30 @@ function APNGencoder(iCanvas) {
 		return true;
 	}  // finish
 
-	this.stream = function() {
+	stream() {
 		// Retrieves the APNG stream.
-		return self.apngBytes;
-	};
-
-	return this;
+		return this.apngBytes;
+	}
 };  // APNGencoder
 // ===============================================================================
 
 // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-function ByteArray(len) {
-	// Object special designed to store a PNG image.
-	// Used to generate an animated PNG image and process chunks.
 
-	this.bin = new Array(len);  // To store the byte array
+class Chunk {
+	constructor(idx, len, type) {
+		// Object Chunk
+		this.idx = idx;   // Starting index of chunk in context of byte array
+		this.len = len;   // Length of data: total length of chunk is (4 + 4 + len + 4)
+		this.type = type; // IHDR, IEND, IDAT, acTL, fcTL, fdAT, etc.
+	}  // Chunk
+}
+class ByteArray {
+	constructor(len) {
+		// Object special designed to store a PNG image.
+		// Used to generate an animated PNG image and process chunks.
+
+		this.bin = new Array(len);  // To store the byte array
+	}
 
 	// A chunk in a PNG file consists of four parts:
 	// - Length of data (4 bytes)
@@ -270,15 +281,8 @@ function ByteArray(len) {
 	// - the IHDR (image header) chunk
 	// - one or more IDAT (image data) chunks
 	// - the IEND (image end) chunk
-	function Chunk(idx, len, type) {
-		// Object Chunk
-		this.idx = idx;   // Starting index of chunk in context of byte array
-		this.len = len;   // Length of data: total length of chunk is (4 + 4 + len + 4)
-		this.type = type; // IHDR, IEND, IDAT, acTL, fcTL, fdAT, etc.
-	}  // Chunk
 
-	this.findChunk =
-		function(iType) {
+	findChunk(iType) {
 			// Find first chunk matching iType; null if not found
 			var offset = 8;    // start search
 			var chunk = null;  // default output 
@@ -289,7 +293,7 @@ function ByteArray(len) {
 				var chunkLength = bytes4ToInt32(chunk1);
 				var chunkType = bytes4ToStr4(chunk2);
 				if (chunkType === iType) {
-				chunk = new Chunk(offset, chunkLength, chunkType);
+				let chunk = new Chunk(offset, chunkLength, chunkType);
 				// chunk_arr = this.bin.slice(offset, offset + 4 + 4 + chunkLength + 4);
 				return chunk;  // STOP
 				}
@@ -300,8 +304,7 @@ function ByteArray(len) {
 			return chunk;
 		}  // findChunk
 
-	this.findChunkAll =
-		function(iType) {
+	findChunkAll(iType) {
 			// Find all chunks matching iType. Output array of chunk objects.
 			var offset = 8;    // start search
 			var chunkArray = [];  // default output 
@@ -312,7 +315,7 @@ function ByteArray(len) {
 				var chunkLength = bytes4ToInt32(chunk1);
 				var chunkType = bytes4ToStr4(chunk2);
 				if (chunkType === iType) {
-				chunk = new Chunk(offset, chunkLength, chunkType);
+				let chunk = new Chunk(offset, chunkLength, chunkType);
 				chunkArray.push(chunk);  // array of chunk objects
 				// chunk_arr = this.bin.slice(offset, offset + 4 + 4 + chunkLength + 4);
 				}
@@ -323,27 +326,22 @@ function ByteArray(len) {
 			return chunkArray;
 		}  // findChunkAll
 
-	this.toStrHex =
-		function() {
+	toStrHex() {
 			return bytesToStrHex(this.bin);
 		}  // toStrHex
 
-	this.toStrBase64 =
-		function() {
+	toStrBase64() {
 			return bytesToBase64(this.bin);
 		}  // toStrBase64
 
-	this.toStrAscii =
-		function() {
+	toStrAscii() {
 			return bytesToStrAscii(this.bin);
 		}  // toStrAscii
 
-	this.toStrDec =
-		function() {
+	toStrDec() {
 			return bytesToStrDec(this.bin);
 		}  // toStrDec
 
-	return this;
 }  // ByteArray
 
 // ===============================================================================
@@ -399,6 +397,7 @@ function bytesToBase64(bytes) {
 		str += String.fromCharCode(bytes[i]);
 	return btoa(str);
 }  // bytesToBase64
+APNGencoder.bytesToBase64 = bytesToBase64;
 
 function base64ToBytes(str) {
 	// Convert base64 string to byte array.

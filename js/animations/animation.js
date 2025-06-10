@@ -1,5 +1,5 @@
 import { Blockbench } from "../api";
-import { FileSystem } from "../file_system";
+import { Filesystem } from "../file_system";
 
 export class AnimationItem {
 	constructor() {}
@@ -1034,7 +1034,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-FileSystem.addDragHandler('animation', {
+Filesystem.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},

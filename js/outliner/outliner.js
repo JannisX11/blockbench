@@ -199,6 +199,14 @@ export class OutlinerNode {
 			return this.parent.children
 		}
 	}
+	showContextMenu(event) {
+		if (this.locked) return this;
+		if (!this.selected) {
+			this.clickSelect(event)
+		}
+		this.menu.open(event, this)
+		return this;
+	}
 	//Outliner
 	showInOutliner() {
 		var scope = this;
