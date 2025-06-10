@@ -264,17 +264,6 @@ interface Object {
 
 declare var LZUTF8: any
 
-interface ToastNotificationOptions {
-	text: string
-	icon?: string
-	expire?: number
-	color?: string
-	click?: () => boolean
-}
-declare namespace Blockbench {
-	function showToastNotification(options: ToastNotificationOptions): Deletable
-}
-
 declare function unselectAllElements(): void
 declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number

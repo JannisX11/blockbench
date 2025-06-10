@@ -30,10 +30,10 @@
 		"texturing/texture_groups",
 		"texturing/textures",
 		"texturing/layers",
-		"api",
 		"undo",
 		"texturing/uv",
 		"validator",
+		"util/util",
 		"lib/fik",
 		"lib/lzutf8",
 		"lib/VuePrismEditor"

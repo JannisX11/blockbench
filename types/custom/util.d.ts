@@ -167,9 +167,6 @@ declare namespace Reusable {
 	const euler2: THREE.Euler
 }
 
-declare namespace Blockbench {
-	function addCSS(css: string): void
-}
 declare function getCurrentGroup(): Group
 
 /**

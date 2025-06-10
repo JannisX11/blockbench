@@ -7,7 +7,13 @@ function isStreamerMode(): boolean {
 	return window.settings.streamer_mode.value;
 }
 
-export namespace FileSystem {
+declare class Blockbench {
+	static isTouch: boolean
+	static showMessageBox(options: any): void
+	static showQuickMessage(message: string): void
+}
+
+export namespace Filesystem {
 	export type FileResult = {
 		name: string
 		path: string
@@ -633,7 +639,7 @@ export namespace FileSystem {
 			condition: options.condition,
 			extensions: options.extensions,
 			delete() {
-				FileSystem.removeDragHandler(id);
+				Filesystem.removeDragHandler(id);
 			}
 		}
 		if (options.propagate) entry.propagate = true;
@@ -688,7 +694,7 @@ export namespace FileSystem {
 				readtype: handler.readtype,
 				errorbox: handler.errorbox,
 			}
-			FileSystem.read(paths, read_options, (files) => {
+			Filesystem.read(paths, read_options, (files) => {
 				handler.cb(files, event)
 			})
 		})
@@ -706,12 +712,12 @@ export namespace FileSystem {
 		})
 	}
 
-	function forDragHandlers(event: DragEvent, cb: (handler: FileSystem.DragHandler, el: HTMLElement) => void) {
+	function forDragHandlers(event: DragEvent, cb: (handler: Filesystem.DragHandler, el: HTMLElement) => void) {
 		if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
 			return; 
 		}
-		for (let id in FileSystem.drag_handlers) {
-			let handler = FileSystem.drag_handlers[id] 
+		for (let id in Filesystem.drag_handlers) {
+			let handler = Filesystem.drag_handlers[id] 
 			let el = undefined;
 			if (!Condition(handler.condition)) {
 				continue;
@@ -753,5 +759,5 @@ export namespace FileSystem {
 }
 
 Object.assign(window, {
-	FileSystem
+	Filesystem
 })

@@ -6,7 +6,7 @@ import { ModelLoader, StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
-import { FileSystem } from "./file_system";
+import { Filesystem } from "./file_system";
 import { Panels } from "./interface/interface";
 
 interface FileResult {
@@ -505,7 +505,7 @@ export class Plugin {
 			}
 		});
 	}
-	async loadFromFile(file: FileSystem.FileResult, first = false) {
+	async loadFromFile(file: Filesystem.FileResult, first = false) {
 		var scope = this;
 		if (!isApp && !first) return this;
 		if (first) {

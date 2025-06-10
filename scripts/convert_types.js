@@ -36,7 +36,7 @@ function processFile(content, path) {
 					output_lines.push('    ' + comment);
 				}
 				comment_stash.length = 0;
-				let shorter_line = line.replace(/^export (default )?/, '');
+				let shorter_line = line.replace(/^export (default )?(declare )?/, '');
 				output_lines.push('    ' + shorter_line);
 				
 			} else if (isComment(line)) {
@@ -54,7 +54,7 @@ function processFile(content, path) {
 				output_lines.push('    ' + comment);
 			}
 			comment_stash.length = 0;
-			let shorter_line = line.replace(/^export (default )?/, '');
+			let shorter_line = line.replace(/^export (default )?(declare )?/, '');
 			output_lines.push('    ' + shorter_line);
 			global_scope = true;
 
