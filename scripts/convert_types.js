@@ -11,6 +11,10 @@ let file_delete_count = 0;
 
 const config = JSON.parse(fs.readFileSync('./types/type_config.json', 'utf-8'));
 
+function isComment(line) {
+	return line.startsWith('/*') || line.startsWith(' *') || line.startsWith('//');
+}
+
 /**
  * 
  * @param {string} content 
@@ -28,8 +32,17 @@ function processFile(content, path) {
 			if (line.startsWith('}') || line.startsWith('  ')) {
 				output_lines.push('    ' + line);
 			} else if (line.startsWith('export ') && !line.startsWith('export {}')) {
-				output_lines.push('    ' + line.substring(7));
-			} else {
+				for (let comment of comment_stash) {
+					output_lines.push('    ' + comment);
+				}
+				comment_stash.length = 0;
+				let shorter_line = line.replace(/^export (default )?/, '');
+				output_lines.push('    ' + shorter_line);
+				
+			} else if (isComment(line)) {
+				// Comment
+				comment_stash.push(line);
+			 } else {
 				output_lines.push('}');
 				global_scope = false;
 				output_lines.push(line);
@@ -41,20 +54,27 @@ function processFile(content, path) {
 				output_lines.push('    ' + comment);
 			}
 			comment_stash.length = 0;
-			output_lines.push('    ' + line.substring(7));
+			let shorter_line = line.replace(/^export (default )?/, '');
+			output_lines.push('    ' + shorter_line);
 			global_scope = true;
-		} else if (line.startsWith('/*') || line.startsWith(' *') || line.startsWith('//')) {
+
+		} else if (isComment(line)) {
 			// Comment
 			comment_stash.push(line);
+
 		} else {
 			if (comment_stash.length) {
 				output_lines.push(...comment_stash);
 				comment_stash.length = 0;
 			}
-			output_lines.push(line);
+			if (line) output_lines.push(line);
 		}
 		i++;
 	}
+	if (output_lines.includes('export {};') == false) {
+		output_lines.push('export {};');
+	}
+	output_lines.push('');
 	let result = output_lines.join('\n');
 	return result;
 }

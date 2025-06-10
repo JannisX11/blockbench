@@ -20,8 +20,8 @@ interface PanelPositionData {
 type PanelSlot = 'left_bar' | 'right_bar' | 'top' | 'bottom' | 'float' | 'hidden'
 
 interface PanelOptions {
-	id: string
-	name: string
+	id?: string
+	name?: string
 	icon: string
 	optional?: boolean
 	plugin?: string
@@ -41,7 +41,7 @@ interface PanelOptions {
 	/**
 	 * Adds a button to the panel that allows users to pop-out and expand the panel on click
 	 */
-	expand_button: boolean
+	expand_button?: boolean
 	toolbars?:
 		| {
 				[id: string]: Toolbar
@@ -52,7 +52,7 @@ interface PanelOptions {
 		| number
 	component?: Vue.Component
 	form?: InputForm
-	default_side: 'right' | 'left'
+	default_side?: 'right' | 'left'
 	/**
 	 * Identifier of another panel to insert this one above
 	 */

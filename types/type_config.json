@@ -33,6 +33,9 @@
 		"api",
 		"undo",
 		"texturing/uv",
-		"validator"
+		"validator",
+		"lib/fik",
+		"lib/lzutf8",
+		"lib/VuePrismEditor"
 	]
 }

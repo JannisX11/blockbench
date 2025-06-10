@@ -7,6 +7,7 @@ import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { FileSystem } from "./file_system";
+import { Panels } from "./interface/interface";
 
 interface FileResult {
 	name: string
