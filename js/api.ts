@@ -109,6 +109,12 @@ export const Blockbench = {
 				node.classList.add('color_y');
 			} else if (color === 'z') {
 				node.classList.add('color_z');
+			}  else if (color === 'u') {
+				node.classList.add('color_u');
+			}   else if (color === 'v') {
+				node.classList.add('color_v');
+			}   else if (color === 'w') {
+				node.classList.add('color_w');
 			} else if (typeof color === 'string') {
 				node.style.color = color;
 			}

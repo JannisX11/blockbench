@@ -423,11 +423,17 @@ UndoSystem.save = class {
 
 					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
-						for (var face in new_element.faces) {
-							new_element.faces[face].reset()
+						if (new_element instanceof SplineMesh) {
+							new_element.overwrite(element)
+							new_element.preview_controller.updateAll(new_element);
+						} 
+						else {
+							for (var face in new_element.faces) {
+								new_element.faces[face].reset()
+							}
+							new_element.extend(element)
+							new_element.preview_controller.updateAll(new_element);
 						}
-						new_element.extend(element)
-						new_element.preview_controller.updateAll(new_element);
 					} else {
 						new_element = OutlinerElement.fromSave(element, true);
 					}
@@ -826,6 +832,10 @@ UndoSystem.selectionSave = class {
 					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
+			} if (element instanceof SplineMesh) {
+				this.geometry[element.uuid] = {
+					vertices: element.getSelectedVertices().slice(),
+				}
 			} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {
 				this.geometry[element.uuid] = {
 					faces: UVEditor.getSelectedFaces(element).slice()
@@ -892,6 +902,10 @@ UndoSystem.selectionSave = class {
 				if (element instanceof Mesh) {
 					element.getSelectedFaces(true).replace(geo_data.faces);
 					element.getSelectedEdges(true).replace(geo_data.edges);
+					element.getSelectedVertices(true).replace(geo_data.vertices);
+
+				} 
+				if (element instanceof SplineMesh) {
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
 				} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {

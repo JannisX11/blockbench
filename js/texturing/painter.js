@@ -556,7 +556,7 @@ export const Painter = {
 			}
 		}
 
-		if ((element.getTypeBehavior('cube_faces') || element instanceof Mesh) && (fill_mode === 'element' || fill_mode === 'face')) {
+		if ((element.getTypeBehavior('cube_faces') || element instanceof Mesh || element instanceof SplineMesh) && (fill_mode === 'element' || fill_mode === 'face')) {
 			paintElement(element);
 
 		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {

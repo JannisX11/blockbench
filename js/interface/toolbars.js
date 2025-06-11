@@ -429,7 +429,7 @@ export const BARS = {
 				toolbar: 'main_tools',
 				alt_tool: 'pivot_tool',
 				modes: ['edit', 'display', 'animate', 'pose'],
-				keybind: new Keybind({key: 'r'})
+				keybind: new Keybind({key: 'r'}),
 			})
 			new Tool('pivot_tool', {
 				icon: 'gps_fixed',
@@ -741,6 +741,10 @@ export const BARS = {
 				'rotation_space',
 				'transform_pivot_space',
 				'selection_mode',
+				'spline_selection_mode',
+				'spline_handle_mode',
+				'slider_spline_handle_tilt',
+				'slider_spline_handle_size',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
@@ -817,7 +821,9 @@ export const BARS = {
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
-			].forEach(toolbar => {
+			]
+
+			toolbars.forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
 					if (toolbar.children.includes(child)) {
 						toolbar.remove(child);
@@ -855,7 +861,9 @@ export const BARS = {
 			no_wrap: true,
 			children: [
 				'vertex_snap_mode',
-				'selection_mode'
+				'selection_mode',
+				'spline_selection_mode',
+				'spline_handle_mode',
 			]
 		})
 		Toolbars.seam_tool = new Toolbar({
