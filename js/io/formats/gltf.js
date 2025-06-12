@@ -294,7 +294,9 @@ function buildSkinnedMesh(root_group, scale) {
 	let skeleton = new THREE.Skeleton(bones)
 	skeleton.name = root_group.name;
 
-	skinned_mesh.add(skeleton.bones[0]);
+	if (skeleton.bones[0]) {
+		skinned_mesh.add(skeleton.bones[0]);
+	}
 	skinned_mesh.bind(skeleton);
 
 	skinned_mesh.position.copy(root_group.mesh.position);
