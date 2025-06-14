@@ -96,7 +96,7 @@ BARS.defineActions(function() {
 			}, function(files) {
 				files.forEach(file => {
 					var model = autoParseJSON(file.content)
-					part_codec.parse(model, file.path, true)
+					part_codec.parse(model, file.path)
 				})
 			})
 		}
