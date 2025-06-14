@@ -1211,6 +1211,21 @@ SharedActions.add('invert_selection', {
 })
 
 BARS.defineActions(function() {
+	new Action('add_element', {
+		icon: 'add_2',
+		children: [
+			'add_mesh',
+			'add_cube',
+			'add_spline',
+			'add_billboard',
+			'add_locator',
+			'add_null_object',
+			'add_texture_mesh',
+		],
+		click(event) {
+			new Menu('move_to_group', this.children).open(event.target, this);
+		}
+	});
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
 		category: 'edit',
@@ -1643,9 +1658,7 @@ Interface.definePanels(function() {
 		toolbars: [
 			new Toolbar('outliner', {
 				children: [
-					'add_mesh',
-					'add_spline',
-					'add_cube',
+					'add_element',
 					'add_group',
 					'outliner_toggle',
 					'toggle_skin_layer',
@@ -1942,11 +1955,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			new MenuSeparator('add_element'),
-			'add_mesh',
-			'add_spline',
-			'add_cube',
-			'add_texture_mesh',
-			'add_billboard',
+			'add_element',
 			'add_group',
 			new MenuSeparator('copypaste'),
 			'paste',
