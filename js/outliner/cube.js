@@ -1045,6 +1045,12 @@ function adjustFromAndToForInflateAndStretch(from, to, element) {
 	}
 }
 
+function getRescalingFactor(angle) {
+	angle = Math.abs(angle);
+	if (angle > 45) angle = 90-angle;
+	return 1 / Math.cos(Math.degToRad(angle));
+}
+
 new NodePreviewController(Cube, {
 	setup(element) {
 		let mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), Canvas.emptyMaterials[0]);

@@ -53,8 +53,9 @@ var codec = new Codec('java_block', {
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
 				var axis = s.rotationAxis()||'y';
+				let angle = s.rotation[getAxisNumber(axis)];
 				element.rotation = new oneLiner({
-					angle: s.rotation[getAxisNumber(axis)],
+					angle: Format.rotation_snap ? Math.round(angle / 22.5) * 22.5 : angle,
 					axis,
 					origin: s.origin
 				})
@@ -195,7 +196,9 @@ var codec = new Codec('java_block', {
 			Project.parent = '';
 		}
 
-		var blockmodel = {}
+		var blockmodel = {
+			format_version: Project.java_block_version
+		};
 		if (checkExport('comment', Project.credit || settings.credit.value)) {
 			blockmodel.credit = Project.credit || settings.credit.value
 		}
@@ -279,6 +282,10 @@ var codec = new Codec('java_block', {
 			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
 			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
+		}
+
+		if (!add && typeof model.format_version == 'string') {
+			Project.java_block_version = model.format_version;
 		}
 
 		//Load
@@ -528,7 +535,7 @@ var format = new ModelFormat({
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
 	rotation_limit: true,
-	rotation_snap: true,
+	rotation_snap: false,
 	optional_box_uv: true,
 	uv_rotation: true,
 	java_cube_shading_properties: true,
@@ -597,6 +604,12 @@ var format = new ModelFormat({
 	codec
 })
 codec.format = format;
+Object.defineProperty(format, 'rotation_snap', {
+	get() {
+		return Project.java_block_version == '1.9.0'
+	}
+})
+
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({
