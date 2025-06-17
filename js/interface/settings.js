@@ -657,7 +657,7 @@ const Settings = {
 				list.push({
 					name: profile.name,
 					icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
-					color: markerColors[profile.color].standard,
+					color: markerColors[profile.color % markerColors.length].standard,
 					click: () => {
 						profile.select();
 					}
@@ -722,7 +722,7 @@ const Settings = {
 	},
 	updateProfileButton() {
 		let profile = SettingsProfile.selected;
-		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color].standard : '';
+		Settings.profile_menu_button.style.color = profile ? markerColors[profile.color % markerColors.length].standard : '';
 		Settings.profile_menu_button.classList.toggle('hidden', SettingsProfile.all.findIndex(p => p.condition.type == 'selectable') == -1);
 	},
 	import(file) {
@@ -951,7 +951,7 @@ onVueSetup(function() {
 						items.push({
 							name: profile.name,
 							icon: 'manage_accounts',
-							color: markerColors[profile.color].standard,
+							color: markerColors[profile.color % markerColors.length].standard,
 							click: () => {
 								this.profile = profile;
 								if (profile.condition.type == 'selectable') {
@@ -1029,7 +1029,7 @@ onVueSetup(function() {
 				}
 			},
 			template: `
-				<div :style="{'--color-profile': profile ? markerColors[profile.color] && markerColors[profile.color].standard : ''}">
+				<div :style="{'--color-profile': profile ? markerColors[profile.color % markerColors.length].standard : ''}">
 					<div id="settings_profile_wrapper">
 						Profile:
 						<bb-select ref="profile_menu" id="settings_profile_select" @click="showProfileMenu($event)" :class="{profile_is_selected: !!profile}">{{ profile_name }}</bb-select>
@@ -1065,7 +1065,7 @@ onVueSetup(function() {
 								<label class="setting_name" v-bind:for="'setting_'+key">{{ setting.name }}</label>
 								<div class="setting_profile_value_indicator"
 									v-for="profile_here in getProfileValuesForSetting(key)"
-									:style="{'--color-profile': markerColors[profile_here.color] && markerColors[profile_here.color].standard}"
+									:style="{'--color-profile': markerColors[profile_here.color % markerColors.length].standard}"
 									:class="{active: profile_here.isActive()}"
 									:title="tl('Has override in profile ' + profile_here.name)"
 									@click.stop="profile = (profile == profile_here) ? null : profile_here"

@@ -2326,5 +2326,6 @@
 	"settings.pick_combined_color": "Farbkombination auswählen",
 	"settings.pick_combined_color.desc": "Mit der Farbpipette die kombinierte Farbe aller Ebenen auswählen, an Stelle von der Farbe der ausgewählten Ebene",
 	"action.split_rgb_into_layers": "RGB Farbkanäle in Ebenen aufteilen",
-	"action.split_rgb_into_layers.desc": "Teile die Textur in eine additive Ebene pro RGB Farbkanal auf"
+	"action.split_rgb_into_layers.desc": "Teile die Textur in eine additive Ebene pro RGB Farbkanal auf",
+	"dialog.project.java_block_version": "Format-Version"
 }

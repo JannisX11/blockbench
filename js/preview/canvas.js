@@ -1,24 +1,3 @@
-
-function getRescalingFactor(angle) {
-	switch (Math.abs(angle)) {
-		case 0:
-			return 1.4142
-			break;
-		case 22.5:
-			return 1.0824
-			break;
-		case 67.5:
-			return 1.0824
-			break;
-		case 45:
-			return 1.4142
-			break;
-		default:
-			return 1;
-			break;
-	}
-}
-
 const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),
@@ -323,7 +302,13 @@ const Canvas = {
 		})
 	})(),
 	emptyMaterials: [],
-	coloredSolidMaterials:[],
+	coloredSolidMaterials: [],
+	getEmptyMaterial(index) {
+		return Canvas.emptyMaterials[index % Canvas.emptyMaterials.length];
+	},
+	getSolidColorMaterial(index) {
+		return Canvas.coloredSolidMaterials[index % Canvas.coloredSolidMaterials.length];
+	},
 	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -1321,7 +1306,7 @@ const Canvas = {
 			mesh.material = Canvas.monochromaticSolidMaterial
 
 		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[cube.color]
+			mesh.material = Canvas.getSolidColorMaterial(cube.color);
 
 		} else if (Project.view_mode === 'wireframe') {
 			mesh.material = Canvas.wireframeMaterial
@@ -1331,7 +1316,7 @@ const Canvas = {
 
 		} else if (Format.single_texture) {
 			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
+			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(cube.color);
 
 		} else {
 			var materials = []
@@ -1345,7 +1330,7 @@ const Canvas = {
 					if (tex && tex.uuid) {
 						materials.push(tex.getMaterial())
 					} else {
-						materials.push(Canvas.emptyMaterials[cube.color])
+						materials.push(Canvas.getEmptyMaterial(cube.color));
 					}
 				}
 			})
