@@ -660,12 +660,10 @@ class Cube extends OutlinerElement {
 					this.faces[fkey].extend({texture: texture || false});
 				}
 			}
-			this.preview_controller.updateFaces(this);
-
-		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
 			}
+			this.preview_controller.updateFaces(this);
 		}
 		this.preview_controller.updateUV(this);
 		return this;
