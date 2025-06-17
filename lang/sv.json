@@ -1505,7 +1505,7 @@
 	"format.free.info.limitation": "Models cannot be loaded into games that need specialized formats, such as Minecraft.",
 	"format.skin.info.skin": "This format is designed to create Minecraft skins and entity textures.",
 	"format.skin.info.model": "The model cannot be changed. In order to make changes to the model, first convert to a different format via **File** > **Convert Project**.",
-	"format.java_block.info.rotation": "Rotations are limited to 22.5 degree steps and one axis per element",
+	"format.java_block.info.rotation": "Rotations are limited to one axis per element",
 	"format.java_block.info.size": "The model is limited to a size of 3 by 3 by 3 blocks. Display settings can make item models larger though",
 	"format.java_block.info.animation": "This format does not support animations in vanilla Minecraft. If you are creating a mod, you can use GeckoLib to animate models. If not, the only way to animate is to switch out the model using commands or animated textures.",
 	"format.bedrock.info.textures": "Each model can only have one texture",
@@ -2326,5 +2326,6 @@
 	"settings.pick_combined_color": "Pick Combined Color",
 	"settings.pick_combined_color.desc": "Pick the combined color of all layers at the respective pixel, instead of the color on the active layer",
 	"action.split_rgb_into_layers": "Split RGB Channels into Layers",
-	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel"
+	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel",
+	"dialog.project.java_block_version": "Format Version"
 }
