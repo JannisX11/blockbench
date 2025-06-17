@@ -1,5 +1,6 @@
 /dist/
-index.php
+.env
+.DS_store
 electron-builder.env
 node_modules/
 bundle.js
