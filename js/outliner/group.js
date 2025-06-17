@@ -626,24 +626,25 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
 			Undo.initEdit({outliner: true});
-			var add_group = Group.first_selected
-			if (!add_group && selected.length) {
-				add_group = selected.last()
-			}
+			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
+			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
 				origin: add_group ? add_group.origin : undefined
 			})
-			base_group.addTo(add_group)
 			base_group.isOpen = true
-		
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group instanceof OutlinerElement && selected.length > 1) {
-				selected.forEach(function(s, i) {
+
+			if (lowest_selected.length >= 2 && add_group) {
+				base_group.sortInBefore(add_group, 1);
+				lowest_selected.forEach((s) => {
 					s.addTo(base_group)
 				})
+			} else {
+				base_group.addTo(add_group)
 			}
+
 			base_group.init().select()
 			Undo.finishEdit('Add group');
 			Vue.nextTick(function() {
@@ -679,16 +680,11 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group instanceof Group) {
-				for (let group of Group.multi_selected) {
-					group.addTo(base_group);
-				}
-			} else if (add_group instanceof OutlinerElement) {
-				Outliner.selected.forEach(function(s, i) {
-					s.addTo(base_group);
-					s.preview_controller.updateTransform(s);
-				})
-			}
+			Outliner.selected.concat(Group.multi_selected).forEach((s) => {
+				if (s.parent?.selected) return;
+				s.addTo(base_group);
+				s.preview_controller.updateTransform(s);
+			})
 			base_group.select()
 			Undo.finishEdit('Add group');
 			Vue.nextTick(function() {
@@ -818,7 +814,7 @@ BARS.defineActions(function() {
 				})
 			}
 			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.multi_selected) {
+			for (let group of Group.multi_selected.slice()) {
 				group.resolve(false);
 			}
 			Undo.finishEdit('Resolve group');

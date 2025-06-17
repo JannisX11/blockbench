@@ -516,6 +516,9 @@ const Timeline = {
 			e.preventDefault()
 			let event = e.originalEvent;
 			let body = document.getElementById('timeline_body');
+
+			body.scrollLeft += event.deltaX/2;
+
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
@@ -532,7 +535,7 @@ const Timeline = {
 				body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 
 			} else {
-				body.scrollTop += event.deltaY/6.25
+				body.scrollTop += event.deltaY/4;
 			}
 			Timeline.updateSize()
 			event.preventDefault();
@@ -1025,6 +1028,12 @@ Interface.definePanels(() => {
 
 					if (this.graph_editor_open) {
 						this.graph_size += 1e-5;
+					}
+				},
+				updateGraph() {
+					if (this.graph_editor_open) {
+						this.graph_size++;
+						this.graph_size--;
 					}
 				},
 				toggleAnimator(animator) {
