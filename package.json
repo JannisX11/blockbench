@@ -120,6 +120,7 @@
 		"dist": "electron-builder",
 		"beta": "electron-builder --windows portable",
 		"publish-windows": "npm run bundle && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
+		"publish-mac": "npm run prepublish && electron-builder --publish=always",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run bundle && npm run pwa",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run bundle && npm run pwa",
@@ -128,6 +129,7 @@
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
 		"blockbench-types": "^4.6.1",
+		"dotenv": "^16.5.0",
 		"electron": "^33.3.1",
 		"electron-builder": "^24.13.3",
 		"webpack": "^5.74.0",
