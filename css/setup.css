@@ -1,5 +1,5 @@
-
-/*INIT*/
+@layer reset, lib, base, theme, theme-override;
+@layer reset {
 	* {
 		margin: 0;
 		padding: 0;
@@ -10,9 +10,35 @@
 		user-select: none;
 		-webkit-user-select: none;
 	}
+	div {
+		cursor: default;
+		box-sizing: border-box;
+	}
+	a {
+		text-decoration: none;
+		cursor: default;
+		color: inherit;
+	}
+	i {
+		cursor: inherit;
+	}
+
+	b {
+		font-weight: bolder;
+	}
+	li {
+		list-style: none;
+		cursor: default;
+	}
+}
+@layer base {
+/*INIT*/
 	body.is_mobile * {
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	[hidden], template {
+		display: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -356,7 +382,14 @@
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
+		--color-axis-u: #23d4ed;
+		--color-axis-v: #ff12ed;
+		--color-axis-w: #ffd442;
 
+		--color-spline-handle-mirrored: #ff1242;
+		--color-spline-handle-aligned: #F0B000;
+		--color-spline-handle-free: #00D123;
+		
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';
@@ -386,26 +419,6 @@
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
 		forced-color-adjust: none;
-	}
-	div {
-		cursor: default;
-		box-sizing: border-box;
-	}
-	a {
-		text-decoration: none;
-		cursor: default;
-		color: inherit;
-	}
-	i {
-		cursor: inherit;
-	}
-
-	b {
-		font-weight: bolder;
-	}
-	li {
-		list-style: none;
-		cursor: default;
 	}
 	hr {
 		border-top: 1px solid var(--color-border);
@@ -825,3 +838,4 @@
 	.y_scrollable {
 		overflow-y: scroll;
 	}
+}

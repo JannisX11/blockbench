@@ -45,9 +45,11 @@ export const Reusable = {
 
 	quat1: new THREE.Quaternion(),
 	quat2: new THREE.Quaternion(),
+	quat3: new THREE.Quaternion(),
 
 	euler1: new THREE.Euler(),
 	euler2: new THREE.Euler(),
+	euler3: new THREE.Euler(),
 }
 
 
@@ -66,6 +68,20 @@ export const Canvas = {
 		depthTest: settings.seethrough_outline.value == false,
 		transparent: true,
 		color: gizmo_colors.outline
+	}),
+	splinePathLineMaterial: new THREE.LineBasicMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true,
+	}),
+	splinePathDashedLineMaterial: new THREE.LineDashedMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true, 
+		dashSize: 0.75, 
+		gapSize: 0.5
 	}),
 	meshOutlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
@@ -426,6 +442,7 @@ export const Canvas = {
 			polygonOffset: true,
 			polygonOffsetUnits: 1,
 			polygonOffsetFactor: -1,
+			extensions: { derivatives: true },
 
 			uniforms: {
 				color: { value: new THREE.Color() },
@@ -648,7 +665,7 @@ export const Canvas = {
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces || obj instanceof TextureMesh) {
+			if (obj.faces || obj instanceof TextureMesh || obj instanceof SplineMesh) {
 				var used = true;
 				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;

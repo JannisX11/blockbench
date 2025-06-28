@@ -961,6 +961,7 @@ onVueSetup(function() {
 			},
 			updateSelectionInfo() {
 				let selection_mode = BarItems.selection_mode.value;
+				let spline_selection_mode = BarItems.spline_selection_mode.value;
 				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
 					if (selection_mode == 'face') {
 						let total = 0, selected = 0;
@@ -993,6 +994,16 @@ onVueSetup(function() {
 						Mesh.selected.forEach(mesh => total += Object.keys(mesh.vertices).length);
 						Mesh.selected.forEach(mesh => selected += mesh.getSelectedVertices().length);
 						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+				} else if (Modes.edit && SplineMesh.selected.length && spline_selection_mode !== 'object') {
+					if (spline_selection_mode == 'handles') {
+						let total = 0, selected = 0;
+						SplineMesh.selected.forEach(spline => total += Object.keys(spline.vertices).length);
+						SplineMesh.selected.forEach(spline => selected += spline.getSelectedVertices().length);
+						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+					if (spline_selection_mode == "tilt") {
+						this.selection_info = '';
 					}
 				} else {
 					this.selection_info = '';

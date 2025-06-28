@@ -79,7 +79,7 @@ function setupSettings() {
 		Canvas.updateShading()
 	}});
 	new Setting('antialiasing', 	{category: 'preview', value: true, requires_restart: true});
-	new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: false, requires_restart: true});
+	new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: true, requires_restart: true});
 	new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', min: 1, max: 120, onChange(val) {
 		Preview.all.forEach(preview => preview.setFOV(val));
 	}});
@@ -278,8 +278,8 @@ function setupSettings() {
 	new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 	new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 
-	Blockbench.onUpdateTo('4.12.1', () => {
-		settings.antialiasing_bleed_fix.set(false);
+	Blockbench.onUpdateTo('5.0.0', () => {
+		settings.antialiasing_bleed_fix.set(true);
 	})
 }
 function setupSettingsProfiles() {

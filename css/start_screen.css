@@ -1,3 +1,5 @@
+@layer base {
+
 /*Start Screen*/
 	#mode_screen_start {
 		flex-grow: 1;
@@ -592,3 +594,4 @@
 	.quick_setup_theme.selected > div {
 		border-color: var(--color-accent);
 	}
+}

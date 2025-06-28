@@ -109,7 +109,7 @@ export class Property {
 		}
 		else if (this.isInstance) {
 			if (typeof data[this.name] === 'object') {
-				instance[this.name] =data[this.name];
+				instance[this.name] = data[this.name];
 			}
 		}
 	}

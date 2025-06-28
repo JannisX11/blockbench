@@ -1841,6 +1841,28 @@ export class Texture {
 				}
 			},
 			'resize_texture',
+			{
+				name: 'menu.texture.flipbook_animation',
+				icon: (texture) => texture.frameCount > 1,
+				condition: (tex) => Format.animated_textures,
+				click(texture) {
+					if (Format.per_texture_uv_size) {
+						let is_animated = texture.frameCount;
+						if (!is_animated && texture.uv_height == texture.uv_width) {
+							BarItems.animated_texture_editor.click();
+							return;
+						}
+						Undo.initEdit({textures: [texture]});
+						if (is_animated) {
+							texture.uv_height = texture.height * (texture.uv_width / texture.width);
+						} else {
+							texture.uv_height = texture.uv_width;
+						}
+						Undo.finishEdit('Toggle flipbook animation');
+						updateSelection();
+					}
+				}
+			},
 			'animated_texture_editor',
 			'create_material',
 			'append_to_template',

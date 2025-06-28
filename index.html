@@ -31,7 +31,10 @@
 		if (localStorage.getItem('theme')) {
 			try {
 				stored_theme = JSON.parse(localStorage.getItem('theme'));
-				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+				let dark_color = stored_theme.colors.dark;
+				if (dark_color) {
+					document.getElementById('theme_css').textContent = `@layer theme {body {--color-dark: ${dark_color};}};`
+				}
 			} catch (err) {}
 		}
 		window.ErrorLog = [];
@@ -48,20 +51,10 @@
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
 		<div id="loading_error_detail" style="color: var(--color-subtle_text);"></div>
-		<button onclick="window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
+		<button onclick="window.Blockbench ? window.Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
-	<script>
-		// Browser compatibility check
-		try {
-			eval('window?.document ?? 2');
-		} catch (err) {
-			console.error(err);
-			let error_element = document.querySelector('#loading_error_detail')
-			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
-		}
-	</script>
 	<script type="module" src="dist/bundle.js"></script>
 
 	<div style="display: none;"></div>
@@ -197,7 +190,20 @@
 	</div>
 
 	<script type="module">
-		if (!window.Blockbench?.setup_successful) {
+		let browser_check_passed = false;
+		// Browser compatibility check
+		try {
+			eval('[].findLast(() => true)');
+			if (document.body.computedStyleMap().get('position').value != 'fixed') {
+				throw 'Stylesheet not loaded';
+			}
+			browser_check_passed = true;
+		} catch (err) {
+			console.error(err);
+			let error_element = document.querySelector('#loading_error_detail')
+			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`;
+		}
+		if (!window.Blockbench?.setup_successful || !browser_check_passed) {
 			document.getElementById('loading_error_message').style.display = 'block'
 			if (window.require) {
 				require('@electron/remote').getCurrentWindow().webContents.openDevTools();

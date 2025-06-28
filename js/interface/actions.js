@@ -491,9 +491,10 @@ export class Tool extends Action {
 			BarItems.view_mode.change('textured');
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
-			Toolbars[this.toolbar].toPlace('tool_options')
-		} else {
-			$('.toolbar_wrapper.tool_options > .toolbar').detach()
+			Toolbars[this.toolbar].toPlace('tool_options');
+		}
+		else {
+			$('.toolbar_wrapper.tool_options > .toolbar').detach();
 		}
 
 		if (typeof this.onSelect == 'function') {
@@ -690,7 +691,7 @@ export class NumSlider extends Widget {
 		this.jq_inner = this.jq_outer.find('.nslide');
 
 		if (this.color) {
-			var css_color = 'xyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
+			var css_color = 'uvwxyz'.includes(this.color) ? `var(--color-axis-${this.color})` : this.color;
 			this.node.style.setProperty('--corner-color', css_color);
 			this.node.classList.add('is_colored');
 		}

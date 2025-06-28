@@ -1,4 +1,15 @@
+#loading_error_message {
+	height: 100%;
+	width: 100%;
+	background-color: var(--color-dark, gray);
+	border: 2px solid var(--color-accent);
+	text-align: center;
+	padding-top: 160px;
+	position: absolute;
+	z-index: 250;
+}
 
+@layer base {
 /*Layout*/
 	#page_wrapper {
 		height: calc(100% - var(--menu-bar-height));
@@ -33,16 +44,6 @@
 		background-size: 128px;
 		background-position: center;
 		--menu-bar-height: 30px;
-	}
-	#loading_error_message {
-		height: 100%;
-		width: 100%;
-		background-color: var(--color-dark);
-		border: 2px solid var(--color-accent);
-		text-align: center;
-		padding-top: 160px;
-		position: absolute;
-		z-index: 250;
 	}
 	#work_screen {
 		--toolbar-height: 40px;
@@ -101,6 +102,9 @@
 		--color-axis-x: #fd3043;
 		--color-axis-y: #26ec45;
 		--color-axis-z: #2d5ee8;
+		--color-axis-u: #23d4ed;
+		--color-axis-v: #ff12ed;
+		--color-axis-w: #ffd442;
 	}
 	#status_bar {
 		grid-area: status_bar;
@@ -1270,3 +1274,4 @@
 	.amend_edit_close_button:hover {
 		color: var(--color-light);
 	}
+}

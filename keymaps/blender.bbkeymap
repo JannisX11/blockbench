@@ -72,6 +72,7 @@
 		"convert_to_mesh": null,
 		"invert_face": null,
 		"extrude_mesh_selection": {"key": 69},
+		"extrude_spline_selection": {"key": 69},
 		"inset_mesh_selection": {"key": 73},
 		"loop_cut": {"key": 82, "ctrl": true},
 		"dissolve_edges": {"key": 88, "shift": true},

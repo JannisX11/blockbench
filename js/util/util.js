@@ -1,10 +1,15 @@
 import './molang'
 
 //Blockbench
-export function compareVersions(string1/*new*/, string2/*old*/) {
-	// Is string1 newer than string2 ?
-	var arr1 = string1.split(/[.-]/);
-	var arr2 = string2.split(/[.-]/);
+/**
+ * Compare two versions
+ * @param {string} version1 
+ * @param {string} version2 
+ * @returns Whether version1 is higher/newer than version2
+ */
+export function compareVersions(version1, version2) {
+	var arr1 = version1.split(/[.-]/);
+	var arr2 = version2.split(/[.-]/);
 	var i = 0;
 	var num1 = 0;
 	var num2 = 0;
@@ -733,6 +738,13 @@ export function getDateDisplay(input_date) {
 
 export const NativeGlobals = {
 	Animation
+}
+
+if (!window.structuredClone) {
+	window.structuredClone = (input) => {
+		if (!input) return;
+		return JSON.parse(JSON.stringify(input));
+	}
 }
 
 Object.assign(window, {

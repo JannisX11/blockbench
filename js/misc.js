@@ -76,6 +76,11 @@ export function updateNslideValues() {
 		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}
+
+		if (Condition(BarItems.slider_spline_handle_tilt)) {
+			BarItems.slider_spline_handle_tilt.update()
+			BarItems.slider_spline_handle_size.update()
+		}
 	}
 	if (Outliner.selected.length || (Format.bone_rig && Group.first_selected)) {
 		BarItems.slider_origin_x.update()
@@ -128,6 +133,17 @@ export function updateSelection(options = {}) {
 				})
 			}
 		}
+		if (obj instanceof SplineMesh && Project.spline_selection[obj.uuid]) {
+			if (!included) {
+				delete Project.spline_selection[obj.uuid];
+			} else {
+				Project.spline_selection[obj.uuid].vertices.forEachReverse(vkey => {
+					if (vkey in obj.vertices == false) {
+						Project.spline_selection[obj.uuid].vertices.remove(vkey);
+					}
+				})
+			}
+		}
 	})
 	if (Modes.pose && !Group.first_selected && Outliner.selected[0] && Outliner.selected[0].parent instanceof Group) {
 		Outliner.selected[0].parent.select();
@@ -154,6 +170,11 @@ export function updateSelection(options = {}) {
 		} else {
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
 			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+		}
+	}
+	if (Format.splines && Outliner.selected.length && Modes.edit && BarItems.spline_selection_mode.value == "handles") {
+		if (SplineMesh.selected.length) {
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
 		}
 	}
 	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {

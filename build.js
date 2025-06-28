@@ -75,11 +75,13 @@ const config = {
     external: [
         'electron',
     ],
+    loader: {
+        '.bbtheme': 'text'
+    },
     plugins: [
         conditionalImportPlugin({
             file: isApp ? 'desktop.js' : 'web.js'
         }),
-        createJsonPlugin('.bbtheme', 'bbtheme'),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         glsl({
             minify

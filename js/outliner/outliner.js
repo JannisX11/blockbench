@@ -76,6 +76,19 @@ export const Outliner = {
 					return 'alt'
 				}
 			}
+		},
+		cyclic: {
+			id: 'cyclic',
+			title: tl('switches.cyclic'),
+			icon: 'fas fa-circle-nodes',
+			icon_off: 'fas fa-diagram-project',
+			advanced_option: false,
+			condition: {modes: ['edit']},
+			getState(element) {
+				element.preview_controller.updateGeometry(element);
+				if (!element.cyclic) return false
+				else return true
+			}
 		}
 	}
 }
@@ -550,7 +563,8 @@ export class OutlinerElement extends OutlinerNode {
 	OutlinerElement.isTypePermitted = function(type) {
 		return !(
 			(type == 'locator' && !Format.locators) ||
-			(type == 'mesh' && !Format.meshes)
+			(type == 'mesh' && !Format.meshes) ||
+			(type == 'spline' && !Format.splines)
 		)
 	}
 	Object.defineProperty(OutlinerElement, 'all', {
@@ -743,6 +757,7 @@ OutlinerElement.registerType = function(constructor, id) {
 		}
 	})
 	Blockbench.dispatchEvent('register_element_type', {id, constructor});
+	console.log('Registered outliner element type', id, constructor.name);
 }
 
 Array.prototype.findRecursive = function(key1, val) {
@@ -1204,6 +1219,21 @@ SharedActions.add('invert_selection', {
 })
 
 BARS.defineActions(function() {
+	new Action('add_element', {
+		icon: 'add_2',
+		children: [
+			'add_mesh',
+			'add_cube',
+			'add_spline',
+			'add_billboard',
+			'add_locator',
+			'add_null_object',
+			'add_texture_mesh',
+		],
+		click(event) {
+			new Menu('move_to_group', this.children).open(event.target, this);
+		}
+	});
 	new Toggle('outliner_toggle', {
 		icon: 'dns',
 		category: 'edit',
@@ -1257,6 +1287,7 @@ BARS.defineActions(function() {
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
 					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
+					splines: {type: 'info', label: tl('dialog.model_stats.splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
 					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
@@ -1635,8 +1666,7 @@ Interface.definePanels(function() {
 		toolbars: [
 			new Toolbar('outliner', {
 				children: [
-					'add_mesh',
-					'add_cube',
+					'add_element',
 					'add_group',
 					'outliner_toggle',
 					'toggle_skin_layer',
@@ -1933,10 +1963,7 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			new MenuSeparator('add_element'),
-			'add_mesh',
-			'add_cube',
-			'add_texture_mesh',
-			'add_billboard',
+			'add_element',
 			'add_group',
 			new MenuSeparator('copypaste'),
 			'paste',

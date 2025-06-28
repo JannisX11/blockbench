@@ -114,7 +114,12 @@ Interface.definePanels(function() {
 					let property = type.properties[prop_id];
 					if (property?.inputs?.element_panel) {
 						let input_id = type_id + '_' + prop_id;
-						values[input_id] = first_element[prop_id];
+						if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
+							values[input_id] = {...first_element[prop_id]};
+						}
+						else {
+							values[input_id] = first_element[prop_id];
+						}
 					}
 				}
 			}

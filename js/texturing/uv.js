@@ -3151,7 +3151,7 @@ Interface.definePanels(function() {
 											}
 										})
 										ctx.clip();
-										ctx.drawImage(this.texture.img, 0, 0);
+										ctx.drawImage(this.texture.canvas, 0, 0);
 										tex_ctx.clip();
 										tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
 										tex_ctx.restore();
@@ -3659,6 +3659,7 @@ Interface.definePanels(function() {
 					let max = [0, 0];
 					this.mappable_elements.forEach(element => {
 						UVEditor.getSelectedFaces(element).forEach(fkey => {
+							if (element instanceof SplineMesh) return;
 							if (element.faces[fkey].texture === null) return;
 
 							let face = element.faces[fkey];
@@ -4574,9 +4575,9 @@ Interface.definePanels(function() {
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">
 						<div v-if="texture && layer && layer.in_limbo" ref="copy_paste_tool_control" class="copy_paste_tool_control">
-							<div class="tool button_mirror_x" @click="layer.flip(0)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
-							<div class="tool button_mirror_y" @click="layer.flip(1)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
-							<div class="tool button_rotate" @click="layer.rotate(90)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
+							<div class="tool button_mirror_x" @click="layer.flip(0, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
+							<div class="tool button_mirror_y" @click="layer.flip(1, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
+							<div class="tool button_rotate" @click="layer.rotate(90, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
 						</div>
 
 						<template v-else>

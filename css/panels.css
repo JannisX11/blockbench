@@ -1,3 +1,4 @@
+@layer base {
 /*Panel*/
 	.panel_container {
 		background-color: var(--color-ui);
@@ -1333,6 +1334,7 @@
 		overflow: auto;
 	}
 	#placeholder_buttons li {
+		display: flex;
 		padding: 0px 8px;
 		height: 30px;
 		margin: 1px;
@@ -1340,7 +1342,7 @@
 		float: left;
 		max-width: 100%;
 		background-color: var(--color-button);
-		display: flex;
+		border-radius: 5px;
 	}
 	#placeholder_buttons li[buttontype="impulse"] {
 		cursor: pointer;
@@ -3152,3 +3154,4 @@ span.controller_state_section_info {
 	#skin_pose_selector > li:hover .pose_icon {
 		background-color: var(--color-light);
 	}
+}
