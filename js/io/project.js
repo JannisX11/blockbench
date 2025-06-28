@@ -1044,12 +1044,14 @@ BARS.defineActions(function() {
 						Project.texture_width != texture_width ||
 						Project.texture_height != texture_height
 					) {
+						/*
 						// Adjust UV Mapping if resolution changed
 						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
 							Cube.all.forEach(cube => {
+								if (cube.box_uv) return;
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
 									uv[0] *= texture_width / Project.texture_width;
@@ -1067,7 +1069,7 @@ BARS.defineActions(function() {
 									}
 								}
 							})
-						}
+						}*/
 						// Convert UV mode per element
 						if (Project.box_uv != box_uv &&
 							((box_uv && !Cube.all.find(cube => cube.box_uv)) ||
