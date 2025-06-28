@@ -647,11 +647,11 @@ export namespace Filesystem {
 		if (options.errorbox) entry.errorbox = true;
 		if (options.element) entry.element = options.element;
 
-		this.drag_handlers[id] = entry;
+		drag_handlers[id] = entry;
 		return entry;
 	}
 	export function removeDragHandler(id: string) {
-		delete this.drag_handlers[id];
+		delete drag_handlers[id];
 	}
 
 	document.ondragover = function(event) {
@@ -714,7 +714,7 @@ export namespace Filesystem {
 
 	function forDragHandlers(event: DragEvent, cb: (handler: Filesystem.DragHandler, el: HTMLElement) => void) {
 		if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
-			return; 
+			return;
 		}
 		for (let id in Filesystem.drag_handlers) {
 			let handler = Filesystem.drag_handlers[id] 
