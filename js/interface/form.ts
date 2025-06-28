@@ -1,8 +1,17 @@
+import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
-import { FileSystem } from "../file_system"
+import { Filesystem } from "../file_system"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
 import { Interface } from "./interface"
+
+type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+interface FileResult {
+	name: string
+	path: string
+	content: string | ArrayBuffer
+	no_file?: boolean
+}
 
 export interface FormElementOptions {
 	label?: string
@@ -867,7 +876,7 @@ FormElement.types.color = class FormElementColor extends FormElement {
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
-		this.colorpicker.on('modify_color', ({color}) => {
+		this.colorpicker.on('modify_color', () => {
 			scope.change();
 		})
 		bar.append(this.colorpicker.getNode())
@@ -909,7 +918,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 };
 
 class FormElementFile extends FormElement {
-	file: FileSystem.FileResult
+	file: Filesystem.FileResult
 	value: string
 	content: any
 	input: HTMLInputElement
@@ -982,7 +991,7 @@ class FormElementFile extends FormElement {
 			}
 		})
 	}
-	getValue(): FileSystem.FileResult | string | any {
+	getValue(): Filesystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
 			return this.file;
 		} else {

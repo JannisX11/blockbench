@@ -3,7 +3,7 @@ import { EventSystem } from "../util/event_system";
 import { InputForm } from "./form";
 import { Interface, Panels, openTouchKeyboardModifierMenu, resizeWindow, updateInterface } from "./interface";
 import {Toolbar} from './toolbars'
-import { Vue } from "../../lib/libs";
+import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
 
 interface PanelPositionData {
@@ -20,8 +20,8 @@ interface PanelPositionData {
 type PanelSlot = 'left_bar' | 'right_bar' | 'top' | 'bottom' | 'float' | 'hidden'
 
 interface PanelOptions {
-	id: string
-	name: string
+	id?: string
+	name?: string
 	icon: string
 	optional?: boolean
 	plugin?: string
@@ -41,7 +41,7 @@ interface PanelOptions {
 	/**
 	 * Adds a button to the panel that allows users to pop-out and expand the panel on click
 	 */
-	expand_button: boolean
+	expand_button?: boolean
 	toolbars?:
 		| {
 				[id: string]: Toolbar
@@ -52,7 +52,7 @@ interface PanelOptions {
 		| number
 	component?: Vue.Component
 	form?: InputForm
-	default_side: 'right' | 'left'
+	default_side?: 'right' | 'left'
 	/**
 	 * Identifier of another panel to insert this one above
 	 */
@@ -124,6 +124,7 @@ export class Panel extends EventSystem {
 		this.display_condition = data.display_condition;
 		this.previous_slot = 'left_bar';
 		this.optional = data.optional ?? true;
+		// @ts-ignore "Plugins" is loaded after so it cannot be imported
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		this.growable = data.growable;

@@ -1,4 +1,5 @@
-import { THREE } from '../../lib/libs';
+import { THREE } from '../lib/libs';
+import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
@@ -220,7 +221,7 @@ export class Preview {
 		this.side_view_target = new THREE.Vector3();
 
 		//Controls
-		this.controls = new THREE.OrbitControls(this.camPers, this);
+		this.controls = new OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;

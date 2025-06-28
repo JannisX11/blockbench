@@ -1,21 +1,18 @@
 //import { createApp } from 'vue'
 //import App from './App.vue'
 
-import "../lib/libs"
-import "../lib/jquery-ui.min"
-import "../lib/targa"
-import "../lib/VuePrismEditor.min"
-import "../lib/molang-prism-syntax"
-import "../lib/lzutf8"
-import "../lib/marked.min"
-import "../lib/purify.min"
-import "../lib/vue_sortable"
-import "../lib/spectrum.js"
-import "../lib/color-picker.min"
-import "../lib/GLTFExporter"
-import "../lib/CanvasFrame"
-import "../lib/canvas2apng"
-import "../lib/easing"
+import "./lib/libs"
+import "./lib/jquery-ui.min"
+import "./lib/targa"
+import "./lib/VuePrismEditor.min"
+import "./lib/molang-prism-syntax"
+import "./lib/lzutf8"
+import "./lib/spectrum.js"
+import "./lib/color-picker.min"
+import "./lib/GLTFExporter"
+import "./lib/CanvasFrame"
+import "./lib/canvas2apng"
+import "./lib/easing"
 import "./preview/OrbitControls"
 
 import './languages'
@@ -51,6 +48,7 @@ import "./undo"
 import './desktop.js';
 
 import "./interface/setup_settings"
+import "./interface/settings_window"
 import "./edit_sessions"
 import "./validator"
 import "./outliner/outliner"
@@ -118,3 +116,33 @@ import "./io/formats/image"
 import "./boot_loader"
 import "./globals"
 
+import {
+	settings as _settings,
+	Setting as _Setting,
+	SettingsProfile as _SettingsProfile,
+	Settings as _Settings,
+} from './interface/settings'
+declare global {
+	const settings: typeof _settings
+	const Setting: typeof _Setting
+	const SettingsProfile: typeof _SettingsProfile
+	const Settings: typeof _Settings
+	namespace Blockbench {
+		const settings: typeof _settings
+		const Setting: typeof _Setting
+		const SettingsProfile: typeof _SettingsProfile
+		const Settings: typeof _Settings
+	}
+}
+import {
+	Modes as _Modes,
+	Mode as _Mode,
+} from './modes'
+declare global {
+	const Modes: typeof _Modes
+	const Mode: typeof _Mode
+	namespace Blockbench {
+		const Modes: typeof _Modes
+		const Mode: typeof _Mode
+	}
+}

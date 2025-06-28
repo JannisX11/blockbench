@@ -1,4 +1,4 @@
-import LZUTF8 from '../../lib/lzutf8';
+import LZUTF8 from '../lib/lzutf8';
 
 interface JSONCompileOptions {
 	/**
@@ -143,6 +143,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 		} catch (err) {
 			if (feedback === false) return;
 			if (data.match(/\n\r?[><]{7}/)) {
+				// @ts-ignore
 				Blockbench.showMessageBox({
 					title: 'message.invalid_file.title',
 					icon: 'fab.fa-git-alt',
@@ -173,6 +174,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 
 				logErrantPart(data, data.length-16, 10)
 			}
+			// @ts-ignore
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
