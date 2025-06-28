@@ -1,7 +1,7 @@
 import { settings } from "../interface/settings";
 
 export function prepareShader(shader: string): string {
-	if (settings.antialiasing_bleed_fix.value == false) {
+	if (settings.antialiasing_bleed_fix.value == false || Preview.selected?.renderer.capabilities.isWebGL2 != true) {
 		shader = shader.replace(/centroid /g, '');
 	}
 	if (!isApp) {
