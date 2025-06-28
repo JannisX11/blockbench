@@ -1760,8 +1760,8 @@
 	"action.rotate_texture_ccw": "Rotate Counter-clockwise",
 	"action.rotate_texture_ccw.desc": "Rotate the texture or layer counter-clockwise",
 	"action.resize_texture": "Resize Texture...",
-	"action.animated_texture_editor": "Flipbook Animation...",
-	"action.animated_texture_editor.desc": "Setup or edit the flipbook animation of the selected texture",
+	"action.animated_texture_editor": "Flipbook Editor...",
+	"action.animated_texture_editor.desc": "Edit the flipbook animation of the selected texture",
 	"action.crop_texture_to_selection": "Crop Texture to Selection",
 	"action.crop_layer_to_selection": "Crop Layer to Selection",
 
@@ -2220,6 +2220,7 @@
 	"menu.texture.pbr_channel.height": "Height",
 	"menu.texture.pbr_channel.mer": "MER (Metalness-Emissive-Roughness)",
 	"menu.texture.pbr_channel.mer_subsurface": "MER Subsurface",
+	"menu.texture.flipbook_animation": "Flipbook Animation",
 	"menu.texture.merge_onto_texture": "Merge Onto Texture Above",
 	"menu.texture.edit": "Edit",
 	"menu.texture.edit_externally": "Edit Externally",
