@@ -594,6 +594,9 @@ export class CustomTheme {
 			update(gizmo_colors.g, '--color-axis-y');
 			update(gizmo_colors.b, '--color-axis-z');
 			update(gizmo_colors.grid, '--color-grid');
+			update(gizmo_colors.u, '--color-axis-u'); // spline space colors
+			update(gizmo_colors.v, '--color-axis-v'); // spline space colors
+			update(gizmo_colors.w, '--color-axis-w'); // spline space colors
 			update(Canvas.gridMaterial.color, '--color-grid');
 			update(Canvas.wireframeMaterial.color, '--color-wireframe');
 			update(gizmo_colors.solid, '--color-solid');
@@ -602,6 +605,9 @@ export class CustomTheme {
 			update(Canvas.outlineMaterial.color, '--color-outline');
 			update(Canvas.ground_plane.material.color, '--color-ground');
 			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
+			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
+			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
+			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
 			
 			Canvas.pivot_marker.children.forEach(c => {
 				// @ts-ignore
