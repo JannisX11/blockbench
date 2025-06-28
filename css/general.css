@@ -1,3 +1,4 @@
+@layer base {
 /*Defaults*/
 	div.tool.wide {
 		width: 72px;
@@ -873,7 +874,7 @@
 	body.theme_borders .dialog_close_button {
 		right: -1px;
 		top: -1px;
-		height: 31px;
+		height: 34px;
 	}
 	body.theme_borders li.animation_file {
 		border-top: 1px solid var(--color-border);
@@ -893,3 +894,4 @@
 	body.theme_borders #animation_controllers_wrapper .controller_state {
 		border-color: var(--color-border);
 	}
+}

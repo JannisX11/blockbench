@@ -1,3 +1,4 @@
+@layer base {
 /*Panel*/
 	.panel_container {
 		background-color: var(--color-ui);
@@ -3153,3 +3154,4 @@ span.controller_state_section_info {
 	#skin_pose_selector > li:hover .pose_icon {
 		background-color: var(--color-light);
 	}
+}
