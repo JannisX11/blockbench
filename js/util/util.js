@@ -740,6 +740,13 @@ export const NativeGlobals = {
 	Animation
 }
 
+if (!window.structuredClone) {
+	window.structuredClone = (input) => {
+		if (!input) return;
+		return JSON.parse(JSON.stringify(input));
+	}
+}
+
 Object.assign(window, {
 	Condition,
 	oneLiner,
