@@ -154,6 +154,9 @@ Array.prototype.V3_divide = function(x, y, z) {
 Array.prototype.V3_toThree = function() {
 	return new THREE.Vector3(this[0], this[1], this[2]);
 }
+Array.prototype.V3_toEuler = function() {
+	return new THREE.Euler().fromArray(this);
+}
 Array.prototype.V2_set = function(x, y) {
 	if (x instanceof Array) return this.V2_set(...x);
 	if (y === undefined) y = x;

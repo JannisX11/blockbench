@@ -1,5 +1,5 @@
 import { THREE } from '../../lib/libs';
-import { StateMemory } from '../api';
+import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 
@@ -21,7 +21,15 @@ export const gizmo_colors = {
 	grid: new THREE.Color(),
 	solid: new THREE.Color(),
 	outline: new THREE.Color(),
-	gizmo_hover: new THREE.Color()
+	gizmo_hover: new THREE.Color(),
+	spline_handle_aligned: new THREE.Color(),
+	spline_handle_mirrored: new THREE.Color(),
+	spline_handle_free: new THREE.Color(),
+	// used by spline sliders, to make it clear that they 
+	// operate in a different space than the scene XYZ
+	u: new THREE.Color(),
+	v: new THREE.Color(),
+	w: new THREE.Color(),
 }
 export const DefaultCameraPresets = [
 	{
@@ -395,6 +403,8 @@ export class Preview {
 					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
 						objects.push(element.mesh.outline);
 					}
+				} else if (element instanceof SplineMesh && element.render_mode !== "mesh") {
+					objects.push(element.mesh.pathLine);
 				}
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
@@ -429,7 +439,7 @@ export class Preview {
 		} else {
 			intersects.sort((a, b) => a.distance - b.distance);
 		}
-		if (settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge') {
+		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge')) {
 			let all_intersects = intersects;
 			intersects = intersects.filter(a => a.object.isLine);
 			if (intersects.length == 0) intersects = all_intersects;
@@ -456,6 +466,18 @@ export class Preview {
 						}
 						if (vertices.length == 3) index -= 1;
 						if (vertices.length == 4) index -= 2;
+					}
+				} else if (element instanceof SplineMesh) {
+					let index = intersects[0].faceIndex;
+					for (let key in element.faces) {
+						let {vertices} = element.faces[key];
+
+						if (index == 0 || (index == 1 && vertices.length == 4)) {
+							face = key;
+							break; 
+						}
+						
+						index -= 2;
 					}
 				}
 
@@ -512,7 +534,8 @@ export class Preview {
 			}
 		} else if (intersect_object.type == 'LineSegments') {
 			var element = OutlinerNode.uuids[intersect_object.parent.name];
-			let vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
+			let vertices = [];
+			if (!(element instanceof SplineMesh)) vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
 			return {
 				event,
 				type: 'line',
@@ -821,9 +844,9 @@ export class Preview {
 				select_mode = 'object';
 			}
 
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool')) {
+			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))) {
 				Undo.initSelection();
-				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh') {
+				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh' && data.element.type != 'spline') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
 					if (data.element.selected && (multi_select || group_select)) {
 						face_selection.safePush(data.face);
@@ -835,7 +858,7 @@ export class Preview {
 				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (data.element instanceof Mesh == false || select_mode == 'object') && (
+				if (data.element.parent.type === 'group' && (data.element instanceof Mesh == false || data.element instanceof SplineMesh == false || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
 					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
@@ -986,17 +1009,20 @@ export class Preview {
 				}
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
-
 				Undo.initSelection();
 				let list = data.element.getSelectedVertices(true);
-				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedEdges(true);
+				let edges;
+				let faces;
+
+				edges = data.element.getSelectedEdges(true);
+				faces = data.element.getSelectedEdges(true);
 
 				if (multi_select || group_select) {
 					list.toggle(data.vertex);
 				} else {
 					unselectOtherNodes();
 					list.replace([data.vertex]);
+
 					edges.empty();
 					faces.empty();
 				}
@@ -1116,6 +1142,7 @@ export class Preview {
 				return;
 			}
 			if (!data.element.faces) return;
+			if (data.element instanceof SplineMesh && data.element.render_mode !== "mesh") return;
 			let face = data.element.faces[data.face];
 			let texture = face.getTexture();
 			if (!texture) {
@@ -1215,6 +1242,30 @@ export class Preview {
 			} else {
 				if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 			}
+		} else if (SplineMesh.hasAny() && data && data.element instanceof SplineMesh) { 
+			// Highlight meshless splines
+			if (data.type == 'line' && data.element.render_mode == "path") {
+				let path = data.element.mesh.pathLine;
+				let array = [];
+				let pos_attr = path.geometry.getAttribute("position").array.slice();
+
+				pos_attr.forEach((v, i) => {
+					if ((i + 1) % 3 == 0) {
+						let pos = [pos_attr[i - 2], pos_attr[i - 1], v].V3_toThree();
+						data.element.mesh.localToWorld(pos);
+
+						let z_scalar = Preview.selected.calculateControlScale(pos) / 8;
+						let z_offset = Preview.selected.camera.getWorldDirection(Reusable.vec3);
+						z_offset.multiplyScalar(-z_scalar);
+						pos.add(z_offset);
+
+						array.push(pos.x, pos.y, pos.z);
+					}
+				});
+
+				Canvas.hover_helper_line.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(array), 3));
+				Canvas.scene.add(Canvas.hover_helper_line);
+			}
 		} else {
 			if (Canvas.hover_helper_line.parent) Canvas.hover_helper_line.parent.remove(Canvas.hover_helper_line);
 			if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
@@ -1310,6 +1361,7 @@ export class Preview {
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
+			this.selection.old_spline_selection = JSON.parse(JSON.stringify(Project.spline_selection));
 
 			Undo.initSelection();
 			this.moveSelRect(event);
@@ -1345,6 +1397,7 @@ export class Preview {
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
 				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
 		let selection_mode = BarItems.selection_mode.value;
+		let spline_selection_mode = BarItems.spline_selection_mode.value;
 
 		let widthHalf = 0.5 * this.canvas.width / window.devicePixelRatio;
 		let heightHalf = 0.5 * this.canvas.height / window.devicePixelRatio;
@@ -1360,7 +1413,7 @@ export class Preview {
 		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && this.selection.old_selected.includes(element) && (element instanceof Mesh == false || selection_mode == 'object')) {
+			if (extend_selection && this.selection.old_selected.includes(element) && ((element instanceof Mesh == false || selection_mode == 'object') || (element instanceof SplineMesh == false || spline_selection_mode == "object"))) {
 				isSelected = true
 
 			} else if (element.preview_controller?.viewportRectangleOverlap && element.mesh) {
@@ -2062,13 +2115,16 @@ export function initCanvas() {
 	MediaPreview = new Preview({id: 'media', offscreen: true});
 	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
 
-	main_preview = new Preview({id: 'main'}).fullscreen()
+	main_preview = new Preview({id: 'main'}).fullscreen();
 
 	//TransformControls
-	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas)
-	Transformer.setSize(0.5)
-	scene.add(Transformer)
+	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas);
+	window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
+	Transformer.setSize(0.5);
+	scene.add(Transformer);
+	scene.add(SplineGizmos);
 	Canvas.gizmos.push(Transformer);
+	Canvas.gizmos.push(SplineGizmos);
 	main_preview.occupyTransformer()
 
 

@@ -69,6 +69,15 @@
 	.color_z {
 		color: var(--color-axis-z);
 	}
+	.color_u {
+		color: var(--color-axis-u);
+	}
+	.color_v {
+		color: var(--color-axis-v);
+	}
+	.color_w {
+		color: var(--color-axis-w);
+	}
 	.button {
 		display: inline-block;
 		width: 30px;

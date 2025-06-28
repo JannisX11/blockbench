@@ -1,3 +1,6 @@
+import { Blockbench } from "../api";
+import { FileSystem } from "../file_system";
+
 export class AnimationItem {
 	constructor() {}
 	getShortName() {
@@ -560,7 +563,7 @@ export class Animation extends AnimationItem {
 		} else if (this.playing == 'locked') {
 			this.playing = true;
 		} else {
-			Timeline.start();
+			this.playing = 'locked';
 		}
 		return this.playing;
 	}
@@ -1031,7 +1034,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-Blockbench.addDragHandler('animation', {
+FileSystem.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},
@@ -2149,11 +2152,11 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" @lick.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
-								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()">
+								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()" title="${tl('menu.animation.playing')}">
 									<i v-if="animation.playing == 'locked'" class="fa_big fas fa-lock"></i>
 									<i v-else-if="animation.playing" class="fa_big far fa-play-circle"></i>
 									<i v-else class="fa_big far fa-circle"></i>

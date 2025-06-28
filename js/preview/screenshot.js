@@ -485,7 +485,10 @@ export const Screencam = {
 		})
 		dialog.show();
 	},
-	// deprecated
+	/**
+	 * Take a screenshot without gizmos
+	 * @deprecated
+	 */
 	cleanCanvas(options, cb) {
 		Preview.selected.screenshot(options, cb)
 	},

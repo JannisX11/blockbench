@@ -59,6 +59,7 @@ export class ModelProject {
 		this.selected_elements = [];
 		this.selected_groups = [];
 		this.mesh_selection = {};
+		this.spline_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.texture_groups = [];
@@ -330,6 +331,9 @@ export class ModelProject {
 		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
+		
+		// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
+		SplineGizmos.clear();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];
@@ -1040,12 +1044,14 @@ BARS.defineActions(function() {
 						Project.texture_width != texture_width ||
 						Project.texture_height != texture_height
 					) {
+						/*
 						// Adjust UV Mapping if resolution changed
 						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
 							Cube.all.forEach(cube => {
+								if (cube.box_uv) return;
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
 									uv[0] *= texture_width / Project.texture_width;
@@ -1063,7 +1069,7 @@ BARS.defineActions(function() {
 									}
 								}
 							})
-						}
+						}*/
 						// Convert UV mode per element
 						if (Project.box_uv != box_uv &&
 							((box_uv && !Cube.all.find(cube => cube.box_uv)) ||

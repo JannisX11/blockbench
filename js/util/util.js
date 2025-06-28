@@ -1,3 +1,5 @@
+import './molang'
+
 //Blockbench
 /**
  * Compare two versions

@@ -9,11 +9,14 @@ Blockbench.Mesh = Mesh;
 Blockbench.Locator = Locator;
 Blockbench.NullObject = NullObject;
 Blockbench.TextureMesh = TextureMesh;
+Blockbench.SplineMesh = SplineMesh;
 
 Blockbench.Face = Face;
 Blockbench.CubeFace = CubeFace;
 Blockbench.MeshFace = MeshFace;
 Blockbench.BillboardFace = BillboardFace;
+Blockbench.SplineHandle = SplineHandle;
+Blockbench.SplineCurve = SplineCurve;
 Blockbench.NodePreviewController = NodePreviewController;
 
 Blockbench.Animator = Animator;

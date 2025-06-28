@@ -133,7 +133,7 @@
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master"
 	},
 	"overrides": {
-		"three": "^0.150.0"
+		"three": "$three"
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",

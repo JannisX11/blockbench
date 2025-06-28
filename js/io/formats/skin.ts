@@ -1,5 +1,5 @@
 import { CanvasFrame } from "../../../lib/CanvasFrame"
-import { StateMemory } from "../../api"
+import StateMemory from "../../util/state_memory";
 import { setProjectTitle } from "../../interface/interface"
 import { getAllGroups } from "../../outliner/group"
 import { DefaultCameraPresets } from "../../preview/preview"

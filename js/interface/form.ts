@@ -1,4 +1,5 @@
 import { Clipbench } from "../copy_paste"
+import { FileSystem } from "../file_system"
 import { EventSystem } from "../util/event_system"
 import { getStringWidth } from "../util/util"
 import { Interface } from "./interface"
@@ -68,6 +69,10 @@ export interface FormElementOptions {
 	 * The step in which the value can be increased / decreased
 	 */
 	step?: number
+	/**
+	 * On num slider inputs, The color of the slider
+	 */
+	color?: string
 	/**
 	 * If enabled, the value is forced to multiples of the "step" value. This can be used to create integer-only inputs etc.
 	 */
@@ -737,6 +742,7 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 			onChange: () => {
 				this.change();
 			},
+			color: this.options.color || "",
 			getInterval,
 			settings: {
 				default: this.options.value || 0,
@@ -903,7 +909,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 };
 
 class FormElementFile extends FormElement {
-	file: FileResult
+	file: FileSystem.FileResult
 	value: string
 	content: any
 	input: HTMLInputElement
@@ -976,7 +982,7 @@ class FormElementFile extends FormElement {
 			}
 		})
 	}
-	getValue(): FileResult | string | any {
+	getValue(): FileSystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
 			return this.file;
 		} else {

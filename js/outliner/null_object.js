@@ -144,56 +144,54 @@ export class NullObject extends OutlinerElement {
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 
-(function() {
 
 	const map = new THREE.TextureLoader().load( 'assets/null_object.png' );
 	map.magFilter = map.minFilter = THREE.NearestFilter;
 	
-	new NodePreviewController(NullObject, {
-		setup(element) {
-			let material = new THREE.SpriteMaterial({
-				map,
-				alphaTest: 0.1,
-				sizeAttenuation: false
-			});
-			var mesh = new THREE.Sprite(material);
-			Project.nodes_3d[element.uuid] = mesh;
-			mesh.name = element.uuid;
-			mesh.type = element.type;
-			mesh.isElement = true;
-			mesh.visible = element.visibility;
-			mesh.rotation.order = 'ZYX';
-			element.mesh.fix_position = new THREE.Vector3();
-			this.updateTransform(element);
-	
-			this.dispatchEvent('setup', {element});
-			this.dispatchEvent('update_selection', {element});
-		},
-		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform.call(this, element);
+new NodePreviewController(NullObject, {
+	setup(element) {
+		let material = new THREE.SpriteMaterial({
+			map,
+			alphaTest: 0.1,
+			sizeAttenuation: false
+		});
+		var mesh = new THREE.Sprite(material);
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+		mesh.visible = element.visibility;
+		mesh.rotation.order = 'ZYX';
+		element.mesh.fix_position = new THREE.Vector3();
+		this.updateTransform(element);
 
-			element.mesh.fix_position.copy(element.mesh.position);
+		this.dispatchEvent('setup', {element});
+		this.dispatchEvent('update_selection', {element});
+	},
+	updateTransform(element) {
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
-			this.updateWindowSize(element);
+		element.mesh.fix_position.copy(element.mesh.position);
 
-			this.dispatchEvent('update_transform', {element});
-		},
-		updateSelection(element) {
-			let {mesh} = element;
-	
-			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
-			mesh.material.depthTest = !element.selected;
-			mesh.renderOrder = element.selected ? 100 : 0;
-	
-			this.dispatchEvent('update_selection', {element});
-		},
-		updateWindowSize(element) {
-			let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
-			element.mesh.scale.set(size, size, size);
-		}
-	})
-	
-})()
+		this.updateWindowSize(element);
+
+		this.dispatchEvent('update_transform', {element});
+	},
+	updateSelection(element) {
+		let {mesh} = element;
+
+		mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+		mesh.material.depthTest = !element.selected;
+		mesh.renderOrder = element.selected ? 100 : 0;
+
+		this.dispatchEvent('update_selection', {element});
+	},
+	updateWindowSize(element) {
+		let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
+		element.mesh.scale.set(size, size, size);
+	}
+})
+
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
