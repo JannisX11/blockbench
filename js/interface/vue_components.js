@@ -156,7 +156,7 @@ Vue.component('numeric-input', {
 })
 Vue.component('dynamic-icon', {
 	props: {
-		icon: String,
+		icon: [String, HTMLElement],
 		color: String,
 	},
 	render(h) {
