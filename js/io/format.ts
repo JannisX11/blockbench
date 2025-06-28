@@ -8,6 +8,7 @@ import { Group } from "../outliner/group";
 import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
+import { SplineMesh } from "../outliner/spline_mesh";
 
 export const Formats = {};
 
@@ -106,6 +107,10 @@ interface FormatOptions {
 	 * Enable mesh elements
 	 */
 	meshes: boolean
+	/**
+	 * Enable mesh elements
+	 */
+	splines: boolean
 	/**
 	 * Enable texture meshes
 	 */
@@ -248,6 +253,7 @@ export class ModelFormat implements FormatOptions {
 	stretch_cubes: boolean
 	integer_size: boolean
 	meshes: boolean
+	splines: boolean
 	texture_meshes: boolean
 	billboards: boolean
 	locators: boolean
@@ -478,7 +484,7 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Splines
-		if (!Format.splines && old_format.splines) {
+		if (!this.splines && old_format.splines) {
 			SplineMesh.all.slice().forEach(spline => {
 				spline.remove()
 			})

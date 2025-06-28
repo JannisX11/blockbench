@@ -131,6 +131,10 @@ interface FormatOptions {
 	 */
 	meshes: boolean
 	/**
+	 * Enable spline elements
+	 */
+	splines: boolean
+	/**
 	 * Enable texture meshes
 	 */
 	texture_meshes: boolean
