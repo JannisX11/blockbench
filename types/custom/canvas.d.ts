@@ -60,6 +60,7 @@ interface UpdateViewOptions {
  * A global namespace handling miscellaneous functionality related to the 3D preview
  */
 declare namespace Canvas {
+	const gizmo_colors: Record<string, THREE.Color>
 	const materials: {
 		[uuid: UUID]: THREE.Material
 	}
@@ -102,6 +103,9 @@ declare namespace Canvas {
 	const gridMaterial: THREE.LineBasicMaterial
 
 	const pivot_marker: THREE.Object3D
+
+	const ground_plane: THREE.Mesh
+	const brush_outline: THREE.Mesh
 
 	const global_light_color: THREE.Color
 	const global_light_side: number

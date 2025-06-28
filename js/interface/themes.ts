@@ -2,12 +2,14 @@ import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
 import { compareVersions, patchedAtob } from '../util/util'
-
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
 import { FSWatcher } from 'original-fs'
 import { BBYaml } from '../util/yaml'
+import { Blockbench } from '../api'
+import { InputFormConfig } from './form'
+import { Filesystem } from '../file_system'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -79,7 +81,6 @@ export class CustomTheme {
 	option_values: Record<string, string>
 
 	constructor(data?: Partial<ThemeData>) {
-		let num = Math.round(Math.random()*100)
 		this.id = '';
 		this.name = '';
 		this.author = '';
@@ -92,7 +93,6 @@ export class CustomTheme {
 		this.colors = structuredClone(DEFAULT_COLORS);
 		this.options = null;
 		this.option_values = {};
-		this._num = num;
 
 		if (data) {
 			this.extend(data);
@@ -584,6 +584,7 @@ export class CustomTheme {
 		$('meta[name=theme-color]').attr('content', CustomTheme.selected.colors.frame);
 		document.body.classList.toggle('light_mode', new tinycolor(CustomTheme.selected.colors.ui).isLight());
 
+		let gizmo_colors = Canvas.gizmo_colors;
 		if (typeof gizmo_colors != 'undefined') {
 			let preview_style = window.getComputedStyle(document.getElementById('preview'));
 			function update(three_color, variable) {
@@ -603,8 +604,8 @@ export class CustomTheme {
 			update(gizmo_colors.outline, '--color-outline');
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
-			update(Canvas.ground_plane.material.color, '--color-ground');
-			update(Canvas.brush_outline.material.uniforms.color.value, '--color-brush-outline');
+			update((Canvas.ground_plane.material as THREE.MeshBasicMaterial).color, '--color-ground');
+			update((Canvas.brush_outline.material as THREE.ShaderMaterial).uniforms.color.value, '--color-brush-outline');
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
 			update(gizmo_colors.spline_handle_mirrored, '--color-spline-handle-mirrored');
 			update(gizmo_colors.spline_handle_free, '--color-spline-handle-free');
@@ -656,7 +657,9 @@ export class CustomTheme {
 			const sheet = style.sheet;
 			for (const rule of sheet.cssRules) {
 				if (!(rule as CSSStyleRule).selectorText) continue;
-				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+
+				const selector = (rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${theme.id}"] ${e.trim()}`).join(", ");
+				thumbnailStyles += `${selector} { ${(rule as CSSStyleRule).style.cssText} }\n`;
 			}
 		}
 		if (CustomTheme.selected.source == 'custom') {
@@ -665,7 +668,8 @@ export class CustomTheme {
 			for (const rule of sheet.cssRules) {
 				if (!(rule as CSSStyleRule).selectorText) continue;
 				
-				thumbnailStyles += `${(rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.selected.id}"] ${e.trim()}`).join(", ")} { ${rule.style.cssText} }\n`;
+				const selector = (rule as CSSStyleRule).selectorText.split(split_regex).map(e => `[theme_id="${CustomTheme.selected.id}"] ${e.trim()}`).join(", ");
+				thumbnailStyles += `${selector} { ${(rule as CSSStyleRule).style.cssText} }\n`;
 			}
 		}
 		document.head.removeChild(style);
@@ -696,7 +700,7 @@ export class CustomTheme {
 		this.extend(new_theme);
 		this.load();
 	}
-	static import(file: FileResult) {
+	static import(file: Filesystem.FileResult) {
 		let content = file.content as string;
 
 		let theme = new CustomTheme().parseBBTheme(content);

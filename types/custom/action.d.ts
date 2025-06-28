@@ -185,7 +185,7 @@ declare global {
 		/**
 		 * Appends the bar item to a HTML element
 		 */
-		toElement(destination: HTMLElement): this
+		toElement(destination: HTMLElement | string): this
 		pushToolbar(bar: any): void
 
 		/**

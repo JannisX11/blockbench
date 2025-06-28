@@ -142,7 +142,7 @@ export interface FormElementOptions {
 
 type FormResultValue = string | number | boolean | any[] | {}
 
-type InputFormConfig = {
+export type InputFormConfig = {
 	[formElement: string]: '_' | FormElementOptions
 }
 type FormValues = Record<string, FormResultValue>
