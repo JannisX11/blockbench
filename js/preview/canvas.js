@@ -442,6 +442,7 @@ export const Canvas = {
 			polygonOffset: true,
 			polygonOffsetUnits: 1,
 			polygonOffsetFactor: -1,
+			extensions: { derivatives: true },
 
 			uniforms: {
 				color: { value: new THREE.Color() },
