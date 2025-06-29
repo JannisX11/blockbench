@@ -229,24 +229,25 @@ export class OutlinerNode {
 	}
 	//Sorting
 	sortInBefore(element, index_mod = 0) {
-		var index = -1;
-
-		if (element.parent === 'root') {
-			index = Outliner.root.indexOf(element)
-			var arr = Outliner.root
-			this.parent = 'root'
-		} else {
-			index = element.parent.children.indexOf(element)
-			element = element.parent
-			var arr = element.children
-			this.parent = element
+		if (this.getTypeBehavior('parent_types')) {
+			let types = this.getTypeBehavior('parent_types');
+			let is_allowed = (element.parent == 'root' && types.includes('root')) || types.includes(element.parent.type);
+			if (!is_allowed) return;
 		}
-		this.removeFromParent()
+		
+		let arr = element.getParentArray();
+		let index = arr.indexOf(element);
+		if (arr == this.getParentArray() && index > this.getParentArray().indexOf(this)) {
+			// Adjust for self being removed from array;
+			index--;
+		}
+		this.removeFromParent();
 
 		//Adding
-		if (index < 0)
+		this.parent = element.parent;
+		if (index < 0) {
 			arr.push(this)
-		else {
+		} else {
 			arr.splice(index+index_mod, 0, this)
 		}
 		return this;
@@ -266,8 +267,14 @@ export class OutlinerNode {
 				}
 			}
 		}
-		this.removeFromParent()
+		
+		if (this.getTypeBehavior('parent_types')) {
+			let types = this.getTypeBehavior('parent_types');
+			let is_allowed = (group == 'root' && types.includes('root')) || types.includes(group.type);
+			if (!is_allowed) return;
+		}
 
+		this.removeFromParent()
 		//Get Array
 		let arr;
 		if (group === 'root') {
@@ -932,21 +939,11 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 			}
 		}
 	}
-	if (order) {
-		var parent = target.parent
-		if (!parent || parent === 'root') {
-			parent = {children: Outliner.root};
-		}
-	}
 	function place(obj) {
 		if (!order) {
 			obj.addTo(target)
 		} else {
-			obj.removeFromParent()
-			var position = parent.children.indexOf(target)
-			if (order === 1) position++;
-			parent.children.splice(position, 0, obj)
-			obj.parent = parent.type ? parent : 'root';
+			obj.sortInBefore(target, order == 1 ? 1 : undefined);
 		}
 	}
 	items.forEach(function(item) {

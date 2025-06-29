@@ -325,7 +325,7 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], features: ['splines'], method: () => {
+		condition: {modes: ['edit'], features: ['splines'], selected: {spline: true}, method: () => {
 			let spline = SplineMesh.selected[0];
 			let selectedHandles = spline.getSelectedHandles(true);
 			let isFirstSelected = selectedHandles.includes(spline.getFirstHandle().key);

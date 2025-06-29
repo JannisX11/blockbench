@@ -1,4 +1,4 @@
-import { THREE } from "../../lib/libs";
+import { THREE } from "../lib/libs";
 import { gizmo_colors } from "../preview/preview";
 
 export class ArmatureBone extends OutlinerElement {
@@ -283,6 +283,7 @@ export class ArmatureBone extends OutlinerElement {
 		rotatable: true,
 		resizable: true,
 		child_types: ['armature_bone'],
+		parent_types: ['armature_bone', 'armature'],
 		select_children: 'self_first',
 		hide_in_screenshot: true,
 	}
@@ -452,7 +453,6 @@ BARS.defineActions(function() {
 		icon: 'humerus',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], features: ['armatures'], selected: {mesh: false, armature_bone: true}},
 		condition: () => Modes.edit && (ArmatureBone.selected[0] || Armature.selected[0]),
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});

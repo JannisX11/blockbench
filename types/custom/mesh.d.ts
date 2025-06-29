@@ -135,6 +135,11 @@ declare class Mesh extends OutlinerElement {
 	 */
 	getSelectedVertices(can_write: boolean): string[]
 
+	/**
+	 * Get the armature if one is attached to the mesh
+	 */
+	getArmature() : Armature | undefined
+
 	setSeam(edge: MeshEdge, value: any): void
 	getSeam(edge: MeshEdge): MeshSeamValue
 	getWorldCenter(ignore_mesh_selection?: boolean): THREE.Vector3

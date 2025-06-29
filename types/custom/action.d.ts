@@ -480,6 +480,10 @@ declare global {
 			interval?: number
 			step?: number
 		}
+		/**
+		 * Define a tool setting key under which the value of the slider is saved on the selected tool
+		 */
+		tool_setting?: string
 		change?(value: (n: number) => number): void
 		get?(): number
 	}
@@ -497,6 +501,10 @@ declare global {
 		change(modify: (n: number) => number): void
 		get(): number
 		update(): void
+		/**
+		 * Define a tool setting key under which the value of the slider is saved on the selected tool
+		 */
+		tool_setting?: string
 	}
 	class BarSlider extends Widget {
 		constructor(id: string, options: NumSliderOptions)

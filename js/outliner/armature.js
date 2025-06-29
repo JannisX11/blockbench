@@ -1,4 +1,4 @@
-import { THREE } from "../../lib/libs";
+import { THREE } from "../lib/libs";
 
 export class Armature extends OutlinerElement {
 	constructor(data, uuid) {
@@ -310,8 +310,8 @@ BARS.defineActions(function() {
 			armature.createUniqueName();
 			armature.init().select();
 
-			let bone = new ArmatureBone()
-			bone.addTo(add_to_node)
+			let bone = new ArmatureBone();
+			bone.addTo(armature).init();
 
 			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
 			Vue.nextTick(function() {

@@ -1,4 +1,5 @@
-import { THREE } from '../../lib/libs';
+import { Blockbench } from '../api';
+import { THREE } from '../lib/libs';
 import { Armature } from '../outliner/armature';
 import { ArmatureBone } from '../outliner/armature_bone';
 import { Preview } from '../preview/preview';
@@ -54,6 +55,7 @@ BARS.defineActions(function defineWeightBrush() {
 				return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 			}
 
+			// @ts-ignore
 			Undo.initEdit({elements: [armature_bone]});
 
 			const raycaster = new THREE.Raycaster();

@@ -1,5 +1,5 @@
 import Wintersky from 'wintersky';
-import { THREE } from '../../lib/libs';
+import { THREE } from '../lib/libs';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {

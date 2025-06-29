@@ -83,8 +83,8 @@ declare class OutlinerElement extends OutlinerNode {
 	static all: OutlinerElement[]
 	static selected: OutlinerElement[] | false
 	static registerType(constructor: any, id: string): void
-	select(event?: any, isOutlinerClick?: boolean): this | void
-	unselect(...args: any[]): this | void
+	select(event?: any, isOutlinerClick?: boolean): this
+	unselect(...args: any[]): this
 }
 
 interface LocatorOptions {
