@@ -1,6 +1,7 @@
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
+import { child_process } from '../native_apis';
 
 let tex_version = 1;
 
@@ -1030,9 +1031,9 @@ export class Texture {
 		} else {
 			if (fs.existsSync(settings.image_editor.value)) {
 				if (Blockbench.platform == 'darwin') {
-					require('child_process').exec(`open '${this.path}' -a '${settings.image_editor.value}'`)
+					child_process.exec(`open '${this.path}' -a '${settings.image_editor.value}'`)
 				} else {
-					require('child_process').spawn(settings.image_editor.value, [this.path])
+					child_process.spawn(settings.image_editor.value, [this.path])
 				}
 			} else {
 				Blockbench.showMessageBox({

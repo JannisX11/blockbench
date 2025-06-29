@@ -1,14 +1,14 @@
-export const electron = require('@electron/remote');
-export const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
-export const app = electron.app;
-export const fs = require('fs');
-export const NodeBuffer = require('buffer');
-export const zlib = require('zlib');
-export const exec = require('child_process').exec;
-export const https = require('https');
-export const PathModule = require('path');
-
-export const currentwindow = electron.getCurrentWindow();
+import {
+	electron,
+	app,
+	fs,
+	NodeBuffer,
+	zlib,
+	https,
+	PathModule,
+	currentwindow,
+	clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils
+} from './native_apis';
 
 export const recent_projects = (function() {
 	let array = [];
@@ -760,7 +760,6 @@ Object.assign(window, {
 	fs,
 	NodeBuffer,
 	zlib,
-	exec,
 	https,
 	PathModule,
 	currentwindow,

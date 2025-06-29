@@ -1,6 +1,7 @@
 import saveAs from 'file-saver'
 import StateMemory from './util/state_memory'
 import { pathToExtension } from './util/util';
+import { electron } from './native_apis';
 
 function isStreamerMode(): boolean {
 	// @ts-ignore
