@@ -706,7 +706,7 @@ export class Mesh extends OutlinerElement {
 			cb(this.faces[fkey], fkey);
 		}
 	}
-	transferOrigin(origin, update = true) {
+	transferOrigin(origin) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
 		var shift = new THREE.Vector3(

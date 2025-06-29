@@ -1575,7 +1575,13 @@ BARS.defineActions(function() {
 		} else {
 			rotation_objects.forEach(function(obj, i) {
 				let val = modify(obj.origin[axis]);
-				obj.origin[axis] = val;
+				if (obj.transferOrigin && !obj.getTypeBehavior('use_absolute_position')) {
+					let origin_copy = obj.origin.slice();
+					origin_copy[axis] = val;
+					obj.transferOrigin(origin_copy);
+				} else {
+					obj.origin[axis] = val;
+				}
 			})
 			Canvas.updateView({elements: rotation_objects, element_aspects: {transform: true, geometry: true}, selection: true})
 		}

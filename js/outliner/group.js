@@ -438,6 +438,7 @@ export class Group extends OutlinerNode {
 		unique_name: () => Format.bone_rig,
 		rotatable: true,
 		has_pivot: true,
+		use_absolute_position: true,
 	}
 }
 	Group.prototype.title = tl('data.group');
