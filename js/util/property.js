@@ -76,7 +76,7 @@ export class Property {
 		} else if (this.isArray) {
 			return this.default ? this.default.slice() : [];
 		} else if (this.isObject) {
-			return Object.keys(this.default).length ? JSON.parse(JSON.stringify(this.default)) : {};
+			return Object.keys(this.default).length ? structuredClone(this.default) : {};
 		} else {
 			return this.default;
 		}
@@ -99,12 +99,17 @@ export class Property {
 		else if (this.isBoolean) {
 			Merge.boolean(instance, data, this.name, this.merge_validation)
 		}
-		else if (this.isArray || this.isVector || this.isVector2) {
+		else if (this.isArray || this.isVector) {
 			if (data[this.name] instanceof Array) {
 				if (instance[this.name] instanceof Array == false) {
 					instance[this.name] = [];
 				}
 				instance[this.name].replace(data[this.name]);
+			}
+		}
+		else if (this.isObject) {
+			if (typeof data[this.name] == 'object') {
+				instance[this.name] = structuredClone(data[this.name]);
 			}
 		}
 		else if (this.isInstance) {
@@ -130,6 +135,10 @@ export class Property {
 						console.error(err);
 					}
 				}
+			}
+		} else if (this.isObject) {
+			if (typeof instance[this.name] == 'object') {
+				target[this.name] = structuredClone(instance[this.name]);
 			}
 		} else {
 			target[this.name] = instance[this.name];

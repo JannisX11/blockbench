@@ -1301,7 +1301,7 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 							break;
 						}
 					}
-					return bone instanceof Group ? bone : 0;
+					return bone instanceof OutlinerNode ? bone : 0;
 				}
 				// Global Space
 				return 0;
@@ -1384,7 +1384,7 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 								}
 							}
 						
-						} else if (space instanceof Group) {
+						} else if (space instanceof OutlinerNode && space.getTypeBehavior('parent')) {
 							Transformer.rotation_ref = space.mesh;
 
 						}
@@ -1613,6 +1613,9 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 								if (obj.to && obj.to) obj.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
 							} else if (obj.size) {
 								obj.old_size = obj.size.slice();
+							}
+							if (obj.getTypeBehavior('stretchable')) {
+								obj.oldStretch = obj.stretch.slice();
 							}
 						})
 					}

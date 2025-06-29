@@ -116,6 +116,13 @@ export const Canvas = {
 			side: THREE.DoubleSide
 		});
 	})(),
+	vertexWeightHelperMaterial: (function() {
+		return new THREE.MeshLambertMaterial({
+			color: 0xffffff,
+			side: 2,
+			vertexColors: true
+		});
+	})(),
 	uvHelperMaterial: (function() {
 		var img = new Image()
 		img.src = 'assets/uv_preview.png'

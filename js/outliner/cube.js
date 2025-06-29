@@ -268,9 +268,9 @@ export class Cube extends OutlinerElement {
 		}
 		return this;
 	}
-	selectLow(...args) {
+	markAsSelected(...args) {
 		let was_selected = this.selected;
-		super.selectLow(...args);
+		super.markAsSelected(...args);
 		if (!was_selected && Cube.selected[0]) {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
@@ -949,6 +949,7 @@ export class Cube extends OutlinerElement {
 		resizable: true,
 		has_pivot: true,
 		use_absolute_position: true,
+		stretchable: true,
 		cube_rotation_limit: true,
 		cube_size_limit: true,
 		unique_name: false

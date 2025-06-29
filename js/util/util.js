@@ -736,6 +736,12 @@ export function getDateDisplay(input_date) {
 	}
 }
 
+if (!window.structuredClone) {
+	window.structuredClone = function structuredClone(data) {
+		return JSON.parse(JSON.stringify(data));
+	}
+}
+
 export const NativeGlobals = {
 	Animation
 }

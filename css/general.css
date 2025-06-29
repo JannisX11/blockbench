@@ -169,6 +169,17 @@
 	.preview > canvas.selectable_cursor {
 		cursor: copy;
 	}
+	#weight_brush_outline {
+		--radius: 50;
+		position: absolute;
+		width: calc(var(--radius) * 2px);
+		height: calc(var(--radius) * 2px);
+		margin: calc(var(--radius) * -1px);
+		border-radius: 50%;
+		border: 1px dashed var(--color-light);
+		pointer-events: none;
+		z-index: 12;
+	}
 	.text_padding {
 		margin-left: 5px;
 		margin-right: 5px;

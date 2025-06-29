@@ -1,3 +1,5 @@
+import { THREE } from "../../../lib/libs";
+
 export function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
 	Animator.animations.forEach(animation => {
@@ -8,7 +10,7 @@ export function buildAnimationTracks(export_scale = Settings.get('model_export_s
 		for (var uuid in animation.animators) {
 			let animator = animation.animators[uuid];
 			
-			if (animator.type == 'bone' && animator.getGroup()) {
+			if (['bone', 'armature_bone'].includes(animator.type) && animator.getGroup()) {
 				for (var channel in animator.channels) {
 					if (channel == 'rotation' && ik_samples[uuid]) {
 
@@ -161,7 +163,7 @@ export function buildAnimationTracks(export_scale = Settings.get('model_export_s
 	return anims;
 }
 
-export function buildSkinnedMesh(root_group, scale) {
+export function buildSkinnedMeshFromGroup(root_group, scale) {
 	let skinIndices = [];
 	let skinWeights = [];
 	let position_array = [];
@@ -304,6 +306,66 @@ export function buildSkinnedMesh(root_group, scale) {
 
 	return skinned_mesh;
 }
+export function buildSkinnedMesh(mesh_obj, armature, scale) {
+	let skinIndices = [];
+	let skinWeights = [];
+	let bones = [], bones_by_uuid = {};
+
+	let armature_bones = armature.getAllBones();
+
+	for (let armature_bone of armature_bones) {
+		let bone = new THREE.Bone();
+		bone.position.copy(armature_bone.mesh.position);
+		bone.rotation.copy(armature_bone.mesh.rotation);
+		bone.name = armature_bone.name;
+		bone.uuid = armature_bone.mesh.uuid
+		if (bones_by_uuid[armature_bone.parent.uuid]) {
+			bones_by_uuid[armature_bone.parent.uuid].add(bone);
+		}
+		bones.push(bone);
+		bones_by_uuid[armature_bone.uuid] = bone;
+	}
+	let skeleton = new THREE.Skeleton(bones);	
+
+	let geometry = mesh_obj.mesh.geometry.clone();
+	let skinned_mesh = new THREE.SkinnedMesh(geometry, mesh_obj.mesh.material);
+	skinned_mesh.name = mesh_obj.name;
+	skeleton.name = mesh_obj.name;
+	skinned_mesh.position.copy(mesh_obj.mesh.position);
+	skinned_mesh.rotation.copy(mesh_obj.mesh.rotation);
+
+	// Set skin weights
+	for (let key in mesh_obj.faces) {
+		let face = mesh_obj.faces[key];
+		if (face.vertices.length >= 3) {
+			face.vertices.forEach((vkey) => {
+				let influencing_bones = armature_bones.filter(ab => ab.vertex_weights[vkey]);
+				influencing_bones.sort((a, b) => b.vertex_weights[vkey] - a.vertex_weights[vkey]).slice(0, 4);
+				for (let i = 0; i < 4; i++) {
+					if (influencing_bones[i]) {
+						skinIndices.push(armature_bones.indexOf(influencing_bones[i]));
+						skinWeights.push(influencing_bones[i].vertex_weights[vkey]);
+					} else {
+						skinIndices.push(0);
+						skinWeights.push(0);
+					}
+				}
+			})
+		}
+	}
+
+	skinned_mesh.add(skeleton.bones[0]);
+	skinned_mesh.bind(skeleton);
+	
+	geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
+	geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
+
+	bones.forEach(bone => {
+		bone.position.multiplyScalar(scale);
+	})
+
+	return skinned_mesh;
+}
 
 var codec = new Codec('gltf', {
 	name: 'GLTF Model',
@@ -324,34 +386,21 @@ var codec = new Codec('gltf', {
 		let gl_scene = new THREE.Scene();
 		gl_scene.name = 'blockbench_export'
 
-		let resetMeshBorrowing;
-
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
-		if (options.armature) {
-			Outliner.root.forEach(node => {
-				if (node instanceof Group) {
-					let armature = buildSkinnedMesh(node, options.scale);
-					gl_scene.add(armature);
-				} else {
-					gl_scene.add(node.mesh);
-				}
-			})
-			resetMeshBorrowing = function() {
-				Outliner.root.forEach(node => {
-					if (node instanceof Group == false) {
-						gl_scene.add(node.mesh);
-					}
-				})
+		Outliner.root.forEach(node => {
+			if (node instanceof Group && options.armature) {
+				let skinned_mesh = buildSkinnedMeshFromGroup(node, options.scale);
+				gl_scene.children.push(skinned_mesh);
+			} else if (node instanceof Mesh && node.getArmature()) {
+				let armature = node.getArmature();
+				let skinned_mesh = buildSkinnedMesh(node, armature, options.scale);
+				gl_scene.children.push(skinned_mesh);
+			} else {
+				gl_scene.children.push(node.mesh);
 			}
-
-		} else {
-			gl_scene.add(Project.model_3d);
-			resetMeshBorrowing = function() {
-				scene.add(Project.model_3d);
-			}
-		}
+		})
 		
 		try {
 			if (BarItems.view_mode.value !== 'textured') {
@@ -374,7 +423,6 @@ var codec = new Codec('gltf', {
 					exportFaceColors: false,
 				});
 			})
-			resetMeshBorrowing();
 			
 			scope.dispatchEvent('compile', {model: result, options});
 			if (options.encoding == 'binary') {
@@ -384,7 +432,6 @@ var codec = new Codec('gltf', {
 			}
 
 		} catch (err) {
-			resetMeshBorrowing();
 			throw err;
 		}
 	},

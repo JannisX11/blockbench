@@ -717,6 +717,7 @@ export const BARS = {
 				'stretch_tool',
 				'knife_tool',
 				'seam_tool',
+				'weight_brush',
 				'pan_tool',
 				'brush_tool',
 				'copy_brush',
@@ -871,6 +872,13 @@ export const BARS = {
 			no_wrap: true,
 			children: [
 				'select_seam'
+			]
+		})
+		Toolbars.weight_brush = new Toolbar({
+			id: 'weight_brush',
+			no_wrap: true,
+			children: [
+				'slider_weight_brush_size'
 			]
 		})
 

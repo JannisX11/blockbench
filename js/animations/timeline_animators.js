@@ -1,4 +1,5 @@
 import Wintersky from 'wintersky';
+import { THREE } from '../../lib/libs';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -536,6 +537,120 @@ export class BoneAnimator extends GeneralAnimator {
 		new MenuSeparator('presets'),
 		'apply_animation_preset'
 	])
+// -
+
+class ArmatureBoneAnimator extends BoneAnimator {
+	constructor(uuid, animation, name) {
+		super(uuid, animation);
+		this.uuid = uuid;
+		this._name = name;
+
+		this.solver = new FIK.Structure3D(scene);
+		this.chain = new FIK.Chain3D();
+
+		this.position = [];
+	}
+	get name() {
+		var element = this.getElement();
+		if (element) return element.name;
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+	}
+	getElement() {
+		this.element = OutlinerNode.uuids[this.uuid];
+		return this.element
+	}
+	select(element_is_selected) {
+		if (!this.getElement()) {
+			unselectAllElements();
+			return this;
+		}
+		if (this.getElement().locked) return;
+
+		if (element_is_selected !== true && this.element) {
+			this.element.select();
+		}
+		GeneralAnimator.prototype.select.call(this);
+		
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+			var nearest;
+			this[Toolbox.selected.animation_channel].forEach(kf => {
+				if (Math.abs(kf.time - Timeline.time) < 0.002) {
+					nearest = kf;
+				}
+			})
+			if (nearest) {
+				nearest.select();
+			}
+		}
+
+		if (this.element && this.element.parent && this.element.parent !== 'root') {
+			this.element.parent.openUp();
+		}
+		return this;
+	}
+	doRender() {
+		this.getElement()
+		return (this.element && this.element && this.element.mesh);
+	}
+	displayPosition(arr, multiplier = 1) {
+		var bone = this.element.mesh
+		if (arr) {
+			bone.position.x -= arr[0] * multiplier;
+			bone.position.y += arr[1] * multiplier;
+			bone.position.z += arr[2] * multiplier;
+		}
+		return this;
+	}
+	displayRotation(arr, multiplier = 1) {
+		var mesh = this.element.mesh
+		if (arr) {
+			if (arr.length === 4) {
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				mesh.rotation.x -= added_rotation.x * multiplier
+				mesh.rotation.y -= added_rotation.y * multiplier
+				mesh.rotation.z += added_rotation.z * multiplier
+			} else {
+				arr.forEach((n, i) => {
+					mesh.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
+				})
+			}
+		}
+		return this;
+	}
+	displayScale(arr, multiplier = 1) {
+		if (!arr) return this;
+		var bone = this.element.mesh
+		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
+		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
+		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
+		return this;
+	}
+	displayFrame(multiplier = 1) {
+		if (!this.doRender()) return;
+		this.getElement()
+
+		if (!this.muted.position) {
+			this.displayPosition(this.interpolate('position'), multiplier);
+		}
+		if (!this.muted.rotation) {
+			this.displayRotation(this.interpolate('rotation'), multiplier);
+		}
+		if (!this.muted.scale) {
+			this.displayScale(this.interpolate('scale'), multiplier);
+		}
+		this.element.mesh.updateMatrixWorld();
+	}
+}
+	ArmatureBoneAnimator.prototype.type = 'armature_bone';
+	ArmatureBoneAnimator.prototype.channels = {
+		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
+		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
+		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
+	}
+	ArmatureBone.animator = ArmatureBoneAnimator;
 
 export class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {

@@ -88,6 +88,10 @@ interface FormatOptions {
 	 */
 	bone_rig: boolean
 	/**
+	 * Enable armatures to rig meshes
+	 */
+	armature_rig: boolean
+	/**
 	 * Align the grid center with the model origin, instead of the grid corner
 	 */
 	centered_grid: boolean
@@ -248,6 +252,7 @@ export class ModelFormat implements FormatOptions {
 	vertex_color_ambient_occlusion: boolean
 	animated_textures: boolean
 	bone_rig: boolean
+	armature_rig: boolean
 	centered_grid: boolean
 	rotate_cubes: boolean
 	stretch_cubes: boolean
@@ -576,6 +581,7 @@ new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
+new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');

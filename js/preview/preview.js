@@ -395,7 +395,8 @@ export class Preview {
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.mesh && element.mesh.geometry && element.visibility && !element.locked) {
+			if (element.visibility === false || element.locked === true) return;
+			if (element.mesh && element.mesh.geometry) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
 					if (element.mesh.vertex_points && (element.mesh.vertex_points.visible || options.vertices)) {
@@ -409,6 +410,8 @@ export class Preview {
 				}
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
+			} else if (element instanceof ArmatureBone) {
+				objects.push(element.mesh.children[0]);
 			}
 		})
 		for (let group of Group.multi_selected) {
@@ -438,7 +441,12 @@ export class Preview {
 				return a.distance - b.distance;
 			});
 		} else {
-			intersects.sort((a, b) => a.distance - b.distance);
+			intersects.sort((a, b) => {
+				if (a.object.renderOrder > 10 || b.object.renderOrder > 10) {
+					return b.object.renderOrder - a.object.renderOrder;
+				}
+				return a.distance - b.distance;
+			});
 		}
 		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge')) {
 			let all_intersects = intersects;
@@ -859,7 +867,7 @@ export class Preview {
 				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					event = 0;
 				}
-				if (data.element.parent.type === 'group' && (data.element instanceof Mesh == false || data.element instanceof SplineMesh == false || select_mode == 'object') && (
+				if (data.element.parent instanceof OutlinerNode && (data.element instanceof Mesh == false || data.element instanceof SplineMesh == false || select_mode == 'object') && (
 					(Animator.open && !data.element.constructor.animator) ||
 					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
@@ -1279,6 +1287,7 @@ export class Preview {
 			!this.controls.hasMoved &&
 			!this.selection.activated &&
 			!Transformer.dragging &&
+			Toolbox.selected.selectElements != false &&
 			!this.selection.click_target
 		) {
 			unselectAllElements();
@@ -1293,6 +1302,22 @@ export class Preview {
 		scope.mouse.y = - ((y - canvas_offset.top) / scope.height) * 2 + 1;
 		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
 		return scope.raycaster.ray.origin
+	}
+	vectorToScreenPosition(vector) {
+		vector = vector.clone();
+		let widthHalf = this.canvas.width / 2;
+		let heightHalf = this.canvas.height / 2;
+
+		vector.project(this.camera);
+	
+		vector.x = ( vector.x * widthHalf ) + widthHalf;
+		vector.y = - ( vector.y * heightHalf ) + heightHalf;
+		vector.divideScalar(window.devicePixelRatio);
+	
+		return { 
+			x: vector.x,
+			y: vector.y
+		};
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'preview';
@@ -1344,6 +1369,7 @@ export class Preview {
 	//Selection Rectangle
 	startSelRect(event) {
 		if (this.sr_move_f) return;
+		if (Toolbox.selected.selectElements == false) return;
 		var scope = this;
 		if (Modes.edit) {
 			this.sr_move_f = function(event) { scope.moveSelRect(event)}
@@ -1421,7 +1447,7 @@ export class Preview {
 				isSelected = element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
 			}
 			if (isSelected) {
-				element.selectLow();
+				element.markAsSelected();
 			}
 		})
 		TickUpdates.selection = true;
@@ -1515,6 +1541,7 @@ export class Preview {
 		}
 		Preview.all.remove(this);
 	}
+	static selected = null;
 }
 	Preview.prototype.menu = new Menu([
 		'screenshot_model',

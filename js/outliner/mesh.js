@@ -564,6 +564,9 @@ export class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
+	getArmature() {
+		return this.armature ? Armature.all.find(armature => armature.uuid == this.armature) : undefined;
+	}
 	getUndoCopy(aspects = {}) {
 		let el = {};
 
@@ -924,6 +927,39 @@ export class Mesh extends OutlinerElement {
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
+		{
+			id: 'attach_armature',
+			name: 'menu.mesh.attach_armature',
+			icon: 'accessibility',
+			condition: () => Armature.all.length,
+			children() {
+				function setArmature(mesh, armature) {
+					Undo.initEdit({elements: [mesh]});
+					mesh.armature = armature ? armature.uuid : '';
+					mesh.preview_controller.updateTransform(mesh);
+					Undo.finishEdit('Attach armature to mesh');
+				}
+				let options = [
+					{
+						name: 'generic.none',
+						icon: 'remove',
+						click(mesh) {
+							setArmature(mesh);
+						}
+					}
+				];
+				for (let armature of Armature.all) {
+					options.push({
+						name: armature.name,
+						icon: 'accessibility',
+						click(mesh) {
+							setArmature(mesh, armature);
+						}
+					})
+				}
+				return options;
+			}
+		},
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
@@ -1006,6 +1042,7 @@ new Property(Mesh, 'boolean', 'smooth_shading', {
 		}
 	}
 });
+new Property(Mesh, 'string', 'armature');
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
@@ -1015,7 +1052,11 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh = element.mesh;
+		if (mesh && mesh.parent) mesh.parent.remove(mesh);
+		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
+		let armature = element.getArmature();
+		mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -1052,17 +1093,49 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element) {
+	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
 		let point_position_array = [];
 		let position_array = [];
+		let color_array = [];
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
 		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
+
+		let armature_bone = Toolbox.selected.id === 'weight_brush' && (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
+
+		function addVertexPosition(vkey) {
+			position_array.push(...vertices[vkey]);
+			if (armature_bone) {
+				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				if (weight < 0.25) {
+					color_array.push(0, 0, weight * 4);
+				} else if (weight < 0.5) {
+					let fade = (weight-0.25) * 4;
+					color_array.push(0, fade, 1-fade);
+				} else if (weight < 0.75) {
+					let fade = (weight-0.5) * 4;
+					color_array.push(fade, 1, 0);
+				} else {
+					let fade = (weight-0.75) * 4;
+					color_array.push(1, 1-fade, 0);
+				}
+			}
+		}
+
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
 
 		for (let key in vertices) {
 			let vector = vertices[key];
@@ -1110,7 +1183,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((key, i) => {
 					indices.push(position_array.length / 3);
-					position_array.push(...vertices[key])
+					addVertexPosition(key);
 				})
 
 				// Outline
@@ -1131,7 +1204,7 @@ new NodePreviewController(Mesh, {
 					if (!vertices[vkey]) {
 						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
 					}
-					position_array.push(...vertices[vkey])
+					addVertexPosition(vkey);
 					face_indices[vkey] = index_offset + i;
 				})
 
@@ -1162,6 +1235,7 @@ new NodePreviewController(Mesh, {
 		
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(color_array), 3));
 		mesh.geometry.setIndex(indices);
 
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
@@ -1186,8 +1260,11 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
+		if (Toolbox.selected.id === 'weight_brush') {
+			mesh.material = Canvas.vertexWeightHelperMaterial
+
+		} else if (Project.view_mode === 'solid') {
+				mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
 			mesh.material = Canvas.getSolidColorMaterial(element.color);
