@@ -61,6 +61,7 @@
 		border-color: var(--color-button);
 		border-top-color: transparent !important;
 		border-left-color: transparent !important;
+		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
@@ -2027,6 +2028,7 @@
 		display: flex;
 		overflow-wrap: anywhere;
 		align-items: center;
+		border-radius: 6px;
 	}
 	li.validator_dialog_problem.validator_warning > i {
 		color: var(--color-warning);

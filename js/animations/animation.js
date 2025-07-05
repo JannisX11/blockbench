@@ -774,6 +774,9 @@ export class Animation extends AnimationItem {
 			onFormChange(form) {
 				this.component.data.loop_mode = form.loop;
 			},
+			onOpen() {
+				this.form.node.style.removeProperty('--max_label_width');
+			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
 				if (

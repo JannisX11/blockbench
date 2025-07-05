@@ -1255,7 +1255,10 @@
 		min-width: 20px;
 		text-align: center;
 		flex-shrink: 0;
-		background-color: var(--color-button);
+		background-color: var(--color-elevated);
+		font-family: 'Font Awesome 6 Free';
+		font-size: 13px;
+		line-height: 24px;
 	}
 	#panel_keyframe .bar.flex label.slidable_input {
 		cursor: ew-resize;
@@ -1712,12 +1715,17 @@
 		width: 22px;
 		height: inherit;
 		padding-top: 2px;
-	}
-	.channel_axis_selector > div.selected {
-		border-bottom: 3px solid var(--color-accent);
+		font-family: 'Font Awesome 6 Free';
+		font-size: 13px;
+		line-height: 23px;
+		cursor: pointer;
+		border-radius: 5px;
 	}
 	.channel_axis_selector > div:hover {
-		filter: brightness(1.4);
+		background-color: var(--color-dark);
+	}
+	.channel_axis_selector > div.selected {
+		background-color: var(--color-button);
 	}
 	#timeline_body li > .animator_head_bar .channel_head:hover {
 		color: var(--color-light);
