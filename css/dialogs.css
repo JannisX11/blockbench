@@ -2292,6 +2292,10 @@
 		left: 0;
 		right: 0;
 	}
+/* Molang */
+	dialog#expression_editor .dialog_content {
+		overflow: unset;
+	}
 
 /* Texture Edit */
 	div.texture_adjust_previews {

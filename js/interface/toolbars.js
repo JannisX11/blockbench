@@ -555,9 +555,6 @@ export const BARS = {
 					replace: {label: 'dialog.find_replace.replace', type: 'text'},
 					regex: {label: 'dialog.find_replace.regex', type: 'checkbox', value: false},
 				},
-				onFormChange() {
-
-				},
 				onConfirm(form) {
 					if (!form.find) return;
 					function replace(name) {

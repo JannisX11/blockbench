@@ -1543,6 +1543,20 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
+				openMolangContextMenu(event) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click: () => {
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.AnimationContext,
+									text: this.text
+								}, result => this.text = result)
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
 					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 					return test;
@@ -1578,6 +1592,7 @@ Interface.definePanels(function() {
 						class="molang_input tab_target capture_tab_key"
 						v-model="text"
 						language="molang"
+						@contextmenu="openMolangContextMenu($event)"
 						:autocomplete="autocomplete"
 						:line-numbers="false"
 						style="flex-grow: 1;"

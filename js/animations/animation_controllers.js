@@ -1,4 +1,5 @@
 import Wintersky from 'wintersky';
+import { openMolangEditor } from './molang_editor';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
@@ -1472,11 +1473,13 @@ Interface.definePanels(() => {
 			}},
 			methods: {
 				loadPreset(preset) {
+					Undo.initEdit({animation_controllers: [AnimationController.selected]})
 					this.controller.extend({
 						states: preset.states,
 						initial_state: preset.initial_state
 					});
 					this.updateConnectionWrapperOffset();
+					Undo.finishEdit('Apply animation controller preset')
 				},
 				toggleStateSection(state, section) {
 					state.fold[section] = !state.fold[section];
@@ -1855,6 +1858,27 @@ Interface.definePanels(() => {
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
+				openMolangContextMenu(event, state, target_object, target_key) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click: () => {
+								let value = target_object[target_key];
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.AnimationControllerContext,
+									text: value
+								}, result => {
+									if (value != result) {
+										Undo.initEdit({animation_controller_state: state});
+										target_object[target_key] = result;
+										Undo.finishEdit('Edit animation controller molang');
+									}
+								})
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
 					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
@@ -2028,6 +2052,7 @@ Interface.definePanels(() => {
 											class="molang_input animation_controller_text_input tab_target"
 											v-model="state.animations[i].blend_value"
 											language="molang"
+											@contextmenu.stop="openMolangContextMenu($event, state, state.animations[i], 'blend_value')"
 											:autocomplete="autocomplete"
 											:placeholder="'${tl('animation_controllers.state.condition')}'"
 											:ignoreTabKey="true"
@@ -2072,6 +2097,7 @@ Interface.definePanels(() => {
 												class="molang_input animation_controller_text_input tab_target"
 												v-model="state.particles[i].script"
 												language="molang"
+												@contextmenu.stop="openMolangContextMenu($event, state, state.particles[i], 'script')"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"
@@ -2119,6 +2145,7 @@ Interface.definePanels(() => {
 									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_entry"
 									language="molang"
+									@contextmenu.stop="openMolangContextMenu($event, state, state, 'on_entry')"
 									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
@@ -2135,6 +2162,7 @@ Interface.definePanels(() => {
 									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_exit"
 									language="molang"
+									@contextmenu.stop="openMolangContextMenu($event, state, state, 'on_exit')"
 									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
@@ -2158,6 +2186,7 @@ Interface.definePanels(() => {
 												class="molang_input animation_controller_text_input tab_target"
 												v-model="state.transitions[i].condition"
 												language="molang"
+												@contextmenu.stop="openMolangContextMenu($event, state, state.transitions[i], 'condition')"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"

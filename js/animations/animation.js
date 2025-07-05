@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { Filesystem } from "../file_system";
+import { openMolangEditor } from "./molang_editor";
 
 export class AnimationItem {
 	constructor() {}
@@ -746,6 +747,20 @@ export class Animation extends AnimationItem {
 					loop_mode: this.loop
 				},
 				methods: {
+					openMolangContextMenu(event, key, value) {
+						new Menu([
+							{
+								name: 'menu.text_edit.expression_editor',
+								icon: 'code_blocks',
+								click: () => {
+									openMolangEditor({
+										autocomplete_context: MolangAutocomplete.AnimationContext,
+										text: value
+									}, result => this[key] = result)
+								}
+							}
+						]).open(event);
+					},
 					autocomplete(text, position) {
 						let test = MolangAutocomplete.AnimationContext.autocomplete(text, position);
 						return test;
@@ -755,19 +770,39 @@ export class Animation extends AnimationItem {
 					`<div id="animation_properties_vue">
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
-							<vue-prism-editor class="molang_input" v-model="anim_time_update" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="anim_time_update"
+								@contextmenu="openMolangContextMenu($event, 'anim_time_update', anim_time_update)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
-							<vue-prism-editor class="molang_input" v-model="blend_weight" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="blend_weight"
+								@contextmenu="openMolangContextMenu($event, 'blend_weight', blend_weight)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
-							<vue-prism-editor class="molang_input" v-model="start_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="start_delay"
+								@contextmenu="openMolangContextMenu($event, 'start_delay', start_delay)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
 							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
-							<vue-prism-editor class="molang_input" v-model="loop_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="loop_delay"
+								@contextmenu="openMolangContextMenu($event, 'loop_delay', loop_delay)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 					</div>`
 			},

@@ -202,6 +202,7 @@ export class Dialog {
 		this.onFormChange = options.onFormChange;
 		this.onOpen = options.onOpen;
 		this.onBuild = options.onBuild;
+		this.onResize = options.onResize;
 	
 		this.object;
 	}
@@ -388,6 +389,9 @@ export class Dialog {
 						let y_offset = (e2.clientY - start_position[1]);
 						let height = Math.clamp(original_height + y_offset, 80, window.innerHeight);
 						this.object.style.height = height+'px';
+					}
+					if (typeof this.onResize == 'function') {
+						this.onResize();
 					}
 				}
 				let stop = e2 => {

@@ -75,6 +75,10 @@ interface DialogOptions {
 	 */
 	onButton?(button_index: number, event?: Event): void
 	/**
+	 * Runs when the dialog is resized
+	 */
+	onResize?(): void
+	/**
 	 * Function to run when anything in the form is changed
 	 */
 	onFormChange?(form_result: { [key: string]: FormResultValue }): void
@@ -173,6 +177,7 @@ declare class Dialog {
 	constructor(options: DialogOptions)
 
 	id: string
+	object: HTMLElement
 	component: Vue.Component
 	sidebar: DialogSidebar | null
 	content_vue: Vue | null
@@ -232,6 +237,10 @@ declare class Dialog {
 	 * Triggered when the user presses a specific button
 	 */
 	onButton?(button_index: number, event?: Event): void
+	/**
+	 * Runs when the dialog is resized
+	 */
+	onResize?(): void
 	/**
 	 * Function to run when anything in the form is changed
 	 */

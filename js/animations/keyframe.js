@@ -1,4 +1,5 @@
 import { invertMolang } from "../util/molang";
+import { openMolangEditor } from "./molang_editor";
 
 export class KeyframeDataPoint {
 	constructor(keyframe) {
@@ -269,8 +270,8 @@ export class Keyframe {
 		if (this.channel === 'rotation') {
 			let fix = this.animator.group.mesh.fix_rotation;
 			let euler = new THREE.Euler(
-				(fix.x||0) - Math.degToRad(this.calc('x', data_point)),
-				(fix.y||0) - Math.degToRad(this.calc('y', data_point)),
+				(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
+				(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
 				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
 				'ZYX'
 			)
@@ -278,7 +279,7 @@ export class Keyframe {
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(
-				fix.x - this.calc('x', data_point),
+				fix.x + this.calc('x', data_point),
 				fix.y + this.calc('y', data_point),
 				fix.z + this.calc('z', data_point)
 			)
@@ -1488,6 +1489,31 @@ Interface.definePanels(function() {
 						})
 					}
 				},
+				openMolangContextMenu(axis, event, value, data_point_i) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click() {
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.KeyframeContext,
+									text: value
+								}, result => {
+									Undo.initEdit({keyframes: Timeline.selected});
+									Timeline.selected.forEach(function(kf) {
+										if (data_point_i && !kf.data_points[data_point_i]) return;
+										kf.set(axis, result, data_point_i);
+									})
+									Undo.finishEdit('Change keyframe value')
+									if (!['effect', 'locator', 'script'].includes(axis)) {
+										Animator.preview();
+										updateKeyframeSelection();
+									}
+								})
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
 					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
@@ -1560,6 +1586,7 @@ Interface.definePanels(function() {
 											class="molang_input keyframe_input tab_target"
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
+											@contextmenu="openMolangContextMenu('uniform', $event, data_point['x_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
@@ -1583,6 +1610,7 @@ Interface.definePanels(function() {
 											v-model="data_point[key+'_string']"
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
+											@contextmenu="openMolangContextMenu(key, $event, data_point[key+'_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"

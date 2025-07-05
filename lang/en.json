@@ -678,6 +678,10 @@
 	"dialog.blend_transition_edit.generate.curve": "Easing Type",
 	"dialog.blend_transition_edit.generate.steps": "Keyframes",
 
+	"dialog.expression_editor.pretty_print": "Pretty Print",
+	"dialog.expression_editor.minify": "Minify",
+	"dialog.expression_editor.find_replace": "Find/Replace",
+
 	"dialog.create_texture.folder": "Folder",
 	"dialog.create_texture.type": "Type",
 	"dialog.create_texture.type.blank": "Blank",
@@ -2178,6 +2182,7 @@
 	"menu.help.update_failed": "Update Failed",
 
 	"menu.text_edit.copy_vector": "Copy Vector",
+	"menu.text_edit.expression_editor": "Expression Editor",
 
 	"menu.cube.color": "Marker Color",
 	"menu.cube.texture": "Texture",
