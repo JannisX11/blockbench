@@ -46,6 +46,7 @@ type EventName =
 	| 'add_mesh'
 	| 'add_group'
 	| 'add_texture_mesh'
+	| 'add_armature'
 	| 'group_elements'
 	| 'update_selection'
 	| 'compile_bedrock_animations'
@@ -228,6 +229,8 @@ declare class Property<T extends keyof IPropertyType> extends Deletable {
 	reset(instance: IPropertyType[T]): void
 	getDefault(instance: IPropertyType[T]): IPropertyType[T]
 	copy(instance: IPropertyType[T], target: IPropertyType[T]): void
+
+	static resetUniqueValues(type: any, instance: any): void
 }
 
 declare function updateSelection(): void

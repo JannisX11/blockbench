@@ -1,7 +1,24 @@
-import { THREE } from "../lib/libs";
+import { Blockbench } from "../api";
+import { THREE, Vue } from "../lib/libs";
+import { ArmatureBone } from "./armature_bone";
+
+interface ArmatureOptions {
+	name?: string
+	export?: boolean
+	locked?: boolean
+	visibility?: boolean
+}
 
 export class Armature extends OutlinerElement {
-	constructor(data, uuid) {
+	children: ArmatureBone[]
+	isOpen: boolean
+	visibility: boolean
+	origin: ArrayVector3
+	rotation: ArrayVector3
+
+	static preview_controller: NodePreviewController
+
+	constructor(data?: ArmatureOptions, uuid?: UUID) {
 		super(data, uuid);
 
 		for (let key in Armature.properties) {
@@ -9,7 +26,7 @@ export class Armature extends OutlinerElement {
 		}
 
 		this.name = 'armature'
-		this.children = []
+		this.children = [];
 		this.selected = false;
 		this.locked = false;
 		this.export = true;
@@ -25,7 +42,7 @@ export class Armature extends OutlinerElement {
 			this.name = data
 		}
 	}
-	extend(object) {
+	extend(object: ArmatureOptions) {
 		for (let key in Armature.properties) {
 			Armature.properties[key].merge(this, object)
 		}
@@ -42,11 +59,12 @@ export class Armature extends OutlinerElement {
 	init() {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {
+			// @ts-ignore
 			this.constructor.preview_controller.setup(this);
 		}
 		return this;
 	}
-	markAsSelected(descendants) {
+	markAsSelected(descendants: boolean = false) {
 		Outliner.selected.safePush(this);
 		this.selected = true;
 		if (descendants) {
@@ -78,7 +96,7 @@ export class Armature extends OutlinerElement {
 		}
 		return this;
 	}
-	remove(undo) {
+	remove(undo?: boolean) {
 		let elements = [];
 		if (undo) {
 			this.forEachChild(function(element) {
@@ -105,11 +123,11 @@ export class Armature extends OutlinerElement {
 	}
 	showContextMenu(event) {
 		if (this.locked) return this;
-		if (Armature.selected != this) this.select(event);
+		if (!Armature.selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
 	}
-	transferOrigin(origin) {
+	transferOrigin(origin: ArrayVector3) {
 		if (!this.mesh) return;
 		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
 		let shift = new THREE.Vector3(
@@ -143,7 +161,7 @@ export class Armature extends OutlinerElement {
 		Canvas.updatePositions()
 		return this;
 	}
-	getWorldCenter(with_animation) {
+	getWorldCenter() {
 		let pos = new THREE.Vector3();
 		this.mesh.localToWorld(pos);
 		return pos;
@@ -151,6 +169,7 @@ export class Armature extends OutlinerElement {
 	duplicate() {
 		let copy = this.getChildlessCopy(false)
 		delete copy.parent;
+		// @ts-ignore
 		if (Format.bone_rig) copy._original_name = this.name;
 		Property.resetUniqueValues(Armature, copy);
 		copy.sortInBefore(this, 1).init()
@@ -164,7 +183,7 @@ export class Armature extends OutlinerElement {
 		Canvas.updatePositions();
 		return copy;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		let copy = {
 			isOpen: this.isOpen,
 			uuid: this.uuid,
@@ -190,7 +209,7 @@ export class Armature extends OutlinerElement {
 		}
 		return copy;
 	}
-	getChildlessCopy(keep_uuid) {
+	getChildlessCopy(keep_uuid?: boolean) {
 		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
 		for (let key in Armature.properties) {
 			Armature.properties[key].copy(this, base_armature)
@@ -202,7 +221,7 @@ export class Armature extends OutlinerElement {
 		base_armature.isOpen = this.isOpen;
 		return base_armature;
 	}
-	forEachChild(cb, type, forSelf) {
+	forEachChild(cb: ((element: OutlinerElement) => void), type?: typeof OutlinerNode, forSelf?: boolean) {
 		let i = 0
 		if (forSelf) {
 			cb(this)
@@ -219,7 +238,7 @@ export class Armature extends OutlinerElement {
 	}
 	getAllBones() {
 		let bones = [];
-		function addBones(array) {
+		function addBones(array: ArmatureBone[]) {
 			for (let item of array) {
 				if (item instanceof ArmatureBone == false) continue;
 				bones.push(item);
@@ -234,17 +253,17 @@ export class Armature extends OutlinerElement {
 		child_types: ['armature_bone'],
 		hide_in_screenshot: true,
 	}
-}
-	Armature.prototype.title = tl('data.armature');
-	Armature.prototype.type = 'armature';
-	Armature.prototype.icon = 'accessibility';
-	Armature.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
-	Armature.prototype.buttons = [
+	
+	public title = tl('data.armature');
+	public type = 'armature';
+	public icon = 'accessibility';
+	public name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	public buttons = [
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Armature.prototype.needsUniqueName = true;
-	Armature.prototype.menu = new Menu([
+	public needsUniqueName = true;
+	public menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -252,12 +271,13 @@ export class Armature extends OutlinerElement {
 		'rename',
 		'delete'
 	]);
+}
 
 OutlinerElement.registerType(Armature, 'armature');
 
 new NodePreviewController(Armature, {
-	setup(element) {
-		let object_3d = new THREE.Object3D();
+	setup(element: Armature) {
+		let object_3d = new THREE.Object3D() as {isElement: boolean, no_export: boolean} & THREE.Object3D;
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
@@ -270,7 +290,7 @@ new NodePreviewController(Armature, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateTransform(element) {
+	updateTransform(element: Armature) {
 		let mesh = element.mesh;
 
 		if (Format.bone_rig) {

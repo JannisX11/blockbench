@@ -1,6 +1,5 @@
-export function sameMeshEdge(edge_a, edge_b) {
-	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
-}
+import './mesh/attach_armature'
+import { sameMeshEdge } from './mesh/util';
 
 export const ProportionalEdit = {
 	vertex_weights: {},
@@ -1327,6 +1326,7 @@ BARS.defineActions(function() {
 		onConfirm(result) {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
+			const color = Math.floor(Math.random()*markerColors.length);
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
@@ -1339,7 +1339,7 @@ BARS.defineActions(function() {
 				let mesh = new Mesh({
 					name: result.shape,
 					vertices: {},
-					color: Math.floor(Math.random()*markerColors.length)
+					color
 				});
 				let group = getCurrentGroup();
 				if (group) {

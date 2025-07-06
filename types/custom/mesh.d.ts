@@ -74,6 +74,10 @@ declare class MeshFace extends Face {
 		side_index: number
 	): { face: MeshFace; key: string; edge: MeshEdge; index: number } | null
 	/**
+	 * Return all edges of the face
+	 */
+	getEdges(): [string, string][]
+	/**
 	 * Returns the face key
 	 */
 	getFaceKey(): string
@@ -116,6 +120,7 @@ declare class Mesh extends OutlinerElement {
 	seams: {
 		[vkey: string]: MeshSeamValue
 	}
+	armature: string
 
 	extend(options: Partial<MeshOptions>): this
 

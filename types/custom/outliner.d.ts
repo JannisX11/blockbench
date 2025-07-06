@@ -18,13 +18,16 @@ declare class OutlinerNode {
 	parent?: Group | 'root'
 	menu?: Menu
 
+	public preview_controller: NodePreviewController
+	static preview_controller: NodePreviewController
+
 	/**
 	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
 	 */
 	init(): this
 	addTo(target?: OutlinerNode | 'root'): this
 	sortInBefore(target?: OutlinerNode, index_modifier?: number): this
-	select(event?: any, isOutlinerClick?: boolean): this | void
+	select(event?: any, isOutlinerClick?: boolean): this
 	getParentArray(): OutlinerNode[]
 	/**
 	 * Unfolds the outliner and scrolls up or down if necessary to show the group or element.
@@ -37,7 +40,7 @@ declare class OutlinerNode {
 	/**
 	 * Removes the element.
 	 */
-	remove(): this
+	remove(undo?: boolean): void
 	/**
 	 * Marks the name of the group or element in the outliner for renaming.
 	 */
@@ -54,7 +57,7 @@ declare class OutlinerNode {
 	 * Checks of the group or element is a child of `group`.
 	 * @param max_levels The maximum number of generations that can be between the element and the group
 	 */
-	isChildOf(group: Group, max_levels: number): boolean
+	isChildOf(node: OutlinerNode, max_levels: number): boolean
 	/**
 	 * Displays the context menu of the element
 	 * @param event Mouse event, determines where the context menu spawns.
@@ -81,7 +84,7 @@ declare class OutlinerElement extends OutlinerNode {
 	static isParent: false
 	static types: Record<string, typeof OutlinerElement>
 	static all: OutlinerElement[]
-	static selected: OutlinerElement[] | false
+	static selected: OutlinerElement[]
 	static registerType(constructor: any, id: string): void
 	select(event?: any, isOutlinerClick?: boolean): this
 	unselect(...args: any[]): this

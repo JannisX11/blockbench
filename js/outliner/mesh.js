@@ -927,39 +927,7 @@ export class Mesh extends OutlinerElement {
 		new MenuSeparator('mesh_combination'),
 		'split_mesh',
 		'merge_meshes',
-		{
-			id: 'attach_armature',
-			name: 'menu.mesh.attach_armature',
-			icon: 'accessibility',
-			condition: () => Armature.all.length,
-			children() {
-				function setArmature(mesh, armature) {
-					Undo.initEdit({elements: [mesh]});
-					mesh.armature = armature ? armature.uuid : '';
-					mesh.preview_controller.updateTransform(mesh);
-					Undo.finishEdit('Attach armature to mesh');
-				}
-				let options = [
-					{
-						name: 'generic.none',
-						icon: 'remove',
-						click(mesh) {
-							setArmature(mesh);
-						}
-					}
-				];
-				for (let armature of Armature.all) {
-					options.push({
-						name: armature.name,
-						icon: 'accessibility',
-						click(mesh) {
-							setArmature(mesh, armature);
-						}
-					})
-				}
-				return options;
-			}
-		},
+		'attach_armature',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',

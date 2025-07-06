@@ -75,8 +75,8 @@ declare class Group extends OutlinerNode {
 	extend(options: Partial<GroupOptions>): this
 	selectChildren(event: Event): this
 	selectLow(highlight: boolean): this
-	select(event?: any, isOutlinerClick?: boolean): this | void
-	unselect(): this | void
+	select(event?: any, isOutlinerClick?: boolean): this
+	unselect(): this
 	matchesSelection(): boolean
 	/**
 	 * Opens the group and all of its ancestor groups.
