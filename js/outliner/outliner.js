@@ -1965,7 +1965,10 @@ Interface.definePanels(function() {
 			},
 			template: `
 				<div>
-					<search-bar id="outliner_search_bar" v-if="search_enabled" v-model="options.search_term" @input="updateSearch()" onfocusout="Panels.outliner.vue.updateSearch()" />
+					<search-bar id="outliner_search_bar" class="panel_search_bar"
+						v-if="search_enabled" v-model="options.search_term"
+						@input="updateSearch()" onfocusout="Panels.outliner.vue.updateSearch()"
+					/>
 					<ul id="cubes_list"
 						class="list mobile_scrollbar"
 						@contextmenu.stop.prevent="openMenu($event)"

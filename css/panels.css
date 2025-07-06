@@ -511,7 +511,7 @@
 
 
 /*Outliner*/
-	#outliner_search_bar {
+	.search_bar.panel_search_bar {
 		width: 100%;
 	}
 	#cubes_list {

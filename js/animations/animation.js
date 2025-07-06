@@ -1831,6 +1831,19 @@ BARS.defineActions(function() {
 			Animator.preview();
 		}
 	})
+	new Toggle('search_animations', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Panels.animations.inside_vue._data.search_term = '';
+			Panels.animations.inside_vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('animation_search_bar').firstChild.focus();
+				});
+			}
+		}
+	})
 })
 
 
@@ -1878,6 +1891,8 @@ Interface.definePanels(function() {
 					'load_animation_file',
 					'slider_animation_length',
 					'export_modded_animations',
+					'+',
+					'search_animations',
 				]
 			})
 		],
@@ -1887,7 +1902,9 @@ Interface.definePanels(function() {
 				animations: Animation.all,
 				animation_controllers: AnimationController.all,
 				files_folded: {},
-				animation_files_enabled: true
+				animation_files_enabled: true,
+				search_enabled: false,
+				search_term: '',
 			}},
 			methods: {
 				openMenu(event) {
@@ -2049,20 +2066,33 @@ Interface.definePanels(function() {
 
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.search_term && !document.querySelector('#animation_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_animations.set(false);
+					}
 				}
 			},
 			computed: {
 				files() {
+					const search_term = this.search_enabled && this.search_term.toLowerCase()
+					const filter = (anim) => {
+						if (search_term) {
+							return anim.name.toLowerCase().includes(search_term);
+						}
+						return true;
+					}
 					if (!this.animation_files_enabled) {
 						return {
 							'': {
-								animations: this.animations.concat(this.animation_controllers),
+								animations: this.animations.concat(this.animation_controllers).filter(filter),
 								name: '',
 								hide_head: true
 							}
 						}
 					}
-					let files = {};
+					const files = {};
 					this.animations.forEach(animation => {
 						let key = animation.path || '';
 						if (!files[key]) files[key] = {
@@ -2072,6 +2102,7 @@ Interface.definePanels(function() {
 							saved: true
 						};
 						if (!animation.saved) files[key].saved = false;
+						if (!filter(animation)) return;
 						files[key].animations.push(animation);
 					})
 					this.animation_controllers.forEach(controller => {
@@ -2083,6 +2114,7 @@ Interface.definePanels(function() {
 							saved: true
 						};
 						if (!controller.saved) files[key].saved = false;
+						if (!filter(controller)) return;
 						files[key].animations.push(controller);
 					})
 					return files;
@@ -2151,6 +2183,11 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
+			<div>
+				<search-bar id="animation_search_bar" class="panel_search_bar"
+					v-if="search_enabled" v-model="search_term"
+					@input="updateSearch()" onfocusout="Panels.animations.vue.updateSearch()"
+				/>
 				<ul
 					id="animations_list"
 					class="list mobile_scrollbar"
@@ -2203,6 +2240,7 @@ Interface.definePanels(function() {
 						</ul>
 					</li>
 				</ul>
+				</div>
 			`
 		},
 		menu: new Menu([
