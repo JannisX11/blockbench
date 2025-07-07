@@ -899,8 +899,8 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 			type: 'checkbox',
 			class: 'focusable_input',
 			id: this.id,
-			checked: this.options.value
 		})
+		this.input.checked = this.options.value;
 		bar.append(this.input)
 		this.input.addEventListener('change', () => {
 			this.change();

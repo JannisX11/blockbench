@@ -2303,6 +2303,19 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+	new Toggle('search_textures', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Panels.textures.inside_vue._data.search_term = '';
+			Panels.textures.inside_vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('texture_search_bar').firstChild.focus();
+				});
+			}
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -2651,6 +2664,8 @@ Interface.definePanels(function() {
 					'create_texture',
 					'create_texture_group',
 					'append_to_template',
+					'+',
+					'search_textures',
 				]
 			})
 		],
@@ -2664,6 +2679,8 @@ Interface.definePanels(function() {
 				textures: Texture.all,
 				texture_groups: TextureGroup.all,
 				currentFrame: 0,
+				search_enabled: false,
+				search_term: '',
 			}},
 			components: {'Texture': texture_component},
 			methods: {
@@ -2735,8 +2752,21 @@ Interface.definePanels(function() {
 					if (Blockbench.hasFlag('dragging_textures')) return;
 					unselectTextures();
 				},
+				search(list) {
+					const search_term = this.search_enabled && this.search_term.toLowerCase();
+					if (search_term) {
+						return list.filter(tex => {
+							return tex.name.toLowerCase().includes(search_term) || tex.folder.toLowerCase().includes(search_term);
+						});
+					} else {
+						return list;
+					}
+				},
 				getUngroupedTextures() {
-					return this.textures.filter(tex => !(tex.group && TextureGroup.all.find(g => g.uuid == tex.group)));
+					return this.search(this.textures.filter(tex => {
+						if (tex.group && TextureGroup.all.find(g => g.uuid == tex.group)) return false;
+						return true;
+					}));
 				},
 				dragTextureGroup(texture_group, e1) {
 					if (e1.button == 1) return;
@@ -2859,10 +2889,20 @@ Interface.definePanels(function() {
 	
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.search_term && !document.querySelector('#texture_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_textures.set(false);
+					}
 				}
 			},
 			template: `
 				<div>
+					<search-bar id="texture_search_bar" class="panel_search_bar"
+						v-if="search_enabled" v-model="search_term"
+						@input="updateSearch()" onfocusout="Panels.textures.vue.updateSearch()"
+					/>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)" @click.stop="unselect($event)">
 						<li
 							v-for="texture_group in texture_groups" :key="texture_group.uuid" :id="texture_group.uuid"
@@ -2908,7 +2948,7 @@ Interface.definePanels(function() {
 									</i>
 								</li>
 								<Texture
-									v-for="texture in texture_group.getTextures()"
+									v-for="texture in search(texture_group.getTextures())"
 									:key="texture.uuid"
 									:texture="texture"
 								></Texture>

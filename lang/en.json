@@ -1548,6 +1548,8 @@
 	"action.cube_counter.desc": "Displays the current number of elements and other statistics",
 	"action.search_outliner": "Search Outliner",
 	"action.search_outliner.desc": "Search for specific element names in the outliner",
+	"action.search_textures": "Search Textures",
+	"action.search_textures.desc": "Search for textures by name",
 	"action.search_animations": "Search Animations",
 	"action.search_animations.desc": "Search for animations by name",
 	"action.randomize_marker_colors": "Randomize Marker Colors",
