@@ -366,7 +366,7 @@ declare global {
 	 * Saves all textures
 	 * @param lazy If true, the texture isn't saved if it doesn't have a local file to save to
 	 */
-	function saveTextures(lazy?: boolean): void
+	function saveTextures(lazy?: boolean): Promise<void>
 	/**
 	 * Update the draggable/sortable functionality of the texture list
 	 */

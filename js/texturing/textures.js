@@ -1,6 +1,7 @@
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
+import { Blockbench } from '../api';
 
 let tex_version = 1;
 
@@ -2093,13 +2094,34 @@ export class Texture {
 		}
 	})
 
-export function saveTextures(lazy = false) {
-	Texture.all.forEach(function(tex) {
-		if (!tex.saved) {
-			if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return;
-			tex.save()
-		}
+export async function saveTextures(lazy = false) {
+	let textures_to_save = Texture.all.filter(tex => {
+		if (tex.saved) return false;
+		if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return false;
+		return true;
 	})
+	let will_open_pop_up = textures_to_save.filter(tex => {
+		return !(isApp && tex.path && fs.existsSync(tex.path));
+	});
+	if (will_open_pop_up.length >= 2) {
+		function askNextStep(resolve) {
+			let texture_list = will_open_pop_up.map(tex => '- ' + tex.name).join('\n');
+			Blockbench.showMessageBox({
+				title: 'action.save_textures',
+				message: tl('message.save_all_textures.message') + '\n\n' + texture_list,
+				buttons: ['dialog.unsaved_work.save_all', 'message.save_all_textures.skip']
+			}, (button) => {
+				resolve(button == 0);
+			});
+		}
+		let should_save = await new Promise(askNextStep);
+		if (!should_save) {
+			will_open_pop_up.forEach(tex => textures_to_save.remove(tex));
+		}
+	}
+	for (let tex of textures_to_save) {
+		tex.save();
+	}
 }
 export function loadTextureDraggable() {
 	console.warn('loadTextureDraggable no longer exists');

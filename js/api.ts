@@ -227,7 +227,7 @@ export const Blockbench = {
 			Blockbench.showQuickMessage(message)
 		}
 	},
-	showMessageBox(options, cb?: (button, result, event) => void) {
+	showMessageBox(options: MessageBoxOptions, cb?: (button: number, result?: string, event?: Event) => void) {
 		return new MessageBox(options, cb).show();
 	},
 	/**
