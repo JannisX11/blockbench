@@ -260,7 +260,7 @@ new ValidatorCheck('texture_names', {
 })
 
 new ValidatorCheck('catmullrom_keyframes', {
-	condition: {features: ['animation_files']},
+	condition: () => Format.id?.includes('bedrock'),
 	update_triggers: ['update_keyframe_selection'],
 	run() {
 		function getButtons(kf) {

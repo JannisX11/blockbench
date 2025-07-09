@@ -1157,7 +1157,7 @@ Interface.definePanels(() => {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_animator] = eventTargetToAnimator(target);
+							let [target_animator] = eventTargetToAnimator(target);
 							if (!target_animator || target_animator == animator ) return;
 							
 							let index = Timeline.animators.indexOf(target_animator);

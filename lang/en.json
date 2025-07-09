@@ -1971,6 +1971,8 @@
 	"action.add_animation.desc": "Create a blank animation",
 	"action.add_animation_controller": "Add Animation Controller",
 	"action.add_animation_controller.desc": "Create a blank animation controller",
+	"action.create_animation_group": "Create Animation Group",
+	"action.create_animation_group.desc": "Create a group of animations",
 	"action.add_animation_controller_state": "Add Animation Controller State",
 	"action.add_animation_controller_state.desc": "Add a new state to the animation controller",
 	"action.animation_controller_preview_mode": "Controller Preview",

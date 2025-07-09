@@ -985,8 +985,23 @@ export class Animation extends AnimationItem {
 			})
 		}}
 	])
+	Animation.prototype.group_menu = new Menu([
+		{name: 'action.rename', icon: 'text_format', click: async function(group_name) {
+			let animations_to_rename = Animation.all.filter(anim => anim.group_name == group_name);
+
+			let new_group_name = await Blockbench.textPrompt('action.rename', group_name);
+			if (animations_to_rename.length == 0 || new_group_name == group_name) return;
+
+			Undo.initEdit({animations: animations_to_rename});
+			animations_to_rename.forEach(animation => {
+				animation.group_name = new_group_name;
+			})
+			Undo.finishEdit('Unload animation file', {animations: []});
+		}}
+	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
+	new Property(Animation, 'string', 'group_name', {condition: () => !Format.animation_files})
 	new Property(Animation, 'molang', 'anim_time_update', {default: ''});
 	new Property(Animation, 'molang', 'blend_weight', {default: ''});
 	new Property(Animation, 'molang', 'start_delay', {default: ''});
@@ -1168,6 +1183,19 @@ BARS.defineActions(function() {
 				saved: false
 			}).add(true).propertiesDialog()
 
+		}
+	})
+	new Action('create_animation_group', {
+		icon: 'create_new_folder',
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation: true}},
+		click: async function () {
+			let name = await Blockbench.textPrompt('Group Name', 'Animation Group');
+			if (!name) return;
+
+			Undo.initEdit({animations: [Animation.selected]});
+			Animation.selected.group_name = name;
+			Undo.finishEdit('Set animation length');
 		}
 	})
 	new Action('load_animation_file', {
@@ -1889,6 +1917,7 @@ Interface.definePanels(function() {
 					'add_animation',
 					'add_animation_controller',
 					'load_animation_file',
+					'create_animation_group',
 					'slider_animation_length',
 					'export_modded_animations',
 					'+',
@@ -1921,24 +1950,29 @@ Interface.definePanels(function() {
 						Animator.exportAnimationControllerFile(path);
 					}
 				},
-				addAnimation(path) {
-					let other_animation = AnimationItem.all.find(a => a.path == path);
+				addAnimation(group_name) {
+					let other_animation = AnimationItem.all.find(a => (this.animation_files_enabled ? a.path : a.group_name) == group_name);
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
+							path: this.animation_files_enabled ? group_name : undefined,
+							group_name: group_name,
 							saved: false
 						}).add(true).propertiesDialog()
 					} else {
 						new AnimationController({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
+							path: group_name,
 							saved: false
 						}).add(true);
 					}
 				},
 				showFileContextMenu(event, id) {
-					Animation.prototype.file_menu.open(event, id);
+					if (this.animation_files_enabled) {
+						Animation.prototype.file_menu.open(event, id);
+					} else {
+						Animation.prototype.group_menu.open(event, id);
+					}
 				},
 				dragAnimation(e1) {
 					if (getFocusedTextInput()) return;
@@ -1959,6 +1993,8 @@ Interface.definePanels(function() {
 					let timeout;
 					let drop_target, drop_target_node, order;
 					let last_event = e1;
+
+					let group_name_key = this.animation_files_enabled ? 'path' : 'group_name';
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -2019,19 +2055,19 @@ Interface.definePanels(function() {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_anim] = eventTargetToAnim(target);
+							let [target_anim] = eventTargetToAnim(target);
 							if (!target_anim || target_anim == anim ) return;
 
 							if (anim instanceof AnimationController) {
 								let index = AnimationController.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
+								if (index == -1 && target_anim[group_name_key]) return;
 								if (AnimationController.all.indexOf(anim) < index) index--;
 								if (order == 1) index++;
-								if (AnimationController.all[index] == anim && anim.path == target_anim.path) return;
+								if (AnimationController.all[index] == anim && anim[group_name_key] == target_anim[group_name_key]) return;
 								
 								Undo.initEdit({animation_controllers: [anim]});
 	
-								anim.path = target_anim.path;
+								anim[group_name_key] = target_anim[group_name_key];
 								AnimationController.all.remove(anim);
 								AnimationController.all.splice(index, 0, anim);
 								anim.createUniqueName();
@@ -2040,14 +2076,14 @@ Interface.definePanels(function() {
 
 							} else {
 								let index = Animation.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
+								if (index == -1 && target_anim[group_name_key]) return;
 								if (Animation.all.indexOf(anim) < index) index--;
 								if (order == 1) index++;
-								if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+								if (Animation.all[index] == anim && anim[group_name_key] == target_anim[group_name_key]) return;
 								
 								Undo.initEdit({animations: [anim]});
 	
-								anim.path = target_anim.path;
+								anim[group_name_key] = target_anim[group_name_key];
 								Animation.all.remove(anim);
 								Animation.all.splice(index, 0, anim);
 								anim.createUniqueName();
@@ -2083,41 +2119,36 @@ Interface.definePanels(function() {
 						}
 						return true;
 					}
-					if (!this.animation_files_enabled) {
-						return {
-							'': {
-								animations: this.animations.concat(this.animation_controllers).filter(filter),
-								name: '',
-								hide_head: true
-							}
-						}
-					}
-					const files = {};
+					const groups = {};
 					this.animations.forEach(animation => {
-						let key = animation.path || '';
-						if (!files[key]) files[key] = {
-							animations: [],
-							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
-							type: 'animation',
-							saved: true
-						};
-						if (!animation.saved) files[key].saved = false;
+						let key = (this.animation_files_enabled ? animation.path : animation.group_name) || '';
+						let name = this.animation_files_enabled ? (pathToName(key, true) || 'Unsaved') : key;
+						if (!groups[key]) {
+							groups[key] = {
+								animations: [],
+								name,
+								type: 'animation',
+								saved: true
+							};
+						}
+						if (!key && !this.animation_files_enabled) groups[key].hide_head = true;
+						if (!animation.saved) groups[key].saved = false;
 						if (!filter(animation)) return;
-						files[key].animations.push(animation);
+						groups[key].animations.push(animation);
 					})
 					this.animation_controllers.forEach(controller => {
 						let key = controller.path || '';
-						if (!files[key]) files[key] = {
+						if (!groups[key]) groups[key] = {
 							animations: [],
 							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
 							type: 'animation_controller',
 							saved: true
 						};
-						if (!controller.saved) files[key].saved = false;
+						if (!controller.saved) groups[key].saved = false;
 						if (!filter(controller)) return;
-						files[key].animations.push(controller);
+						groups[key].animations.push(controller);
 					})
-					return files;
+					return groups;
 				},
 				common_namespace() {
 					if (!this.animations.length) {
@@ -2227,7 +2258,7 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" @lick.stop="animation.save()" title="${tl('menu.animation.save')}">
+								<div v-if="animation_files_enabled" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @lick.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
@@ -2247,6 +2278,7 @@ Interface.definePanels(function() {
 			'add_animation',
 			'add_animation_controller',
 			'load_animation_file',
+			'create_animation_group',
 			'paste',
 			'save_all_animations',
 		])
