@@ -2,42 +2,41 @@
 	Utility to modify images with a canvas
 */
 export class CanvasFrame {
-	/**
-	 * 
-	 * @param {Number|HTMLCanvasElement|HTMLImageElement} [a] Image source
-	 * @param {Number|Boolean} [b] 
-	 */
-	constructor(a, b) {
-		if (a && a.nodeName == 'CANVAS') {
-			if (a.getContext('2d') && b !== true) {
-				this.canvas = a;
+	canvas: HTMLCanvasElement
+	ctx: CanvasRenderingContext2D
+	
+	constructor(height: number, number: number)
+	constructor(source: HTMLCanvasElement | HTMLImageElement | number, copy_canvas?: number | boolean) {
+		if (source instanceof HTMLCanvasElement) {
+			if (source.getContext('2d') && copy_canvas !== true) {
+				this.canvas = source;
 			} else {
-				this.createCanvas(a.width, a.height)
-				this.loadFromImage(a)
+				this.createCanvas(source.width, source.height)
+				this.loadFromImage(source)
 			}
 
-		} else if (a && a.nodeName == 'IMG') {
-			this.createCanvas(a.naturalWidth, a.naturalHeight)
-			this.loadFromImage(a)
+		} else if (source instanceof HTMLImageElement) {
+			this.createCanvas(source.naturalWidth, source.naturalHeight)
+			this.loadFromImage(source)
 
 		} else {
-			this.createCanvas(a || 16, b || 16)
+			this.createCanvas(source || 16, typeof copy_canvas == 'number' ? copy_canvas : 16);
 		}
 		this.ctx = this.canvas.getContext('2d')
 	}
 	get width() {return this.canvas.width;}
 	get height() {return this.canvas.height;}
 	
-	createCanvas(w, h) {
+	createCanvas(width: number, height: number) {
 		this.canvas = document.createElement('canvas');
-		this.canvas.width = w;
-		this.canvas.height = h;
+		this.canvas.width = width;
+		this.canvas.height = height;
 		this.ctx = this.canvas.getContext('2d')
 	}
-	async loadFromURL(url) {
+	async loadFromURL(url: string) {
 		let img = new Image()
 		img.src = url.replace(/#/g, '%23');
-		await new Promise((resolve, reject) => {
+		await new Promise<void>((resolve, reject) => {
 			img.onload = () => {
 				this.loadFromImage(img);
 				resolve();
@@ -45,14 +44,14 @@ export class CanvasFrame {
 			img.onerror = reject;
 		})
 	}
-	loadFromImage(img) {
-		if (img.naturalWidth) {
+	loadFromImage(img: HTMLImageElement | HTMLCanvasElement) {
+		if ('naturalWidth' in img) {
 			this.canvas.width = img.naturalWidth;
 			this.canvas.height = img.naturalHeight;
 		}
 		this.ctx.drawImage(img, 0, 0)
 	}
-	loadFromCanvas(canvas) {
+	loadFromCanvas(canvas: HTMLCanvasElement) {
 		this.canvas.width = canvas.width;
 		this.canvas.height = canvas.height;
 		this.ctx.drawImage(canvas, 0, 0)
@@ -63,16 +62,15 @@ export class CanvasFrame {
 
 		let copy = document.createElement('canvas').getContext('2d');
 		let pixels = this.ctx.getImageData(0, 0, this.width, this.height);
-		let i;
 		let bound = {
-			top: null,
-			left: null,
-			right: null,
-			bottom: null
+			top: null as null|number,
+			left: null as null|number,
+			right: null as null|number,
+			bottom: null as null|number
 		};
-		let x, y;
+		let x: number, y: number;
 		
-		for (i = 0; i < pixels.data.length; i += 4) {
+		for (let i = 0; i < pixels.data.length; i += 4) {
 			if (pixels.data[i+3] !== 0) {
 				x = (i / 4) % this.width;
 				y = ~~((i / 4) / this.width);
@@ -101,7 +99,7 @@ export class CanvasFrame {
 			}
 		}
 			
-		var trimHeight = bound.bottom - bound.top + 1,
+		let trimHeight = bound.bottom - bound.top + 1,
 			trimWidth = bound.right - bound.left + 1,
 			trimmed = this.ctx.getImageData(bound.left, bound.top, trimWidth, trimHeight);
 		
@@ -111,7 +109,7 @@ export class CanvasFrame {
 		this.canvas = copy.canvas;
 		this.ctx = copy;
 	}
-	isEmpty() {
+	isEmpty(): boolean {
 		let {data} = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
 		for (let i = 0; i < data.length; i += 4) {
 			let alpha = data[i+3];
