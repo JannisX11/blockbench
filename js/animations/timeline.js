@@ -700,11 +700,6 @@ export const Timeline = {
 		}
 		return keyframes;
 	},
-	showMenu(event) {
-		if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
-		if (Blockbench.hasFlag('no_context_menu')) return;
-		Timeline.menu.open(event, event);
-	},
 	menu: new Menu([
 		new MenuSeparator('preview'),
 		'play_animation',
@@ -723,6 +718,7 @@ export const Timeline = {
 			'zoom_out',
 			'zoom_reset'
 		]},
+		'timeline_focus',
 		'select_all',
 		'fold_all_animations',
 		'bring_up_all_animations',
@@ -1084,6 +1080,11 @@ Interface.definePanels(() => {
 				updateScroll() {
 					this.scroll_left = this.$refs.timeline_body ? this.$refs.timeline_body.scrollLeft : 0;
 					this.scroll_top = this.$refs.timeline_body ? this.$refs.timeline_body.scrollTop : 0;
+				},
+				openContextMenu(event) {
+					if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
+					if (Blockbench.hasFlag('no_context_menu')) return;
+					Timeline.menu.open(event, event);
 				},
 				dragAnimator(animator, e1) {
 					if (getFocusedTextInput()) return;
@@ -1690,7 +1691,7 @@ Interface.definePanels(() => {
 						<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
+						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
