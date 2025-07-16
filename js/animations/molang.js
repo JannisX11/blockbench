@@ -237,10 +237,10 @@ new ValidatorCheck('molang_syntax', {
 							.replace(/[^a-z0-9._]/g, '')
 				)
 			}
-			if (clear_string.match(/[^\w\s+\-*/().,;:[\]!?=<>&|]/)) {
+			if (clear_string.match(/[^\w\s+\-*/(){}.,;:[\]!?=<>&|]/)) {
 				issues.push(
 					'Invalid character: ' +
-						clear_string.match(/[^\s\w+\-*/().,;:[\]!?=<>&|]+/g).join(', ')
+						clear_string.match(/[^\s\w+\-*/(){}.,;:[\]!?=<>&|]+/g).join(', ')
 				)
 			}
 			let left = string.match(/\(/g) || 0
