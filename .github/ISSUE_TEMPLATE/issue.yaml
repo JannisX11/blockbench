@@ -62,4 +62,5 @@ body:
 - type: textarea
   id: log
   attributes:
-    label: Are there any console errors? This is particularly relevant if you expect something to happen and it does not happen, or if the UI becomes unresponsive. Click Help > Developer > Open Dev Tools and switch to the Console tab to see the log. Anything red is an error message.
+    label: Are there any console errors?
+    description: This is particularly relevant if you expect something to happen and it does not happen, or if the UI becomes unresponsive. Click Help > Developer > Open Dev Tools and switch to the Console tab to see the log. Anything red is an error message.
