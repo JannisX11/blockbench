@@ -164,7 +164,7 @@
 		height: auto;
 		margin-left: auto;
 		margin-right: auto;
-		background: linear-gradient(180deg, var(--color-ui) 152px, var(--color-back) 500px);
+		background: linear-gradient(180deg, var(--color-ui) 160px, var(--color-back) 1000px);
 		box-shadow: 0 0 50px #00000060;
 		overflow-x: hidden;
 		image-rendering: auto;
