@@ -307,14 +307,14 @@ export const Clipbench = {
 	pasteOutliner(event) {
 		Undo.initEdit({outliner: true, elements: [], selection: true});
 		//Group
-		var target = 'root'
+		var target = 'root';
 		if (Group.first_selected) {
 			target = Group.first_selected
 			Group.first_selected.isOpen = true
-		} else if (selected[0]) {
-			target = selected[0]
+		} else if (Outliner.selected[0]) {
+			target = Outliner.selected[0]
 		}
-		selected.length = 0
+		Outliner.selected.length = 0
 		if (isApp) {
 			var raw = clipboard.readHTML()
 			try {
@@ -357,13 +357,27 @@ export const Clipbench = {
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
-			Clipbench.elements.forEach(function(obj) {
-				if (!OutlinerElement.isTypePermitted(obj.type)) return;
-				var copy = OutlinerElement.fromSave(obj).addTo(target).markAsSelected();
+			let new_elements_by_old_id = {};
+			for (let save of Clipbench.elements) {
+				if (!OutlinerElement.isTypePermitted(save.type)) return;
+				let copy = OutlinerElement.fromSave(save).addTo(target).markAsSelected();
 				copy.createUniqueName();
 				Property.resetUniqueValues(copy.constructor, copy);
+				if (typeof save.isOpen == 'boolean') copy.isOpen = save.isOpen;
+				new_elements_by_old_id[save.uuid] = copy;
 				elements.push(copy);
-			})
+			}
+			// Resolve hierarchy
+			for (let save of Clipbench.elements) {
+				if (save.children && new_elements_by_old_id[save.uuid]) {
+					for (let uuid of save.children) {
+						let new_element = new_elements_by_old_id[uuid];
+						if (new_element) {
+							new_element.addTo(new_elements_by_old_id[save.uuid]);
+						}
+					}
+				}
+			}
 			Canvas.updateView({elements});
 		}
 

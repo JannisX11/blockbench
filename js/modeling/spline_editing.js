@@ -463,8 +463,7 @@ BARS.defineActions(function() {
 		icon: 'fas.fa-bezier-curve',
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['splines'], method: () => {
-			let selectedCurves = SplineMesh.selected[0].getSelectedCurves(true);
-			return SplineMesh.selected.length && selectedCurves.length;
+			return SplineMesh.selected[0]?.getSelectedCurves(true).length;
 		}},
 		click() {
 			function runEdit(ammended, factor = 50) {

@@ -296,7 +296,7 @@ export class OutlinerNode {
 		return this;
 	}
 	removeFromParent() {
-		this.getParentArray().remove(this);
+		this.getParentArray()?.remove(this);
 		return this;
 	}
 	getParentArray() {
