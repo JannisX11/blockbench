@@ -2,6 +2,7 @@ import { Armature } from "../../outliner/armature";
 import { ArmatureBone } from "../../outliner/armature_bone";
 import { sameMeshEdge } from "./util";
 import { THREE } from "../../lib/libs";
+import { pointInPolygon } from "../../util/util";
 
 function setArmature(mesh: Mesh, armature?: Armature) {
 	let armature_bones = armature.getAllBones();
@@ -19,6 +20,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 			_distance?: number
 			_distance_on_line?: number
 			_amount?: number
+			_is_inside?: boolean
 		}
 		let bone_infos: BoneInfo[] = armature_bones.map(bone => {
 			let tail_offset = new THREE.Vector3();
@@ -42,27 +44,61 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 		})
 
 		for (let vkey in mesh.vertices) {
-			// Is the bone close to the vertex? But we don't really know the scale of the model
-			// Is there a smooth transition between two bones?
-			// Take surrounding vertices into account
-			// Is there an edge loop around the bone that includes the vertex?
-				// If yes, that's the main bone
-				// If no, look for connected vertices that are
-				// Use closest bone as a fallback
-			// Add smoothing step
 			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
+
+			interface EdgeLoop {
+				loop: MeshEdge[]
+				plane: THREE.Plane
+				plane_quaternion: THREE.Quaternion
+				polygon: ArrayVector2[]
+			}
+			let edge_loops: EdgeLoop[] = getEdgeLoops(mesh, vkey).map(loop => {
+				let coplanar_vertices = [
+					loop[0][0],
+					loop[Math.floor(loop.length * 0.33)][0],
+					loop[Math.floor(loop.length * 0.66)][0],
+				];
+				let coplanar_points = coplanar_vertices.map(vkey => new THREE.Vector3().fromArray(mesh.vertices[vkey]));
+				let plane = new THREE.Plane().setFromCoplanarPoints(coplanar_points[0], coplanar_points[1], coplanar_points[2]);
+				let plane_quaternion = new THREE.Quaternion().setFromUnitVectors(plane.normal, new THREE.Vector3(0, 1, 0));
+
+				let polygon = [];
+				loop.forEach((edge: MeshEdge) => {
+					let point = new THREE.Vector3().fromArray(mesh.vertices[edge[0]]);
+					plane.projectPoint(point, point);
+					point.applyQuaternion(plane_quaternion);
+					polygon.push([point.x, point.z]);
+				});
+
+				return { loop, plane_quaternion, polygon, plane };
+			})
+			function isBoneInsideLoops(edge_loops: EdgeLoop[], bone_info: BoneInfo): boolean {
+				for (let loop of edge_loops) {
+					let projected_point = loop.plane.intersectLine(bone_info.line, new THREE.Vector3());
+					if (!projected_point) continue;
+					projected_point.applyQuaternion(loop.plane_quaternion);
+					let point = [projected_point.x, projected_point.z];
+					if (pointInPolygon(point, loop.polygon)) {
+						return true;
+					}
+				}
+				return false;
+			}
+
 			for (let bone_info of bone_infos) {
+				bone_info._is_inside = isBoneInsideLoops(edge_loops, bone_info);
+
 				let closest_point = bone_info.line.closestPointToPoint(global_pos, true, new THREE.Vector3);
 				bone_info._distance = closest_point.distanceTo(global_pos);
 				bone_info.line.closestPointToPoint(global_pos, false, closest_point);
 				bone_info._distance_on_line = closest_point.distanceTo(global_pos);
 			}
-			let bone_matches = bone_infos.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 1.2);
+			
+			let inside_bones = bone_infos.filter(bone_infos => bone_infos._is_inside);
+
+			let bone_matches = inside_bones.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 1.2);
 			if (!bone_matches.length) {
-				bone_matches = bone_infos.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
-			}
-			if (!bone_matches.length) {
-				bone_matches = bone_infos.slice()
+				bone_matches = inside_bones.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
 			}
 			let full_match_bones = bone_matches.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
 			if (full_match_bones.length) {
@@ -82,9 +118,11 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				}
 			}
 		}
+		// Add smoothing
 	}
 
 	Undo.finishEdit('Attach armature to mesh');
+	Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
 }
 
 function getEdgeLoops(mesh: Mesh, start_vkey: string) {
@@ -94,7 +132,7 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 
 	let processed_faces = [];
 
-	function splitFace(face: MeshFace, side_vertices: MeshEdge) {
+	function checkFace(face: MeshFace, side_vertices: MeshEdge) {
 		processed_faces.push(face);
 		let sorted_vertices = face.getSortedVertices();
 
@@ -109,7 +147,7 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 		edges.push(side_vertices);
 
 		// Find next (and previous) face
-		function doNextFace(index) {
+		function doNextFace(index: number) {
 			for (let fkey in mesh.faces) {
 				let ref_face = mesh.faces[fkey];
 				if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
@@ -123,12 +161,12 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 							&& vkey !== opposite_vertices[index]
 							&& (sorted_vertices.length == 3 || Math.abs(sorted_vertices.indexOf(side_vertices[index]) - i) !== 2);
 					})
-					splitFace(ref_face, [side_vertices[index], second_vertex]);
+					checkFace(ref_face, [side_vertices[index], second_vertex]);
 					break;
 				}
 			}
 		}
-		doNextFace(0)
+		doNextFace(0);
 		doNextFace(1);
 	}
 	let start_edges = [];
@@ -136,17 +174,22 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 		let face = mesh.faces[fkey];
 		if (face.vertices.includes(start_vkey) == false) continue;
 		for (let edge of face.getEdges()) {
-			if (!start_edges.find(e2 => sameMeshEdge(e2, edge))) {
+			if (edge.includes(start_vkey) && !start_edges.find(e2 => sameMeshEdge(e2.edge, edge))) {
 				start_edges.push({edge, face});
 			}
 		}
 	}
 
-	let loops = start_edges.map(({edge, face}) => {
-		return splitFace(face, edge);
+	let loops = [];
+	start_edges.forEach(({edge, face}) => {
+		edges = [];
+		checkFace(face, edge);
+		if (edges.length > 1) loops.push(edges);
 	});
 	return loops;
 }
+// @ts-ignore
+window.getEdgeLoops = getEdgeLoops
 
 BARS.defineActions(() => {
 	

@@ -1092,6 +1092,8 @@ new NodePreviewController(Mesh, {
 					let fade = (weight-0.75) * 4;
 					color_array.push(1, 1-fade, 0);
 				}
+			} else {
+				color_array.push(0, 0, 0);
 			}
 		}
 
