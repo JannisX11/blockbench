@@ -251,7 +251,7 @@ export class MeshFace extends Face {
 	getEdges() {
 		let vertices = this.getSortedVertices();
 		if (vertices.length == 2) {
-			return vertices;
+			return [vertices];
 		} else if (vertices.length > 2) {
 			return vertices.map((vkey1, i) => {
 				let vkey2 = vertices[i+1] || vertices[0];

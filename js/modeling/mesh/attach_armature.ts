@@ -41,18 +41,24 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				line: new THREE.Line3(start, end),
 			};
 			return data;
-		})
+		});
+
+		// Analyze geometry
+		interface EdgeLoop {
+			loop: MeshEdge[]
+			plane: THREE.Plane
+			plane_quaternion: THREE.Quaternion
+			polygon: ArrayVector2[]
+			vkeys: string[]
+		}
+		const vertex_edge_loops: Record<string, EdgeLoop[]> = {};
 
 		for (let vkey in mesh.vertices) {
-			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
 
-			interface EdgeLoop {
-				loop: MeshEdge[]
-				plane: THREE.Plane
-				plane_quaternion: THREE.Quaternion
-				polygon: ArrayVector2[]
-			}
-			let edge_loops: EdgeLoop[] = getEdgeLoops(mesh, vkey).map(loop => {
+			if (!vertex_edge_loops[vkey]) vertex_edge_loops[vkey] = [];
+			if (vertex_edge_loops[vkey].length >= 2) continue;
+
+			getEdgeLoops(mesh, vkey).forEach(loop => {
 				let coplanar_vertices = [
 					loop[0][0],
 					loop[Math.floor(loop.length * 0.33)][0],
@@ -62,16 +68,35 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				let plane = new THREE.Plane().setFromCoplanarPoints(coplanar_points[0], coplanar_points[1], coplanar_points[2]);
 				let plane_quaternion = new THREE.Quaternion().setFromUnitVectors(plane.normal, new THREE.Vector3(0, 1, 0));
 
-				let polygon = [];
+				let polygon: ArrayVector2[] = [];
+				let vkeys: string[] = [];
 				loop.forEach((edge: MeshEdge) => {
-					let point = new THREE.Vector3().fromArray(mesh.vertices[edge[0]]);
+					let vkey2 = edge[0];
+					let point = new THREE.Vector3().fromArray(mesh.vertices[vkey2]);
 					plane.projectPoint(point, point);
 					point.applyQuaternion(plane_quaternion);
 					polygon.push([point.x, point.z]);
+					vkeys.push(vkey2);
 				});
 
-				return { loop, plane_quaternion, polygon, plane };
+				let edge_loop = { loop, plane_quaternion, vkeys, polygon, plane };
+
+				for (let vkey2 of vkeys) {
+					if (!vertex_edge_loops[vkey2]?.length) {
+						vertex_edge_loops[vkey2] = [edge_loop];
+					} else {
+						let match = vertex_edge_loops[vkey2].find(edge_loop2 => {
+							return edge_loop2.vkeys.length == edge_loop.vkeys.length && edge_loop2.vkeys.allAre(vkey3 => edge_loop.vkeys.includes(vkey3));
+						});
+						if (!match) vertex_edge_loops[vkey2].push(edge_loop);
+					}
+				}
 			})
+		}
+
+
+		for (let vkey in mesh.vertices) {
+			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
 			function isBoneInsideLoops(edge_loops: EdgeLoop[], bone_info: BoneInfo): boolean {
 				for (let loop of edge_loops) {
 					let projected_point = loop.plane.intersectLine(bone_info.line, new THREE.Vector3());
@@ -84,6 +109,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				}
 				return false;
 			}
+			let edge_loops = vertex_edge_loops[vkey];
 
 			for (let bone_info of bone_infos) {
 				bone_info._is_inside = isBoneInsideLoops(edge_loops, bone_info);
