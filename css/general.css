@@ -365,6 +365,7 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.markdown img {
+		image-rendering: -webkit-optimize-contrast;
 		max-width: 100%;
 	}
 
