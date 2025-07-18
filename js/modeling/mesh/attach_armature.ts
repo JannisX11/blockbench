@@ -3,25 +3,35 @@ import { ArmatureBone } from "../../outliner/armature_bone";
 import { sameMeshEdge } from "./util";
 import { THREE } from "../../lib/libs";
 import { pointInPolygon } from "../../util/util";
+import { Blockbench } from "../../api";
+
+
+interface BoneInfo {
+	bone: ArmatureBone,
+	tail_offset: THREE.Vector3,
+	start: THREE.Vector3,
+	end: THREE.Vector3,
+	line: THREE.Line3,
+	_distance?: number
+	_distance_on_line?: number
+	_amount?: number
+	_is_inside?: boolean
+}
+interface EdgeLoop {
+	loop: MeshEdge[]
+	plane: THREE.Plane
+	plane_quaternion: THREE.Quaternion
+	polygon: ArrayVector2[]
+	vkeys: string[]
+}
 
 function setArmature(mesh: Mesh, armature?: Armature) {
-	let armature_bones = armature.getAllBones();
+	let armature_bones = armature?.getAllBones() ?? [];
 	Undo.initEdit({elements: [mesh, ...armature_bones]});
 	mesh.armature = armature ? armature.uuid : '';
 	mesh.preview_controller.updateTransform(mesh);
 
 	if (armature) {
-		interface BoneInfo {
-			bone: ArmatureBone,
-			tail_offset: THREE.Vector3,
-			start: THREE.Vector3,
-			end: THREE.Vector3,
-			line: THREE.Line3,
-			_distance?: number
-			_distance_on_line?: number
-			_amount?: number
-			_is_inside?: boolean
-		}
 		let bone_infos: BoneInfo[] = armature_bones.map(bone => {
 			let tail_offset = new THREE.Vector3();
 			let tail_bone = bone.children[0];
@@ -44,13 +54,6 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 		});
 
 		// Analyze geometry
-		interface EdgeLoop {
-			loop: MeshEdge[]
-			plane: THREE.Plane
-			plane_quaternion: THREE.Quaternion
-			polygon: ArrayVector2[]
-			vkeys: string[]
-		}
 		const vertex_edge_loops: Record<string, EdgeLoop[]> = {};
 
 		for (let vkey in mesh.vertices) {
@@ -95,24 +98,13 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 		}
 
 
+		// Calculate base vertex weights
 		for (let vkey in mesh.vertices) {
 			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
-			function isBoneInsideLoops(edge_loops: EdgeLoop[], bone_info: BoneInfo): boolean {
-				for (let loop of edge_loops) {
-					let projected_point = loop.plane.intersectLine(bone_info.line, new THREE.Vector3());
-					if (!projected_point) continue;
-					projected_point.applyQuaternion(loop.plane_quaternion);
-					let point = [projected_point.x, projected_point.z];
-					if (pointInPolygon(point, loop.polygon)) {
-						return true;
-					}
-				}
-				return false;
-			}
 			let edge_loops = vertex_edge_loops[vkey];
 
 			for (let bone_info of bone_infos) {
-				bone_info._is_inside = isBoneInsideLoops(edge_loops, bone_info);
+				bone_info._is_inside = isBoneInsideLoops(edge_loops, bone_info) != false;
 
 				let closest_point = bone_info.line.closestPointToPoint(global_pos, true, new THREE.Vector3);
 				bone_info._distance = closest_point.distanceTo(global_pos);
@@ -150,7 +142,18 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 	Undo.finishEdit('Attach armature to mesh');
 	Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
 }
-
+function isBoneInsideLoops(edge_loops: EdgeLoop[], bone_info: BoneInfo): THREE.Vector3 | false {
+	for (let loop of edge_loops) {
+		let projected_point = loop.plane.intersectLine(bone_info.line, new THREE.Vector3());
+		if (!projected_point) continue;
+		projected_point.applyQuaternion(loop.plane_quaternion);
+		let point = [projected_point.x, projected_point.z];
+		if (pointInPolygon(point, loop.polygon)) {
+			return projected_point;
+		}
+	}
+	return false;
+}
 function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 	
 	let vertices: string[] = [];
@@ -214,8 +217,6 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 	});
 	return loops;
 }
-// @ts-ignore
-window.getEdgeLoops = getEdgeLoops
 
 BARS.defineActions(() => {
 	
@@ -237,8 +238,25 @@ BARS.defineActions(() => {
 				options.push({
 					name: armature.name,
 					icon: 'accessibility',
-					click() {
+					click: async () => {
+						if (Mesh.selected[0]?.armature == armature.uuid) {
+							let result = await new Promise((resolve) => {
+								// TODO: localize
+								Blockbench.showMessageBox({
+									title: 'menu.mesh.attach_armature',
+									message: 'The armature is already attached. Do you want to recalculate vertex weights?',
+									buttons: ['dialog.cancel'],
+									commands: {
+										reattach: 'Re-calculate weights'
+									}
+								}, (button) => {
+									resolve(button);
+								})
+							})
+							if (!result) return;
+						}
 						setArmature(Mesh.selected[0], armature as Armature);
+						Blockbench.showQuickMessage('Armature attached')
 					}
 				})
 			}

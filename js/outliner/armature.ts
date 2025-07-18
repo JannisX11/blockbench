@@ -96,37 +96,6 @@ export class Armature extends OutlinerElement {
 		}
 		return this;
 	}
-	remove(undo?: boolean) {
-		let elements = [];
-		if (undo) {
-			this.forEachChild(function(element) {
-				if (element.type !== 'group') {
-					elements.push(element)
-				}
-			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true})
-		}
-		this.unselect()
-		super.remove();
-		let i = this.children.length-1
-		while (i >= 0) {
-			this.children[i].remove(false)
-			i--;
-		}
-		TickUpdates.selection = true;
-		Project.elements.remove(this);
-		delete OutlinerNode.uuids[this.uuid];
-		if (undo) {
-			elements.empty();
-			Undo.finishEdit('Delete armature')
-		}
-	}
-	showContextMenu(event) {
-		if (this.locked) return this;
-		if (!Armature.selected.includes(this)) this.select(event);
-		this.menu.open(event, this)
-		return this;
-	}
 	transferOrigin(origin: ArrayVector3) {
 		if (!this.mesh) return;
 		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
@@ -249,6 +218,7 @@ export class Armature extends OutlinerElement {
 		return bones;
 	}
 	static behavior = {
+		unique_name: () => Format.bone_rig,
 		parent: true,
 		child_types: ['armature_bone'],
 		hide_in_screenshot: true,
@@ -262,7 +232,6 @@ export class Armature extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	public needsUniqueName = true;
 	public menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,

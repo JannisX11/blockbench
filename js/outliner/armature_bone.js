@@ -93,52 +93,6 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		return this;
 	}
-	remove(undo) {
-		let scope = this;
-		let elements = [];
-		if (undo) {
-			this.forEachChild(function(element) {
-				if (element.type !== 'group') {
-					elements.push(element)
-				}
-			})
-			let animations = [];
-			Animator.animations.forEach(animation => {
-				if (animation.animators && animation.animators[scope.uuid]) {
-					animations.push(animation);
-				}
-			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
-		}
-		this.unselect()
-		super.remove();
-		let i = this.children.length-1
-		while (i >= 0) {
-			this.children[i].remove(false)
-			i--;
-		}
-		Animator.animations.forEach(animation => {
-			if (animation.animators && animation.animators[scope.uuid]) {
-				animation.removeAnimator(scope.uuid);
-			}
-			if (animation.selected && Animator.open) {
-				updateKeyframeSelection();
-			}
-		})
-		TickUpdates.selection = true;
-		Project.elements.remove(this);
-		delete OutlinerNode.uuids[this.uuid];
-		if (undo) {
-			elements.empty();
-			Undo.finishEdit('Delete armature bone')
-		}
-	}
-	showContextMenu(event) {
-		if (this.locked) return this;
-		if (ArmatureBone.selected != this) this.select(event);
-		this.menu.open(event, this)
-		return this;
-	}
 	transferOrigin(origin) {
 		if (!this.mesh) return;
 		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
@@ -218,7 +172,7 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	resize(move_value, axis_number, invert) {
 		if (axis_number == 1) {
-			this.length = this.oldScale + move_value * (invert ? -1 : 1);
+			this.length = this.old_size + move_value * (invert ? -1 : 1);
 			this.preview_controller.updateTransform(this);
 		}
 	}
@@ -278,6 +232,7 @@ export class ArmatureBone extends OutlinerElement {
 		}
 	}
 	static behavior = {
+		unique_name: () => Format.bone_rig,
 		parent: true,
 		movable: true,
 		rotatable: true,
@@ -296,7 +251,6 @@ export class ArmatureBone extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	ArmatureBone.prototype.needsUniqueName = () => Format.bone_rig;
 	ArmatureBone.prototype.menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,

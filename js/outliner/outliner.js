@@ -498,9 +498,28 @@ export class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	remove() {
+		this.unselect()
 		super.remove();
 		Project.selected_elements.remove(this);
 		Project.elements.remove(this);
+		if (this.children) {
+			let i = this.children.length-1
+			while (i >= 0) {
+				this.children[i].remove(false)
+				i--;
+			}
+		}
+		if (this.constructor.animator) {
+			Animator.animations.forEach(animation => {
+				if (animation.animators && animation.animators[this.uuid]) {
+					animation.removeAnimator(this.uuid);
+				}
+				if (animation.selected && Animator.open) {
+					updateKeyframeSelection();
+				}
+			})
+		}
+		TickUpdates.selection = true;
 		return this;
 	}
 	showContextMenu(event) {
@@ -629,6 +648,7 @@ export class OutlinerElement extends OutlinerNode {
 		return this;
 	}
 	clickSelect(event, outliner_click) {
+		if (Blockbench.hasFlag('renaming')) return;
 		Undo.initSelection();
 		let result = this.select(event, outliner_click);
 		if (result === false) {
@@ -720,9 +740,9 @@ export class NodePreviewController extends EventSystem {
 	}
 	remove(element) {
 		let {mesh} = element;
-		if (mesh.parent) mesh.parent.remove(mesh);
-		if (mesh.geometry) mesh.geometry.dispose();
-		if (mesh.outline && mesh.outline.geometry) {
+		if (mesh?.parent) mesh.parent.remove(mesh);
+		if (mesh?.geometry) mesh.geometry.dispose();
+		if (mesh?.outline && mesh.outline.geometry) {
 			mesh.outline.geometry.dispose();
 			if (Transformer.dragging) {
 				Canvas.outlines.remove(Canvas.outlines.getObjectByName(this.uuid+'_ghost_outline'))
@@ -987,8 +1007,8 @@ export function renameOutliner(element) {
 	if (Group.first_selected && !element && !Project.EditSession) {
 		Group.first_selected.rename()
 
-	} else if (selected.length === 1 && !Project.EditSession) {
-		selected[0].rename()
+	} else if (Outliner.selected.length === 1 && !Project.EditSession) {
+		Outliner.selected[0].rename()
 
 	} else {
 
@@ -1006,17 +1026,20 @@ export function renameOutliner(element) {
 					Undo.finishEdit('Rename group');
 				}
 			})
-		} else if (selected.length) {
-			Blockbench.textPrompt('generic.rename', selected[0].name, function (name) {
+		} else if (Outliner.selected.length) {
+			Blockbench.textPrompt('generic.rename', Outliner.selected[0].name, function (name) {
 				name = name.trim();
 				if (name) {
-					Undo.initEdit({elements: selected})
-					selected.forEach(function(obj, i) {
-						obj.name = name.replace(/%+/g, val => {
-							return (obj.getParentArray().indexOf(obj)+1).toDigitString(val.length)
+					Undo.initEdit({elements: Outliner.selected})
+					Outliner.selected.forEach((element, i) => {
+						element.name = name.replace(/%+/g, val => {
+							return (element.getParentArray().indexOf(element)+1).toDigitString(val.length)
 						}).replace(/\$+/g, val => {
 							return (i+1).toDigitString(val.length)
 						});
+						if (Condition(element.getTypeBehavior('unique_name'))) {
+							element.createUniqueName();
+						}
 					})
 					Undo.finishEdit('Rename')
 				}
@@ -1080,17 +1103,20 @@ SharedActions.add('delete', {
 	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.first_selected)),
 	priority: -1,
 	run() {
-		let array;
-		Undo.initEdit({elements: Outliner.selected, outliner: true, selection: true})
-		if (array == undefined) {
-			array = selected.slice(0);
-		} else if (array.constructor !== Array) {
-			array = [array]
-		} else {
-			array = array.slice(0)
+		let list = Outliner.selected.slice();
+		let recursive_list = list.slice();
+		const addChildren = element => {
+			if (!element.children) return;
+			for (let child of element.children) {
+				recursive_list.safePush(child);
+				addChildren(child);
+			}
 		}
-		array.forEach(function(s) {
-			s.remove(false)
+		list.forEach(addChildren);
+
+		Undo.initEdit({elements: recursive_list, outliner: true, selection: true})
+		list.forEach(element => {
+			element.remove(false);
 		})
 		for (let group of Group.multi_selected.slice()) {
 			group.remove(false);
