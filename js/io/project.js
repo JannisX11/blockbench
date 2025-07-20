@@ -480,6 +480,15 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 		return options;
 	}
 });
+new Property(ModelProject, 'string', 'java_block_version', {
+	label: 'dialog.project.java_block_version',
+	default: '1.21.6',
+	condition: {formats: ['java_block']},
+	options: {
+		'1.9.0': '1.9 - 1.21.5',
+		'1.21.6': '1.21.6+',
+	}
+});
 new Property(ModelProject, 'string', 'credit', {
 	label: 'dialog.project.credit',
 	condition: () => Project.credit && Project.credit !== settings.credit.value

@@ -13,26 +13,6 @@ import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
 import { prepareShader } from '../shaders/shader';
 import { gizmo_colors } from './preview'
 
-export function getRescalingFactor(angle) {
-	switch (Math.abs(angle)) {
-		case 0:
-			return 1.4142
-			break;
-		case 22.5:
-			return 1.0824
-			break;
-		case 67.5:
-			return 1.0824
-			break;
-		case 45:
-			return 1.4142
-			break;
-		default:
-			return 1;
-			break;
-	}
-}
-
 export const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),

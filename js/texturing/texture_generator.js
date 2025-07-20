@@ -42,7 +42,7 @@ export const TextureGenerator = {
 				section2:    	"_",
 
 				resolution: 	{label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
-				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 2048},
 				color: 			{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 
 				rearrange_uv:	{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
@@ -427,7 +427,7 @@ export const TextureGenerator = {
 			if (mirror_modeling_duplicate) return;
 			if (element.getTypeBehavior('cube_faces')) {
 				if (element.box_uv || options.box_uv) {
-					element.box_uv = true;
+					element.setUVMode(true);
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
 					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;

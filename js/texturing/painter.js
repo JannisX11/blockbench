@@ -1182,8 +1182,20 @@ export const Painter = {
 		}, {no_undo: true, use_cache: true});
 	},
 	colorPicker(texture, x, y, event) {
-		let {ctx} = settings.pick_combined_color.value ? texture : texture.getActiveCanvas();
-		let color = Painter.getPixelColor(ctx, x, y);
+		let color;
+		// Pick layer color
+		if (settings.pick_combined_color.value == false && texture.selected_layer) {
+			color = Painter.getPixelColor(
+				texture.getActiveCanvas().ctx,
+				x - texture.selected_layer.offset[0],
+				y - texture.selected_layer.offset[1]
+			);
+		}
+		// Pick combined color
+		if (!color || color.toHex() == '000000') {
+			color = Painter.getPixelColor(texture.ctx, x, y);
+		}
+		// Set color
 		if (settings.pick_color_opacity.value) {
 			let opacity = Math.floor(color.getAlpha()*256);
 			for (let id in BarItems) {

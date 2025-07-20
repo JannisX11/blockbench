@@ -276,12 +276,12 @@ export const Vertexsnap = {
 					positions = new Float32Array(mesh_position.length + path_positions.length);
 					positions.set(mesh_position);
 					positions.set(path_positions, mesh_position.length);
-				}
-
-				for (let i = 0; i < positions.length; i += 3) {
-					let vec = [positions[i], positions[i+1], positions[i+2]];
-					if (!vectors.find(vec2 => vec.equals(vec2))) {
-						vectors.push(vec);
+				} else if (positions.length && (positions.length % 3) == 0) {
+					for (let i = 0; i < positions.length; i += 3) {
+						let vec = [positions[i], positions[i+1], positions[i+2]];
+						if (!vectors.find(vec2 => vec.equals(vec2))) {
+							vectors.push(vec);
+						
 					}
 				}
 			}
@@ -380,13 +380,14 @@ export const Vertexsnap = {
 		}
 	},
 	canvasClick: function(data) {
-		if (!data || data.type !== 'vertex') return;
+		if (!data) return;
+		if (data.type !== 'vertex' && ['locator', 'null_object'].includes(data.element?.type) == false) return;
 
 		if (Vertexsnap.step1) {
 			Vertexsnap.step1 = false
 			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			Vertexsnap.vertex_index = data.vertex_index;
-			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
+			Vertexsnap.move_origin = data.vertex instanceof Array ? data.vertex.allEqual(0) : false;
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.groups = Group.multi_selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
@@ -405,7 +406,11 @@ export const Vertexsnap = {
 	},
 	getGlobalVertexPos(element, vertex) {
 		let vector = new THREE.Vector3();
-		vector.fromArray(vertex instanceof Array ? vertex : element.vertices[vertex]);
+		if (vertex instanceof Array) {
+			vector.fromArray(vertex);
+		} else if (typeof vertex == 'string') {
+			vector.fromArray(element.vertices[vertex]);
+		}
 		element.mesh.localToWorld(vector);
 		return vector;
 	},
@@ -509,9 +514,13 @@ export const Vertexsnap = {
 							obj.origin.V3_add(local_offset);
 						}
 						ignoreVectorAxes(local_offset);
-						var in_box = obj.moveVector(local_offset.toArray());
-						if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+						if (obj.moveVector) {
+							var in_box = obj.moveVector(local_offset.toArray());
+							if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+								Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+							}
+						} else if (obj.position) {
+							obj.position.V3_add(local_offset.toArray());
 						}
 					}
 				})

@@ -2323,8 +2323,9 @@
 	"menu.mesh": "Мэш",
 	"dialog.material_config.subsurface": "Subsurface Scattering",
 	"dialog.material_config.subsurface_enabled.desc": "Use the MER map alpha channel for subsurface scattering",
-	"settings.pick_combined_color": "Pick Combined Color",
+	"settings.pick_combined_color": "Выбрать смешанный цвет",
 	"settings.pick_combined_color.desc": "Pick the combined color of all layers at the respective pixel, instead of the color on the active layer",
-	"action.split_rgb_into_layers": "Split RGB Channels into Layers",
-	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel"
+	"action.split_rgb_into_layers": "Разделить RGB каналы на слои",
+	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGB channel",
+	"dialog.project.java_block_version": "Format Version"
 }

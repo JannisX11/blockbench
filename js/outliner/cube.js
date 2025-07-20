@@ -661,12 +661,10 @@ export class Cube extends OutlinerElement {
 					this.faces[fkey].extend({texture: texture || false});
 				}
 			}
-			this.preview_controller.updateFaces(this);
-
-		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
 			}
+			this.preview_controller.updateFaces(this);
 		}
 		this.preview_controller.updateUV(this);
 		return this;
@@ -1090,6 +1088,12 @@ export function adjustFromAndToForInflateAndStretch(from, to, element) {
 		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
 		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
 	}
+}
+
+function getRescalingFactor(angle) {
+	angle = Math.abs(angle);
+	if (angle > 45) angle = 90-angle;
+	return 1 / Math.cos(Math.degToRad(angle));
 }
 
 new NodePreviewController(Cube, {

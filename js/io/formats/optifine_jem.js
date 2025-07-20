@@ -17,7 +17,10 @@ var codec = new Codec('optifine_entity', {
 			entitymodel.credit = Project.credit || settings.credit.value
 		}
 		function getTexturePath(tex) {
-			return tex.folder ? (tex.folder + '/' + tex.name) : tex.name;
+			let path = tex.name;
+			if (tex.folder) path = tex.folder + '/' + path;
+			if (tex.namespace && tex.namespace != 'minecraft') path = tex.namespace + ':' + path;
+			return path;
 		}
 		function isAppliedInModel(texture) {
 			return Group.all.find(group => {
@@ -204,13 +207,28 @@ var codec = new Codec('optifine_entity', {
 			if (imported_textures[string]) return imported_textures[string];
 
 			let texture_path = string.replace(/[\\/]/g, osfs);
+			let namespace = '';
+			if (texture_path.includes(':')) {
+				[namespace, texture_path] = texture_path.split(':');
+			}
+
 			if (texture_path.match(/^textures/) && path.includes('optifine')) {
 				texture_path = path.replace(/[\\/]optifine[\\/].+$/i, osfs+texture_path);
-			} else {
+			} else if (path.includes(osfs)) {
 				texture_path = path.replace(/[\\/][^\\/]+$/, osfs+texture_path);
 			}
 			if (!texture_path.match(/\.\w{3,4}$/)) texture_path = texture_path + '.png';
+			if (namespace) {
+				let path_parts = texture_path.split(/[\\/]/);
+				let asset_index = path_parts.indexOf('assets');
+				if (asset_index > 0 && path_parts[asset_index+1]) {
+					path_parts[asset_index+1] = namespace;
+				}
+				texture_path = path_parts.join(osfs);
+			}
 			let texture = new Texture().fromPath(texture_path).add(false);
+			if (namespace && !texture.namespace) texture.namespace = namespace;
+
 			imported_textures[string] = texture;
 			if (uv instanceof Array) {
 				texture.extend({
