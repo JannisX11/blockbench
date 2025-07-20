@@ -1499,21 +1499,18 @@ Interface.definePanels(function() {
 })
 
 function processVariablePlaceholderText(text) {
-	const res = text
-			.replaceAll(/(\s*)(v\.)/g, '$1variable.')
-			.replaceAll(/(\s*)(q\.)/g, '$1query.')
-			.replaceAll(/(\s*)(t\.)/g, '$1temp.')
-			.replaceAll(/(\s*)(c\.)/g, '$1context.')
-
 	Animator.global_variable_lines = {}
-	for (const line of res.split('\n')) {
+	for (const line of text.split('\n')) {
 		let [key, val] = line.split(/=\s*(.+)/)
 		if(val === undefined) {
 			continue
 		}
 		key = key.replace(/[\s;]/g, '')
+		key = key
+			.replace(/^v\./, 'variable.')
+			.replace(/^q\./, 'query.')
+			.replace(/^t\./, 'temp.')
+			.replace(/^c\./, 'context.');
 		Animator.global_variable_lines[key] = val.trim()
 	}
-
-	return res
 }
