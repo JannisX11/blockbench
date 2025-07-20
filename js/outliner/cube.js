@@ -942,6 +942,7 @@ export class Cube extends OutlinerElement {
 	static behavior = {
 		select_faces: 'enum',
 		cube_faces: true,
+		support_box_uv: true,
 		rotatable: true,
 		movable: true,
 		resizable: true,

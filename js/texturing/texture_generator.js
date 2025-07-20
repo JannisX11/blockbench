@@ -426,8 +426,11 @@ export const TextureGenerator = {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
 			if (element.getTypeBehavior('cube_faces')) {
-				if (element.box_uv || options.box_uv) {
-					element.setUVMode(true);
+				if ((element.box_uv || options.box_uv) && element.getTypeBehavior('support_box_uv')) {
+					element.box_uv = true;
+					for (let fkey in element.faces) {
+						element.faces[fkey].rotation = 0;
+					}
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
 					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;

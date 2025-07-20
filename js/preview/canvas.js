@@ -1006,7 +1006,6 @@ export const Canvas = {
 Canvas.gizmos.push(Canvas.pivot_marker);
 
 Object.assign(window, {
-	getRescalingFactor,
 	Reusable,
 	Canvas,
 	buildGrid: Canvas.buildGrid

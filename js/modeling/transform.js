@@ -281,7 +281,7 @@ export const Vertexsnap = {
 						let vec = [positions[i], positions[i+1], positions[i+2]];
 						if (!vectors.find(vec2 => vec.equals(vec2))) {
 							vectors.push(vec);
-						
+						}
 					}
 				}
 			}
