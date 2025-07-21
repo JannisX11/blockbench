@@ -112,6 +112,7 @@ declare global {
 		replace(items: T[]): boolean
 		allAre(callback: (item: T, index: number) => boolean): boolean
 		findInArray(key: string, value: any): number
+		findHighest(callback: ((item: T) => number)): T
 		positiveItems(): number
 		/**
 		 * Empties the array

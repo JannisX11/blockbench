@@ -144,6 +144,10 @@ declare class Mesh extends OutlinerElement {
 	 * Get the armature if one is attached to the mesh
 	 */
 	getArmature() : Armature | undefined
+	/**
+	 * Vertex lists of quads are generally in arbitrary order, the order is calculated when calling getSortedVertices() to account for dfiferent face geometries. Calling this method pre-sorts all faces to allow optimizing subsequent processing
+	 */
+	sortAllFaceVertices(): void
 
 	setSeam(edge: MeshEdge, value: any): void
 	getSeam(edge: MeshEdge): MeshSeamValue

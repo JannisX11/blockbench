@@ -132,22 +132,6 @@ export class ArmatureBone extends OutlinerElement {
 		this.mesh.localToWorld(pos);
 		return pos;
 	}
-	duplicate() {
-		let copy = this.getChildlessCopy(false)
-		delete copy.parent;
-		if (Format.bone_rig) copy._original_name = this.name;
-		Property.resetUniqueValues(ArmatureBone, copy);
-		copy.sortInBefore(this, 1).init()
-		if (Format.bone_rig) {
-			copy.createUniqueName()
-		}
-		for (let child of this.children) {
-			child.duplicate().addTo(copy)
-		}
-		copy.isOpen = true;
-		Canvas.updatePositions();
-		return copy;
-	}
 	flip(axis, center) {
 		var offset = this.position[axis] - center
 		this.position[axis] = center - offset;

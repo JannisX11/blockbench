@@ -704,6 +704,11 @@ export class Mesh extends OutlinerElement {
 			return range[1] - range[0];
 		}
 	}
+	sortAllFaceVertices() {
+		for (let fkey in this.faces) {
+			this.faces[fkey].vertices.replace(this.faces[fkey].getSortedVertices());
+		}
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);

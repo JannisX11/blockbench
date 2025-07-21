@@ -8,6 +8,7 @@ import { Blockbench } from "../../api";
 
 interface BoneInfo {
 	bone: ArmatureBone,
+	name: string,
 	tail_offset: THREE.Vector3,
 	start: THREE.Vector3,
 	end: THREE.Vector3,
@@ -32,6 +33,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 	mesh.preview_controller.updateTransform(mesh);
 
 	if (armature) {
+		mesh.sortAllFaceVertices();
 		let bone_infos: BoneInfo[] = armature_bones.map(bone => {
 			let tail_offset = new THREE.Vector3();
 			let tail_bone = bone.children[0];
@@ -45,6 +47,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 			let end = bone.mesh.localToWorld(tail_offset);
 			let data: BoneInfo = {
 				bone,
+				name: bone.name,
 				tail_offset,
 				start,
 				end,
@@ -59,7 +62,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 		for (let vkey in mesh.vertices) {
 
 			if (!vertex_edge_loops[vkey]) vertex_edge_loops[vkey] = [];
-			if (vertex_edge_loops[vkey].length >= 2) continue;
+			if (vertex_edge_loops[vkey].length >= 4) continue;
 
 			getEdgeLoops(mesh, vkey).forEach(loop => {
 				let coplanar_vertices = [
@@ -103,8 +106,13 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
 			let edge_loops = vertex_edge_loops[vkey];
 
+			let shortest_edge_loop = edge_loops.findHighest((loop) => -loop.vkeys.length);
+
 			for (let bone_info of bone_infos) {
-				bone_info._is_inside = isBoneInsideLoops(edge_loops, bone_info) != false;
+				bone_info._is_inside = shortest_edge_loop && isBoneInsideLoops(edge_loops, bone_info) != false;
+				if (vkey == "9jpw") {
+					console.log(bone_info._is_inside, bone_info.name, bone_info)
+				}
 
 				let closest_point = bone_info.line.closestPointToPoint(global_pos, true, new THREE.Vector3);
 				bone_info._distance = closest_point.distanceTo(global_pos);
@@ -119,13 +127,16 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				bone_matches = inside_bones.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
 			}
 			let full_match_bones = bone_matches.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
+			if (vkey == "9jpw") console.log(shortest_edge_loop, inside_bones.map(b => Object.assign({},b)))
 			if (full_match_bones.length) {
-				for (let match of full_match_bones) {
-					match.bone.vertex_weights[vkey] = 1/full_match_bones.length;
-				}
+				let closest_bone = full_match_bones.findHighest(bone => -bone._distance);
+				
+				if (vkey == "9jpw") console.log(Object.assign({},closest_bone))
+				closest_bone.bone.vertex_weights[vkey] = 1;
 			} else {
 				bone_matches.sort((a, b) => a._distance - b._distance);
 				bone_matches = bone_matches.slice(0, 3);
+				if (vkey == "9jpw") console.log(bone_matches)
 				let amount_sum = 0;
 				for (let match of bone_matches) {
 					match._amount = Math.min(Math.max(match._distance_on_line, 0.04) / match._distance, 1);
@@ -163,7 +174,7 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 
 	function checkFace(face: MeshFace, side_vertices: MeshEdge) {
 		processed_faces.push(face);
-		let sorted_vertices = face.getSortedVertices();
+		let sorted_vertices = face.vertices.slice();
 
 		let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
 		if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
@@ -181,7 +192,7 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 				let ref_face = mesh.faces[fkey];
 				if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 
-				let sorted_vertices = ref_face.getSortedVertices();
+				let sorted_vertices = ref_face.vertices.slice();
 				let vertices = ref_face.vertices.filter(vkey => vkey == side_vertices[index] || vkey == opposite_vertices[index]);
 
 				if (vertices.length >= 2) {
@@ -209,7 +220,7 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 		}
 	}
 
-	let loops = [];
+	let loops: MeshEdge[][] = [];
 	start_edges.forEach(({edge, face}) => {
 		edges = [];
 		checkFace(face, edge);

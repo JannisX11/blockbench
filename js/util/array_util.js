@@ -61,6 +61,17 @@ Array.prototype.findInArray = function(key, value) {
 	}
 	return false;
 }
+Array.prototype.findHighest = function(callback) {
+	let highest_value = -Infinity, highest;
+	for (let item of this) {
+		let result = callback(item);
+		if (result > highest_value) {
+			highest_value = result;
+			highest = item;
+		}
+	}
+	return highest;
+}
 Array.prototype.last = function() {
 	return this[this.length-1];
 }

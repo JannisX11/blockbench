@@ -237,7 +237,7 @@ export class OutlinerNode {
 		
 		let arr = element.getParentArray();
 		let index = arr.indexOf(element);
-		if (arr == this.getParentArray() && index > this.getParentArray().indexOf(this)) {
+		if (arr.includes(this) && index > this.getParentArray().indexOf(this)) {
 			// Adjust for self being removed from array;
 			index--;
 		}
@@ -559,17 +559,20 @@ export class OutlinerElement extends OutlinerNode {
 		return edited;
 	}
 	duplicate() {
-		var copy = new this.constructor(this);
-		//Numberation
-		var number = copy.name.match(/[0-9]+$/)
+		let copy = new this.constructor(this);
+		//Numeration
+		let number = copy.name.match(/[0-9]+$/)
 		if (number) {
 			number = parseInt(number[0])
 			copy.name = copy.name.split(number).join(number+1)
 		}
+		if (Condition(this.getTypeBehavior('unique_name'))) {
+			copy._original_name = this.name;
+		}
 		//Rest
-		let last_selected = this.getParentArray().filter(el => el.selected || el == this).last();
+		let last_selected = this.getParentArray().findLast(el => el.selected || el == this);
 		copy.sortInBefore(last_selected, 1).init();
-		var index = selected.indexOf(this)
+		let index = selected.indexOf(this)
 		if (index >= 0) {
 			selected[index] = copy
 		} else {
@@ -578,6 +581,13 @@ export class OutlinerElement extends OutlinerNode {
 		Property.resetUniqueValues(this.constructor, copy);
 		if (Condition(copy.getTypeBehavior('unique_name'))) {
 			copy.createUniqueName()
+		}
+		if (copy.getTypeBehavior('parent')) {
+			for (let child of this.children) {
+				child.duplicate().addTo(copy)
+			}
+			copy.isOpen = true;
+			Canvas.updatePositions();
 		}
 		TickUpdates.selection = true;
 		return copy;
@@ -1187,12 +1197,14 @@ SharedActions.add('duplicate', {
 	run() {
 		let added_elements = [];
 		Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-		Outliner.selected.forEachReverse(function(obj, i) {
+		Outliner.selected.slice().forEachReverse(function(obj, i) {
 			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
 			let copy = obj.duplicate();
 			added_elements.push(copy);
+			Outliner.selected[i] = copy;
 		})
 		BarItems.move_tool.select();
+		updateSelection();
 		Undo.finishEdit('Duplicate elements')
 	}
 })
