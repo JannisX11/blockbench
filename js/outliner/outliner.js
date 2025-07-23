@@ -1074,7 +1074,7 @@ export function stopRenameOutliner(save) {
 		Blockbench.removeFlag('renaming')
 	}
 }
-export function toggleCubeProperty(key) {
+export function toggleElementProperty(key) {
 	let affected = selected.filter(element => element[key] != undefined);
 	if (!affected.length) return;
 	var state = affected[0][key];
@@ -2127,6 +2127,6 @@ Object.assign(window, {
 	moveOutlinerSelectionTo,
 	renameOutliner,
 	stopRenameOutliner,
-	toggleCubeProperty,
+	toggleElementProperty,
 	Face,
 });

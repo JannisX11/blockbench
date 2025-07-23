@@ -1939,41 +1939,41 @@ BARS.defineActions(function() {
 	new Toggle('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
-		onChange() {toggleCubeProperty('visibility')}
+		onChange() {toggleElementProperty('visibility')}
 	})
 	new Toggle('toggle_locked', {
 		icon: 'fas.fa-lock',
 		category: 'transform',
-		onChange() {toggleCubeProperty('locked')}
+		onChange() {toggleElementProperty('locked')}
 	})
 	new Toggle('toggle_export', {
 		icon: 'save',
 		category: 'transform',
-		onChange() {toggleCubeProperty('export')}
+		onChange() {toggleElementProperty('export')}
 	})
 	new Toggle('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		condition: {modes: ['edit']},
-		onChange() {toggleCubeProperty('autouv')}
+		onChange() {toggleElementProperty('autouv')}
 	})
 	new Toggle('toggle_cyclic', {
 		icon: 'fas.fa-circle-nodes',
 		category: 'transform',
 		condition: () => Modes.edit && SplineMesh.selected.length,
-		onChange() { toggleCubeProperty('cyclic') }
+		onChange() { toggleElementProperty('cyclic') }
 	})
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => Format.java_cube_shading_properties && Modes.edit,
-		onChange() {toggleCubeProperty('shade')}
+		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
-		onChange() {toggleCubeProperty('mirror_uv')}
+		onChange() {toggleElementProperty('mirror_uv')}
 	})
 	function updateToggle(toggle, key) {
 		if (!Condition(toggle.condition)) return;

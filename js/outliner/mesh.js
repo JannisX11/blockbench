@@ -708,6 +708,7 @@ export class Mesh extends OutlinerElement {
 		for (let fkey in this.faces) {
 			this.faces[fkey].vertices.replace(this.faces[fkey].getSortedVertices());
 		}
+		this.preview_controller.updateUV(this);
 	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {

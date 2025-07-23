@@ -119,6 +119,10 @@ declare global {
 		 */
 		empty(): this
 		last(): T
+		/**
+		 * Get the item at the specified index with a modulo applied, so any index will return a value
+		 */
+		atWrapped(index: number): T
 		allEqual(item: T): boolean
 		random(): T
 		toggle(item: T, state?: boolean): boolean

@@ -17,6 +17,7 @@ interface BoneInfo {
 	_distance_on_line?: number
 	_amount?: number
 	_is_inside?: boolean
+	_weight?: number
 }
 interface EdgeLoop {
 	loop: MeshEdge[]
@@ -102,6 +103,7 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 
 
 		// Calculate base vertex weights
+		const vertex_main_bone: Record<string, BoneInfo> = {};
 		for (let vkey in mesh.vertices) {
 			let global_pos = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
 			let edge_loops = vertex_edge_loops[vkey];
@@ -110,9 +112,6 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 
 			for (let bone_info of bone_infos) {
 				bone_info._is_inside = shortest_edge_loop && isBoneInsideLoops(edge_loops, bone_info) != false;
-				if (vkey == "9jpw") {
-					console.log(bone_info._is_inside, bone_info.name, bone_info)
-				}
 
 				let closest_point = bone_info.line.closestPointToPoint(global_pos, true, new THREE.Vector3);
 				bone_info._distance = closest_point.distanceTo(global_pos);
@@ -127,16 +126,15 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 				bone_matches = inside_bones.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
 			}
 			let full_match_bones = bone_matches.filter(bone_info => bone_info._distance < bone_info._distance_on_line * 2);
-			if (vkey == "9jpw") console.log(shortest_edge_loop, inside_bones.map(b => Object.assign({},b)))
 			if (full_match_bones.length) {
 				let closest_bone = full_match_bones.findHighest(bone => -bone._distance);
+				vertex_main_bone[vkey] = closest_bone;
 				
-				if (vkey == "9jpw") console.log(Object.assign({},closest_bone))
 				closest_bone.bone.vertex_weights[vkey] = 1;
 			} else {
 				bone_matches.sort((a, b) => a._distance - b._distance);
 				bone_matches = bone_matches.slice(0, 3);
-				if (vkey == "9jpw") console.log(bone_matches)
+				vertex_main_bone[vkey] = bone_matches[0];
 				let amount_sum = 0;
 				for (let match of bone_matches) {
 					match._amount = Math.min(Math.max(match._distance_on_line, 0.04) / match._distance, 1);
@@ -148,6 +146,45 @@ function setArmature(mesh: Mesh, armature?: Armature) {
 			}
 		}
 		// Add smoothing
+		for (let vkey in mesh.vertices) {
+			let closest_vertices = [];
+			for (let loop of vertex_edge_loops[vkey]) {
+				let index = loop.vkeys.indexOf(vkey);
+				closest_vertices.safePush(loop.vkeys.atWrapped(index+1));
+				closest_vertices.safePush(loop.vkeys.atWrapped(index-1));
+			}
+			if (!vertex_main_bone[vkey]) {
+				let bones = [];
+				for (let vkey2 of closest_vertices) {
+					let bone = vertex_main_bone[vkey2];
+					if (bone) {
+						bones.safePush(bone);
+						bone._weight = 0;
+					}
+				}
+				if (bones.length == 1) {
+					bones[0].bone.vertex_weights[vkey] = 1;
+					vertex_main_bone[vkey] = bones[0];
+					continue;
+				}
+
+				// Share between bones
+				let vertex_position = new THREE.Vector3().fromArray(mesh.vertices[vkey]);
+				let weight_sum = 0;
+				let weighted_vertices = closest_vertices.map(vkey2 => {
+					let distance = Reusable.vec1.fromArray(mesh.vertices[vkey2]).distanceTo(vertex_position)
+					weight_sum += 1 / distance;
+					return { distance, bone: vertex_main_bone[vkey2], vkey: vkey2, weight: 1 / distance };
+				})
+				for (let weighted of weighted_vertices) {
+					if (!weighted.bone) continue;
+					weighted.bone._weight += weighted.weight;
+				}
+				for (let bone of bones) {
+					bone.bone.vertex_weights[vkey] = 1;
+				}
+			}
+		}
 	}
 
 	Undo.finishEdit('Attach armature to mesh');
