@@ -8,6 +8,7 @@ import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
 import { Panels } from "./interface/interface";
+import { getPluginScopedRequire } from "./native_apis";
 
 interface FileResult {
 	name: string
@@ -74,39 +75,6 @@ StateMemory.init('installed_plugins', 'array')
 // @ts-ignore
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 
-async function runPluginFile(path, plugin_id) {
-	let file_content: any;
-	if (path.startsWith('http')) {
-		if (!path.startsWith('https')) {
-			throw 'Cannot load plugins over http: ' + path;
-		}
-		await new Promise<void>((resolve, reject) => {
-			$.ajax({
-				cache: false,
-				url: path,
-				success(data) {
-					file_content = data;
-					resolve();
-				},
-				error() {
-					reject('Failed to load plugin ' + plugin_id);
-				}
-			});
-		})
-
-	} else if (isApp) {
-		file_content = fs.readFileSync(path, {encoding: 'utf-8'});
-
-	} else {
-		throw 'Failed to load plugin: Unknown URL format'
-	}
-	if (typeof file_content != 'string' || file_content.length < 20) {
-		throw `Issue loading plugin "${plugin_id}": Plugin file empty`;
-	}
-	let func = new Function(file_content + `\n//# sourceURL=PLUGINS/(Plugin):${plugin_id}.js`);
-	func();
-	return file_content;
-}
 
 type PluginVariant = 'desktop'|'web'|'both';
 type PluginSource = 'store'|'file'|'url';
@@ -374,7 +342,7 @@ export class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			runPluginFile(path, this.id).then((content) => {
+			this.#runPluginFile(path).then((content) => {
 				if (cb) cb.bind(scope)()
 				if (first && scope.oninstall) {
 					scope.oninstall()
@@ -390,7 +358,7 @@ export class Plugin {
 				reject()
 				console.error(error)
 			})
-			this.remember()
+			this.#remember()
 			scope.installed = true;
 		})
 	}
@@ -523,7 +491,7 @@ export class Plugin {
 		this.tags.safePush('Local');
 
 		if (isApp) {
-			let content = await runPluginFile(file.path, this.id).catch((error) => {
+			let content = await this.#runPluginFile(file.path).catch((error) => {
 				console.error(error);
 			});
 			if (content) {
@@ -533,17 +501,13 @@ export class Plugin {
 				scope.path = file.path;
 			}
 		} else {
-			try {
-				new Function(file.content + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`)();
-			} catch (err) {
-				console.error(err);
-			}
+			this.#runCode(file.content as string);
 			if (first && scope.oninstall) {
 				scope.oninstall()
 			}
 		}
 		this.installed = true;
-		this.remember();
+		this.#remember();
 		Plugins.sort();
 	}
 	async loadFromURL(url: string, first: boolean = false) {
@@ -561,7 +525,7 @@ export class Plugin {
 		this.tags.safePush('Remote');
 
 		this.source = 'url';
-		let content = await runPluginFile(url, this.id).catch(async (error) => {
+		let content = await this.#runPluginFile(url).catch(async (error) => {
 			if (isApp) {
 				await this.load();
 			}
@@ -573,7 +537,7 @@ export class Plugin {
 			}
 			this.installed = true
 			this.path = url
-			this.remember()
+			this.#remember()
 			Plugins.sort()
 			// Save
 			if (isApp) {
@@ -589,7 +553,7 @@ export class Plugin {
 		}
 		return this;
 	}
-	remember(id = this.id, path = this.path) {
+	#remember(id = this.id, path = this.path) {
 		let entry = Plugins.installed.find(plugin => plugin.id == this.id);
 		let already_exists = !!entry;
 		if (!entry) entry = {} as PluginInstallation;
@@ -673,6 +637,47 @@ export class Plugin {
 
 		return this;
 	}
+	async #runPluginFile(path: string) {
+		let file_content: any;
+		if (path.startsWith('http')) {
+			if (!path.startsWith('https')) {
+				throw 'Cannot load plugins over http: ' + path;
+			}
+			await new Promise<void>((resolve, reject) => {
+				$.ajax({
+					cache: false,
+					url: path,
+					success(data) {
+						file_content = data;
+						resolve();
+					},
+					error() {
+						reject('Failed to load plugin ' + this.id);
+					}
+				});
+			})
+	
+		} else if (isApp) {
+			file_content = fs.readFileSync(path, {encoding: 'utf-8'});
+	
+		} else {
+			throw 'Failed to load plugin: Unknown URL format'
+		}
+		this.#runCode(file_content);
+		return file_content;
+	}
+	#runCode(code: string) {
+		if (typeof code != 'string' || code.length < 20) {
+			throw `Issue loading plugin "${this.id}": Plugin file empty`;
+		}
+		try {
+			const func = new Function('require', code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`);
+			const scoped_require = getPluginScopedRequire(this);
+			func(scoped_require);
+		} catch (err) {
+			console.error(err);
+		}
+	}
 	toggleDisabled() {
 		if (!this.disabled) {
 			this.disabled = true;
@@ -683,7 +688,7 @@ export class Plugin {
 			}
 			this.disabled = false;
 		}
-		this.remember();
+		this.#remember();
 	}
 	showContextMenu(event) {
 		Plugin.menu.open(event, this);
