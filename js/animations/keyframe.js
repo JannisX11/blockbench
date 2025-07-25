@@ -1,3 +1,4 @@
+import { clipboard } from "../native_apis";
 import { invertMolang } from "../util/molang";
 
 export class KeyframeDataPoint {

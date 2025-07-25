@@ -205,6 +205,9 @@ app.on('open-file', function (event, path) {
 ipcMain.on('edit-launch-setting', (event, arg) => {
 	LaunchSettings.set(arg.key, arg.value);
 })
+ipcMain.handle('get-launch-setting', (event, arg) => {
+	return LaunchSettings.get(arg.key);
+})
 ipcMain.on('add-recent-project', (event, path) => {
 	app.addRecentDocument(path);
 })

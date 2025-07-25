@@ -1,4 +1,6 @@
+import { Filesystem } from "../file_system";
 import { documentReady } from "../misc";
+import { app, fs } from "../native_apis";
 
 export const StartScreen = {
 	loaders: {},
@@ -259,7 +261,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							showItemInFolder(recent_project.path)
+							Filesystem.showFileInFolder(recent_project.path)
 						}
 					},
 					{

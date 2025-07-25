@@ -1,3 +1,5 @@
+import { clipboard, nativeImage } from "../native_apis";
+
 StateMemory.init('brush_presets', 'array')
 
 export const Painter = {

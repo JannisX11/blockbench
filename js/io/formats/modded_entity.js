@@ -1,3 +1,5 @@
+import { fs } from "../../native_apis";
+
 function F(num) {
 	var s = trimFloatNumber(num) + '';
 	if (!s.includes('.')) {

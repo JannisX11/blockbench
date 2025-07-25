@@ -8,7 +8,7 @@ import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
 import { Panels } from "./interface/interface";
-import { getPluginScopedRequire } from "./native_apis";
+import { app, fs, getPluginScopedRequire } from "./native_apis";
 
 interface FileResult {
 	name: string
@@ -909,7 +909,7 @@ export class Plugin {
 			icon: 'folder',
 			condition: plugin => (isApp && plugin.source == 'file'),
 			click(plugin) {
-				showItemInFolder(plugin.path);
+				Filesystem.showFileInFolder(plugin.path);
 			}
 		},
 	])

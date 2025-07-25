@@ -10,6 +10,7 @@ import { BBYaml } from '../util/yaml'
 import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
 import { Filesystem } from '../file_system'
+import { fs } from '../native_apis'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -325,7 +326,7 @@ export class CustomTheme {
 										Blockbench.showQuickMessage('texture.error.file');
 										return;
 									}
-									shell.showItemInFolder(theme.path);
+									Filesystem.showFileInFolder(theme.path);
 								}
 							},
 							{

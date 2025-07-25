@@ -1,7 +1,8 @@
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
-import { child_process } from '../native_apis';
+import { clipboard, fs, ipcRenderer, nativeImage, openFileInEditor } from '../native_apis';
+import { Filesystem } from '../file_system';
 
 let tex_version = 1;
 
@@ -1020,7 +1021,7 @@ export class Texture {
 			Blockbench.showQuickMessage('texture.error.file')
 			return this;
 		}
-		showItemInFolder(this.path)
+		Filesystem.showFileInFolder(this.path)
 		return this;
 	}
 	openEditor() {
@@ -1030,11 +1031,9 @@ export class Texture {
 
 		} else {
 			if (fs.existsSync(settings.image_editor.value)) {
-				if (Blockbench.platform == 'darwin') {
-					child_process.exec(`open '${this.path}' -a '${settings.image_editor.value}'`)
-				} else {
-					child_process.spawn(settings.image_editor.value, [this.path])
-				}
+				ipcRenderer.invoke('get-launch-setting', {key: 'image_editor'}).then(editor => {
+					openFileInEditor(this.path, editor);
+				})
 			} else {
 				Blockbench.showMessageBox({
 					icon: 'fas.fa-pen-square',

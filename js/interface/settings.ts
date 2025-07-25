@@ -1,6 +1,7 @@
 import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
 import { Dialog } from "./dialog";
+import { ipcRenderer } from "../native_apis";
 
 export const settings: Record<string, Setting> = {};
 export type settings_type = typeof settings;
@@ -15,7 +16,6 @@ interface SettingOptions {
 	description?: string
 	requires_restart?: boolean
 	launch_setting?: boolean
-	//launch_setting?: boolean
 	min?: number
 	max?: number
 	step?: number

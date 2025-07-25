@@ -1,3 +1,5 @@
+import { ipcRenderer } from "../native_apis";
+
 function colorDistance(color1, color2) {
 	return Math.sqrt(
 		Math.pow(color2._r - color1._r, 2) +

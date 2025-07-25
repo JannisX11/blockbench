@@ -1,3 +1,5 @@
+import { fs } from "./native_apis";
+
 export const PredicateOverrideEditor = {
 	dialog: null,
 	predicate_options: {

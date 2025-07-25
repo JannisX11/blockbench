@@ -1,4 +1,6 @@
 import Wintersky from 'wintersky';
+import { clipboard, currentwindow, dialog, fs, ipcRenderer } from '../native_apis';
+import { Filesystem } from '../file_system';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
@@ -954,7 +956,7 @@ export class AnimationController extends AnimationItem {
 
 				} catch (err) {
 					data = null;
-					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+					var answer = dialog.showMessageBoxSync(currentwindow, {
 						type: 'warning',
 						buttons: [
 							tl('message.bedrock_overwrite_error.overwrite'),
@@ -1263,7 +1265,7 @@ export class AnimationController extends AnimationItem {
 			icon: 'folder',
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
-				showItemInFolder(animation.path);
+				Filesystem.showFileInFolder(animation.path);
 			}
 		},
 		{

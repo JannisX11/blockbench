@@ -1,7 +1,7 @@
 import saveAs from 'file-saver'
 import StateMemory from './util/state_memory'
 import { pathToExtension } from './util/util';
-import { electron } from './native_apis';
+import { app, currentwindow, electron, fs, ipcRenderer, webUtils } from './native_apis';
 
 function isStreamerMode(): boolean {
 	// @ts-ignore
@@ -520,6 +520,12 @@ export namespace Filesystem {
 				callback(file_path)
 			}
 		}
+	}
+
+
+	// MARK: Open
+	export function showFileInFolder(path: string) {
+		ipcRenderer.send('show-item-in-folder', path);
 	}
 
 

@@ -3,7 +3,7 @@ import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
-import { electron } from '../native_apis';
+import { electron, ipcRenderer } from '../native_apis';
 
 window.scene = null;
 window.main_preview = null;

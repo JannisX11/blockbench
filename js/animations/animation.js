@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { Filesystem } from "../file_system";
+import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_apis";
 
 export class AnimationItem {
 	constructor() {}
@@ -365,7 +366,7 @@ export class Animation extends AnimationItem {
 
 				} catch (err) {
 					data = null;
-					var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+					var answer = dialog.showMessageBoxSync(currentwindow, {
 						type: 'warning',
 						buttons: [
 							tl('message.bedrock_overwrite_error.overwrite'),
@@ -851,7 +852,7 @@ export class Animation extends AnimationItem {
 			icon: 'folder',
 			condition(animation) {return isApp && Format.animation_files && animation.path && fs.existsSync(animation.path)},
 			click(animation) {
-				showItemInFolder(animation.path);
+				Filesystem.showFileInFolder(animation.path);
 			}
 		},
 		{

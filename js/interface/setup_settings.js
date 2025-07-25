@@ -1,3 +1,5 @@
+import { changeImageEditor } from "../desktop";
+import { currentwindow } from "../native_apis";
 import { Setting, Settings, SettingsProfile } from "./settings";
 import { addStartScreenSection } from "./start_screen";
 
@@ -186,7 +188,12 @@ function setupSettings() {
 		'tilt': tl('settings.brush_modifier.tilt'),
 		'none': tl('settings.brush_modifier.none'),
 	}});
-	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
+	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click',
+		launch_setting: true,
+		condition: isApp,
+		icon: 'fas.fa-pen-square',
+		click: function() {changeImageEditor(null) }
+	});
 	
 	//Grid
 	new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});

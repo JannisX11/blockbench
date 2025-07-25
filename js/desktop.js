@@ -1,14 +1,4 @@
-import {
-	electron,
-	app,
-	fs,
-	NodeBuffer,
-	zlib,
-	https,
-	PathModule,
-	currentwindow,
-	clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils
-} from './native_apis';
+import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process } from './native_apis';
 
 export const recent_projects = (function() {
 	let array = [];
@@ -302,12 +292,8 @@ export function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
-export function showItemInFolder(path) {
-	ipcRenderer.send('show-item-in-folder', path);
-}
-
 //Window Controls
-export function updateWindowState(e, type) {
+function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();
 	$('#header_free_bar').toggleClass('resize_space', !maximized);
 	document.body.classList.toggle('maximized', maximized);
@@ -371,6 +357,7 @@ export function changeImageEditor(texture, not_found) {
 			}
 			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
+				ipcRenderer.send('edit-launch-setting', {key: 'image_editor', value: path});
 				if (texture) {
 					texture.openEditor()
 				}
@@ -580,6 +567,17 @@ BARS.defineActions(() => {
 	})
 })
 
+// Windows/Linux window controls
+document.getElementById('window_controls_button_minimize').addEventListener('click', () => {
+	currentwindow.minimize()
+})
+document.getElementById('window_controls_button_maximize').addEventListener('click', () => {
+	currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()
+})
+document.getElementById('window_controls_button_close').addEventListener('click', () => {
+	currentwindow.close()
+})
+
 //Close
 window.onbeforeunload = function (event) {
 	try {
@@ -665,7 +663,7 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-export async function closeBlockbenchWindow() {
+async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
@@ -749,33 +747,14 @@ ipcRenderer.on('update-available', (event, arg) => {
 })
 
 Object.assign(window, {
-	electron,
-	clipboard,
-	shell,
-	nativeImage,
-	ipcRenderer,
-	dialog,
-	webUtils,
-	app,
-	fs,
-	NodeBuffer,
-	zlib,
-	https,
 	PathModule,
-	currentwindow,
 	recent_projects,
-	initializeDesktopApp,
-	loadOpenWithBlockbenchFile,
+	nativeImage,
 	updateRecentProjects,
 	addRecentProject,
 	updateRecentProjectData,
 	loadDataFromModelMemory,
-	showItemInFolder,
-	updateWindowState,
 	changeImageEditor,
 	openDefaultTexturePath,
-	findExistingFile,
-	createBackup,
 	updateRecentProjectThumbnail,
-	closeBlockbenchWindow,
 })

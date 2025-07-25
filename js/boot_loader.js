@@ -4,6 +4,8 @@ import { loadThemes } from "./interface/themes";
 import { translateUI } from "./languages";
 import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
+import { ipcRenderer, process, SystemInfo } from "./native_apis";
+import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
@@ -57,7 +59,7 @@ loadThemes()
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + Blockbench.version + (isApp
-	? (' Desktop (' + Blockbench.operating_system + ', ' + process.arch +')')
+	? (' Desktop (' + Blockbench.operating_system + ', ' + SystemInfo.arch +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )

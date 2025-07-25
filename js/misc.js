@@ -1,3 +1,5 @@
+import { currentwindow } from "./native_apis";
+
 window.osfs = '/'
 window.open_dialog = false;
 window.open_interface = false;

@@ -8,6 +8,7 @@ export const zlib = require('zlib');
 export const child_process = require('child_process');
 export const https = require('https');
 export const PathModule = require('path');
+export const os = require('os');
 export const currentwindow = electron.getCurrentWindow();
 export const dialog = electron.dialog;
 
@@ -86,13 +87,32 @@ export function getPluginScopedRequire(plugin) {
 	}
 }
 const originalRequire = window.require;
-window.require = null;
+delete window.require;
+
+export const process = window.process;
+delete window.process;
+
+export function getPCUsername() {
+	return process.env.USERNAME;
+}
+export function openFileInEditor(file_path, editor) {
+	if (Blockbench.platform == 'darwin') {
+		child_process.exec(`open '${file_path}' -a '${editor}'`)
+	} else {
+		child_process.spawn(editor, [file_path])
+	}
+}
+
+export const SystemInfo = {
+	platform: process.platform,
+	home_directory: os.homedir(),
+	arch: process.arch,
+	os_version: os.version(),
+}
+window.SystemInfo = SystemInfo;
 
 /**
  * TODO:
  * - Ensure it still works in the web app
- * - Import from this file for all existing uses of these apis
- * - Remove global variables
- * - Potentially create a "trust plugin" system
  */
 
