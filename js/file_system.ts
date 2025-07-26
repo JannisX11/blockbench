@@ -683,7 +683,8 @@ export namespace Filesystem {
 			let paths: string[] | FileList = [];
 			if (isApp) {
 				for (let file of fileNames) {
-					if (file.path) {
+					if ('path' in file) {
+						// @ts-ignore
 						paths.push(file.path)
 					} else if (isApp) {
 						// @ts-ignore

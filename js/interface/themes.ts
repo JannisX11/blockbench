@@ -5,7 +5,6 @@ import { compareVersions, patchedAtob } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
-import { FSWatcher } from 'original-fs'
 import { BBYaml } from '../util/yaml'
 import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
@@ -173,7 +172,8 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		const theme_watchers: Record<string, FSWatcher> = {};
+		fs
+		const theme_watchers: Record<string, any> = {};
 		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
 			id: 'theme',

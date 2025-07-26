@@ -672,7 +672,7 @@ export class Plugin {
 		}
 		try {
 			const func = new Function('require', code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`);
-			const scoped_require = getPluginScopedRequire(this);
+			const scoped_require = isApp ? getPluginScopedRequire(this) : undefined;
 			func(scoped_require);
 		} catch (err) {
 			console.error(err);

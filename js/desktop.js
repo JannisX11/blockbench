@@ -1,4 +1,4 @@
-import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process } from './native_apis';
+import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage } from './native_apis';
 
 export const recent_projects = (function() {
 	let array = [];
