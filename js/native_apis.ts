@@ -16,19 +16,34 @@ const dialog = electron.dialog;
 
 /** @internal */
 export {
-	electron, clipboard, shell, nativeImage, ipcRenderer, webUtils,
+	electron, clipboard, shell, ipcRenderer, webUtils,
 	app, fs, NodeBuffer, zlib, child_process, https, PathModule, os, currentwindow, dialog,
+	Buffer, nativeImage
 }
 
 
+const { stringify, parse } = JSON;
 
 const SAFE_APIS = [
 	'path',
 	'crypto',
 	'events',
-	'stream',
 	'zlib',
 	'timers',
+	'url',
+	'string_decoder',
+	'querystring',
+];
+const REQUESTABLE_APIS = [
+	'fs',
+	'child_process',
+	'electron',
+	'https',
+	'net',
+	'tls',
+	'util',
+	'os',
+	'v8',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'your Files',
@@ -43,36 +58,44 @@ const PLUGIN_SETTINGS_PATH = PathModule.join(app.getPath('userData'), 'plugin_pe
 const PluginSettings: Record<string, PluginPermissions> = {};
 try {
 	let content = fs.readFileSync(PLUGIN_SETTINGS_PATH, {encoding: 'utf-8'});
-	let data = JSON.parse(content);
+	let data = parse(content);
 	if (typeof data == 'object') {
 		Object.assign(PluginSettings, data);
 	}
 } catch (err) {}
 function savePluginSettings() {
-	fs.writeFileSync(PLUGIN_SETTINGS_PATH, JSON.stringify(PluginSettings), {encoding: 'utf-8'});
+	fs.writeFileSync(PLUGIN_SETTINGS_PATH, stringify(PluginSettings), {encoding: 'utf-8'});
 }
 interface GetModuleOptions {
-	scope: string
+	scope?: string
 }
-function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options?: GetModuleOptions) {
-	const no_namespace_name = module_name.replace(/^\w+:/, '');
+function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options: GetModuleOptions = {}) {
+	const no_namespace_name = module_name.replace(/^node:/, '');
 	if (SAFE_APIS.includes(no_namespace_name)) {
 		return originalRequire(module_name);
 	}
+	if (!REQUESTABLE_APIS.includes(no_namespace_name)) {
+		throw `The module "${module_name}" is not supported`;
+	}
+	const options2: GetModuleOptions = {};
+	for (let key in options) {
+		options2[key] = options[key];
+	}
+
 	let permission = PluginSettings[plugin_id]?.allowed[module_name];
 	let has_permission = false;
 	if (permission === true) {
 		has_permission = true;
-	} else if (module_name == 'fs' && permission?.directories?.includes(options.scope)) {
+	} else if (module_name == 'fs' && permission?.directories?.includes(options2.scope)) {
 		has_permission = true;
 	}
 
 	if (!has_permission) {
 		let api_description = API_DESCRIPTIONS[module_name] ?? `the module "${module_name}"`;
 		let option_text = '';
-		if (module_name == 'fs' && options.scope) {
+		if (module_name == 'fs' && options2.scope) {
 			api_description = 'a folder';
-			option_text = '\nLocation: "' + options.scope.replace(/\n/g, '') + '"';
+			option_text = '\nLocation: "' + options2.scope.replace(/\n/g, '') + '"';
 		}
 
 		let result = dialog.showMessageBoxSync(currentwindow, {
@@ -103,9 +126,9 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				}
 			}
 			let allowed = PluginSettings[plugin_id].allowed;
-			if (module_name == 'fs' && options.scope) {
+			if (module_name == 'fs' && options2.scope) {
 				if (typeof allowed[module_name] != 'object') allowed[module_name] = {directories: []}
-				allowed[module_name].directories.push(options.scope);
+				allowed[module_name].directories.push(options2.scope);
 			} else {
 				allowed[module_name] = true;
 			}
@@ -116,13 +139,16 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				plugin.uninstall();
 			}, 20);
 		}
-		if (!(result == Result.Once || result == Result.Always)) return;
+		if (!(result == Result.Once || result == Result.Always)) {
+			console.warn(`User denied access to "${module_name}" module`)
+			return;
+		}
 
 		console.warn(`Gave plugin ${plugin_id} access to module ${module_name}`);
 	}
 
 	if (no_namespace_name == 'fs') {
-		return createScopedFS(options?.scope);
+		return createScopedFS(options2.scope);
 	}
 
 	return require(module_name);
@@ -139,6 +165,17 @@ export function getPluginScopedRequire(plugin: InstanceType<typeof BBPlugin>) {
 }
 const originalRequire = window.require;
 delete window.require;
+
+export function revokePluginPermissions(plugin: InstanceType<typeof BBPlugin>): string[] {
+	let permissions = Object.keys(PluginSettings[plugin.id]?.allowed ?? {});
+	delete PluginSettings[plugin.id];
+	savePluginSettings();
+	return permissions;
+}
+export function getPluginPermissions(plugin: InstanceType<typeof BBPlugin>) {
+	let data = PluginSettings[plugin.id]?.allowed;
+	if (data) return parse(stringify(data)) as Record<string, (boolean | any)>;
+}
 
 /**
  * @internal
@@ -172,6 +209,7 @@ export function openFileInEditor(file_path: string, editor: string) {
 
 Object.assign(window, {
 	SystemInfo,
+	Buffer,
 });
 
 /**

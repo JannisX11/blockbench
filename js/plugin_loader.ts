@@ -8,7 +8,7 @@ import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
 import { Panels } from "./interface/interface";
-import { app, fs, getPluginScopedRequire } from "./native_apis";
+import { app, fs, getPluginPermissions, getPluginScopedRequire, revokePluginPermissions } from "./native_apis";
 
 interface FileResult {
 	name: string
@@ -92,6 +92,7 @@ type PluginDetails = {
 	contributors: string
 	author: string,
 	variant: PluginVariant | string,
+	permissions: string
 	weekly_installations: string
 }
 type PluginInstallation = {
@@ -789,8 +790,8 @@ export class Plugin {
 			this.changelog_fetched = true;
 		}
 	}
-	getPluginDetails() {
-		if (this.details) return this.details;
+	getPluginDetails(force_refresh: boolean = false) {
+		if (this.details && !force_refresh) return this.details;
 		this.details = {
 			version: this.version,
 			last_modified: 'N/A',
@@ -805,8 +806,23 @@ export class Plugin {
 			contributors: this.contributors.join(', '),
 			author: this.author,
 			variant: this.variant == 'both' ? 'All' : this.variant,
+			permissions: '',
 			weekly_installations: separateThousands(Plugins.download_stats[this.id] || 0),
 		};
+		if (isApp) {
+			let perms = getPluginPermissions(this);
+			if (perms) {
+				let perms_list = [];
+				for (let key in perms) {
+					if (key == 'fs' && perms[key].directories) {
+						perms_list.push(`Scoped FS (${perms[key].directories.join(', ')})`);
+					} else {
+						perms_list.push(key);
+					}
+				}
+				this.details.permissions = perms_list.join(', ');
+			}
+		}
 
 		let trackDate = (input_date, key) => {
 			let date = getDateDisplay(input_date);
@@ -846,7 +862,7 @@ export class Plugin {
 	static selected: Plugin|null = null
 	
 	static menu = new Menu([
-		new MenuSeparator('installation'),
+		new MenuSeparator('general'),
 		{
 			name: 'generic.share',
 			icon: 'share',
@@ -862,7 +878,7 @@ export class Plugin {
 				}).show();
 			}
 		},
-		'_',
+		new MenuSeparator('installation'),
 		{
 			name: 'dialog.plugins.install',
 			icon: 'add',
@@ -893,6 +909,16 @@ export class Plugin {
 			condition: plugin => (plugin.installed && plugin.disabled),
 			click(plugin) {
 				plugin.toggleDisabled();
+			}
+		},
+		{
+			name: 'dialog.plugins.revoke_permissions',
+			icon: 'key_off',
+			condition: isApp && ((plugin: Plugin) => getPluginPermissions(plugin)),
+			click(plugin: Plugin) {
+				let revoked = revokePluginPermissions(plugin);
+				Blockbench.showQuickMessage(`Revoked ${revoked.length} permissions. Restart to apply`, 2000);
+				plugin.getPluginDetails(true);
 			}
 		},
 		new MenuSeparator('developer'),
@@ -1139,6 +1165,7 @@ BARS.defineActions(function() {
 				per_page: 25,
 				settings: settings,
 				isMobile: Blockbench.isMobile,
+				isApp,
 			},
 			computed: {
 				plugin_search() {
@@ -1657,6 +1684,10 @@ BARS.defineActions(function() {
 								<tr>
 									<td>Supported variants</td>
 									<td>{{ capitalizeFirstLetter(selected_plugin.details.variant || '') }}</td>
+								</tr>
+								<tr v-if="isApp">
+									<td>Permissions</td>
+									<td>{{ selected_plugin.details.permissions || '' }}</td>
 								</tr>
 								<tr>
 									<td>Installations per week</td>

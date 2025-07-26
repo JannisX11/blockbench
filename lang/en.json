@@ -643,6 +643,7 @@
 	"dialog.plugins.is_disabled": "Disabled",
 	"dialog.plugins.disable": "Disable",
 	"dialog.plugins.enable": "Enable",
+	"dialog.plugins.revoke_permissions": "Revoke Permissions",
 	"dialog.plugins.dependencies": "Depends on:",
 
 	"dialog.load_plugins_from_query.title": "Load Plugins",
