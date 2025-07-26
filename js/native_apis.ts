@@ -1,5 +1,5 @@
 import { BBPlugin } from "./plugin_loader";
-import { ScopedFS } from "./util/scoped_fs";
+import { createScopedFS } from "./util/scoped_fs";
 
 const electron: typeof import("@electron/remote") = require('@electron/remote');
 const {clipboard, shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
@@ -122,7 +122,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 	}
 
 	if (no_namespace_name == 'fs') {
-		return new ScopedFS(options?.scope);
+		return createScopedFS(options?.scope);
 	}
 
 	return require(module_name);
