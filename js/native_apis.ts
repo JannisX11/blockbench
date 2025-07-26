@@ -1,5 +1,5 @@
 import { BBPlugin } from "./plugin_loader";
-console.log('DESKTOP')
+import { ScopedFS } from "./util/scoped_fs";
 
 const electron: typeof import("@electron/remote") = require('@electron/remote');
 const {clipboard, shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
@@ -30,15 +30,14 @@ const SAFE_APIS = [
 	'zlib',
 	'timers',
 ];
-
 const API_DESCRIPTIONS = {
-	fs: 'the File System',
-	child_process: 'launch external programs',
+	fs: 'your Files',
+	child_process: 'launching external programs',
 	net: 'your network',
-	os: 'information about your operating system',
+	os: 'information about your computer',
 };
 type PluginPermissions = {
-	allowed: string[]
+	allowed: Record<string, boolean|any>
 }
 const PLUGIN_SETTINGS_PATH = PathModule.join(app.getPath('userData'), 'plugin_permissions.json');
 const PluginSettings: Record<string, PluginPermissions> = {};
@@ -56,18 +55,31 @@ interface GetModuleOptions {
 	scope: string
 }
 function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options?: GetModuleOptions) {
-	if (SAFE_APIS.includes(module_name) || SAFE_APIS.includes(module_name.replace(/^node:/, ''))) {
+	const no_namespace_name = module_name.replace(/^\w+:/, '');
+	if (SAFE_APIS.includes(no_namespace_name)) {
 		return originalRequire(module_name);
 	}
-	const has_permission = PluginSettings[plugin_id]?.allowed instanceof Array && PluginSettings[plugin_id].allowed.includes(module_name);
+	let permission = PluginSettings[plugin_id]?.allowed[module_name];
+	let has_permission = false;
+	if (permission === true) {
+		has_permission = true;
+	} else if (module_name == 'fs' && permission?.directories?.includes(options.scope)) {
+		has_permission = true;
+	}
 
 	if (!has_permission) {
 		let api_description = API_DESCRIPTIONS[module_name] ?? `the module "${module_name}"`;
+		let option_text = '';
+		if (module_name == 'fs' && options.scope) {
+			api_description = 'a folder';
+			option_text = '\nLocation: "' + options.scope.replace(/\n/g, '') + '"';
+		}
+
 		let result = dialog.showMessageBoxSync(currentwindow, {
 			title: 'Plugin Permission',
 			message: `Permission to access ${api_description} requested`,
-			detail: `The plugin "${plugin.name}" (${plugin_id}) requires access to ${api_description}. Allow?`,
-			type: 'none',
+			detail: `The plugin "${plugin.name}" (${plugin_id}) requires access to ${api_description}.${option_text}\nAllow?`,
+			type: 'question',
 			noLink: true,
 			cancelId: 3,
 			buttons: [
@@ -83,15 +95,20 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 			Uninstall = 2,
 			Deny = 3
 		}
-		console.log(result)
 		if (result == Result.Always) {
 			// Save permission
-			if (PluginSettings[plugin_id]?.allowed instanceof Array == false) {
+			if (!PluginSettings[plugin_id]?.allowed) {
 				PluginSettings[plugin_id] = {
-					allowed: []
+					allowed: {}
 				}
 			}
-			PluginSettings[plugin_id].allowed.push(module_name);
+			let allowed = PluginSettings[plugin_id].allowed;
+			if (module_name == 'fs' && options.scope) {
+				if (typeof allowed[module_name] != 'object') allowed[module_name] = {directories: []}
+				allowed[module_name].directories.push(options.scope);
+			} else {
+				allowed[module_name] = true;
+			}
 			savePluginSettings();
 		}
 		if (result == Result.Uninstall) {
@@ -102,6 +119,10 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 		if (!(result == Result.Once || result == Result.Always)) return;
 
 		console.warn(`Gave plugin ${plugin_id} access to module ${module_name}`);
+	}
+
+	if (no_namespace_name == 'fs') {
+		return new ScopedFS(options?.scope);
 	}
 
 	return require(module_name);

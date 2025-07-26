@@ -1,5 +1,4 @@
 // Dummy exports for native APIs when running on web
-console.log('WEB')
 
 const NULL = null;
 /** @internal */
