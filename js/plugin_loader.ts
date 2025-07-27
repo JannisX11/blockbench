@@ -8,7 +8,7 @@ import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
 import { Panels } from "./interface/interface";
-import { app, fs, getPluginPermissions, getPluginScopedRequire, revokePluginPermissions } from "./native_apis";
+import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
 
 interface FileResult {
 	name: string
