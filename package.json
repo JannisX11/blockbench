@@ -48,10 +48,9 @@
 			"assets/",
 			"build/",
 			"css/",
-			"lib/",
 			"font/",
-			"dist/",
-			"main.js",
+			"dist/bundle.js",
+			"electron/",
 			"index.html",
 			"package.json",
 			"favicon.png",
@@ -92,6 +91,9 @@
 			}
 		},
 		"nsis": {
+			"oneClick": false,
+			"allowToChangeInstallationDirectory": true,
+			"installerSidebar": "build/installerSidebar.bmp",
 			"license": "LICENSE.MD"
 		},
 		"linux": {
