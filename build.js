@@ -5,7 +5,9 @@ import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
 import fs from 'node:fs';
-const pkg = createRequire(import.meta.url)("./package.json");
+import vuePlugin from 'esbuild-vue/src/index.js';
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json");
 
 const options = commandLineArgs([
     {name: 'target', type: String},
@@ -83,6 +85,7 @@ const config = {
             file: isApp ? 'desktop.js' : 'web.js'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
+        vuePlugin(),
         glsl({
             minify
         })

@@ -152,6 +152,7 @@
 		"electron-builder": "^24.13.3",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
+		"esbuild-vue": "^0.0.1",
 		"typedoc": "^0.28.2",
 		"typescript": "^5.8.3",
 		"workbox-build": "^6.5.3"
