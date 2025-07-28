@@ -1253,9 +1253,11 @@
 	#panel_keyframe .bar.flex label {
 		padding: 3px 8px;
 		min-width: 20px;
-		text-align: center;
 		flex-shrink: 0;
 		background-color: var(--color-elevated);
+	}
+	#panel_keyframe .bar.flex label.axis {
+		text-align: center;
 		font-family: 'Font Awesome 6 Free';
 		font-size: 13px;
 		line-height: 24px;

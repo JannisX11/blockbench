@@ -2258,7 +2258,7 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="animation_files_enabled" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @lick.stop="animation.save()" title="${tl('menu.animation.save')}">
+								<div v-if="animation_files_enabled" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
