@@ -2,6 +2,9 @@ import DisplayModePanel from "./DisplayModePanel.vue";
 import { THREE } from "../lib/libs";
 import { Mode } from "../modes";
 import DisplayReferences from "./display_references";
+import VertShader from './../shaders/texture.vert.glsl';
+import FragShader from './../shaders/texture.frag.glsl';
+import { prepareShader } from "../shaders/shader";
 
 var ground_timer = 0
 var display_presets;
@@ -440,12 +443,20 @@ export class refModel {
 				this.tex.needsUpdate = true;
 			}
 			img.crossOrigin = '';
-			var mat = new THREE.MeshLambertMaterial({
-				color: 0xffffff,
-				map: tex,
-				side: 2,
-				alphaTest: 0.05
+			var mat = new THREE.ShaderMaterial({
+				uniforms: {
+					map: {type: 't', value: tex},
+					SHADE: {type: 'bool', value: settings.shading.value},
+					LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
+					LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
+					EMISSIVE: {type: 'bool', value: false}
+				},
+				vertexShader: prepareShader(VertShader),
+				fragmentShader: prepareShader(FragShader),
+				side: THREE.DoubleSide,
+				transparent: true
 			});
+			mat.map = tex;
 		}
 
 		scope.material = mat

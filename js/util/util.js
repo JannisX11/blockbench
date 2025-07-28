@@ -107,17 +107,6 @@ export function pureMarked(input) {
 	return DOMPurify.sanitize(dom);
 }
 
-export class oneLiner {
-	constructor(data) {
-		if (data !== undefined) {
-			for (var key in data) {
-				if (data.hasOwnProperty(key)) {
-					this[key] = data[key]
-				}
-			}
-		}
-	}
-}
 var asyncLoop = function(o){
 	var i=-1;
 	var async_loop = function(){
@@ -755,7 +744,6 @@ if (!window.structuredClone) {
 
 Object.assign(window, {
 	Condition,
-	oneLiner,
 	Objector,
 	Merge,
 	compareVersions,

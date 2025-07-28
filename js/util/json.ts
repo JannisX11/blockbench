@@ -1,5 +1,17 @@
 import LZUTF8 from '../lib/lzutf8';
 
+export class oneLiner {
+	constructor(data: any) {
+		if (data !== undefined) {
+			for (var key in data) {
+				if (data.hasOwnProperty(key)) {
+					this[key] = data[key]
+				}
+			}
+		}
+	}
+}
+
 interface JSONCompileOptions {
 	/**
 	 * Indentation string. If omitted, will default to the indentation from Blockbench's settings
@@ -94,7 +106,7 @@ export function compileJSON(object: any, options: JSONCompileOptions = {}): stri
 			out += ']'
 		} else if (type === 'object') {
 			//Object
-			breaks = breaks && o.constructor.name !== 'oneLiner';
+			breaks = breaks && !(o instanceof oneLiner);
 			var has_content = false
 			out += '{'
 			for (var key in o) {
@@ -187,6 +199,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 }
 
 Object.assign(window, {
+	oneLiner,
 	compileJSON,
 	autoParseJSON,
 })
