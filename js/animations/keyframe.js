@@ -45,6 +45,7 @@ new Property(KeyframeDataPoint, 'string', 'effect', {label: tl('data.effect'), c
 new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'boolean', 'bind_to_actor', {exposed: false, default: true, condition: point => ['particle'].includes(point.keyframe.channel)});
 
 export class Keyframe {
 	constructor(data, uuid, animator) {
@@ -359,6 +360,7 @@ export class Keyframe {
 					points.push({
 						effect: data_point.effect,
 						locator: data_point.locator || undefined,
+						bind_to_actor: data_point.bind_to_actor == false ? false : undefined,
 						pre_effect_script: script,
 					})
 				}
@@ -1351,6 +1353,13 @@ Interface.definePanels(function() {
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
+				changeBindToActor(event, i) {
+					Undo.initEdit({keyframes: Timeline.selected});
+					for (let kf of Timeline.selected) {
+						if (kf.data_points[i]) kf.data_points[i].bind_to_actor = event.target.checked;
+					}
+					Undo.finishEdit('Change keyframe property bind to actor');
+				},
 				focusAxis(axis) {
 					if ('xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
@@ -1603,7 +1612,7 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang', axis: !!channel_colors[key]}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input keyframe_input tab_target"
@@ -1625,6 +1634,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
+										<input type="checkbox" v-if="key == 'locator'" :checked="data_point.bind_to_actor" title="${tl('timeline.bind_to_actor')}" @input="changeBindToActor($event, data_point_i)">
 										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, firstKeyframe)">
 											<i class="material-icons">upload_file</i>
 										</div>
