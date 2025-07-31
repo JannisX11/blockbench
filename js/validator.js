@@ -72,7 +72,7 @@ export const Validator = {
 									<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
 										<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
 									</div>
-								</div>
+								</template>
 							</li>
 						</ul>
 					`
