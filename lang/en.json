@@ -1166,6 +1166,12 @@
 	"settings.minify_bbmodel.desc": "Write .bbmodel files minified into one line",
 	"settings.embed_textures": "Embed Textures",
 	"settings.embed_textures.desc": "Embed texture file content in .bbmodel files",
+	"settings.export_asset_paths": "Export Asset Paths",
+	"settings.export_asset_paths.desc": "Select how paths to assets such as textures or animations get saved in .bbmodel files",
+	"settings.export_asset_paths.relative": "Relative Paths",
+	"settings.export_asset_paths.absolute": "Full Paths",
+	"settings.export_asset_paths.both": "Relative & Full Paths (Texture only)",
+	"settings.export_asset_paths.none": "No Export",
 	"settings.export_empty_groups": "Export Empty Groups",
 	"settings.export_empty_groups.desc": "Include groups without content in exported files",
 	"settings.export_groups": "Export Groups in Java block/item models",
@@ -2363,6 +2369,7 @@
 	"menu.animation.flip_keyframes": "Flip Keyframes",
 	"menu.animation.playing": "Playing",
 
+	"menu.animation_file.save_as": "Save As",
 	"menu.animation_file.unload": "Unload File",
 	"menu.animation_file.import_remaining": "Import Remaining from File",
 

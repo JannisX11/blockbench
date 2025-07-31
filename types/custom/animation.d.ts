@@ -147,7 +147,8 @@ declare namespace Animator {
 	 * @param animation_filter List of names of animations to import
 	 */
 	function loadFile(file: any, animation_filter?: string[]): void
-	function exportAnimationFile(path: string): void
+	function exportAnimationFile(path: string, save_as?: boolean): void
+	function exportAnimationControllerFile(path: string, save_as?: boolean): void
 	function resetLastValues(): void
 	function autocompleteMolang(
 		text: string,

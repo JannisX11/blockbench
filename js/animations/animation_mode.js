@@ -859,7 +859,7 @@ export const Animator = {
 			});
 		}
 	},
-	exportAnimationFile(path) {
+	exportAnimationFile(path, save_as) {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
@@ -872,7 +872,7 @@ export const Animator = {
 			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
 		}
 
-		if (isApp && path && fs.existsSync(path)) {
+		if (!save_as && isApp && path && fs.existsSync(path)) {
 			Animator.animations.forEach(function(a) {
 				if (a.path == filter_path && !a.saved) {
 					a.save();
@@ -910,7 +910,7 @@ export const Animator = {
 			})
 		}
 	},
-	exportAnimationControllerFile(path) {
+	exportAnimationControllerFile(path, save_as) {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
@@ -923,7 +923,7 @@ export const Animator = {
 			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
 		}
 
-		if (isApp && path && fs.existsSync(path)) {
+		if (!save_as && isApp && path && fs.existsSync(path)) {
 			AnimationController.all.forEach(function(a) {
 				if (a.path == filter_path && !a.saved) {
 					a.save();

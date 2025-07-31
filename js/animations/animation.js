@@ -950,6 +950,14 @@ export class Animation extends AnimationItem {
 			})
 			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
 		}},
+		{name: 'menu.animation_file.save_as', icon: 'save', click(path) {
+			let item = AnimationItem.all.find(item => item.path == path);
+			if (item.type == 'animation') {
+				Animator.exportAnimationFile(path, true);
+			} else {
+				Animator.exportAnimationControllerFile(path, true);
+			}
+		}},
 		{name: 'menu.animation.reload', icon: 'refresh', click(id) {
 			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
 			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
