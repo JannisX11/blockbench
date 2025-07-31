@@ -50,10 +50,12 @@ export class DisplaySlot {
 		if (export_all || !this.scale.allEqual(1) || !this.mirror.allEqual(false)) {
 			build.scale = this.scale.slice()
 			if (!this.mirror.allEqual(false)) {
-
 				for (let i = 0; i < 3; i++) {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
+			}
+			if (Format.id != 'bedrock_block') {
+				build.scale = build.scale.map(Math.abs);
 			}
 		}
 		if (export_all || !this.rotation_pivot.allEqual(0)) build.rotation_pivot = this.rotation_pivot
