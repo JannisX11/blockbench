@@ -158,18 +158,18 @@ class TextureGroup {
 				const color_data = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
 				let emissive_data = new Uint8ClampedArray(color_data.data.length);
 				for (let i = 0; i < image_data.data.length; i += 4) {
+					let green_value = image_data.data[i + 1];
 					if (image_data.data[i + 1] > 0) {
-						emissive_data[i] = color_data.data[i];
-						emissive_data[i + 1] = color_data.data[i + 1];
-						emissive_data[i + 2] = color_data.data[i + 2];
+						emissive_data[i] = Math.round(color_data.data[i] * (green_value/255));
+						emissive_data[i + 1] = Math.round(color_data.data[i + 1] * (green_value/255));
+						emissive_data[i + 2] = Math.round(color_data.data[i + 2] * (green_value/255));
 						emissive_data[i + 3] = 255;
-						continue;
+					} else {
+						emissive_data[i] = 0;
+						emissive_data[i + 1] = 0;
+						emissive_data[i + 2] = 0;
+						emissive_data[i + 3] = 255;
 					}
-
-					emissive_data[i] = 0;
-					emissive_data[i + 1] = 0;
-					emissive_data[i + 2] = 0;
-					emissive_data[i + 3] = 255;
 				}
 
 				return new ImageData(emissive_data, mer_tex.width, mer_tex.height);
@@ -712,6 +712,8 @@ BARS.defineActions(function() {
 
 			function getPixelInput(result, r, g, b, a) {
 				switch (result.method) {
+					case 'empty':
+						return 0;
 					case 'value': {
 						return ((r + g + b) / 3) * (a/255);
 					}
@@ -829,6 +831,7 @@ BARS.defineActions(function() {
 							red: 'Red',
 							green: 'Green',
 							blue: 'Blue',
+							empty: 'Empty',
 						}
 					},
 					in_range: {
