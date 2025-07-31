@@ -194,7 +194,6 @@ export class Animation extends AnimationItem {
 
 				var group = animator.getGroup(); 
 				var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
-				var channels = {};
 				if (animator.rotation_global) {
 					bone_tag.relative_to = {rotation: 'entity'};
 					bone_tag.rotation = [0, 0, 0.01];

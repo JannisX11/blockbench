@@ -308,11 +308,11 @@ export class Keyframe {
 		if (this.transform) {
 			let flipArray = array => {
 				if (this.channel == 'position') {
-					array[0] *= -1;
+					array[0] = invertMolang(array[0]);
 				}
-				if (this.channel == 'position') {
-					array[0] *= -1;
-					array[1] *= -1;
+				if (this.channel == 'rotation') {
+					array[0] = invertMolang(array[0]);
+					array[1] = invertMolang(array[1]);
 				}
 				return array;
 			}

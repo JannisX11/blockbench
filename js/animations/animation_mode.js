@@ -1,6 +1,7 @@
 import MolangParser from "molangjs";
 import Wintersky from 'wintersky';
 import { Mode } from "../modes";
+import { invertMolang } from "../util/molang";
 
 export const Animator = {
 	get possible_channels() {
@@ -589,11 +590,11 @@ export const Animator = {
 								z: source[2],
 							}
 							if (channel == 'position') {
-								vec.x *= -1;
+								vec.x = invertMolang(vec.x);
 							}
 							if (channel == 'rotation') {
-								vec.x *= -1;
-								vec.y *= -1;
+								vec.x = invertMolang(vec.x);
+								vec.y = invertMolang(vec.y);
 							}
 							return [vec];
 						} else if (['number', 'string'].includes(typeof source)) {
