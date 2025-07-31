@@ -703,7 +703,7 @@ BARS.defineActions(function() {
 			}
 			UVEditor.loadData();
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			new_billboard.select()
 			Canvas.updateView({elements: [new_billboard], element_aspects: {transform: true, geometry: true}})
 			Undo.finishEdit('Add billboard', {outliner: true, elements: selected, selection: true});

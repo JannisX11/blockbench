@@ -538,16 +538,13 @@ export class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'selected', {
 		get() {
-			console.warn('"Group.selected" will be an array in the future!');
-			return Project.selected_groups?.[0]
+			return Project.selected_groups || []
 		},
-		set(group) {
-			console.warn('"Group.selected" will be an array in the future!');
-			if (group instanceof Group) {
-				Project.selected_groups.replace([group]);
-			} else {
-				Project.selected_groups.empty();
+		set(arr) {
+			if (arr instanceof Array == false) {
+				console.warn('Not an array!')
 			}
+			Project.selected_groups.replace(arr)
 		}
 	})
 	Object.defineProperty(Group, 'first_selected', {
