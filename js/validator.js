@@ -64,19 +64,17 @@ export const Validator = {
 						pureMarked
 					},
 					template: `
-						<template>
-							<ul>
-								<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
-									<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
-									<span class="markdown" v-html="pureMarked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
-									<template v-if="problem.buttons">
-										<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
-											<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
-										</div>
+						<ul>
+							<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
+								<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
+								<span class="markdown" v-html="pureMarked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
+								<template v-if="problem.buttons">
+									<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
+										<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
 									</div>
-								</li>
-							</ul>
-						</template>
+								</div>
+							</li>
+						</ul>
 					`
 				}
 			});

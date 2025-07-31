@@ -53,10 +53,10 @@ export class GeneralAnimator {
 		return this;
 	}
 	addKeyframe(data, uuid) {
-		var channel = data.channel;
+		let channel = data.channel;
 		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
 		if (channel && this[channel]) {
-			var kf = new Keyframe(data, uuid, this);
+			let kf = new Keyframe(data, uuid, this);
 			this[channel].push(kf);
 			kf.animator = this;
 			return kf;
@@ -65,11 +65,11 @@ export class GeneralAnimator {
 	createKeyframe(value, time, channel, undo, select) {
 		if (!this.channels[channel]) return;
 		if (typeof time !== 'number') time = Timeline.time;
-		var keyframes = [];
+		let keyframes = [];
 		if (undo) {
 			Undo.initEdit({keyframes})
 		}
-		var keyframe = new Keyframe({
+		let keyframe = new Keyframe({
 			channel: channel,
 			time: time
 		}, null, this);
@@ -90,7 +90,7 @@ export class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-		var deleted = [];
+		let deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
 		if (deleted.length && Undo.current_save) {

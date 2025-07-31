@@ -604,10 +604,10 @@ export const Animator = {
 						} else if (typeof source == 'object') {
 							let points = [];
 							if (source.pre) {
-								points.push(getKeyframeDataPoints(source.pre)[0], channel)
+								points.push(getKeyframeDataPoints(source.pre, channel)[0]);
 							}
 							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
-								points.push(getKeyframeDataPoints(source.post)[0], channel)
+								points.push(getKeyframeDataPoints(source.post, channel)[0]);
 							}
 							return points;
 						}
