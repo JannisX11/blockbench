@@ -155,7 +155,7 @@ class TextureGroup {
 			const extractEmissiveChannel = () => {
 				// The green channel is the emissive level.
 				// Use it as an mask on the color texture to create the emissive map.
-				const color_data = color_tex.canvas.getContext('2d').getImageData(0, 0, color_tex.width, color_tex.height);
+				const color_data = color_tex.canvas.getContext('2d').getImageData(0, 0, mer_tex.width, mer_tex.height);
 				let emissive_data = new Uint8ClampedArray(color_data.data.length);
 				for (let i = 0; i < image_data.data.length; i += 4) {
 					let green_value = image_data.data[i + 1];
