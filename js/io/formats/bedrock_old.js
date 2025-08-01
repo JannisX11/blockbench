@@ -418,6 +418,7 @@ var format = new ModelFormat({
 	animation_controllers: true,
 	animation_mode: true,
 	locators: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {
