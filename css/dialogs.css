@@ -2664,6 +2664,7 @@
 		pointer-events: all;
 		box-shadow: 0 0 0 2px var(--color-accent);
 		width: min(100vw, 326px);
+		border-radius: 5px;
 	}
 	#tab_overview_grid {
 		display: flex;
