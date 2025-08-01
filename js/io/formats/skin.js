@@ -1974,7 +1974,7 @@ skin_presets.bogged_layer = {
 				"name": "hat",
 				"pivot": [0, 24, 0],
 				"cubes": [
-					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.5, "uv": [32, 0], "layer": true, , "visibility": false}
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.5, "uv": [32, 0], "layer": true, "visibility": false}
 				]
 			},
 			{
