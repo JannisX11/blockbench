@@ -1444,6 +1444,8 @@
 	"action.export_image.desc": "Export your texture as an image file",
 	"action.export_obj": "Export OBJ Model",
 	"action.export_obj.desc": "Export a Wavefront OBJ model for rendering",
+	"action.export_stl": "Export STL",
+	"action.export_stl.desc": "Export a STL model for 3D printing",
 	"action.export_collada": "Export Collada Model (dae)",
 	"action.export_collada.desc": "Export model and animations as dae file to use it in other 3D applications",
 	"action.export_fbx": "Export FBX Model",

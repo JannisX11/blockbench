@@ -189,6 +189,7 @@ export const MenuBar = {
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
+				'export_stl',
 				'export_collada',
 				'export_modded_animations',
 				'upload_sketchfab',
