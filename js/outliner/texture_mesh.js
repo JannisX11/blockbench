@@ -111,6 +111,15 @@ new Property(TextureMesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 
+function getShapeTexture() {
+	let tex = Texture.getDefault();
+	if (tex.pbr_channel != 'color' && tex.getGroup()) {
+		let group = tex.getGroup();
+		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
+	}
+	return tex;
+}
+
 new NodePreviewController(TextureMesh, {
 	setup(element) {
 
@@ -141,7 +150,7 @@ new NodePreviewController(TextureMesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element, texture = Texture.getDefault()) {
+	updateGeometry(element, texture = getShapeTexture()) {
 		
 		let {mesh} = element;
 		let position_array = [];
