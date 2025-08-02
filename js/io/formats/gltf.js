@@ -163,7 +163,7 @@ export function buildAnimationTracks(export_scale = Settings.get('model_export_s
 	return anims;
 }
 
-export function buildSkinnedMeshFromGroup(root_group, scale) {
+export function buildSkinnedMeshFromGroup(root_group) {
 	let skinIndices = [];
 	let skinWeights = [];
 	let position_array = [];
@@ -234,7 +234,6 @@ export function buildSkinnedMeshFromGroup(root_group, scale) {
 		if (group == root_group) {
 			bone.position.set(0, 0, 0);
 		}
-		bone.position.multiplyScalar(1 / scale);
 		bones.push(bone);
 		if (parent_bone) {
 			parent_bone.add(bone);
@@ -302,10 +301,6 @@ export function buildSkinnedMeshFromGroup(root_group, scale) {
 	skinned_mesh.position.copy(root_group.mesh.position);
 	skinned_mesh.rotation.copy(root_group.mesh.rotation);
 
-	bones.forEach(bone => {
-		bone.position.multiplyScalar(scale);
-	})
-
 	return skinned_mesh;
 }
 export function buildSkinnedMesh(mesh_obj, armature, scale) {
@@ -318,6 +313,7 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 	for (let armature_bone of armature_bones) {
 		let bone = new THREE.Bone();
 		bone.position.copy(armature_bone.mesh.position);
+		//bone.position.multiplyScalar(1/scale);
 		bone.rotation.copy(armature_bone.mesh.rotation);
 		bone.name = armature_bone.name;
 		bone.uuid = armature_bone.mesh.uuid
@@ -334,6 +330,7 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 	skinned_mesh.name = mesh_obj.name;
 	skeleton.name = mesh_obj.name;
 	skinned_mesh.position.copy(mesh_obj.mesh.position);
+	//skinned_mesh.position.multiplyScalar(1/scale);
 	skinned_mesh.rotation.copy(mesh_obj.mesh.rotation);
 
 	// Set skin weights
@@ -362,10 +359,6 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 	geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
 	geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
 
-	bones.forEach(bone => {
-		bone.position.multiplyScalar(scale);
-	})
-
 	return skinned_mesh;
 }
 
@@ -377,7 +370,7 @@ var codec = new Codec('gltf', {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
-		armature: {type: 'checkbox', label: tl('codec.common.armature') + ' (Experimental)', value: false},
+		armature: {type: 'checkbox', label: tl('codec.common.armature'), value: false},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options) {

@@ -1763,11 +1763,18 @@ GLTFExporter.prototype = {
 			var joints = [];
 			var inverseBindMatrices = new Float32Array( skeleton.bones.length * 16 );
 
+			let v = new Vector3();
+
 			for ( var i = 0; i < skeleton.bones.length; ++ i ) {
 
 				joints.push( nodeMap.get( skeleton.bones[ i ] ) );
 
-				skeleton.boneInverses[ i ].toArray( inverseBindMatrices, i * 16 );
+				let boneInverse = skeleton.boneInverses[ i ].clone();
+				v.setFromMatrixPosition( boneInverse );
+				v.multiplyScalar( options.scale_factor );
+				boneInverse.setPosition( v );
+
+				boneInverse.toArray( inverseBindMatrices, i * 16 );
 
 			}
 
