@@ -37,16 +37,16 @@ type ThemeData = {
 }
 
 const DEFAULT_COLORS = {
-	ui: '#282c34',
-	back: '#21252b',
-	dark: '#17191d',
-	border: '#181a1f',
-	selected: '#474d5d',
-	elevated: '#323640',
-	button: '#3a3f4b',
+	ui: '#1e2127',
+	back: '#181b1f',
+	dark: '#101316',
+	border: '#101316',
+	selected: '#3b3e49',
+	elevated: '#272a31',
+	button: '#33383f',
 	bright_ui: '#f4f3ff',
 	accent: '#3e90ff',
-	frame: '#121418',
+	frame: '#0f1012',
 	text: '#cacad4',
 	light: '#f4f3ff',
 	accent_text: '#000006',
@@ -54,7 +54,7 @@ const DEFAULT_COLORS = {
 	subtle_text: '#848891',
 	grid: '#495061',
 	wireframe: '#576f82',
-	checkerboard: '#1c2026',
+	checkerboard: '#14171b',
 }
 
 export class CustomTheme {
