@@ -100,7 +100,7 @@ export function moveElementsRelative(difference, index, event) { //Multiple
 	}
 	var _has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
 
-	Undo.initEdit({elements: Outliner.selected, outliner: _has_groups})
+	Undo.initEdit({elements: getSelectedMovingElements(), outliner: _has_groups})
 	var axes = []
 	// < >
 	// PageUpDown
@@ -667,6 +667,8 @@ export function moveElementsInSpace(difference, axis) {
 
 	Outliner.selected.forEach(el => {
 
+		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected) return;
+
 		// Mesh Vertex (and more ?) translation
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
@@ -750,6 +752,8 @@ export function moveElementsInSpace(difference, axis) {
 
 
 		} else {
+
+			let old_position = el.position?.slice();
 		
 			if (space == 2 && !group_m) {
 				if (el.position) {
@@ -819,6 +823,18 @@ export function moveElementsInSpace(difference, axis) {
 					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
 				}
 			}
+
+			// Counter child positions
+			if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+				for (let child of el.children) {
+					if (child.selected || !el.position) continue;
+					let position_delta = Reusable.vec2.fromArray(el.position.slice().V3_subtract(old_position));
+					position_delta.applyQuaternion(Reusable.quat1.copy(el.mesh.quaternion).invert());
+					child.position.V3_subtract(position_delta.toArray());
+
+					child.preview_controller.updateTransform(child);
+				}
+			}
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
@@ -833,6 +849,16 @@ export function moveElementsInSpace(difference, axis) {
 		groups: Group.all.filter(g => g.selected),
 		group_aspects: {transform: true}
 	})
+}
+
+export function getSelectedMovingElements() {
+	let selection = Outliner.selected.filter(el => el.movable || el.getTypeBehavior('movable'));
+	for (let el of selection.slice()) {
+		if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+			selection.safePush(...el.children);
+		}
+	}
+	return selection;
 }
 
 export function getSpatialInterval(event = 0) {

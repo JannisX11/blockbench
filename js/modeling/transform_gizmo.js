@@ -3,7 +3,7 @@
  * modified for Blockbench by jannisx11
  */
 
-import { getPivotObjects, getRotationObjects } from "./transform";
+import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveElementsInSpace } from "./transform";
 
  ( function () {
 
@@ -996,7 +996,6 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 
 			var _mode = "translate";
 			var _dragging = false;
-			var _has_groups = false;
 			var _gizmo = {
 
 				"translate": new THREE.TransformGizmoTranslate(),
@@ -1619,7 +1618,6 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 							}
 						})
 					}
-					_has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
 					var rotate_group = Format.bone_rig && Group.first_selected && (Toolbox.selected.transformerMode == 'rotate');
 
 					if (Toolbox.selected.id == 'move_tool') {
@@ -1639,10 +1637,8 @@ import { getPivotObjects, getRotationObjects } from "./transform";
 
 					if (rotate_group) {
 						Undo.initEdit({groups: Group.multi_selected})
-					} else if (_has_groups) {
-						Undo.initEdit({elements: selected, outliner: true, selection: true})
 					} else {
-						Undo.initEdit({elements: selected})
+						Undo.initEdit({elements: getSelectedMovingElements(), groups: Group.all.filter(g => g.selected)});
 					}
 
 				} else if (Modes.id === 'animate') {
