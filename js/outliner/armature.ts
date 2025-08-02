@@ -180,6 +180,7 @@ export class Armature extends OutlinerElement {
 		}
 		while (i < this.children.length) {
 			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
+				// @ts-ignore
 				cb(this.children[i])
 			}
 			if (this.children[i].type === 'armature_bone') {
@@ -269,7 +270,7 @@ BARS.defineActions(function() {
 	new Action('add_armature', {
 		icon: 'accessibility',
 		category: 'edit',
-		condition: () => Modes.edit,
+		condition: () => Modes.edit && Project.format?.armature_rig,
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;
@@ -285,6 +286,7 @@ BARS.defineActions(function() {
 			let bone = new ArmatureBone();
 			bone.addTo(armature).init();
 
+			// @ts-ignore
 			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
 			Vue.nextTick(function() {
 				updateSelection()

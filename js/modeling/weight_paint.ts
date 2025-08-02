@@ -40,7 +40,7 @@ BARS.defineActions(function defineWeightBrush() {
 			if ('element' in data == false) return;
 			let preview = Preview.selected as Preview;
 			let preview_offset = $(preview.canvas).offset();
-			let armature_bone: ArmatureBone = ArmatureBone.selected[0];
+			let armature_bone = ArmatureBone.selected[0] as ArmatureBone;
 			if (!armature_bone) {
 				return Blockbench.showQuickMessage('Select an armature bone first!');
 			}

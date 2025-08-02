@@ -1,6 +1,4 @@
-
-new ModelFormat({
-	id: 'free',
+new ModelFormat('free', {
 	icon: 'icon-format_free',
 	category: 'general',
 	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender', tl('format.free.info.3d_printing')],
@@ -16,6 +14,7 @@ new ModelFormat({
 	},
 	meshes: true,
 	billboards: true,
+	armature_rig: true,
 	splines: true,
 	rotate_cubes: true,
 	bone_rig: true,

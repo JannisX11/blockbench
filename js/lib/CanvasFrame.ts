@@ -5,8 +5,9 @@ export class CanvasFrame {
 	canvas: HTMLCanvasElement
 	ctx: CanvasRenderingContext2D
 	
-	constructor(height: number, number: number)
-	constructor(source: HTMLCanvasElement | HTMLImageElement | number, copy_canvas?: number | boolean) {
+	constructor()
+	constructor(width: number, height: number)
+	constructor(source?: HTMLCanvasElement | HTMLImageElement | number, copy_canvas?: number | boolean) {
 		if (source instanceof HTMLCanvasElement) {
 			if (source.getContext('2d') && copy_canvas !== true) {
 				this.canvas = source;

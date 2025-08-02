@@ -16,7 +16,6 @@
 /// <reference types="./desktop" />
 /// <reference types="./dialog" />
 /// <reference types="./display_mode" />
-/// <reference types="./format" />
 /// <reference types="./global" />
 /// <reference types="./group" />
 /// <reference types="./interface" />

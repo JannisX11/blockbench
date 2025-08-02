@@ -539,6 +539,7 @@ export const skin_dialog = new Dialog({
 		Settings.updateSettingsInProfiles();
 	}
 });
+// @ts-ignore
 format.setup_dialog = skin_dialog;
 
 type SkinPose = {
