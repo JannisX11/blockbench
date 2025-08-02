@@ -92,7 +92,7 @@ export const Animator = {
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 	},
-	showDefaultPose(no_matrix_update) {
+	showDefaultPose(reduced_updates) {
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			var mesh = node.mesh;
@@ -104,11 +104,11 @@ export const Animator = {
 		})
 		for (let mesh of Mesh.all) {
 			let armature = mesh.getArmature();
-			if (armature) {
+			if (armature && !reduced_updates) {
 				Mesh.preview_controller.updateGeometry(mesh);
 			}
 		}
-		if (!no_matrix_update) scene.updateMatrixWorld()
+		if (!reduced_updates) scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
 		for (var path in Animator.particle_effects) {

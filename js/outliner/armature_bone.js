@@ -344,11 +344,20 @@ new NodePreviewController(ArmatureBone, {
 			bone.parent.remove(bone);
 		}
 
-		let tail_bone = element.children[0];
-		if (tail_bone) {
-			let tail_offset = Reusable.vec1.fromArray(tail_bone.position);
+		if (element.children.length >= 2) {
+			let box = new THREE.Box3();
+			for (let bone of element.children) {
+				box.expandByPoint(Reusable.vec1.fromArray(bone.position));
+			}
+			let tail_offset = box.getCenter(Reusable.vec1);
+			bone.children[0].scale.y = Math.max(2, tail_offset.length());
+			bone.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tail_offset.normalize());
+
+		} else if (element.children.length == 1) {
+			let tail_offset = Reusable.vec1.fromArray(element.children[0].position);
 			bone.children[0].scale.y = tail_offset.length();
 			bone.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tail_offset.normalize());
+
 		} else {
 			bone.children[0].rotation.set(0,0,0);
 			bone.children[0].scale.y = element.length;

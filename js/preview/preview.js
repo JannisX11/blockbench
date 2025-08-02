@@ -411,6 +411,7 @@ export class Preview {
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
 			} else if (element instanceof ArmatureBone) {
+				if (Toolbox.selected.id == 'weight_brush') return;
 				objects.push(element.mesh.children[0]);
 			}
 		})

@@ -44,12 +44,8 @@ BARS.defineActions(function defineWeightBrush() {
 			if (!armature_bone) {
 				return Blockbench.showQuickMessage('Select an armature bone first!');
 			}
-			if (data.element instanceof ArmatureBone) {
-				data.element.select();
-				return;
-			}
 			if (data.element instanceof Mesh == false) {
-				return Blockbench.showQuickMessage('Select an armature bone first!');
+				return;
 			}
 			if (!data.element.getArmature()) {
 				return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
@@ -79,15 +75,18 @@ BARS.defineActions(function defineWeightBrush() {
 				if (mesh instanceof Mesh == false) return;
 				let vec = new THREE.Vector3();
 				let vec2 = new THREE.Vector2();
+				raycaster.ray.origin.setFromMatrixPosition(preview.camera.matrixWorld);
+				let raycasts = 0;
+				
 				for (let vkey in mesh.vertices) {
 					let pos = mesh.mesh.localToWorld(vec.fromArray(mesh.vertices[vkey]));
 
 					if (depth_check) {
-						raycaster.ray.origin.setFromMatrixPosition(preview.camera.matrixWorld);
 						raycaster.ray.direction.copy(pos).sub(raycaster.ray.origin)
 						const z_distance = raycaster.ray.direction.length();
 						raycaster.ray.direction.normalize();
 						let intersection = raycaster.intersectObject(mesh.mesh, false)[0];
+						raycasts++;
 						if (intersection && intersection.distance < z_distance-0.001) {
 							continue;
 						}
@@ -112,6 +111,7 @@ BARS.defineActions(function defineWeightBrush() {
 						armature_bone.vertex_weights[vkey] = value
 					}
 				}
+				console.log(raycasts)
 				// @ts-ignore
 				Mesh.preview_controller.updateGeometry(mesh);
 			}
@@ -131,6 +131,8 @@ BARS.defineActions(function defineWeightBrush() {
 			(BarItems.slider_weight_brush_size as NumSlider).update();
 			Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 			Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
+			// @ts-ignore
+			ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = true;
 
 			brush_outline = Interface.createElement('div', {id: 'weight_brush_outline'});
 			document.addEventListener('pointermove', updateBrushOutline);
@@ -141,6 +143,9 @@ BARS.defineActions(function defineWeightBrush() {
 			}, 0);
 			Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
+			// @ts-ignore
+			ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = false;
+
 			if (brush_outline) brush_outline.remove()
 			document.removeEventListener('pointermove', updateBrushOutline);
 		}
