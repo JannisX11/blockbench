@@ -1,12 +1,20 @@
-export const _FBX_VERSION = 7300;
+const _FBX_VERSION = 7300;
 
 /**
  * Wraps a number to include the type
  * @param {('I'|'D'|'F'|'L'|'C'|'Y')} type 
  * @param {number} value 
  */
-export function TNum(type, value) {
-	return {type, value, isTNum: true}
+function TNum(type, value) {
+	return {type, value, isTNum: true, toString: () => value.toString()};
+}
+
+function printAttributeList(list, type = 'i', key = 'a') {
+	return {
+		_values: [`_*${list.length}`],
+		_type: type,
+		[key]: list,
+	} 
 }
 
 var codec = new Codec('fbx', {
@@ -18,6 +26,7 @@ var codec = new Codec('fbx', {
 		let scope = this;
 		let export_scale = (options.scale||16) / 100;
 		let model = [];
+		let armature_scale_const = new THREE.Vector3(1, 1, 1);
 		model.push([
 			'; FBX 7.3.0 project file',
 			'; Created by the Blockbench FBX Exporter',
@@ -35,11 +44,12 @@ var codec = new Codec('fbx', {
 		function getID(uuid) {
 			if (uuid == 0) return TNum('L', 0);
 			if (UUIDMap[uuid]) return UUIDMap[uuid];
-			let s = '';
+			let string_array = [];
 			for (let i = 0; i < 8; i++) {
-				s += Math.floor(Math.random()*10)
+				string_array.push(Math.floor(Math.random()*10));
 			}
-			s[0] = '7';
+			string_array[0] = '7';
+			let s = string_array.join('');
 			UUIDMap[uuid] = TNum('L', parseInt(s));
 			return UUIDMap[uuid];
 		}
@@ -170,11 +180,14 @@ var codec = new Codec('fbx', {
 
 
 		let DefinitionCounter = {
+			node_attributes: 0,
 			model: 0,
 			geometry: 0,
 			material: 0,
 			texture: 0,
 			image: 0,
+			pose: 0,
+			deformer: 0,
 			animation_stack: 0,
 			animation_layer: 0,
 			animation_curve_node: 0,
@@ -378,6 +391,244 @@ var codec = new Codec('fbx', {
 					id: [getID(tex.uuid+'_m'), getID(mesh.uuid)],
 				})
 			})
+
+			// Armature
+			let armature = mesh.getArmature();
+			if (armature) {
+				let armature_name = getUniqueName('armature', armature.uuid, armature.name);
+				DefinitionCounter.pose++;
+
+				// Armature
+				let armature_attribute_id = getID(armature.uuid + '_attribute');
+				Objects[armature_attribute_id] = {
+					_key: 'NodeAttribute',
+					_values: [armature_attribute_id, `NodeAttribute::${armature_name}`, 'Null'],	
+					TypeFlags: "Null"
+				};
+				DefinitionCounter.node_attributes++;
+
+				let armature_id = getID(armature.uuid);
+				Objects[armature_id] = {
+					_key: 'Model',
+					_values: [armature_id, `Model::${armature_name}`, 'Null'],	
+					Version: 232,
+					Properties70:  {
+						P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
+						P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
+						P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
+						P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
+						P6: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A", ...[1, 1, 1].map(v => TNum('D', v))]},
+					},
+					Culling: "CullingOff"
+				};
+				let parent = armature.parent == 'root' ? root : armature.parent;
+				Connections.push({
+					name: [`Model::${armature_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
+					id: [getID(armature.uuid), getID(parent.uuid)],
+				});
+				DefinitionCounter.model++;
+
+				Connections.push({
+					name: [`NodeAttribute::${armature_name}`,  `Model::${armature_name}`],
+					id: [armature_attribute_id, armature_id],
+				});
+				
+
+				// Bind pose
+				let pose_id = getID(mesh.uuid, '_bind_pose');
+				let pose = {
+					_key: 'Pose',
+					_values: [pose_id, `Pose::${unique_name}`, 'BindPose'],
+					Type: "BindPose",
+					Version: 100,
+					NbPoseNodes: 0,
+				}
+
+				
+				// Mesh bind pose
+				let matrix = new THREE.Matrix4();
+				matrix.scale(armature_scale_const);
+				pose['PoseNode_object'] = {
+					_key: 'PoseNode',
+					Node: getID(mesh.uuid),
+					Matrix: printAttributeList(matrix.elements, 'd')
+				}
+				pose.NbPoseNodes++;
+
+				// Armature bind pose
+				let matrix2 = new THREE.Matrix4();
+				matrix.scale(armature_scale_const);
+				pose['PoseNode_object'] = {
+					_key: 'PoseNode',
+					Node: getID(armature.uuid),
+					Matrix: printAttributeList(matrix2.elements, 'd')
+				}
+				pose.NbPoseNodes++;
+
+				// Bones
+				const bone_list = [];
+				const bind_matrix_list = [];
+				function processBone(bone) {
+					console.log(bone)
+					bone_list.push(bone);
+					let unique_name = getUniqueName('bone', bone.uuid, bone.name);
+					let attribute_id = getID(bone.uuid + '_attribute');
+					Objects[attribute_id.value] = {
+						_key: 'NodeAttribute',
+						_values: [attribute_id, `NodeAttribute::${unique_name}`, 'LimbNode'],	
+						Properties70:  {
+							P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length / export_scale)]},
+						},
+						TypeFlags: "Skeleton"
+					};
+					DefinitionCounter.node_attributes++;
+					
+					let object_id = getID(bone.uuid);
+					Objects[bone.uuid] = {
+						_key: 'Model',
+						_values: [object_id, `Model::${unique_name}`, 'LimbNode'],	
+						Version: 232,
+						Properties70:  {
+							P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
+							P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
+							P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(bone).map(v => TNum('D', v))]},
+							P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...bone.rotation.map(v => TNum('D', v))]},
+							//P4: {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]},
+						},
+						Culling: "CullingOff"
+					};
+					let parent = bone.parent == 'root' ? root : bone.parent;
+					Connections.push({
+						name: [`Model::${unique_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
+						id: [getID(bone.uuid), getID(parent.uuid)],
+					});
+					DefinitionCounter.model++;
+
+					Connections.push({
+						name: [`NodeAttribute::${unique_name}`,  `Model::${unique_name}`],
+						id: [attribute_id, object_id],
+					});
+
+
+
+					if (bone.children.length == 0) {
+						// End bone node
+						let attribute_id_end = getID(bone.uuid + '_end_attribute');
+						Objects[attribute_id_end] = {
+							_key: 'NodeAttribute',
+							_values: [attribute_id_end, `NodeAttribute::${unique_name}_end`, 'LimbNode'],	
+							Properties70:  {
+								P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length * 10)]},
+							},
+							TypeFlags: "Skeleton"
+						};
+						DefinitionCounter.node_attributes++;
+					
+						let object_id_end = getID(bone.uuid+'_end');
+						Objects[object_id_end] = {
+							_key: 'Model',
+							_values: [object_id_end, `Model::${unique_name}_end`, 'LimbNode'],	
+							Version: 232,
+							Properties70:  {
+								P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
+								P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
+								P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", 0, bone.length / export_scale, 0]},
+							},
+							Culling: "CullingOff"
+						};
+						Connections.push({
+							name: [`Model::${unique_name}_end`, `Model::${unique_name}`],
+							id: [object_id_end, getID(bone.uuid)],
+						});
+						DefinitionCounter.model++;
+
+						Connections.push({
+							name: [`NodeAttribute::${unique_name}_end`, `Model::${unique_name}_end`],
+							id: [attribute_id_end, object_id_end],
+						});
+					}
+
+					// Bind pose
+					let matrix = new THREE.Matrix4().copy(bone.mesh.inverse_bind_matrix).invert();
+					matrix.scale(armature_scale_const);
+					pose['PoseNode'+object_id] = {
+						_key: 'PoseNode',
+						Node: object_id,
+						Matrix: printAttributeList(matrix.elements, 'd')
+					}
+					pose.NbPoseNodes++;
+					bind_matrix_list.push(matrix);
+
+					// Children
+					for (let child of bone.children) {
+						processBone(child);
+					}
+				}
+				for (let child of armature.children) {
+					processBone(child);
+				}
+
+				// Deformers
+				let deformer_id = getID(armature.uuid+'_deformer');
+				Objects[deformer_id] = {
+					_key: 'Deformer',
+					_values: [deformer_id, `Deformer::${armature_name}`, 'Skin'],
+					Version: 101,
+					Link_DeformAcuracy: 50
+				};
+				DefinitionCounter.deformer++;
+				Connections.push({
+					name: [`Deformer::${armature_name}`, `Geometry::${unique_name}`],
+					id: [deformer_id, geo_id],
+				});
+
+				let mesh_transform = new THREE.Matrix4().copy(mesh.mesh.matrixWorld);
+				for (let bone of bone_list) {
+					let sub_deformer_id = getID(bone.uuid+'_deformer');
+					let bone_name = getUniqueName('bone', bone.uuid, bone.name);
+					let indices = [];
+					let weights = [];
+					for (let vkey in bone.vertex_weights) {
+						if (bone.vertex_weights[vkey] > 0.001) {
+							indices.push(vertex_keys.indexOf(vkey));
+							weights.push(Math.clamp(bone.vertex_weights[vkey], 0, 1));
+						}
+					}
+					let bind_matrix = bind_matrix_list[bone_list.indexOf(bone)];
+
+					Objects[sub_deformer_id] = {
+						_key: 'Deformer',
+						_values: [sub_deformer_id, `SubDeformer::${bone_name}`, 'Cluster'],
+						Version: 100,
+						UserData: ["", ""],
+						Indexes: printAttributeList(indices, 'i'),
+						Weights: printAttributeList(weights, 'd'),
+						Transform: printAttributeList(mesh_transform.elements, 'd'),
+						TransformLink: printAttributeList(bind_matrix.elements, 'd'),
+					};
+					DefinitionCounter.deformer++;
+
+					Connections.push({
+						name: [`SubDeformer::${bone_name}`, `Deformer::${armature_name}`],
+						id: [sub_deformer_id, deformer_id],
+					});
+					Connections.push({
+						name: [`Model::${getUniqueName('bone', bone.uuid, bone.name)}`, `SubDeformer::${bone_name}`],
+						id: [getID(bone.uuid), sub_deformer_id],
+					});
+				}
+
+
+				// (x) Limb Node attribute
+				// (x) Limb Node model
+				// (x) Limb End attribute
+				// (x) Limb End model
+				// (x) Bind pose
+				// (x) Deformer
+				// (x) Sub Deformers
+				// (x) Relation: SubDeformer > Deformer
+				// (x) Relation: Bone > SubDeformer
+			}
 		})
 
 		// Cubes
@@ -774,6 +1025,19 @@ var codec = new Codec('fbx', {
 					_values: ['GlobalSettings'],
 					Count: 1
 				},
+				node_attribute: DefinitionCounter.node_attributes ? {
+					_key: 'ObjectType',
+					_values: ['NodeAttribute'],
+					Count: DefinitionCounter.node_attributes,
+					PropertyTemplate: {
+						_values: ['FbxNull'],
+						Properties70: {
+							P1: {_key: 'P', _values: ["Color", "ColorRGB", "Color", "",TNum('D',0.8),TNum('D',0.8),TNum('D',0.8)]},
+							P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', 100)]},
+							P3: {_key: 'P', _values: ["Look", "enum", "", "",1]},
+						}
+					}
+				} : undefined,
 				model: DefinitionCounter.model ? {
 					_key: 'ObjectType',
 					_values: ['Model'],
@@ -951,6 +1215,17 @@ var codec = new Codec('fbx', {
 				} : undefined,
 
 
+				pose: DefinitionCounter.pose ? {
+					_key: 'ObjectType',
+					_values: ['Pose'],
+					Count: DefinitionCounter.pose,
+				} : undefined,
+				deformer: DefinitionCounter.deformer ? {
+					_key: 'ObjectType',
+					_values: ['Deformer'],
+					Count: DefinitionCounter.deformer,
+				} : undefined,
+
 				animation_stack: DefinitionCounter.animation_stack ? {
 					_key: 'ObjectType',
 					_values: ['AnimationStack'],
@@ -1013,7 +1288,7 @@ var codec = new Codec('fbx', {
 		model.push(formatFBXComment('Object connections'));
 		let connections = {};
 		Connections.forEach((connection, i) => {
-			//connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
+			connections[`connection_${i}_comment`] = {_comment: connection.name.join(', ')}
 			connections[`connection_${i}`] = {
 				_key: 'C',
 				_values: [connection.property ? 'OP' : 'OO', ...connection.id]
@@ -1302,7 +1577,7 @@ export function compileBinaryFBXModel(top_level_object) {
 	}
 
 	// Awful exceptions from Blender: those "classes" of elements seem to need block sentinel even when having no children and some props.
-	_KEYS_IGNORE_BLOCK_SENTINEL = ["AnimationStack", "AnimationLayer"];
+	const _KEYS_IGNORE_BLOCK_SENTINEL = ["AnimationStack", "AnimationLayer"];
 
 	// TODO: if FBX_VERSION >= 7500, use 64-bit offsets (for read_fbx_elem_uint)
 

@@ -330,7 +330,7 @@ export const Animator = {
 						for ( let i = 0; i < 4; i ++ ) {
 							const weight = weights[i];
 							if ( weight !== 0 && affecting_bones[i] ) {
-								_matrix4.multiplyMatrices( affecting_bones[i].mesh.matrixWorld, affecting_bones[i].mesh.inverse_fix_matrix );
+								_matrix4.multiplyMatrices( affecting_bones[i].mesh.matrixWorld, affecting_bones[i].mesh.inverse_bind_matrix );
 								target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
 							}		
 						}

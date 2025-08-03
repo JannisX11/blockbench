@@ -319,7 +319,7 @@ new NodePreviewController(ArmatureBone, {
 
 		object_3d.fix_position = new THREE.Vector3();
 		object_3d.fix_rotation = new THREE.Euler();
-		object_3d.inverse_fix_matrix = new THREE.Matrix4();
+		object_3d.inverse_bind_matrix = new THREE.Matrix4();
 
 		this.updateTransform(element);
 		this.updateSelection(element);
@@ -365,7 +365,7 @@ new NodePreviewController(ArmatureBone, {
 
 		bone.fix_position.copy(bone.position);
 		bone.fix_rotation.copy(bone.rotation);
-		bone.inverse_fix_matrix.copy(bone.matrixWorld).invert();
+		bone.inverse_bind_matrix.copy(bone.matrixWorld).invert();
 
 		for (let bone2 of bone.children) {
 			if (bone2.mesh) this.updateTransform(bone2);

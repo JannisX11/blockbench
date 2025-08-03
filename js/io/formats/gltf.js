@@ -328,7 +328,7 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 	let geometry = mesh_obj.mesh.geometry.clone();
 	let skinned_mesh = new THREE.SkinnedMesh(geometry, mesh_obj.mesh.material);
 	skinned_mesh.name = mesh_obj.name;
-	skeleton.name = mesh_obj.name;
+	skeleton.name = armature.name;
 	skinned_mesh.position.copy(mesh_obj.mesh.position);
 	//skinned_mesh.position.multiplyScalar(1/scale);
 	skinned_mesh.rotation.copy(mesh_obj.mesh.rotation);
