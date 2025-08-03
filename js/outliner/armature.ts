@@ -224,6 +224,9 @@ export class Armature extends OutlinerElement {
 		'rename',
 		'delete'
 	]);
+	
+	static all: Armature[]
+	static selected: Armature[]
 }
 
 OutlinerElement.registerType(Armature, 'armature');

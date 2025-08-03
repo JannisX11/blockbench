@@ -1,11 +1,25 @@
+import { Blockbench } from "../../api";
+import { Filesystem } from "../../file_system";
+import { Armature } from "../../outliner/armature";
+import { adjustFromAndToForInflateAndStretch } from "../../outliner/cube";
+import { patchedAtob } from "../../util/util";
+import { JSZip, THREE } from './../../lib/libs'
+
 const _FBX_VERSION = 7300;
 
+type TNumType = 'I'|'D'|'F'|'L'|'C'|'Y';
+type TNumVal = {
+	type: TNumType,
+	value: number | BigInt,
+	isTNum: true,
+	toString: () => string
+}
 /**
  * Wraps a number to include the type
- * @param {('I'|'D'|'F'|'L'|'C'|'Y')} type 
+ * @param {TNumType} type 
  * @param {number} value 
  */
-function TNum(type, value) {
+function TNum(type: TNumType, value: number | BigInt): TNumVal {
 	return {
 		type,
 		value,
@@ -21,6 +35,13 @@ function printAttributeList(list, type = 'i', key = 'a') {
 		[key]: list,
 	} 
 }
+
+type FBXNode = {
+	_key?: string
+	_values: (string|number|TNumVal)[]
+	[key: string]: any
+}
+
 
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
@@ -46,7 +67,7 @@ var codec = new Codec('fbx', {
 				+ '\n;------------------------------------------------------------------\n\n';
 		}
 		let UUIDMap = {};
-		function getID(uuid) {
+		function getID(uuid: string | number): TNumVal {
 			if (uuid == 0) return TNum('L', 0);
 			if (UUIDMap[uuid]) return UUIDMap[uuid];
 			let string_array = [];
@@ -59,7 +80,7 @@ var codec = new Codec('fbx', {
 			return UUIDMap[uuid];
 		}
 		let UniqueNames = {};
-		function getUniqueName(namespace, uuid, original_name) {
+		function getUniqueName(namespace: string, uuid: string, original_name: string): string {
 			if (!UniqueNames[namespace]) UniqueNames[namespace] = {};
 			let names = UniqueNames[namespace];
 			if (names[uuid]) return names[uuid];
@@ -89,7 +110,7 @@ var codec = new Codec('fbx', {
 				EncryptionType: 0,
 				CreationTimeStamp: {
 					Version: 1000,
-					Year: 1900 + date.getYear(),
+					Year: date.getFullYear(),
 					Month: date.getMonth()+1,
 					Day: date.getDate(),
 					Hour: date.getHours(),
@@ -198,8 +219,12 @@ var codec = new Codec('fbx', {
 			animation_curve_node: 0,
 			animation_curve: 0,
 		};
-		let Objects = {};
-		let Connections = [];
+		let Objects: Record<string, FBXNode> = {};
+		let Connections: {
+			name: string[],
+			id: (string|TNumVal)[]
+			property?: string
+		}[] = [];
 		let Takes = {
 			Current: ''
 		};
@@ -301,7 +326,7 @@ var codec = new Codec('fbx', {
 			let used_textures = Texture.all.filter(t => textures.includes(t));
 
 			let geo_id = getID(mesh.uuid + '_geo')
-			let geometry = {
+			let geometry: FBXNode = {
 				_key: 'Geometry',
 				_values: [geo_id, `Geometry::${unique_name}`, 'Mesh'],
 
@@ -384,8 +409,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id] = geometry;
-			console.log(geo_id, Objects)
+			Objects[geo_id.toString()] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -405,7 +429,7 @@ var codec = new Codec('fbx', {
 
 			// Armature
 			let armature_attribute_id = getID(armature.uuid + '_attribute');
-			Objects[armature_attribute_id] = {
+			Objects[armature_attribute_id.toString()] = {
 				_key: 'NodeAttribute',
 				_values: [armature_attribute_id, `NodeAttribute::${armature_name}`, 'Null'],	
 				TypeFlags: "Null"
@@ -413,7 +437,7 @@ var codec = new Codec('fbx', {
 			DefinitionCounter.node_attributes++;
 
 			let armature_id = getID(armature.uuid);
-			Objects[armature_id] = {
+			Objects[armature_id.toString()] = {
 				_key: 'Model',
 				_values: [armature_id, `Model::${armature_name}`, 'Null'],	
 				Version: 232,
@@ -428,7 +452,7 @@ var codec = new Codec('fbx', {
 			};
 			let parent = armature.parent == 'root' ? root : armature.parent;
 			Connections.push({
-				name: [`Model::${armature_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
+				name: [`Model::${armature_name}`, `Model::${getUniqueName('object', parent.uuid as string, parent.name)}`],
 				id: [getID(armature.uuid), getID(parent.uuid)],
 			});
 			DefinitionCounter.model++;
@@ -440,9 +464,9 @@ var codec = new Codec('fbx', {
 			
 
 			// Bind pose
-			let pose;
+			let pose: FBXNode;
 			if (mesh) {
-				let pose_id = getID(mesh.uuid, '_bind_pose');
+				let pose_id = getID(mesh.uuid + '_bind_pose');
 				pose = {
 					_key: 'Pose',
 					_values: [pose_id, `Pose::${getUniqueName('object', mesh.uuid, mesh.name)}`, 'BindPose'],
@@ -472,7 +496,7 @@ var codec = new Codec('fbx', {
 				}
 				pose.NbPoseNodes++;
 
-				Objects[pose_id] = pose;
+				Objects[pose_id.toString()] = pose;
 				DefinitionCounter.pose++;
 			}
 
@@ -484,7 +508,7 @@ var codec = new Codec('fbx', {
 				bone_list.push(bone);
 				let unique_name = getUniqueName('bone', bone.uuid, bone.name);
 				let attribute_id = getID(bone.uuid + '_attribute');
-				Objects[attribute_id] = {
+				Objects[attribute_id.toString()] = {
 					_key: 'NodeAttribute',
 					_values: [attribute_id, `NodeAttribute::${unique_name}`, 'LimbNode'],	
 					Properties70:  {
@@ -495,7 +519,7 @@ var codec = new Codec('fbx', {
 				DefinitionCounter.node_attributes++;
 				
 				let object_id = getID(bone.uuid);
-				Objects[object_id] = {
+				Objects[object_id.toString()] = {
 					_key: 'Model',
 					_values: [object_id, `Model::${unique_name}`, 'LimbNode'],	
 					Version: 232,
@@ -525,7 +549,7 @@ var codec = new Codec('fbx', {
 				if (bone.children.length == 0) {
 					// End bone node
 					let attribute_id_end = getID(bone.uuid + '_end_attribute');
-					Objects[attribute_id_end] = {
+					Objects[attribute_id_end.toString()] = {
 						_key: 'NodeAttribute',
 						_values: [attribute_id_end, `NodeAttribute::${unique_name}_end`, 'LimbNode'],	
 						Properties70:  {
@@ -536,7 +560,7 @@ var codec = new Codec('fbx', {
 					DefinitionCounter.node_attributes++;
 				
 					let object_id_end = getID(bone.uuid+'_end');
-					Objects[object_id_end] = {
+					Objects[object_id_end.toString()] = {
 						_key: 'Model',
 						_values: [object_id_end, `Model::${unique_name}_end`, 'LimbNode'],	
 						Version: 232,
@@ -584,7 +608,7 @@ var codec = new Codec('fbx', {
 			// Mesh deformers
 			if (mesh) {
 				let deformer_id = getID(armature.uuid+'_deformer');
-				Objects[deformer_id] = {
+				Objects[deformer_id.toString()] = {
 					_key: 'Deformer',
 					_values: [deformer_id, `Deformer::${armature_name}`, 'Skin'],
 					Version: 101,
@@ -611,7 +635,7 @@ var codec = new Codec('fbx', {
 					}
 					let bind_matrix = bind_matrix_list[bone_list.indexOf(bone)];
 
-					Objects[sub_deformer_id] = {
+					Objects[sub_deformer_id.toString()] = {
 						_key: 'Deformer',
 						_values: [sub_deformer_id, `SubDeformer::${bone_name}`, 'Cluster'],
 						Version: 100,
@@ -681,7 +705,7 @@ var codec = new Codec('fbx', {
 			for (let fkey in cube.faces) {
 				let face = cube.faces[fkey];
 				if (face.texture === null) continue;
-				texture = face.getTexture();
+				let texture = face.getTexture();
 				textures.push(texture);
 				normals.push(...cube_face_normals[fkey]);
 
@@ -941,7 +965,7 @@ var codec = new Codec('fbx', {
 
 					// Connect to bone
 					Connections.push({
-						name: [track_name, `Model::${getUniqueName('object', track.group_uuid)}`],
+						name: [track_name, `Model::${getUniqueName('object', track.group_uuid, track.name)}`],
 						id: [track_id, getID(track.group_uuid)],
 						property: track.channel == 'position' ? "Lcl Translation" : (track.channel == 'rotation' ? "Lcl Rotation" : "Lcl Scaling")
 					});
@@ -1373,7 +1397,7 @@ var codec = new Codec('fbx', {
 		}
 		var scope = this;
 		if (isApp) {
-			Blockbench.export({
+			Filesystem.exportFile({
 				resource_id: 'fbx',
 				type: this.name,
 				extensions: [this.extension],
@@ -1398,7 +1422,7 @@ var codec = new Codec('fbx', {
 				archive.file(name, tex.source.replace('data:image/png;base64,', ''), {base64: true});
 			})
 			archive.generateAsync({type: 'blob'}).then(content => {
-				Blockbench.export({
+				Filesystem.exportFile({
 					type: 'Zip Archive',
 					extensions: ['zip'],
 					name: 'assets',
@@ -1411,8 +1435,7 @@ var codec = new Codec('fbx', {
 })
 
 BARS.defineActions(function() {
-	codec.export_action = new Action({
-		id: 'export_fbx',
+	codec.export_action = new Action('export_fbx', {
 		icon: 'icon-fbx',
 		category: 'file',
 		condition: () => Project,
@@ -1423,8 +1446,15 @@ BARS.defineActions(function() {
 })
 
 class BinaryWriter {
+	array: Uint8Array;
+	buffer: ArrayBuffer;
+	view: DataView
+	cursor: number
+	little_endian: boolean
+	textEncoder: TextEncoder;
 	constructor(minimal_length, little_endian) {
 		this.array = new Uint8Array(minimal_length);
+		// @ts-ignore
 		this.buffer = this.array.buffer;
 		this.view = new DataView(this.buffer);
 		this.cursor = 0;
@@ -1481,7 +1511,7 @@ class BinaryWriter {
 		this.view.setFloat64(this.cursor, value, this.little_endian);
 		this.cursor += 8;
 	}
-	WriteBoolean(value) {
+	WriteBoolean(value:boolean) {
 		this.WriteUInt8(value ? 1 : 0)
 	}
 	Write7BitEncodedInt(value) {
@@ -1491,16 +1521,16 @@ class BinaryWriter {
 		}
 		this.WriteUInt8(value);
 	}
-	WriteRawString(string) {
+	WriteRawString(string: string) {
 		var array = this.EncodeString(string);
 		this.WriteBytes(array);
 	}
-	WriteString(string, raw) {
+	WriteString(string: string, raw?: boolean) {
 		var array = this.EncodeString(string);
 		if (!raw) this.Write7BitEncodedInt(array.byteLength);
 		this.WriteBytes(array);
 	}
-	WriteU32String(string) {
+	WriteU32String(string: string) {
 		var array = this.EncodeString(string);
 		this.WriteUInt32(array.byteLength);
 		this.WriteBytes(array);
@@ -1559,7 +1589,7 @@ class BinaryWriter {
 		this.array.set(array, this.cursor);
 		this.cursor += array.byteLength;
 	}
-	EncodeString(string) {
+	EncodeString(string: string) {
 		return this.textEncoder.encode(string);
 	}
 };
@@ -1664,7 +1694,7 @@ export function compileBinaryFBXModel(top_level_object) {
 
 			// Tuple
 			tuple.forEach((value, i) => {
-				let type = typeof value;
+				let type: string = typeof value;
 				if (typeof value == 'object' && value.isTNum) {
 					type = value.type;
 					value = value.value;
@@ -1800,7 +1830,7 @@ export function compileBinaryFBXModel(top_level_object) {
 	return output;
 }
 
-export function compileASCIIFBXSection(object) {
+export function compileASCIIFBXSection(object: FBXNode) {
 	let depth = 0;
 	function indent() {
 		let spaces = '';

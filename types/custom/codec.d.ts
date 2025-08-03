@@ -19,11 +19,15 @@ interface CodecOptions {
 
 	dispatchEvent?(event_name: string, data: any): void
 
-	extension: string
+	extension?: string
 	/**
 	 * Whether to remember the models exported using this codec
 	 */
-	remember: boolean
+	remember?: boolean
+	/**
+	 * Whether the codec can be used to export a part of the model via a collection
+	 */
+	support_partial_export?: boolean
 	load_filter?: {
 		extensions: string[]
 		type: 'json' | 'text'
@@ -136,6 +140,10 @@ declare class Codec extends Deletable {
 	 * Whether to remember files that use this codec in the recent models list
 	 */
 	remember: boolean
+	/**
+	 * Whether the codec can be used to export a part of the model via a collection
+	 */
+	support_partial_export: boolean
 	/**
 	 * If available, the action that is used to export files using this codec
 	 */
