@@ -89,8 +89,10 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-Animator.MolangParser.variableHandler = function (variable, variables) {
-	const val = Animator.global_variable_lines[variable]
+Animator.MolangParser.variableHandler = function (variable, variables, args) {
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => "'"+arg+"'").join(',')})`;
+
+	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
 	if (val === undefined) {
 		return
 	}

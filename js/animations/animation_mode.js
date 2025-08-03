@@ -491,7 +491,7 @@ const Animator = {
 					function processPlaceholderVariables(text) {
 						if (typeof text !== 'string') return;
 						text = text.replace(/v\./, 'variable.').replace(/q\./, 'query.').replace(/t\./, 'temp.').replace(/c\./, 'context.').toLowerCase();
-						let matches = text.match(/(query|variable|context|temp)\.\w+/gi);
+						let matches = text.match(/(query|variable|context|temp)\.\w+(\([^)]*\))?/gi);
 						if (!matches) return;
 						matches.forEach(match => {
 							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
@@ -500,6 +500,7 @@ const Animator = {
 
 							let [space, name] = match.split(/\./);
 							if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
+							name = name.replace(/[')]/g, '').replace('(', ':');
 
 							if (name == 'modified_distance_moved') {
 								panel_vue.text += `${match} = time * 8`;
