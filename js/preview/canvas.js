@@ -904,48 +904,6 @@ export const Canvas = {
 			Canvas.updateAllFaces();
 		}
 	},
-	adaptObjectFaces(cube, mesh) {
-		if (!mesh) mesh = cube.mesh
-		if (!mesh) return;
-
-		Canvas.adaptObjectFaceGeo(cube);
-
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
-
-		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.getSolidColorMaterial(cube.color);
-
-		} else if (Project.view_mode === 'wireframe') {
-			mesh.material = Canvas.wireframeMaterial
-
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
-			mesh.material = Canvas.getLayeredMaterial();
-
-		} else if (Format.single_texture) {
-			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(cube.color);
-
-		} else {
-			var materials = []
-			Canvas.face_order.forEach(function(face) {
-
-				if (cube.faces[face].texture === null) {
-					materials.push(Canvas.transparentMaterial)
-
-				} else {
-					var tex = cube.faces[face].getTexture()
-					if (tex && tex.uuid) {
-						materials.push(tex.getMaterial())
-					} else {
-						materials.push(Canvas.getEmptyMaterial(cube.color));
-					}
-				}
-			})
-			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
-		}
-	},
 	updateUV(cube, animation = true) {
 		// Deprecated
 		return Cube.preview_controller.updateUV(cube, animation);

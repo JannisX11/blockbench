@@ -184,7 +184,7 @@ slider.on('change', (data: {number: number}) => {
 })
 
 Blockbench.on('update_selection', (data) => {
-	if (Toolbox.selected.id == 'weight_brush') {
+	if (Toolbox.selected.id == 'weight_brush' || Project.view_mode === 'vertex_weight') {
 		Canvas.updateView({elements: Mesh.all.filter(mesh => mesh.getArmature()), element_aspects: {geometry: true}});
 	}
 })

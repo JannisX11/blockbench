@@ -1080,7 +1080,8 @@ new NodePreviewController(Mesh, {
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
 
-		let armature_bone = Toolbox.selected.id === 'weight_brush' && (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
+		let armature_bone = (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight')
+			&& (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
 
 		function addVertexPosition(vkey) {
 			position_array.push(...vertices[vkey]);
@@ -1236,7 +1237,7 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Toolbox.selected.id === 'weight_brush') {
+		if (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') {
 			mesh.material = Canvas.vertexWeightHelperMaterial
 
 		} else if (Project.view_mode === 'solid') {
