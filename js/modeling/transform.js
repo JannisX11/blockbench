@@ -1250,7 +1250,7 @@ BARS.defineActions(function() {
 
 
 	function resizeOnAxis(modify, axis) {
-		selected.forEach(function(obj, i) {
+		Outliner.selected.forEach(function(obj, i) {
 			if (obj.getTypeBehavior('resizable')) {
 				obj.resize(modify, axis, false, true, obj instanceof Mesh)
 			} else if (obj.getTypeBehavior('scalable')) {

@@ -151,12 +151,17 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		return [0, this.length, 0];
 	}
-	getSize() {
-		return [0, this.length, 0];
+	getSize(axis) {
+		return this.size(axis);
 	}
 	resize(move_value, axis_number, invert) {
 		if (axis_number == 1) {
-			this.length = this.old_size + move_value * (invert ? -1 : 1);
+			let previous_length = this.old_size ?? this.length;
+			if (typeof move_value == 'function') {
+				this.length = move_value(previous_length);
+			} else {
+				this.length = previous_length + move_value * (invert ? -1 : 1);
+			}
 			this.preview_controller.updateTransform(this);
 		}
 	}
