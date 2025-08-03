@@ -20,31 +20,7 @@ export class NullObject extends OutlinerElement {
 			NullObject.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		//Merge.boolean(this, object, 'export');
-		return this;
-	}
-	getUndoCopy() {
-		var copy = new NullObject(this)
-		copy.uuid = this.uuid
-		copy.type = this.type;
-		delete copy.parent;
-		return copy;
-	}
-	getSaveCopy() {
-		let save = {};
-		for (var key in NullObject.properties) {
-			NullObject.properties[key].copy(this, save)
-		}
-		//save.export = this.export ? undefined : false;
-		save.uuid = this.uuid;
-		save.type = 'null_object';
-		return save;
-	}
-	init() {
-		if (this.parent instanceof Group == false) {
-			this.addTo(Group.first_selected)
-		}
-		super.init();
+		Merge.boolean(this, object, 'export');
 		return this;
 	}
 	select(event, isOutlinerClick) {

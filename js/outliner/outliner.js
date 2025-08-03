@@ -682,6 +682,23 @@ export class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
+	getUndoCopy() {
+		let copy = new this.constructor(this)
+		copy.uuid = this.uuid
+		copy.type = this.type;
+		delete copy.parent;
+		return copy;
+	}
+	getSaveCopy() {
+		let save = {};
+		for (let key in this.constructor.properties) {
+			this.constructor.properties[key].copy(this, save)
+		}
+		save.export = this.export ? undefined : false;
+		save.uuid = this.uuid;
+		save.type = this.type;
+		return save;
+	}
 }
 	OutlinerElement.fromSave = function(obj, keep_uuid) {
 		let Type = OutlinerElement.types[obj.type] || Cube;

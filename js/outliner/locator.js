@@ -23,23 +23,6 @@ export class Locator extends OutlinerElement {
 		Merge.boolean(this, object, 'export');
 		return this;
 	}
-	getUndoCopy() {
-		var copy = new Locator(this)
-		copy.uuid = this.uuid
-		copy.type = this.type;
-		delete copy.parent;
-		return copy;
-	}
-	getSaveCopy() {
-		let save = {};
-		for (var key in Locator.properties) {
-			Locator.properties[key].copy(this, save)
-		}
-		save.export = this.export ? undefined : false;
-		save.uuid = this.uuid;
-		save.type = 'locator';
-		return save;
-	}
 	init() {
 		if (this.parent instanceof Group == false) {
 			this.addTo(Group.first_selected)
