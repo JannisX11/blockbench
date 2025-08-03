@@ -6,7 +6,12 @@ const _FBX_VERSION = 7300;
  * @param {number} value 
  */
 function TNum(type, value) {
-	return {type, value, isTNum: true, toString: () => value.toString()};
+	return {
+		type,
+		value,
+		isTNum: true,
+		toString: () => 'key' + value.toString()
+	};
 }
 
 function printAttributeList(list, type = 'i', key = 'a') {
@@ -210,7 +215,7 @@ var codec = new Codec('fbx', {
 		function addNodeBase(node, fbx_type) {
 			let unique_name = getUniqueName('object', node.uuid, node.name);
 			let rotation_order = node.mesh.rotation.order == 'XYZ' ? 5 : 0;
-			Objects[node.uuid] = {
+			Objects['key'+node.uuid] = {
 				_key: 'Model',
 				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
 				Version: 232,
@@ -233,7 +238,7 @@ var codec = new Codec('fbx', {
 				id: [getID(node.uuid), getID(parent.uuid)],
 			});
 			DefinitionCounter.model++;
-			return Objects[node.uuid];
+			return Objects['key'+node.uuid];
 		}
 
 		// Groups
@@ -379,7 +384,8 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id.value] = geometry;
+			Objects[geo_id] = geometry;
+			console.log(geo_id, Objects)
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -391,54 +397,55 @@ var codec = new Codec('fbx', {
 					id: [getID(tex.uuid+'_m'), getID(mesh.uuid)],
 				})
 			})
+		})
+		Armature.all.forEach(armature => {
+			let mesh = Mesh.all.find(m => m.getArmature() == armature);
+			let armature_name = getUniqueName('armature', armature.uuid, armature.name);
+			DefinitionCounter.pose++;
 
 			// Armature
-			let armature = mesh.getArmature();
-			if (armature) {
-				let armature_name = getUniqueName('armature', armature.uuid, armature.name);
-				DefinitionCounter.pose++;
+			let armature_attribute_id = getID(armature.uuid + '_attribute');
+			Objects[armature_attribute_id] = {
+				_key: 'NodeAttribute',
+				_values: [armature_attribute_id, `NodeAttribute::${armature_name}`, 'Null'],	
+				TypeFlags: "Null"
+			};
+			DefinitionCounter.node_attributes++;
 
-				// Armature
-				let armature_attribute_id = getID(armature.uuid + '_attribute');
-				Objects[armature_attribute_id] = {
-					_key: 'NodeAttribute',
-					_values: [armature_attribute_id, `NodeAttribute::${armature_name}`, 'Null'],	
-					TypeFlags: "Null"
-				};
-				DefinitionCounter.node_attributes++;
+			let armature_id = getID(armature.uuid);
+			Objects[armature_id] = {
+				_key: 'Model',
+				_values: [armature_id, `Model::${armature_name}`, 'Null'],	
+				Version: 232,
+				Properties70:  {
+					P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
+					P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
+					P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
+					P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
+					P6: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A", ...[1, 1, 1].map(v => TNum('D', v))]},
+				},
+				Culling: "CullingOff"
+			};
+			let parent = armature.parent == 'root' ? root : armature.parent;
+			Connections.push({
+				name: [`Model::${armature_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
+				id: [getID(armature.uuid), getID(parent.uuid)],
+			});
+			DefinitionCounter.model++;
 
-				let armature_id = getID(armature.uuid);
-				Objects[armature_id] = {
-					_key: 'Model',
-					_values: [armature_id, `Model::${armature_name}`, 'Null'],	
-					Version: 232,
-					Properties70:  {
-						P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
-						P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
-						P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
-						P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...[0, 0, 0].map(v => TNum('D', v))]},
-						P6: {_key: 'P', _values: ["Lcl Scaling", "Lcl Scaling", "", "A", ...[1, 1, 1].map(v => TNum('D', v))]},
-					},
-					Culling: "CullingOff"
-				};
-				let parent = armature.parent == 'root' ? root : armature.parent;
-				Connections.push({
-					name: [`Model::${armature_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
-					id: [getID(armature.uuid), getID(parent.uuid)],
-				});
-				DefinitionCounter.model++;
+			Connections.push({
+				name: [`NodeAttribute::${armature_name}`,  `Model::${armature_name}`],
+				id: [armature_attribute_id, armature_id],
+			});
+			
 
-				Connections.push({
-					name: [`NodeAttribute::${armature_name}`,  `Model::${armature_name}`],
-					id: [armature_attribute_id, armature_id],
-				});
-				
-
-				// Bind pose
+			// Bind pose
+			let pose;
+			if (mesh) {
 				let pose_id = getID(mesh.uuid, '_bind_pose');
-				let pose = {
+				pose = {
 					_key: 'Pose',
-					_values: [pose_id, `Pose::${unique_name}`, 'BindPose'],
+					_values: [pose_id, `Pose::${getUniqueName('object', mesh.uuid, mesh.name)}`, 'BindPose'],
 					Type: "BindPose",
 					Version: 100,
 					NbPoseNodes: 0,
@@ -465,90 +472,95 @@ var codec = new Codec('fbx', {
 				}
 				pose.NbPoseNodes++;
 
-				// Bones
-				const bone_list = [];
-				const bind_matrix_list = [];
-				function processBone(bone) {
-					console.log(bone)
-					bone_list.push(bone);
-					let unique_name = getUniqueName('bone', bone.uuid, bone.name);
-					let attribute_id = getID(bone.uuid + '_attribute');
-					Objects[attribute_id.value] = {
+				Objects[pose_id] = pose;
+				DefinitionCounter.pose++;
+			}
+
+			// Bones
+			const bone_list = [];
+			const bind_matrix_list = [];
+			function processBone(bone) {
+				console.log(bone)
+				bone_list.push(bone);
+				let unique_name = getUniqueName('bone', bone.uuid, bone.name);
+				let attribute_id = getID(bone.uuid + '_attribute');
+				Objects[attribute_id] = {
+					_key: 'NodeAttribute',
+					_values: [attribute_id, `NodeAttribute::${unique_name}`, 'LimbNode'],	
+					Properties70:  {
+						P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length / export_scale)]},
+					},
+					TypeFlags: "Skeleton"
+				};
+				DefinitionCounter.node_attributes++;
+				
+				let object_id = getID(bone.uuid);
+				Objects[object_id] = {
+					_key: 'Model',
+					_values: [object_id, `Model::${unique_name}`, 'LimbNode'],	
+					Version: 232,
+					Properties70:  {
+						P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
+						P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
+						P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(bone).map(v => TNum('D', v))]},
+						P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...bone.rotation.map(v => TNum('D', v))]},
+						//P4: {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]},
+					},
+					Culling: "CullingOff"
+				};
+				let parent = bone.parent == 'root' ? root : bone.parent;
+				Connections.push({
+					name: [`Model::${unique_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
+					id: [getID(bone.uuid), getID(parent.uuid)],
+				});
+				DefinitionCounter.model++;
+
+				Connections.push({
+					name: [`NodeAttribute::${unique_name}`,  `Model::${unique_name}`],
+					id: [attribute_id, object_id],
+				});
+
+
+
+				if (bone.children.length == 0) {
+					// End bone node
+					let attribute_id_end = getID(bone.uuid + '_end_attribute');
+					Objects[attribute_id_end] = {
 						_key: 'NodeAttribute',
-						_values: [attribute_id, `NodeAttribute::${unique_name}`, 'LimbNode'],	
+						_values: [attribute_id_end, `NodeAttribute::${unique_name}_end`, 'LimbNode'],	
 						Properties70:  {
-							P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length / export_scale)]},
+							P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length * 10)]},
 						},
 						TypeFlags: "Skeleton"
 					};
 					DefinitionCounter.node_attributes++;
-					
-					let object_id = getID(bone.uuid);
-					Objects[bone.uuid] = {
+				
+					let object_id_end = getID(bone.uuid+'_end');
+					Objects[object_id_end] = {
 						_key: 'Model',
-						_values: [object_id, `Model::${unique_name}`, 'LimbNode'],	
+						_values: [object_id_end, `Model::${unique_name}_end`, 'LimbNode'],	
 						Version: 232,
 						Properties70:  {
 							P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
 							P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
-							P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", ...getElementPos(bone).map(v => TNum('D', v))]},
-							P5: {_key: 'P', _values: ["Lcl Rotation", "Lcl Rotation", "", "A", ...bone.rotation.map(v => TNum('D', v))]},
-							//P4: {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]},
+							P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", 0, bone.length / export_scale, 0]},
 						},
 						Culling: "CullingOff"
 					};
-					let parent = bone.parent == 'root' ? root : bone.parent;
 					Connections.push({
-						name: [`Model::${unique_name}`, `Model::${getUniqueName('object', parent.uuid, parent.name)}`],
-						id: [getID(bone.uuid), getID(parent.uuid)],
+						name: [`Model::${unique_name}_end`, `Model::${unique_name}`],
+						id: [object_id_end, getID(bone.uuid)],
 					});
 					DefinitionCounter.model++;
 
 					Connections.push({
-						name: [`NodeAttribute::${unique_name}`,  `Model::${unique_name}`],
-						id: [attribute_id, object_id],
+						name: [`NodeAttribute::${unique_name}_end`, `Model::${unique_name}_end`],
+						id: [attribute_id_end, object_id_end],
 					});
+				}
 
-
-
-					if (bone.children.length == 0) {
-						// End bone node
-						let attribute_id_end = getID(bone.uuid + '_end_attribute');
-						Objects[attribute_id_end] = {
-							_key: 'NodeAttribute',
-							_values: [attribute_id_end, `NodeAttribute::${unique_name}_end`, 'LimbNode'],	
-							Properties70:  {
-								P2: {_key: 'P', _values: ["Size", "double", "Number", "",TNum('D', bone.length * 10)]},
-							},
-							TypeFlags: "Skeleton"
-						};
-						DefinitionCounter.node_attributes++;
-					
-						let object_id_end = getID(bone.uuid+'_end');
-						Objects[object_id_end] = {
-							_key: 'Model',
-							_values: [object_id_end, `Model::${unique_name}_end`, 'LimbNode'],	
-							Version: 232,
-							Properties70:  {
-								P1: {_key: 'P', _values: ["InheritType", "enum", "", "",1]},
-								P2: {_key: 'P', _values: ["DefaultAttributeIndex", "int", "Integer", "",0]},
-								P4: {_key: 'P', _values: ["Lcl Translation", "Lcl Translation", "", "A", 0, bone.length / export_scale, 0]},
-							},
-							Culling: "CullingOff"
-						};
-						Connections.push({
-							name: [`Model::${unique_name}_end`, `Model::${unique_name}`],
-							id: [object_id_end, getID(bone.uuid)],
-						});
-						DefinitionCounter.model++;
-
-						Connections.push({
-							name: [`NodeAttribute::${unique_name}_end`, `Model::${unique_name}_end`],
-							id: [attribute_id_end, object_id_end],
-						});
-					}
-
-					// Bind pose
+				// Bind pose
+				if (mesh) {
 					let matrix = new THREE.Matrix4().copy(bone.mesh.inverse_bind_matrix).invert();
 					matrix.scale(armature_scale_const);
 					pose['PoseNode'+object_id] = {
@@ -558,17 +570,19 @@ var codec = new Codec('fbx', {
 					}
 					pose.NbPoseNodes++;
 					bind_matrix_list.push(matrix);
-
-					// Children
-					for (let child of bone.children) {
-						processBone(child);
-					}
 				}
-				for (let child of armature.children) {
+
+				// Children
+				for (let child of bone.children) {
 					processBone(child);
 				}
+			}
+			for (let child of armature.children) {
+				processBone(child);
+			}
 
-				// Deformers
+			// Mesh deformers
+			if (mesh) {
 				let deformer_id = getID(armature.uuid+'_deformer');
 				Objects[deformer_id] = {
 					_key: 'Deformer',
@@ -578,11 +592,12 @@ var codec = new Codec('fbx', {
 				};
 				DefinitionCounter.deformer++;
 				Connections.push({
-					name: [`Deformer::${armature_name}`, `Geometry::${unique_name}`],
-					id: [deformer_id, geo_id],
+					name: [`Deformer::${armature_name}`, `Geometry::${getUniqueName('object', mesh.uuid, mesh.name)}`],
+					id: [deformer_id, getID(mesh.uuid + '_geo')],
 				});
 
 				let mesh_transform = new THREE.Matrix4().copy(mesh.mesh.matrixWorld);
+				let vertex_keys = Object.keys(mesh.vertices);
 				for (let bone of bone_list) {
 					let sub_deformer_id = getID(bone.uuid+'_deformer');
 					let bone_name = getUniqueName('bone', bone.uuid, bone.name);
@@ -617,17 +632,6 @@ var codec = new Codec('fbx', {
 						id: [getID(bone.uuid), sub_deformer_id],
 					});
 				}
-
-
-				// (x) Limb Node attribute
-				// (x) Limb Node model
-				// (x) Limb End attribute
-				// (x) Limb End model
-				// (x) Bind pose
-				// (x) Deformer
-				// (x) Sub Deformers
-				// (x) Relation: SubDeformer > Deformer
-				// (x) Relation: Bone > SubDeformer
 			}
 		})
 
@@ -796,7 +800,7 @@ var codec = new Codec('fbx', {
 					},
 				}
 			};
-			Objects[geo_id.value] = geometry;
+			Objects['key'+geo_id] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
@@ -870,9 +874,9 @@ var codec = new Codec('fbx', {
 				RelativeFilename: relativeName,
 				Content: fileContent
 			};
-			Objects[tex.uuid+'_m'] = mat_object;
-			Objects[tex.uuid+'_t'] = tex_object;
-			Objects[tex.uuid+'_i'] = image_object;
+			Objects['key'+tex.uuid+'_m'] = mat_object;
+			Objects['key'+tex.uuid+'_t'] = tex_object;
+			Objects['key'+tex.uuid+'_i'] = image_object;
 
 			Connections.push({
 				name: [`Texture::${unique_name}`,  `Material::${unique_name}`],
@@ -911,8 +915,8 @@ var codec = new Codec('fbx', {
 					_values: [layer_id, `AnimLayer::${unique_name}`, ''],
 					_force_compound: true
 				};
-				Objects[clip.uuid+'_s'] = stack;
-				Objects[clip.uuid+'_l'] = layer;
+				Objects['key'+clip.uuid+'_s'] = stack;
+				Objects['key'+clip.uuid+'_l'] = layer;
 				Connections.push({
 					name: [`AnimLayer::${unique_name}`, `AnimStack::${unique_name}`],
 					id: [layer_id, stack_id],
@@ -933,7 +937,7 @@ var codec = new Codec('fbx', {
 						}
 					};
 					let timecodes = track.times.map(second => Math.round(second * time_factor));
-					Objects[clip.uuid + '.' + track.name] = curve_node;
+					Objects['key'+clip.uuid + '.' + track.name] = curve_node;
 
 					// Connect to bone
 					Connections.push({
@@ -989,7 +993,7 @@ var codec = new Codec('fbx', {
 								a: [timecodes.length]
 							},
 						};
-						Objects[clip.uuid + '.' + track.name + axis_letter] = curve;
+						Objects['key'+clip.uuid + '.' + track.name + axis_letter] = curve;
 
 						// Connect to track
 						Connections.push({
