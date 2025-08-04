@@ -128,17 +128,17 @@ declare class Mesh extends OutlinerElement {
 	 * Get selected vertices as vertex keys
 	 * @param can_write If true, the array can safely be modified to update the selection
 	 */
-	getSelectedVertices(can_write: boolean): string[]
+	getSelectedVertices(can_write?: boolean): string[]
 	/**
 	 * Get selected edges as vertex key pairs
 	 * @param can_write If true, the array can safely be modified to update the selection
 	 */
-	getSelectedEdges(can_write: boolean): [string, string][]
+	getSelectedEdges(can_write?: boolean): [string, string][]
 	/**
 	 * Get selected faces as face keys
 	 * @param can_write If true, the array can safely be modified to update the selection
 	 */
-	getSelectedVertices(can_write: boolean): string[]
+	getSelectedVertices(can_write?: boolean): string[]
 
 	/**
 	 * Get the armature if one is attached to the mesh

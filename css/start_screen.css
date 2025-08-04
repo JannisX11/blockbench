@@ -10,7 +10,7 @@
 		width: 100%;
 		padding: 36px 0;
 		overflow-y: auto;
-		background: linear-gradient(180deg, var(--color-ui) 5%, transparent 40%);
+		background: linear-gradient(180deg, var(--color-ui) 5%, transparent 60%);
 	}
 	body.is_mobile #start_screen {
 		padding: 0;

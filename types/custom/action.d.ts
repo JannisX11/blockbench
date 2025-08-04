@@ -486,6 +486,8 @@ declare global {
 		tool_setting?: string
 		change?(value: (n: number) => number): void
 		get?(): number
+		onBefore?(): void
+		onAfter?(): void
 	}
 	class NumSlider extends Widget {
 		constructor(id: string, options: NumSliderOptions)

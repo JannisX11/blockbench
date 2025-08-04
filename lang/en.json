@@ -1754,6 +1754,8 @@
 	"action.proportional_editing.desc": "Proportionally affect surrounding vertices when editing parts of a mesh",
 	"action.proportional_editing_range": "Proportional Editing Range",
 	"action.proportional_editing_range.desc": "Adjust the range for proportional editing",
+	"action.set_vertex_weights": "Set Vertex Weights",
+	"action.set_vertex_weights.desc": "Set the vertex weights of the selected vertices to a specific value on a certain armature bone",
 
 	"action.create_collection": "Create Collection",
 	"action.create_collection.desc": "Create a collection out of the outliner selection",

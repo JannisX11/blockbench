@@ -307,6 +307,7 @@ export const MenuBar = {
 			'merge_vertices',
 			'dissolve_edges',
 			'solidify_mesh_selection',
+			'set_vertex_weights',
 			new MenuSeparator('element'),
 			'apply_mesh_rotation',
 			'split_mesh',
