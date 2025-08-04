@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { Dialog } from "../interface/dialog";
+import { FormInputType } from "../interface/form";
 import { settings } from "../interface/settings";
 import { BARS } from "../interface/toolbars";
 import { tl } from "../languages";
@@ -58,7 +59,7 @@ BARS.defineActions(function() {
 				tag_suggestions: {label: 'dialog.sketchfab_uploader.suggested_tags', type: 'buttons', buttons: tag_suggestions, click(index) {
 					let {tags} = dialog.getFormResult();
 					let new_tag = tag_suggestions[index];
-					if (!tags.split(/\s/g).includes(new_tag)) {
+					if (!(tags as string).split(/\s/g).includes(new_tag)) {
 						tags += ' ' + new_tag;
 						dialog.setFormValues({tags});
 					}
@@ -67,7 +68,7 @@ BARS.defineActions(function() {
 				draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 				divider: '_',
 				private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
-				password: {label: 'dialog.sketchfab_uploader.password'},
+				password: {label: 'dialog.sketchfab_uploader.password', type: 'password'},
 			},
 			onConfirm(formResult) {
 	

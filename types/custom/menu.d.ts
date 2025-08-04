@@ -1,8 +1,8 @@
 /// <reference path="./blockbench.d.ts"/>
 interface CustomMenuItem {
 	name: string
-	id: string
-	icon: IconString
+	id?: string
+	icon: IconString | boolean | ((context: any) => (IconString|boolean))
 	color?: string
 	description?: string
 	/**
@@ -13,7 +13,7 @@ interface CustomMenuItem {
 	 * Adds a search bar to the menu or submenu
 	 */
 	searchable?: boolean
-	children?: MenuItem[] | (() => MenuItem[])
+	children?: MenuItem[] | ((context: any) => MenuItem[])
 	click?(context?: any, event?: Event): void
 }
 type MenuItem = CustomMenuItem | Action | BarSelect<string> | MenuSeparator | string
@@ -44,6 +44,10 @@ declare class Menu extends Deletable {
 	 * @param context Context for the click events inside the menu
 	 */
 	open(position: MouseEvent | HTMLElement, context?: any): this
+	/**
+	 * Alias for .open()
+	 */
+	show(position: MouseEvent | HTMLElement, context?: any): this
 	/**
 	 * Closes the menu if it's open
 	 */

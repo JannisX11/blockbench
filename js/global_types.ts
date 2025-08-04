@@ -33,8 +33,20 @@ import {
 declare global {
 	const Modes: typeof _Modes
 	const Mode: typeof _Mode
-	namespace Blockbench {
-		const Modes: typeof _Modes
-		const Mode: typeof _Mode
-	}
+}
+import {
+	Dialog as _Dialog,
+	ConfigDialog as _ConfigDialog,
+	DialogSidebar as _DialogSidebar,
+	MessageBox as _MessageBox,
+	ShapelessDialog as _ShapelessDialog,
+	ToolConfig as _ToolConfig,
+} from './interface/dialog'
+declare global {
+	const Dialog: typeof _Dialog
+	const ConfigDialog: typeof _ConfigDialog
+	const DialogSidebar: typeof _DialogSidebar
+	const MessageBox: typeof _MessageBox
+	const ShapelessDialog: typeof _ShapelessDialog
+	const ToolConfig: typeof _ToolConfig
 }

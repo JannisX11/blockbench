@@ -1,10 +1,10 @@
-import { MessageBox } from "./interface/dialog";
 import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
 import { compareVersions } from "./util/util";
 import { Filesystem } from "./file_system";
+import { MessageBoxOptions } from "./interface/dialog";
 
 declare const appVersion: string;
 declare let Format: ModelFormat

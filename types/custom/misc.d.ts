@@ -124,49 +124,7 @@ type EventName =
 
 type IconString = string
 
-interface MessageBoxOptions {
-	/**
-	 * Index of the confirm button within the buttons array
-	 */
-	confirm?: number
-	/**
-	 * Index of the cancel button within the buttons array
-	 */
-	cancel?: number
-	buttons?: string[]
-	translateKey?: string
-	title?: string
-	message?: string
-	icon?: string
-	width?: number
-	cancelIndex?: number
-	confirmIndex?: number
-	/**
-	 * Display a list of actions to do in the dialog. When clicked, the message box closes with the string ID of the command as first argument.
-	 */
-	commands?: {
-		[id: string]:
-			| string
-			| {
-					text: string
-					icon?: IconString
-					condition?: ConditionResolvable
-					description?: string
-			  }
-	}
-	/**
-	 * Adds checkboxes to the bottom of the message box
-	 */
-	checkboxes?: {
-		[id: string]:
-			| string
-			| {
-					value?: boolean
-					condition: ConditionResolvable
-					text: string
-			  }
-	}
-}
+
 
 interface PropertyOptions {
 	default?: any

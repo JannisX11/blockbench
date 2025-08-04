@@ -12,6 +12,26 @@ interface FileResult {
 	content: string | ArrayBuffer
 	no_file?: boolean
 }
+export enum FormInputType {
+	Text = 'text',
+	Password = 'password',
+	Number = 'number',
+	Range = 'range',
+	Checkbox = 'checkbox',
+	Select = 'select',
+	Radio = 'radio',
+	Textarea = 'textarea',
+	Vector = 'vector',
+	Color = 'color',
+	File = 'file',
+	Folder = 'folder',
+	Save = 'save',
+	InlineSelect = 'inline_select',
+	InlineMultiSelect = 'inline_multi_select',
+	Info = 'info',
+	NumSlider = 'num_slider',
+	Buttons = 'buttons',
+}
 
 export interface FormElementOptions {
 	label?: string
@@ -19,25 +39,10 @@ export interface FormElementOptions {
 	 * Detailed description of the field, available behind the questionmark icon or on mouse hover
 	 */
 	description?: string
-	type:
-		| 'text'
-		| 'password'
-		| 'number'
-		| 'range'
-		| 'checkbox'
-		| 'select'
-		| 'radio'
-		| 'textarea'
-		| 'vector'
-		| 'color'
-		| 'file'
-		| 'folder'
-		| 'save'
-		| 'inline_select'
-		| 'inline_multi_select'
-		| 'info'
-		| 'num_slider'
-		| 'buttons'
+	/**
+	 * Type of the input. If unspecified, defaults to text
+	 */
+	type?: FormInputType | `${FormInputType}`
 	/**
 	 * Stretch the input field across the whole width of the form
 	 */
@@ -140,7 +145,7 @@ export interface FormElementOptions {
 	filetype?: string
 }
 
-type FormResultValue = string | number | boolean | any[] | {}
+export type FormResultValue = string | number | boolean | any[] | {}
 
 export type InputFormConfig = {
 	[formElement: string]: '_' | FormElementOptions

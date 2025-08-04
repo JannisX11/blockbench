@@ -7,6 +7,7 @@ import { MinecraftEULA } from "../../preview/preview_scenes"
 import { TextureGenerator } from "../../texturing/texture_generator"
 import { Panel } from "../../interface/panels";
 import { Blockbench } from "../../api";
+import { FormResultValue } from "../../interface/form";
 
 type SkinPreset = {
 	display_name: string

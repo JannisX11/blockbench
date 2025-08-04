@@ -14,7 +14,6 @@
 /// <reference types="./codec" />
 /// <reference types="./cube" />
 /// <reference types="./desktop" />
-/// <reference types="./dialog" />
 /// <reference types="./display_mode" />
 /// <reference types="./global" />
 /// <reference types="./group" />

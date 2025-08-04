@@ -1,6 +1,5 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
-import { ConfigDialog } from "./dialog";
 
 export class ResizeLine {
 	constructor(id, data) {

@@ -142,7 +142,7 @@ export class CustomTheme {
 			}
 		}
 		new Dialog('theme_configuration', {
-			name: 'layout.theme.configure',
+			title: 'layout.theme.configure',
 			form,
 			singleButton: true,
 			onFormChange(result: Record<string, string>) {

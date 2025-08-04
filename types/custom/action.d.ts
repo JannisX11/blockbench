@@ -137,6 +137,10 @@ declare global {
 
 	class MenuSeparator {
 		constructor(id?: string, label?: string)
+		id: string
+		menu_node: HTMLLIElement
+		label?: string
+		menu_node?: HTMLElement
 	}
 	type ActionEventName =
 		| 'delete'
@@ -225,6 +229,8 @@ declare global {
 		pushToolbar(bar: any): void
 
 		dispatchEvent<T = EventName>(event: T, ...args: any[]): void
+
+		static constructing?: BarItem
 	}
 
 	interface ActionOptions extends BarItemOptions {
@@ -257,6 +263,7 @@ declare global {
 		constructor(id: string, options: ActionOptions)
 		icon: string
 		nodes: HTMLElement[]
+		menu_node: HTMLElement
 		/**
 		 * Provide a menu that belongs to the action, and gets displayed as a small arrow next to it in toolbars.
 		 */
