@@ -1974,7 +1974,7 @@ skin_presets.bogged_layer = {
 				"name": "hat",
 				"pivot": [0, 24, 0],
 				"cubes": [
-					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.5, "uv": [32, 0], "layer": true, , "visibility": false}
+					{"origin": [-4, 24, -4], "size": [8, 8, 8], "inflate": 0.5, "uv": [32, 0], "layer": true, "visibility": false}
 				]
 			},
 			{
@@ -2608,6 +2608,80 @@ skin_presets.cod = {
 		]
 	}`
 };
+skin_presets.copper_golem = {
+	display_name: 'Copper Golem',
+	model: `{
+		"name": "copper_golem",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[11, 12],
+			[15, 12]
+		],
+		"bones": [
+			{
+				"name": "root",
+				"pivot": [1, 0, 0]
+			},
+			{
+				"name": "body",
+				"parent": "root",
+				"pivot": [0, 5, 0],
+				"cubes": [
+					{"origin": [-4, 5, -3], "size": [8, 6, 6], "uv": [0, 15]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 11, 0],
+				"cubes": [
+					{"origin": [-4, 11, -5], "size": [8, 5, 10], "uv": [0, 0]},
+					{"origin": [-1, 10, -6], "size": [2, 3, 2], "uv": [56, 0]},
+					{"origin": [-1, 16, -1], "size": [2, 4, 2], "uv": [37, 8]},
+					{"origin": [-2, 20, -2], "size": [4, 4, 4], "uv": [37, 0]}
+				]
+			},
+			{
+				"name": "right_arm",
+				"parent": "body",
+				"pivot": [-4, 11, 0],
+				"cubes": [
+					{"origin": [-7, 2, -2], "size": [3, 10, 4], "uv": [36, 16]}
+				]
+			},
+			{
+				"name": "rightItem",
+				"parent": "right_arm",
+				"pivot": [-5, 3.6, -1]
+			},
+			{
+				"name": "left_arm",
+				"parent": "body",
+				"pivot": [4, 11, 0],
+				"cubes": [
+					{"origin": [4, 2, -2], "size": [3, 10, 4], "uv": [50, 16]}
+				]
+			},
+			{
+				"name": "right_leg",
+				"parent": "root",
+				"pivot": [-2, 5, 0],
+				"cubes": [
+					{"origin": [-3.9, 0, -1.99], "size": [4, 5, 4], "uv": [0, 27]}
+				]
+			},
+			{
+				"name": "left_leg",
+				"parent": "root",
+				"pivot": [2, 5, 0],
+				"cubes": [
+					{"origin": [-0.1, 0, -2], "size": [4, 5, 4], "uv": [16, 27]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.cow = {
 	display_name: 'Cow',
 	variants: {

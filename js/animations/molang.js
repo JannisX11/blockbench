@@ -89,8 +89,10 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-Animator.MolangParser.variableHandler = function (variable, variables) {
-	const val = Animator.global_variable_lines[variable]
+Animator.MolangParser.variableHandler = function (variable, variables, args) {
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => "'"+arg+"'").join(',')})`;
+
+	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
 	if (val === undefined) {
 		return
 	}
@@ -237,10 +239,10 @@ new ValidatorCheck('molang_syntax', {
 							.replace(/[^a-z0-9._]/g, '')
 				)
 			}
-			if (clear_string.match(/[^\w\s+\-*/().,;:[\]!?=<>&|]/)) {
+			if (clear_string.match(/[^\w\s+\-*/(){}.,;:[\]!?=<>&|]/)) {
 				issues.push(
 					'Invalid character: ' +
-						clear_string.match(/[^\s\w+\-*/().,;:[\]!?=<>&|]+/g).join(', ')
+						clear_string.match(/[^\s\w+\-*/(){}.,;:[\]!?=<>&|]+/g).join(', ')
 				)
 			}
 			let left = string.match(/\(/g) || 0

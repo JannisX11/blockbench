@@ -546,6 +546,7 @@ var format = new ModelFormat({
 	texture_mcmeta: true,
 	display_mode: true,
 	texture_folder: true,
+	pbr: true,
 	cube_size_limiter: {
 		coordinate_limits: [-16, 32],
 		test(cube, values = 0) {
