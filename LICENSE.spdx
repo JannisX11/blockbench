@@ -1,0 +1,28 @@
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: Blockbench License
+DocumentNamespace: https://spdx.org/spdxdocs/blockbench-1.0
+Creator: Person: D.A.Pelasgus (demetrius@pelasgus.xyz)
+Created: 2025-03-14T05:38:24Z
+
+##### Package Information #####
+
+PackageName: Blockbench
+SPDXID: SPDXRef-Package-Blockbench
+PackageDownloadLocation: https://github.com/JannisX11/blockbench
+FilesAnalyzed: true
+PackageLicenseConcluded: GPL-3.0-only
+PackageLicenseDeclared: GPL-3.0-only
+PackageCopyrightText: 2023, JannisX11
+
+##### License Information #####
+
+LicenseID: GPL-3.0-only
+LicenseName: GNU General Public License v3.0 only
+LicenseCrossReference: https://spdx.org/licenses/GPL-3.0-only.html
+ExtractedText: <text of the GPL-3.0-only license>
+
+##### Relationship Information #####
+
+Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-Blockbench
