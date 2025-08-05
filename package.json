@@ -89,11 +89,32 @@
 			"license": "LICENSE.MD"
 		},
 		"linux": {
-			"artifactName": "${productName}_${version}.${ext}",
+			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": [
-				"deb",
-				"rpm",
-				"appImage"
+				{
+					"target": "deb",
+					"arch": [
+						"x64",
+						"arm64",
+						"armv7l"
+					]
+				},
+				{
+					"target": "rpm",
+					"arch": [
+						"x64",
+						"arm64",
+						"armv7l"
+					]
+				},
+				{
+					"target": "appImage",
+					"arch": [
+						"x64",
+						"arm64",
+						"armv7l"
+					]
+				}
 			],
 			"category": "Graphics;3DGraphics",
 			"icon": "build/icon.icns"
