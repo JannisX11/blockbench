@@ -12,6 +12,7 @@ import pl from './../lang/pl.json';
 import pt from './../lang/pt.json';
 import ru from './../lang/ru.json';
 import sv from './../lang/sv.json';
+import tr from './../lang/tr.json';
 import uk from './../lang/uk.json';
 import vi from './../lang/vi.json';
 import zh from './../lang/zh.json';
@@ -31,6 +32,7 @@ const data = {
 	pt: pt,
 	ru: ru,
 	sv: sv,
+	tr: tr,
 	uk: uk,
 	vi: vi,
 	zh: zh,
@@ -82,6 +84,7 @@ window.Language = {
 		pt: 'Portugu\u00EAs (Portuguese)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
 		sv: 'Svenska (Swedish)',
+		tr: 'Türkçe (Turkish)',
 		uk: 'Українська (Ukrainian)',
 		vi: 'Tiếng việt (Vietnamese)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文
