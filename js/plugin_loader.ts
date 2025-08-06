@@ -672,9 +672,9 @@ export class Plugin {
 			throw `Issue loading plugin "${this.id}": Plugin file empty`;
 		}
 		try {
-			const func = new Function('require', code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`);
+			const func = new Function('requireNativeModule', 'require', code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`);
 			const scoped_require = isApp ? getPluginScopedRequire(this) : undefined;
-			func(scoped_require);
+			func(scoped_require, scoped_require);
 		} catch (err) {
 			console.error(err);
 		}
@@ -691,7 +691,7 @@ export class Plugin {
 		}
 		this.#remember();
 	}
-	showContextMenu(event) {
+	showContextMenu(event: MouseEvent) {
 		Plugin.menu.open(event, this);
 	}
 	isReloadable() {

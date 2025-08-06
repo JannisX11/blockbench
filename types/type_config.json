@@ -33,6 +33,8 @@
 		"undo",
 		"texturing/uv",
 		"validator",
+		"native_apis_web",
+		"native_apis",
 		"util/util",
 		"lib/fik",
 		"lib/lzutf8",
