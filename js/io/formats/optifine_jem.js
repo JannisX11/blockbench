@@ -393,6 +393,7 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	texture_folder: true,
+	pbr: true,
 	codec
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Project.box_uv})
