@@ -1,3 +1,5 @@
+import { Filesystem } from "../file_system";
+import { fs } from "../native_apis";
 
 export class TextureGroup {
 	constructor(data, uuid) {
@@ -541,7 +543,7 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 				Blockbench.showQuickMessage('texture.error.file')
 				return;
 			}
-			showItemInFolder(path);
+			Filesystem.showFileInFolder(path);
 		}
 	},
 	{

@@ -1,4 +1,5 @@
 import { Blockbench } from "../api";
+import { ipcRenderer } from "../native_apis";
 import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
 import { Dialog } from "./dialog";

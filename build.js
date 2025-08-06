@@ -16,12 +16,15 @@ const options = commandLineArgs([
     {name: 'analyze', type: Boolean},
 ])
 
-function conditionalImportPlugin(config) {
+function conditionalImportPlugin(name, config) {
     return {
-        name: 'conditional-import-plugin',
+        name: 'conditional-import-plugin-'+name,
+        /**
+         * @param {esbuild.PluginBuild} build 
+         */
         setup(build) {
-            build.onResolve({ filter: /desktop.js$/ }, args => {
-                return { path: path.join(args.resolveDir, config.file) };
+            build.onResolve({ filter: config.filter }, args => {
+                return { path: path.join(args.resolveDir, path.dirname(args.path), config.file) };
             });
         }
     };
@@ -81,7 +84,12 @@ const config = {
         '.bbtheme': 'text'
     },
     plugins: [
-        conditionalImportPlugin({
+        conditionalImportPlugin(2, {
+            filter: /native_apis/,
+            file: isApp ? 'native_apis.ts' : 'native_apis_web.ts'
+        }),
+        conditionalImportPlugin(1, {
+            filter: /desktop/,
             file: isApp ? 'desktop.js' : 'web.js'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),

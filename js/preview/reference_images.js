@@ -1,3 +1,5 @@
+import { clipboard } from "../native_apis";
+
 export class ReferenceImage {
 	constructor(data = {}) {
 

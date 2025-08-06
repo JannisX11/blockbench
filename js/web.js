@@ -159,6 +159,23 @@ window.onbeforeunload = function() {
 	}
 }
 
+// Match exports to desktop.js
+const NULL = null;
+export {
+	NULL as recent_projects,
+	NULL as initializeDesktopApp,
+	NULL as loadOpenWithBlockbenchFile,
+	NULL as updateRecentProjects,
+	NULL as addRecentProject,
+	NULL as updateRecentProjectData,
+	NULL as updateRecentProjectThumbnail,
+	NULL as loadDataFromModelMemory,
+	NULL as changeImageEditor,
+	NULL as openDefaultTexturePath,
+	NULL as findExistingFile,
+	NULL as createBackup,
+}
+
 Object.assign(window, {
 	initializeWebApp,
 	loadInfoFromURL 

@@ -1,3 +1,6 @@
+import { Filesystem } from "../file_system";
+import { currentwindow, ipcRenderer } from "../native_apis";
+
 export const Toolbars = {};
 
 export class Toolbar {
@@ -526,7 +529,7 @@ export const BARS = {
 				category: 'file',
 				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					showItemInFolder(Project.export_path || Project.save_path);
+					Filesystem.showFileInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('reload', {

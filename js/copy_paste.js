@@ -1,3 +1,4 @@
+import { clipboard } from "./native_apis";
 
 export const Clipbench = {
 	elements: [],

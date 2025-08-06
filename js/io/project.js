@@ -1,4 +1,5 @@
 import { setProjectTitle } from "../interface/interface";
+import { currentwindow, ipcRenderer, shell } from "../native_apis";
 
 export class ModelProject {
 	constructor(options = {}, uuid) {

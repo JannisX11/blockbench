@@ -3,6 +3,7 @@ import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
+import { electron, ipcRenderer } from '../native_apis';
 
 window.scene = null;
 window.main_preview = null;
@@ -300,7 +301,7 @@ export class Preview {
 				error_element.innerHTML = error_element.innerHTML +
 					'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>'
 				
-				var {BrowserWindow} = require('@electron/remote');
+				var {BrowserWindow} = electron;
 				new BrowserWindow({
 					icon:'icon.ico',
 					backgroundColor: '#ffffff',

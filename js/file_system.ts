@@ -1,6 +1,7 @@
 import saveAs from 'file-saver'
 import StateMemory from './util/state_memory'
 import { pathToExtension } from './util/util';
+import { app, currentwindow, electron, fs, ipcRenderer, webUtils } from './native_apis';
 
 function isStreamerMode(): boolean {
 	// @ts-ignore
@@ -522,6 +523,12 @@ export namespace Filesystem {
 	}
 
 
+	// MARK: Open
+	export function showFileInFolder(path: string) {
+		ipcRenderer.send('show-item-in-folder', path);
+	}
+
+
 
 	// MARK: Find
 	interface FindFileOptions {
@@ -676,7 +683,8 @@ export namespace Filesystem {
 			let paths: string[] | FileList = [];
 			if (isApp) {
 				for (let file of fileNames) {
-					if (file.path) {
+					if ('path' in file) {
+						// @ts-ignore
 						paths.push(file.path)
 					} else if (isApp) {
 						// @ts-ignore

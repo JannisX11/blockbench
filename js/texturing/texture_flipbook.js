@@ -1,3 +1,5 @@
+import { clipboard, nativeImage } from "../native_apis";
+
 export const TextureAnimator = {
 	isPlaying: false,
 	interval: false,
