@@ -1560,22 +1560,22 @@ export const UVEditor = {
 			let on = 'far.fa-dot-circle';
 			return [
 				{icon: (!reference_face.rotation ? on : off), name: '0°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(0)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 90 ? on : off), name: '90°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(90)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 180 ? on : off), name: '180°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(180)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 270 ? on : off), name: '270°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(270)
 					Undo.finishEdit('Rotate UV')
 				}}

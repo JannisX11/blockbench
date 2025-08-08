@@ -52,10 +52,6 @@ export const Animator = {
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = Panels.timeline.node;
 		}
-		updateInterface()
-		if (Panels.transform) {
-			Toolbars.element_origin.toPlace('bone_origin')
-		}
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
@@ -72,6 +68,9 @@ export const Animator = {
 			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
+		if (Panels.transform) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
 		Animator.preview();
 	},
 	leave() {

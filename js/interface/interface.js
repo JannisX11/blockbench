@@ -654,6 +654,7 @@ export function updateInterface() {
 	updatePanelSelector();
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+	delete TickUpdates.interface;
 }
 
 export function resizeWindow(event) {

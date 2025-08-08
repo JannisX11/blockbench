@@ -135,9 +135,8 @@ export class Mode extends KeybindItem {
 		} else {
 			if (BarItems.move_tool != Toolbox.selected) (BarItems.move_tool as Tool).select();
 		}
-		// @ts-ignore
-		TickUpdates.interface = true;
-		TickUpdates.selection = true;
+		updateInterface();
+		updateSelection();
 		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
 	/**Unselects the mode */

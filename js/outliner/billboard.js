@@ -216,7 +216,6 @@ export class Billboard extends OutlinerElement {
 	static behavior = {
 		select_faces: false,
 		cube_faces: true,
-		//rotatable: true,
 		movable: true,
 		resizable: true,
 		unique_name: false
