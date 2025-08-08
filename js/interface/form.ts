@@ -102,7 +102,7 @@ export interface FormElementOptions {
 	/**
 	 * Available options on select or inline_select inputs
 	 */
-	options?: { [key: string]: string | { name: string } }
+	options?: Record<string, string | { name: string }> | (() => Record<string, string | { name: string }>)
 	/**
 	 * List of buttons for the button type
 	 */

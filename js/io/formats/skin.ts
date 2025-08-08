@@ -470,7 +470,7 @@ export const skin_dialog = new Dialog({
 			}
 		}
 	},
-	onConfirm: async function(result) {
+	onConfirm: function(result) {
 		if (result.model == 'flat_texture') {
 			if (result.texture) {
 				Codecs.image.load(result.texture);
@@ -481,7 +481,7 @@ export const skin_dialog = new Dialog({
 		} else {
 			if (newProject(format)) {
 				let preset = skin_presets[result.model];
-				let raw_model;
+				let raw_model: string;
 				if (preset.model_bedrock) {
 					raw_model = result.game_edition == 'java_edition' ? preset.model_java : preset.model_bedrock;
 				} else if (preset.variants) {
@@ -515,9 +515,9 @@ export const skin_dialog = new Dialog({
 					Project.skin_model += '.' + result.variant;
 				}
 				if (result.texture_source == 'load_texture' && navigator.onLine) {
-					let accepted = await MinecraftEULA.promptUser('skin');
-					if (accepted != true) return false;
-					if (model.external_textures) {
+					MinecraftEULA.promptUser('skin').then(async function(accepted) {
+						if (accepted != true) return;
+						if (!model.external_textures) return;
 						for (let path of model.external_textures) {
 							let frame = new CanvasFrame();
 							let resource_path = `https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/textures/${path}?raw=true`;
@@ -530,7 +530,7 @@ export const skin_dialog = new Dialog({
 								texture.fromDataURL(dataUrl).add(false);
 							});
 						}
-					}
+					});
 				}
 			}
 		}
