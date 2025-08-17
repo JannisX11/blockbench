@@ -387,10 +387,22 @@ class refModel {
 					setDisplayArea(8, 0, 8, 90, 0, 0, 0.5, 0.5, 0.5)
 				}
 				break;
-			case 'shelf':
+			case 'shelf_left':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(13, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
+			case 'shelf_center':
 				this.updateBasePosition = function() {
 					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
 					setDisplayArea(8, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
+			case 'shelf_right':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(3, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
 				}
 				break;
 			case 'bow':
@@ -544,7 +556,9 @@ class refModel {
 				case 'frame_invisible': this.buildFrameInvisible(); break;
 				case 'frame_top': this.buildFrameTop(); break;
 				case 'frame_top_invisible': this.buildFrameTopInvisible(); break;
-				case 'shelf': this.buildShelf(); break;
+				case 'shelf_left': this.buildShelf(); break;
+				case 'shelf_center': this.buildShelf(); break;
+				case 'shelf_right': this.buildShelf(); break;
 			}
 			this.initialized = true;
 		}
@@ -1286,7 +1300,9 @@ window.displayReferenceObjects = {
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
 		frame_top: 			new refModel('frame_top', {icon: 'filter_frames'}),
 		frame_top_invisible:new refModel('frame_top_invisible', {icon: 'visibility_off'}),
-		shelf: 				new refModel('shelf', {icon: 'table_view'}),
+		shelf_left: 		new refModel('shelf_left', {icon: 'keyboard_arrow_left'}),
+		shelf_center: 		new refModel('shelf_center', {icon: 'remove'}),
+		shelf_right: 		new refModel('shelf_right', {icon: 'keyboard_arrow_right'}),
 		inventory_nine: 	new refModel('inventory_nine', {icon: 'icon-inventory_nine'}),
 		inventory_full:		new refModel('inventory_full', {icon: 'icon-inventory_full'}),
 		hud: 				new refModel('hud', {icon: 'icon-hud'})
@@ -1727,7 +1743,7 @@ DisplayMode.loadShelf = function() {		//Loader
 		position: [-30, 25, -30],
 		target: [0, 8, 0]
 	})
-	displayReferenceObjects.bar(['shelf'])
+	displayReferenceObjects.bar(['shelf_center', 'shelf_left', 'shelf_right'])
 	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
 }
 DisplayMode.updateShelfAlignment = function() {
