@@ -314,7 +314,7 @@
 		color: var(--color-light);
 	}
 	#display_bar .tool, #display_ref_bar > div {
-		width: calc(100% / 8 - 2px);
+		width: calc(100% / 9 - 2px);
 		max-width: 52px;
 	}
 	#display_ref_bar > div > label {

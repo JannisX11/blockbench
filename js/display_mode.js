@@ -164,6 +164,11 @@ display_presets = [
 			translation: [ 0, 0, 0],
 			scale:[ 0.5, 0.5, 0.5 ]
 		},
+		on_shelf: {
+			rotation: [ 0, 180, 0 ],
+			translation: [ 0, 0, 0 ],
+			scale: [ 1, 1, 1 ]
+		},
 		thirdperson_righthand: {
 			rotation: [ 75, 45, 0 ],
 			translation: [ 0, 2.5, 0],
@@ -382,6 +387,11 @@ class refModel {
 					setDisplayArea(8, 0, 8, 90, 0, 0, 0.5, 0.5, 0.5)
 				}
 				break;
+			case 'shelf':
+				this.updateBasePosition = function() {
+					setDisplayArea(8, 8, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
 			case 'bow':
 				this.updateBasePosition = function() {
 					var side = display_slot.includes('left') ? -1 : 1;
@@ -533,6 +543,7 @@ class refModel {
 				case 'frame_invisible': this.buildFrameInvisible(); break;
 				case 'frame_top': this.buildFrameTop(); break;
 				case 'frame_top_invisible': this.buildFrameTopInvisible(); break;
+				case 'shelf': this.buildShelf(); break;
 			}
 			this.initialized = true;
 		}
@@ -1248,6 +1259,13 @@ class refModel {
 			{"size": [16,16,16], "pos": [8, -8.01, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]`), 'assets/missing.png')
 	}
+	buildShelf() {
+		this.buildModel(JSON.parse(`[
+			{"size": [16,16,3], "pos": [8, 8, 14.5], "origin": [0, 0, 0], "north":{"uv":[0,0,8,8]},"east":{"uv":[8,0,9.5,8]},"south":{"uv":[8,0,16,8]},"west":{"uv":[14.5,0,16,8]},"up":{"uv":[16,5,8,3.5]},"down":{"uv":[16,6,8,4.5]}},
+			{"size": [16,4,2], "pos": [8, 2, 12], "origin": [0, 0, 0], "north":{"uv":[0,6,8,8]},"east":{"uv":[1.5,6,2.5,8]},"south":{"uv":[0,0,0,0]},"west":{"uv":[5.5,6,6.5,8]},"up":{"uv":[8,3.5,16,4.5]},"down":{"uv":[16,4.5,8,3.5]}},
+			{"size": [16,4,2], "pos": [8, 14, 12], "origin": [0, 0, 0], "north":{"uv":[0,0,8,2]},"east":{"uv":[1.5,0,2.5,2]},"south":{"uv":[0,0,0,0]},"west":{"uv":[5.5,0,6.5,2]},"up":{"uv":[16,6,8,5]},"down":{"uv":[8,5,16,6]}}
+		]`), 'assets/oak_shelf.png')
+	}
 }
 window.displayReferenceObjects = {
 	refmodels: {
@@ -1267,6 +1285,7 @@ window.displayReferenceObjects = {
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
 		frame_top: 			new refModel('frame_top', {icon: 'filter_frames'}),
 		frame_top_invisible:new refModel('frame_top_invisible', {icon: 'visibility_off'}),
+		shelf: 				new refModel('shelf', {icon: 'table_view'}),
 		inventory_nine: 	new refModel('inventory_nine', {icon: 'icon-inventory_nine'}),
 		inventory_full:		new refModel('inventory_full', {icon: 'icon-inventory_full'}),
 		hud: 				new refModel('hud', {icon: 'icon-hud'})
@@ -1302,6 +1321,15 @@ window.displayReferenceObjects = {
 		}
 	},
 	clear: function() {
+		if (displayReferenceObjects.active && displayReferenceObjects.active.shelf_displays) {
+			displayReferenceObjects.active.shelf_displays.forEach(display => {
+				display_area.remove(display);
+			});
+			displayReferenceObjects.active.shelf_displays = null;
+			if (displayReferenceObjects.active.shelf_groups) {
+				displayReferenceObjects.active.shelf_groups = null;
+			}
+		}
 		scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
 	},
@@ -1314,6 +1342,7 @@ window.displayReferenceObjects = {
 		gui: 0,
 		head: 0,
 		fixed: 0,
+		on_shelf: 0,
 	},
 	slots: [
 		'thirdperson_righthand',
@@ -1324,6 +1353,7 @@ window.displayReferenceObjects = {
 		'gui',
 		'head',
 		'fixed',
+		'on_shelf',
 	]
 }
 DisplayMode.slots = displayReferenceObjects.slots
@@ -1421,6 +1451,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 
 	display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
 	display_base.position.y = slot.translation[1];
+	
 	display_base.position.z = slot.translation[2];
 
 	display_base.scale.x = (slot.scale[0]||0.001) * (slot.mirror[0] ? -1 : 1);
@@ -1441,6 +1472,40 @@ DisplayMode.updateDisplayBase = function(slot) {
 		scale_piv_offset.y *= (1-slot.scale[1]);
 		scale_piv_offset.z *= (1-slot.scale[2]);
 		display_base.position.add(scale_piv_offset)
+	}
+	
+	if (display_slot === 'on_shelf') {
+		display_base.position.x = -display_base.position.x;
+		display_base.position.z = -display_base.position.z;
+		display_base.rotation.x = -display_base.rotation.x;
+		display_base.rotation.z = -display_base.rotation.z;
+	}
+
+	if (displayReferenceObjects.active && displayReferenceObjects.active.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
+		
+		displayReferenceObjects.active.shelf_displays.forEach((slotGroup, index) => {
+			let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
+			let finalPosition = display_base.position.clone().add(slotOffset);
+			let matrix = new THREE.Matrix4();
+			let scaleMatrix = new THREE.Matrix4().makeScale(
+				display_base.scale.x, 
+				display_base.scale.y, 
+				display_base.scale.z
+			);
+			let rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(display_base.rotation);
+			let translationMatrix = new THREE.Matrix4().makeTranslation(
+				finalPosition.x, 
+				finalPosition.y, 
+				finalPosition.z
+			);
+			
+			matrix.multiplyMatrices(translationMatrix, rotationMatrix);
+			matrix.multiply(scaleMatrix);
+			
+			slotGroup.matrix.copy(matrix);
+			slotGroup.matrixAutoUpdate = false;
+			slotGroup.matrixWorldNeedsUpdate = true;
+		});
 	}
 
 	Transformer.center()
@@ -1523,7 +1588,8 @@ DisplayMode.updateGUILight = function() {
 		Canvas.global_light_side = 0;
 	}
 	Canvas.updateShading();
-} 
+}
+ 
 
 function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	display_slot = key
@@ -1641,6 +1707,14 @@ DisplayMode.loadFixed = function() {		//Loader
 	})
 	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
 }
+DisplayMode.loadShelf = function() {		//Loader
+	loadDisp('on_shelf')
+	display_preview.loadAnglePreset({
+		position: [-30, 25, -30],
+		target: [0, 8, 0]
+	})
+	displayReferenceObjects.bar(['shelf'])
+}
 DisplayMode.load = function(slot) {
 	switch (slot) {
 		case 'thirdperson_righthand':
@@ -1666,6 +1740,9 @@ DisplayMode.load = function(slot) {
 		break;
 		case 'fixed':
 		DisplayMode.loadFixed()
+		break;
+		case 'on_shelf':
+		DisplayMode.loadShelf()
 		break;
 	}
 }
@@ -1928,6 +2005,7 @@ BARS.defineActions(function() {
 			DisplayMode.updateGUILight();
 		}
 	})
+	
 })
 
 Interface.definePanels(function() {
@@ -2069,6 +2147,9 @@ Interface.definePanels(function() {
 		
 						<input class="hidden" type="radio" name="display" id="fixed">
 						<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip">${ tl('display.slot.frame') }</div><i class="material-icons">filter_frames</i></label>
+		
+						<input class="hidden" type="radio" name="display" id="on_shelf">
+						<label class="tool" for="on_shelf" onclick="DisplayMode.loadShelf()"><div class="tooltip">${ tl('display.slot.on_shelf') }</div><i class="material-icons">table_view</i></label>
 		
 						<input class="hidden" type="radio" name="display" id="gui">
 						<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">${ tl('display.slot.gui') }</div><i class="material-icons">border_style</i></label>

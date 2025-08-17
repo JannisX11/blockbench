@@ -2465,6 +2465,7 @@
 	"display.slot.head": "Head",
 	"display.slot.ground": "Ground",
 	"display.slot.frame": "Frame",
+	"display.slot.on_shelf": "Shelf",
 	"display.slot.gui": "GUI",
 
 	"display.rotation": "Rotation",
@@ -2493,6 +2494,7 @@
 	"display.reference.frame_invisible": "Item Frame (Invisible)",
 	"display.reference.frame_top": "Item Frame Top",
 	"display.reference.frame_top_invisible": "Item Frame Top (Invisible)",
+	"display.reference.shelf": "Shelf",
 	"display.reference.inventory_nine": "3x3",
 	"display.reference.inventory_full": "Inventory",
 	"display.reference.hud": "HUD",
