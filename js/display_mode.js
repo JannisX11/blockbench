@@ -1802,7 +1802,7 @@ DisplayMode.loadShelf = function() {		//Loader
 		position: [-30, 25, -30],
 		target: [0, 8, 0]
 	})
-	displayReferenceObjects.bar(['shelf', 'shelf_center', 'shelf_left', 'shelf_right'])
+	displayReferenceObjects.bar(['shelf', 'shelf_left', 'shelf_center', 'shelf_right'])
 	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
 }
 DisplayMode.updateShelfAlignment = function() {
