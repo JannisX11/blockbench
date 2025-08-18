@@ -2498,6 +2498,7 @@
 	"display.reference.frame_invisible": "Item Frame (Invisible)",
 	"display.reference.frame_top": "Item Frame Top",
 	"display.reference.frame_top_invisible": "Item Frame Top (Invisible)",
+	"display.reference.shelf": "Shelf (All Slots)",
 	"display.reference.shelf_left": "Shelf (Left Slot)",
 	"display.reference.shelf_center": "Shelf (Center Slot)",
 	"display.reference.shelf_right": "Shelf (Right Slot)",

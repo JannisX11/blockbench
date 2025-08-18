@@ -393,6 +393,63 @@ class refModel {
 					setDisplayArea(13, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
 				}
 				break;
+			case 'shelf':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(8, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+					
+					if (!this.shelf_displays) {
+						this.shelf_displays = [];
+						this.shelf_groups = [];
+						
+						[-20, 20].forEach((xOffset, index) => {
+							let slotGroup = new THREE.Object3D();
+							slotGroup.name = `shelf_display_base_${index}`;
+							display_area.add(slotGroup);
+							this.shelf_groups.push(slotGroup);
+							this.shelf_displays.push(slotGroup);
+						});
+					}
+					
+					if (this.shelf_displays && this.shelf_displays.length === 2) {
+						this.shelf_displays.forEach((slotGroup, index) => {
+							let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
+							
+							if (slotGroup.children.length !== display_base.children.length) {
+								slotGroup.children.forEach(child => slotGroup.remove(child));
+								display_base.children.forEach(child => {
+									let clonedChild = child.clone();
+									slotGroup.add(clonedChild);
+								});
+							}
+							
+							let finalPosition = display_base.position.clone().add(slotOffset);
+							let matrix = new THREE.Matrix4();
+							
+							let scaleMatrix = new THREE.Matrix4().makeScale(
+								display_base.scale.x, 
+								display_base.scale.y, 
+								display_base.scale.z
+							);
+							
+							let rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(display_base.rotation);
+							
+							let translationMatrix = new THREE.Matrix4().makeTranslation(
+								finalPosition.x, 
+								finalPosition.y, 
+								finalPosition.z
+							);
+							
+							matrix.multiplyMatrices(translationMatrix, rotationMatrix);
+							matrix.multiply(scaleMatrix);
+							
+							slotGroup.matrix.copy(matrix);
+							slotGroup.matrixAutoUpdate = false;
+							slotGroup.matrixWorldNeedsUpdate = true;
+						});
+					}
+				}
+				break;
 			case 'shelf_center':
 				this.updateBasePosition = function() {
 					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
@@ -556,6 +613,7 @@ class refModel {
 				case 'frame_invisible': this.buildFrameInvisible(); break;
 				case 'frame_top': this.buildFrameTop(); break;
 				case 'frame_top_invisible': this.buildFrameTopInvisible(); break;
+				case 'shelf': this.buildShelf(); break;
 				case 'shelf_left': this.buildShelf(); break;
 				case 'shelf_center': this.buildShelf(); break;
 				case 'shelf_right': this.buildShelf(); break;
@@ -1300,6 +1358,7 @@ window.displayReferenceObjects = {
 		frame_invisible: 	new refModel('frame_invisible', {icon: 'visibility_off'}),
 		frame_top: 			new refModel('frame_top', {icon: 'filter_frames'}),
 		frame_top_invisible:new refModel('frame_top_invisible', {icon: 'visibility_off'}),
+		shelf: 				new refModel('shelf', {icon: 'table_view'}),
 		shelf_left: 		new refModel('shelf_left', {icon: 'keyboard_arrow_left'}),
 		shelf_center: 		new refModel('shelf_center', {icon: 'remove'}),
 		shelf_right: 		new refModel('shelf_right', {icon: 'keyboard_arrow_right'}),
@@ -1743,7 +1802,7 @@ DisplayMode.loadShelf = function() {		//Loader
 		position: [-30, 25, -30],
 		target: [0, 8, 0]
 	})
-	displayReferenceObjects.bar(['shelf_center', 'shelf_left', 'shelf_right'])
+	displayReferenceObjects.bar(['shelf', 'shelf_center', 'shelf_left', 'shelf_right'])
 	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
 }
 DisplayMode.updateShelfAlignment = function() {
