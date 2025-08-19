@@ -1525,11 +1525,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.rotation.y = Math.PI / (180 / slot.rotation[1]) * (display_slot.includes('lefthand') ? -1 : 1);
 	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (display_slot.includes('lefthand') ? -1 : 1);
 
-	if (display_slot === 'on_shelf') {
-		display_base.position.x = -slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
-	} else {
-		display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
-	}
+	display_base.position.x = slot.translation[0] * (display_slot.includes('lefthand') ? -1 : 1);
 	
 	if (display_slot === 'on_shelf' && !Project.shelf_align_bottom) {
 		display_base.position.y = 0;
@@ -1537,11 +1533,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 		display_base.position.y = slot.translation[1];
 	}
 	
-	if (display_slot === 'on_shelf') {
-		display_base.position.z = -slot.translation[2];
-	} else {
-		display_base.position.z = slot.translation[2];
-	}
+	display_base.position.z = slot.translation[2];
 
 	display_base.scale.x = (slot.scale[0]||0.001) * (slot.mirror[0] ? -1 : 1);
 	display_base.scale.y = (slot.scale[1]||0.001) * (slot.mirror[1] ? -1 : 1);
@@ -1561,13 +1553,6 @@ DisplayMode.updateDisplayBase = function(slot) {
 		scale_piv_offset.y *= (1-slot.scale[1]);
 		scale_piv_offset.z *= (1-slot.scale[2]);
 		display_base.position.add(scale_piv_offset)
-	}
-	
-	if (display_slot === 'on_shelf') {
-		display_base.position.x = -display_base.position.x;
-		display_base.position.z = -display_base.position.z;
-		display_base.rotation.x = -display_base.rotation.x;
-		display_base.rotation.z = -display_base.rotation.z;
 	}
 
 	if (displayReferenceObjects.active && displayReferenceObjects.active.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
