@@ -37,7 +37,6 @@ const SAFE_APIS = [
 const REQUESTABLE_APIS = [
 	'fs',
 	'child_process',
-	'electron',
 	'https',
 	'net',
 	'tls',
@@ -46,10 +45,12 @@ const REQUESTABLE_APIS = [
 	'v8',
 ];
 const API_DESCRIPTIONS = {
-	fs: 'your Files',
-	child_process: 'launching external programs',
-	net: 'your network',
-	os: 'information about your computer',
+	fs: 'Access and change files on your computer',
+	child_process: 'Launch external programs',
+	net: 'Full network access',
+	os: 'See information about your computer',
+	https: 'Create servers and talk to other servers',
+	dialog: 'Open native dialogs',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -149,6 +150,12 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 
 	if (no_namespace_name == 'fs') {
 		return createScopedFS(options2.scope);
+	} else if (no_namespace_name == 'dialog') {
+		let api = {};
+		for (let key in dialog) {
+			api[key] = (options: any) => dialog[key](currentwindow, options);
+		}
+		return api;
 	}
 
 	return require(module_name);

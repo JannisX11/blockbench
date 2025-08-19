@@ -107,7 +107,7 @@ if (options.watch || options.serve) {
         await ctx.watch({});
     } else {
         const host = 'localhost';
-        const port = 3000;
+        const port = 3001;
         await ctx.serve({
             servedir: import.meta.dirname,
             host,

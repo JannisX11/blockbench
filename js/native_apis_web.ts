@@ -23,6 +23,7 @@ export {
 	NULL as getPluginScopedRequire,
 	NULL as process,
 	NULL as SystemInfo,
+	NULL as revokePluginPermissions,
 }
 
 /**
