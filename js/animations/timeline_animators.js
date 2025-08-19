@@ -71,7 +71,8 @@ export class GeneralAnimator {
 		}
 		let keyframe = new Keyframe({
 			channel: channel,
-			time: time
+			time: time,
+			interpolation: settings.default_keyframe_interpolation.value,
 		}, null, this);
 		keyframes.push(keyframe);
 
