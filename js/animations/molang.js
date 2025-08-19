@@ -1,3 +1,5 @@
+import { isStringNumber } from "../util/math_util"
+
 Animator.MolangParser.context = {}
 Animator.MolangParser.global_variables = {
 	true: 1,
@@ -90,11 +92,11 @@ Animator.MolangParser.global_variables = {
 	},
 }
 Animator.MolangParser.variableHandler = function (variable, variables, args) {
-	let variable_with_args = args?.length && `${variable}(${args.map(arg => "'"+arg+"'").join(',')})`;
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => isStringNumber(arg) ? arg : "'"+arg+"'").join(',')})`;
 
 	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
 	if (val === undefined) {
-		return
+		return;
 	}
 
 	if (val.match(/^(slider|toggle|impulse)\(/)) {
