@@ -91,11 +91,15 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
+const variable_fallbacks = {
+	'query.model_scale': 1/16,
+};
 Animator.MolangParser.variableHandler = function (variable, variables, args) {
 	let variable_with_args = args?.length && `${variable}(${args.map(arg => isStringNumber(arg) ? arg : "'"+arg+"'").join(',')})`;
 
 	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
 	if (val === undefined) {
+		if (variable_fallbacks[variable] != undefined) return variable_fallbacks[variable];
 		return;
 	}
 
