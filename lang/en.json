@@ -2419,6 +2419,7 @@
 
 	"group.bedrock_binding": "Binding",
 	"group.cem_attach": "CEM Attach",
+	"group.cem_model": "CEM Model",
 	"group.cem_scale": "CEM Scale",
 
 	"cube.rescale": "Rotation Rescale",

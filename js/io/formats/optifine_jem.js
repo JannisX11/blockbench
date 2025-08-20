@@ -60,6 +60,9 @@ var codec = new Codec('optifine_entity', {
 			if (g.cem_attach) {
 				bone.attach = true;
 			}
+			if (g.cem_model) {
+				bone.model = g.cem_model;
+			}
 			if (g.cem_scale) {
 				bone.scale = g.cem_scale;
 			}
@@ -266,6 +269,7 @@ var codec = new Codec('optifine_entity', {
 						mirror_uv: (b.mirrorTexture && b.mirrorTexture.includes('u')),
 						cem_animations: b.animations,
 						cem_attach: b.attach,
+						cem_model: b.model,
 						cem_scale: b.scale,
 						texture: texture ? texture.uuid : undefined,
 					})
