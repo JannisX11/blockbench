@@ -473,11 +473,13 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
-		line-height: 26px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
 	}
 	.format_target span {
 		padding: 2px 10px;
-		margin: 0 2px;
 		background-color: var(--color-accent);
 		border-radius: 16px;
 		color: var(--color-accent_text);
