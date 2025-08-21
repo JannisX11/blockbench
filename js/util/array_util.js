@@ -75,6 +75,20 @@ Array.prototype.findHighest = function(callback) {
 Array.prototype.last = function() {
 	return this[this.length-1];
 }
+if (!Array.prototype.findLast) {
+	Array.prototype.findLast = function(callback) {
+		for (let i = this.length-1; i >= 0; i--) {
+			let result = callback(this[i], i);
+			if (result) return this[i];
+		}
+	}
+	Array.prototype.findLastIndex = function(callback) {
+		for (let i = this.length-1; i >= 0; i--) {
+			let result = callback(this[i], i);
+			if (result) return i;
+		}
+	}
+}
 Array.prototype.atWrapped = function(index) {
 	index = (index + this.length*5) % this.length;
 	return this[this.length-1];

@@ -817,12 +817,13 @@ export const BARS = {
 		})
 		if (Blockbench.isMobile) {
 			// Update to 5.0
-			[Toolbars.element_position,
+			let toolbars = [
+				Toolbars.element_position,
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
-			]
+			];
 
 			toolbars.forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {

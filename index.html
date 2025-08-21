@@ -193,7 +193,7 @@
 		let browser_check_passed = false;
 		// Browser compatibility check
 		try {
-			eval('[].findLast(() => true)');
+			eval('[1].at(0)');
 			if (document.body.computedStyleMap().get('position').value != 'fixed') {
 				throw 'Stylesheet not loaded';
 			}
