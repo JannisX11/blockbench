@@ -178,7 +178,7 @@ export const ModelScaler = {
 			}
 			delete obj.before
 			if (obj instanceof Cube && obj.box_uv) {
-				Canvas.updateUV(obj)
+				obj.preview_controller.updateUV(obj)
 			}
 		})
 		ModelScaler.getScaleGroups().forEach((g) => {

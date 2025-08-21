@@ -638,25 +638,11 @@ export const UVEditor = {
 		}
 	},
 	slidePos(modify, axis) {
-		var scope = this
-		var limit = scope.getResolution(axis);
+		let limit = this.getResolution(axis);
 
-		Cube.selected.forEach(function(obj) {
-			if (obj.box_uv === false) {
-				UVEditor.getSelectedFaces(obj).forEach(fkey => {
-					if (!obj.faces[fkey]) return;
-					let uvTag = obj.faces[fkey].uv;
-					var size = uvTag[axis + 2] - uvTag[axis]
-	
-					var value = modify(uvTag[axis])
-	
-					value = limitNumber(value, 0, limit)
-					value = limitNumber(value + size, 0, limit) - size
-	
-					uvTag[axis] = value
-					uvTag[axis+2] = value + size
-				})
-			} else {
+		Outliner.selected.forEach(function(obj) {
+			if (!obj.getTypeBehavior('cube_faces')) return;
+			if (obj.box_uv === true) {
 				let minimum = 0;
 				if (axis === 0) {
 					var size = (obj.size(0) + (obj.size(1) ? obj.size(2) : 0))*2
@@ -670,6 +656,20 @@ export const UVEditor = {
 				value = limitNumber(value, minimum, limit)
 				value = limitNumber(value + size, minimum, limit) - size
 				obj.uv_offset[axis] = Math.round(value);
+			} else {
+				UVEditor.getSelectedFaces(obj).forEach(fkey => {
+					if (!obj.faces[fkey]) return;
+					let uvTag = obj.faces[fkey].uv;
+					var size = uvTag[axis + 2] - uvTag[axis]
+	
+					var value = modify(uvTag[axis])
+	
+					value = limitNumber(value, 0, limit)
+					value = limitNumber(value + size, 0, limit) - size
+	
+					uvTag[axis] = value
+					uvTag[axis+2] = value + size
+				})
 			}
 			obj.preview_controller.updateUV(obj);
 		})
@@ -702,16 +702,16 @@ export const UVEditor = {
 		this.vue.$forceUpdate()
 	},
 	slideSize(modify, axis) {
-		var scope = this
-		var limit = scope.getResolution(axis);
+		let limit = this.getResolution(axis);
 
-		Cube.selected.forEach(function(cube) {
-			if (cube.box_uv === false) {
-				UVEditor.getSelectedFaces(cube).forEach(fkey => {
-					var uvTag = cube.faces[fkey].uv;
+		Outliner.selected.forEach(function(obj) {
+			if (!obj.getTypeBehavior('cube_faces')) return;
+			if (obj.box_uv !== true) {
+				UVEditor.getSelectedFaces(obj).forEach(fkey => {
+					var uvTag = obj.faces[fkey].uv;
 					var difference = modify(uvTag[axis+2]-uvTag[axis]) + uvTag[axis];
 					uvTag[axis+2] = limitNumber(difference, 0, limit);
-					Canvas.updateUV(cube);
+					obj.preview_controller.updateUV(obj);
 				})
 			}
 		})
@@ -921,7 +921,7 @@ export const UVEditor = {
 				obj.faces[side].uv = [0, 0, scope.getResolution(0, obj.faces[side]), scope.getResolution(1, obj.faces[side])]
 			})
 			obj.autouv = 0;
-			Canvas.updateUV(obj)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.maximized')
 		this.loadData()
@@ -952,7 +952,7 @@ export const UVEditor = {
 				obj.faces[side].uv[3] -= overlap_py;
 			})
 			obj.autouv = 0;
-			Canvas.updateUV(obj);
+			obj.preview_controller.updateUV(obj);;
 		})
 		this.message('uv_editor.turned');
 		this.loadData();
@@ -1169,7 +1169,7 @@ export const UVEditor = {
 				obj.faces[side].uv = uv
 			})
 			obj.autouv = 0
-			Canvas.updateUV(obj)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.autouv')
 		this.loadData()
@@ -1316,7 +1316,7 @@ export const UVEditor = {
 				this.getSelectedFaces(obj).forEach(face => {
 					obj.faces[face].rotation = value;
 				})
-				Canvas.updateUV(obj);
+				obj.preview_controller.updateUV(obj);;
 			})
 		}
 		let rect = this.vue.getSelectedUVBoundingBox();
@@ -1344,13 +1344,12 @@ export const UVEditor = {
 		this.message('uv_editor.rotated')
 	},
 	setRotation(value) {
-		var scope = this;
 		value = parseInt(value)
-		this.forCubes(cube => {
-			this.getSelectedFaces(cube).forEach(face => {
-				cube.faces[face].rotation = value;
+		this.forCubes(obj => {
+			this.getSelectedFaces(obj).forEach(face => {
+				obj.faces[face].rotation = value;
 			})
-			Canvas.updateUV(cube)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.loadData()
 		this.message('uv_editor.rotated')
@@ -1358,9 +1357,8 @@ export const UVEditor = {
 	selectGridSize(event) {
 	},
 	autoCullface(event) {
-		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
+			UVEditor.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
 				obj.faces[side].cullface = side
 			})
 		})

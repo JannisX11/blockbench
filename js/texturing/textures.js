@@ -2522,9 +2522,9 @@ Interface.definePanels(function() {
 
 
 					if (isNodeUnderCursor(Interface.preview, e2)) {
-						var data = Canvas.raycast(e2)
+						let data = Canvas.raycast(e2)
 						if (data.element && data.face) {
-							var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
+							let elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
 
 							if (Format.per_group_texture) {
 								elements = [];

@@ -1319,6 +1319,8 @@
 	"action.blend_mode.divide": "Divide",
 	"action.blend_mode.add": "Add",
 	"action.blend_mode.subtract": "Subtract",
+	"action.blend_mode.lighten": "Lighten",
+	"action.blend_mode.darken": "Darken",
 	"action.blend_mode.screen": "Screen",
 	"action.blend_mode.overlay": "Overlay",
 	"action.blend_mode.hard_light": "Hard Light",
@@ -2434,6 +2436,13 @@
 	"cube.color.lime": "Lime",
 	"cube.color.pink": "Pink",
 	"cube.color.silver": "Silver",
+
+	"billboard.offset": "Offset",
+	"billboard.facing_mode": "Facing Mode",
+	"billboard.facing_mode.lookat": "Look At",
+	"billboard.facing_mode.lookat_y": "Look At Y",
+	"billboard.facing_mode.rotate": "Rotate",
+	"billboard.facing_mode.rotate_y": "Rotate Y",
 
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",

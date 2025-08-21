@@ -463,8 +463,12 @@ export class Preview {
 			let element, face;
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
-				if (element.getTypeBehavior('cube_faces') && element.getTypeBehavior('select_faces')) {
-					face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
+				if (element.getTypeBehavior('cube_faces')) {
+					if (element.getTypeBehavior('select_faces')) {
+						face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
+					} else {
+						face = Object.keys(element.faces)[0];
+					}
 				} else if (element instanceof Mesh) {
 					let index = intersects[0].faceIndex;
 					for (let key in element.faces) {

@@ -488,7 +488,7 @@ export const Vertexsnap = {
 						Format.cube_size_limiter.clamp(obj)
 					}
 					if (obj.box_uv && obj.visibility) {
-						Canvas.updateUV(obj)
+						obj.preview_controller.updateUV(obj)
 					}
 				})
 			} else if (mode === 'move') {
