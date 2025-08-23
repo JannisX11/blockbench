@@ -790,12 +790,12 @@ export class Texture {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('dialog.ok'), tl('message.loose_texture.change')],
+					buttons: [tl('message.loose_texture.change'), tl('dialog.ignore')],
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
 				}, (result, checkboxes = {}) => {
-					if (result === 1) {
+					if (result === 0) {
 						this.reopen()
 					}
 					if (checkboxes.dont_show_again) {
@@ -2251,6 +2251,7 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(files) {
+				console.log(files)
 				if (files[0].name.endsWith('texture_set.json')) {
 					importTextureSet(files[0]);
 					return;

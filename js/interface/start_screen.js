@@ -467,7 +467,7 @@ onVueSetup(async function() {
 						</div>
 
 						<div class="start_screen_right" v-else>
-							<h2>${tl('mode.start.recent')}</h2>
+							<h2 v-if="isApp">${tl('mode.start.recent')}</h2>
 							<div id="start_screen_view_menu" v-if="isApp && !redact_names">
 								<search-bar :hide="true" v-model="search_term"></search-bar>
 								<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
