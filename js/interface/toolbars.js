@@ -879,7 +879,8 @@ export const BARS = {
 			id: 'weight_brush',
 			no_wrap: true,
 			children: [
-				'slider_weight_brush_size'
+				'slider_weight_brush_size',
+				'weight_brush_xray'
 			]
 		})
 

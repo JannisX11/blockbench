@@ -31,7 +31,7 @@ const raycaster = new THREE.Raycaster();
 function updateScreenSpaceVertexPositions(mesh: Mesh) {
 	if (screen_space_vertex_positions) return screen_space_vertex_positions;
 
-	const depth_check = true;
+	const depth_check = (BarItems.weight_brush_xray as Toggle).value == false;
 	let vec = new THREE.Vector3();
 	raycaster.ray.origin.setFromMatrixPosition(Preview.selected.camera.matrixWorld);
 	let raycasts = 0;
@@ -181,6 +181,11 @@ slider.on('change', (data: {number: number}) => {
 	if (brush_outline) {
 		brush_outline.style.setProperty('--radius', data.number.toString());
 	}
+})
+new Toggle('weight_brush_xray', {
+	icon: 'disabled_visible',
+	category: 'edit',
+	condition: () => Toolbox?.selected?.id == 'weight_brush',
 })
 
 Blockbench.on('update_selection', (data) => {
