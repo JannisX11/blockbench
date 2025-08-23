@@ -193,6 +193,7 @@ delete window.process;
 export const SystemInfo = {
 	platform: process.platform,
 	home_directory: os.homedir(),
+	appdata_directory: electron.process.env.APPDATA,
 	arch: process.arch,
 	os_version: os.version(),
 }
