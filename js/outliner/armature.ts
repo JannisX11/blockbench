@@ -1,0 +1,308 @@
+import { Blockbench } from "../api";
+import { THREE, Vue } from "../lib/libs";
+import { ArmatureBone } from "./armature_bone";
+
+interface ArmatureOptions {
+	name?: string
+	export?: boolean
+	locked?: boolean
+	visibility?: boolean
+}
+
+export class Armature extends OutlinerElement {
+	children: ArmatureBone[]
+	isOpen: boolean
+	visibility: boolean
+	origin: ArrayVector3
+	rotation: ArrayVector3
+
+	static preview_controller: NodePreviewController
+
+	constructor(data?: ArmatureOptions, uuid?: UUID) {
+		super(data, uuid);
+
+		for (let key in Armature.properties) {
+			Armature.properties[key].reset(this);
+		}
+
+		this.name = 'armature'
+		this.children = [];
+		this.selected = false;
+		this.locked = false;
+		this.export = true;
+		this.parent = 'root';
+		this.isOpen = false;
+		this.visibility = true;
+		this.origin = [0, 0, 0];
+		this.rotation = [0, 0, 0];
+
+		if (typeof data === 'object') {
+			this.extend(data)
+		} else if (typeof data === 'string') {
+			this.name = data
+		}
+	}
+	extend(object: ArmatureOptions) {
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(this, object)
+		}
+		Merge.string(this, object, 'name')
+		this.sanitizeName();
+		Merge.boolean(this, object, 'export')
+		Merge.boolean(this, object, 'locked')
+		Merge.boolean(this, object, 'visibility')
+		return this;
+	}
+	getMesh() {
+		return this.mesh;
+	}
+	init() {
+		super.init();
+		if (!this.mesh || !this.mesh.parent) {
+			// @ts-ignore
+			this.constructor.preview_controller.setup(this);
+		}
+		return this;
+	}
+	markAsSelected(descendants: boolean = false) {
+		Outliner.selected.safePush(this);
+		this.selected = true;
+		if (descendants) {
+			this.children.forEach(child => child.markAsSelected(true));
+		}
+		TickUpdates.selection = true;
+		return this;
+	}
+	matchesSelection() {
+		let scope = this;
+		let match = true;
+		for (let i = 0; i < selected.length; i++) {
+			if (!selected[i].isChildOf(scope, 128)) {
+				return false
+			}
+		}
+		this.forEachChild(obj => {
+			if (!obj.selected) {
+				match = false
+			}
+		})
+		return match;
+	}
+	openUp() {
+		this.isOpen = true
+		this.updateElement()
+		if (this.parent && this.parent !== 'root') {
+			this.parent.openUp()
+		}
+		return this;
+	}
+	transferOrigin(origin: ArrayVector3) {
+		if (!this.mesh) return;
+		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
+		let shift = new THREE.Vector3(
+			this.origin[0] - origin[0],
+			this.origin[1] - origin[1],
+			this.origin[2] - origin[2],
+		)
+		let dq = new THREE.Vector3().copy(shift)
+		dq.applyQuaternion(q)
+		shift.sub(dq)
+		shift.applyQuaternion(q.invert())
+		this.origin.V3_set(origin);
+
+		function iterateChild(obj) {
+			if (obj instanceof Armature) {
+				obj.origin.V3_add(shift);
+				obj.children.forEach(child => iterateChild(child));
+
+			} else {
+				if (obj.movable) {
+					obj.origin.V3_add(shift);
+				}
+				if (obj.to) {
+					obj.from.V3_add(shift);
+					obj.to.V3_add(shift);
+				}
+			}
+		}
+		this.children.forEach(child => iterateChild(child));
+
+		Canvas.updatePositions()
+		return this;
+	}
+	getWorldCenter() {
+		let pos = new THREE.Vector3();
+		this.mesh.localToWorld(pos);
+		return pos;
+	}
+	getSaveCopy() {
+		let copy = {
+			isOpen: this.isOpen,
+			uuid: this.uuid,
+			type: this.type,
+			name: this.name,
+			children: this.children.map(c => c.uuid),
+		};
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(copy, this);
+		}
+		return copy;
+	}
+	getUndoCopy() {
+		let copy = {
+			isOpen: this.isOpen,
+			uuid: this.uuid,
+			type: this.type,
+			name: this.name,
+			children: this.children.map(c => c.uuid),
+		};
+		for (let key in Armature.properties) {
+			Armature.properties[key].merge(copy, this);
+		}
+		return copy;
+	}
+	getChildlessCopy(keep_uuid?: boolean) {
+		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
+		for (let key in Armature.properties) {
+			Armature.properties[key].copy(this, base_armature)
+		}
+		base_armature.name = this.name;
+		base_armature.locked = this.locked;
+		base_armature.visibility = this.visibility;
+		base_armature.export = this.export;
+		base_armature.isOpen = this.isOpen;
+		return base_armature;
+	}
+	forEachChild(cb: ((element: OutlinerElement) => void), type?: typeof OutlinerNode, forSelf?: boolean) {
+		let i = 0
+		if (forSelf) {
+			cb(this)
+		}
+		while (i < this.children.length) {
+			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
+				// @ts-ignore
+				cb(this.children[i])
+			}
+			if (this.children[i].type === 'armature_bone') {
+				this.children[i].forEachChild(cb, type)
+			}
+			i++;
+		}
+	}
+	getAllBones() {
+		let bones = [];
+		function addBones(array: ArmatureBone[]) {
+			for (let item of array) {
+				if (item instanceof ArmatureBone == false) continue;
+				bones.push(item);
+				addBones(item.children);
+			}
+		}
+		addBones(this.children);
+		return bones;
+	}
+	static behavior = {
+		unique_name: () => Format.bone_rig,
+		parent: true,
+		child_types: ['armature_bone'],
+		hide_in_screenshot: true,
+	}
+	
+	public title = tl('data.armature');
+	public type = 'armature';
+	public icon = 'accessibility';
+	public name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	public buttons = [
+		Outliner.buttons.locked,
+		Outliner.buttons.visibility,
+	];
+	public menu = new Menu([
+		'add_armature_bone',
+		...Outliner.control_menu_group,
+		new MenuSeparator('settings'),
+		new MenuSeparator('manage'),
+		'rename',
+		'delete'
+	]);
+	
+	static all: Armature[]
+	static selected: Armature[]
+}
+
+OutlinerElement.registerType(Armature, 'armature');
+
+new NodePreviewController(Armature, {
+	setup(element: Armature) {
+		let object_3d = new THREE.Object3D() as {isElement: boolean, no_export: boolean} & THREE.Object3D;
+		object_3d.rotation.order = 'ZYX';
+		object_3d.uuid = element.uuid.toUpperCase();
+		object_3d.name = element.name;
+		object_3d.isElement = true;
+		Project.nodes_3d[element.uuid] = object_3d;
+
+		object_3d.no_export = true;
+
+		this.updateTransform(element);
+
+		this.dispatchEvent('setup', {element});
+	},
+	updateTransform(element: Armature) {
+		let mesh = element.mesh;
+
+		if (Format.bone_rig) {
+			if (element.parent instanceof Group) {
+				element.parent.mesh.add(mesh);
+				mesh.position.x -= element.parent.origin[0]
+				mesh.position.y -= element.parent.origin[1]
+				mesh.position.z -= element.parent.origin[2]
+			} else if (mesh.parent !== Project.model_3d) {
+				Project.model_3d.add(mesh)
+			}
+		} else if (mesh.parent !== Project.model_3d) {
+			Project.model_3d.add(mesh)
+		}
+
+		mesh.updateMatrixWorld();
+
+		this.dispatchEvent('update_transform', {element});
+	}
+})
+
+
+BARS.defineActions(function() {
+	new Action('add_armature', {
+		icon: 'accessibility',
+		category: 'edit',
+		condition: () => Modes.edit && Project.format?.armature_rig,
+		click: function () {
+			Undo.initEdit({outliner: true, elements: []});
+			let add_to_node = Outliner.selected[0] || Group.first_selected;
+			if (!add_to_node && selected.length) {
+				add_to_node = selected.last();
+			}
+			let armature = new Armature();
+			armature.addTo(add_to_node);
+			armature.isOpen = true;
+			armature.createUniqueName();
+			armature.init().select();
+
+			let bone = new ArmatureBone();
+			bone.addTo(armature).init();
+
+			// @ts-ignore
+			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
+			Vue.nextTick(function() {
+				updateSelection()
+				if (settings.create_rename.value) {
+					armature.rename()
+				}
+				armature.showInOutliner()
+				Blockbench.dispatchEvent( 'add_armature', {object: armature} )
+			})
+		}
+	})
+})
+
+Object.assign(window, {
+	Armature
+})

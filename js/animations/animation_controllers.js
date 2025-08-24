@@ -1,4 +1,7 @@
-class AnimationControllerState {
+import Wintersky from 'wintersky';
+import { openMolangEditor } from './molang_editor';
+
+export class AnimationControllerState {
 	constructor(controller, data = 0) {
 		this.controller = controller;
 		this.uuid = guid();
@@ -819,7 +822,7 @@ AnimationControllerState.prototype.menu = new Menu([
 	'delete',
 ]);
 
-class AnimationController extends AnimationItem {
+export class AnimationController extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -1278,7 +1281,7 @@ class AnimationController extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (controller) => Format.animation_files && isApp && controller.saved,
+			condition: (controller) => (Format.animation_files && isApp && controller.saved),
 			click(controller) {
 				Blockbench.read([controller.path], {}, ([file]) => {
 					Undo.initEdit({animation_controllers: [controller]})
@@ -1470,11 +1473,13 @@ Interface.definePanels(() => {
 			}},
 			methods: {
 				loadPreset(preset) {
+					Undo.initEdit({animation_controllers: [AnimationController.selected]})
 					this.controller.extend({
 						states: preset.states,
 						initial_state: preset.initial_state
 					});
 					this.updateConnectionWrapperOffset();
+					Undo.finishEdit('Apply animation controller preset')
 				},
 				toggleStateSection(state, section) {
 					state.fold[section] = !state.fold[section];
@@ -1853,6 +1858,27 @@ Interface.definePanels(() => {
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
+				openMolangContextMenu(event, state, target_object, target_key) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click: () => {
+								let value = target_object[target_key];
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.AnimationControllerContext,
+									text: value
+								}, result => {
+									if (value != result) {
+										Undo.initEdit({animation_controller_state: state});
+										target_object[target_key] = result;
+										Undo.finishEdit('Edit animation controller molang');
+									}
+								})
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
 					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
@@ -2026,6 +2052,7 @@ Interface.definePanels(() => {
 											class="molang_input animation_controller_text_input tab_target"
 											v-model="state.animations[i].blend_value"
 											language="molang"
+											@contextmenu.stop="openMolangContextMenu($event, state, state.animations[i], 'blend_value')"
 											:autocomplete="autocomplete"
 											:placeholder="'${tl('animation_controllers.state.condition')}'"
 											:ignoreTabKey="true"
@@ -2070,6 +2097,7 @@ Interface.definePanels(() => {
 												class="molang_input animation_controller_text_input tab_target"
 												v-model="state.particles[i].script"
 												language="molang"
+												@contextmenu.stop="openMolangContextMenu($event, state, state.particles[i], 'script')"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"
@@ -2117,6 +2145,7 @@ Interface.definePanels(() => {
 									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_entry"
 									language="molang"
+									@contextmenu.stop="openMolangContextMenu($event, state, state, 'on_entry')"
 									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
@@ -2133,6 +2162,7 @@ Interface.definePanels(() => {
 									class="molang_input animation_controller_text_input tab_target"
 									v-model="state.on_exit"
 									language="molang"
+									@contextmenu.stop="openMolangContextMenu($event, state, state, 'on_exit')"
 									:autocomplete="autocomplete"
 									:ignoreTabKey="true"
 									:line-numbers="false"
@@ -2151,11 +2181,12 @@ Interface.definePanels(() => {
 									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
 										<li v-for="(transition, i) in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
-											<bb-select @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</bb-select>
+											<div class="bb-select" @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</div>
 											<vue-prism-editor 
 												class="molang_input animation_controller_text_input tab_target"
 												v-model="state.transitions[i].condition"
 												language="molang"
+												@contextmenu.stop="openMolangContextMenu($event, state, state.transitions[i], 'condition')"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"
@@ -2348,3 +2379,5 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {AnimationController, AnimationControllerState});

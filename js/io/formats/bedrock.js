@@ -154,7 +154,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 										<ul id="import_texture_list" class="y_scrollable">
 											<li v-for="(texture, index) in textures"
 												:title="getName(texture)" :arr_index="index"
-												:class="{selected: selected_textures.includes(texture)}"
+												:class="{elevated: true, selected: selected_textures.includes(texture)}"
 												:style="{backgroundImage: getBackground(texture)}"
 												@click="clickTexture(texture)"
 												@dblclick="dblclickTexture(texture)"
@@ -483,7 +483,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 }
 }
 
-function calculateVisibleBox() {
+export function calculateVisibleBox() {
 	var visible_box = new THREE.Box3()
 	Canvas.withoutGizmos(() => {
 		Cube.all.forEach(cube => {
@@ -524,7 +524,6 @@ function calculateVisibleBox() {
 	return Project.visible_box;
 }
 
-(function() {
 
 // Parse
 
@@ -863,11 +862,11 @@ function calculateVisibleBox() {
 					let offset = obj.position.slice();
 					offset[0] *= -1;
 
-					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
+					if ((obj.getTypeBehavior('rotatable') && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable) {
+						if (obj.getTypeBehavior('rotatable')) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],
@@ -1190,7 +1189,7 @@ var codec = new Codec('bedrock', {
 				throw 'Incompatible format';
 			}
 			var i = 0;
-			for (model of data['minecraft:geometry']) {
+			for (let model of data['minecraft:geometry']) {
 				if (model.description && model.description.identifier == model_id) {
 					index = i;
 					break;
@@ -1580,6 +1579,3 @@ new ValidatorCheck('bedrock_binding', {
 		}
 	}
 })
-
-})()
-

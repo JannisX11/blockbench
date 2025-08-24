@@ -4,14 +4,12 @@ https://github.com/bgrins/spectrum
 Author: Brian Grinstead
 License: MIT
 ***/
-
+@layer lib {
 .sp-container {
     position:absolute;
     top:0;
     left:0;
     display:inline-block;
-    *display: inline;
-    *zoom: 1;
     /* https://github.com/bgrins/spectrum/issues/40 */
     z-index: 1;
     overflow: hidden; 
@@ -246,7 +244,6 @@ License: MIT
 /* Clearfix hack */
 .sp-cf:before, .sp-cf:after { content: ""; display: table; }
 .sp-cf:after { clear: both; }
-.sp-cf { *zoom: 1; }
 
 body.is_touch .sp-fill { padding-top: 64%; }
 
@@ -289,7 +286,8 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 .sp-container {
     border-radius: 0;
     background-color: var(--color-ui);
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0px 20px rgba(0, 0, 0, 0.56);
+    border-radius: 6px;
     padding: 0;
 }
 .sp-container, .sp-container button, .sp-container input, .sp-color, .sp-hue, .sp-clear {
@@ -313,6 +311,7 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     border: 1px solid var(--color-border);
     font-family: var(--font-code);
     font-size: 0.8em;
+    border-radius: 5px;
 }
 .sp-input.sp-validation-error {
     border: 1px solid red;
@@ -389,12 +388,10 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
     padding: 6px;
     height: 30px;
     display:inline-block;
-    *zoom: 1;
-    *display: inline;
-    background: var(--color-button);
     color: var(--color-text);
     vertical-align: middle;
     outline: none;
+    border-radius: 5px;
 }
 .sp-replacer:hover, .sp-replacer.sp-active {
     color: var(--color-light);
@@ -487,4 +484,5 @@ See http://bgrins.github.io/spectrum/themes/ for instructions.
 .sp-clear-display {
     background-repeat:no-repeat;
     background-position: center;
+}
 }

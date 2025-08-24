@@ -1,5 +1,5 @@
 
-class Group extends OutlinerNode {
+export class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -95,7 +95,7 @@ class Group extends OutlinerNode {
 					if (s instanceof Group) {
 						s.multiSelect()
 					} else if (!Outliner.selected.includes(s)) {
-						s.selectLow()
+						s.markAsSelected()
 					}
 				}
 			})
@@ -117,7 +117,7 @@ class Group extends OutlinerNode {
 				selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
-				s.selectLow()
+				s.markAsSelected()
 			})
 		}
 		if (Animator.open && Animation.selected) {
@@ -137,7 +137,7 @@ class Group extends OutlinerNode {
 		this.selected = true;
 		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
-			s.selectLow()
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -145,13 +145,10 @@ class Group extends OutlinerNode {
 	selectChildren(event) {
 		console.warn('Group#selectChildren is deprecated');
 	}
-	selectLow(highlight) {
-		//Only Select
-		if (highlight !== false) {
-			this.selected = true
-		}
+	markAsSelected() {
+		this.selected = true
 		this.children.forEach(function(s) {
-			s.selectLow(highlight)
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -247,7 +244,7 @@ class Group extends OutlinerNode {
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.getTypeBehavior('rotatable')) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -266,7 +263,7 @@ class Group extends OutlinerNode {
 
 				if (obj.from) obj.from.V3_add(diff);
 				if (obj.to) obj.to.V3_add(diff);
-				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
+				if (obj.getTypeBehavior('rotatable') || obj instanceof Group) obj.origin.V3_add(diff);
 
 				if (obj instanceof Group) {
 					obj.forEachChild(child => {
@@ -316,7 +313,7 @@ class Group extends OutlinerNode {
 				obj.children.forEach(child => iterateChild(child));
 
 			} else {
-				if (obj.movable) {
+				if (obj.getTypeBehavior('movable')) {
 					obj.origin.V3_add(shift);
 				}
 				if (obj.to) {
@@ -355,10 +352,12 @@ class Group extends OutlinerNode {
 		Canvas.updatePositions();
 		return copy;
 	}
-	getSaveCopy(project) {
-		var base_group = this.getChildlessCopy(true);
-		for (var child of this.children) {
-			base_group.children.push(child.getSaveCopy(project));
+	getSaveCopy(nested) {
+		let base_group = this.getChildlessCopy(true);
+		if (nested) {
+			for (let child of this.children) {
+				base_group.children.push(child.getSaveCopy(nested));
+			}
 		}
 		delete base_group.parent;
 		return base_group;
@@ -434,12 +433,18 @@ class Group extends OutlinerNode {
 		this.autouv = val;
 		this.updateElement()
 	}
+	static behavior = {
+		unique_name: () => Format.bone_rig,
+		parent: true,
+		select_children: 'all_first',
+		rotatable: true,
+		has_pivot: true,
+		use_absolute_position: true,
+	}
 }
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';
-	Group.prototype.isParent = true;
-	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
@@ -449,7 +454,6 @@ class Group extends OutlinerNode {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Group.prototype.needsUniqueName = () => Format.bone_rig;
 	function setGroupColor(color) {
 		let elements = Outliner.selected.filter(el => el.setColor)
 		Undo.initEdit({outliner: true, elements: elements, selection: true})
@@ -534,16 +538,13 @@ class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'selected', {
 		get() {
-			console.warn('"Group.selected" will be an array in the future!');
-			return Project.selected_groups?.[0]
+			return Project.selected_groups || []
 		},
-		set(group) {
-			console.warn('"Group.selected" will be an array in the future!');
-			if (group instanceof Group) {
-				Project.selected_groups.replace([group]);
-			} else {
-				Project.selected_groups.empty();
+		set(arr) {
+			if (arr instanceof Array == false) {
+				console.warn('Not an array!')
 			}
+			Project.selected_groups.replace(arr)
 		}
 	})
 	Object.defineProperty(Group, 'first_selected', {
@@ -559,10 +560,31 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
-new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
+new Property(Group, 'string', 'bedrock_binding', {
+	condition: {formats: ['bedrock']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.bedrock_binding', description: 'action.edit_bedrock_binding.desc', type: 'text'}
+		}
+	}
+});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'boolean', 'cem_attach', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_attach', type: 'checkbox'}
+		}
+	}
+});
+new Property(Group, 'number', 'cem_scale', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_scale', type: 'number'}
+		}
+	}
+});
 new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
@@ -585,7 +607,7 @@ new NodePreviewController(Group, {
 })
 
 
-function getCurrentGroup() {
+export function getCurrentGroup() {
 	if (Group.first_selected) {
 		return Group.first_selected
 	} else if (selected.length) {
@@ -600,7 +622,7 @@ function getCurrentGroup() {
 		}
 	}
 }
-function getAllGroups() {
+export function getAllGroups() {
 	var ta = []
 	function iterate(array) {
 		for (var obj of array) {
@@ -843,3 +865,9 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Group,
+	getCurrentGroup,
+	getAllGroups
+});

@@ -1,4 +1,4 @@
-class UndoSystem {
+export class UndoSystem {
 	constructor() {
 		this.index = 0;
 		this.history = [];
@@ -294,7 +294,7 @@ UndoSystem.save = class {
 		}
 
 		if (aspects.outliner) {
-			this.outliner = compileGroups(true)
+			this.outliner = Outliner.toJSON(true)
 		}
 
 		if (aspects.groups) {
@@ -423,11 +423,17 @@ UndoSystem.save = class {
 
 					var new_element = OutlinerNode.uuids[uuid]
 					if (new_element) {
-						for (var face in new_element.faces) {
-							new_element.faces[face].reset()
+						if (new_element instanceof SplineMesh) {
+							new_element.overwrite(element)
+							new_element.preview_controller.updateAll(new_element);
+						} 
+						else {
+							for (var face in new_element.faces) {
+								new_element.faces[face].reset()
+							}
+							new_element.extend(element)
+							new_element.preview_controller.updateAll(new_element);
 						}
-						new_element.extend(element)
-						new_element.preview_controller.updateAll(new_element);
 					} else {
 						new_element = OutlinerElement.fromSave(element, true);
 					}
@@ -446,7 +452,7 @@ UndoSystem.save = class {
 
 		if (this.outliner) {
 			Group.multi_selected.empty();
-			parseGroups(this.outliner)
+			Outliner.loadJSON(this.outliner)
 			if (is_session) {
 				function iterate(arr) {
 					arr.forEach((obj) => {
@@ -477,7 +483,7 @@ UndoSystem.save = class {
 			selected.length = 0;
 			Outliner.elements.forEach((obj) => {
 				if (this.selection.includes(obj.uuid)) {
-					obj.selectLow()
+					obj.markAsSelected()
 					if (this.mesh_selection[obj.uuid]) {
 						Project.mesh_selection[obj.uuid] = this.mesh_selection[obj.uuid];
 					}
@@ -826,7 +832,11 @@ UndoSystem.selectionSave = class {
 					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
-			} else if (element instanceof Cube && !element.box_uv) {
+			} if (element instanceof SplineMesh) {
+				this.geometry[element.uuid] = {
+					vertices: element.getSelectedVertices().slice(),
+				}
+			} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {
 				this.geometry[element.uuid] = {
 					faces: UVEditor.getSelectedFaces(element).slice()
 				}
@@ -894,7 +904,11 @@ UndoSystem.selectionSave = class {
 					element.getSelectedEdges(true).replace(geo_data.edges);
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
-				} else if (element instanceof Cube && !element.box_uv) {
+				} 
+				if (element instanceof SplineMesh) {
+					element.getSelectedVertices(true).replace(geo_data.vertices);
+
+				} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {
 					UVEditor.getSelectedFaces(element, true).replace(geo_data.faces);
 				}
 			}
@@ -980,8 +994,6 @@ UndoSystem.selectionSave = class {
 		return true;
 	}
 }
-
-let Undo = null;
 
 BARS.defineActions(function() {
 	
@@ -1079,3 +1091,11 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.defineProperty(window, 'Undo', {
+	get() {
+		return Blockbench.Project?.undo;
+	}
+})
+
+Object.assign(window, {UndoSystem});

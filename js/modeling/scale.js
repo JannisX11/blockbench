@@ -1,4 +1,4 @@
-const ModelScaler = {
+export const ModelScaler = {
 	dialog: new Dialog({
 		id: 'scale',
 		title: 'dialog.scale.title',
@@ -19,7 +19,7 @@ const ModelScaler = {
 		],
 		form: {
 			origin: {label: 'data.origin', type: 'vector', dimensions: 3, value: [0, 0, 0]},
-			pivot_options: {label: ' ', nocolon: true, type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
+			pivot_options: {label: ' ', type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
 				ModelScaler.setPivot(['pivot', 'selection'][index]);
 			}},
 			scale: {type: 'range', min: 0, max: 4, step: 0.01, value: 1, full_width: true, editable_range_label: true},
@@ -126,7 +126,7 @@ const ModelScaler = {
 					}
 				}
 			})
-			if (obj instanceof Cube && Format.cube_size_limiter) {
+			if (obj.getTypeBehavior('cube_size_limit') && Format.cube_size_limiter) {
 				if (Format.cube_size_limiter.test(obj)) {
 					overflow.push(obj);
 				}
@@ -137,8 +137,8 @@ const ModelScaler = {
 			if (save === true) {
 				delete obj.before
 			}
-			if (obj instanceof Cube && obj.box_uv) {
-				Canvas.updateUV(obj)
+			if (obj.getTypeBehavior('cube_faces') && obj.box_uv) {
+				obj.preview_controller.updateUV(obj);
 			}
 		})
 		scale_groups.forEach((g) => {
@@ -212,7 +212,7 @@ const ModelScaler = {
 
 		Outliner.selected.empty();
 		ModelScaler.overflow.forEach(obj => {
-			obj.selectLow()
+			obj.markAsSelected()
 		})
 		updateSelection();
 	},

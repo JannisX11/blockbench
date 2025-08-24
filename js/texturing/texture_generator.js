@@ -1,4 +1,4 @@
-const TextureGenerator = {
+export const TextureGenerator = {
 	background_color: new ColorPicker({
 		id: 'background_color',
 		name: 'data.color',
@@ -169,19 +169,21 @@ const TextureGenerator = {
 		return texture;
 	},
 	//constructors
-	boxUVCubeTemplate: function(obj, min_size) {
-		let floor_uv = Format.box_uv_float_size != true;
-		this.x = Math.round(obj.size(0, floor_uv)) || min_size;
-		this.y = Math.round(obj.size(1, floor_uv)) || min_size;
-		this.z = Math.round(obj.size(2, floor_uv)) || min_size;
-		this.posx = obj.uv_offset[0];
-		this.posy = obj.uv_offset[1];
-		this.obj = obj;
-		this.template_size = (obj.size(2, floor_uv) + obj.size(1, floor_uv))+ (obj.size(2, floor_uv) + obj.size(0, floor_uv))*2;
+	boxUVCubeTemplate: class BoxUVCubeTemplate {
+		constructor(obj, min_size) {
+			let floor_uv = Format.box_uv_float_size != true;
+			this.x = Math.round(obj.size(0, floor_uv)) || min_size;
+			this.y = Math.round(obj.size(1, floor_uv)) || min_size;
+			this.z = Math.round(obj.size(2, floor_uv)) || min_size;
+			this.posx = obj.uv_offset[0];
+			this.posy = obj.uv_offset[1];
+			this.obj = obj;
+			this.template_size = (obj.size(2, floor_uv) + obj.size(1, floor_uv))+ (obj.size(2, floor_uv) + obj.size(0, floor_uv))*2;
 
-		this.height = this.z + this.y;
-		this.width = 2* (this.x + this.z);
-		return this;	
+			this.height = this.z + this.y;
+			this.width = 2* (this.x + this.z);
+			return this;
+		}
 	},
 	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas, res_multiple) {
 		if (typeof background_color === 'string') {
@@ -344,7 +346,7 @@ const TextureGenerator = {
 		let double_use_faces = {};
 		let element_list = ((Format.single_texture && typeof makeTexture == 'function') ? Outliner.elements : Outliner.selected);
 		element_list = element_list.filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 		function faceRect(cube, face_key, tex, x, y, face_old_pos_id) {
 			this.cube = cube;
@@ -423,8 +425,8 @@ const TextureGenerator = {
 		element_list.forEach(element => {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
-			if (element instanceof Cube) {
-				if ((element.box_uv || options.box_uv) && element instanceof Cube) {
+			if (element.getTypeBehavior('cube_faces')) {
+				if ((element.box_uv || options.box_uv) && element.getTypeBehavior('support_box_uv')) {
 					element.box_uv = true;
 					for (let fkey in element.faces) {
 						element.faces[fkey].rotation = 0;
@@ -787,8 +789,8 @@ const TextureGenerator = {
 					}
 	
 	
-					max_x = -Infinity;
-					max_z = -Infinity;
+					let max_x = -Infinity;
+					let max_z = -Infinity;
 					for (let fkey in vertex_uvs) {
 						for (let vkey in vertex_uvs[fkey]) {
 							max_x = Math.max(max_x, vertex_uvs[fkey][vkey][0]);
@@ -1544,7 +1546,7 @@ const TextureGenerator = {
 		setProgress();
 		// Warning
 		if (element_list.find(element => {
-			if (element instanceof Cube == false || !element.box_uv) return false;
+			if (!element.getTypeBehavior('cube_faces') || !element.box_uv) return false;
 			let size = element.size();
 			return (size[0] > 0.001 && size[0] < 0.999) || (size[1] > 0.001 && size[1] < 0.999) || (size[2] > 0.001 && size[2] < 0.999)
 		})) {
@@ -1563,7 +1565,7 @@ const TextureGenerator = {
 
 		var face_list = [];
 		var element_list = (Format.single_texture ? Outliner.elements : Outliner.selected).filter(el => {
-			return (el instanceof Cube || el instanceof Mesh) && el.visibility;
+			return (el.getTypeBehavior('cube_faces') || el instanceof Mesh) && el.visibility;
 		});
 
 		Undo.initEdit({
@@ -1580,7 +1582,7 @@ const TextureGenerator = {
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
 				if (element instanceof Mesh && face.vertices.length <= 2) continue;
-				if (element instanceof Cube && face.texture === null) continue;
+				if (element.getTypeBehavior('cube_faces') && face.texture === null) continue;
 				face_list.push({element, fkey, face});
 			}
 		})
@@ -1696,7 +1698,7 @@ const TextureGenerator = {
 			Undo.current_save.addElements(changed_elements, {uv_only: true});
 
 			changed_elements.forEach(element => {
-				if (element instanceof Cube) {
+				if (element.getTypeBehavior('cube_faces')) {
 					for (var key in element.faces) {
 						let face = element.faces[key];
 						if (texture && face.getTexture() == texture) continue;
@@ -1723,3 +1725,7 @@ const TextureGenerator = {
 		return changed_elements;
 	}
 }
+
+Object.assign(window, {
+	TextureGenerator
+});

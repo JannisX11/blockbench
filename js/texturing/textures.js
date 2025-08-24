@@ -1,6 +1,12 @@
+import VertShader from './../shaders/texture.vert.glsl';
+import FragShader from './../shaders/texture.frag.glsl';
+import { prepareShader } from '../shaders/shader';
+import { Blockbench } from '../api';
+
+let tex_version = 1;
 
 //Textures
-class Texture {
+export class Texture {
 	constructor(data, uuid) {
 		let scope = this;
 		//Info
@@ -55,121 +61,13 @@ class Texture {
 		img.setAttribute('pagespeed_no_transform', '');
 		img.src = 'assets/missing.png'
 
-		var tex = new THREE.Texture(this.canvas);
+		let tex = new THREE.Texture(this.canvas);
 		tex.magFilter = THREE.NearestFilter
 		tex.minFilter = THREE.NearestFilter
 		tex.name = this.name;
 		img.tex = tex;
 
-		var vertShader = `
-			attribute float highlight;
-
-			uniform bool SHADE;
-			uniform int LIGHTSIDE;
-
-			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.5;
-			float XFAC = -0.15;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
-
-					if (LIGHTSIDE == 1) {
-						float temp = N.y;
-						N.y = N.z * -1.0;
-						N.z = temp;
-					}
-					if (LIGHTSIDE == 2) {
-						float temp = N.y;
-						N.y = N.x;
-						N.x = temp;
-					}
-					if (LIGHTSIDE == 3) {
-						N.y = N.y * -1.0;
-					}
-					if (LIGHTSIDE == 4) {
-						float temp = N.y;
-						N.y = N.z;
-						N.z = temp;
-					}
-					if (LIGHTSIDE == 5) {
-						float temp = N.y;
-						N.y = N.x * -1.0;
-						N.x = temp;
-					}
-
-					float yLight = (1.0+N.y) * 0.5;
-					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-
-				}
-
-				if (highlight == 2.0) {
-					lift = 0.22;
-				} else if (highlight == 1.0) {
-					lift = 0.1;
-				} else {
-					lift = 0.0;
-				}
-				
-				vUv = uv;
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-
-			uniform sampler2D map;
-
-			uniform bool SHADE;
-			uniform bool EMISSIVE;
-			uniform vec3 LIGHTCOLOR;
-
-			${settings.antialiasing_bleed_fix.value ? 'centroid' : ''} varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-				vec4 color = texture2D(map, vUv);
-				
-				if (color.a < 0.01) discard;
-
-				if (EMISSIVE == false) {
-
-					gl_FragColor = vec4(lift + color.rgb * light, color.a);
-					gl_FragColor.r = gl_FragColor.r * LIGHTCOLOR.r;
-					gl_FragColor.g = gl_FragColor.g * LIGHTCOLOR.g;
-					gl_FragColor.b = gl_FragColor.b * LIGHTCOLOR.b;
-
-				} else {
-
-					float light_r = (light * LIGHTCOLOR.r) + (1.0 - light * LIGHTCOLOR.r) * (1.0 - color.a);
-					float light_g = (light * LIGHTCOLOR.g) + (1.0 - light * LIGHTCOLOR.g) * (1.0 - color.a);
-					float light_b = (light * LIGHTCOLOR.b) + (1.0 - light * LIGHTCOLOR.b) * (1.0 - color.a);
-					gl_FragColor = vec4(lift + color.r * light_r, lift + color.g * light_g, lift + color.b * light_b, 1.0);
-
-				}
-
-				if (lift > 0.2) {
-					gl_FragColor.r = gl_FragColor.r * 0.6;
-					gl_FragColor.g = gl_FragColor.g * 0.7;
-				}
-			}`
-		var mat = new THREE.ShaderMaterial({
+		let mat = new THREE.ShaderMaterial({
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: settings.shading.value},
@@ -177,23 +75,33 @@ class Texture {
 				LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
 				EMISSIVE: {type: 'bool', value: this.render_mode == 'emissive'}
 			},
-			vertexShader: vertShader,
-			fragmentShader: fragShader,
+			vertexShader: prepareShader(VertShader),
+			fragmentShader: prepareShader(FragShader),
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
 			side: Canvas.getRenderSide(this),
 			transparent: true,
+			clipping: true
 		});
 		mat.map = tex;
 		mat.name = this.name;
 		this.material = mat;
 
-		var size_control = {};
+		let size_control = {};
 
 		this.img.onload = () => {
+			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
+			if (scope.width && dimensions_changed) {
+				tex = new THREE.Texture(this.canvas);
+				tex.magFilter = THREE.NearestFilter;
+				tex.minFilter = THREE.NearestFilter;
+				tex.name = this.name;
+				mat.map = tex;
+				mat.uniforms.map.value = tex;
+			}
 			tex.needsUpdate = true;
-			let dimensions_changed = scope.width !== img.naturalWidth || scope.height !== img.naturalHeight;
-			scope.width = img.naturalWidth;
-			scope.height = img.naturalHeight;
+
+			scope.width = tex.width = img.naturalWidth;
+			scope.height = tex.width = img.naturalHeight;
 			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				scope.error = 2;
@@ -233,11 +141,11 @@ class Texture {
 						let nh = img.naturalHeight;
 
 						//texture is unlike project
-						var unlike = (pw != nw || ph != nh);
+						let unlike = (pw != nw || ph != nh);
 						//Resolution of this texture has changed
-						var changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
+						let changed = size_control.old_width && (size_control.old_width != nw || size_control.old_height != nh);
 						//Resolution could be a multiple of project size
-						var multi = (
+						let multi = (
 							(pw%nw == 0 || nw%pw == 0) &&
 							(ph%nh == 0 || nh%ph == 0)
 						)
@@ -386,8 +294,12 @@ class Texture {
 		return copy
 	}
 	getSaveCopy(bitmap) {
-		var copy = {};
-		for (var key in Texture.properties) {
+		let copy = {
+			name: undefined,
+			path: undefined,
+			relative_path: undefined,
+		};
+		for (let key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
 		copy.visible = this.visible;
@@ -1302,7 +1214,6 @@ class Texture {
 				}
 			},
 			onConfirm: function(formResult) {
-
 				let old_width = scope.width;
 				let old_height = scope.height;
 				let elements_to_change = null;
@@ -1407,7 +1318,7 @@ class Texture {
 
 					} else if (Texture.length >= 2 && elements_to_change) {
 						elements_to_change.forEach(element => {
-							if (element instanceof Cube) {
+							if (element.getTypeBehavior('cube_faces')) {
 								for (var key in element.faces) {
 									if (element.faces[key].texture !== scope.uuid) continue;
 									var uv = element.faces[key].uv;
@@ -1931,6 +1842,28 @@ class Texture {
 				}
 			},
 			'resize_texture',
+			{
+				name: 'menu.texture.flipbook_animation',
+				icon: (texture) => texture.frameCount > 1,
+				condition: (tex) => Format.animated_textures,
+				click(texture) {
+					if (Format.per_texture_uv_size) {
+						let is_animated = texture.frameCount;
+						if (!is_animated && texture.uv_height == texture.uv_width) {
+							BarItems.animated_texture_editor.click();
+							return;
+						}
+						Undo.initEdit({textures: [texture]});
+						if (is_animated) {
+							texture.uv_height = texture.height * (texture.uv_width / texture.width);
+						} else {
+							texture.uv_height = texture.uv_width;
+						}
+						Undo.finishEdit('Toggle flipbook animation');
+						updateSelection();
+					}
+				}
+			},
 			'animated_texture_editor',
 			'create_material',
 			'append_to_template',
@@ -2161,18 +2094,39 @@ class Texture {
 		}
 	})
 
-function saveTextures(lazy = false) {
-	Texture.all.forEach(function(tex) {
-		if (!tex.saved) {
-			if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return;
-			tex.save()
-		}
+export async function saveTextures(lazy = false) {
+	let textures_to_save = Texture.all.filter(tex => {
+		if (tex.saved) return false;
+		if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return false;
+		return true;
 	})
+	let will_open_pop_up = textures_to_save.filter(tex => {
+		return !(isApp && tex.path && fs.existsSync(tex.path));
+	});
+	if (will_open_pop_up.length >= 2) {
+		function askNextStep(resolve) {
+			let texture_list = will_open_pop_up.map(tex => '- ' + tex.name).join('\n');
+			Blockbench.showMessageBox({
+				title: 'action.save_textures',
+				message: tl('message.save_all_textures.message') + '\n\n' + texture_list,
+				buttons: ['dialog.unsaved_work.save_all', 'message.save_all_textures.skip']
+			}, (button) => {
+				resolve(button == 0);
+			});
+		}
+		let should_save = await new Promise(askNextStep);
+		if (!should_save) {
+			will_open_pop_up.forEach(tex => textures_to_save.remove(tex));
+		}
+	}
+	for (let tex of textures_to_save) {
+		tex.save();
+	}
 }
-function loadTextureDraggable() {
+export function loadTextureDraggable() {
 	console.warn('loadTextureDraggable no longer exists');
 }
-function unselectTextures() {
+export function unselectTextures() {
 	Texture.all.forEach(function(s) {
 		s.selected = false;
 		s.multi_selected = false;
@@ -2183,7 +2137,7 @@ function unselectTextures() {
 	Panels.layers.inside_vue.layers = [];
 	Blockbench.dispatchEvent('update_texture_selection');
 }
-function getTexturesById(id) {
+export function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(Texture.all, function(e) {return e.id == id});
@@ -2368,6 +2322,19 @@ BARS.defineActions(function() {
 					} 
 				})
 				Undo.finishEdit('Change textures folder')
+			}
+		}
+	})
+	new Toggle('search_textures', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Panels.textures.inside_vue._data.search_term = '';
+			Panels.textures.inside_vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('texture_search_bar').firstChild.focus();
+				});
 			}
 		}
 	})
@@ -2719,6 +2686,8 @@ Interface.definePanels(function() {
 					'create_texture',
 					'create_texture_group',
 					'append_to_template',
+					'+',
+					'search_textures',
 				]
 			})
 		],
@@ -2732,6 +2701,8 @@ Interface.definePanels(function() {
 				textures: Texture.all,
 				texture_groups: TextureGroup.all,
 				currentFrame: 0,
+				search_enabled: false,
+				search_term: '',
 			}},
 			components: {'Texture': texture_component},
 			methods: {
@@ -2803,8 +2774,21 @@ Interface.definePanels(function() {
 					if (Blockbench.hasFlag('dragging_textures')) return;
 					unselectTextures();
 				},
+				search(list) {
+					const search_term = this.search_enabled && this.search_term.toLowerCase();
+					if (search_term) {
+						return list.filter(tex => {
+							return tex.name.toLowerCase().includes(search_term) || tex.folder.toLowerCase().includes(search_term);
+						});
+					} else {
+						return list;
+					}
+				},
 				getUngroupedTextures() {
-					return this.textures.filter(tex => !(tex.group && TextureGroup.all.find(g => g.uuid == tex.group)));
+					return this.search(this.textures.filter(tex => {
+						if (tex.group && TextureGroup.all.find(g => g.uuid == tex.group)) return false;
+						return true;
+					}));
 				},
 				dragTextureGroup(texture_group, e1) {
 					if (e1.button == 1) return;
@@ -2927,10 +2911,20 @@ Interface.definePanels(function() {
 	
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.search_term && !document.querySelector('#texture_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_textures.set(false);
+					}
 				}
 			},
 			template: `
 				<div>
+					<search-bar id="texture_search_bar" class="panel_search_bar"
+						v-if="search_enabled" v-model="search_term"
+						@input="updateSearch()" onfocusout="Panels.textures.vue.updateSearch()"
+					/>
 					<ul id="texture_list" class="list mobile_scrollbar" @contextmenu.stop.prevent="openMenu($event)" @click.stop="unselect($event)">
 						<li
 							v-for="texture_group in texture_groups" :key="texture_group.uuid" :id="texture_group.uuid"
@@ -2976,7 +2970,7 @@ Interface.definePanels(function() {
 									</i>
 								</li>
 								<Texture
-									v-for="texture in texture_group.getTextures()"
+									v-for="texture in search(texture_group.getTextures())"
 									:key="texture.uuid"
 									:texture="texture"
 								></Texture>
@@ -3015,3 +3009,10 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	Texture,
+	saveTextures,
+	unselectTextures,
+	getTexturesById,
+});

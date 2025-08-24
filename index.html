@@ -4,7 +4,7 @@
 	<title>Blockbench</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="theme-color" content="#181a1f">
+	<meta name="theme-color" content="#121418">
 	<meta name="color-scheme" content="dark">
 	<meta name="robots" content="noindex">
 	<link rel="manifest" href="manifest.webmanifest">
@@ -27,13 +27,14 @@
 <body spellcheck="false" class="maximized">
 	<script>
 		if (typeof module === 'object') {window.module = module; module = undefined;}//jQuery Fix
-		const isApp = typeof require !== 'undefined';
-
 		
 		if (localStorage.getItem('theme')) {
 			try {
 				stored_theme = JSON.parse(localStorage.getItem('theme'));
-				document.body.style.setProperty('--color-dark', stored_theme.colors.dark);
+				let dark_color = stored_theme.colors.dark;
+				if (dark_color) {
+					document.getElementById('theme_css').textContent = `@layer theme {body {--color-dark: ${dark_color};}};`
+				}
 			} catch (err) {}
 		}
 		window.ErrorLog = [];
@@ -50,147 +51,11 @@
 	<div id="loading_error_message" style="display: none;">
 		<div>An error occurred while loading Blockbench</div>
 		<div id="loading_error_detail" style="color: var(--color-subtle_text);"></div>
-		<button onclick="isApp ? Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
+		<button onclick="window.Blockbench ? window.Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
 	</div>
-	<script>
-		// Browser compatibility check
-		try {
-			eval('window?.document ?? 2');
-		} catch (err) {
-			console.error(err);
-			let error_element = document.querySelector('#loading_error_detail')
-			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`
-		}
-	</script>
-		<script src="lib/vue.min.js"></script>
-		<script src="lib/vue_sortable.js"></script>
-		<script src="lib/jquery.js"></script>
-		<script src="lib/jquery-ui.min.js"></script>
-		<script src="lib/targa.js"></script>
-		<script src="lib/jszip.min.js"></script>
-		<script src="lib/gif.js"></script>
-		<script src="lib/FileSaver.js"></script>
-		<script src="lib/prism.js"></script>
-		<script src="lib/VuePrismEditor.min.js"></script>
-		<script src="lib/molang-prism-syntax.js"></script>
-		<script src="lib/lzutf8.js"></script>
-		<script src="lib/peer.min.js"></script>
-		<script src="lib/marked.min.js"></script>
-		<script src="lib/purify.min.js"></script>
-		<script src="lib/spectrum.js"></script>
-		<script src="lib/color-picker.min.js"></script>
-		<script src="lib/three.min.js"></script>
-		<script src="lib/three_custom.js"></script>
-		<script src="lib/GLTFExporter.js"></script>
-		<script src="lib/CanvasFrame.js"></script>
-		<script src="lib/canvas2apng.js"></script>
-		<script src="lib/fik.min.js"></script>
-		<script src="lib/molang.umd.js"></script>
-		<script src="lib/wintersky.umd.js"></script>
-		<script src="lib/easing.js"></script>
-		
-		<script src="bundle.js"></script>
-		<script src="js/preview/OrbitControls.js"></script>
-		<script src="js/util/util.js"></script>
-		<script src="js/util/math_util.js"></script>
-		<script src="js/util/array_util.js"></script>
-		<script src="js/util/event_system.js"></script>
-		<script src="js/util/property.js"></script>
-		<script src="js/util/json.js"></script>
-		<script src="js/interface/menu.js"></script>
-		<script src="js/interface/actions.js"></script>
-		<script src="js/interface/themes.js"></script>
-		<script src="js/interface/shared_actions.js"></script>
-		<script src="js/misc.js"></script>
-		<script src="js/modes.js"></script>
-		<script src="js/api.js"></script>
-		<script src="js/file_system.js"></script>
-		<script src="js/interface/vue_components.js"></script>
-		<script src="js/interface/panels.js"></script>
-		<script src="js/interface/interface.js"></script>
-		<script src="js/interface/menu_bar.js"></script>
-		<script src="js/interface/start_screen.js"></script>
-		<script src="js/interface/form.js"></script>
-		<script src="js/interface/dialog.js"></script>
-		<script src="js/interface/keyboard.js"></script>
-		<script src="js/interface/settings.js"></script>
-		<script src="js/interface/about.js"></script>
-		<script src="js/interface/action_control.js"></script>
-		<script src="js/copy_paste.js"></script>
-		<script src="js/undo.js"></script>
-
-		<script type="text/javascript">
-			if (isApp === true) {
-				document.write("<script src='js/desktop.js'><\/script>");
-			} else {
-				document.write("<script src='js/web.js'><\/script>");
-			}
-		</script>
-
-		<script src="js/edit_sessions.js"></script>
-		<script src="js/validator.js"></script>
-		<script src="js/outliner/outliner.js"></script>
-		<script src="js/outliner/collections.js"></script>
-		<script src="js/outliner/group.js"></script>
-		<script src="js/outliner/mesh.js"></script>
-		<script src="js/outliner/cube.js"></script>
-		<script src="js/outliner/texture_mesh.js"></script>
-		<script src="js/outliner/locator.js"></script>
-		<script src="js/outliner/null_object.js"></script>
-		<script src="js/preview/preview.js"></script>
-		<script src="js/preview/reference_images.js"></script>
-		<script src="js/preview/screenshot.js"></script>
-		<script src="js/preview/canvas.js"></script>
-		<script src="js/modeling/transform_gizmo.js"></script>
-		<script src="js/modeling/transform.js"></script>
-		<script src="js/modeling/scale.js"></script>
-		<script src="js/modeling/mesh_editing.js"></script>
-		<script src="js/modeling/mirror_modeling.js"></script>
-		<script src="js/texturing/layers.js"></script>
-		<script src="js/texturing/textures.js"></script>
-		<script src="js/texturing/texture_groups.js"></script>
-		<script src="js/texturing/texture_flipbook.js"></script>
-		<script src="js/texturing/uv.js"></script>
-		<script src="js/texturing/painter.js"></script>
-		<script src="js/texturing/texture_generator.js"></script>
-		<script src="js/texturing/color.js"></script>
-		<script src="js/texturing/edit_image.js"></script>
-		<script src="js/display_mode.js"></script>
-		<script src="js/animations/animation_mode.js"></script>
-		<script src="js/animations/animation.js"></script>
-		<script src="js/animations/molang.js"></script>
-		<script src="js/animations/timeline_animators.js"></script>
-		<script src="js/animations/keyframe.js"></script>
-		<script src="js/animations/timeline.js"></script>
-		<script src="js/animations/animation_controllers.js"></script>
-		<script src="js/preview/preview_scenes.js"></script>
-		<script src="js/predicate_editor.js"></script>
-		<script src="js/plugin_loader.js"></script>
-
-		<script src="js/io/codec.js"></script>
-		<script src="js/io/format.js"></script>
-		<script src="js/io/project.js"></script>
-		<script src="js/io/io.js"></script>
-		<script src="js/io/share.js"></script>
-		<script src="js/io/formats/generic.js"></script>
-		<script src="js/io/formats/bbmodel.js"></script>
-		<script src="js/io/formats/java_block.js"></script>
-		<script src="js/io/formats/bedrock.js"></script>
-		<script src="js/io/formats/bedrock_old.js"></script>
-		<script src="js/io/formats/obj.js"></script>
-		<script src="js/io/formats/gltf.js"></script>
-		<script src="js/io/formats/fbx.js"></script>
-		<script src="js/io/formats/collada.js"></script>
-		<script src="js/io/formats/modded_entity.js"></script>
-		<script src="js/io/formats/optifine_jem.js"></script>
-		<script src="js/io/formats/optifine_jpm.js"></script>
-		<script src="js/io/formats/skin.js"></script>
-		<script src="js/io/formats/image.js"></script>
-		<script src="js/globals.js"></script>
-
-		<script>if (window.module) module = window.module;</script>
+	<script type="module" src="dist/bundle.js"></script>
 
 	<div style="display: none;"></div>
 
@@ -212,7 +77,7 @@
 			<img class="blockbench_logo" src="assets/logo_text_white.svg" alt="Blockbench" />
 		</div>
 		<ul id="menu_bar" class="scroll_horizontal"></ul>
-		<div id="title_bar_home_button" class="tool" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons icon">home</i></div>
+		<div id="title_bar_home_button" class="tool hidden" onclick="Interface.tab_bar.openNewTab()"><i class="material-icons icon">home</i></div>
 		<div class="app-drag-region" id="header_free_bar"></div>
 		<div id="update_menu"></div>
 		<div id="settings_profiles_header_menu" class="hidden tool">
@@ -294,7 +159,10 @@
 						v-if="Condition(mode.condition)"
 						v-bind:class="{selected: mode.selected}"
 						v-on:mousedown="mode.select()"
-					>{{ mode.name }}</li>
+					>
+						<dynamic-icon :icon="mode.icon"></dynamic-icon>
+						{{ mode.name }}
+					</li>
 				</ul>
 			</div>
 			
@@ -320,13 +188,25 @@
 		</div>
 	
 	</div>
-	
-	<script src="js/boot_loader.js"></script>
-	<script>
-		if (!Blockbench || !Blockbench.setup_successful) {
+
+	<script type="module">
+		let browser_check_passed = false;
+		// Browser compatibility check
+		try {
+			eval('[].findLast(() => true)');
+			if (document.body.computedStyleMap().get('position').value != 'fixed') {
+				throw 'Stylesheet not loaded';
+			}
+			browser_check_passed = true;
+		} catch (err) {
+			console.error(err);
+			let error_element = document.querySelector('#loading_error_detail')
+			error_element.innerHTML = `Incompatible browser version. Please update your web browser.`;
+		}
+		if (!window.Blockbench?.setup_successful || !browser_check_passed) {
 			document.getElementById('loading_error_message').style.display = 'block'
 			if (window.require) {
-				require('electron').remote.getCurrentWindow().webContents.openDevTools()
+				require('@electron/remote').getCurrentWindow().webContents.openDevTools();
 			}
 		} else {
 			document.getElementById('loading_error_message').innerHTML = 'No loading errors...'

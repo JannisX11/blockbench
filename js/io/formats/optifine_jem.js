@@ -1,5 +1,3 @@
-(function() {
-
 var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',
@@ -18,7 +16,6 @@ var codec = new Codec('optifine_entity', {
 		if (Project.credit || settings.credit.value) {
 			entitymodel.credit = Project.credit || settings.credit.value
 		}
-		var geo_code = 'geometry.'+Project.geometry_name
 		function getTexturePath(tex) {
 			let path = tex.name;
 			if (tex.folder) path = tex.folder + '/' + path;
@@ -56,16 +53,6 @@ var codec = new Codec('optifine_entity', {
 
 			if (!g.rotation.allEqual(0)) {
 				bone.rotate = g.rotation.slice()
-			}
-			if (entityMode.hardcodes[geo_code]) {
-				var codes = entityMode.hardcodes[geo_code]
-				var bone_codes = codes[bone.part] || codes[bone.part+'1']
-				if (bone_codes) {
-					if (!bone.rotate) bone.rotate = [0, 0, 0];
-					bone_codes.rotation.forEach((dft, i) => {
-						bone.rotate[i] += dft;
-					})
-				}
 			}
 			if (g.mirror_uv) {
 				bone.mirrorTexture = 'u'
@@ -424,4 +411,3 @@ BARS.defineActions(function() {
 	})
 })
 
-})()

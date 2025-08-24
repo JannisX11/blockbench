@@ -1,9 +1,12 @@
+@layer base {
 /*Dialog*/
 	#blackout {
 		display: none;
 		position: absolute;
 		width: 100%;
 		height: 100%;
+		left: 0;
+		right: 0;
 		z-index: 21;
 		background-color: transparent;
 		opacity: 0;
@@ -17,9 +20,13 @@
 		cursor: pointer;
 		overflow: hidden;
 		padding-left: 8px;
-		background: var(--color-button);
-		height: 30px;
+		padding-top: 2px;
+		background: var(--color-elevated);
+		height: 33px;
 		flex: 0 0 auto;
+		z-index: 2;
+		border-radius: inherit;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 	}
 	.dialog_handle .dialog_title {
 		padding-top: 2px;
@@ -31,10 +38,12 @@
 		position: absolute;
 		right: 0px;
 		top: 0px;
-		height: 30px;
-		width: 30px;
-		padding: 4px;
+		height: 33px;
+		width: 33px;
+		padding: 6px;
+		border-radius: inherit;
 		cursor: pointer;
+		z-index: inherit;
 	}
 	.dialog_close_button:hover {
 		color: var(--color-accent_text);
@@ -52,6 +61,7 @@
 		border-color: var(--color-button);
 		border-top-color: transparent !important;
 		border-left-color: transparent !important;
+		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
@@ -97,7 +107,7 @@
 		right: unset;
 		bottom: unset;
 		display: none;
-		border-radius: 3px;
+		border-radius: 6px;
 	}
 	.shapeless_dialog {
 		position: fixed;
@@ -132,16 +142,16 @@
 		margin-right: auto;
 		margin-left: auto;
 	}
-	dialog.dialog.tool_config {
+	dialog.dialog.config_dialog {
 		margin-right: 0;
 		margin-left: 0;
 		width: fit-content;
 		min-width: 200px;
 	}
-	.dialog.tool_config > div > .dialog_content {
+	.dialog.config_dialog > div > .dialog_content {
 		margin: 4px 12px;
 	}
-	.tool_config_title {
+	.config_dialog_title {
 		padding: 4px 12px;
 		margin-bottom: -6px;
 		margin-right: 18px;
@@ -149,12 +159,13 @@
 		font-size: 1.1em;
 		text-transform: uppercase;
 		color: var(--color-subtle_text);
+		border-radius: inherit;
 	}
-	.dialog .tool_config_title > .dialog_close_button {
+	.dialog .config_dialog_title > .dialog_close_button {
 		right: 0;
 		top: 0;
 	}
-	.dialog.tool_config hr {
+	.dialog.config_dialog hr {
 		margin: 6px 0;
 	}
 	.dialog:not(.resizable) {
@@ -171,6 +182,7 @@
 	}
 	.dialog_bar.form_bar {
 		display: flex;
+		align-items: center;
 	}
 	label.name_space_left {
 		float: left;
@@ -360,6 +372,8 @@
 		flex-wrap: wrap;
 		gap: 2px;
 		flex-grow: 1;
+		border-radius: 5px;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 	}
 	.form_inline_select > li {
 		height: 30px;
@@ -369,6 +383,14 @@
 		background-color: var(--color-button);
 		text-align: center;
 	}
+	.form_inline_select > li:first-of-type {
+		border-top-left-radius: inherit;
+		border-bottom-left-radius: inherit;
+	}
+	.form_inline_select > li:last-of-type {
+		border-top-right-radius: inherit;
+		border-bottom-right-radius: inherit;
+	}
 	.form_inline_select > li:hover {
 		color: var(--color-light);
 	}
@@ -376,6 +398,7 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 		cursor: default;
+		border-radius: inherit;
 	}
 	.form_bar_radio {
 		display: flex;
@@ -429,6 +452,7 @@
 		flex-direction: column;
 		overflow-x: hidden;
 		overflow-y: auto;
+		border-bottom-left-radius: 6px;
 	}
 	.dialog_content {
 		display: block;
@@ -492,6 +516,22 @@
 		height: 10px;
 		right: 6px;
 		margin-top: -17px;
+	}
+	.dialog_sidebar_separator {
+		min-height: 4px;
+		color: var(--color-subtle_text);
+		margin-bottom: -1px;
+		margin-top: 4px;
+		text-indent: 16px;
+		display: flex;
+		align-items: center;
+	}
+	.dialog_sidebar_separator > span {
+		background-color: var(--color-button);
+		width: 0;
+		height: 2px;
+		flex-grow: 1;
+		margin: 0 5px;
 	}
 	
 	.dialog_sidebar .dialog_sidebar_actions {
@@ -561,11 +601,11 @@
 		justify-content: right;
 		margin-bottom: 8px;
 	}
-	#settings_profile_wrapper > bb-select {
+	#settings_profile_wrapper > .bb-select {
 		min-width: 126px;
 		margin-left: 6px;
 	}
-	#settings_profile_wrapper > bb-select.profile_is_selected {
+	#settings_profile_wrapper > .bb-select.profile_is_selected {
 		background-color: var(--color-profile);
 		color: #000;
 	}
@@ -580,12 +620,18 @@
 	}
 	.settings_list li {
 		padding: 2px 1px;
-		margin: 4px 0;
+		margin: 8px 0;
+		display: flex;
+		align-items: center;
+	}
+	.settings_list li.full_width_input {
+		flex-wrap: wrap;
 	}
 	.settings_list li.has_profile_override {
 		border: 1px solid var(--color-profile);
 		padding: 1px 0;
 		position: relative;
+		border-radius: 6px;
 	}
 	.settings_list .setting_profile_clear_button {
 		position: absolute;
@@ -596,16 +642,11 @@
 		color: var(--color-light);
 	}
 	.settings_list .setting_element {
-		width: 50px;
+		width: 60px;
 		text-align: center;
 		float: left;
 		margin-top: 12px;
-	}
-	.settings_list input[type=checkbox] {
-		margin-top: -6px;
-	}
-	.settings_list input[type=checkbox]::before {
-		font-size: 18pt;
+		flex-shrink: 0;
 	}
 	.settings_list li > .setting_icon {
 		margin-top: 8px;
@@ -613,7 +654,8 @@
 	.settings_list li > .setting_label {
 		display: inline-block;
 		margin-left: 8px;
-		width: calc(100% - 60px);
+		width: 100%;
+		flex-shrink: 1;
 	}
 	.settings_list .setting_name {
 		font-size: 1.1em;
@@ -621,6 +663,20 @@
 	}
 	.settings_list .setting_description {
 		font-size: 0.94em;
+		color: var(--color-subtle_text);
+	}
+	.settings_list .setting_plugin_label {
+		padding: 3px 10px;
+		font-size: 15px;
+		float: right;
+		border-radius: 5px;
+		background-color: var(--color-back);
+		cursor: pointer;
+	}
+	.settings_list .setting_plugin_label:hover {
+		color: var(--color-light);
+	}
+	.settings_list .setting_plugin_label > span {
 		color: var(--color-subtle_text);
 	}
 	.setting_profile_value_indicator {
@@ -724,15 +780,15 @@
 	}
 	.keybind_line > div.keybindslot {
 		width: calc(51% - 32px);
-		padding: 4px;
-		padding-left: 8px;
-		height: 30px;
+		padding: 6px;
+		margin-bottom: 2px;
+		height: 32px;
 		background-color: var(--color-back);
-		border: 1px solid var(--color-border);
 		font-size: 0.94em;
 		overflow: hidden;
 		white-space: nowrap;
-		cursor: text;
+		cursor: pointer;
+		border-radius: 6px;
 	}
 	.keybind_line > div.keybindslot:hover {
 		color: var(--color-light);
@@ -746,6 +802,7 @@
 	.keybindslot .modifier, .keybindslot .key {
 		background: var(--color-button);
 		padding: 2px 5px;
+		border-radius: 5px;
 	}
 	.keybindslot .optional {
 		color: var(--color-subtle_text);
@@ -771,7 +828,7 @@
 		flex-shrink: 0;
 		width: 0;
 	}
-	.keybind_item_variations > li > bb-select {
+	.keybind_item_variations > li > .bb-select {
 		margin-right: 54px;
 	}
 	.keybind_variation_conflict {
@@ -812,6 +869,7 @@
 		margin: 4px;
 		display: inline-block;
 		vertical-align: top;
+		border-radius: 6px;
 	}
 	.prism-editor-wrapper .prism-editor__line-numbers {
 		background-color: var(--color-back) !important;
@@ -845,16 +903,17 @@
 	}
 	#theme_list .theme {
 		float: left;
-		padding: 6px;
+		padding: 8px;
 		border: 2px solid transparent;
-		background-color: var(--color-back);
 		color: var(--color-text);
+		background-color: var(--color-elevated);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 		cursor: pointer;
+		border-radius: 5px;
 	}
 	#theme_list .theme:hover {
-		border-color: var(--color-border);
 		color: var(--color-light);
-		background-color: var(--color-back);
+		background-color: var(--color-button);
 	}
 	#theme_list .theme.selected {
 		border-color: var(--color-accent);
@@ -866,17 +925,21 @@
 		cursor: inherit;
 	}
 	.theme_name {
-		display: inline-block;
+		padding-left: 2px;
+	}
+	.theme_details_bar {
+		display: flex;
+		align-items: center;
+		width: 100%;
 	}
 	.theme_author {
 		color: var(--color-subtle_text);
+		margin-right: auto;
 	}
 	.theme_type_icon {
-		float: right;
-		margin-right: 5px;
-	}
-	.theme_type_icon > i {
 		color: var(--color-subtle_text);
+		height: 24px;
+		margin-right: 2px;
 	}
 
 	#theme_list .theme_preview, .custom_thumbnail_preview {
@@ -940,6 +1003,7 @@
 		position: absolute;
 		left: 31px;
 		z-index: 1;
+		border-radius: 2px;
 	}
 	.theme_preview_menu_header {
 		height: 20px;
@@ -967,10 +1031,11 @@
 		border-left: 2px solid var(--color-border);
 	}
 	.theme_backup_bar {
-		padding: 2px 6px;
+		padding: 2px 8px;
 		border: 2px solid var(--color-accent);
 		margin-bottom: 7px;
 		cursor: pointer;
+		border-radius: 6px;
 	}
 	.theme_backup_bar:hover {
 		color: var(--color-light);
@@ -1015,6 +1080,7 @@
 		text-decoration: none;
 		padding: 6px;
 		padding-top: 10px;
+		border-radius: 6px;
 	}
 	dialog#about div.socials a:hover {
 		background-color: var(--color-accent);
@@ -1070,16 +1136,18 @@
 	}
 	#import_texture_list li {
 		min-height: 112px;
-		width: 150px;
+		width: 148px;
 		margin: 6px 3px;
 		position: relative;
 		display: inline-block;
 		background-repeat: no-repeat;
 		background-size: 112px;
 		background-position-x: center;
+		background-position-y: 6px;
 		box-sizing: content-box;
 		border: 2px solid transparent;
 		vertical-align: top;
+		cursor: pointer;
 	}
 	#import_texture_list li:hover {
 		background-color: var(--color-selected);;
@@ -1109,6 +1177,8 @@
 		color: var(--color-subtle_text);
 		overflow-wrap: anywhere;
 		text-align: center;
+		cursor: inherit;
+		background-color: inherit;
 	}
 	#import_texture_list li:hover label {
 		color: var(--color-text);
@@ -1314,8 +1384,10 @@
 		padding: 8px 12px;
 		padding-bottom: 12px;
 		margin-right: 2px;
+		border-radius: 6px;
 		cursor: pointer;
 		background-color: var(--color-ui);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 	}
 	#plugin_list > li.selected {
 		background-color: var(--color-button);
@@ -1448,8 +1520,8 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 		height: 25px;
-		padding: 1px 6px;
-		border-radius: 5px;
+		padding: 1px 10px;
+		border-radius: 12px;
 		margin: 2px;
 		white-space: nowrap;
 		overflow: hidden;
@@ -1459,7 +1531,7 @@
 	#plugin_list .plugin_tag_list li {
 		height: 22px;
 		font-size: 0.9em;
-		padding: 1px 4px;
+		padding: 1px 9px;
 	}
 	.plugin_tag_list li.plugin_tag_source {
 		background-color: #ff7a52;
@@ -1491,6 +1563,7 @@
 		margin-right: 0;
 		padding: 0 2px;
 		text-decoration: none;
+		box-shadow: none;
 	}
 	#plugin_browser_page .button_bar button:hover {
 		background-color: var(--color-accent);
@@ -1679,7 +1752,6 @@
 	.plugins_suggested_row > ul {
 		display: flex;
 		gap: 12px;
-		background-color: var(--color-back);
 		overflow-x: scroll;
 		padding: 12px 32px;
 		width: calc(100% + 48px);
@@ -1692,8 +1764,6 @@
 		text-align: center;
 		flex-shrink: 0;
 		flex-grow: 0;
-		padding-top: 5px;
-		background-color: var(--color-ui);
 		overflow: hidden;
 		cursor: pointer;
 		padding: 4px 4px;
@@ -1833,29 +1903,31 @@
 		top: 26px;
 	}
 	#action_selector > input {
-		width: calc(100% - 38px);
-		height: 42px;
+		width: calc(100% - 48px);
+		height: 100%;
 		padding: 5px;
 		padding-left: 12px;
-		background-color: var(--color-ui);
 		border-left: 1px solid var(--color-border);
 	}
 	#action_selector > .tool {
 		height: 100%;
+		width: 44px;
 		margin: 0;
 		padding-top: 6px;
 		background-color: var(--color-back);
+		border-top-left-radius: inherit;
+		border-bottom-left-radius: inherit;
 	}
 	#action_selector > i {
 		position: absolute;
-		right: 6px;
-		top: 9px;
+		right: 12px;
+		top: 10px;
 	}
 	#action_selector > #action_selector_list {
 		background-color: var(--color-ui);
 		color: var(--color-text);
 		width: 340px;
-		margin-left: 38px;
+		margin-left: 45px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 	}
 	#action_selector ul {
@@ -1874,10 +1946,12 @@
 		padding: 5px;
 		font-size: 0.94em;
 		word-break: break-word;
+		border-bottom-left-radius: 6px;
+    	border-bottom-right-radius: 6px;
 	}
 	#action_selector ul > li {
-		height: 30px;
-		padding: 4px;
+		height: 32px;
+		padding: 5px;
 		overflow: hidden;
 		display: flex;
 		white-space: nowrap;
@@ -1954,6 +2028,7 @@
 		display: flex;
 		overflow-wrap: anywhere;
 		align-items: center;
+		border-radius: 6px;
 	}
 	li.validator_dialog_problem.validator_warning > i {
 		color: var(--color-warning);
@@ -2216,6 +2291,10 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
+	}
+/* Molang */
+	dialog#expression_editor .dialog_content {
+		overflow: unset;
 	}
 
 /* Texture Edit */
@@ -2521,7 +2600,7 @@
 		gap: 6px;
 		padding: 4px;
 	}
-	#predicate_override_list .predicate_list > li > bb-select {
+	#predicate_override_list .predicate_list > li > .bb-select {
 		flex-grow: 1;
 	}
 	#predicate_override_list .predicate_list .numeric_input {
@@ -2557,7 +2636,7 @@
 		height: 46px;
 		padding: 7px 4px;
 	}
-	#predicate_override_generator bb-select {
+	#predicate_override_generator .bb-select {
 		flex-grow: 1;
 	}
 	#predicate_override_generator label {
@@ -2585,6 +2664,7 @@
 		pointer-events: all;
 		box-shadow: 0 0 0 2px var(--color-accent);
 		width: min(100vw, 326px);
+		border-radius: 5px;
 	}
 	#tab_overview_grid {
 		display: flex;
@@ -2605,6 +2685,7 @@
 		cursor: pointer;
 		padding: 0 10px;
 		box-shadow: 0 0px 28px rgb(0 0 0 / 24%);
+		border-radius: 8px;
 	}
 	#tab_overview_grid > li:hover {
 		color: var(--color-light);
@@ -2625,3 +2706,4 @@
 	#tab_overview_grid > li label {
 		cursor: inherit;
 	}
+}

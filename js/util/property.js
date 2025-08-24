@@ -1,5 +1,5 @@
-class Property {
-	constructor(target_class, type = 'boolean', name, options = 0) {
+export class Property {
+	constructor(target_class, type = 'boolean', name, options = {}) {
 		if (!target_class.properties) {
 			target_class.properties = {};
 		}
@@ -64,6 +64,7 @@ class Property {
 		if (options.label) this.label = options.label;
 		if (options.description) this.description = options.description;
 		if (options.placeholder) this.placeholder = options.placeholder;
+		if (options.inputs) this.inputs = options.inputs;
 		if (options.options) this.options = options.options;
 	}
 	delete() {
@@ -75,7 +76,7 @@ class Property {
 		} else if (this.isArray) {
 			return this.default ? this.default.slice() : [];
 		} else if (this.isObject) {
-			return Object.keys(this.default).length ? JSON.parse(JSON.stringify(this.default)) : {};
+			return Object.keys(this.default).length ? structuredClone(this.default) : {};
 		} else {
 			return this.default;
 		}
@@ -98,7 +99,7 @@ class Property {
 		else if (this.isBoolean) {
 			Merge.boolean(instance, data, this.name, this.merge_validation)
 		}
-		else if (this.isArray || this.isVector || this.isVector2) {
+		else if (this.isArray || this.isVector) {
 			if (data[this.name] instanceof Array) {
 				if (instance[this.name] instanceof Array == false) {
 					instance[this.name] = [];
@@ -106,9 +107,14 @@ class Property {
 				instance[this.name].replace(data[this.name]);
 			}
 		}
+		else if (this.isObject) {
+			if (typeof data[this.name] == 'object') {
+				instance[this.name] = structuredClone(data[this.name]);
+			}
+		}
 		else if (this.isInstance) {
 			if (typeof data[this.name] === 'object') {
-				instance[this.name] =data[this.name];
+				instance[this.name] = data[this.name];
 			}
 		}
 	}
@@ -129,6 +135,10 @@ class Property {
 						console.error(err);
 					}
 				}
+			}
+		} else if (this.isObject) {
+			if (typeof instance[this.name] == 'object') {
+				target[this.name] = structuredClone(instance[this.name]);
 			}
 		} else {
 			target[this.name] = instance[this.name];
@@ -156,3 +166,5 @@ Property.resetUniqueValues = function(type, instance) {
 		}
 	}
 }
+
+Object.assign(window, {Property});

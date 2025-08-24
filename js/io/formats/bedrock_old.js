@@ -1,6 +1,4 @@
-(function() {
-
-function parseGeometry(data) {
+export function parseGeometry(data) {
 	let geometry_name = data.name.replace(/^geometry\./, '');
 
 	let existing_tab = isApp && ModelProject.all.find(project => (
@@ -440,5 +438,4 @@ BARS.defineActions(function() {
 	})
 })
 
-})()
 

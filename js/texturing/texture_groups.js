@@ -1,5 +1,5 @@
 
-class TextureGroup {
+export class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
@@ -278,7 +278,7 @@ Blockbench.on('edit_texture', ({texture}) => {
 	}
 })
 
-class TextureGroupMaterialConfig {
+export class TextureGroupMaterialConfig {
 	constructor(texture_group, data) {
 		this.texture_group = texture_group;
 		this.saved = true;
@@ -368,6 +368,10 @@ class TextureGroupMaterialConfig {
 		let path = this.getFilePath();
 		if (!path) return;
 		if (isApp) {
+			if (fs.existsSync(PathModule.dirname(path)) == false) {
+				Blockbench.showQuickMessage('message.invalid_texture_group_material_config_path')
+				return;
+			}
 			fs.writeFileSync(path, file, {encoding: 'utf-8'});
 			this.saved = true;
 		} else {
@@ -564,7 +568,7 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 	}
 })
 
-function importTextureSet(file) {
+export function importTextureSet(file) {
 	let new_textures = [], new_texture_groups = [];
 	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
 	if (file.name.endsWith('texture_set.json')) {
@@ -671,6 +675,7 @@ BARS.defineActions(function() {
 		click() {
 			let texture = Texture.selected;
 			let texture_group = new TextureGroup({is_material: true});
+			texture_group.material_config.saved = false;
 			texture_group.name = (texture?.name || 'New') + ' material';
 			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
 			Undo.initEdit({texture_groups: [], textures: textures_to_add});
@@ -926,4 +931,11 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+});
+
+Object.assign(window, {
+	TextureGroup,
+	TextureGroupMaterialConfig,
+	importTextureSet,
+	loadAdjacentTextureSet
 });

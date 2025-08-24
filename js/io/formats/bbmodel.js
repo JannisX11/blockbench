@@ -1,6 +1,8 @@
-(function() {
+import { invertMolang } from '../../util/molang';
+import { compareVersions } from '../../util/util';
+import LZUTF8 from '../../lib/lzutf8'
 
-let FORMATV = '4.10';
+const FORMATV = '5.0';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -62,6 +64,23 @@ function processCompatibility(model) {
 		if (isApp && compareVersions('4.10', model.meta.format_version)) {
 			for (let texture of model.textures) {
 				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
+			}
+		}
+	}
+	if (model.animations && compareVersions('5.0', model.meta.format_version)) {
+		for (let anim of model.animations) {
+			for (let uuid in anim.animators) {
+				let animator = anim.animators[uuid]
+				for (let keyframe of animator.keyframes) {
+					for (let data_point of keyframe.data_points) {
+						if ((keyframe.channel == 'position' || keyframe.channel == 'rotation') && data_point.x) {
+							data_point.x = invertMolang(data_point.x);
+						}
+						if (keyframe.channel == 'rotation' && data_point.y) {
+							data_point.y = invertMolang(data_point.y);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -152,7 +171,7 @@ var codec = new Codec('project', {
 	},
 	compile(options) {
 		if (!options) options = 0;
-		var model = {
+		let model = {
 			meta: {
 				format_version: FORMATV,
 				//creation_time: Math.round(new Date().getTime()/1000),
@@ -161,6 +180,9 @@ var codec = new Codec('project', {
 				box_uv: Project.box_uv
 			}
 		}
+		let save_relative_paths = settings.export_asset_paths.value == 'relative' || settings.export_asset_paths.value == 'both';
+		let save_absolute_paths = settings.export_asset_paths.value == 'absolute' || settings.export_asset_paths.value == 'both';
+		if (typeof options.absolute_paths == 'boolean') save_absolute_paths = options.absolute_paths;
 		
 		for (var key in ModelProject.properties) {
 			if (ModelProject.properties[key].export == false) continue;
@@ -204,12 +226,20 @@ var codec = new Codec('project', {
 				var all_collection_children = options.collection_only.getAllChildren();
 			}
 			model.elements = [];
-			elements.forEach(el => {
+			Outliner.elements.forEach(el => {
 				if (options.collection_only && !all_collection_children.includes(el)) return;
 				let copy = el.getSaveCopy(model.meta);
 				model.elements.push(copy);
 			})
-			model.outliner = compileGroups(true);
+			model.groups = [];
+			Group.all.forEach(group => {
+				if (options.collection_only && !all_collection_children.includes(group)) return;
+				let copy = group.getSaveCopy(false);
+				model.groups.push(copy);
+			});
+
+			model.outliner = Outliner.toJSON(true);
+
 			if (options.collection_only) {
 				function filterList(list) {
 					list.forEachReverse(item => {
@@ -233,18 +263,25 @@ var codec = new Codec('project', {
 			}
 		}
 
+		function handleAssetPath(object, key, relative_key) {
+			let path = object[key];
+			if (options.absolute_paths == false) object[key] = undefined;
+			if (!isApp || !Project.save_path || !path) return;
+			if (save_absolute_paths == false) object[key] = undefined;
+			if (PathModule.isAbsolute(path) && save_relative_paths) {
+				let relative = PathModule.relative(PathModule.dirname(Project.save_path), path);
+				object[relative_key??key] = relative.replace(/\\/g, '/');
+			}
+		}
+
 		model.textures = [];
 		Texture.all.forEach(tex => {
-			var t = tex.getSaveCopy();
-			if (isApp && Project.save_path && tex.path && PathModule.isAbsolute(tex.path)) {
-				let relative = PathModule.relative(PathModule.dirname(Project.save_path), tex.path);
-				t.relative_path = relative.replace(/\\/g, '/');
-			}
+			let t = tex.getSaveCopy();
+			handleAssetPath(t, 'path', 'relative_path');
 			if (options.bitmaps != false && (Settings.get('embed_textures') || options.backup || options.bitmaps == true)) {
 				t.source = tex.getDataURL()
 				t.internal = true;
 			}
-			if (options.absolute_paths == false) delete t.path;
 			model.textures.push(t);
 		})
 		for (let texture_group of TextureGroup.all) {
@@ -256,20 +293,25 @@ var codec = new Codec('project', {
 		let collections = [];
 		for (let collection of Collection.all) {
 			let copy = collection.getSaveCopy();
+			if (copy.export_path)
 			collections.push(copy);
 		}
 		if (collections.length) model.collections = collections;
 
 		if (Animation.all.length) {
 			model.animations = [];
-			Animation.all.forEach(a => {
-				model.animations.push(a.getUndoCopy({absolute_paths: options.absolute_paths}, true))
+			Animation.all.forEach(animation => {
+				let a = animation.getUndoCopy({absolute_paths: options.absolute_paths}, true);
+				model.animations.push(a);
+				handleAssetPath(a, 'path');
 			})
 		}
 		if (AnimationController.all.length) {
 			model.animation_controllers = [];
-			AnimationController.all.forEach(a => {
-				model.animation_controllers.push(a.getUndoCopy());
+			AnimationController.all.forEach(cont => {
+				let a = cont.getUndoCopy();
+				handleAssetPath(a, 'path');
+				model.animation_controllers.push(a);
 			})
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue._data.text) {
@@ -424,7 +466,7 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(template) {
+			model.elements.forEach((template) => {
 
 				let copy = OutlinerElement.fromSave(template, true)
 				for (let face in copy.faces) {
@@ -440,8 +482,13 @@ var codec = new Codec('project', {
 				copy.init()
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				new Group(template, template.uuid).init();
+			})
+		}
 		if (model.outliner) {
-			parseGroups(model.outliner)
+			Outliner.loadJSON(model.outliner)
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
@@ -481,7 +528,8 @@ var codec = new Codec('project', {
 				let reference = new ReferenceImage({
 					position: [template.x, template.y + template.size/2],
 					size: [template.size/2, template.size/2],
-					layer: template.lock ? 'blueprint' : 'background',
+					layer: 'background',
+					is_blueprint: template.lock,
 					source: template.image,
 					name: (template.image && !template.image.startsWith('data:')) ? template.image.split([/[/\\]/]).last() : 'Reference'
 				}).addAsReference();
@@ -690,6 +738,14 @@ var codec = new Codec('project', {
 				new_elements.push(copy);
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				if (Group.all.find(g => g.uuid == template.uuid)) {
+					template.uuid = uuid_map[template.uuid] = guid();
+				}
+				new Group(template, template.uuid).init();
+			})
+		}
 		if (model.outliner) {
 			// Handle existing UUIDs
 			function processList(list) {
@@ -701,8 +757,8 @@ var codec = new Codec('project', {
 						}
 					} else if (node && node.uuid) {
 						// Group
-						if (Group.all.find(g => g.uuid == node.uuid)) {
-							node.uuid = uuid_map[node.uuid] = guid();
+						if (uuid_map[node.uuid]) {
+							node.uuid = uuid_map[node.uuid];
 						}
 						if (node.children) processList(node.children);
 					}
@@ -710,12 +766,17 @@ var codec = new Codec('project', {
 			}
 			processList(model.outliner);
 
-			parseGroups(model.outliner, true);
+			Outliner.loadJSON(model.outliner, true);
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
 				let collection = new Collection(collection_data, collection_data.uuid);
 				collection.add();
+				for (let i = 0; i < collection.children.length; i++) {
+					if (uuid_map[collection.children[i]]) {
+						collection.children[i] = uuid_map[collection.children[i]];
+					}
+				}
 			}
 		}
 		if (model.animations && Format.animation_mode) {
@@ -848,5 +909,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

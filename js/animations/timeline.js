@@ -1,4 +1,4 @@
-class TimelineMarker {
+export class TimelineMarker {
 	constructor(data) {
 		this.time = 0;
 		this.color = 0;
@@ -60,7 +60,7 @@ TimelineMarker.prototype.menu = new Menu([
 	}}
 ])
 
-const Timeline = {
+export const Timeline = {
 	animators: [],
 	selected: Keyframe.selected,//frames
 	playing_sounds: [],
@@ -700,11 +700,6 @@ const Timeline = {
 		}
 		return keyframes;
 	},
-	showMenu(event) {
-		if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
-		if (Blockbench.hasFlag('no_context_menu')) return;
-		Timeline.menu.open(event, event);
-	},
 	menu: new Menu([
 		new MenuSeparator('preview'),
 		'play_animation',
@@ -723,6 +718,7 @@ const Timeline = {
 			'zoom_out',
 			'zoom_reset'
 		]},
+		'timeline_focus',
 		'select_all',
 		'fold_all_animations',
 		'bring_up_all_animations',
@@ -1085,6 +1081,11 @@ Interface.definePanels(() => {
 					this.scroll_left = this.$refs.timeline_body ? this.$refs.timeline_body.scrollLeft : 0;
 					this.scroll_top = this.$refs.timeline_body ? this.$refs.timeline_body.scrollTop : 0;
 				},
+				openContextMenu(event) {
+					if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
+					if (Blockbench.hasFlag('no_context_menu')) return;
+					Timeline.menu.open(event, event);
+				},
 				dragAnimator(animator, e1) {
 					if (getFocusedTextInput()) return;
 					if (e1.button == 1 || e1.button == 2) return;
@@ -1157,7 +1158,7 @@ Interface.definePanels(() => {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_animator] = eventTargetToAnimator(target);
+							let [target_animator] = eventTargetToAnimator(target);
 							if (!target_animator || target_animator == animator ) return;
 							
 							let index = Timeline.animators.indexOf(target_animator);
@@ -1191,6 +1192,7 @@ Interface.definePanels(() => {
 					let values_changed;
 					let is_setup = false;
 					let old_bezier_values = {};
+					let scope = this;
 
 					function setup() {
 						dragging_range = [Infinity, 0];
@@ -1222,8 +1224,8 @@ Interface.definePanels(() => {
 						if (Timeline.vue.graph_editor_open) {
 							// Find dragging restriction
 							dragging_restriction = [-Infinity, Infinity];
-							let ba = this.graph_editor_animator || 0;
-							let all_keyframes = ba[this.graph_editor_channel];
+							let ba = scope.graph_editor_animator || 0;
+							let all_keyframes = ba[scope.graph_editor_channel];
 							if (all_keyframes) {
 
 								let frst_keyframe;
@@ -1500,6 +1502,8 @@ Interface.definePanels(() => {
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
+					let dragging_range;
+					let previousValue;
 					let is_setup = false;
 					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
 					let original_range = this.getSelectedGraphRange();
@@ -1515,7 +1519,7 @@ Interface.definePanels(() => {
 						is_setup = true;
 
 						for (let kf of keyframes) {
-							original_values[kf.uuid] = kf.display_value || kf.get(this.graph_editor_axis);
+							original_values[kf.uuid] = kf.display_value || kf.get(axis);
 						}
 					}
 
@@ -1540,7 +1544,7 @@ Interface.definePanels(() => {
 							if (e2.altKey) {
 								origin = Math.lerp(original_range[0], original_range[1], 0.5);
 							}
-							target_value = (original_values[kf.uuid] - origin) * value + origin;
+							let target_value = (original_values[kf.uuid] - origin) * value + origin;
 							kf.offset(axis, -kf.get(axis) + target_value);
 							values_changed = true;
 						}
@@ -1687,7 +1691,7 @@ Interface.definePanels(() => {
 						<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
+						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
@@ -2054,8 +2058,10 @@ BARS.defineActions(function() {
 	new Action('disable_timeline_range', {
 		icon: 'code_off',
 		category: 'animation',
-		condition: {modes: ['animate']},
-		condition: () => Timeline.custom_range[0] || Timeline.custom_range[1],
+		condition: {
+			modes: ['animate'],
+			method: () => Timeline.custom_range[0] || Timeline.custom_range[1],
+		},
 		click() {
 			Timeline.custom_range.replace([0, 0]);
 			BARS.updateConditions();
@@ -2211,3 +2217,9 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	TimelineMarker,
+	Timeline
+});

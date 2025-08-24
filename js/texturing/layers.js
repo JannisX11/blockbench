@@ -1,4 +1,4 @@
-class TextureLayer {
+export class TextureLayer {
 	constructor(data, texture = Texture.selected, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
@@ -364,7 +364,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
-new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'overlay', 'difference']});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'darken', 'lighten', 'screen', 'overlay', 'difference']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
@@ -710,7 +710,7 @@ Interface.definePanels(function() {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_layer] = eventTargetToLayer(target, texture);
+							let [target_layer] = eventTargetToLayer(target, texture);
 							if (!target_layer || target_layer == layer ) return;
 
 							let index = texture.layers.indexOf(target_layer);
@@ -778,3 +778,7 @@ Interface.definePanels(function() {
 		])
 	})
 })
+
+Object.assign(window, {
+	TextureLayer
+});

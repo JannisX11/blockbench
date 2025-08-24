@@ -1,28 +1,47 @@
-{
-	"id": "light",
-	"name": "Default (Light)",
-	"author": "Default",
-	"main_font": "",
-	"headline_font": "",
-	"code_font": "",
-	"css": ".checkerboard, .checkerboard_trigger .checkerboard_target {\n    --color-checker_offset: rgba(0, 0, 0, 0.05);\n}\n.list {\n  background-color: transparent;\n}\n#center {\n  box-shadow: 0 0 12px inset #00000017;\n}\n#start_screen > content {\n  box-shadow: 0 0 10px #0003;\n}\nbody {\n  --color-close: #ff5062;\n  --color-bright_border: var(--color-border);\n}\ndialog {\n  box-shadow: 0 0px 6px rgb(0 0 0 / 48%);\n}\n.blockbench_logo {\n  mix-blend-mode: difference;\n}\n",
-	"colors": {
-		"ui": "#ffffff",
-		"back": "#f2f2f2",
-		"dark": "#e6e6e6",
-		"border": "#c8c8c8",
-		"selected": "#ececec",
-		"button": "#d5d5d5",
-		"bright_ui": "#ffffff",
-		"accent": "#579eff",
-		"frame": "#d7d7d7",
-		"text": "#343437",
-		"light": "#111111",
-		"accent_text": "#000006",
-		"subtle_text": "#6b6d72",
-		"bright_ui_text": "#000006",
-		"grid": "#b0b2b8",
-		"wireframe": "#8797a3",
-		"checkerboard": "#eeeeee"
-	}
+/*
+id: default_light
+name: Default (Light)
+author: Default
+*/
+body {
+	--color-ui: #ffffff;
+	--color-back: #f2f2f2;
+	--color-dark: #e6e6e6;
+	--color-border: #c8c8c8;
+	--color-selected: #ececec;
+	--color-elevated: #ffffff;
+	--color-button: #d5d5d5;
+	--color-bright_ui: #ffffff;
+	--color-accent: #579eff;
+	--color-frame: #d7d7d7;
+	--color-text: #343437;
+	--color-light: #111111;
+	--color-accent_text: #000006;
+	--color-bright_ui_text: #000006;
+	--color-subtle_text: #6b6d72;
+	--color-grid: #b0b2b8;
+	--color-wireframe: #8797a3;
+	--color-checkerboard: #eeeeee;
+}
+.checkerboard, .checkerboard_trigger .checkerboard_target {
+    --color-checker_offset: rgba(0, 0, 0, 0.05);
+}
+.list {
+  background-color: transparent;
+}
+#center {
+  box-shadow: 0 0 12px inset #00000017;
+}
+#start_screen > content {
+  box-shadow: 0 0 10px #0003;
+}
+body {
+  --color-close: #ff5062;
+  --color-bright_border: var(--color-border);
+}
+dialog {
+  box-shadow: 0 0px 6px rgb(0 0 0 / 48%);
+}
+.blockbench_logo {
+  mix-blend-mode: difference;
 }

@@ -1,4 +1,6 @@
-const StartScreen = {
+import { documentReady } from "../misc";
+
+export const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
@@ -12,14 +14,14 @@ const StartScreen = {
  * @param {object} data 
  * @param {object} data.graphic
  * @param {'icon'|string} data.graphic.type
- * @param {string} data.graphic.icon
- * @param {string} data.graphic.source
- * @param {number} data.graphic.width
- * @param {number} data.graphic.height
- * @param {number} data.graphic.aspect_ratio Section aspect ratio
- * @param {string} data.graphic.description Markdown string
- * @param {string} data.graphic.text_color
- * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {string} [data.graphic.icon]
+ * @param {string} [data.graphic.source]
+ * @param {number} [data.graphic.width]
+ * @param {number} [data.graphic.height]
+ * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
+ * @param {string} [data.graphic.description] Markdown string
+ * @param {string} [data.graphic.text_color]
+ * @param {Array.<{text: String, type: String, [list]: Array.String, [click]: Function}>} data.text
  * @param {'vertical'|'horizontal'} data.layout
  * @param {Array} data.features
  * @param {boolean} data.closable
@@ -31,7 +33,7 @@ const StartScreen = {
  * @param {string} data.insert_before
  * @returns 
  */
-function addStartScreenSection(id, data) {
+export function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
@@ -519,15 +521,10 @@ onVueSetup(async function() {
 	Blockbench.on('construct_format delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
-
-	
-	if (settings.streamer_mode.value) {
-		updateStreamerModeNotification()
-	}
 });
 
 
-class ModelLoader {
+export class ModelLoader {
 	constructor(id, options) {
 		this.id = id;
 		this.name = tl(options.name);
@@ -740,3 +737,9 @@ ModelLoader.loaders = {};
 
 	})
 })()
+
+Object.assign(window, {
+	StartScreen,
+	addStartScreenSection,
+	ModelLoader,
+});

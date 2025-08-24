@@ -1,5 +1,8 @@
+import { Canvas } from "../preview/canvas";
+import { autoFixMeshEdit } from "./mesh_editing";
+
 //Actions
-function getSelectionCenter(all = false) {
+export function getSelectionCenter(all = false) {
 	if (Group.first_selected && Group.multi_selected.length == 1 && selected.length == 0 && !all) {
 		let vec = THREE.fastWorldPosition(Group.first_selected.mesh, new THREE.Vector3());
 		return vec.toArray();
@@ -26,14 +29,78 @@ function getSelectionCenter(all = false) {
 	}
 	return center;
 }
+// Spline Point Selection
+export function selectSplinePoints(spline, handle, axis) {
+	let selection = spline.getSelectedVertices(true);
+	let addToPrevious = Pressing.shift;
+	let toAdd = { "C1": [handle.control1], "C2": [handle.control2], "J": [handle.control1, handle.joint, handle.control2] };
+	let selectionLength = 0;
+	let toAddLength = 0;
+
+	// Silly workaround because both of these don't have a length for some reason
+	selection.forEach((e) => selectionLength++);
+	toAdd[axis].forEach((e) => toAddLength++);
+
+	// Determine which points to select
+	if (!toAdd[axis].some((value) => selection.includes(value))) { // Selection doesn't include any of the points this axis would select.
+		if (addToPrevious) {
+			// Add axis points to the selection.
+			selection.push(...toAdd[axis]);
+		} else {
+			// Replace selection.
+			selection.replace(toAdd[axis]);
+		}
+	} else { // Selection includes some of the points this axis would select.
+		if (addToPrevious) {
+			if (selection.includes(handle.joint) && (axis === "C1" || axis === "C2")) {
+				// Attempted to unselect one control, unselect whole handle.
+				selection.remove(...toAdd["J"]);
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
+				// Simply clear this axis from the selection.
+				selection.remove(...toAdd[axis]);
+			}
+		} else {
+			if (selectionLength > toAddLength) {
+				// Clicked on a control, clear and select it.
+				selection.empty();
+				selection.push(...toAdd[axis]);
+			} 
+			else if (selectionLength === toAddLength) {
+				// Clicked on selected handle, unselect.
+				selection.remove(...toAdd[axis]);
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
+				// Simply clear this axis from the selection.
+				selection.remove(...toAdd[axis]);
+			}
+		}
+	}
+
+	return selection.lenght > 0;
+}
+// Spline handle tilt
+export function tiltSplineHandle(modify, handle) {
+	handle.tilt = modify(handle.tilt);
+}
 //Movement
-function moveElementsRelative(difference, index, event) { //Multiple
+export function moveElementsRelative(difference, index, event) { //Multiple
 	if (!Preview.selected || !Outliner.selected.length) {
 		return;
 	}
 	var _has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
 
-	Undo.initEdit({elements: Outliner.selected, outliner: _has_groups})
+	Undo.initEdit({elements: getSelectedMovingElements(), outliner: _has_groups})
 	var axes = []
 	// < >
 	// PageUpDown
@@ -77,8 +144,8 @@ function moveElementsRelative(difference, index, event) { //Multiple
 	autoFixMeshEdit()
 }
 //Rotate
-function rotateSelected(axis, steps) {
-	let affected = [...Cube.selected, ...Mesh.selected];
+export function rotateSelected(axis, steps) {
+	let affected = [...Cube.selected, ...Mesh.selected, ...SplineMesh.selected];
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
 	if (!steps) steps = 1
@@ -97,7 +164,7 @@ function rotateSelected(axis, steps) {
 	Undo.finishEdit('Rotate elements')
 }
 //Mirror
-function flipNameOnAxis(node, axis, check, original_name) {
+export function flipNameOnAxis(node, axis, check, original_name) {
 	const flip_pairs = {
 		0: {
 			right: 'left',
@@ -135,7 +202,7 @@ function flipNameOnAxis(node, axis, check, original_name) {
 		if (matchAndReplace(b, a)) break;
 	}
 }
-function mirrorSelected(axis) {
+export function mirrorSelected(axis) {
 	if (Modes.animate && Timeline.selected.length) {
 
 		Undo.initEdit({keyframes: Timeline.selected})
@@ -179,7 +246,7 @@ function mirrorSelected(axis) {
 	}
 }
 
-const Vertexsnap = {
+export const Vertexsnap = {
 	step1: true,
 	vertex_gizmos: new THREE.Object3D(),
 	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
@@ -196,9 +263,20 @@ const Vertexsnap = {
 		if (!mesh.vertex_points) {
 			mesh.updateMatrixWorld()
 			let vectors = [];
+
 			if (mesh.geometry) {
 				let positions = mesh.geometry.attributes.position.array;
-				if (positions.length && (positions.length % 3) == 0) {
+
+				// If this is a spline, we need to merge the path geo into 
+				// positions, so we can snap to the start or end of the spline.
+				if (element instanceof SplineMesh) {
+					let mesh_position = positions.slice();			
+					let path_positions = mesh.pathLine.geometry.attributes.position.array;
+
+					positions = new Float32Array(mesh_position.length + path_positions.length);
+					positions.set(mesh_position);
+					positions.set(path_positions, mesh_position.length);
+				} else if (positions.length && (positions.length % 3) == 0) {
 					for (let i = 0; i < positions.length; i += 3) {
 						let vec = [positions[i], positions[i+1], positions[i+2]];
 						if (!vectors.find(vec2 => vec.equals(vec2))) {
@@ -399,7 +477,7 @@ const Vertexsnap = {
 					var local_offset = new THREE.Vector3().copy(global_delta).applyQuaternion(q)
 					ignoreVectorAxes(local_offset);
 
-					for (i=0; i<3; i++) {
+					for (let i=0; i<3; i++) {
 						if (m[i] === 1) {
 							obj.to[i] = obj.to[i] + local_offset.getComponent(i);
 						} else {
@@ -517,13 +595,13 @@ const Vertexsnap = {
 }
 
 //Center
-function centerElements(axis, update) {
+export function centerElements(axis, update) {
 	if (!Outliner.selected.length) return;
 	let center = getSelectionCenter()[axis];
 	var difference = (Format.centered_grid ? 0 : 8) - center
 
 	Outliner.selected.forEach(function(obj) {
-		if (obj.movable) obj.origin[axis] += difference;
+		if (obj.getTypeBehavior('movable')) obj.origin[axis] += difference;
 		if (obj.from) obj.from[axis] = obj.from[axis] + difference;
 		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
 		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -544,7 +622,7 @@ function centerElements(axis, update) {
 }
 
 //Move
-function moveElementsInSpace(difference, axis) {
+export function moveElementsInSpace(difference, axis) {
 	let space = Transformer.getTransformSpace();
 	let groups;
 	if (Format.bone_rig && Group.first_selected && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
@@ -589,6 +667,9 @@ function moveElementsInSpace(difference, axis) {
 
 	Outliner.selected.forEach(el => {
 
+		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected) return;
+
+		// Mesh Vertex (and more ?) translation
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
@@ -638,7 +719,41 @@ function moveElementsInSpace(difference, axis) {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
+		}
+		// Spline handle point translation
+		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
+
+			
+			let handle = el.getSelectedHandles(true)[0];
+			let selection_rotation = space == 3 && [...el.getHandleEuler(handle).combined].V3_toEuler();
+			let selected_vertices = el.getSelectedVertices();
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
+
+			let difference_vec = [0, 0, 0];
+			if (space == 2) {
+				difference_vec[axis] += difference;
+
+			} else if (space == 3) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyEuler(selection_rotation);
+				difference_vec.V3_set(m.x, m.y, m.z);
+			} else {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+			}
+
+			selected_vertices.forEach(vkey => {
+				el.vertices[vkey].V3_add(difference_vec);
+				el.applyHandleModeOnVertex(vkey);
+			})
+
+
 		} else {
+
+			let old_position = el.position?.slice();
 		
 			if (space == 2 && !group_m) {
 				if (el.position) {
@@ -651,8 +766,8 @@ function moveElementsInSpace(difference, axis) {
 					el.local_pivot[axis] += difference;
 
 				} else {
-					if (el.movable) el.from[axis] += difference;
-					if (el.resizable && el.to) el.to[axis] += difference;
+					if (el.getTypeBehavior('movable')) el.from[axis] += difference;
+					if (el.getTypeBehavior('resizable') && el.to) el.to[axis] += difference;
 					
 					if (el instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 						Format.cube_size_limiter.move(el);
@@ -660,13 +775,13 @@ function moveElementsInSpace(difference, axis) {
 				}
 				
 			} else if (space instanceof Group) {
-				if (el.movable && el.from instanceof Array) {
+				if (el.getTypeBehavior('movable') && el.from instanceof Array) {
 					el.from[axis] += difference;
-				} else if (el.movable && el.position) {
+				} else if (el.getTypeBehavior('movable') && el.position) {
 					el.position[axis] += difference;
 				}
-				if (el.resizable && el.to instanceof Array) el.to[axis] += difference;
-				if (el.rotatable && !el.position) el.origin[axis] += difference;
+				if (el.getTypeBehavior('resizable') && el.to instanceof Array) el.to[axis] += difference;
+				if (el.getTypeBehavior('rotatable') && !el.position) el.origin[axis] += difference;
 			} else {
 				let move_origin = !!groups;
 				if (group_m) {
@@ -705,12 +820,27 @@ function moveElementsInSpace(difference, axis) {
 					el.position.V3_add(m.x, m.y, m.z);
 				} 
 				if (move_origin) {
-					if (el.rotatable && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+				}
+			}
+
+			// Counter child positions
+			if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+				for (let child of el.children) {
+					if (child.selected || !el.position) continue;
+					let position_delta = Reusable.vec2.fromArray(el.position.slice().V3_subtract(old_position));
+					position_delta.applyQuaternion(Reusable.quat1.copy(el.mesh.quaternion).invert());
+					child.position.V3_subtract(position_delta.toArray());
+
+					child.preview_controller.updateTransform(child);
 				}
 			}
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
+		}
+		if (el instanceof SplineMesh && BarItems.spline_selection_mode.value == "handles") {
+			el.refreshTubeFaces();
 		}
 	})
 	Canvas.updateView({
@@ -721,11 +851,21 @@ function moveElementsInSpace(difference, axis) {
 	})
 }
 
-function getSpatialInterval(event = 0) {
+export function getSelectedMovingElements() {
+	let selection = Outliner.selected.filter(el => el.movable || el.getTypeBehavior('movable'));
+	for (let el of selection.slice()) {
+		if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+			selection.safePush(...el.children);
+		}
+	}
+	return selection;
+}
+
+export function getSpatialInterval(event = 0) {
 	return canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
 }
 //Rotate
-function getRotationInterval(event) {
+export function getRotationInterval(event) {
 	if (Format.rotation_snap) {
 		return 22.5;
 	} else if ((event.shiftKey || Pressing.overrides.shift) && (event.ctrlOrCmd || Pressing.overrides.ctrl)) {
@@ -738,14 +878,21 @@ function getRotationInterval(event) {
 		return 2.5;
 	}
 }
-function getRotationObjects() {
+export function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
 	let elements = Outliner.selected.filter(element => {
-		return element.rotatable && (element instanceof Cube == false || Format.rotate_cubes);
+		return element.getTypeBehavior('rotatable') && (element instanceof Cube == false || Format.rotate_cubes);
 	})
 	if (elements.length) return elements;
 }
-function rotateOnAxis(modify, axis, slider) {
+export function getPivotObjects() {
+	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
+	let elements = Outliner.selected.filter(element => {
+		return (element.getTypeBehavior('has_pivot')) && (element instanceof Cube == false || Format.rotate_cubes);
+	})
+	if (elements.length) return elements;
+}
+export function rotateOnAxis(modify, axis, slider) {
 	var things = getRotationObjects();
 	if (!things) return;
 	if (things instanceof Array == false) things = [things];
@@ -793,8 +940,10 @@ function rotateOnAxis(modify, axis, slider) {
 				obj.origin.V3_set(origin)
 			}
 		}
-		
-		if (!Group.first_selected && obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length > 0) {
+
+		let mesh_cond = obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length;
+		let spline_cond = obj instanceof SplineMesh && Project.spline_selection[obj.uuid] && Project.spline_selection[obj.uuid].vertices.length;
+		if (!Group.first_selected && (mesh_cond || spline_cond)) {
 
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
@@ -816,12 +965,18 @@ function rotateOnAxis(modify, axis, slider) {
 			let vector = new THREE.Vector3();
 			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
 
-			Project.mesh_selection[obj.uuid].vertices.forEach(key => {
+			let verts;
+			if (mesh_cond) verts = Project.mesh_selection[obj.uuid].vertices
+			if (spline_cond) verts = Project.spline_selection[obj.uuid].vertices
+			verts.forEach(key => {
 				vector.fromArray(obj.vertices[key]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);
 				vector.add(local_pivot);
 				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+				if (obj instanceof SplineMesh) {
+					obj.applyHandleModeOnVertex(key);
+				}
 			})
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
@@ -904,7 +1059,7 @@ function rotateOnAxis(modify, axis, slider) {
 		}
 	})
 }
-function afterRotateOnAxis() {
+export function afterRotateOnAxis() {
 	if (Format.cube_size_limiter && Format.cube_size_limiter.rotation_affected && !settings.deactivate_size_limit.value) {
 		Cube.all.forEach(cube => {
 			Format.cube_size_limiter.move(cube);
@@ -912,6 +1067,11 @@ function afterRotateOnAxis() {
 		})
 		Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 	}
+	SplineMesh.selected.forEach((spline) => {
+		if (BarItems.spline_selection_mode.value == "handles") {
+			spline.refreshTubeFaces();
+		}
+	});
 }
 
 BARS.defineActions(function() {
@@ -921,7 +1081,7 @@ BARS.defineActions(function() {
 		condition: {
 			modes: ['edit', 'animate'],
 			tools: ['move_tool', 'resize_tool'],
-			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && Mesh.all.length === 0)
+			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && (Mesh.all.length === 0 || SplineMesh.all.length === 0))
 		},
 		category: 'transform',
 		value: 'parent',
@@ -929,7 +1089,7 @@ BARS.defineActions(function() {
 			global: true,
 			parent: true,
 			local: true,
-			normal: {condition: () => Mesh.selected.length, name: true}
+			normal: {condition: () => Mesh.selected.length || SplineMesh.selected.length, name: true}
 		},
 		onChange() {
 			updateSelection();
@@ -975,15 +1135,19 @@ BARS.defineActions(function() {
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
-			if (obj instanceof Mesh && obj.getSelectedVertices().length) {
+			if ((obj instanceof Mesh || obj instanceof SplineMesh) && obj.getSelectedVertices().length) {
 
 				let vertices = obj.getSelectedVertices();
 				vertices.forEach(vkey => {
 					obj.vertices[vkey][axis] = modify(obj.vertices[vkey][axis]);
+				
+					if (obj instanceof SplineMesh) {
+						obj.applyHandleModeOnVertex(vkey);
+					}
 				})
 				obj.preview_controller.updateGeometry(obj);
 
-			} else if (obj.movable) {
+			} else if (obj.getTypeBehavior('movable')) {
 				let main_pos = obj.from || obj.position;
 				var val = modify(main_pos[axis]);
 
@@ -1006,7 +1170,7 @@ BARS.defineActions(function() {
 	}
 	function getPos(axis) {
 		let element = Outliner.selected[0];
-		if (element instanceof Mesh && element.getSelectedVertices().length) {
+		if ((element instanceof Mesh || element instanceof SplineMesh) && element.getSelectedVertices().length) {
 			let vertices = element.getSelectedVertices();
 			let sum = 0;
 			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);
@@ -1086,10 +1250,10 @@ BARS.defineActions(function() {
 
 
 	function resizeOnAxis(modify, axis) {
-		selected.forEach(function(obj, i) {
-			if (obj.resizable) {
+		Outliner.selected.forEach(function(obj, i) {
+			if (obj.getTypeBehavior('resizable')) {
 				obj.resize(modify, axis, false, true, obj instanceof Mesh)
-			} else if (obj.scalable) {
+			} else if (obj.getTypeBehavior('scalable')) {
 				obj.scale[axis] = modify(obj.scale[axis]);
 				obj.preview_controller.updateTransform(obj);
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
@@ -1101,12 +1265,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[0]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[0];
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(0, true);
 			}
 		},
@@ -1114,7 +1280,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 0)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1126,12 +1292,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[1]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[1];
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(1, true);
 			}
 		},
@@ -1139,7 +1307,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 1)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1151,12 +1319,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].resizable || Outliner.selected[0].scalable) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
-			if (Outliner.selected[0].scalable) {
+			if (Outliner.selected[0].getTypeBehavior('scalable')) {
 				return Outliner.selected[0].scale[2]
-			} else if (Outliner.selected[0].resizable) {
+			} else if (Outliner.selected[0].size instanceof Array) {
+				return Outliner.selected[0].size[2];
+			} else if (Outliner.selected[0].getTypeBehavior('resizable')) {
 				return Outliner.selected[0].getSize(2, true);
 			}
 		},
@@ -1164,7 +1334,7 @@ BARS.defineActions(function() {
 			resizeOnAxis(modify, 2)
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.resizable)});
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('resizable'))});
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element size')
@@ -1340,7 +1510,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[0];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[0];
 		},
@@ -1349,7 +1519,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1368,7 +1538,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[1];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[1];
 		},
@@ -1377,7 +1547,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1396,7 +1566,7 @@ BARS.defineActions(function() {
 				return Group.first_selected.rotation[2];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.rotation[2];
 		},
@@ -1405,7 +1575,7 @@ BARS.defineActions(function() {
 			Canvas.updatePositions()
 		},
 		onBefore: function() {
-			Undo.initEdit({elements: Outliner.selected.filter(el => el.rotatable), groups: Group.multi_selected})
+			Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('rotatable')), groups: Group.multi_selected})
 		},
 		onAfter: function() {
 			afterRotateOnAxis();
@@ -1418,7 +1588,7 @@ BARS.defineActions(function() {
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {
-		var rotation_objects = getRotationObjects()
+		var rotation_objects = getPivotObjects()
 
 		if (rotation_objects && rotation_objects[0] instanceof Group) {
 			let elements_to_update = [];
@@ -1440,7 +1610,13 @@ BARS.defineActions(function() {
 		} else {
 			rotation_objects.forEach(function(obj, i) {
 				let val = modify(obj.origin[axis]);
-				obj.origin[axis] = val;
+				if (obj.transferOrigin && !obj.getTypeBehavior('use_absolute_position')) {
+					let origin_copy = obj.origin.slice();
+					origin_copy[axis] = val;
+					obj.transferOrigin(origin_copy);
+				} else {
+					obj.origin[axis] = val;
+				}
 			})
 			Canvas.updateView({elements: rotation_objects, element_aspects: {transform: true, geometry: true}, selection: true})
 		}
@@ -1453,14 +1629,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.origin[0];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[0];
 		},
@@ -1480,14 +1656,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.origin[1];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[1];
 		},
@@ -1507,14 +1683,14 @@ BARS.defineActions(function() {
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getRotationObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Format.bone_rig && Group.first_selected) {
 				return Group.first_selected.origin[2];
 			}
 			let ref = Outliner.selected.find(el => {
-				return el.rotatable && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
+				return el.getTypeBehavior('rotatable') && el.origin && (Format.rotate_cubes || el instanceof Cube == false)
 			})
 			if (ref) return ref.origin[2];
 		},
@@ -1531,6 +1707,65 @@ BARS.defineActions(function() {
 	})
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
+	
+	new NumSlider('slider_spline_handle_tilt', {
+		name: tl('action.slider_spline_handle_tilt'),
+		description: tl('action.slider_spline_handle_tilt.desc'),
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].tilt;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.tilt);
+					handle.tilt = v;
+					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	new NumSlider('slider_spline_handle_size', {
+		name: tl('action.slider_spline_handle_size'),
+		description: tl('action.slider_spline_handle_size.desc'),
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].size;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.size);
+					handle.size = Math.max(0, v);
+					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	let slider_vector_spline_resolution = [BarItems.slider_spline_handle_tilt, BarItems.slider_spline_handle_size];
+	slider_vector_spline_resolution.forEach(slider => slider.slider_vector = slider_vector_spline_resolution);
 
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),
@@ -1730,35 +1965,41 @@ BARS.defineActions(function() {
 	new Toggle('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
-		onChange() {toggleCubeProperty('visibility')}
+		onChange() {toggleElementProperty('visibility')}
 	})
 	new Toggle('toggle_locked', {
 		icon: 'fas.fa-lock',
 		category: 'transform',
-		onChange() {toggleCubeProperty('locked')}
+		onChange() {toggleElementProperty('locked')}
 	})
 	new Toggle('toggle_export', {
 		icon: 'save',
 		category: 'transform',
-		onChange() {toggleCubeProperty('export')}
+		onChange() {toggleElementProperty('export')}
 	})
 	new Toggle('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		condition: {modes: ['edit']},
-		onChange() {toggleCubeProperty('autouv')}
+		onChange() {toggleElementProperty('autouv')}
+	})
+	new Toggle('toggle_cyclic', {
+		icon: 'fas.fa-circle-nodes',
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.selected.length,
+		onChange() { toggleElementProperty('cyclic') }
 	})
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => Format.java_cube_shading_properties && Modes.edit,
-		onChange() {toggleCubeProperty('shade')}
+		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
-		onChange() {toggleCubeProperty('mirror_uv')}
+		onChange() {toggleElementProperty('mirror_uv')}
 	})
 	function updateToggle(toggle, key) {
 		if (!Condition(toggle.condition)) return;
@@ -1772,6 +2013,7 @@ BARS.defineActions(function() {
 		updateToggle(BarItems.toggle_locked, 'locked');
 		updateToggle(BarItems.toggle_export, 'export');
 		updateToggle(BarItems.toggle_autouv, 'autouv');
+		updateToggle(BarItems.toggle_cyclic, 'autouv');
 		updateToggle(BarItems.toggle_shade, 'shade');
 		updateToggle(BarItems.toggle_mirror_uv, 'mirror_uv');
 	})
@@ -1905,21 +2147,6 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Center individual pivots');
 		}
 	})
-	new Action('rescale_toggle', {
-		icon: 'check_box_outline_blank',
-		category: 'transform',
-		condition: function() {return Format.rotation_limit && Cube.selected.length;},
-		click() {
-			Undo.initEdit({elements: Cube.selected})
-			var value = !Cube.selected[0].rescale
-			Cube.selected.forEach(function(cube) {
-				cube.rescale = value
-			})
-			Canvas.updatePositions()
-			updateNslideValues()
-			Undo.finishEdit('Toggle cube rescale')
-		}
-	})
 	new Action('bone_reset_toggle', {
 		icon: 'check_box_outline_blank',
 		category: 'transform',
@@ -2028,3 +2255,22 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	getSelectionCenter,
+	moveElementsRelative,
+	rotateSelected,
+	flipNameOnAxis,
+	mirrorSelected,
+	Vertexsnap,
+	centerElements,
+	moveElementsInSpace,
+	getSpatialInterval,
+	getRotationInterval,
+	getRotationObjects,
+	getPivotObjects,
+	rotateOnAxis,
+	afterRotateOnAxis,
+	selectSplinePoints,
+	tiltSplineHandle
+});

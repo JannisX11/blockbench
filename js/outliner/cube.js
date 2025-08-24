@@ -1,4 +1,4 @@
-class CubeFace extends Face {
+export class CubeFace extends Face {
 	constructor(direction, data, cube) {
 		super();
 		this.texture = false;
@@ -114,6 +114,7 @@ class CubeFace extends Face {
 		return vector;
 	}
 }
+CubeFace.prototype.is_rectangular = true;
 new Property(CubeFace, 'number', 'rotation', {default: 0});
 new Property(CubeFace, 'number', 'tint', {default: -1});
 new Property(CubeFace, 'enum', 'cullface', {values: ['', 'north', 'south', 'west', 'east', 'up', 'down']});
@@ -129,7 +130,7 @@ CubeFace.opposite = {
 	up: 'down'
 }
 
-class Cube extends OutlinerElement {
+export class Cube extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		let size = Settings.get('default_cube_size');
@@ -267,14 +268,14 @@ class Cube extends OutlinerElement {
 		}
 		return this;
 	}
-	selectLow(...args) {
+	markAsSelected(...args) {
 		let was_selected = this.selected;
-		super.selectLow(...args);
+		super.markAsSelected(...args);
 		if (!was_selected && Cube.selected[0]) {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
 			if (other_selected_faces?.length && !own_selected_faces?.length) {
-				own_selected_faces.replace(other_selected_faces);
+				own_selected_faces.replace(other_selected_faces.filter(fkey => this.faces[fkey]));
 			}
 		}
 		return this;
@@ -867,7 +868,7 @@ class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let before = this.oldScale != undefined ? this.oldScale : this.size(axis);
+		let before = this.old_size != undefined ? this.old_size : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		let is_inverted = before < 0;
 		if (is_inverted && allow_negative == null) negative = !negative;
@@ -937,14 +938,25 @@ class Cube extends OutlinerElement {
 	isStretched() {
 		return !this.stretch.allEqual(1);
 	}
+
+	static behavior = {
+		select_faces: 'enum',
+		cube_faces: true,
+		support_box_uv: true,
+		rotatable: true,
+		movable: true,
+		resizable: true,
+		has_pivot: true,
+		use_absolute_position: true,
+		stretchable: true,
+		cube_rotation_limit: true,
+		cube_size_limit: true,
+		unique_name: false
+	}
 }
 	Cube.prototype.title = tl('data.cube');
 	Cube.prototype.type = 'cube';
 	Cube.prototype.icon = 'fa-cube';
-	Cube.prototype.movable = true;
-	Cube.prototype.resizable = true;
-	Cube.prototype.rotatable = true;
-	Cube.prototype.needsUniqueName = false;
 	Cube.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -1021,14 +1033,48 @@ class Cube extends OutlinerElement {
 
 new Property(Cube, 'string', 'name', {default: 'cube'});
 new Property(Cube, 'boolean', 'box_uv', {merge_validation: (value) => Format.optional_box_uv || value === Format.box_uv});
-new Property(Cube, 'boolean', 'rescale');
+new Property(Cube, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {
+				Cube.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
+new Property(Cube, 'boolean', 'rescale', {
+	condition: () => Format.rotation_limit,
+	inputs: {
+		element_panel: {
+			input: {label: 'cube.rescale', description: 'cube.rescale.desc', type: 'checkbox'},
+			onChange() {
+				Canvas.updateView({elements: Cube.all, element_aspects: {transform: true}})
+			}
+		}
+	}
+});
 new Property(Cube, 'boolean', 'locked');
-new Property(Cube, 'number', 'light_emission');
-new Property(Cube, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
+new Property(Cube, 'number', 'light_emission', {
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'action.cube_light_emission', type: 'checkbox'},
+		}
+	}
+});
 
 OutlinerElement.registerType(Cube, 'cube');
 
-function adjustFromAndToForInflateAndStretch(from, to, element) {
+export function adjustFromAndToForInflateAndStretch(from, to, element) {
 	var halfSize = element.size().slice();
 	halfSize.forEach((v, i) => {
 		halfSize[i] /= 2;
@@ -1089,51 +1135,51 @@ new NodePreviewController(Cube, {
 		let mesh = element.mesh;
 
 		if (Format.rotate_cubes && element.rescale === true) {
-			var axis = element.rotationAxis()||'y';
-			var rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
+			let axis = element.rotationAxis()||'y';
+			let rescale = getRescalingFactor(element.rotation[getAxisNumber(axis)]);
 			mesh.scale.set(rescale, rescale, rescale);
 			mesh.scale[axis] = 1;
+		} else {
+			mesh.scale.set(1, 1, 1);
 		}
 
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateGeometry(element) {
-		if (element.resizable) {
-			let mesh = element.mesh;
-			var from = element.from.slice()
-			var to = element.to.slice()
+		let mesh = element.mesh;
+		var from = element.from.slice()
+		var to = element.to.slice()
 
-			adjustFromAndToForInflateAndStretch(from, to, element);
+		adjustFromAndToForInflateAndStretch(from, to, element);
 
-			from.forEach((v, i) => {
-				from[i] -= element.origin[i];
-			})
-			to.forEach((v, i) => {
-				to[i] -= element.origin[i];
-				if (from[i] === to[i]) {
-					to[i] += 0.001
-				}
-			})
-			mesh.geometry.setShape(from, to)
-			mesh.geometry.computeBoundingBox()
-			mesh.geometry.computeBoundingSphere()
+		from.forEach((v, i) => {
+			from[i] -= element.origin[i];
+		})
+		to.forEach((v, i) => {
+			to[i] -= element.origin[i];
+			if (from[i] === to[i]) {
+				to[i] += 0.001
+			}
+		})
+		mesh.geometry.setShape(from, to)
+		mesh.geometry.computeBoundingBox()
+		mesh.geometry.computeBoundingSphere()
 
-			// Update outline
-			var vs = [0,1,2,3,4,5,6,7].map(i => {
-				return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
-			});
-			let points = [
-				vs[2], vs[3],
-				vs[6], vs[7],
-				vs[2], vs[0],
-				vs[1], vs[4],
-				vs[5], vs[0],
-				vs[5], vs[7],
-				vs[6], vs[4],
-				vs[1], vs[3]
-			].map(a => new THREE.Vector3().fromArray(a))
-			mesh.outline.geometry.setFromPoints(points);
-		}
+		// Update outline
+		var vs = [0,1,2,3,4,5,6,7].map(i => {
+			return mesh.geometry.attributes.position.array.slice(i*3, i*3 + 3)
+		});
+		let points = [
+			vs[2], vs[3],
+			vs[6], vs[7],
+			vs[2], vs[0],
+			vs[1], vs[4],
+			vs[5], vs[0],
+			vs[5], vs[7],
+			vs[6], vs[4],
+			vs[1], vs[3]
+		].map(a => new THREE.Vector3().fromArray(a))
+		mesh.outline.geometry.setFromPoints(points);
 
 		this.updatePixelGrid(element);
 
@@ -1468,6 +1514,51 @@ new NodePreviewController(Cube, {
 		mesh.add(box);
 
 		this.dispatchEvent('update_painting_grid', {element: cube});
+	},
+	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
+		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
+
+		let {mesh} = element;
+		let vector = Reusable.vec2;
+		var adjustedFrom = element.from.slice();
+		var adjustedTo = element.to.slice();
+		adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, element);
+
+		let vertices = [
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedFrom[0] , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedFrom[0] , adjustedTo[1]   , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedFrom[2] ],
+			[adjustedTo[0]   , adjustedFrom[1] , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedTo[2]   ],
+			[adjustedTo[0]   , adjustedTo[1]   , adjustedFrom[2] ],
+		].map(coords => {
+			coords.V3_subtract(element.origin);
+			vector.fromArray(coords);
+			mesh.localToWorld(vector);
+			return projectPoint(vector);
+		})
+		let is_on_screen = vertices.find(vertex => {
+			return (vertex[0] >= 0 && vertex[0] <= preview.width
+				 && vertex[1] >= 0 && vertex[1] <= preview.height);
+		})
+		return is_on_screen && (
+			   lineIntersectsReactangle(vertices[0], vertices[1], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[2], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[3], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[0], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[4], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[5], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[6], vertices[7], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[7], vertices[4], rect_start, rect_end)
+
+			|| lineIntersectsReactangle(vertices[0], vertices[4], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[1], vertices[5], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[2], vertices[6], rect_start, rect_end)
+			|| lineIntersectsReactangle(vertices[3], vertices[7], rect_start, rect_end)
+		);
 	}
 })
 
@@ -1476,7 +1567,6 @@ BARS.defineActions(function() {
 		id: 'add_cube',
 		icon: 'add_box',
 		category: 'edit',
-		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => Modes.edit,
 		click: function () {
 			
@@ -1654,3 +1744,10 @@ BARS.defineActions(function() {
 		BarItems.cube_light_emission.setValue(value);
 	})
 })
+
+
+Object.assign(window, {
+	CubeFace,
+	Cube,
+	adjustFromAndToForInflateAndStretch
+});

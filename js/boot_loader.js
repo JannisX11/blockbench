@@ -1,3 +1,10 @@
+import { Blockbench } from "./api";
+import { updateStreamerModeNotification } from "./interface/setup_settings";
+import { loadThemes } from "./interface/themes";
+import { translateUI } from "./languages";
+import { loadInstalledPlugins } from "./plugin_loader";
+import { animate } from "./preview/preview";
+
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
 Interface.center_screen = document.getElementById('center');
@@ -5,7 +12,7 @@ Interface.right_bar = document.getElementById('right_bar');
 Interface.left_bar = document.getElementById('left_bar');
 Interface.preview = document.getElementById('preview');
 
-CustomTheme.setup()
+CustomTheme.setup();
 
 StateMemory.init('dialog_paths', 'object')
 
@@ -46,11 +53,10 @@ BARS.setupToolbars()
 BARS.setupVue()
 MenuBar.setup()
 translateUI()
-
-Settings.setupProfiles();
+loadThemes()
 
 console.log(`Three.js r${THREE.REVISION}`)
-console.log('%cBlockbench ' + appVersion + (isApp
+console.log('%cBlockbench ' + Blockbench.version + (isApp
 	? (' Desktop (' + Blockbench.operating_system + ', ' + process.arch +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
@@ -116,11 +122,6 @@ Blockbench.on('before_closing', (event) => {
 	}
 })
 
-setInterval(function() {
-	Prop.fps = framespersecond;
-	framespersecond = 0;
-}, 1000)
-
 updateProjectResolution()
 
 setupInterface()
@@ -131,6 +132,10 @@ onVueSetup.funcs.forEach((func) => {
 		func()
 	}
 })
+
+if (settings.streamer_mode.value) {
+	updateStreamerModeNotification();
+}
 
 AutoBackup.initialize();
 

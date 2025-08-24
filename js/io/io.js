@@ -1,5 +1,5 @@
 //Import
-function setupDragHandlers() {
+export function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'texture',
 		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
@@ -61,7 +61,7 @@ function setupDragHandlers() {
 	)
 }
 
-function loadModelFile(file) {
+export function loadModelFile(file) {
 	
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
@@ -100,7 +100,7 @@ function loadModelFile(file) {
 	}
 }
 
-async function loadImages(files, event) {
+export async function loadImages(files, event) {
 	let options = {};
 	let texture_li = event && $(event.target).parents('li.texture');
 	let replace_texture;
@@ -247,7 +247,7 @@ async function loadImages(files, event) {
 }
 
 //Extruder
-const Extruder = {
+export const Extruder = {
 	dialog: new Dialog({
 		id: 'image_extruder',
 		title: 'dialog.extrude.title',
@@ -569,7 +569,7 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: async function(event) {
 			if (isApp) {
-				saveTextures()
+				await saveTextures()
 				if (Format) {
 					let export_codec = Format.codec;
 					if (Project.save_path) {
@@ -621,7 +621,7 @@ BARS.defineActions(function() {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {
-				saveTextures()
+				await saveTextures()
 				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
@@ -687,4 +687,13 @@ BARS.defineActions(function() {
 		})
 	}
 
+})
+
+Object.assign(window, {
+	setupDragHandlers,
+	loadModelFile,
+	loadImages,
+	Extruder,
+	compileJSON,
+	autoParseJSON,
 })

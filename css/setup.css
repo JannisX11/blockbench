@@ -1,5 +1,5 @@
-
-/*INIT*/
+@layer reset, lib, base, theme, theme-override;
+@layer reset {
 	* {
 		margin: 0;
 		padding: 0;
@@ -10,9 +10,35 @@
 		user-select: none;
 		-webkit-user-select: none;
 	}
+	div {
+		cursor: default;
+		box-sizing: border-box;
+	}
+	a {
+		text-decoration: none;
+		cursor: default;
+		color: inherit;
+	}
+	i {
+		cursor: inherit;
+	}
+
+	b {
+		font-weight: bolder;
+	}
+	li {
+		list-style: none;
+		cursor: default;
+	}
+}
+@layer base {
+/*INIT*/
 	body.is_mobile * {
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	[hidden], template {
+		display: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -123,7 +149,7 @@
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: url(../font/material-icons.woff2) format('woff');
+		src: url(../font/material-icons.woff2?4) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
@@ -326,13 +352,14 @@
 
 /*Vars*/
 	body {
-		--color-back: #21252b;
-		--color-dark: #17191d;
-		--color-border: #181a1f;
-		--color-ui: #282c34;
+		--color-back: #181b1f;
+		--color-dark: #101316;
+		--color-border: #101316;
+		--color-ui: #1e2127;
 		--color-accent: #3e90ff;
-		--color-button: #3a3f4b;
-		--color-selected: #474d5d;
+		--color-button: #33383f;
+		--color-selected: #3b3e49;
+		--color-elevated: #272a31;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
@@ -341,7 +368,7 @@
 		--color-bright_ui: #f4f3ff;
 		--color-bright_border: var(--color-text);
 		--color-grid: #495061;
-		--color-checkerboard: #1c2026;
+		--color-checkerboard: #14171b;
 
 		--color-menu_separator: #b0afba;
 		--color-guidelines: rgba(136, 150, 157, 0.35);
@@ -355,7 +382,14 @@
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
+		--color-axis-u: #23d4ed;
+		--color-axis-v: #ff12ed;
+		--color-axis-w: #ffd442;
 
+		--color-spline-handle-mirrored: #ff1242;
+		--color-spline-handle-aligned: #F0B000;
+		--color-spline-handle-free: #00D123;
+		
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';
@@ -385,26 +419,6 @@
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
 		forced-color-adjust: none;
-	}
-	div {
-		cursor: default;
-		box-sizing: border-box;
-	}
-	a {
-		text-decoration: none;
-		cursor: default;
-		color: inherit;
-	}
-	i {
-		cursor: inherit;
-	}
-
-	b {
-		font-weight: bolder;
-	}
-	li {
-		list-style: none;
-		cursor: default;
 	}
 	hr {
 		border-top: 1px solid var(--color-border);
@@ -461,6 +475,8 @@
 		padding-left: 16px;
 		font-weight: normal;
 		cursor: pointer;
+		border-radius: 5px;
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
 	}
 	button.disabled {
 		opacity: 0.5;
@@ -528,7 +544,7 @@
 		user-select: initial;
 		-webkit-user-select: initial;
 	}
-	bb-select {
+	div.bb-select {
 		display: block;
 		position: relative;
 		background-color: var(--color-button);
@@ -538,15 +554,16 @@
 		padding-top: 4px;
 		padding-left: 8px;
 		padding-right: 24px;
+		border-radius: 5px;
 		color: var(--color-text);
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	bb-select:hover{
+	div.bb-select:hover{
 		color: var(--color-light);
 	}
 
-	bb-select::before {
+	div.bb-select::before {
 		content: "\f0d7";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
@@ -660,6 +677,39 @@
 	input[type=checkbox][disabled=disabled] {
 		color: var(--color-subtle_text);
 	}
+	input[type=checkbox].toggle_switch {
+		height: 22px;
+		width: 42px;
+		background-color: var(--color-button);
+		position: relative;
+		--color: var(--color-text);
+		border-radius: 12px;
+		box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2);
+		cursor: pointer;
+		transition: background-color 70ms ease-out;
+	}
+	input[type=checkbox].toggle_switch:checked {
+		height: 22px;
+		width: 46px;
+		border-radius: 12px;
+		background-color: var(--color-accent);
+		--color: var(--color-light);
+	}
+	input[type=checkbox].toggle_switch::before {
+		content: "";
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		margin: 6px;
+		position: absolute;
+		left: 0;
+		transition: left 120ms ease-out, background-color 120ms ease-out;
+		background-color: var(--color);
+	}
+	input[type=checkbox].toggle_switch:checked::before {
+		left: calc(100% - 22px);
+	}
+
 	input[type=radio]::before {
 		content: "\f111";
 		font-family: 'Font Awesome 6 Free';
@@ -708,7 +758,9 @@
 		overflow: hidden;
 		white-space: nowrap;
 		outline: none;
-		background-color: var(--color-button);
+		background-color: var(--color-elevated);
+    	border-radius: 4px;
+		box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
 	}
 	.tool.nslide_tool.has_percentage_bar .nslide::after {
 		content: "";
@@ -786,3 +838,4 @@
 	.y_scrollable {
 		overflow-y: scroll;
 	}
+}

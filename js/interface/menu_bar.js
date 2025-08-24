@@ -1,4 +1,4 @@
-class BarMenu extends Menu {
+export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
 		MenuBar.menus[id] = this
@@ -47,10 +47,11 @@ class BarMenu extends Menu {
 	}
 }
 
-const MenuBar = {
+export const MenuBar = {
 	menus: {},
 	open: undefined,
 	last_opened: null,
+	mode_switcher_button: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
@@ -188,6 +189,7 @@ const MenuBar = {
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
+				'export_stl',
 				'export_collada',
 				'export_modded_animations',
 				'upload_sketchfab',
@@ -240,12 +242,8 @@ const MenuBar = {
 			'redo',
 			'edit_history',
 			new MenuSeparator('add_element'),
-			'add_cube',
-			'add_mesh',
+			'add_element',
 			'add_group',
-			'add_locator',
-			'add_null_object',
-			'add_texture_mesh',
 			new MenuSeparator('modify_elements'),
 			'duplicate',
 			'rename',
@@ -289,6 +287,7 @@ const MenuBar = {
 				'toggle_locked',
 				'toggle_export',
 				'toggle_autouv',
+				'toggle_cyclic',
 				'toggle_shade',
 				'toggle_mirror_uv'
 			]}
@@ -308,11 +307,22 @@ const MenuBar = {
 			'merge_vertices',
 			'dissolve_edges',
 			'solidify_mesh_selection',
+			'set_vertex_weights',
 			new MenuSeparator('element'),
 			'apply_mesh_rotation',
 			'split_mesh',
 			'merge_meshes',
 		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
+
+		new BarMenu('skin', [
+			new MenuSeparator('view'),
+			'custom_skin_poses',
+			'add_custom_skin_pose',
+			new MenuSeparator('edit'),
+			'toggle_skin_layer',
+			'explode_skin_model',
+			'convert_minecraft_skin_variant',
+		], {icon: 'icon-player', condition: {formats: ['skin']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
@@ -459,31 +469,20 @@ const MenuBar = {
 				icon: 'web_asset',
 				children() {
 					let entries = [];
+					let available_panels = [];
 					for (let id in Panels) {
 						let panel = Panels[id];
 						if (!Condition(panel.condition)) continue;
+						available_panels.push(panel);
+					}
+
+					for (let panel of available_panels) {
 						let menu_entry = {
-							id,
+							id: panel.id,
 							name: panel.name,
 							icon: panel.icon,
-							children: [
-								{
-									id: 'move_to',
-									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
-									icon: 'drag_handle',
-									context: panel,
-									children: panel.snap_menu.structure
-								},
-								{
-									id: 'fold',
-									name: 'menu.panel.fold',
-									icon: panel.folded == true,
-									condition: panel.slot != 'hidden',
-									click() {
-										panel.fold();
-									}
-								}
-							]
+							context: panel,
+							children: panel.snap_menu.structure
 						}
 						entries.push(menu_entry);
 					}
@@ -732,3 +731,9 @@ const MenuBar = {
 		}
 	}
 }
+
+
+Object.assign(window, {
+	BarMenu,
+	MenuBar,
+});

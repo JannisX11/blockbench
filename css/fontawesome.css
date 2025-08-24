@@ -3,6 +3,7 @@
  * License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License)
  * Copyright 2024 Fonticons, Inc.
  */
+@layer lib {
  .fa {
   font-family: var(--fa-style-family, "Font Awesome 6 Free");
   font-weight: var(--fa-style, 900); }
@@ -7816,4 +7817,4 @@ readers do not read off random characters that represent icons */
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0; }
-  
+}

@@ -1,4 +1,8 @@
-class AnimationItem {
+import { Blockbench } from "../api";
+import { Filesystem } from "../file_system";
+import { openMolangEditor } from "./molang_editor";
+
+export class AnimationItem {
 	constructor() {}
 	getShortName() {
 		if (typeof Project.BedrockEntityManager?.client_entity?.description?.animations == 'object') {
@@ -10,7 +14,7 @@ class AnimationItem {
 		return this.name.split(/\./).last();
 	}
 }
-class Animation extends AnimationItem {
+export class Animation extends AnimationItem {
 	constructor(data) {
 		super(data);
 		this.name = '';
@@ -37,6 +41,9 @@ class Animation extends AnimationItem {
 	extend(data) {
 		for (var key in Animation.properties) {
 			Animation.properties[key].merge(this, data)
+		}
+		if (data.path && isApp && !PathModule.isAbsolute(this.path) && Project.save_path) {
+			this.path = PathModule.resolve(PathModule.dirname(Project.save_path), this.path);
 		}
 		Merge.string(this, data, 'name')
 		Merge.string(this, data, 'loop', val => ['once', 'loop', 'hold'].includes(val))
@@ -128,7 +135,6 @@ class Animation extends AnimationItem {
 		if (this.markers.length) {
 			copy.markers = this.markers.map(marker => marker.getUndoCopy());
 		}
-		if (options.absolute_paths == false) delete copy.path;
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
 			for (var uuid in this.animators) {
@@ -188,7 +194,6 @@ class Animation extends AnimationItem {
 
 				var group = animator.getGroup(); 
 				var bone_tag = ani_tag.bones[group ? group.name : animator.name] = {};
-				var channels = {};
 				if (animator.rotation_global) {
 					bone_tag.relative_to = {rotation: 'entity'};
 					bone_tag.rotation = [0, 0, 0.01];
@@ -558,7 +563,7 @@ class Animation extends AnimationItem {
 		} else if (this.playing == 'locked') {
 			this.playing = true;
 		} else {
-			Timeline.start();
+			this.playing = 'locked';
 		}
 		return this.playing;
 	}
@@ -741,6 +746,20 @@ class Animation extends AnimationItem {
 					loop_mode: this.loop
 				},
 				methods: {
+					openMolangContextMenu(event, key, value) {
+						new Menu([
+							{
+								name: 'menu.text_edit.expression_editor',
+								icon: 'code_blocks',
+								click: () => {
+									openMolangEditor({
+										autocomplete_context: MolangAutocomplete.AnimationContext,
+										text: value
+									}, result => this[key] = result)
+								}
+							}
+						]).open(event);
+					},
 					autocomplete(text, position) {
 						let test = MolangAutocomplete.AnimationContext.autocomplete(text, position);
 						return test;
@@ -750,24 +769,47 @@ class Animation extends AnimationItem {
 					`<div id="animation_properties_vue">
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.anim_time_update')}:</label>
-							<vue-prism-editor class="molang_input" v-model="anim_time_update" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="anim_time_update"
+								@contextmenu="openMolangContextMenu($event, 'anim_time_update', anim_time_update)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.blend_weight')}:</label>
-							<vue-prism-editor class="molang_input" v-model="blend_weight" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="blend_weight"
+								@contextmenu="openMolangContextMenu($event, 'blend_weight', blend_weight)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar">
 							<label class="name_space_left">${tl('menu.animation.start_delay')}:</label>
-							<vue-prism-editor class="molang_input" v-model="start_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="start_delay"
+								@contextmenu="openMolangContextMenu($event, 'start_delay', start_delay)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 						<div class="dialog_bar form_bar" v-if="loop_mode == 'loop'">
 							<label class="name_space_left">${tl('menu.animation.loop_delay')}:</label>
-							<vue-prism-editor class="molang_input" v-model="loop_delay" language="molang" :autocomplete="autocomplete" :line-numbers="false" />
+							<vue-prism-editor class="molang_input"
+								v-model="loop_delay"
+								@contextmenu="openMolangContextMenu($event, 'loop_delay', loop_delay)"
+								language="molang"
+								:autocomplete="autocomplete" :line-numbers="false"
+							/>
 						</div>
 					</div>`
 			},
 			onFormChange(form) {
 				this.component.data.loop_mode = form.loop;
+			},
+			onOpen() {
+				this.form.node.style.removeProperty('--max_label_width');
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
@@ -863,7 +905,7 @@ class Animation extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => Format.animation_files && isApp && animation.saved,
+			condition: (animation) => (Format.animation_files && isApp && animation.saved),
 			click(animation) {
 				Blockbench.read([animation.path], {}, ([file]) => {
 					Undo.initEdit({animations: [animation]})
@@ -908,6 +950,14 @@ class Animation extends AnimationItem {
 			})
 			Undo.finishEdit('Unload animation file', {animations: [], animation_controllers: []});
 		}},
+		{name: 'menu.animation_file.save_as', icon: 'save', click(path) {
+			let item = AnimationItem.all.find(item => item.path == path);
+			if (item.type == 'animation') {
+				Animator.exportAnimationFile(path, true);
+			} else {
+				Animator.exportAnimationControllerFile(path, true);
+			}
+		}},
 		{name: 'menu.animation.reload', icon: 'refresh', click(id) {
 			let animations_to_remove = Animation.all.filter(anim => anim.path == id && anim.saved);
 			let controllers_to_remove = AnimationController.all.filter(anim => anim.path == id && anim.saved);
@@ -942,8 +992,23 @@ class Animation extends AnimationItem {
 			})
 		}}
 	])
+	Animation.prototype.group_menu = new Menu([
+		{name: 'action.rename', icon: 'text_format', click: async function(group_name) {
+			let animations_to_rename = Animation.all.filter(anim => anim.group_name == group_name);
+
+			let new_group_name = await Blockbench.textPrompt('action.rename', group_name);
+			if (animations_to_rename.length == 0 || new_group_name == group_name) return;
+
+			Undo.initEdit({animations: animations_to_rename});
+			animations_to_rename.forEach(animation => {
+				animation.group_name = new_group_name;
+			})
+			Undo.finishEdit('Unload animation file', {animations: []});
+		}}
+	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
+	new Property(Animation, 'string', 'group_name', {condition: () => !Format.animation_files})
 	new Property(Animation, 'molang', 'anim_time_update', {default: ''});
 	new Property(Animation, 'molang', 'blend_weight', {default: ''});
 	new Property(Animation, 'molang', 'start_delay', {default: ''});
@@ -1029,7 +1094,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-Blockbench.addDragHandler('animation', {
+Filesystem.addDragHandler('animation', {
 	extensions: ['animation.json', 'animation_controllers.json'],
 	readtype: 'text',
 	condition: {modes: ['animate']},
@@ -1125,6 +1190,19 @@ BARS.defineActions(function() {
 				saved: false
 			}).add(true).propertiesDialog()
 
+		}
+	})
+	new Action('create_animation_group', {
+		icon: 'create_new_folder',
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation: true}},
+		click: async function () {
+			let name = await Blockbench.textPrompt('Group Name', 'Animation Group');
+			if (!name) return;
+
+			Undo.initEdit({animations: [Animation.selected]});
+			Animation.selected.group_name = name;
+			Undo.finishEdit('Set animation length');
 		}
 	})
 	new Action('load_animation_file', {
@@ -1279,7 +1357,7 @@ BARS.defineActions(function() {
 					}
 				})
 				// Rotation
-				if (node.rotatable) {
+				if (node.getTypeBehavior('rotatable')) {
 					node.rotation[0] -= offset_rotation[0];
 					node.rotation[1] -= offset_rotation[1];
 					node.rotation[2] += offset_rotation[2];
@@ -1543,7 +1621,7 @@ BARS.defineActions(function() {
 						}},
 						'_1': '_',
 						advanced: {label: 'dialog.advanced', type: 'checkbox', value: false},
-						'_1': '_',
+						'_2': '_',
 						thresholds: {type: 'info', text: 'dialog.optimize_animation.thresholds', condition: form => form.advanced},
 						threshold_rotation: {label: 'timeline.rotation', type: 'number', value: 0.05, min: 0, max: 1, condition: form => form.advanced},
 						threshold_position: {label: 'timeline.position', type: 'number', value: 0.01, min: 0, max: 1, condition: form => form.advanced},
@@ -1788,6 +1866,19 @@ BARS.defineActions(function() {
 			Animator.preview();
 		}
 	})
+	new Toggle('search_animations', {
+		icon: 'search',
+		category: 'edit',
+		onChange(value) {
+			Panels.animations.inside_vue._data.search_term = '';
+			Panels.animations.inside_vue._data.search_enabled = value;
+			if (value) {
+				Vue.nextTick(() => {
+					document.getElementById('animation_search_bar').firstChild.focus();
+				});
+			}
+		}
+	})
 })
 
 
@@ -1833,8 +1924,11 @@ Interface.definePanels(function() {
 					'add_animation',
 					'add_animation_controller',
 					'load_animation_file',
+					'create_animation_group',
 					'slider_animation_length',
 					'export_modded_animations',
+					'+',
+					'search_animations',
 				]
 			})
 		],
@@ -1844,7 +1938,9 @@ Interface.definePanels(function() {
 				animations: Animation.all,
 				animation_controllers: AnimationController.all,
 				files_folded: {},
-				animation_files_enabled: true
+				animation_files_enabled: true,
+				search_enabled: false,
+				search_term: '',
 			}},
 			methods: {
 				openMenu(event) {
@@ -1861,24 +1957,29 @@ Interface.definePanels(function() {
 						Animator.exportAnimationControllerFile(path);
 					}
 				},
-				addAnimation(path) {
-					let other_animation = AnimationItem.all.find(a => a.path == path);
+				addAnimation(group_name) {
+					let other_animation = AnimationItem.all.find(a => (this.animation_files_enabled ? a.path : a.group_name) == group_name);
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
+							path: this.animation_files_enabled ? group_name : undefined,
+							group_name: group_name,
 							saved: false
 						}).add(true).propertiesDialog()
 					} else {
 						new AnimationController({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path,
+							path: group_name,
 							saved: false
 						}).add(true);
 					}
 				},
 				showFileContextMenu(event, id) {
-					Animation.prototype.file_menu.open(event, id);
+					if (this.animation_files_enabled) {
+						Animation.prototype.file_menu.open(event, id);
+					} else {
+						Animation.prototype.group_menu.open(event, id);
+					}
 				},
 				dragAnimation(e1) {
 					if (getFocusedTextInput()) return;
@@ -1899,6 +2000,8 @@ Interface.definePanels(function() {
 					let timeout;
 					let drop_target, drop_target_node, order;
 					let last_event = e1;
+
+					let group_name_key = this.animation_files_enabled ? 'path' : 'group_name';
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -1959,19 +2062,19 @@ Interface.definePanels(function() {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_anim] = eventTargetToAnim(target);
+							let [target_anim] = eventTargetToAnim(target);
 							if (!target_anim || target_anim == anim ) return;
 
 							if (anim instanceof AnimationController) {
 								let index = AnimationController.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
+								if (index == -1 && target_anim[group_name_key]) return;
 								if (AnimationController.all.indexOf(anim) < index) index--;
 								if (order == 1) index++;
-								if (AnimationController.all[index] == anim && anim.path == target_anim.path) return;
+								if (AnimationController.all[index] == anim && anim[group_name_key] == target_anim[group_name_key]) return;
 								
 								Undo.initEdit({animation_controllers: [anim]});
 	
-								anim.path = target_anim.path;
+								anim[group_name_key] = target_anim[group_name_key];
 								AnimationController.all.remove(anim);
 								AnimationController.all.splice(index, 0, anim);
 								anim.createUniqueName();
@@ -1980,14 +2083,14 @@ Interface.definePanels(function() {
 
 							} else {
 								let index = Animation.all.indexOf(target_anim);
-								if (index == -1 && target_anim.path) return;
+								if (index == -1 && target_anim[group_name_key]) return;
 								if (Animation.all.indexOf(anim) < index) index--;
 								if (order == 1) index++;
-								if (Animation.all[index] == anim && anim.path == target_anim.path) return;
+								if (Animation.all[index] == anim && anim[group_name_key] == target_anim[group_name_key]) return;
 								
 								Undo.initEdit({animations: [anim]});
 	
-								anim.path = target_anim.path;
+								anim[group_name_key] = target_anim[group_name_key];
 								Animation.all.remove(anim);
 								Animation.all.splice(index, 0, anim);
 								anim.createUniqueName();
@@ -2006,43 +2109,53 @@ Interface.definePanels(function() {
 
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				updateSearch(event) {
+					if (this.search_enabled && !this.search_term && !document.querySelector('#animation_search_bar > input:focus')) {
+						this.search_enabled = false;
+						BarItems.search_animations.set(false);
+					}
 				}
 			},
 			computed: {
 				files() {
-					if (!this.animation_files_enabled) {
-						return {
-							'': {
-								animations: this.animations.concat(this.animation_controllers),
-								name: '',
-								hide_head: true
-							}
+					const search_term = this.search_enabled && this.search_term.toLowerCase()
+					const filter = (anim) => {
+						if (search_term) {
+							return anim.name.toLowerCase().includes(search_term);
 						}
+						return true;
 					}
-					let files = {};
+					const groups = {};
 					this.animations.forEach(animation => {
-						let key = animation.path || '';
-						if (!files[key]) files[key] = {
-							animations: [],
-							name: animation.path ? pathToName(animation.path, true) : 'Unsaved',
-							type: 'animation',
-							saved: true
-						};
-						if (!animation.saved) files[key].saved = false;
-						files[key].animations.push(animation);
+						let key = (this.animation_files_enabled ? animation.path : animation.group_name) || '';
+						let name = this.animation_files_enabled ? (pathToName(key, true) || 'Unsaved') : key;
+						if (!groups[key]) {
+							groups[key] = {
+								animations: [],
+								name,
+								type: 'animation',
+								saved: true
+							};
+						}
+						if (!key && !this.animation_files_enabled) groups[key].hide_head = true;
+						if (!animation.saved) groups[key].saved = false;
+						if (!filter(animation)) return;
+						groups[key].animations.push(animation);
 					})
 					this.animation_controllers.forEach(controller => {
 						let key = controller.path || '';
-						if (!files[key]) files[key] = {
+						if (!groups[key]) groups[key] = {
 							animations: [],
 							name: controller.path ? pathToName(controller.path, true) : 'Unsaved',
 							type: 'animation_controller',
 							saved: true
 						};
-						if (!controller.saved) files[key].saved = false;
-						files[key].animations.push(controller);
+						if (!controller.saved) groups[key].saved = false;
+						if (!filter(controller)) return;
+						groups[key].animations.push(controller);
 					})
-					return files;
+					return groups;
 				},
 				common_namespace() {
 					if (!this.animations.length) {
@@ -2108,6 +2221,11 @@ Interface.definePanels(function() {
 				}
 			},
 			template: `
+			<div>
+				<search-bar id="animation_search_bar" class="panel_search_bar"
+					v-if="search_enabled" v-model="search_term"
+					@input="updateSearch()" onfocusout="Panels.animations.vue.updateSearch()"
+				/>
 				<ul
 					id="animations_list"
 					class="list mobile_scrollbar"
@@ -2147,11 +2265,11 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="animation_files_enabled"  class="in_list_button" v-bind:class="{unclickable: animation.saved}" v-on:click.stop="animation.save()">
+								<div v-if="animation_files_enabled" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
-								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()">
+								<div class="in_list_button" @dblclick.stop @click.stop="animation.togglePlayingState()" title="${tl('menu.animation.playing')}">
 									<i v-if="animation.playing == 'locked'" class="fa_big fas fa-lock"></i>
 									<i v-else-if="animation.playing" class="fa_big far fa-play-circle"></i>
 									<i v-else class="fa_big far fa-circle"></i>
@@ -2160,14 +2278,18 @@ Interface.definePanels(function() {
 						</ul>
 					</li>
 				</ul>
+				</div>
 			`
 		},
 		menu: new Menu([
 			'add_animation',
 			'add_animation_controller',
 			'load_animation_file',
+			'create_animation_group',
 			'paste',
 			'save_all_animations',
 		])
 	})
 })
+
+Object.assign(window, {AnimationItem, Animation});

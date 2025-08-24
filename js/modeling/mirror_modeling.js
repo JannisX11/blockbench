@@ -1,4 +1,4 @@
-const MirrorModeling = {
+export const MirrorModeling = {
 	initial_transformer_position: 0,
 	isCentered(element) {
 		let center = Format.centered_grid ? 0 : 8;
@@ -7,7 +7,7 @@ const MirrorModeling = {
 		if (element instanceof Cube && !Math.epsilon(element.to[0], MirrorModeling.flipCoord(element.from[0]), 0.01)) return false;
 
 		let checkParent = (parent) => {
-			if (parent instanceof Group) {
+			if (parent instanceof OutlinerNode) {
 				if (parent.origin[0] != center) return true;
 				if (parent.rotation[1] || parent.rotation[2]) return true;
 				return checkParent(parent.parent);
@@ -64,7 +64,7 @@ const MirrorModeling = {
 			function updateParent(child, child_b) {
 				let parent = child.parent;
 				let parent_b = child_b.parent;
-				if (parent instanceof Group == false || parent_b instanceof Group == false || parent == parent_b) return;
+				if (parent instanceof OutlinerNode == false || parent_b instanceof Group == false || parent == parent_b) return;
 
 				MirrorModeling.updateGroupCounterpart(parent_b, parent);
 
@@ -75,7 +75,7 @@ const MirrorModeling = {
 		} else {
 			function getParentMirror(child) {
 				let parent = child.parent;
-				if (parent instanceof Group == false) return 'root';
+				if (parent instanceof OutlinerNode == false) return 'root';
 
 				if (parent.origin[0] == center) {
 					return parent;
@@ -89,10 +89,10 @@ const MirrorModeling = {
 					mirror_group.rotation[2] *= -1;
 					mirror_group.isOpen = parent.isOpen;
 
-					let parent_list = mirror_group_parent instanceof Group ? mirror_group_parent.children : Outliner.root;
+					let parent_list = mirror_group_parent instanceof OutlinerNode ? mirror_group_parent.children : Outliner.root;
 					let match = parent_list.find(node => {
 						if (node instanceof Group == false) return false;
-						if ((node.name == mirror_group.name || Condition(mirror_group.needsUniqueName)) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+						if ((node.name == mirror_group.name || Condition(mirror_group.getTypeBehavior('unique_name'))) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
 							return true;
 						}
 					})
@@ -317,7 +317,7 @@ const MirrorModeling = {
 		function getElementParents(el) {
 			let list = [];
 			let subject = el;
-			while (subject.parent instanceof Group) {
+			while (subject.parent instanceof OutlinerNode) {
 				subject = subject.parent;
 				list.push(subject)
 			}
@@ -395,7 +395,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 
 	if (aspects.elements) {
 		MirrorModeling.cached_elements = {};
-		MirrorModeling.outliner_snapshot = aspects.outliner ? null : compileGroups(true);
+		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON(true);
 		let edit_side = MirrorModeling.getEditSide();
 
 		aspects.elements.forEach((element) => {
@@ -421,7 +421,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 		let selected_groups = aspects.outliner ? Group.all.filter(g => g.selected) : [aspects.group];
 
 		// update undo
-		if (!Undo.current_save.outliner) Undo.current_save.outliner = compileGroups(true);
+		if (!Undo.current_save.outliner) Undo.current_save.outliner = Outliner.toJSON(true);
 		aspects.outliner = true;
 
 		selected_groups.forEach(group => {
@@ -555,3 +555,5 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+Object.assign(window, {MirrorModeling});

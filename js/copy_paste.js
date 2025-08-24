@@ -1,5 +1,5 @@
 
-const Clipbench = {
+export const Clipbench = {
 	elements: [],
 	types: {
 		text: 'text',
@@ -226,7 +226,7 @@ const Clipbench = {
 			Clipbench.groups = undefined
 			return;
 		}
-		Clipbench.groups = groups.map(group => group.getSaveCopy())
+		Clipbench.groups = groups.map(group => group.getSaveCopy(true))
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.groups}))
 		}
@@ -307,14 +307,14 @@ const Clipbench = {
 	pasteOutliner(event) {
 		Undo.initEdit({outliner: true, elements: [], selection: true});
 		//Group
-		var target = 'root'
+		var target = 'root';
 		if (Group.first_selected) {
 			target = Group.first_selected
 			Group.first_selected.isOpen = true
-		} else if (selected[0]) {
-			target = selected[0]
+		} else if (Outliner.selected[0]) {
+			target = Outliner.selected[0]
 		}
-		selected.length = 0
+		Outliner.selected.length = 0
 		if (isApp) {
 			var raw = clipboard.readHTML()
 			try {
@@ -343,7 +343,7 @@ const Clipbench = {
 					}
 					return copy;
 				} else if (OutlinerElement.isTypePermitted(obj.type)) {
-					var copy = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
+					var copy = OutlinerElement.fromSave(obj).addTo(parent).markAsSelected();
 					copy.createUniqueName();
 					Property.resetUniqueValues(copy.constructor, copy);
 					copy.preview_controller.updateTransform(copy);
@@ -357,20 +357,34 @@ const Clipbench = {
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
-			Clipbench.elements.forEach(function(obj) {
-				if (!OutlinerElement.isTypePermitted(obj.type)) return;
-				var copy = OutlinerElement.fromSave(obj).addTo(target).selectLow();
+			let new_elements_by_old_id = {};
+			for (let save of Clipbench.elements) {
+				if (!OutlinerElement.isTypePermitted(save.type)) return;
+				let copy = OutlinerElement.fromSave(save).addTo(target).markAsSelected();
 				copy.createUniqueName();
 				Property.resetUniqueValues(copy.constructor, copy);
+				if (typeof save.isOpen == 'boolean') copy.isOpen = save.isOpen;
+				new_elements_by_old_id[save.uuid] = copy;
 				elements.push(copy);
-			})
+			}
+			// Resolve hierarchy
+			for (let save of Clipbench.elements) {
+				if (save.children && new_elements_by_old_id[save.uuid]) {
+					for (let uuid of save.children) {
+						let new_element = new_elements_by_old_id[uuid];
+						if (new_element) {
+							new_element.addTo(new_elements_by_old_id[save.uuid]);
+						}
+					}
+				}
+			}
 			Canvas.updateView({elements});
 		}
 
 		//Rotate Cubes
 		if (!Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				cube.rotation.V3_set(0, 0, 0)
 			})
 			Canvas.updateView({elements, element_aspects: {transform: true}});
@@ -380,7 +394,7 @@ const Clipbench = {
 		if (Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
 
 			elements.forEach(s => {
-				if (s instanceof Cube) {
+				if (s.getTypeBehavior('cube_rotation_limit')) {
 					//Push elements into 3x3 block box
 					Format.cube_size_limiter.move(s);
 				}
@@ -391,7 +405,7 @@ const Clipbench = {
 		//Rotation Limit
 		if (Format.rotation_limit && Format.rotate_cubes) {
 			elements.forEach(cube => {
-				if (cube instanceof Cube == false) return;
+				if (!cube.getTypeBehavior('cube_rotation_limit')) return;
 				if (!cube.rotation.allEqual(0)) {
 					var axis = getAxisNumber(cube.rotationAxis()) || 0;
 					var cube_rotation = Format.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
@@ -508,3 +522,5 @@ BARS.defineActions(function() {
 		DisplayMode.paste();
 	});
 })
+
+Object.assign(window, {Clipbench});

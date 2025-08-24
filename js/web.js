@@ -1,17 +1,17 @@
 Blockbench.queries = {};
-(function() {
-	let query_string = location.search || location.hash;
-	if (query_string) {
-		query_string = decodeURIComponent(query_string.substring(1));
-		let queries = query_string.split('&');
-		queries.forEach(string => {
-			let [key, value] = string.split(/=\s*(.+)/);
-			Blockbench.queries[key] = value || true;
-		})
-	}
-})()
 
-function initializeWebApp() {
+let query_string = location.search || location.hash;
+if (query_string) {
+	query_string = decodeURIComponent(query_string.substring(1));
+	let queries = query_string.split('&');
+	queries.forEach(string => {
+		let [key, value] = string.split(/=\s*(.+)/);
+		Blockbench.queries[key] = value || true;
+	})
+}
+
+
+export function initializeWebApp() {
 	
 	$(document.body).on('click', 'a[href]', (event) => {
 		event.preventDefault();
@@ -71,7 +71,7 @@ try {
 	if (!Blockbench.isMobile) $('#web_download_button').hide();
 }
 
-async function loadInfoFromURL() {
+export async function loadInfoFromURL() {
 	if (Blockbench.queries.session) {
 		EditSession.token = Blockbench.queries.session;
 		BarItems.edit_session.click();
@@ -158,3 +158,8 @@ window.onbeforeunload = function() {
 		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
+
+Object.assign(window, {
+	initializeWebApp,
+	loadInfoFromURL 
+})
