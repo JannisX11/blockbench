@@ -130,6 +130,11 @@ display_presets = [
 				translation: [ 0, 13, 7],
 				scale:[ 1, 1, 1]
 			},
+			on_shelf: {
+				rotation: [ 0, 180, 0 ],
+				translation: [ 0, 0, 0 ],
+				scale: [ 1, 1, 1 ]
+			},
 			thirdperson_righthand: {
 				rotation: [ 0, 0, 0 ],
 				translation: [ 0, 3, 1 ],
@@ -397,6 +402,81 @@ export class refModel {
 					setDisplayArea(8, 0, 8, 90, 0, 0, 0.5, 0.5, 0.5)
 				}
 				break;
+			case 'shelf_left':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(13, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
+			case 'shelf':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(8, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+
+					if (!this.shelf_displays) {
+						this.shelf_displays = [];
+						this.shelf_groups = [];
+
+						[-20, 20].forEach((xOffset, index) => {
+							let slotGroup = new THREE.Object3D();
+							slotGroup.name = `shelf_display_base_${index}`;
+							display_area.add(slotGroup);
+							this.shelf_groups.push(slotGroup);
+							this.shelf_displays.push(slotGroup);
+						});
+					}
+
+					if (this.shelf_displays && this.shelf_displays.length === 2) {
+						this.shelf_displays.forEach((slotGroup, index) => {
+							let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
+
+							if (slotGroup.children.length !== display_base.children.length) {
+								slotGroup.children.forEach(child => slotGroup.remove(child));
+								display_base.children.forEach(child => {
+									let clonedChild = child.clone();
+									slotGroup.add(clonedChild);
+								});
+							}
+
+							let finalPosition = display_base.position.clone().add(slotOffset);
+							let matrix = new THREE.Matrix4();
+
+							let scaleMatrix = new THREE.Matrix4().makeScale(
+								display_base.scale.x, 
+								display_base.scale.y, 
+								display_base.scale.z
+							);
+
+							let rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(display_base.rotation);
+
+							let translationMatrix = new THREE.Matrix4().makeTranslation(
+								finalPosition.x, 
+								finalPosition.y, 
+								finalPosition.z
+							);
+
+							matrix.multiplyMatrices(translationMatrix, rotationMatrix);
+							matrix.multiply(scaleMatrix);
+
+							slotGroup.matrix.copy(matrix);
+							slotGroup.matrixAutoUpdate = false;
+							slotGroup.matrixWorldNeedsUpdate = true;
+						});
+					}
+				}
+				break;
+			case 'shelf_center':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(8, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
+			case 'shelf_right':
+				this.updateBasePosition = function() {
+					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
+					setDisplayArea(3, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
+				}
+				break;
 			case 'bow':
 				this.updateBasePosition = function() {
 					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
@@ -630,6 +710,22 @@ export const displayReferenceObjects = {
 			icon: 'visibility_off',
 			models: [DisplayReferences.frame_top_block]
 		}),
+		shelf: new refModel('shelf', {
+			icon: 'table_view',
+			models: [DisplayReferences.shelf]
+		}),
+		shelf_left: new refModel('shelf_left', {
+			icon: 'keyboard_arrow_left',
+			models: [DisplayReferences.shelf]
+		}),
+		shelf_center: new refModel('shelf_center', {
+			icon: 'remove',
+			models: [DisplayReferences.shelf]
+		}),
+		shelf_right: new refModel('shelf_right', {
+			icon: 'keyboard_arrow_right',
+			models: [DisplayReferences.shelf]
+		}),
 		inventory_nine: new refModel('inventory_nine', {
 			icon: 'icon-inventory_nine',
 			models: []
@@ -674,6 +770,15 @@ export const displayReferenceObjects = {
 		}
 	},
 	clear: function() {
+		if (displayReferenceObjects.active && displayReferenceObjects.active.shelf_displays) {
+			displayReferenceObjects.active.shelf_displays.forEach(display => {
+				display_area.remove(display);
+			});
+			displayReferenceObjects.active.shelf_displays = null;
+			if (displayReferenceObjects.active.shelf_groups) {
+				displayReferenceObjects.active.shelf_groups = null;
+			}
+		}
 		scene.remove(displayReferenceObjects.active.model)
 		displayReferenceObjects.active = false
 	},
@@ -686,6 +791,7 @@ export const displayReferenceObjects = {
 		gui: 0,
 		head: 0,
 		fixed: 0,
+		on_shelf: 0,
 	},
 	slots: [
 		'thirdperson_righthand',
@@ -696,6 +802,7 @@ export const displayReferenceObjects = {
 		'gui',
 		'head',
 		'fixed',
+		'on_shelf',
 	]
 }
 DisplayMode.slots = displayReferenceObjects.slots
@@ -789,7 +896,11 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 
 	display_base.position.x = slot.translation[0] * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
-	display_base.position.y = slot.translation[1];
+	if (DisplayMode.display_slot === 'on_shelf' && !Project.shelf_align_bottom) {
+		display_base.position.y = 0;
+	} else {
+		display_base.position.y = slot.translation[1];
+	}
 	display_base.position.z = slot.translation[2];
 
 	display_base.scale.x = (slot.scale[0]||0.001) * (slot.mirror[0] ? -1 : 1);
@@ -810,6 +921,33 @@ DisplayMode.updateDisplayBase = function(slot) {
 		scale_piv_offset.y *= (1-slot.scale[1]);
 		scale_piv_offset.z *= (1-slot.scale[2]);
 		display_base.position.add(scale_piv_offset)
+	}
+
+	if (displayReferenceObjects.active && displayReferenceObjects.active.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
+
+		displayReferenceObjects.active.shelf_displays.forEach((slotGroup, index) => {
+			let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
+			let finalPosition = display_base.position.clone().add(slotOffset);
+			let matrix = new THREE.Matrix4();
+			let scaleMatrix = new THREE.Matrix4().makeScale(
+				display_base.scale.x, 
+				display_base.scale.y, 
+				display_base.scale.z
+			);
+			let rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(display_base.rotation);
+			let translationMatrix = new THREE.Matrix4().makeTranslation(
+				finalPosition.x, 
+				finalPosition.y, 
+				finalPosition.z
+			);
+
+			matrix.multiplyMatrices(translationMatrix, rotationMatrix);
+			matrix.multiply(scaleMatrix);
+
+			slotGroup.matrix.copy(matrix);
+			slotGroup.matrixAutoUpdate = false;
+			slotGroup.matrixWorldNeedsUpdate = true;
+		});
 	}
 
 	Transformer.center()
@@ -1011,6 +1149,24 @@ DisplayMode.loadFixed = function() {		//Loader
 	})
 	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
 }
+DisplayMode.loadShelf = function() {		//Loader
+	loadDisp('on_shelf')
+	display_preview.loadAnglePreset({
+		position: [-30, 25, -30],
+		target: [0, 8, 0]
+	})
+	displayReferenceObjects.bar(['shelf', 'shelf_left', 'shelf_center', 'shelf_right'])
+	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
+}
+DisplayMode.updateShelfAlignment = function() {
+	if (!Modes.display || DisplayMode.display_slot !== 'on_shelf') return;
+
+	if (displayReferenceObjects.active && displayReferenceObjects.active.updateBasePosition) {
+		displayReferenceObjects.active.updateBasePosition();
+	}
+
+	DisplayMode.updateDisplayBase();
+}
 DisplayMode.load = function(slot) {
 	switch (slot) {
 		case 'thirdperson_righthand':
@@ -1036,6 +1192,9 @@ DisplayMode.load = function(slot) {
 		break;
 		case 'fixed':
 		DisplayMode.loadFixed()
+		break;
+		case 'on_shelf':
+		DisplayMode.loadShelf()
 		break;
 	}
 }
@@ -1350,6 +1509,17 @@ BARS.defineActions(function() {
 			DisplayMode.updateGUILight();
 		}
 	})
+	new BarSelect('shelf_alignment', {
+		options: {
+			top: true,
+			bottom: true,
+		},
+		condition: () => Modes.display && DisplayMode.display_slot === 'on_shelf' && Format.id == 'java_block',
+		onChange: function(slider) {
+			Project.shelf_align_bottom = slider.get() == 'bottom';
+			DisplayMode.updateShelfAlignment();
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -1371,7 +1541,8 @@ Interface.definePanels(function() {
 					'paste',
 					'add_display_preset',
 					'apply_display_preset',
-					'gui_light'
+					'gui_light',
+					'shelf_alignment'
 				]
 			})
 		],

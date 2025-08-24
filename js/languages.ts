@@ -1,4 +1,3 @@
-
 import cz from '../lang/cz.json';
 import de from '../lang/de.json';
 import en from '../lang/en.json';
