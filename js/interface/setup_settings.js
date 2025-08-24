@@ -1,3 +1,5 @@
+import { changeImageEditor } from "../desktop";
+import { currentwindow } from "../native_apis";
 import { Setting, Settings, SettingsProfile } from "./settings";
 import { addStartScreenSection } from "./start_screen";
 
@@ -186,7 +188,12 @@ function setupSettings() {
 		'tilt': tl('settings.brush_modifier.tilt'),
 		'none': tl('settings.brush_modifier.none'),
 	}});
-	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
+	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click',
+		launch_setting: true,
+		condition: isApp,
+		icon: 'fas.fa-pen-square',
+		click: function() {changeImageEditor(null) }
+	});
 	
 	//Grid
 	new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -224,14 +231,20 @@ function setupSettings() {
 	new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 	
 	//Defaults
-	new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
-	new Setting('autouv',					{category: 'defaults', value: true});
-	new Setting('inherit_parent_color',		{category: 'defaults', value: false});
-	new Setting('create_rename', 			{category: 'defaults', value: false});
-	new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
-	new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
-	new Setting('animation_snap',			{category: 'defaults', value: 24, type: 'number'});
-	new Setting('uniform_keyframe',			{category: 'defaults', value: true});
+	new Setting('default_cube_size',				{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
+	new Setting('autouv',							{category: 'defaults', value: true});
+	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
+	new Setting('create_rename', 					{category: 'defaults', value: false});
+	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
+	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
+	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
+		linear: 'action.keyframe_interpolation.linear',
+		catmullrom: 'action.keyframe_interpolation.catmullrom',
+		bezier: 'action.keyframe_interpolation.bezier',
+		step: 'action.keyframe_interpolation.step',
+	}});
+	new Setting('uniform_keyframe',					{category: 'defaults', value: true});
 	
 	//Dialogs
 	new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});

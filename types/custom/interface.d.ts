@@ -92,3 +92,4 @@ declare namespace Interface {
 		const ResizeLine: any
 	}
 }
+declare function updateInterface(): void

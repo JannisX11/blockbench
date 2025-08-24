@@ -1,6 +1,7 @@
 import saveAs from 'file-saver'
 import StateMemory from './util/state_memory'
 import { pathToExtension } from './util/util';
+import { app, currentwindow, electron, fs, ipcRenderer, webUtils } from './native_apis';
 
 function isStreamerMode(): boolean {
 	// @ts-ignore
@@ -155,9 +156,7 @@ export namespace Filesystem {
 
 		let results: FileResult[] = [];
 		let result_count = 0;
-		let index = 0;
 		let errant = false;
-		let i = 0;
 		if (isApp && files instanceof FileList == false) {
 			if (options.readtype == 'none') {
 				let results = files.map(file => {
@@ -169,96 +168,92 @@ export namespace Filesystem {
 				callback(results);
 				return results;
 			}
-			while (index < files.length) {
-				(function() {
-					let this_i = index;
-					let file = files[index]
-					let readtype: ReadType;
-					if (typeof options.readtype == 'function') {
-						readtype = options.readtype(file);
-					} else {
-						readtype = options.readtype
-					}
-					let binary = (readtype === 'buffer' || readtype === 'binary');
-					if (!readtype) {
-						readtype = 'text';
-					}
+			files.forEach((file, i) => {
+				let readtype: ReadType;
+				if (typeof options.readtype == 'function') {
+					readtype = options.readtype(file);
+				} else {
+					readtype = options.readtype
+				}
+				let binary = (readtype === 'buffer' || readtype === 'binary');
+				if (!readtype) {
+					readtype = 'text';
+				}
 
-					if (readtype === 'image') {
-						//
-						let extension = pathToExtension(file)
-						if (extension === 'tga') {
-							let targa_loader = new Targa()
-							targa_loader.open(file, () => {
+				if (readtype === 'image') {
+					//
+					let extension = pathToExtension(file)
+					if (extension === 'tga') {
+						let targa_loader = new Targa()
+						targa_loader.open(file, () => {
 
-								results[this_i] = {
-									name: pathToName(file, true),
-									path: file,
-									content: targa_loader.getDataURL()
-								}
-							
-								result_count++;
-								if (result_count === files.length) {
-									callback(results)
-								}
-							})
-
-						} else {
-							results[this_i] = {
+							results[i] = {
 								name: pathToName(file, true),
 								path: file,
-								content: file
+								content: targa_loader.getDataURL()
 							}
+						
 							result_count++;
 							if (result_count === files.length) {
 								callback(results)
 							}
-						}
-					} else /*text*/ {
-						let data;
-						try {
-							data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
-						} catch(err) {
-							console.error(err)
-							if (!errant && options.errorbox !== false) {
-								Blockbench.showMessageBox({
-									translateKey: 'file_not_found',
-									message: tl('message.file_not_found.message') + '\n\n```' + file.replace(/[`"<>]/g, '') + '```',
-									icon: 'error_outline',
-									width: 520
-								})
-							}
-							errant = true;
-							return;
-						}
-						if (binary) {
-							let ab = new ArrayBuffer(data.length);
-							let view = new Uint8Array(ab);
-							for (let i = 0; i < data.length; ++i) {
-								view[i] = data[i];
-							}
-							data = ab;
-						}
-						if (!binary && data.charCodeAt(0) === 0xFEFF) {
-							data = data.substr(1)
-						}
-						results[this_i] = {
+						})
+
+					} else {
+						results[i] = {
 							name: pathToName(file, true),
 							path: file,
-							content: data
+							content: file
 						}
 						result_count++;
 						if (result_count === files.length) {
 							callback(results)
 						}
 					}
-				})()
-				index++;
-			}
+				} else /*text*/ {
+					let data;
+					try {
+						data = fs.readFileSync(file, readtype == 'text' ? 'utf8' : undefined);
+					} catch(err) {
+						console.error(err)
+						if (!errant && options.errorbox !== false) {
+							Blockbench.showMessageBox({
+								translateKey: 'file_not_found',
+								message: tl('message.file_not_found.message') + '\n\n```' + file.replace(/[`"<>]/g, '') + '```',
+								icon: 'error_outline',
+								width: 520
+							})
+						}
+						errant = true;
+						return;
+					}
+					if (binary) {
+						let ab = new ArrayBuffer(data.length);
+						let view = new Uint8Array(ab);
+						for (let i = 0; i < data.length; ++i) {
+							view[i] = data[i];
+						}
+						data = ab;
+					}
+					if (!binary && data.charCodeAt(0) === 0xFEFF) {
+						data = data.substr(1)
+					}
+					results[i] = {
+						name: pathToName(file, true),
+						path: file,
+						content: data
+					}
+					result_count++;
+					if (result_count === files.length) {
+						callback(results)
+					}
+				}
+			});
 		} else {
 			let i = 0;
 			for (let file of (files as FileList)) {
 				let reader = new FileReader()
+				let local_i = i;
 				reader.onloadend = function() {
 					let result;
 					if (typeof reader.result != 'string' && reader.result.byteLength && pathToExtension(name) === 'tga') {
@@ -269,7 +264,7 @@ export namespace Filesystem {
 					} else {
 						result = reader.result
 					}
-					results[i] = {
+					results[local_i] = {
 						name,
 						path: name,
 						content: result,
@@ -522,6 +517,12 @@ export namespace Filesystem {
 	}
 
 
+	// MARK: Open
+	export function showFileInFolder(path: string) {
+		ipcRenderer.send('show-item-in-folder', path);
+	}
+
+
 
 	// MARK: Find
 	interface FindFileOptions {
@@ -676,7 +677,8 @@ export namespace Filesystem {
 			let paths: string[] | FileList = [];
 			if (isApp) {
 				for (let file of fileNames) {
-					if (file.path) {
+					if ('path' in file) {
+						// @ts-ignore
 						paths.push(file.path)
 					} else if (isApp) {
 						// @ts-ignore

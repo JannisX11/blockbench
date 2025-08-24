@@ -649,6 +649,7 @@
 	"dialog.plugins.is_disabled": "Disabled",
 	"dialog.plugins.disable": "Disable",
 	"dialog.plugins.enable": "Enable",
+	"dialog.plugins.revoke_permissions": "Revoke Permissions",
 	"dialog.plugins.dependencies": "Depends on:",
 
 	"dialog.load_plugins_from_query.title": "Load Plugins",
@@ -1076,6 +1077,8 @@
 	"settings.canvas_unselect.desc": "Unselects all elements when clicking on the background behind the model or in the timeline",
 	"settings.double_click_switch_tools": "Switch Tools on Double Click",
 	"settings.double_click_switch_tools.desc": "Double click the viewport to switch between tools",
+	"settings.double_click_select_reference": "Select Reference Image on Double Click",
+	"settings.double_click_select_reference.desc": "Double click the viewport to select a reference image",
 	"settings.highlight_cubes": "Highlight Elements",
 	"settings.highlight_cubes.desc": "Highlight elements when you hover over them or select them",
 	"settings.outliner_reveal_on_select": "Reveal Elements on Select",
@@ -1104,6 +1107,8 @@
 	"settings.show_only_selected_uv.desc": "Only display the selected UV faces in the UV editor by default",
 	"settings.animation_snap": "Animation Snap",
 	"settings.animation_snap.desc": "Default snap interval for keyframes in the animation timeline in steps per second. This can also be changed per animation. The default value is 24.",
+	"settings.default_keyframe_interpolation": "Default Keyframe Interpolation",
+	"settings.default_keyframe_interpolation.desc": "Select the default keyframe interpolation mode",
 	"settings.uniform_keyframe": "Uniform Scale Keyframes",
 	"settings.uniform_keyframe.desc": "Set scale keyframes to uniform scaling by default",
 
@@ -1316,6 +1321,8 @@
 	"action.blend_mode.divide": "Divide",
 	"action.blend_mode.add": "Add",
 	"action.blend_mode.subtract": "Subtract",
+	"action.blend_mode.lighten": "Lighten",
+	"action.blend_mode.darken": "Darken",
 	"action.blend_mode.screen": "Screen",
 	"action.blend_mode.overlay": "Overlay",
 	"action.blend_mode.hard_light": "Hard Light",
@@ -1707,6 +1714,9 @@
 	"action.selection_mode.face": "Face",
 	"action.selection_mode.edge": "Edge",
 	"action.selection_mode.vertex": "Vertex",
+	"action.slider_weight_brush_size": "Weight Brush Size",
+	"action.weight_brush_xray": "Weight Brush XRay Mode",
+	"action.weight_brush_xray.desc": "When enabled, the weight brush will affect all vertices instead of just the ones that are visible on the surface",
 	"action.select_seam": "Select UV Seam",
 	"action.select_seam.desc": "Select the UV seam mode for the selected edges",
 	"action.select_seam.auto": "Auto",
@@ -2420,6 +2430,7 @@
 
 	"group.bedrock_binding": "Binding",
 	"group.cem_attach": "CEM Attach",
+	"group.cem_model": "CEM Model",
 	"group.cem_scale": "CEM Scale",
 
 	"cube.rescale": "Rotation Rescale",
@@ -2434,6 +2445,13 @@
 	"cube.color.lime": "Lime",
 	"cube.color.pink": "Pink",
 	"cube.color.silver": "Silver",
+
+	"billboard.offset": "Offset",
+	"billboard.facing_mode": "Facing Mode",
+	"billboard.facing_mode.lookat": "Look At",
+	"billboard.facing_mode.lookat_y": "Look At Y",
+	"billboard.facing_mode.rotate": "Rotate",
+	"billboard.facing_mode.rotate_y": "Rotate Y",
 
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",

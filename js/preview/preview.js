@@ -3,6 +3,7 @@ import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
+import { electron, ipcRenderer } from '../native_apis';
 
 window.scene = null;
 window.main_preview = null;
@@ -300,7 +301,7 @@ export class Preview {
 				error_element.innerHTML = error_element.innerHTML +
 					'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>'
 				
-				var {BrowserWindow} = require('@electron/remote');
+				var {BrowserWindow} = electron;
 				new BrowserWindow({
 					icon:'icon.ico',
 					backgroundColor: '#ffffff',
@@ -462,8 +463,12 @@ export class Preview {
 			let element, face;
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
-				if (element.getTypeBehavior('cube_faces') && element.getTypeBehavior('select_faces')) {
-					face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
+				if (element.getTypeBehavior('cube_faces')) {
+					if (element.getTypeBehavior('select_faces')) {
+						face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
+					} else {
+						face = Object.keys(element.faces)[0];
+					}
 				} else if (element instanceof Mesh) {
 					let index = intersects[0].faceIndex;
 					for (let key in element.faces) {

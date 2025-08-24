@@ -577,6 +577,14 @@ new Property(Group, 'boolean', 'cem_attach', {
 		}
 	}
 });
+new Property(Group, 'string', 'cem_model', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_model', type: 'text'}
+		}
+	}
+});
 new Property(Group, 'number', 'cem_scale', {
 	condition: {formats: ['optifine_entity']},
 	inputs: {

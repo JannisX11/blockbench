@@ -1,3 +1,4 @@
+import { currentwindow, fs, nativeImage } from "../native_apis";
 
 function createEmptyCanvas(width, height) {
 	let canvas = document.createElement('canvas');

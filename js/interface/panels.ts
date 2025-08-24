@@ -477,6 +477,7 @@ export class Panel extends EventSystem {
 			close_button.addEventListener('click', (e) => {
 				Interface.PanelSelectorVue.select(null);
 			})
+			this.tab_bar.classList.add('single_tab');
 			
 
 			addEventListeners(this.handle.firstElementChild as HTMLElement, 'mousedown touchstart', (e1: MouseEvent) => {
@@ -521,9 +522,7 @@ export class Panel extends EventSystem {
 		
 		
 		// Add to slot
-		if (Blockbench.isMobile) {
-			this.moveTo('left_bar');
-		} else {
+		if (!Blockbench.isMobile) {
 			let reference_panel = Panels[data.insert_before || data.insert_after];
 			this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
 		}
@@ -784,7 +783,7 @@ export class Panel extends EventSystem {
 					Interface.getModeData()[slot].splice(Interface.getModeData()[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
 				}
 			} else {
-				document.getElementById(slot)!.append(this.node);
+				document.getElementById(slot)!.append(this.container);
 				Interface.getModeData()[slot].safePush(this.id);
 			}
 
@@ -793,17 +792,17 @@ export class Panel extends EventSystem {
 			if (top_panel && top_panel !== this && !Condition.mutuallyExclusive(this.condition, top_panel.condition)) {
 				top_panel.moveTo(top_panel.previous_slot);
 			}
-			document.getElementById('top_slot')!.append(this.node);
+			document.getElementById('top_slot')!.append(this.container);
 
 		} else if (slot == 'bottom') {
 			let bottom_panel = Interface.getBottomPanel();
 			if (bottom_panel && bottom_panel !== this && !Condition.mutuallyExclusive(this.condition, bottom_panel.condition)) {
 				bottom_panel.moveTo(bottom_panel.previous_slot);
 			}
-			document.getElementById('bottom_slot')!.append(this.node);
+			document.getElementById('bottom_slot')!.append(this.container);
 
 		} else if (slot == 'float' && !Blockbench.isMobile) {
-			Interface.work_screen.append(this.node);
+			Interface.work_screen.append(this.container);
 			this.node.classList.add('floating');
 			this.dispatchEvent('change_zindex', {zindex: 14});
 			if (!this.resize_handles) {
@@ -1208,12 +1207,12 @@ export function setupMobilePanelSelector() {
 				}
 				return arr;
 			},
-			select(panel) {
+			select(panel: Panel) {
 				this.selected = panel && panel.id;
 				for (let key in Panels) {
 					let panel_b = Panels[key];
 					if (panel_b.slot == 'bottom') {
-						$(panel_b.node).detach();
+						$(panel_b.container).detach();
 						panel_b.position_data.slot = 'left_bar';
 					}
 				}

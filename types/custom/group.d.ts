@@ -65,6 +65,7 @@ declare class Group extends OutlinerNode {
 	bedrock_binding?: string
 	cem_animations?: any[]
 	cem_attach?: boolean
+	cem_model?: string
 	cem_scale?: number
 	mesh: THREE.Mesh
 

@@ -1,4 +1,6 @@
+import { Filesystem } from "../file_system";
 import { documentReady } from "../misc";
+import { app, fs } from "../native_apis";
 
 export const StartScreen = {
 	loaders: {},
@@ -259,7 +261,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							showItemInFolder(recent_project.path)
+							Filesystem.showFileInFolder(recent_project.path)
 						}
 					},
 					{
@@ -465,7 +467,7 @@ onVueSetup(async function() {
 						</div>
 
 						<div class="start_screen_right" v-else>
-							<h2>${tl('mode.start.recent')}</h2>
+							<h2 v-if="isApp">${tl('mode.start.recent')}</h2>
 							<div id="start_screen_view_menu" v-if="isApp && !redact_names">
 								<search-bar :hide="true" v-model="search_term"></search-bar>
 								<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
@@ -628,7 +630,7 @@ ModelLoader.loaders = {};
 					languages: Language.options,
 					keymap: 'default',
 					keymap_changed: false,
-					theme: 'dark',
+					theme: 'default',
 					keymap_options: {
 						default: tl('action.load_keymap.default'),
 						mouse: tl('action.load_keymap.mouse'),
@@ -694,8 +696,8 @@ ModelLoader.loaders = {};
 						</div>
 						<div style="width: 640px;">
 							<label>${tl('dialog.settings.theme')}:</label>
-							<div class="quick_setup_theme" :class="{selected: theme == 'dark'}" @click="loadTheme('dark')"><div :style="getThemeThumbnailStyle('dark')"></div>Dark</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'light'}" @click="loadTheme('light')"><div :style="getThemeThumbnailStyle('light')"></div>Light</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
 							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
 							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
 						</div>

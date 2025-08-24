@@ -2,6 +2,8 @@ import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
 import { Blockbench } from '../api';
+import { clipboard, fs, ipcRenderer, nativeImage, openFileInEditor } from '../native_apis';
+import { Filesystem } from '../file_system';
 
 let tex_version = 1;
 
@@ -788,12 +790,12 @@ export class Texture {
 				Blockbench.showMessageBox({
 					translateKey: 'loose_texture',
 					icon: 'folder_open',
-					buttons: [tl('dialog.ok'), tl('message.loose_texture.change')],
+					buttons: [tl('message.loose_texture.change'), tl('dialog.ignore')],
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					}
 				}, (result, checkboxes = {}) => {
-					if (result === 1) {
+					if (result === 0) {
 						this.reopen()
 					}
 					if (checkboxes.dont_show_again) {
@@ -1020,7 +1022,7 @@ export class Texture {
 			Blockbench.showQuickMessage('texture.error.file')
 			return this;
 		}
-		showItemInFolder(this.path)
+		Filesystem.showFileInFolder(this.path)
 		return this;
 	}
 	openEditor() {
@@ -1030,11 +1032,9 @@ export class Texture {
 
 		} else {
 			if (fs.existsSync(settings.image_editor.value)) {
-				if (Blockbench.platform == 'darwin') {
-					require('child_process').exec(`open '${this.path}' -a '${settings.image_editor.value}'`)
-				} else {
-					require('child_process').spawn(settings.image_editor.value, [this.path])
-				}
+				ipcRenderer.invoke('get-launch-setting', {key: 'image_editor'}).then(editor => {
+					openFileInEditor(this.path, editor);
+				})
 			} else {
 				Blockbench.showMessageBox({
 					icon: 'fas.fa-pen-square',
@@ -2251,6 +2251,7 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(files) {
+				console.log(files)
 				if (files[0].name.endsWith('texture_set.json')) {
 					importTextureSet(files[0]);
 					return;
@@ -2522,9 +2523,9 @@ Interface.definePanels(function() {
 
 
 					if (isNodeUnderCursor(Interface.preview, e2)) {
-						var data = Canvas.raycast(e2)
+						let data = Canvas.raycast(e2)
 						if (data.element && data.face) {
-							var elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
+							let elements = data.element.selected ? UVEditor.getMappableElements() : [data.element];
 
 							if (Format.per_group_texture) {
 								elements = [];

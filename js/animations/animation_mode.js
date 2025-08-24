@@ -2,6 +2,7 @@ import MolangParser from "molangjs";
 import Wintersky from 'wintersky';
 import { Mode } from "../modes";
 import { invertMolang } from "../util/molang";
+import { fs } from "../native_apis";
 
 export const Animator = {
 	get possible_channels() {
@@ -51,10 +52,6 @@ export const Animator = {
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = Panels.timeline.node;
 		}
-		updateInterface()
-		if (Panels.transform) {
-			Toolbars.element_origin.toPlace('bone_origin')
-		}
 		if (!Timeline.is_setup) {
 			Timeline.setup()
 		}
@@ -71,6 +68,9 @@ export const Animator = {
 			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
+		if (Panels.transform) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
 		Animator.preview();
 	},
 	leave() {

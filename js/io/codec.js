@@ -1,3 +1,5 @@
+import { fs } from "../native_apis";
+
 export const Codecs = {};
 export class Codec extends EventSystem {
 	constructor(id, data) {

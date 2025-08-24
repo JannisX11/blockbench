@@ -1,3 +1,5 @@
+import { findExistingFile } from "../../desktop";
+import { currentwindow, dialog, fs } from "../../native_apis";
 
 if (isApp) {
 window.BedrockEntityManager = class BedrockEntityManager {
@@ -1197,7 +1199,7 @@ var codec = new Codec('bedrock', {
 				i++;
 			}
 		} catch (err) {
-			var answer = electron.dialog.showMessageBox(currentwindow, {
+			var answer = dialog.showMessageBox(currentwindow, {
 				type: 'warning',
 				buttons: [
 					tl('message.bedrock_overwrite_error.overwrite'),

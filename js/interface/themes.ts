@@ -5,11 +5,11 @@ import { compareVersions, patchedAtob } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
-import { FSWatcher } from 'original-fs'
 import { BBYaml } from '../util/yaml'
 import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
 import { Filesystem } from '../file_system'
+import { fs } from '../native_apis'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -172,7 +172,8 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		const theme_watchers: Record<string, FSWatcher> = {};
+		fs
+		const theme_watchers: Record<string, any> = {};
 		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
 			id: 'theme',
@@ -325,7 +326,7 @@ export class CustomTheme {
 										Blockbench.showQuickMessage('texture.error.file');
 										return;
 									}
-									shell.showItemInFolder(theme.path);
+									Filesystem.showFileInFolder(theme.path);
 								}
 							},
 							{

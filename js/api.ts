@@ -5,6 +5,7 @@ import { EventSystem } from "./util/event_system";
 import { compareVersions } from "./util/util";
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
+import { currentwindow, shell, SystemInfo } from "./native_apis";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -395,7 +396,7 @@ export const Blockbench = {
 })();
 
 if (isApp) {
-	Blockbench.platform = process.platform;
+	Blockbench.platform = SystemInfo.platform;
 	switch (Blockbench.platform) {
 		case 'win32': 	Blockbench.operating_system = 'Windows'; break;
 		case 'darwin': 	Blockbench.operating_system = 'macOS'; break;

@@ -1,5 +1,6 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
+import { currentwindow } from "../native_apis";
 
 export class ResizeLine {
 	constructor(id, data) {
@@ -653,6 +654,7 @@ export function updateInterface() {
 	updatePanelSelector();
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+	delete TickUpdates.interface;
 }
 
 export function resizeWindow(event) {

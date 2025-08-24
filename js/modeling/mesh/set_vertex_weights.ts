@@ -4,7 +4,7 @@ import { ArmatureBone } from "../../outliner/armature_bone";
 
 new Action('set_vertex_weights', {
 	icon: 'weight',
-	condition: {modes: ['edit'], method: () => (Mesh.selected[0].getArmature())},
+	condition: {modes: ['edit'], method: () => (Mesh.selected[0]?.getArmature())},
 	click() {
 		let mesh = Mesh.selected[0];
 		let selected_vertices = mesh.getSelectedVertices();

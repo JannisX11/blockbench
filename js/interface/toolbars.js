@@ -1,3 +1,6 @@
+import { Filesystem } from "../file_system";
+import { currentwindow, ipcRenderer } from "../native_apis";
+
 export const Toolbars = {};
 
 export class Toolbar {
@@ -526,7 +529,7 @@ export const BARS = {
 				category: 'file',
 				condition: () => {return isApp && (Project.save_path || Project.export_path)},
 				click: function () {
-					showItemInFolder(Project.export_path || Project.save_path);
+					Filesystem.showFileInFolder(Project.export_path || Project.save_path);
 				}
 			})
 			new Action('reload', {
@@ -814,12 +817,13 @@ export const BARS = {
 		})
 		if (Blockbench.isMobile) {
 			// Update to 5.0
-			[Toolbars.element_position,
+			let toolbars = [
+				Toolbars.element_position,
 				Toolbars.element_size,
 				Toolbars.element_stretch,
 				Toolbars.element_origin,
 				Toolbars.element_rotation
-			]
+			];
 
 			toolbars.forEach(toolbar => {
 				for (let child of Toolbars.main_tools.children) {
@@ -875,7 +879,8 @@ export const BARS = {
 			id: 'weight_brush',
 			no_wrap: true,
 			children: [
-				'slider_weight_brush_size'
+				'slider_weight_brush_size',
+				'weight_brush_xray'
 			]
 		})
 

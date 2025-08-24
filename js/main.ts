@@ -13,6 +13,7 @@ import "./lib/GLTFExporter"
 import "./lib/CanvasFrame"
 import "./lib/canvas2apng"
 import "./lib/easing"
+import "./native_apis"
 import "./preview/OrbitControls"
 
 import './languages'

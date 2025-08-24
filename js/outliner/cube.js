@@ -785,7 +785,7 @@ export class Cube extends OutlinerElement {
 				}
 				scope.faces[side].uv = uv;
 			})
-			Canvas.updateUV(scope)
+			scope.preview_controller.updateUV(scope)
 		} else if (scope.autouv === 1) {
 
 			function calcAutoUV(face, size) {
@@ -831,7 +831,7 @@ export class Cube extends OutlinerElement {
 			scope.faces.up.uv =	   calcAutoUV('up',	   [scope.size(0), scope.size(2)])
 			scope.faces.down.uv =  calcAutoUV('down',  [scope.size(0), scope.size(2)])
 
-			Canvas.updateUV(scope)
+			scope.preview_controller.updateUV(scope)
 		}
 	}
 	moveVector(arr, axis, update = true) {
@@ -929,7 +929,7 @@ export class Cube extends OutlinerElement {
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
 				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 			}
-			Canvas.updateUV(this);
+			this.preview_controller.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
