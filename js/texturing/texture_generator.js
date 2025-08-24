@@ -929,6 +929,7 @@ export const TextureGenerator = {
 					original_face_list_entry.copy_to = [];
 					for (let i = 1; i < faces.length; i++) {
 						let entry = findFaceListEntry(faces[i], face_old_pos_id);
+						if (!entry) continue;
 						face_list.remove(entry);
 						original_face_list_entry.copy_to.push(entry);
 					}
@@ -1442,9 +1443,10 @@ export const TextureGenerator = {
 						target.faces.forEach((face, i) => {
 							let source_face = source.faces[i];
 							let source_fkey = source.keys[i];
+							if (!source_face || !source_fkey) return;
 							face.vertices.forEach((vkey, j) => {
 								let source_vkey = vkey;
-								if (ftemp.copy_to) {
+								if (ftemp.copy_to?.length) {
 									for (let vkey2 of source_face.vertices) {
 										let vertex_uv_a = source_face.uv[vkey2];
 										let vertex_uv_b = face.uv[vkey];
