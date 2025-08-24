@@ -896,7 +896,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 	display_base.rotation.z = Math.PI / (180 / slot.rotation[2]) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
 
 	display_base.position.x = slot.translation[0] * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1);
-	if (display_slot === 'on_shelf' && !Project.shelf_align_bottom) {
+	if (DisplayMode.display_slot === 'on_shelf' && !Project.shelf_align_bottom) {
 		display_base.position.y = 0;
 	} else {
 		display_base.position.y = slot.translation[1];
@@ -1159,7 +1159,7 @@ DisplayMode.loadShelf = function() {		//Loader
 	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
 }
 DisplayMode.updateShelfAlignment = function() {
-	if (!Modes.display || display_slot !== 'on_shelf') return;
+	if (!Modes.display || DisplayMode.display_slot !== 'on_shelf') return;
 
 	if (displayReferenceObjects.active && displayReferenceObjects.active.updateBasePosition) {
 		displayReferenceObjects.active.updateBasePosition();
@@ -1514,7 +1514,7 @@ BARS.defineActions(function() {
 			top: true,
 			bottom: true,
 		},
-		condition: () => Modes.display && display_slot === 'on_shelf' && Format.id == 'java_block',
+		condition: () => Modes.display && DisplayMode.display_slot === 'on_shelf' && Format.id == 'java_block',
 		onChange: function(slider) {
 			Project.shelf_align_bottom = slider.get() == 'bottom';
 			DisplayMode.updateShelfAlignment();
