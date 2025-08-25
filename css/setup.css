@@ -176,6 +176,15 @@
 	}
 
 
+	.icon-keyframe_discontinuous_bezier:before {
+		content: "\e92d";
+	}
+	.icon-keyframe_smooth:before {
+		content: "\e92c";
+	}
+	.icon-keyframe_step:before {
+		content: "\e92b";
+	}
 	.icon-keyframe_bezier:before {
 		content: "\e92a";
 	}
