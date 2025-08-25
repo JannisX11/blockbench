@@ -960,6 +960,7 @@ export class Panel extends EventSystem {
 		}
 
 		if (!this.attached_to && !Blockbench.isMobile) {
+			// This is a host panel. Update the tabs and attached panels
 			if (this.open_attached_panel && this.getAttachedPanels().includes(this.open_attached_panel) == false) {
 				this.open_attached_panel = this;
 			}
@@ -972,10 +973,19 @@ export class Panel extends EventSystem {
 				panel.handle.classList.toggle('selected', this.open_attached_panel == panel);
 				tab_amount++;
 			}
-			while (this.container.querySelector('.panel')) {
-				this.container.querySelector('.panel').remove();
+			
+			if (this.id == 'uv') {
+				this.id = 'uv'
 			}
-			this.container.append(this.open_attached_panel.node);
+			let panel_is_appended = false;
+			for (let panel_node of this.container.querySelectorAll('.panel')) {
+				if (panel_node == this.open_attached_panel.node) {
+					panel_is_appended = true;
+				} else {
+					panel_node.remove();
+				}
+			}
+			if (!panel_is_appended) this.container.append(this.open_attached_panel.node);
 			this.open_attached_panel.node.classList.add('attached');
 			this.tab_bar.classList.toggle('single_tab', tab_amount <= 1);
 		}
@@ -1147,23 +1157,26 @@ export function updateInterfacePanels() {
 export function updateSidebarOrder() {
 	['left_bar', 'right_bar'].forEach(bar => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
+		let current_panels = Array.from(bar_node.childNodes).map(panel_node => (panel_node as HTMLElement).getAttribute('panel_id'));
 
-		bar_node.childNodes.forEach(panel_node => panel_node.remove());
-
-		let last_panel;
+		let last_panel: Panel;
 		let panel_count = 0;
-		Interface.getModeData()[bar].forEach(panel_id => {
+		Interface.getModeData()[bar].forEach((panel_id: string) => {
 			let panel: Panel = Panels[panel_id];
 			if (panel && panel.slot == bar) {
 				panel.container.classList.remove('bottommost_panel');
 				panel.container.classList.remove('topmost_panel');
-				bar_node.append(panel.container);
 				if (!panel.attached_to && Condition(panel.condition)) {
+					if (current_panels[panel_count] != panel_id) {
+						bar_node.append(panel.container);
+					}
 					if (panel_count == 0) {
 						panel.container.classList.add('topmost_panel');
 					}
 					panel_count++;
 					last_panel = panel;
+				} else {
+					panel.container.remove();
 				}
 			}
 		});

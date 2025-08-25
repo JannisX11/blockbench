@@ -626,6 +626,7 @@
 	#mode_selector > li.selected {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
+		box-shadow: 0 0 3px 1px inset #ffffff30;
 	}
 	#mode_selector > li > .icon {
 		vertical-align: text-bottom;
