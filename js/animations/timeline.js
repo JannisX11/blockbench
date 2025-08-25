@@ -1822,8 +1822,9 @@ Interface.definePanels(() => {
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
-										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
+										<i class="icon-keyframe_smooth" v-if="keyframe.interpolation == 'catmullrom'"></i>
+										<i class="icon-keyframe_step" v-else-if="keyframe.interpolation == 'step'"></i>
+										<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 
 										<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">

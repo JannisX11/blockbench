@@ -1503,22 +1503,11 @@
 		height: 23px;
 	}
 	#panel_timeline .keyframe i {
-		margin-top: 3px;
-		font-size: 16px;
+		margin-top: 4px;
+		font-size: 14px;
 		margin-left: -1px;
 		pointer-events: none;
 		display: block;
-	}
-	#panel_timeline .keyframe i.keyframe_icon_smaller {
-		font-size: 11pt;
-		margin-top: 4px;
-		margin-left: -1px;
-	}
-	#panel_timeline .keyframe i.keyframe_icon_step {
-		font-size: 16pt;
-		margin-top: 4px;
-		margin-left: -2px;
-		transform: rotate(-90deg);
 	}
 	#panel_timeline .keyframe.has_expressions::after {
 		content: "M";
@@ -1843,16 +1832,11 @@
 	#timeline_graph_editor .keyframe {
 		height: 16px;
 		width: 11px;
-		font-size: 10px;
 	}
 	#timeline_graph_editor .keyframe > i {
-		font-size: 13px;
-		margin-top: 2px;
-		margin-left: -2px;
-	}
-	#timeline_graph_editor .keyframe > i.keyframe_icon_smaller {
 		font-size: 12px;
 		margin-top: 2px;
+		margin-left: -2px;
 	}
 
 	#timeline_graph_editor_amplifier {
