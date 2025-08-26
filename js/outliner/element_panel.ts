@@ -4,8 +4,8 @@ import { Interface } from "../interface/interface";
 import { Panel } from "../interface/panels";
 
 Interface.definePanels(function() {
-	let element_panel = new Panel('transform', {
-		icon: 'fas.fa-cube',
+	let transform_panel = new Panel('transform', {
+		icon: 'arrows_output',
 		condition: {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		default_position: {
@@ -23,8 +23,8 @@ Interface.definePanels(function() {
 		],
 	})
 	let element_properties_panel = new Panel('element', {
-		icon: 'format_list_bulleted',
-		condition: !Blockbench.isMobile && {modes: ['edit']},
+		icon: 'fas.fa-cube',
+		condition: {modes: ['edit']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		default_position: {
 			slot: 'right_bar',

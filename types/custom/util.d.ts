@@ -68,7 +68,7 @@ declare function removeEventListeners(
 ): void
 
 declare function compareVersions(string1: any, string2: any): boolean
-declare function convertTouchEvent(event: any): any
+declare function convertTouchEvent(event: TouchEvent | MouseEvent): MouseEvent
 declare function guid(): string
 declare function isUUID(s: any): any
 declare function bbuid(l: any): string

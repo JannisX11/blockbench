@@ -369,6 +369,7 @@
 		--color-button: #33383f;
 		--color-selected: #3b3e49;
 		--color-elevated: #272a31;
+		--color-frame: #121418;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
@@ -377,6 +378,7 @@
 		--color-bright_ui: #f4f3ff;
 		--color-bright_border: var(--color-text);
 		--color-grid: #495061;
+		--color-wireframe: #576f82;
 		--color-checkerboard: #14171b;
 
 		--color-menu_separator: #b0afba;
