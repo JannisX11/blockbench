@@ -505,7 +505,7 @@
 		display: flex;
 		grid-area: panel_selector;
 		background-color: var(--color-frame);
-		padding: 2px 5px;
+		padding: 2px;
 	}
 	body.is_mobile.is_landscape #panel_selector_bar {
 		flex-direction: column;
@@ -526,16 +526,6 @@
 	body.is_mobile #panel_selector_bar .panel_selector.selected {
 		background-color: var(--color-ui);
 		color: var(--color-light);
-	}
-	body.is_mobile.is_landscape #panel_selector_bar .panel_selector.selected {
-		border-right: 5px solid var(--color-accent);
-		padding-left: 5px;
-	}
-	body.is_mobile.is_landscape #panel_selector_bar .panel_selector.selected {
-		border-left: 5px solid var(--color-accent);
-		border-right: none;
-		padding-right: 5px;
-		padding-left: 0;
 	}
 	.panel_selector:only-child {
 		display: none;

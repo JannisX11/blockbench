@@ -173,7 +173,6 @@ export const Outliner = {
 			Group.all.forEach(group => {
 				group.removeFromParent();
 			})
-			Group.all.empty();
 		}
 		iterate(array, Outliner.root, 'root');
 	}
