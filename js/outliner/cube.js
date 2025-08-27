@@ -951,7 +951,8 @@ export class Cube extends OutlinerElement {
 		stretchable: true,
 		cube_rotation_limit: true,
 		cube_size_limit: true,
-		unique_name: false
+		marker_color: true,
+		unique_name: false,
 	}
 }
 	Cube.prototype.title = tl('data.cube');
@@ -964,18 +965,7 @@ export class Cube extends OutlinerElement {
 		'update_autouv',
 		'cube_uv_mode',
 		'allow_element_mirror_modeling',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}});
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
 			var arr = [

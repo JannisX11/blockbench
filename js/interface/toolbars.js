@@ -489,13 +489,36 @@ export const BARS = {
 				modes: ['edit'],
 				keybind: new Keybind({key: 's', alt: true}),
 			})
+			new Action('set_element_marker_color', {
+				name: 'menu.cube.color',
+				icon: 'color_lens',
+				condition: () => Outliner.selected.find(el => el.getTypeBehavior('marker_color')),
+				click(e) {
+					new Menu('set_element_marker_color', this.children()).open(e.target);
+				},
+				children() {
+					return markerColors.map((color, i) => {return {
+						icon: 'bubble_chart',
+						color: color.standard,
+						name: color.name || 'cube.color.'+color.id,
+						click() {
+							let elements = Outliner.selected.filter(el => el.getTypeBehavior('marker_color'))
+							Undo.initEdit({elements})
+							elements.forEach(el => {
+								el.setColor(i);
+							})
+							Undo.finishEdit('Set element marker color')
+						}
+					}});
+				}
+			})
 			new Action('randomize_marker_colors', {
 				icon: 'fa-shuffle',
 				category: 'edit',
 				condition: {modes: ['edit' ], project: true},
 				click: function() {
 					let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
-					let elements = Outliner.selected.filter(element => element.setColor)
+					let elements = Outliner.selected.filter(element => element.getTypeBehavior('marker_color'))
 					Undo.initEdit({outliner: true, elements: elements, selection: true})
 					Group.all.forEach(group => {
 						if (group.first_selected) {

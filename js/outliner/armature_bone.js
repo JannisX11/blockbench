@@ -165,6 +165,11 @@ export class ArmatureBone extends OutlinerElement {
 			this.preview_controller.updateTransform(this);
 		}
 	}
+	setColor(index) {
+		this.color = index;
+		this.preview_controller.updateFaces(this);
+		return this;
+	}
 	getSaveCopy(project) {
 		let copy = {
 			isOpen: this.isOpen,
@@ -230,6 +235,7 @@ export class ArmatureBone extends OutlinerElement {
 		parent_types: ['armature_bone', 'armature'],
 		select_children: 'self_first',
 		hide_in_screenshot: true,
+		marker_color: true,
 	}
 }
 	ArmatureBone.prototype.title = tl('data.armature_bone');
@@ -244,6 +250,8 @@ export class ArmatureBone extends OutlinerElement {
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
+		'set_element_marker_color',
+		"randomize_marker_colors",
 		'apply_animation_preset',
 		new MenuSeparator('manage'),
 		'rename',
@@ -255,6 +263,7 @@ OutlinerElement.registerType(ArmatureBone, 'armature_bone');
 new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
 new Property(ArmatureBone, 'vector', 'rotation');
 new Property(ArmatureBone, 'number', 'length', {default: 8});
+new Property(ArmatureBone, 'number', 'color');
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
 new NodePreviewController(ArmatureBone, {
@@ -262,13 +271,15 @@ new NodePreviewController(ArmatureBone, {
 		color: 0xaaacba,
 		depthTest: false,
 		depthWrite: false,
-		transparent: true
+		transparent: true,
+		vertexColors: true,
 	}),
 	material_selected: new THREE.MeshLambertMaterial({
 		color: gizmo_colors.outline,
 		depthTest: false,
 		depthWrite: false,
-		transparent: true
+		transparent: true,
+		vertexColors: true,
 	}),
 	setup(element) {
 		let object_3d = new THREE.Bone();
@@ -327,9 +338,19 @@ new NodePreviewController(ArmatureBone, {
 		object_3d.inverse_bind_matrix = new THREE.Matrix4();
 
 		this.updateTransform(element);
+		this.updateFaces(element);
 		this.updateSelection(element);
 
 		this.dispatchEvent('setup', {element});
+	},
+	updateFaces(element) {
+		let color_material = Canvas.coloredSolidMaterials[element.color % markerColors.length];
+		let color_value = color_material.uniforms.base.value;
+		let color_array = [];
+		for (let i = 0; i < 24; i++) {
+			color_array.push(color_value.r, color_value.g, color_value.b);
+		}
+		element.mesh.children[0].geometry.setAttribute('color', new THREE.Float32BufferAttribute(color_array, 3));
 	},
 	updateTransform(element) {
 		let bone = element.mesh;
@@ -381,7 +402,8 @@ new NodePreviewController(ArmatureBone, {
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateSelection(element) {
-		element.mesh.children[0].material = element.selected ? this.material_selected : this.material;
+		let material = element.selected ? this.material_selected : this.material;
+		element.mesh.children[0].material = material;
 	}
 })
 

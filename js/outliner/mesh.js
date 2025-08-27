@@ -914,6 +914,7 @@ export class Mesh extends OutlinerElement {
 		resizable: true,
 		rotatable: true,
 		has_pivot: true,
+		marker_color: true,
 	}
 }
 	Mesh.prototype.title = tl('data.mesh');
@@ -950,6 +951,7 @@ export class Mesh extends OutlinerElement {
 				}
 			}})
 		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
 			var arr = [
@@ -1056,7 +1058,7 @@ new NodePreviewController(Mesh, {
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
-		outline.add(points);
+		mesh.add(points);
 
 		// Update
 		this.updateTransform(element);
@@ -1442,7 +1444,8 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true;
 		
-		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool';
+		mesh.vertex_points.visible = ((Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool') && element.selected;
+		if (Toolbox.selected.id == 'weight_brush') mesh.vertex_points.visible = true;
 
 		this.dispatchEvent('update_selection', {element});
 	},
