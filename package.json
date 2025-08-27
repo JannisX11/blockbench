@@ -148,7 +148,7 @@
 		"command-line-args": "^6.0.1",
 		"concurrently": "^9.1.2",
 		"dotenv": "^16.5.0",
-		"electron": "^37.2.4",
+		"electron": "^37.3.1",
 		"electron-builder": "^24.13.3",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",

@@ -45,12 +45,12 @@ const REQUESTABLE_APIS = [
 	'v8',
 ];
 const API_DESCRIPTIONS = {
-	fs: 'Access and change files on your computer',
-	child_process: 'Launch external programs',
-	net: 'Full network access',
-	os: 'See information about your computer',
-	https: 'Create servers and talk to other servers',
-	dialog: 'Open native dialogs',
+	fs: 'access and change files on your computer',
+	child_process: 'launch external programs',
+	net: 'full network access',
+	os: 'see information about your computer',
+	https: 'create servers and talk to other servers',
+	dialog: 'open native dialogs',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -69,6 +69,7 @@ function savePluginSettings() {
 }
 interface GetModuleOptions {
 	scope?: string
+	message?: string
 }
 function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options: GetModuleOptions = {}) {
 	const no_namespace_name = module_name.replace(/^node:/, '');
@@ -101,8 +102,8 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 
 		let result = dialog.showMessageBoxSync(currentwindow, {
 			title: 'Plugin Permission',
-			message: `Permission to access ${api_description} requested`,
-			detail: `The plugin "${plugin.name}" (${plugin_id}) requires access to ${api_description}.${option_text}\nAllow?`,
+			message: `Permission to ${api_description} requested`,
+			detail: `The plugin "${plugin.name}" (${plugin_id}) requires permission to ${api_description}.${option_text}${options.message ? `\n\n"${options.message}"` : ''}`,
 			type: 'question',
 			noLink: true,
 			cancelId: 3,
