@@ -129,7 +129,7 @@
 		"build-electron": "node ./build.js --target=electron",
 		"build-test-portable": "npm run build-electron && electron-builder --windows portable",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"publish-mac": "npm run prepublish && electron-builder --publish=always",
+		"publish-mac": "npm run build-electron && electron-builder --publish=always",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run build-web && npm run pwa",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
