@@ -1525,6 +1525,7 @@ Interface.definePanels(function() {
 					]).open(event);
 				},
 				autocomplete(text, position) {
+					if (Settings.get('autocomplete_code') == false) return [];
 					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},

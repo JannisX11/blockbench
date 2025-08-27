@@ -762,6 +762,7 @@ export class Animation extends AnimationItem {
 						]).open(event);
 					},
 					autocomplete(text, position) {
+						if (Settings.get('autocomplete_code') == false) return [];
 						let test = MolangAutocomplete.AnimationContext.autocomplete(text, position);
 						return test;
 					}

@@ -1560,8 +1560,8 @@ Interface.definePanels(function() {
 					]).open(event);
 				},
 				autocomplete(text, position) {
-					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
-					return test;
+					if (Settings.get('autocomplete_code') == false) return [];
+					return MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 				}
 			},
 			watch: {

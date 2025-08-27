@@ -1882,6 +1882,7 @@ Interface.definePanels(() => {
 					]).open(event);
 				},
 				autocomplete(text, position) {
+					if (Settings.get('autocomplete_code') == false) return [];
 					let test = MolangAutocomplete.AnimationControllerContext.autocomplete(text, position);
 					return test;
 				}

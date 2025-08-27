@@ -49,7 +49,8 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 						}
 					}).show();
 				},
-				autocomplete(text, position) {
+				autocomplete(text: string, position: number) {
+					if (Settings.get('autocomplete_code') == false) return [];
 					let test = options.autocomplete_context.autocomplete(text, position);
 					return test;
 				}

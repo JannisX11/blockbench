@@ -72,6 +72,7 @@ function setupSettings() {
 	new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
 		Timeline.vue.show_all_handles = !val;
 	}});
+	new Setting('autocomplete_code',	{category: 'interface', value: true});
 	
 	//Preview 
 	new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400, onChange() {

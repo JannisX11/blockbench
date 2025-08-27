@@ -802,6 +802,7 @@ BARS.defineActions(function() {
 							]).show(event.target);
 						},
 						autocomplete(text, position) {
+							if (Settings.get('autocomplete_code') == false) return [];
 							let test = MolangAutocomplete.BedrockBindingContext.autocomplete(text, position);
 							return test;
 						}

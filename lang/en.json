@@ -1029,6 +1029,8 @@
 	"settings.timecode_frame_number.desc": "Display fraction timecodes in the timeline as frame number instead of centisecond",
 	"settings.only_selected_bezier_handles": "Show Only Selected Bézier Handles",
 	"settings.only_selected_bezier_handles.desc": "Hide handles of bézier keyframes that are not currently selected",
+	"settings.autocomplete_code": "Autocomplete Code",
+	"settings.autocomplete_code.desc": "Display autocomplete suggestions in code editors",
 	"settings.viewport_rotate_speed": "Viewport Rotate Speed",
 	"settings.viewport_rotate_speed.desc": "Input sensitivity when rotating in the viewport",
 	"settings.viewport_zoom_speed": "Viewport Zoom Speed",
