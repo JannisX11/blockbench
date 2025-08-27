@@ -1080,14 +1080,21 @@ new NodePreviewController(Mesh, {
 		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
-
-		let armature_bone = (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight')
-			&& (ArmatureBone.selected[0] ?? ArmatureBone.all[0]);
+		
+		let armature_bone;
+		let all_armature_bones = [];
+		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') && ArmatureBone.all[0]) {
+			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
+			all_armature_bones = element.getArmature().getAllBones();
+		}
 
 		function addVertexPosition(vkey) {
 			position_array.push(...vertices[vkey]);
 			if (armature_bone) {
 				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				let weight_sum = 0;
+				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
+				if (weight_sum > weight) weight = weight / weight_sum;
 				if (weight < 0.25) {
 					color_array.push(0, 0, weight * 4);
 				} else if (weight < 0.5) {

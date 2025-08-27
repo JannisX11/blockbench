@@ -292,7 +292,6 @@ export const Animator = {
 	},
 	displayMeshDeformation() {
 		const _matrix4 = new THREE.Matrix4();
-		const _matrix_inverse = new THREE.Matrix4();
 		const _basePosition = new THREE.Vector3();
 		const _vector3 = new THREE.Vector3();
 		const target = new THREE.Vector3();
@@ -300,13 +299,14 @@ export const Animator = {
 		for (let mesh of Mesh.all) {
 			let armature = mesh.getArmature();
 			if (armature) {
+				let bind_matrix = mesh.mesh.matrixWorld;
+				let bind_matrix_inverse = bind_matrix.clone().invert();
 				let bones = armature.getAllBones();
 				let vertex_offsets = {};
 				for (let vkey in mesh.vertices) {
 
-					target.fromArray(mesh.vertices[vkey]);
-
-					_basePosition.copy( target )//.applyMatrix4( this.bindMatrix );
+					_basePosition.fromArray(mesh.vertices[vkey]);
+					_basePosition.applyMatrix4(bind_matrix);
 			
 					target.set(0, 0, 0);
 
@@ -341,7 +341,7 @@ export const Animator = {
 						target.copy(_basePosition)
 					}
 
-					target//.applyMatrix4( this.bindMatrixInverse );
+					target.applyMatrix4( bind_matrix_inverse );
 					vertex_offsets[vkey] = target.toArray().V3_subtract(mesh.vertices[vkey]);
 				}
 				Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);

@@ -3,7 +3,7 @@ import { autoFixMeshEdit } from "./mesh_editing";
 
 //Actions
 export function getSelectionCenter(all = false) {
-	if (Group.first_selected && Group.multi_selected.length == 1 && selected.length == 0 && !all) {
+	if (Group.selected.length == 1 && Outliner.selected.length == 0 && !all) {
 		let vec = THREE.fastWorldPosition(Group.first_selected.mesh, new THREE.Vector3());
 		return vec.toArray();
 	}
@@ -667,7 +667,10 @@ export function moveElementsInSpace(difference, axis) {
 
 	Outliner.selected.forEach(el => {
 
-		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected) return;
+		if (el.getTypeBehavior('movable') == false) return;
+		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected && el.parent.getTypeBehavior('movable')) {
+			return;
+		}
 
 		// Mesh Vertex (and more ?) translation
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
@@ -820,12 +823,14 @@ export function moveElementsInSpace(difference, axis) {
 					el.position.V3_add(m.x, m.y, m.z);
 				} 
 				if (move_origin) {
-					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) {
+						el.origin.V3_add(m.x, m.y, m.z);
+					}
 				}
 			}
 
 			// Counter child positions
-			if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+			if (el.getTypeBehavior('parent') && el.getTypeBehavior('movable') && !el.getTypeBehavior('use_absolute_position')) {
 				for (let child of el.children) {
 					if (child.selected || !el.position) continue;
 					let position_delta = Reusable.vec2.fromArray(el.position.slice().V3_subtract(old_position));

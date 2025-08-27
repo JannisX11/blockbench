@@ -14,7 +14,6 @@ export class Armature extends OutlinerElement {
 	isOpen: boolean
 	visibility: boolean
 	origin: ArrayVector3
-	rotation: ArrayVector3
 
 	static preview_controller: NodePreviewController
 
@@ -34,7 +33,6 @@ export class Armature extends OutlinerElement {
 		this.isOpen = false;
 		this.visibility = true;
 		this.origin = [0, 0, 0];
-		this.rotation = [0, 0, 0];
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -95,45 +93,6 @@ export class Armature extends OutlinerElement {
 			this.parent.openUp()
 		}
 		return this;
-	}
-	transferOrigin(origin: ArrayVector3) {
-		if (!this.mesh) return;
-		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
-		let shift = new THREE.Vector3(
-			this.origin[0] - origin[0],
-			this.origin[1] - origin[1],
-			this.origin[2] - origin[2],
-		)
-		let dq = new THREE.Vector3().copy(shift)
-		dq.applyQuaternion(q)
-		shift.sub(dq)
-		shift.applyQuaternion(q.invert())
-		this.origin.V3_set(origin);
-
-		function iterateChild(obj) {
-			if (obj instanceof Armature) {
-				obj.origin.V3_add(shift);
-				obj.children.forEach(child => iterateChild(child));
-
-			} else {
-				if (obj.movable) {
-					obj.origin.V3_add(shift);
-				}
-				if (obj.to) {
-					obj.from.V3_add(shift);
-					obj.to.V3_add(shift);
-				}
-			}
-		}
-		this.children.forEach(child => iterateChild(child));
-
-		Canvas.updatePositions()
-		return this;
-	}
-	getWorldCenter() {
-		let pos = new THREE.Vector3();
-		this.mesh.localToWorld(pos);
-		return pos;
 	}
 	getSaveCopy() {
 		let copy = {
@@ -203,6 +162,8 @@ export class Armature extends OutlinerElement {
 	}
 	static behavior = {
 		unique_name: () => Format.bone_rig,
+		movable: false,
+		rotatable: false,
 		parent: true,
 		child_types: ['armature_bone'],
 		hide_in_screenshot: true,
