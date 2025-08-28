@@ -538,7 +538,7 @@ export class Panel extends EventSystem {
 		})
 		
 		// Add to slot
-		if (!Blockbench.isMobile) {
+		if (!Blockbench.isMobile && !this.attached_to) {
 			let reference_panel = Panels[data.insert_before || data.insert_after];
 			this.moveTo(this.position_data.slot, reference_panel, reference_panel && !data.insert_after);
 		}

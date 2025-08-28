@@ -2,9 +2,10 @@ import { Blockbench } from "../api";
 import { InputForm } from "../interface/form";
 import { Interface } from "../interface/interface";
 import { Panel } from "../interface/panels";
+import { Property } from "../util/property";
 
 Interface.definePanels(function() {
-	let transform_panel = new Panel('transform', {
+	new Panel('transform', {
 		icon: 'arrows_output',
 		condition: {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
