@@ -1,5 +1,81 @@
-export class Property {
-	constructor(target_class, type = 'boolean', name, options = {}) {
+import { FormElementOptions } from "../interface/form"
+
+interface PropertyOptions {
+	default?: any
+	condition?: ConditionResolvable
+	exposed?: boolean
+	export?: boolean
+	copy_value?: boolean
+	description?: string
+	placeholder?: string
+	label?: string
+	/**
+	 * Options used for select types
+	 */
+	options?: any
+	/**
+	 * Enum possible values
+	 */
+	values?: string[]
+	merge?(instance: any, data: any): void
+	reset?(instance: any): void
+	merge_validation?(value: any): boolean
+	inputs?: {
+		element_panel: {
+			input: FormElementOptions,
+			onChange?: () => void
+		}
+	}
+}
+
+interface IPropertyType {
+	string: string
+	enum: string
+	molang: string
+	number: number
+	boolean: boolean
+	array: any[]
+	object: any
+	instance: any
+	vector: ArrayVector3
+	vector2: ArrayVector2
+	vector4: ArrayVector2
+}
+
+/**
+ * Creates a new property on the specified target class
+ */
+export class Property<T extends keyof IPropertyType> implements Deletable {
+
+	class: any
+	name: string
+	type: T
+	default: IPropertyType[T]
+	export?: boolean
+
+	isString: boolean
+	isEnum: boolean
+	isMolang: boolean
+	isNumber: boolean
+	isBoolean: boolean
+	isArray: boolean
+	isVector: boolean
+	isVector2: boolean
+	isObject: boolean
+	isInstance: boolean
+
+	enum_values?: string[]
+	merge_validation: undefined | ((value: IPropertyType[T]) => boolean)
+	condition: ConditionResolvable
+	exposed: boolean
+	label: any
+	inputs?: any
+	copy_value?: boolean
+	description?: string
+	placeholder?: string
+	options?: Record<string, string>
+
+	constructor(target_class: any, type: T, name: string, options: PropertyOptions = {}) {
 		if (!target_class.properties) {
 			target_class.properties = {};
 		}
@@ -13,17 +89,17 @@ export class Property {
 			this.default = options.default;
 		} else {
 			switch (this.type) {
-				case 'string': this.default = ''; break;
-				case 'enum': this.default = options.values?.[0] || ''; break;
-				case 'molang': this.default = '0'; break;
-				case 'number': this.default = 0; break;
-				case 'boolean': this.default = false; break;
-				case 'array': this.default = []; break;
-				case 'object': this.default = {}; break;
-				case 'instance': this.default = null; break;
-				case 'vector': this.default = [0, 0, 0]; break;
-				case 'vector2': this.default = [0, 0]; break;
-				case 'vector4': this.default = [0, 0, 0, 0]; break;
+				case 'string': this.default = '' as any; break;
+				case 'enum': this.default = options.values?.[0] || '' as any; break;
+				case 'molang': this.default = '0' as any; break;
+				case 'number': this.default = 0 as any; break;
+				case 'boolean': this.default = false as any; break;
+				case 'array': this.default = [] as any; break;
+				case 'object': this.default = {} as any; break;
+				case 'instance': this.default = null as any; break;
+				case 'vector': this.default = [0, 0, 0] as any; break;
+				case 'vector2': this.default = [0, 0] as any; break;
+				case 'vector4': this.default = [0, 0, 0, 0] as any; break;
 			}
 		}
 		switch (this.type) {
@@ -70,18 +146,18 @@ export class Property {
 	delete() {
 		delete this.class.properties[this.name];
 	}
-	getDefault(instance) {
+	getDefault(instance: IPropertyType[T]): IPropertyType[T] {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
 		} else if (this.isArray) {
 			return this.default ? this.default.slice() : [];
 		} else if (this.isObject) {
-			return Object.keys(this.default).length ? structuredClone(this.default) : {};
+			return Object.keys(this.default).length ? structuredClone(this.default) : {} as any;
 		} else {
 			return this.default;
 		}
 	}
-	merge(instance, data) {
+	merge(instance: IPropertyType[T], data: IPropertyType[T]): void {
 		if (data[this.name] == undefined || !Condition(this.condition, instance)) return;
 
 		if (this.isString) {
@@ -118,7 +194,7 @@ export class Property {
 			}
 		}
 	}
-	copy(instance, target) {
+	copy(instance: IPropertyType[T], target: IPropertyType[T]): void {
 		if (!Condition(this.condition, instance)) return;
 
 		if (this.isArray || this.isVector) {
@@ -144,7 +220,7 @@ export class Property {
 			target[this.name] = instance[this.name];
 		}
 	}
-	reset(instance, force) {
+	reset(instance: IPropertyType[T], force: boolean = false): void {
 		if (instance[this.name] == undefined && !Condition(this.condition, instance) && !force) return;
 		var dft = this.getDefault(instance)
 
@@ -157,12 +233,12 @@ export class Property {
 			instance[this.name] = dft;
 		}
 	}
-}
-Property.resetUniqueValues = function(type, instance) {
-	for (var key in type.properties) {
-		let property = type.properties[key];
-		if (property.copy_value == false) {
-			property.reset(instance);
+	static resetUniqueValues = function(type: any, instance: any) {
+		for (var key in type.properties) {
+			let property = type.properties[key];
+			if (property.copy_value == false) {
+				property.reset(instance);
+			}
 		}
 	}
 }

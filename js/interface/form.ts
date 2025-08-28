@@ -1,8 +1,9 @@
 import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
 import { Filesystem } from "../file_system"
+import { tl } from "../languages"
 import { EventSystem } from "../util/event_system"
-import { getStringWidth } from "../util/util"
+import { getStringWidth, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
 type ReadType = 'buffer' | 'binary' | 'text' | 'image'

@@ -1,3 +1,5 @@
+import { Property } from "../util/property";
+
 export class CubeFace extends Face {
 	constructor(direction, data, cube) {
 		super();
@@ -1006,7 +1008,6 @@ export class Cube extends OutlinerElement {
 		}},
 		'edit_material_instances',
 		'element_render_order',
-		'cube_light_emission',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -1053,11 +1054,19 @@ new Property(Cube, 'boolean', 'rescale', {
 	}
 });
 new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'boolean', 'shade', {
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'switches.shade', type: 'checkbox'},
+		}
+	}
+});
 new Property(Cube, 'number', 'light_emission', {
 	condition: {features: ['java_cube_shading_properties']},
 	inputs: {
 		element_panel: {
-			input: {label: 'action.cube_light_emission', type: 'checkbox'},
+			input: {label: 'action.cube_light_emission', type: 'number', min: 0, max: 15, step: 1, force_step: true},
 		}
 	}
 });

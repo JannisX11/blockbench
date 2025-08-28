@@ -722,7 +722,7 @@ BARS.defineActions(function() {
 		id: 'add_billboard',
 		icon: 'bookmark_add',
 		category: 'edit',
-		condition: {features: ['billboards']},
+		condition: {features: ['billboards'], modes: ['edit']},
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

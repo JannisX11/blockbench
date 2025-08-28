@@ -50,3 +50,9 @@ declare global {
 	const ShapelessDialog: typeof _ShapelessDialog
 	const ToolConfig: typeof _ToolConfig
 }
+import {
+	Property as _Property,
+} from './util/property'
+declare global {
+	const Property: typeof _Property
+}

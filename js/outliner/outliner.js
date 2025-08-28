@@ -1280,6 +1280,7 @@ SharedActions.add('invert_selection', {
 BARS.defineActions(function() {
 	new Action('add_element', {
 		icon: 'add_2',
+		condition: {modes: ['edit']},
 		children: [
 			'add_mesh',
 			'add_cube',
