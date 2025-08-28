@@ -158,12 +158,9 @@ export class Keybind {
 		if (this.meta === null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
 		var char = this.getCode()
-		var char_tl = tl('keys.'+char)
-		if (char_tl === ('keys.'+char)) {
-			modifiers.push(capitalizeFirstLetter(char))
-		} else {
-			modifiers.push(char_tl)
-		}
+		var char_tl = tl('keys.'+char, [], capitalizeFirstLetter(char));
+		modifiers.push(char_tl);
+
 		if (colorized) {
 			modifiers.forEach((text, i) => {
 				let type = i !== modifiers.length-1

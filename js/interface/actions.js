@@ -19,17 +19,8 @@ export class BarItem extends EventSystem {
 				}
 			}
 		}
-		this.name = tl('action.'+this.id)
-		if (data.name) this.name = tl(data.name);
-
-		this.description = tl('action.'+this.id+'.desc')
-		if (data.description) {
-			this.description = tl(data.description);
-		} else {
-			var key = `action.${this.id}.desc`;
-			this.description = tl('action.'+this.id+'.desc')
-			if (this.description == key) this.description = '';
-		}
+		this.name = tl(data.name ?? 'action.'+this.id);
+		this.description = tl(data.description ?? 'action.'+this.id+'.desc', [], '');
 		this.color = data.color
 		this.node;
 		this.condition = data.condition;
@@ -181,7 +172,7 @@ export class BarItem extends EventSystem {
 	addSubKeybind(id, name, default_keybind, trigger) {
 		if (!this.sub_keybinds) this.sub_keybinds = {};
 		this.sub_keybinds[id] = {
-			name: tl(name),
+			name: tl(name, null, name),
 			trigger
 		};
 

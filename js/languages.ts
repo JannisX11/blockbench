@@ -63,6 +63,7 @@ export const tl = function(string: string, variables?: string | number | (string
 	} else if (default_value != undefined) {
 		return default_value;
 	} else {
+		//console.warn('Unable to find translation for key', string);
 		return string;
 	}
 }

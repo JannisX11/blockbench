@@ -30,9 +30,7 @@ export class PreviewScene {
 		if (data.description) {
 			this.description = tl(data.description);
 		} else {
-			var key = `action.${this.id}.desc`;
-			this.description = tl('action.'+this.id+'.desc')
-			if (this.description == key) this.description = '';
+			this.description = tl('action.'+this.id+'.desc', [], '');
 		}
 		if (data.light_color) this.light_color = data.light_color;
 		if (data.light_side) this.light_side = data.light_side;

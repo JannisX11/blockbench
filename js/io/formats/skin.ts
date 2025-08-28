@@ -585,7 +585,7 @@ BARS.defineActions(function() {
 		click() {
 			let is_slim = Cube.all.find(c => c.name.match(/arm/i)).size(0) == 3;
 			new Dialog('convert_minecraft_skin_variant', {
-				title: 'action.',
+				title: 'action.convert_minecraft_skin_variant',
 				form: {
 					model: {
 						label: 'dialog.skin.model',
