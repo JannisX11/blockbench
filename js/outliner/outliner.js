@@ -1281,7 +1281,7 @@ BARS.defineActions(function() {
 	new Action('add_element', {
 		icon: 'add_2',
 		condition: {modes: ['edit']},
-		children: [
+		side_menu: new Menu([
 			'add_mesh',
 			'add_cube',
 			'add_spline',
@@ -1291,9 +1291,11 @@ BARS.defineActions(function() {
 			'add_locator',
 			'add_null_object',
 			'add_texture_mesh',
-		],
+		]),
 		click(event) {
-			new Menu('move_to_group', this.children).open(event.target, this);
+			let fallback = this.side_menu.structure.map(id => BarItems[id]).find(x => Condition(x.condition));
+			console.log(fallback, this.side_menu)
+			if (fallback) fallback.click();
 		}
 	});
 	new Toggle('outliner_toggle', {
