@@ -39,6 +39,9 @@ export class ArmatureBone extends OutlinerElement {
 		Merge.boolean(this, object, 'visibility')
 		return this;
 	}
+	/**
+	 * @returns {Armature}
+	 */
 	getArmature() {
 		let parent = this.parent;
 		while (parent instanceof Armature == false && parent instanceof OutlinerNode) {
@@ -168,6 +171,12 @@ export class ArmatureBone extends OutlinerElement {
 	setColor(index) {
 		this.color = index;
 		this.preview_controller.updateFaces(this);
+		let armature = this.getArmature();
+		// Update vertex colors
+		Canvas.updateView({
+			elements: Mesh.all.filter(mesh => armature && mesh.getArmature() == armature),
+			element_aspects: {geometry: true}
+		});
 		return this;
 	}
 	getSaveCopy(project) {
@@ -268,14 +277,14 @@ new Property(ArmatureBone, 'object', 'vertex_weights');
 
 new NodePreviewController(ArmatureBone, {
 	material: new THREE.MeshLambertMaterial({
-		color: 0xaaacba,
+		color: 0xc8c9cb,
 		depthTest: false,
 		depthWrite: false,
 		transparent: true,
 		vertexColors: true,
 	}),
 	material_selected: new THREE.MeshLambertMaterial({
-		color: gizmo_colors.outline,
+		color: 0xffffff,
 		depthTest: false,
 		depthWrite: false,
 		transparent: true,

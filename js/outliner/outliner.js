@@ -624,7 +624,8 @@ export class OutlinerElement extends OutlinerNode {
 					return e !== this
 				}))
 			} else {
-				this.markAsSelected(true)
+				let select_children = !(this.getTypeBehavior('select_children') == 'self_first' && !this.selected);
+				this.markAsSelected(select_children)
 				just_selected.push(this)
 			}
 

@@ -76,6 +76,8 @@ new Tool('weight_brush', {
 		let preview = Preview.selected as Preview;
 		let preview_offset = $(preview.canvas).offset();
 		let armature_bone = ArmatureBone.selected[0] as ArmatureBone;
+		let other_bones = armature_bone.getArmature().getAllBones() as ArmatureBone[];
+		other_bones.remove(armature_bone);
 		if (!armature_bone) {
 			return Blockbench.showQuickMessage('Select an armature bone first!');
 		}
@@ -96,6 +98,7 @@ new Tool('weight_brush', {
 				event.clientX - preview_offset.left,
 				event.clientY - preview_offset.top,
 			];
+			let subtract = event.ctrlOrCmd || Pressing.overrides.ctrl;
 			if (Math.pow(last_click_pos[0]-click_pos[0], 2) + Math.pow(last_click_pos[1]-click_pos[1], 2) < 30) {
 				return;
 			}
@@ -113,16 +116,25 @@ new Tool('weight_brush', {
 				let screen_pos = screen_space_vertex_positions[vkey];
 				if (!screen_pos) continue;
 				let distance = vec.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
-				let influence = Math.hermiteBlend(Math.clamp(1-(distance / radius), 0, 1));
+				let base_radius = 0.2;
+				let falloff = (1-(distance / radius)) * (1 + base_radius);
+				let influence = Math.hermiteBlend(Math.clamp(falloff, 0, 1));
 				let value = armature_bone.vertex_weights[vkey] ?? 0;
 				
 				if (event.shiftKey || Pressing.overrides.shift) {
 					influence /= 8;
 				}
-				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
+				if (subtract) {
 					value = value * (1-influence);
 				} else {
 					value = value + (1-value) * influence;
+				}
+
+				// Reduce weight on other bones
+				for (let bone of other_bones) {
+					if (bone.vertex_weights[vkey] && !subtract) {
+						bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, 0, 1);
+					}
 				}
 
 				if (value < 0.04) {

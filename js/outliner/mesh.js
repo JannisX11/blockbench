@@ -1096,18 +1096,35 @@ new NodePreviewController(Mesh, {
 				let weight = armature_bone.vertex_weights[vkey] ?? 0;
 				let weight_sum = 0;
 				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
-				if (weight_sum > weight) weight = weight / weight_sum;
-				if (weight < 0.25) {
-					color_array.push(0, 0, weight * 4);
-				} else if (weight < 0.5) {
-					let fade = (weight-0.25) * 4;
-					color_array.push(0, fade, 1-fade);
-				} else if (weight < 0.75) {
-					let fade = (weight-0.5) * 4;
-					color_array.push(fade, 1, 0);
+
+
+				if (true) {
+					let color = [0, 0, 0];
+					for (let bone of all_armature_bones) {
+						let bone_weight = bone.vertex_weights[vkey];
+						let bone_color = Canvas.coloredSolidMaterials[bone.color%markerColors.length].uniforms.base.value;
+						if (bone_weight > 0.02) {
+							let amount = bone_weight / weight_sum;
+							color[0] += bone_color.r * amount;
+							color[1] += bone_color.g * amount;
+							color[2] += bone_color.b * amount;
+						}
+					}
+					color_array.push(...color);
 				} else {
-					let fade = (weight-0.75) * 4;
-					color_array.push(1, 1-fade, 0);
+					if (weight_sum > weight) weight = weight / weight_sum;
+					if (weight < 0.25) {
+						color_array.push(0, 0, weight * 4);
+					} else if (weight < 0.5) {
+						let fade = (weight-0.25) * 4;
+						color_array.push(0, fade, 1-fade);
+					} else if (weight < 0.75) {
+						let fade = (weight-0.5) * 4;
+						color_array.push(fade, 1, 0);
+					} else {
+						let fade = (weight-0.75) * 4;
+						color_array.push(1, 1-fade, 0);
+					}
 				}
 			} else {
 				color_array.push(0, 0, 0);
