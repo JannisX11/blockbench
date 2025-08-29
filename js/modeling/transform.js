@@ -1988,12 +1988,6 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit']},
 		onChange() {toggleElementProperty('autouv')}
 	})
-	new Toggle('toggle_cyclic', {
-		icon: 'fas.fa-circle-nodes',
-		category: 'transform',
-		condition: () => Modes.edit && SplineMesh.selected.length,
-		onChange() { toggleElementProperty('cyclic') }
-	})
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
@@ -2018,7 +2012,6 @@ BARS.defineActions(function() {
 		updateToggle(BarItems.toggle_locked, 'locked');
 		updateToggle(BarItems.toggle_export, 'export');
 		updateToggle(BarItems.toggle_autouv, 'autouv');
-		updateToggle(BarItems.toggle_cyclic, 'autouv');
 		updateToggle(BarItems.toggle_shade, 'shade');
 		updateToggle(BarItems.toggle_mirror_uv, 'mirror_uv');
 	})

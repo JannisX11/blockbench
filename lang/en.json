@@ -1709,8 +1709,6 @@
 	"action.toggle_shade.desc": "Toggle the shading of the selected cubes",
 	"action.toggle_mirror_uv": "Mirror UV",
 	"action.toggle_mirror_uv.desc": "Toggle the UV mirroring on the X axis of the selected cubes",
-	"action.toggle_cyclic": "Toggle Cyclic",
-	"action.toggle_cyclic.desc": "Toggle whether the selected spline should form a loop (Cycle)",
 	"action.rename": "Rename",
 	"action.rename.desc": "Change the name of the selected elements or group",
 	"action.update_autouv": "Update Auto UV",
@@ -2463,6 +2461,11 @@
 	"cube.color.pink": "Pink",
 	"cube.color.silver": "Silver",
 
+	"mesh.smooth_shading": "Smooth Shading",
+
+	"spline_mesh.cyclic": "Cyclic",
+	"spline_mesh.cyclic.desc": "Whether the selected spline should form a loop (Cycle)",
+
 	"billboard.offset": "Offset",
 	"billboard.facing_mode": "Facing Mode",
 	"billboard.facing_mode.lookat": "Look At",
@@ -2477,7 +2480,6 @@
 	"switches.mirror": "Mirror UV",
 	"switches.autouv": "Auto UV",
 	"switches.autouv.alt": "Relative",
-	"switches.cyclic": "Cyclic",
 
 	"texture.error.file": "File not found",
 	"texture.error.too_large": "Resolution exceeds the maximum of %0",

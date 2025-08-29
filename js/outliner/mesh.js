@@ -1012,7 +1012,7 @@ new Property(Mesh, 'boolean', 'smooth_shading', {
 	default: false,
 	inputs: {
 		element_panel: {
-			input: {label: 'Smooth Shading', type: 'checkbox'},
+			input: {label: 'mesh.smooth_shading', type: 'checkbox'},
 			onChange() {
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
 			}

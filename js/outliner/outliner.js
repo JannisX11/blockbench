@@ -77,19 +77,6 @@ export const Outliner = {
 				}
 			}
 		},
-		cyclic: {
-			id: 'cyclic',
-			title: tl('switches.cyclic'),
-			icon: 'fas fa-circle-nodes',
-			icon_off: 'fas fa-diagram-project',
-			advanced_option: false,
-			condition: {modes: ['edit']},
-			getState(element) {
-				element.preview_controller.updateGeometry(element);
-				if (!element.cyclic) return false
-				else return true
-			}
-		}
 	},
 
 	toJSON() {

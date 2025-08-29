@@ -1566,7 +1566,6 @@ SplineMesh.prototype.menu = new Menu([
     'delete'
 ]);
 SplineMesh.prototype.buttons = [
-    Outliner.buttons.cyclic,
     Outliner.buttons.export,
     Outliner.buttons.locked,
     Outliner.buttons.visibility,
@@ -1668,11 +1667,20 @@ new Property(SplineMesh, 'boolean', 'display_space', {
         }
     }
 });
+new Property(SplineMesh, 'boolean', 'cyclic', {
+    inputs: {
+        element_panel: {
+            input: {label: 'spline_mesh.cyclic', type: 'checkbox', description: 'spline_mesh.cyclic.desc'},
+            onChange() {
+                Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
+            }
+        }
+    }
+}); // If the spline should be closed or not.
 
 new Property(SplineMesh, 'boolean', 'export', { default: true });
 new Property(SplineMesh, 'boolean', 'visibility', { default: true });
 new Property(SplineMesh, 'boolean', 'locked');
-new Property(SplineMesh, 'boolean', 'cyclic'); // If the spline should be closed or not.
 new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
 
 OutlinerElement.registerType(SplineMesh, 'spline');
