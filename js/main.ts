@@ -1,5 +1,7 @@
 //import { createApp } from 'vue'
 //import App from './App.vue'
+// This reference is probably not required, but I've added it to be safe for now.
+/// <reference path="./global.d.ts" />
 
 import "./lib/libs"
 import "./lib/jquery-ui.min"
@@ -121,4 +123,3 @@ import "./io/formats/skin"
 import "./io/formats/image"
 import "./boot_loader"
 import "./globals"
-import "./global_types"

@@ -1,11 +1,17 @@
 import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
-import { EventSystem } from "./util/event_system";
+import { type BlockbenchEventMap, EventSystem } from "./util/event_system";
 import { compareVersions } from "./util/util";
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
 import { currentwindow, shell, SystemInfo } from "./native_apis";
+import {
+	settings as _settings,
+	Setting as _Setting,
+	SettingsProfile as _SettingsProfile,
+	Settings as _Settings,
+} from './interface/settings'
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -29,15 +35,20 @@ interface ToastNotificationOptions {
 	 */
 	color?: string
 	/**
-	 * Method to run on click. 
+	 * Method to run on click.
 	 * @returns Return `true` to close toast
 	 */
 	click?: (event: Event) => boolean
 }
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
-export const Blockbench = {
-	...window.Blockbench,
+const blockbenchEventSystem = new EventSystem<BlockbenchEventMap>();
+
+const BlockbenchAPI = {
+	settings,
+	Setting,
+	SettingsProfile,
+	Settings,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -50,7 +61,6 @@ export const Blockbench = {
 	platform: 'web',
 	flags: [],
 	drag_handlers: {},
-	events: {},
 	openTime: new Date(),
 	setup_successful: null as null | true,
 	/**
@@ -104,7 +114,7 @@ export const Blockbench = {
 			//Node
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
-			
+
 		} else if (icon.match(/^(fa[.-])|(fa[rsb]\.)/)) {
 			//Font Awesome
 			node = document.createElement('i');
@@ -232,10 +242,10 @@ export const Blockbench = {
 		return new MessageBox(options, cb).show();
 	},
 	/**
-	 * 
-	 * @param {*} title 
-	 * @param {*} value 
-	 * @param {*} callback 
+	 *
+	 * @param {*} title
+	 * @param {*} value
+	 * @param {*} callback
 	 * @param {object} options Options
 	 * @param {string} options.info Info text
 	 * @param {string} options.description Description for the text input
@@ -344,18 +354,10 @@ export const Blockbench = {
 		}
 		return results;
 	},
-	on(event_name: EventName, cb) {
-		return EventSystem.prototype.on.call(this, event_name, cb);
-	},
-	once(event_name: EventName, cb) {
-		return EventSystem.prototype.once.call(this, event_name, cb);
-	},
-	addListener(event_name: EventName, cb) {
-		return EventSystem.prototype.addListener.call(this, event_name, cb);
-	},
-	removeListener(event_name: EventName, cb) {
-		return EventSystem.prototype.removeListener.call(this, event_name, cb);
-	},
+	on: ((a, b) => blockbenchEventSystem.on(a, b)) satisfies typeof blockbenchEventSystem.on,
+	once: ((a, b) => blockbenchEventSystem.once(a, b)) satisfies typeof blockbenchEventSystem.once,
+	addListener: ((a, b) => blockbenchEventSystem.addListener(a, b)) satisfies typeof blockbenchEventSystem.addListener,
+	removeListener: ((a, b) => blockbenchEventSystem.removeListener(a, b)) satisfies typeof blockbenchEventSystem.removeListener,
 	// Update
 	onUpdateTo(version, callback) {
 		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
@@ -381,6 +383,7 @@ export const Blockbench = {
 	addDragHandler: Filesystem.addDragHandler,
 	removeDragHandler: Filesystem.removeDragHandler,
 };
+export {BlockbenchAPI as Blockbench}
 
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
@@ -404,6 +407,10 @@ if (isApp) {
 	}
 	// @ts-ignore
 	if (Blockbench.platform.includes('win32') === true) window.osfs = '\\';
+}
+
+declare global {
+	const Blockbench: typeof BlockbenchAPI
 }
 
 Object.assign(window, {
