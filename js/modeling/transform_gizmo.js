@@ -1324,6 +1324,9 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 								rotation_object = getPivotObjects();
 								break;
 							}
+							case 'move_tool': {
+								if (Group.selected.length) rotation_object = Group.selected;
+							}
 						}
 						if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
 							let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;

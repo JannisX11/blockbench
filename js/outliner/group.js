@@ -293,6 +293,9 @@ export class Group extends OutlinerNode {
 		this.menu.open(event, this)
 		return this;
 	}
+	getWorldCenter() {
+		return THREE.fastWorldPosition(this.mesh, new THREE.Vector3());
+	}
 	transferOrigin(origin) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion)
@@ -437,6 +440,7 @@ export class Group extends OutlinerNode {
 		unique_name: () => Format.bone_rig,
 		parent: true,
 		select_children: 'all_first',
+		movable: true,
 		rotatable: true,
 		has_pivot: true,
 		use_absolute_position: true,
