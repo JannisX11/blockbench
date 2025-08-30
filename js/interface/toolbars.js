@@ -1,6 +1,6 @@
 import { Filesystem } from "../file_system";
 import { currentwindow, ipcRenderer } from "../native_apis";
-
+import { Menu } from './menu'
 export const Toolbars = {};
 
 export class Toolbar {

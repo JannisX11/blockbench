@@ -153,9 +153,13 @@ export type InputFormConfig = {
 }
 type FormValues = Record<string, FormResultValue>
 
+export interface InputFormEventMap {
+	'change': { result?: FormValues, cause?: string, changed_keys?: string[] }
+	'input': { result?: FormValues, changed_keys?: string[] }
+}
 
 // MARK: InputForm
-export class InputForm extends EventSystem {
+export class InputForm extends EventSystem<InputFormEventMap> {
 	uuid: string
 	form_config: InputFormConfig
 	form_data: { [formElement: string]: FormElement }
@@ -276,7 +280,7 @@ export class InputForm extends EventSystem {
 }
 
 // MARK: FormElement
-export class FormElement extends EventSystem {
+export class FormElement extends EventSystem<InputFormEventMap> {
 	id: string
 	form: InputForm
 	condition: ConditionResolvable
