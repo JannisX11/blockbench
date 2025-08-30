@@ -939,18 +939,6 @@ export class Mesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}})
-		}},
 		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
@@ -1084,9 +1072,11 @@ new NodePreviewController(Mesh, {
 		
 		let armature_bone;
 		let all_armature_bones = [];
+		let bone_marker_colors;
 		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') && ArmatureBone.all[0]) {
 			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
 			all_armature_bones = element.getArmature().getAllBones();
+			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
 		}
 
 		function addVertexPosition(vkey, normal) {
@@ -1102,7 +1092,7 @@ new NodePreviewController(Mesh, {
 					let color = [0, 0, 0];
 					for (let bone of all_armature_bones) {
 						let bone_weight = bone.vertex_weights[vkey];
-						let bone_color = Canvas.coloredSolidMaterials[bone.color%markerColors.length].uniforms.base.value;
+						let bone_color = bone_marker_colors[bone.color%markerColors.length];
 						if (bone_weight > 0.02) {
 							let amount = bone_weight / weight_sum;
 							color[0] += bone_color.r * amount;

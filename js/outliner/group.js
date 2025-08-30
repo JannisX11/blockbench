@@ -330,6 +330,10 @@ export class Group extends OutlinerNode {
 		Canvas.updatePositions()
 		return this;
 	}
+	setColor(index) {
+		this.color = index;
+		return this;
+	}
 	sortContent() {
 		Undo.initEdit({outliner: true})
 		if (this.children.length < 1) return;
@@ -459,33 +463,11 @@ export class Group extends OutlinerNode {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	function setGroupColor(color) {
-		let elements = Outliner.selected.filter(el => el.setColor)
-		Undo.initEdit({outliner: true, elements: elements, selection: true})
-		Group.all.forEach(group => {
-			if (group.selected) {
-				group.color = color;
-			}
-		})
-		elements.forEach(el => {
-			el.setColor(color);
-		})
-		Undo.finishEdit('Change group marker color')
-	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'edit_bedrock_binding',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click() {
-					setGroupColor(i);
-				}
-			}})
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
 			function applyTexture(texture_value, undo_message) {

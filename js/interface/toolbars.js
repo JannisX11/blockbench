@@ -492,7 +492,7 @@ export const BARS = {
 			new Action('set_element_marker_color', {
 				name: 'menu.cube.color',
 				icon: 'color_lens',
-				condition: () => Outliner.selected.find(el => el.getTypeBehavior('marker_color')),
+				condition: () => Outliner.selected.find(el => el.getTypeBehavior('marker_color')) || Group.selected.length,
 				click(e) {
 					new Menu('set_element_marker_color', this.children()).open(e.target);
 				},
@@ -503,11 +503,12 @@ export const BARS = {
 						name: color.name || 'cube.color.'+color.id,
 						click() {
 							let elements = Outliner.selected.filter(el => el.getTypeBehavior('marker_color'))
-							Undo.initEdit({elements})
-							elements.forEach(el => {
+							let groups = Group.all.filter(g => g.selected);
+							Undo.initEdit({elements, groups})
+							elements.concat(groups).forEach(el => {
 								el.setColor(i);
 							})
-							Undo.finishEdit('Set element marker color')
+							Undo.finishEdit('Set marker color');
 						}
 					}});
 				}
@@ -903,7 +904,9 @@ export const BARS = {
 			no_wrap: true,
 			children: [
 				'slider_weight_brush_size',
-				'weight_brush_xray'
+				'weight_brush_xray',
+				'_',
+				'mirror_modeling',
 			]
 		})
 
