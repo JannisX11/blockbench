@@ -445,15 +445,15 @@ onVueSetup(async function() {
 									<span v-else>{{ viewed_format.target }}</span>
 								</p>
 
-								<content v-if="viewed_format.format_page && viewed_format.format_page.content">
+								<content v-if="viewed_format.format_page && viewed_format.format_page.content" class="markdown">
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
-										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
-										<label v-else-if="item.type == 'label'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else class="markdown" v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 

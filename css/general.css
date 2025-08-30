@@ -348,7 +348,9 @@
 		cursor: inherit;
 		margin: 8px 0;
 	}
-	.markdown li > p {
+	.markdown li > p,
+	.markdown h2 > p,
+	.markdown h3 > p {
 		margin: 0;
 	}
 	.markdown ul {
