@@ -958,7 +958,7 @@ class FormElementFile extends FormElement {
 		})
 
 		input_wrapper.on('click', e => {
-			function fileCB(files) {
+			const fileCB = (files) => {
 				this.value = files[0].path;
 				this.content = files[0].content;
 				this.file = files[0];

@@ -2596,7 +2596,7 @@ BARS.defineActions(function() {
 	
 					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
 						let vector = mesh.vertices[vkey].slice();
-						affected_faces = selected_faces.filter(face => {
+						let affected_faces = selected_faces.filter(face => {
 							return face.vertices.includes(vkey)
 						})
 						if (affected_faces.length == 0) return;
