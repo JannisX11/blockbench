@@ -4,20 +4,8 @@ export const ModelScaler = {
 		title: 'dialog.scale.title',
 		darken: false,
 		buttons: ['dialog.scale.confirm', 'dialog.cancel'],
-		lines: [
-			`<div class="dialog_bar form_bar" style="height: 32px;">
-				<label class="name_space_left" for="origin">${tl('dialog.scale.axis')}:</label>
-				<div class="dialog_vector_group half">
-					<input type="checkbox" class="toggle_panel" id="model_scale_x_axis" checked>
-					<label class="toggle_panel" for="model_scale_x_axis" style="color: var(--color-axis-x)">X</label>
-					<input type="checkbox" class="toggle_panel" id="model_scale_y_axis" checked>
-					<label class="toggle_panel" for="model_scale_y_axis" style="color: var(--color-axis-y)">Y</label>
-					<input type="checkbox" class="toggle_panel" id="model_scale_z_axis" checked>
-					<label class="toggle_panel" for="model_scale_z_axis" style="color: var(--color-axis-z)">Z</label>
-				</div>
-			</div>`
-		],
 		form: {
+			axis: {label: 'dialog.scale.axis', type: 'inline_multi_select', options: {x: 'X', y: 'Y', z: 'Z'}, value: {x: true, y: true, z: true}},
 			origin: {label: 'data.origin', type: 'vector', dimensions: 3, value: [0, 0, 0]},
 			pivot_options: {label: ' ', type: 'buttons', buttons: ['dialog.scale.element_pivot', 'dialog.scale.selection_center'], click(index) {
 				ModelScaler.setPivot(['pivot', 'selection'][index]);
@@ -44,11 +32,6 @@ export const ModelScaler = {
 		},
 		onFormChange() {
 			ModelScaler.scaleAll();
-		},
-		onBuild() {
-			this.object.querySelector('#model_scale_x_axis').addEventListener('change', e => {ModelScaler.scaleAll()});
-			this.object.querySelector('#model_scale_y_axis').addEventListener('change', e => {ModelScaler.scaleAll()});
-			this.object.querySelector('#model_scale_z_axis').addEventListener('change', e => {ModelScaler.scaleAll()});
 		},
 		onOpen() {
 			Blockbench.once('open_bar_menu', () => {
@@ -80,14 +63,13 @@ export const ModelScaler = {
 		let data = ModelScaler.dialog.getFormResult();
 		if (size === undefined) size = data.scale;
 		let {origin} = data;
-		let axis_enabled = ['x', 'y', 'z'].map(axis => document.getElementById(`model_scale_${axis}_axis`).checked);
 		let overflow = [];
 		let scale_groups = ModelScaler.getScaleGroups();
 		
 		Outliner.selected.forEach(function(obj) {
 			obj.autouv = 0;
 			origin.forEach(function(ogn, i) {
-				if (axis_enabled[i]) {
+				if (data.axis[getAxisLetter(i)]) {
 
 					if (obj.from) {
 						obj.from[i] = (obj.before.from[i] - obj.inflate - ogn) * size;
