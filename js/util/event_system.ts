@@ -203,3 +203,6 @@ export class EventSystem<
 		}
 	}
 }
+
+// @ts-expect-error
+window.EventSystem = EventSystem

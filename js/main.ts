@@ -3,6 +3,7 @@
 // This reference is probably not required, but I've added it to be safe for now.
 /// <reference path="./global.d.ts" />
 
+
 import "./lib/libs"
 import "./lib/jquery-ui.min"
 import "./lib/targa"
@@ -26,12 +27,12 @@ import "./util/math_util"
 import "./util/array_util"
 import "./util/event_system"
 import "./util/property"
+import "./api"
 import "./interface/menu"
 import "./interface/actions"
 import "./interface/shared_actions"
 import "./interface/keyboard"
 import "./misc"
-import "./api"
 import "./modes"
 import "./file_system"
 import "./interface/vue_components"

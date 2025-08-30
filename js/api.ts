@@ -44,11 +44,11 @@ export const LastVersion = localStorage.getItem('last_version') || localStorage.
 
 const blockbenchEventSystem = new EventSystem<BlockbenchEventMap>();
 
-const BlockbenchAPI = {
-	settings,
-	Setting,
-	SettingsProfile,
-	Settings,
+export const Blockbench = {
+	settings: _settings,
+	Setting: _Setting,
+	SettingsProfile: _SettingsProfile,
+	Settings: _Settings,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -383,7 +383,6 @@ const BlockbenchAPI = {
 	addDragHandler: Filesystem.addDragHandler,
 	removeDragHandler: Filesystem.removeDragHandler,
 };
-export {BlockbenchAPI as Blockbench}
 
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
@@ -407,10 +406,6 @@ if (isApp) {
 	}
 	// @ts-ignore
 	if (Blockbench.platform.includes('win32') === true) window.osfs = '\\';
-}
-
-declare global {
-	const Blockbench: typeof BlockbenchAPI
 }
 
 Object.assign(window, {

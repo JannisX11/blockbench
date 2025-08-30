@@ -1,5 +1,5 @@
 import { clipboard } from "./native_apis";
-
+import { BARS } from './interface/toolbars'
 export const Clipbench = {
 	elements: [],
 	types: {
