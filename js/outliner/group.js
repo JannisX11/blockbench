@@ -190,21 +190,23 @@ export class Group extends OutlinerNode {
 		return this;
 	}
 	remove(undo) {
-		var scope = this;
 		let elements = [];
+		let groups = [this];
 		if (undo) {
 			this.forEachChild(function(element) {
-				if (element.type !== 'group') {
+				if (element.type == 'group') {
+					groups.push(element)
+				} else {
 					elements.push(element)
 				}
 			})
 			let animations = [];
 			Animator.animations.forEach(animation => {
-				if (animation.animators && animation.animators[scope.uuid]) {
+				if (animation.animators && animation.animators[this.uuid]) {
 					animations.push(animation);
 				}
 			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
+			Undo.initEdit({elements, groups, outliner: true, selection: true, animations})
 		}
 		this.unselect()
 		super.remove();
@@ -214,8 +216,8 @@ export class Group extends OutlinerNode {
 			i--;
 		}
 		Animator.animations.forEach(animation => {
-			if (animation.animators && animation.animators[scope.uuid]) {
-				animation.removeAnimator(scope.uuid);
+			if (animation.animators && animation.animators[this.uuid]) {
+				animation.removeAnimator(this.uuid);
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();
@@ -226,6 +228,7 @@ export class Group extends OutlinerNode {
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			elements.empty();
+			groups.empty();
 			Undo.finishEdit('Delete group')
 		}
 	}
@@ -233,13 +236,16 @@ export class Group extends OutlinerNode {
 		var array = this.children.slice();
 		var index = this.getParentArray().indexOf(this)
 		let all_elements = [];
+		let all_groups = [this];
 		this.forEachChild(obj => {
 			if (obj instanceof Group == false) {
 				all_elements.push(obj);
+			} else {
+				all_groups.push(obj);
 			}
 		})
 
-		if (undo) Undo.initEdit({outliner: true, elements: all_elements})
+		if (undo) Undo.initEdit({outliner: true, groups: all_groups, elements: all_elements})
 
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
@@ -284,7 +290,10 @@ export class Group extends OutlinerNode {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		if (undo) Undo.finishEdit('Resolve group')
+		if (undo) {
+			all_groups.empty();
+			Undo.finishEdit('Resolve group');
+		}
 		return array;
 	}
 	showContextMenu(event) {
@@ -472,7 +481,7 @@ export class Group extends OutlinerNode {
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
-				Undo.initEdit({outliner: true});
+				Undo.initEdit({groups: affected_groups});
 				for (let group of affected_groups) {
 					group.texture = texture_value;
 				}
@@ -642,7 +651,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({outliner: true, groups: []});
 			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
 			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
@@ -663,7 +672,7 @@ BARS.defineActions(function() {
 			}
 
 			base_group.init().select()
-			Undo.finishEdit('Add group');
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -680,7 +689,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit && (selected.length || Group.first_selected),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({outliner: true, groups: []});
 			let add_group = Group.first_selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
@@ -703,7 +712,7 @@ BARS.defineActions(function() {
 				s.preview_controller.updateTransform(s);
 			})
 			base_group.select()
-			Undo.finishEdit('Add group');
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -831,10 +840,12 @@ BARS.defineActions(function() {
 					}
 				})
 			}
-			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.multi_selected.slice()) {
+			let affected_groups = Group.multi_selected.slice();
+			Undo.initEdit({outliner: true, elements: all_elements, groups: affected_groups})
+			for (let group of affected_groups) {
 				group.resolve(false);
 			}
+			affected_groups.empty();
 			Undo.finishEdit('Resolve group');
 		}
 	})

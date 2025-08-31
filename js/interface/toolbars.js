@@ -520,9 +520,9 @@ export const BARS = {
 				click: function() {
 					let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
 					let elements = Outliner.selected.filter(element => element.getTypeBehavior('marker_color'))
-					Undo.initEdit({outliner: true, elements: elements, selection: true})
+					Undo.initEdit({outliner: true, elements: elements, selection: true, groups: Group.all.filter(g => g.selected)})
 					Group.all.forEach(group => {
-						if (group.first_selected) {
+						if (group.selected) {
 							let lastColor = group.color
 							// Ensure chosen group color is never the same as before
 							do group.color = randomColor();
@@ -605,7 +605,7 @@ export const BARS = {
 					}
 					if (form.target == 'group_names') {
 						let groups = Group.first_selected ? Group.all.filter(g => g.selected) : Group.all;
-						Undo.initEdit({outliner: true});
+						Undo.initEdit({groups});
 						groups.forEach(group => {
 							group.name = replace(group.name);
 							group.sanitizeName();

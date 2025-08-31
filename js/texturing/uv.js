@@ -595,7 +595,7 @@ export const UVEditor = {
 			Outliner.selected.forEach(el => {
 				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 			});
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({groups});
 			groups.forEach(group => {
 				group.texture = texture.uuid;
 				group.forEachChild(child => {
@@ -1638,7 +1638,7 @@ export const UVEditor = {
 						Outliner.selected.forEach(el => {
 							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 						});
-						Undo.initEdit({outliner: true});
+						Undo.initEdit({groups});
 						groups.forEach(group => {
 							group.texture = '';
 							group.forEachChild(child => {

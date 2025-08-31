@@ -986,7 +986,7 @@ export class Texture {
 			});
 			groups = groups.filter(g => g instanceof Group);
 			affected_elements = [];
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({groups});
 			groups.forEach(group => {
 				group.texture = this.uuid;
 				group.forEachChild(child => {
@@ -2533,7 +2533,7 @@ Interface.definePanels(function() {
 								Outliner.selected.forEach(el => {
 									if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 								});
-								Undo.initEdit({outliner: true});
+								Undo.initEdit({groups});
 								groups.forEach(group => {
 									group.texture = texture.uuid;
 									group.forEachChild(child => {

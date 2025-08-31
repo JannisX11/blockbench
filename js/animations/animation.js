@@ -1339,7 +1339,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			let elements = Outliner.elements;
-			Undo.initEdit({elements, outliner: true});
+			Undo.initEdit({elements, outliner: true, groups: Group.all});
 
 			let animatable_elements = Outliner.elements.filter(el => el.constructor.animator);
 			[...Group.all, ...animatable_elements].forEach(node => {

@@ -362,34 +362,31 @@ export class OutlinerNode {
 		return this;
 	}
 	saveName(save) {
-		var scope = this;
-		if (save !== false && scope.name.trim().length > 0 && scope.name != scope.old_name) {
-			var name = scope.name.trim();
-			scope.name = scope.old_name;
-			if (scope.type === 'group') {
-				Undo.initEdit({outliner: true})
-			} else if (scope.type === 'armature_bone') {
-				Undo.initEdit({elements: [scope], outliner: true})
+		if (save !== false && this.name.trim().length > 0 && this.name != this.old_name) {
+			let name = this.name.trim();
+			this.name = this.old_name;
+			if (this.type === 'group') {
+				Undo.initEdit({groups: [this]})
 			} else {
-				Undo.initEdit({elements: [scope]})
+				Undo.initEdit({elements: [this]})
 			}
 			if (this.constructor.animator) {
 				Animation.all.forEach(animation => {
-					if (animation.animators[scope.uuid] && animation.animators[scope.uuid].keyframes.length) {
+					if (animation.animators[this.uuid] && animation.animators[this.uuid].keyframes.length) {
 						animation.saved = false;
 					}
 				})
 			}
-			scope.name = name
-			scope.sanitizeName();
-			delete scope.old_name
-			if (Condition(scope.getTypeBehavior('unique_name'))) {
-				scope.createUniqueName()
+			this.name = name
+			this.sanitizeName();
+			delete this.old_name
+			if (Condition(this.getTypeBehavior('unique_name'))) {
+				this.createUniqueName()
 			}
 			Undo.finishEdit('Rename element')
 		} else {
-			scope.name = scope.old_name
-			delete scope.old_name
+			this.name = this.old_name
+			delete this.old_name
 		}
 		return this;
 	}
@@ -1063,8 +1060,8 @@ export function renameOutliner(element) {
 }
 export function stopRenameOutliner(save) {
 	if (Blockbench.hasFlag('renaming')) {
-		var uuid = $('.outliner_object input.renaming').parent().parent().attr('id')
-		var element = Outliner.root.findRecursive('uuid', uuid)
+		let uuid = $('.outliner_object input.renaming').parent().parent().attr('id')
+		let element = Outliner.root.findRecursive('uuid', uuid)
 		if (element) {
 			element.saveName(save)
 		}
@@ -1128,13 +1125,16 @@ SharedActions.add('delete', {
 		}
 		list.forEach(addChildren);
 
-		Undo.initEdit({elements: recursive_list, outliner: true, selection: true})
+		let groups = Group.multi_selected.slice();
+		Undo.initEdit({elements: recursive_list, outliner: true, groups, selection: true})
 		list.forEach(element => {
 			element.remove(false);
 		})
-		for (let group of Group.multi_selected.slice()) {
+		for (let group of groups) {
 			group.remove(false);
 		}
+		recursive_list.empty();
+		groups.empty();
 		TickUpdates.selection = true;
 		Undo.finishEdit('Delete outliner selection')
 	}
@@ -1145,14 +1145,14 @@ SharedActions.add('duplicate', {
 	priority: -1,
 	run() {
 		let cubes_before = elements.length;
-		Undo.initEdit({outliner: true, elements: [], selection: true});
-		let original = Group.multi_selected.slice();
+		Undo.initEdit({outliner: true, elements: [], groups: [], selection: true});
 		let all_original = [];
 		for (let group of Group.multi_selected) {
 			group.forEachChild(g => all_original.safePush(g), Group, true);
 		}
 
 		let all_new = [];
+		let new_groups = [];
 		let old_selected_groups = Group.multi_selected.slice();
 		Group.multi_selected.empty();
 		for (let group of old_selected_groups) {
@@ -1160,10 +1160,11 @@ SharedActions.add('duplicate', {
 			let new_group = group.duplicate();
 			new_group.forEachChild(g => all_new.push(g), Group, true);
 			new_group.multiSelect();
+			new_groups.push(new_group);
 		}
 
 		updateSelection();
-		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), selection: true});
+		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), groups: new_groups, selection: true});
 
 		if (Animation.all.length) {
 			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
@@ -1282,7 +1283,6 @@ BARS.defineActions(function() {
 		]),
 		click(event) {
 			let fallback = this.side_menu.structure.map(id => BarItems[id]).find(x => Condition(x.condition));
-			console.log(fallback, this.side_menu)
 			if (fallback) fallback.click();
 		}
 	});

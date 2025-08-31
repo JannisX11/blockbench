@@ -611,11 +611,13 @@ var codec = new Codec('project', {
 		let uuid_map = {};
 		let tex_uuid_map = {};
 		let new_elements = [];
+		let new_groups = [];
 		let new_textures = [];
 		let new_animations = [];
 		let imported_format = Formats[model.meta.model_format];
 		Undo.initEdit({
 			elements: new_elements,
+			groups: new_groups,
 			textures: new_textures,
 			animations: Format.animation_mode && new_animations,
 			outliner: true,
@@ -744,7 +746,8 @@ var codec = new Codec('project', {
 				if (Group.all.find(g => g.uuid == template.uuid)) {
 					template.uuid = uuid_map[template.uuid] = guid();
 				}
-				new Group(template, template.uuid).init();
+				let group = new Group(template, template.uuid).init();
+				new_groups.push(group);
 			})
 		}
 		if (model.outliner) {

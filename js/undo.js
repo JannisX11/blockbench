@@ -417,66 +417,35 @@ UndoSystem.save = class {
 		}
 
 		if (this.elements) {
-			for (var uuid in this.elements) {
-				if (this.elements.hasOwnProperty(uuid)) {
-					var element = this.elements[uuid]
+			for (let uuid in this.elements) {
+				let element = this.elements[uuid]
 
-					var new_element = OutlinerNode.uuids[uuid]
-					if (new_element) {
-						if (new_element instanceof SplineMesh) {
-							new_element.overwrite(element)
-							new_element.preview_controller.updateAll(new_element);
-						} 
-						else {
-							for (var face in new_element.faces) {
-								new_element.faces[face].reset()
-							}
-							new_element.extend(element)
-							new_element.preview_controller.updateAll(new_element);
+				let new_element = OutlinerNode.uuids[uuid]
+				if (new_element) {
+					if (new_element instanceof SplineMesh) {
+						new_element.overwrite(element)
+						new_element.preview_controller.updateAll(new_element);
+					} 
+					else {
+						for (let face in new_element.faces) {
+							new_element.faces[face].reset()
 						}
-					} else {
-						new_element = OutlinerElement.fromSave(element, true);
+						new_element.extend(element)
+						new_element.preview_controller.updateAll(new_element);
 					}
+				} else {
+					new_element = OutlinerElement.fromSave(element, true);
 				}
 			}
-			for (var uuid in reference.elements) {
+			for (let uuid in reference.elements) {
 				if (reference.elements.hasOwnProperty(uuid) && !this.elements.hasOwnProperty(uuid)) {
-					var obj = OutlinerNode.uuids[uuid]
+					let obj = OutlinerNode.uuids[uuid]
 					if (obj) {
 						obj.remove()
 					}
 				}
 			}
 			Canvas.updateVisibility()
-		}
-
-		if (this.outliner) {
-			Group.multi_selected.empty();
-			Outliner.loadJSON(this.outliner)
-			if (is_session) {
-				function iterate(arr) {
-					arr.forEach((obj) => {
-						delete obj.isOpen;
-						if (obj.children) {
-							iterate(obj.children)
-						}
-					})
-				}
-				iterate(this.outliner)
-			}
-			if (Format.bone_rig) {
-				Canvas.updateAllPositions()
-			}
-		}
-
-		if (this.selected_groups && !is_session) {
-			Group.multi_selected.empty();
-			for (let uuid of this.selected_groups) {
-				let sel_group = OutlinerNode.uuids[uuid];
-				if (sel_group) {
-					Group.multi_selected.push(sel_group)
-				}
-			}
 		}
 
 		/*if (this.selection && !is_session) {
@@ -494,16 +463,54 @@ UndoSystem.save = class {
 		if (this.groups) {
 			for (let saved_group of this.groups) {
 				let group = OutlinerNode.uuids[saved_group.uuid];
-				if (!group) continue;
-				if (is_session) {
-					delete saved_group.isOpen;
+				if (group) {
+					if (is_session) {
+						delete saved_group.isOpen;
+					}
+					group.extend(saved_group)
+					if (Format.bone_rig) {
+						group.forEachChild(function(obj) {
+							if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
+						})
+					}
+					group.preview_controller.updateAll(group);
+				} else {
+					group = new Group(saved_group, saved_group.uuid).init();
 				}
-				group.extend(saved_group)
-				if (Format.bone_rig) {
-					group.forEachChild(function(obj) {
-						if (obj.preview_controller) obj.preview_controller.updateTransform(obj);
+			}
+			for (let group_data of reference.groups) {
+				if (!this.groups.find(g => g.uuid == group_data.uuid)) {
+					OutlinerNode.uuids[group_data.uuid]?.remove();
+				}
+			}
+		}
+
+		/*if (this.selected_groups && !is_session) {
+			Group.multi_selected.empty();
+			for (let uuid of this.selected_groups) {
+				let sel_group = OutlinerNode.uuids[uuid];
+				if (sel_group) {
+					Group.multi_selected.push(sel_group)
+				}
+			}
+		}*/
+
+		if (this.outliner) {
+			Group.multi_selected.empty();
+			Outliner.loadJSON(this.outliner)
+			if (is_session) {
+				function iterate(arr) {
+					arr.forEach((obj) => {
+						delete obj.isOpen;
+						if (obj.children) {
+							iterate(obj.children)
+						}
 					})
 				}
+				iterate(this.outliner)
+			}
+			if (Format.bone_rig) {
+				Canvas.updateAllPositions()
 			}
 		}
 

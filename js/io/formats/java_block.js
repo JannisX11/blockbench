@@ -297,9 +297,11 @@ var codec = new Codec('java_block', {
 		var new_cubes = [];
 		var new_textures = [];
 		if (add) {
-			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
+			let groups = [];
+			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures, groups})
 			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
+			groups.push(import_group);
 		}
 
 		if (!add && typeof model.format_version == 'string') {

@@ -1861,7 +1861,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(0, true);
 			Undo.finishEdit('Center selection on X axis')
 		}
@@ -1872,7 +1872,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(1, true);
 			Undo.finishEdit('Center selection on Y axis')
 		}
@@ -1883,7 +1883,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(2, true);
 			Undo.finishEdit('Center selection on Z axis')
 		}
@@ -1892,7 +1892,7 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(0, false);
 			centerElements(2, true);
 			Undo.finishEdit('Center selection')

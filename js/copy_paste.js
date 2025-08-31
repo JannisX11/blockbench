@@ -306,7 +306,8 @@ export const Clipbench = {
 		Canvas.updateView({elements: Mesh.selected, selection: true})
 	},
 	pasteOutliner(event) {
-		Undo.initEdit({outliner: true, elements: [], selection: true});
+		let new_groups = [];
+		Undo.initEdit({outliner: true, elements: [], groups: new_groups, selection: true});
 		//Group
 		var target = 'root';
 		if (Group.first_selected) {
@@ -333,6 +334,7 @@ export const Clipbench = {
 			function iterate(obj, parent) {
 				if (obj.children) {
 					let copy = new Group(obj).addTo(parent).init();
+					new_groups.push(copy);
 					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
@@ -418,7 +420,7 @@ export const Clipbench = {
 			Canvas.updateView({elements, element_aspects: {transform: true}});
 		}
 
-		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
+		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, groups: new_groups, selection: true});
 	},
 	pasteImage() {
 		function loadFromDataUrl(dataUrl) {
