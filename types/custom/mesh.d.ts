@@ -99,6 +99,7 @@ interface MeshOptions {
 	name?: string
 	color?: number
 	visibility?: boolean
+	smooth_shading?: boolean
 	rotation?: ArrayVector3
 	origin?: ArrayVector3
 	vertices?: {
@@ -108,6 +109,7 @@ interface MeshOptions {
 declare class Mesh extends OutlinerElement {
 	constructor(options: Partial<MeshOptions>, uuid?: string)
 
+	smooth_shading: boolean
 	visibility: boolean
 	color: number
 
@@ -148,6 +150,7 @@ declare class Mesh extends OutlinerElement {
 	 * Vertex lists of quads are generally in arbitrary order, the order is calculated when calling getSortedVertices() to account for dfiferent face geometries. Calling this method pre-sorts all faces to allow optimizing subsequent processing
 	 */
 	sortAllFaceVertices(): void
+	calculateNormals(): Record<string, ArrayVector3>
 
 	setSeam(edge: MeshEdge, value: any): void
 	getSeam(edge: MeshEdge): MeshSeamValue

@@ -704,6 +704,42 @@ export class Mesh extends OutlinerElement {
 			return range[1] - range[0];
 		}
 	}
+	calculateNormals() {
+		let vertex_normals = {};
+		if (this.smooth_shading == true) {
+			// Calculate smooth normals
+			let face_normals = {};
+			let used_vertices = new Set();
+			for (let key in this.faces) {
+				let face = this.faces[key];
+				if (face.vertices.length <= 2) continue;
+				face_normals[key] = face.getNormal(true);
+				face.vertices.forEach(vkey => used_vertices.add(vkey));
+			}
+			for (let vkey in this.vertices) {
+				if (used_vertices.has(vkey) == false) continue;
+
+				let average_normal = Reusable.vec8.set(0, 0, 0);
+				let normal_count = 0;
+				for (let fkey in this.faces) {
+					let face = this.faces[fkey];
+					if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
+						let face_normal = face_normals[fkey];
+						if (!face_normals[fkey]) face_normals[fkey] = face_normal;
+						// if (face.getAngleTo(face) > 50) continue;
+						average_normal.x += face_normal[0];
+						average_normal.y += face_normal[1];
+						average_normal.z += face_normal[2];
+						normal_count++;
+					}
+				}
+				average_normal.divideScalar(normal_count);
+
+				vertex_normals[vkey] = [average_normal.x, average_normal.y, average_normal.z];
+			}
+		}
+		return vertex_normals;
+	}
 	sortAllFaceVertices() {
 		for (let fkey in this.faces) {
 			this.faces[fkey].vertices.replace(this.faces[fkey].getSortedVertices());
@@ -1132,39 +1168,7 @@ new NodePreviewController(Mesh, {
 		}
 
 		// Mesh geometry
-		let vertex_normals = {};
-		if (element.smooth_shading == true) {
-			// Calculate smooth normals
-			let face_normals = {};
-			let used_vertices = new Set();
-			for (let key in faces) {
-				let face = faces[key];
-				if (face.vertices.length <= 2) continue;
-				face_normals[key] = face.getNormal(true);
-				face.vertices.forEach(vkey => used_vertices.add(vkey));
-			}
-			for (let vkey in element.vertices) {
-				if (used_vertices.has(vkey) == false) continue;
-
-				let average_normal = Reusable.vec2.set(0, 0, 0);
-				let normal_count = 0;
-				for (let fkey in faces) {
-					let face = faces[fkey];
-					if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
-						let face_normal = face_normals[fkey];
-						if (!face_normals[fkey]) face_normals[fkey] = face_normal;
-						// if (face.getAngleTo(face) > 50) continue;
-						average_normal.x += face_normal[0];
-						average_normal.y += face_normal[1];
-						average_normal.z += face_normal[2];
-						normal_count++;
-					}
-				}
-				average_normal.divideScalar(normal_count);
-
-				vertex_normals[vkey] = [average_normal.x, average_normal.y, average_normal.z];
-			}
-		}
+		let vertex_normals = element.smooth_shading && element.calculateNormals();
 
 		// Split Normals
 		for (let key in faces) {

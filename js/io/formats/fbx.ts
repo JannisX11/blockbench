@@ -289,6 +289,7 @@ var codec = new Codec('fbx', {
 			let uv = [];
 			let vertex_keys = [];
 			let indices = [];
+			let mesh_normals = mesh.calculateNormals();
 
 			function addPosition(x, y, z) {
 				positions.push(x/export_scale, y/export_scale, z/export_scale);
@@ -297,6 +298,9 @@ var codec = new Codec('fbx', {
 			for (let vkey in mesh.vertices) {
 				addPosition(...mesh.vertices[vkey]);
 				vertex_keys.push(vkey);
+				if (mesh.smooth_shading == true) {
+					normals.push(...mesh_normals[vkey]);
+				}
 			}
 			let textures = [];
 
@@ -311,7 +315,9 @@ var codec = new Codec('fbx', {
 						uv.push(face.uv[vkey][0] / Project.getUVWidth(tex), 1 - face.uv[vkey][1] / Project.getUVHeight(tex));
 					})
 
-					normals.push(...face.getNormal(true));
+					if (mesh.smooth_shading == false) {
+						normals.push(...face.getNormal(true));
+					}
 					
 					vertices.forEach((vkey, vi) => {
 						let index = vertex_keys.indexOf(vkey);
@@ -345,7 +351,7 @@ var codec = new Codec('fbx', {
 					_values: [0],
 					Version: 101,
 					Name: "",
-					MappingInformationType: "ByPolygon",
+					MappingInformationType: mesh.smooth_shading ? "ByVertex" : "ByPolygon",
 					ReferenceInformationType: "Direct",
 					Normals: {
 						_values: [`_*${normals.length}`],
