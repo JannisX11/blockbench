@@ -1240,7 +1240,9 @@ BARS.defineActions(function() {
 			let form = {};
 			let keys = [];
 			let animations = Animation.all.slice()
-			if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode())
+			if (Condition(Animation.properties.path.condition)) {
+				animations.sort((a1, a2) => (a1.path ?? a1.name).hashCode() - (a2.path ?? a2.name).hashCode())
+			}
 			animations.forEach(animation => {
 				let key = animation.name;
 				keys.push(key)
