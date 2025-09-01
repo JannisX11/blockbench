@@ -21,6 +21,12 @@ export {
 	Buffer, nativeImage
 }
 
+/**
+ * @internal
+ */
+export const process = window.process;
+delete window.process;
+
 
 const { stringify, parse } = JSON;
 
@@ -36,6 +42,7 @@ const SAFE_APIS = [
 ];
 const REQUESTABLE_APIS = [
 	'fs',
+	'process',
 	'child_process',
 	'https',
 	'net',
@@ -46,6 +53,7 @@ const REQUESTABLE_APIS = [
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',
+	process: 'access to the process running Blockbench',
 	child_process: 'launch external programs',
 	net: 'full network access',
 	os: 'see information about your computer',
@@ -151,6 +159,8 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 
 	if (no_namespace_name == 'fs') {
 		return createScopedFS(options2.scope);
+	} else if (no_namespace_name == 'process') {
+		return process;
 	} else if (no_namespace_name == 'dialog') {
 		let api = {};
 		for (let key in dialog) {
@@ -184,12 +194,6 @@ export function getPluginPermissions(plugin: InstanceType<typeof BBPlugin>) {
 	let data = PluginSettings[plugin.id]?.allowed;
 	if (data) return parse(stringify(data)) as Record<string, (boolean | any)>;
 }
-
-/**
- * @internal
- */
-export const process = window.process;
-delete window.process;
 
 export const SystemInfo = {
 	platform: process.platform,
