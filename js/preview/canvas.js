@@ -256,7 +256,7 @@ export const Canvas = {
 			side_grid.add(grid.clone())
 
 			//North
-			geometry = new THREE.PlaneGeometry(5, 5)
+			let geometry = new THREE.PlaneGeometry(5, 5)
 			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 			if (Format.centered_grid) {
 				north_mark.position.set(0,0, -3 - size/2)
