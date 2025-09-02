@@ -814,11 +814,13 @@ export class NodePreviewController extends EventSystem {
 		}
 
 		if (Format.bone_rig) {
-			if (element.parent instanceof Group) {
+			if (element.parent instanceof OutlinerNode && element.parent.getTypeBehavior('parent')) {
 				element.parent.mesh.add(mesh);
-				mesh.position.x -= element.parent.origin[0]
-				mesh.position.y -= element.parent.origin[1]
-				mesh.position.z -= element.parent.origin[2]
+				if (element.parent.getTypeBehavior('use_absolute_position')) {
+					mesh.position.x -= element.parent.origin[0];
+					mesh.position.y -= element.parent.origin[1];
+					mesh.position.z -= element.parent.origin[2];
+				}
 			} else if (mesh.parent !== Project.model_3d) {
 				Project.model_3d.add(mesh)
 			}

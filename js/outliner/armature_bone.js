@@ -89,10 +89,10 @@ export class ArmatureBone extends OutlinerElement {
 		return match;
 	}
 	openUp() {
-		this.isOpen = true
-		this.updateElement()
+		this.isOpen = true;
+		this.updateElement();
 		if (this.parent && this.parent !== 'root') {
-			this.parent.openUp()
+			this.parent.openUp();
 		}
 		return this;
 	}
