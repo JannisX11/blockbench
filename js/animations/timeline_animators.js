@@ -599,7 +599,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.element.mesh
 		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
+			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
 		}
@@ -610,13 +610,13 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		if (arr) {
 			if (arr.length === 4) {
 				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-				mesh.rotation.x -= added_rotation.x * multiplier
-				mesh.rotation.y -= added_rotation.y * multiplier
+				mesh.rotation.x += added_rotation.x * multiplier
+				mesh.rotation.y += added_rotation.y * multiplier
 				mesh.rotation.z += added_rotation.z * multiplier
 			} else {
-				arr.forEach((n, i) => {
-					mesh.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-				})
+				mesh.rotation.x += Math.degToRad(arr[0]) * multiplier
+				mesh.rotation.y += Math.degToRad(arr[1]) * multiplier
+				mesh.rotation.z += Math.degToRad(arr[2]) * multiplier
 			}
 		}
 		return this;

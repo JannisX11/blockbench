@@ -565,7 +565,7 @@ export class Mesh extends OutlinerElement {
 		return this;
 	}
 	getArmature() {
-		return this.armature ? Armature.all.find(armature => armature.uuid == this.armature) : undefined;
+		return this.parent instanceof Armature ? this.parent : undefined;
 	}
 	getUndoCopy(aspects = {}) {
 		let el = {};
@@ -967,11 +967,11 @@ export class Mesh extends OutlinerElement {
 		'merge_vertices',
 		'dissolve_edges',
 		'set_vertex_weights',
+		'calculate_vertex_weights',
 		new MenuSeparator('mesh_combination'),
 		'apply_mesh_rotation',
 		'split_mesh',
 		'merge_meshes',
-		'attach_armature',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
@@ -1043,7 +1043,6 @@ new Property(Mesh, 'boolean', 'smooth_shading', {
 		}
 	}
 });
-new Property(Mesh, 'string', 'armature');
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
@@ -1056,7 +1055,6 @@ new NodePreviewController(Mesh, {
 		let mesh = element.mesh;
 		if (mesh && mesh.parent) mesh.parent.remove(mesh);
 		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
-		let armature = element.getArmature();
 		mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;

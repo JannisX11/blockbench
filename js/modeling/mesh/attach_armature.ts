@@ -27,10 +27,9 @@ interface EdgeLoop {
 	vkeys: string[]
 }
 
-function setArmature(mesh: Mesh, armature?: Armature) {
-	let armature_bones = armature?.getAllBones() ?? [];
+function calculateWeights(mesh: Mesh, armature: Armature) {
+	let armature_bones = armature.getAllBones();
 	Undo.initEdit({elements: [mesh, ...armature_bones]});
-	mesh.armature = armature ? armature.uuid : '';
 	mesh.preview_controller.updateTransform(mesh);
 
 	if (armature) {
@@ -268,50 +267,12 @@ function getEdgeLoops(mesh: Mesh, start_vkey: string) {
 
 BARS.defineActions(() => {
 	
-	new Action('attach_armature', {
-		name: 'menu.mesh.attach_armature',
+	new Action('calculate_vertex_weights', {
 		icon: 'accessibility',
-		condition: () => Armature.all.length && Mesh.selected.length,
-		children() {
-			let options = [
-				{
-					name: 'generic.none',
-					icon: 'remove',
-					click() {
-						setArmature(Mesh.selected[0]);
-					}
-				}
-			];
-			for (let armature of Armature.all) {
-				options.push({
-					name: armature.name,
-					icon: 'accessibility',
-					click: async () => {
-						if (Mesh.selected[0]?.armature == armature.uuid) {
-							let result = await new Promise((resolve) => {
-								// TODO: localize
-								Blockbench.showMessageBox({
-									title: 'menu.mesh.attach_armature',
-									message: 'The armature is already attached. Do you want to recalculate vertex weights?',
-									buttons: ['dialog.cancel'],
-									commands: {
-										reattach: 'Re-calculate weights'
-									}
-								}, (button) => {
-									resolve(button);
-								})
-							})
-							if (!result) return;
-						}
-						setArmature(Mesh.selected[0], armature as Armature);
-						Blockbench.showQuickMessage('Armature attached')
-					}
-				})
-			}
-			return options;
-		},
+		condition: () => Mesh.selected[0]?.getArmature(),
 		click(e) {
-			new Menu(this.children()).open(e.target as HTMLElement);
+			let mesh = Mesh.selected[0];
+			calculateWeights(mesh, mesh.getArmature());
 		}
 	});
 })

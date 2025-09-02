@@ -165,7 +165,7 @@ export class Armature extends OutlinerElement {
 		movable: false,
 		rotatable: false,
 		parent: true,
-		child_types: ['armature_bone'],
+		child_types: ['armature_bone', 'mesh'],
 		hide_in_screenshot: true,
 	}
 	
