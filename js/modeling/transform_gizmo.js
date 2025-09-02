@@ -1926,7 +1926,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 						Blockbench.showQuickMessage('message.no_animation_selected')
 					}
 					if (Toolbox.selected.id === 'rotate_tool') {
-						value = Math.trimDeg(axisNumber === 2 ? angle : -angle)
+						value = Math.trimDeg(angle)
 						var round_num = getRotationInterval(event)
 					} else {
 						value = point[axis]
@@ -1960,7 +1960,6 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							let normal = scope.axis == 'E'
 								? rotate_normal
 								: axisNumber == 0 ? THREE.NormalX : (axisNumber == 1 ? THREE.NormalY : THREE.NormalZ);
-							if (axisNumber != 2) difference *= -1;
 							let rotWorldMatrix = new THREE.Matrix4();
 							rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
 							rotWorldMatrix.multiply(mesh.matrixWorld)
@@ -1974,12 +1973,11 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							mesh.setRotationFromMatrix(rotWorldMatrix)
 							let e = mesh.rotation;
 
-							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(e.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
-							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(e.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('x', Math.trimDeg( ( Math.radToDeg(e.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( ( Math.radToDeg(e.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
 							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - old_rotation.z)) - scope.keyframes[0].calc('z') ));
 						
 						} else if (Toolbox.selected.id === 'rotate_tool' && Transformer.getTransformSpace() == 2 && [0, 1, 2].find(axis => axis !== axisNumber && scope.keyframes[0].get(getAxisLetter(axis))) !== undefined) {
-							if (axisNumber != 2) difference *= -1;
 
 							let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 							let old_order = mesh.rotation.order;
@@ -1988,8 +1986,8 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							mesh.rotation[axis] = Math.degToRad(obj_val);
 							mesh.rotation.reorder(old_order);
 				
-							scope.keyframes[0].offset('x', Math.trimDeg( (-Math.radToDeg(mesh.rotation.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
-							scope.keyframes[0].offset('y', Math.trimDeg( (-Math.radToDeg(mesh.rotation.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
+							scope.keyframes[0].offset('x', Math.trimDeg( ( Math.radToDeg(mesh.rotation.x - old_rotation.x)) - scope.keyframes[0].calc('x') ));
+							scope.keyframes[0].offset('y', Math.trimDeg( ( Math.radToDeg(mesh.rotation.y - old_rotation.y)) - scope.keyframes[0].calc('y') ));
 							scope.keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - old_rotation.z)) - scope.keyframes[0].calc('z') ));
 	
 						} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'global') {
@@ -2001,7 +1999,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							mesh.parent.getWorldQuaternion(rotation);
 							offset_vec.applyQuaternion(rotation.invert());
 				
-							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('x', offset_vec.x);
 							scope.keyframes[0].offset('y', offset_vec.y);
 							scope.keyframes[0].offset('z', offset_vec.z);
 	
@@ -2011,7 +2009,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							offset_vec[axis] = difference;
 							offset_vec.applyQuaternion(mesh.quaternion);
 				
-							scope.keyframes[0].offset('x', -offset_vec.x);
+							scope.keyframes[0].offset('x', offset_vec.x);
 							scope.keyframes[0].offset('y', offset_vec.y);
 							scope.keyframes[0].offset('z', offset_vec.z);
 
@@ -2024,9 +2022,6 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							}
 
 						} else {
-							if (axis == 'x' && Toolbox.selected.id === 'move_tool') {
-								difference *= -1
-							}
 							if (Toolbox.selected.id === 'resize_tool') {
 								scope.keyframes[0].uniform = false;	
 							}

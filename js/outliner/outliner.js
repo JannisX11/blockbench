@@ -211,7 +211,7 @@ export class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	getTypeBehavior(flag) {
-		let constructor = OutlinerElement.types[this.type];
+		let constructor = this.type == 'group' ? Group : OutlinerElement.types[this.type];
 		if (!constructor) return;
 		for (let override of constructor.behavior_overrides) {
 			if (Condition(override.condition)) {
