@@ -42,7 +42,7 @@ export class Collection {
 	export_codec: string
 	visibility: boolean
 
-	static properties: Record<string, Property>
+	static properties: Record<string, Property<any>>
 	/**
 	 * Get all collections
 	 */

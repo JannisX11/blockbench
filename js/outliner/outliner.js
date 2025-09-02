@@ -211,7 +211,14 @@ export class OutlinerNode {
 		return this.constructor.preview_controller;
 	}
 	getTypeBehavior(flag) {
-		return OutlinerElement.types[this.type]?.behavior[flag];
+		let constructor = OutlinerElement.types[this.type];
+		if (!constructor) return;
+		for (let override of constructor.behavior_overrides) {
+			if (Condition(override.condition)) {
+				if (override.behavior[flag] != undefined) return override.behavior[flag];
+			}
+		}
+		return constructor.behavior[flag];
 	}
 	//Sorting
 	sortInBefore(element, index_mod = 0) {
@@ -463,6 +470,19 @@ export class OutlinerNode {
 		}
 		return iterate(this.parent, 0)
 	}
+	static addBehaviorOverride(override_options) {
+		let constructor = this;
+		let override = {
+			condition: override_options.condition,
+			behavior: override_options.behavior,
+			delete() {
+				constructor.behavior_overrides.remove(override);
+			}
+		}
+		if (constructor.behavior_overrides == OutlinerNode.behavior_overrides) constructor.behavior_overrides = [];
+		constructor.behavior_overrides.push(override);
+	}
+	static behavior_overrides = [];
 	static uuids = {}
 }
 OutlinerNode.prototype.node = 'outliner_node';

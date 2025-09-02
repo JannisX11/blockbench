@@ -7,7 +7,7 @@ export class Group extends OutlinerNode {
 			Group.properties[key].reset(this);
 		}
 
-		this.name = Format.bone_rig ? 'bone' : 'group'
+		this.name = (Format.bone_rig && !Format.armature_rig) ? 'bone' : 'group';
 		this.children = []
 		this.reset = false;
 		this.shade = true;
@@ -450,7 +450,7 @@ export class Group extends OutlinerNode {
 		this.updateElement()
 	}
 	static behavior = {
-		unique_name: () => Format.bone_rig,
+		unique_name: false,
 		parent: true,
 		select_children: 'all_first',
 		movable: true,
@@ -460,6 +460,12 @@ export class Group extends OutlinerNode {
 		marker_color: true,
 	}
 }
+Group.addBehaviorOverride({
+	condition: {features: ['bone_rig']},
+	behavior: {
+		unique_name: true
+	}
+})
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';

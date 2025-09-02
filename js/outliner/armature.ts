@@ -161,7 +161,7 @@ export class Armature extends OutlinerElement {
 		return bones;
 	}
 	static behavior = {
-		unique_name: () => Format.bone_rig,
+		unique_name: false,
 		movable: false,
 		rotatable: false,
 		parent: true,

@@ -235,7 +235,7 @@ export class ArmatureBone extends OutlinerElement {
 		}
 	}
 	static behavior = {
-		unique_name: () => Format.bone_rig,
+		unique_name: false,
 		parent: true,
 		movable: true,
 		rotatable: true,
@@ -247,6 +247,12 @@ export class ArmatureBone extends OutlinerElement {
 		marker_color: true,
 	}
 }
+ArmatureBone.addBehaviorOverride({
+	condition: {features: ['bone_rig']},
+	behavior: {
+		unique_name: true
+	}
+})
 	ArmatureBone.prototype.title = tl('data.armature_bone');
 	ArmatureBone.prototype.type = 'armature_bone';
 	ArmatureBone.prototype.icon = 'humerus';
