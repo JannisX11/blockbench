@@ -1130,8 +1130,8 @@
 	"settings.nearest_rectangle_select": "Rectangle Selection: Nearest Edge",
 	"settings.nearest_rectangle_select.desc": "Snap rectangle selections to the nearest pixel edge, like in GIMP, instead of entire pixels.",
 
-	"settings.color_wheel": "Color Wheel",
-	"settings.color_wheel.desc": "Use the color wheel as the main color picker",
+	"settings.color_picker_style": "Color Picker Style",
+	"settings.color_picker_style.desc": "Select the style of the paint mode color picker",
 	"settings.pick_color_opacity": "Pick Color Opacity",
 	"settings.pick_color_opacity.desc": "Pick the color opacity with the Color Picker and set it as brush opacity",
 	"settings.pick_combined_color": "Pick Combined Color",
@@ -2260,6 +2260,7 @@
 	"menu.color_picker.picker_type": "Picker Type",
 	"menu.color_picker.picker_type.square": "Square",
 	"menu.color_picker.picker_type.wheel": "Wheel",
+	"menu.color_picker.picker_type.normal": "Normal Map",
 	"menu.color_picker.slider_mode": "Slider Mode",
 	"menu.color_picker.slider_mode.hsv": "Hue, Saturation, Value",
 	"menu.color_picker.slider_mode.rgb": "Red, Green, Blue",

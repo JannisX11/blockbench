@@ -165,9 +165,16 @@ function setupSettings() {
 	new Setting('auto_keyframe',		{category: 'edit', value: true});
 
 	//Paint
-	new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
-		Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
-	}});
+	new Setting('color_picker_style',			{category: 'paint', value: 'box', type: 'select',
+		options: {
+			box: 'menu.color_picker.picker_type.square',
+			wheel: 'menu.color_picker.picker_type.wheel',
+			normal: 'menu.color_picker.picker_type.normal',
+		},
+		onChange(value) {
+			Interface.Panels.color.vue.picker_type = value;
+		}
+	});
 	new Setting('brush_cursor_2d',			{category: 'paint', value: true});
 	new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
 		if (!value) scene.remove(Canvas.brush_outline);
