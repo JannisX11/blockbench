@@ -1,3 +1,5 @@
+import { isStringNumber } from "../util/math_util"
+
 Animator.MolangParser.context = {}
 Animator.MolangParser.global_variables = {
 	true: 1,
@@ -89,12 +91,16 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-
+const variable_fallbacks = {
+	'query.model_scale': 1/16,
+};
 Animator.MolangParser.variableHandler = function (variable, variables, args) {
-	let variable_with_args = args?.length ? `${variable}(${args.map(arg => "'"+arg+"'").join(',')})` : variable;
-	const val = Animator.global_variable_lines[variable_with_args]
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => isStringNumber(arg) ? arg : "'"+arg+"'").join(',')})`;
+
+	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
 	if (val === undefined) {
-		return
+		if (variable_fallbacks[variable] != undefined) return variable_fallbacks[variable];
+		return;
 	}
 
 	if (val.match(/^(slider|toggle|impulse)\(/)) {
@@ -239,10 +245,10 @@ new ValidatorCheck('molang_syntax', {
 							.replace(/[^a-z0-9._]/g, '')
 				)
 			}
-			if (clear_string.match(/[^\w\s+\-*/().,;:[\]!?=<>&|]/)) {
+			if (clear_string.match(/[^\w\s+\-*/(){}.,;:[\]!?=<>&|]/)) {
 				issues.push(
 					'Invalid character: ' +
-						clear_string.match(/[^\s\w+\-*/().,;:[\]!?=<>&|]+/g).join(', ')
+						clear_string.match(/[^\s\w+\-*/(){}.,;:[\]!?=<>&|]+/g).join(', ')
 				)
 			}
 			let left = string.match(/\(/g) || 0

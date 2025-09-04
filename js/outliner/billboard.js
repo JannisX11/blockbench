@@ -1,4 +1,4 @@
-import { THREE } from "../../lib/libs";
+import { THREE } from "../lib/libs";
 
 export class BillboardFace extends CubeFace {
 	constructor(data, billboard) {
@@ -213,10 +213,46 @@ export class Billboard extends OutlinerElement {
 		TickUpdates.selection = true;
 		return this;
 	}
+	mapAutoUV() {
+		let size = this.size.slice();
+		size[0] = Math.abs(size[0]);
+		size[1] = Math.abs(size[1]);
+		let sx = this.faces.front.uv[0];
+		let sy = this.faces.front.uv[1];
+		let rot = this.faces.front.rotation;
+
+		//Match To Rotation
+		if (rot === 90 || rot === 270) {
+			size.reverse()
+		}
+		//Limit Input to 16
+		size[0] = Math.clamp(size[0], -Project.texture_width, Project.texture_width)
+		size[1] = Math.clamp(size[1], -Project.texture_height, Project.texture_height)
+
+		//Calculate End Points
+		let x = sx + size[0]
+		let y = sy + size[1]
+		if (x > Project.texture_width) {
+			sx = Project.texture_width - (x - sx)
+			x = Project.texture_width
+		}
+		if (y > Project.texture_height) {
+			sy = Project.texture_height - (y - sy)
+			y = Project.texture_height
+		}
+		//Prevent Negative
+		if (sx < 0) sx = 0;
+		if (sy < 0) sy = 0;
+		//Prevent Mirroring
+		if (x < sx) x = sx;
+		if (y < sy) y = sy;
+		this.faces.front.uv.replace([sx, sy, x, y]);
+
+		this.preview_controller.updateUV(this);
+	}
 	static behavior = {
 		select_faces: false,
 		cube_faces: true,
-		//rotatable: true,
 		movable: true,
 		resizable: true,
 		unique_name: false
@@ -229,18 +265,8 @@ export class Billboard extends OutlinerElement {
 		...Outliner.control_menu_group,
 		'_',
 		'rename',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}});
-		}},
+		'set_element_marker_color',
+		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Project.single_texture, children: function() {
 			let arr = [
 				{icon: 'crop_square', name: 'menu.cube.texture.blank', click: function(cube) {
@@ -686,7 +712,7 @@ BARS.defineActions(function() {
 		id: 'add_billboard',
 		icon: 'bookmark_add',
 		category: 'edit',
-		condition: {features: ['billboards']},
+		condition: {features: ['billboards'], modes: ['edit']},
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});
@@ -703,9 +729,9 @@ BARS.defineActions(function() {
 			}
 			UVEditor.loadData();
 
-			if (Group.selected) Group.selected.unselect()
+			unselectAllElements()
 			new_billboard.select()
-			Canvas.updateView({elements: [new_billboard], element_aspects: {transform: true, geometry: true}})
+			Canvas.updateView({elements: [new_billboard], element_aspects: {transform: true, geometry: true, faces: true}})
 			Undo.finishEdit('Add billboard', {outliner: true, elements: selected, selection: true});
 			Blockbench.dispatchEvent( 'add_billboard', {object: new_billboard} )
 

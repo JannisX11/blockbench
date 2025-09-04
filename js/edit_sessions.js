@@ -1,4 +1,5 @@
 import Peer from "peerjs";
+import { clipboard, getPCUsername } from "./native_apis";
 
 export class EditSession {
 	constructor() {
@@ -22,7 +23,7 @@ export class EditSession {
 	start(username) {
 		if (this.active) return;
 
-		var peer = this.peer = new Peer({
+		let peer = this.peer = new Peer({
 			key: 'edit_session',
 			host: EditSession.defaults.ip,
 			port: 9000,
@@ -157,7 +158,7 @@ export class EditSession {
 		TickUpdates.interface = true;
 	}
 	copyToken() {
-		var input = $('#edit_session_token')
+		let input = document.getElementById('edit_session_token');
 		if (this.active) {
 			input.focus()
 			document.execCommand('selectAll')
@@ -166,12 +167,12 @@ export class EditSession {
 			if (isApp) {
 				var token = clipboard.readText()
 				if (EditSession.matchToken(token)) {
-					$('#edit_session_token').val(token)
+					input.value = token;
 				}
 			} else {
 				navigator.clipboard.readText().then((token) => {
 					if (EditSession.matchToken(token)) {
-						$('#edit_session_token').val(token)
+						input.value = token;
 					}
 				})
 			}
@@ -448,7 +449,7 @@ BARS.defineActions(function() {
 			} else {
 				username = settings.username.value;
 				if (!username && isApp) {
-					username = process.env.USERNAME
+					username = getPCUsername()
 				}
 				token = EditSession.token;
 				if (!token && isApp) {
@@ -468,9 +469,10 @@ BARS.defineActions(function() {
 					about: {type: 'info', text: 'edit_session.about', condition: !session},
 					status: {type: 'info', text: `**${tl('edit_session.status')}**: ${(session && session.hosting) ? tl('edit_session.hosting') : tl('edit_session.connected')}`, condition: !!session},
 				},
+				cancelIndex: 2,
 				buttons: session
-					? ['edit_session.quit', 'dialog.close']
-					: ['edit_session.join', 'edit_session.create', 'dialog.close'],
+					? ['edit_session.quit']
+					: ['edit_session.join', 'edit_session.create'],
 				onButton(button) {
 					let result = this.getFormResult();
 					if (session && button == 0) {
@@ -515,8 +517,6 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400
-		},
-		onResize: t => {
 		},
 		component: {
 			data() {return {

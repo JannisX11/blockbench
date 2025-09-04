@@ -42,7 +42,7 @@ export const TextureGenerator = {
 				section2:    	"_",
 
 				resolution: 	{label: 'dialog.create_texture.pixel_density', description: 'dialog.create_texture.pixel_density.desc', type: 'select', value: resolution_presets[resolution] ? resolution : undefined, condition: (form) => (form.type == 'template'), options: resolution_presets},
-				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 16, max: 2048},
+				resolution_vec: {label: 'dialog.create_texture.resolution', type: 'vector', condition: (form) => (form.type == 'blank'), dimensions: 2, value: [Project.texture_width, Project.texture_height], min: 1, max: 2048},
 				color: 			{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 
 				rearrange_uv:	{label: 'dialog.create_texture.rearrange_uv', description: 'dialog.create_texture.rearrange_uv.desc', type: 'checkbox', value: true, condition: (form) => (form.type == 'template')},
@@ -169,19 +169,21 @@ export const TextureGenerator = {
 		return texture;
 	},
 	//constructors
-	boxUVCubeTemplate: function(obj, min_size) {
-		let floor_uv = Format.box_uv_float_size != true;
-		this.x = Math.round(obj.size(0, floor_uv)) || min_size;
-		this.y = Math.round(obj.size(1, floor_uv)) || min_size;
-		this.z = Math.round(obj.size(2, floor_uv)) || min_size;
-		this.posx = obj.uv_offset[0];
-		this.posy = obj.uv_offset[1];
-		this.obj = obj;
-		this.template_size = (obj.size(2, floor_uv) + obj.size(1, floor_uv))+ (obj.size(2, floor_uv) + obj.size(0, floor_uv))*2;
+	boxUVCubeTemplate: class BoxUVCubeTemplate {
+		constructor(obj, min_size) {
+			let floor_uv = Format.box_uv_float_size != true;
+			this.x = Math.round(obj.size(0, floor_uv)) || min_size;
+			this.y = Math.round(obj.size(1, floor_uv)) || min_size;
+			this.z = Math.round(obj.size(2, floor_uv)) || min_size;
+			this.posx = obj.uv_offset[0];
+			this.posy = obj.uv_offset[1];
+			this.obj = obj;
+			this.template_size = (obj.size(2, floor_uv) + obj.size(1, floor_uv))+ (obj.size(2, floor_uv) + obj.size(0, floor_uv))*2;
 
-		this.height = this.z + this.y;
-		this.width = 2* (this.x + this.z);
-		return this;	
+			this.height = this.z + this.y;
+			this.width = 2* (this.x + this.z);
+			return this;
+		}
 	},
 	boxUVdrawTemplateRectangle(border_color, color, face, coords, texture, canvas, res_multiple) {
 		if (typeof background_color === 'string') {
@@ -424,8 +426,11 @@ export const TextureGenerator = {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
 			if (mirror_modeling_duplicate) return;
 			if (element.getTypeBehavior('cube_faces')) {
-				if (element.box_uv || options.box_uv) {
+				if ((element.box_uv || options.box_uv) && element.getTypeBehavior('support_box_uv')) {
 					element.box_uv = true;
+					for (let fkey in element.faces) {
+						element.faces[fkey].rotation = 0;
+					}
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
 					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
@@ -924,6 +929,7 @@ export const TextureGenerator = {
 					original_face_list_entry.copy_to = [];
 					for (let i = 1; i < faces.length; i++) {
 						let entry = findFaceListEntry(faces[i], face_old_pos_id);
+						if (!entry) continue;
 						face_list.remove(entry);
 						original_face_list_entry.copy_to.push(entry);
 					}
@@ -1437,9 +1443,10 @@ export const TextureGenerator = {
 						target.faces.forEach((face, i) => {
 							let source_face = source.faces[i];
 							let source_fkey = source.keys[i];
+							if (!source_face || !source_fkey) return;
 							face.vertices.forEach((vkey, j) => {
 								let source_vkey = vkey;
-								if (ftemp.copy_to) {
+								if (ftemp.copy_to?.length) {
 									for (let vkey2 of source_face.vertices) {
 										let vertex_uv_a = source_face.uv[vkey2];
 										let vertex_uv_b = face.uv[vkey];

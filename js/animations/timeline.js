@@ -700,11 +700,6 @@ export const Timeline = {
 		}
 		return keyframes;
 	},
-	showMenu(event) {
-		if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
-		if (Blockbench.hasFlag('no_context_menu')) return;
-		Timeline.menu.open(event, event);
-	},
 	menu: new Menu([
 		new MenuSeparator('preview'),
 		'play_animation',
@@ -723,6 +718,7 @@ export const Timeline = {
 			'zoom_out',
 			'zoom_reset'
 		]},
+		'timeline_focus',
 		'select_all',
 		'fold_all_animations',
 		'bring_up_all_animations',
@@ -1085,6 +1081,11 @@ Interface.definePanels(() => {
 					this.scroll_left = this.$refs.timeline_body ? this.$refs.timeline_body.scrollLeft : 0;
 					this.scroll_top = this.$refs.timeline_body ? this.$refs.timeline_body.scrollTop : 0;
 				},
+				openContextMenu(event) {
+					if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
+					if (Blockbench.hasFlag('no_context_menu')) return;
+					Timeline.menu.open(event, event);
+				},
 				dragAnimator(animator, e1) {
 					if (getFocusedTextInput()) return;
 					if (e1.button == 1 || e1.button == 2) return;
@@ -1157,7 +1158,7 @@ Interface.definePanels(() => {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_animator] = eventTargetToAnimator(target);
+							let [target_animator] = eventTargetToAnimator(target);
 							if (!target_animator || target_animator == animator ) return;
 							
 							let index = Timeline.animators.indexOf(target_animator);
@@ -1690,7 +1691,7 @@ Interface.definePanels(() => {
 						<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="Timeline.showMenu($event)">
+						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
 							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
@@ -1763,9 +1764,9 @@ Interface.definePanels(() => {
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 											@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 										>
-											<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-											<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
-											<i class="icon-keyframe_bezier" v-else-if="keyframe.interpolation == 'bezier'"></i>
+											<i class="icon-keyframe_smooth" v-if="keyframe.interpolation == 'catmullrom'"></i>
+											<i class="icon-keyframe_step" v-else-if="keyframe.interpolation == 'step'"></i>
+											<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i>
 											<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 											<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
 												<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
@@ -1821,8 +1822,9 @@ Interface.definePanels(() => {
 										@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 										@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 									>
-										<i class="material-icons keyframe_icon_smaller" v-if="keyframe.interpolation == 'catmullrom'">lens</i>
-										<i class="material-icons keyframe_icon_step" v-else-if="keyframe.interpolation == 'step'">eject</i>
+										<i class="icon-keyframe_smooth" v-if="keyframe.interpolation == 'catmullrom'"></i>
+										<i class="icon-keyframe_step" v-else-if="keyframe.interpolation == 'step'"></i>
+										<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
 										<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
 
 										<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">

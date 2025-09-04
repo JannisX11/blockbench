@@ -595,7 +595,7 @@ export const UVEditor = {
 			Outliner.selected.forEach(el => {
 				if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 			});
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({groups});
 			groups.forEach(group => {
 				group.texture = texture.uuid;
 				group.forEachChild(child => {
@@ -638,25 +638,11 @@ export const UVEditor = {
 		}
 	},
 	slidePos(modify, axis) {
-		var scope = this
-		var limit = scope.getResolution(axis);
+		let limit = this.getResolution(axis);
 
-		Cube.selected.forEach(function(obj) {
-			if (obj.box_uv === false) {
-				UVEditor.getSelectedFaces(obj).forEach(fkey => {
-					if (!obj.faces[fkey]) return;
-					let uvTag = obj.faces[fkey].uv;
-					var size = uvTag[axis + 2] - uvTag[axis]
-	
-					var value = modify(uvTag[axis])
-	
-					value = limitNumber(value, 0, limit)
-					value = limitNumber(value + size, 0, limit) - size
-	
-					uvTag[axis] = value
-					uvTag[axis+2] = value + size
-				})
-			} else {
+		Outliner.selected.forEach(function(obj) {
+			if (!obj.getTypeBehavior('cube_faces')) return;
+			if (obj.box_uv === true) {
 				let minimum = 0;
 				if (axis === 0) {
 					var size = (obj.size(0) + (obj.size(1) ? obj.size(2) : 0))*2
@@ -670,6 +656,20 @@ export const UVEditor = {
 				value = limitNumber(value, minimum, limit)
 				value = limitNumber(value + size, minimum, limit) - size
 				obj.uv_offset[axis] = Math.round(value);
+			} else {
+				UVEditor.getSelectedFaces(obj).forEach(fkey => {
+					if (!obj.faces[fkey]) return;
+					let uvTag = obj.faces[fkey].uv;
+					var size = uvTag[axis + 2] - uvTag[axis]
+	
+					var value = modify(uvTag[axis])
+	
+					value = limitNumber(value, 0, limit)
+					value = limitNumber(value + size, 0, limit) - size
+	
+					uvTag[axis] = value
+					uvTag[axis+2] = value + size
+				})
 			}
 			obj.preview_controller.updateUV(obj);
 		})
@@ -702,16 +702,16 @@ export const UVEditor = {
 		this.vue.$forceUpdate()
 	},
 	slideSize(modify, axis) {
-		var scope = this
-		var limit = scope.getResolution(axis);
+		let limit = this.getResolution(axis);
 
-		Cube.selected.forEach(function(cube) {
-			if (cube.box_uv === false) {
-				UVEditor.getSelectedFaces(cube).forEach(fkey => {
-					var uvTag = cube.faces[fkey].uv;
+		Outliner.selected.forEach(function(obj) {
+			if (!obj.getTypeBehavior('cube_faces')) return;
+			if (obj.box_uv !== true) {
+				UVEditor.getSelectedFaces(obj).forEach(fkey => {
+					var uvTag = obj.faces[fkey].uv;
 					var difference = modify(uvTag[axis+2]-uvTag[axis]) + uvTag[axis];
 					uvTag[axis+2] = limitNumber(difference, 0, limit);
-					Canvas.updateUV(cube);
+					obj.preview_controller.updateUV(obj);
 				})
 			}
 		})
@@ -921,7 +921,7 @@ export const UVEditor = {
 				obj.faces[side].uv = [0, 0, scope.getResolution(0, obj.faces[side]), scope.getResolution(1, obj.faces[side])]
 			})
 			obj.autouv = 0;
-			Canvas.updateUV(obj)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.maximized')
 		this.loadData()
@@ -952,7 +952,7 @@ export const UVEditor = {
 				obj.faces[side].uv[3] -= overlap_py;
 			})
 			obj.autouv = 0;
-			Canvas.updateUV(obj);
+			obj.preview_controller.updateUV(obj);;
 		})
 		this.message('uv_editor.turned');
 		this.loadData();
@@ -1169,7 +1169,7 @@ export const UVEditor = {
 				obj.faces[side].uv = uv
 			})
 			obj.autouv = 0
-			Canvas.updateUV(obj)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.autouv')
 		this.loadData()
@@ -1316,7 +1316,7 @@ export const UVEditor = {
 				this.getSelectedFaces(obj).forEach(face => {
 					obj.faces[face].rotation = value;
 				})
-				Canvas.updateUV(obj);
+				obj.preview_controller.updateUV(obj);;
 			})
 		}
 		let rect = this.vue.getSelectedUVBoundingBox();
@@ -1344,13 +1344,12 @@ export const UVEditor = {
 		this.message('uv_editor.rotated')
 	},
 	setRotation(value) {
-		var scope = this;
 		value = parseInt(value)
-		this.forCubes(cube => {
-			this.getSelectedFaces(cube).forEach(face => {
-				cube.faces[face].rotation = value;
+		this.forCubes(obj => {
+			this.getSelectedFaces(obj).forEach(face => {
+				obj.faces[face].rotation = value;
 			})
-			Canvas.updateUV(cube)
+			obj.preview_controller.updateUV(obj);
 		})
 		this.loadData()
 		this.message('uv_editor.rotated')
@@ -1358,9 +1357,8 @@ export const UVEditor = {
 	selectGridSize(event) {
 	},
 	autoCullface(event) {
-		var scope = this;
 		this.forCubes(obj => {
-			scope.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
+			UVEditor.getFaces(obj, event, BarItems.auto_cullface).forEach(function(side) {
 				obj.faces[side].cullface = side
 			})
 		})
@@ -1560,22 +1558,22 @@ export const UVEditor = {
 			let on = 'far.fa-dot-circle';
 			return [
 				{icon: (!reference_face.rotation ? on : off), name: '0°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(0)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 90 ? on : off), name: '90°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(90)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 180 ? on : off), name: '180°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(180)
 					Undo.finishEdit('Rotate UV')
 				}},
 				{icon: (reference_face.rotation === 270 ? on : off), name: '270°', click() {
-					Undo.initEdit({elements: Cube.selected.concat(Billboard.selected), uv_only: true})
+					Undo.initEdit({elements: Outliner.selected.filter(el => el.getTypeBehavior('cube_faces')), uv_only: true})
 					UVEditor.setRotation(270)
 					Undo.finishEdit('Rotate UV')
 				}}
@@ -1640,7 +1638,7 @@ export const UVEditor = {
 						Outliner.selected.forEach(el => {
 							if (el.faces && el.parent instanceof Group) groups.safePush(el.parent);
 						});
-						Undo.initEdit({outliner: true});
+						Undo.initEdit({groups});
 						groups.forEach(group => {
 							group.texture = '';
 							group.forEachChild(child => {
@@ -2764,8 +2762,10 @@ Interface.definePanels(function() {
 						return false;
 
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || Keybinds.extra.paint_secondary_color.keybind.isTriggered(event) || (event.touches && event.touches.length == 1))) {
-						// Paint
-						UVEditor.startPaintTool(event);
+						if (event.target.id != 'uv_viewport') {
+							// Paint
+							UVEditor.startPaintTool(event);
+						}
 						event.preventDefault();
 						return false;
 
@@ -3151,7 +3151,7 @@ Interface.definePanels(function() {
 											}
 										})
 										ctx.clip();
-										ctx.drawImage(this.texture.img, 0, 0);
+										ctx.drawImage(this.texture.canvas, 0, 0);
 										tex_ctx.clip();
 										tex_ctx.clearRect(0, 0, canvas.width, canvas.height);
 										tex_ctx.restore();
@@ -3659,6 +3659,7 @@ Interface.definePanels(function() {
 					let max = [0, 0];
 					this.mappable_elements.forEach(element => {
 						UVEditor.getSelectedFaces(element).forEach(fkey => {
+							if (element instanceof SplineMesh) return;
 							if (element.faces[fkey].texture === null) return;
 
 							let face = element.faces[fkey];
@@ -4574,9 +4575,9 @@ Interface.definePanels(function() {
 
 					<div v-show="mode == 'paint'" class="bar uv_painter_info">
 						<div v-if="texture && layer && layer.in_limbo" ref="copy_paste_tool_control" class="copy_paste_tool_control">
-							<div class="tool button_mirror_x" @click="layer.flip(0)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
-							<div class="tool button_mirror_y" @click="layer.flip(1)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
-							<div class="tool button_rotate" @click="layer.rotate(90)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
+							<div class="tool button_mirror_x" @click="layer.flip(0, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_x')}</div><i class="icon-mirror_x icon"></i></div>
+							<div class="tool button_mirror_y" @click="layer.flip(1, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.mirror_y')}</div><i class="icon-mirror_y icon"></i></div>
+							<div class="tool button_rotate" @click="layer.rotate(90, true)"><div class="tooltip">${tl('uv_editor.copy_paste_tool.rotate')}</div><i class="material-icons">rotate_right</i></div>
 						</div>
 
 						<template v-else>

@@ -21,14 +21,14 @@ var codec = new Codec('java_block', {
 		if (options === undefined) options = {}
 		var clear_elements = []
 		var textures_used = []
-		var element_index_lut = []
+		var element_indices = []
 		var overflow_cubes = [];
 
 		function computeCube(s) {
 			if (s.export == false) return;
 			//Create Element
 			var element = {}
-			element_index_lut[Cube.all.indexOf(s)] = clear_elements.length
+			element_indices[Cube.all.indexOf(s)] = clear_elements.length
 
 			if ((options.cube_name !== false && !settings.minifiedout.value) || options.cube_name === true) {
 				if (s.name !== 'cube') {
@@ -51,8 +51,9 @@ var codec = new Codec('java_block', {
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
 				var axis = s.rotationAxis()||'y';
+				let angle = s.rotation[getAxisNumber(axis)];
 				element.rotation = new oneLiner({
-					angle: s.rotation[getAxisNumber(axis)],
+					angle: Format.rotation_snap ? Math.round(angle / 22.5) * 22.5 : angle,
 					axis,
 					origin: s.origin
 				})
@@ -192,7 +193,9 @@ var codec = new Codec('java_block', {
 			Project.parent = '';
 		}
 
-		var blockmodel = {}
+		var blockmodel = {
+			format_version: Project.java_block_version
+		};
 		if (checkExport('comment', Project.credit || settings.credit.value)) {
 			blockmodel.credit = Project.credit || settings.credit.value
 		}
@@ -236,7 +239,28 @@ var codec = new Codec('java_block', {
 			}
 		}
 		if (checkExport('groups', (settings.export_groups.value && Group.all.length))) {
-			let groups = compileGroups(false, element_index_lut)
+			let groups = []
+			function iterate(array, save_array) {
+				let i = 0;
+				for (let element of array) {
+					if (element.type === 'group') {
+						if (element.export === true) {
+							let obj = element.compile(false)
+							if (element.children.length > 0) {
+								iterate(element.children, obj.children)
+							}
+							save_array.push(obj)
+						}
+					} else {
+						let index = element_indices[elements.indexOf(element)]
+						if (index >= 0) {
+							save_array.push(index)
+						}
+					}
+					i++;
+				}
+			}
+			iterate(Outliner.root, groups);
 			var i = 0;
 			while (i < groups.length) {
 				if (typeof groups[i] === 'object') {
@@ -276,9 +300,15 @@ var codec = new Codec('java_block', {
 		var new_cubes = [];
 		var new_textures = [];
 		if (import_to_current_project) {
-			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures})
+			let groups = [];
+			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures, groups})
 			Project.added_models++;
 			var import_group = new Group(pathToName(path, false)).init()
+			groups.push(import_group);
+		}
+
+		if (!add && typeof model.format_version == 'string') {
+			Project.java_block_version = model.format_version;
 		}
 
 		//Load
@@ -416,10 +446,63 @@ var codec = new Codec('java_block', {
 			})
 		}
 		if (model.groups && model.groups.length > 0) {
+
+			function parseGroupsForJava(array, import_reference, startIndex) {
+				function iterate(array, save_array, addGroup) {
+					var i = 0;
+					while (i < array.length) {
+						if (typeof array[i] === 'number' || typeof array[i] === 'string') {
+			
+							if (typeof array[i] === 'number') {
+								var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
+							} else {
+								var obj = OutlinerNode.uuids[array[i]];
+							}
+							if (obj) {
+								obj.removeFromParent()
+								save_array.push(obj)
+								obj.parent = addGroup
+							}
+						} else {
+							if (OutlinerNode.uuids[array[i].uuid] instanceof Group) {
+								OutlinerNode.uuids[array[i].uuid].removeFromParent();
+								delete OutlinerNode.uuids[array[i].uuid];
+							}
+							var obj = new Group(array[i], array[i].uuid)
+							obj.parent = addGroup
+							obj.isOpen = !!array[i].isOpen
+							if (array[i].uuid) {
+								obj.uuid = array[i].uuid
+							}
+							save_array.push(obj)
+							obj.init()
+							if (array[i].children && array[i].children.length > 0) {
+								iterate(array[i].children, obj.children, obj)
+							}
+							if (array[i].content && array[i].content.length > 0) {
+								iterate(array[i].content, obj.children, obj)
+							}
+						}
+						i++;
+					}
+				}
+				if (import_reference instanceof Group && startIndex !== undefined) {
+					iterate(array, import_reference.children, import_reference)
+				} else {
+					if (!import_reference) {
+						Group.all.forEach(group => {
+							group.removeFromParent();
+						})
+						Group.all.empty();
+					}
+					iterate(array, Outliner.root, 'root');
+				}
+			}
+
 			if (!import_to_current_project) {
-				parseGroups(model.groups)
+				parseGroupsForJava(model.groups)
 			} else if (import_group) {
-				parseGroups(model.groups, import_group, oid)
+				parseGroupsForJava(model.groups, import_group, oid)
 			}
 		}
 		if (import_group) {
@@ -550,7 +633,7 @@ var format = new ModelFormat({
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
 	rotation_limit: true,
-	rotation_snap: true,
+	rotation_snap: false,
 	optional_box_uv: true,
 	uv_rotation: true,
 	java_cube_shading_properties: true,
@@ -561,6 +644,7 @@ var format = new ModelFormat({
 	texture_mcmeta: true,
 	display_mode: true,
 	texture_folder: true,
+	pbr: true,
 	cube_size_limiter: {
 		coordinate_limits: [-16, 32],
 		test(cube, values = 0) {
@@ -619,6 +703,12 @@ var format = new ModelFormat({
 	codec
 })
 codec.format = format;
+Object.defineProperty(format, 'rotation_snap', {
+	get() {
+		return Project.java_block_version == '1.9.0'
+	}
+})
+
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({

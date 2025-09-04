@@ -1,3 +1,4 @@
+import { clipboard } from "./native_apis";
 
 export const Clipbench = {
 	elements: [],
@@ -226,7 +227,7 @@ export const Clipbench = {
 			Clipbench.groups = undefined
 			return;
 		}
-		Clipbench.groups = groups.map(group => group.getSaveCopy())
+		Clipbench.groups = groups.map(group => group.getSaveCopy(true))
 		if (isApp) {
 			clipboard.writeHTML(JSON.stringify({type: 'groups', content: Clipbench.groups}))
 		}
@@ -305,16 +306,17 @@ export const Clipbench = {
 		Canvas.updateView({elements: Mesh.selected, selection: true})
 	},
 	pasteOutliner(event) {
-		Undo.initEdit({outliner: true, elements: [], selection: true});
+		let new_groups = [];
+		Undo.initEdit({outliner: true, elements: [], groups: new_groups, selection: true});
 		//Group
-		var target = 'root'
+		var target = 'root';
 		if (Group.first_selected) {
 			target = Group.first_selected
 			Group.first_selected.isOpen = true
-		} else if (selected[0]) {
-			target = selected[0]
+		} else if (Outliner.selected[0]) {
+			target = Outliner.selected[0]
 		}
-		selected.length = 0
+		Outliner.selected.length = 0
 		if (isApp) {
 			var raw = clipboard.readHTML()
 			try {
@@ -332,6 +334,7 @@ export const Clipbench = {
 			function iterate(obj, parent) {
 				if (obj.children) {
 					let copy = new Group(obj).addTo(parent).init();
+					new_groups.push(copy);
 					copy._original_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
@@ -343,7 +346,7 @@ export const Clipbench = {
 					}
 					return copy;
 				} else if (OutlinerElement.isTypePermitted(obj.type)) {
-					var copy = OutlinerElement.fromSave(obj).addTo(parent).selectLow();
+					var copy = OutlinerElement.fromSave(obj).addTo(parent).markAsSelected();
 					copy.createUniqueName();
 					Property.resetUniqueValues(copy.constructor, copy);
 					copy.preview_controller.updateTransform(copy);
@@ -357,13 +360,27 @@ export const Clipbench = {
 
 		} else if (Clipbench.elements && Clipbench.elements.length) {
 			let elements = [];
-			Clipbench.elements.forEach(function(obj) {
-				if (!OutlinerElement.isTypePermitted(obj.type)) return;
-				var copy = OutlinerElement.fromSave(obj).addTo(target).selectLow();
+			let new_elements_by_old_id = {};
+			for (let save of Clipbench.elements) {
+				if (!OutlinerElement.isTypePermitted(save.type)) return;
+				let copy = OutlinerElement.fromSave(save).addTo(target).markAsSelected();
 				copy.createUniqueName();
 				Property.resetUniqueValues(copy.constructor, copy);
+				if (typeof save.isOpen == 'boolean') copy.isOpen = save.isOpen;
+				new_elements_by_old_id[save.uuid] = copy;
 				elements.push(copy);
-			})
+			}
+			// Resolve hierarchy
+			for (let save of Clipbench.elements) {
+				if (save.children && new_elements_by_old_id[save.uuid]) {
+					for (let uuid of save.children) {
+						let new_element = new_elements_by_old_id[uuid];
+						if (new_element) {
+							new_element.addTo(new_elements_by_old_id[save.uuid]);
+						}
+					}
+				}
+			}
 			Canvas.updateView({elements});
 		}
 
@@ -403,7 +420,7 @@ export const Clipbench = {
 			Canvas.updateView({elements, element_aspects: {transform: true}});
 		}
 
-		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, selection: true});
+		Undo.finishEdit('Paste Elements', {outliner: true, elements: selected, groups: new_groups, selection: true});
 	},
 	pasteImage() {
 		function loadFromDataUrl(dataUrl) {

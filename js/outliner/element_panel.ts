@@ -1,10 +1,12 @@
 import { Blockbench } from "../api";
+import { InputForm } from "../interface/form";
 import { Interface } from "../interface/interface";
 import { Panel } from "../interface/panels";
+import { Property } from "../util/property";
 
 Interface.definePanels(function() {
-	let element_panel = new Panel('transform', {
-		icon: 'fas.fa-cube',
+	new Panel('transform', {
+		icon: 'arrows_output',
 		condition: {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		default_position: {
@@ -22,8 +24,8 @@ Interface.definePanels(function() {
 		],
 	})
 	let element_properties_panel = new Panel('element', {
-		icon: 'format_list_bulleted',
-		condition: !Blockbench.isMobile && {modes: ['edit']},
+		icon: 'fas.fa-cube',
+		condition: {modes: ['edit']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		default_position: {
 			slot: 'right_bar',
@@ -72,6 +74,7 @@ Interface.definePanels(function() {
 				for (let group of groups) {
 					for (let key in result) {
 						let property_id = key.replace(group.type+'_', '');
+						// @ts-ignore
 						if (group.constructor.properties[property_id]) {
 							group[property_id] = result[key];
 						}
@@ -85,6 +88,7 @@ Interface.definePanels(function() {
 				for (let element of elements) {
 					for (let key in result) {
 						let property_id = key.replace(element.type+'_', '');
+						// @ts-ignore
 						if (element.constructor.properties[property_id]) {
 							element[property_id] = result[key];
 						}
@@ -111,7 +115,12 @@ Interface.definePanels(function() {
 					let property = type.properties[prop_id];
 					if (property?.inputs?.element_panel) {
 						let input_id = type_id + '_' + prop_id;
-						values[input_id] = first_element[prop_id];
+						if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
+							values[input_id] = {...first_element[prop_id]};
+						}
+						else {
+							values[input_id] = first_element[prop_id];
+						}
 					}
 				}
 			}
@@ -126,7 +135,7 @@ Interface.definePanels(function() {
 			}
 		}
 		element_properties_panel.form.setValues(values);
-		element_properties_panel.form.update();
+		element_properties_panel.form.update(values);
 		element_properties_panel.form.updateLabelWidth(true);
 	});
 	Toolbars.element_origin.node.after(Interface.createElement('div', {id: 'element_origin_toolbar_anchor'}))

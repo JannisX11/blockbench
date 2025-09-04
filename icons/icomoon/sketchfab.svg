@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="Layer_1"
+   data-name="Layer 1"
+   viewBox="0 0 1999.84 2000"
+   version="1.1"
+   sodipodi:docname="sketchfab.svg"
+   inkscape:version="0.92.1 r15371">
+  <metadata
+     id="metadata15">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview13"
+     showgrid="false"
+     inkscape:zoom="0.1668772"
+     inkscape:cx="2282.0605"
+     inkscape:cy="319.91073"
+     inkscape:window-x="3832"
+     inkscape:window-y="444"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4487" />
+  </sodipodi:namedview>
+  <defs
+     id="defs4">
+    <style
+       id="style2">.cls-1{fill:#fff;}</style>
+  </defs>
+  <title
+     id="title6">sketchfab</title>
+  <g
+     id="logo-circle"
+     style="fill:#000000;fill-opacity:1"
+     transform="translate(0.49200903,-0.51406744)">
+    <path
+       id="_Zusammengesetzter_Pfad_"
+       data-name="&lt;Zusammengesetzter Pfad&gt;"
+       d="M 999.92,0 C 447.64,0 0,447.72 0,1000 c 0,552.28 447.64,1000 999.92,1000 552.28,0 999.92,-447.72 999.92,-1000 C 1999.84,447.72 1552.28,0 999.92,0 Z M 913,1595.07 482,1346.21 v -502 L 913,1077 Z M 989.79,958.88 479.8,688.5 989.84,394 1500,688.5 Z m 510.44,388.29 -429.49,248 V 1079 l 429.54,-232 z"
+       style="fill:#000000;fill-opacity:1"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

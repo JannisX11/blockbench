@@ -1,3 +1,5 @@
+import { Property } from "../util/property";
+
 export class CubeFace extends Face {
 	constructor(direction, data, cube) {
 		super();
@@ -268,9 +270,9 @@ export class Cube extends OutlinerElement {
 		}
 		return this;
 	}
-	selectLow(...args) {
+	markAsSelected(...args) {
 		let was_selected = this.selected;
-		super.selectLow(...args);
+		super.markAsSelected(...args);
 		if (!was_selected && Cube.selected[0]) {
 			let other_selected_faces = UVEditor.selected_faces.slice();
 			let own_selected_faces = UVEditor.getSelectedFaces(this, true);
@@ -661,12 +663,10 @@ export class Cube extends OutlinerElement {
 					this.faces[fkey].extend({texture: texture || false});
 				}
 			}
-			this.preview_controller.updateFaces(this);
-
-		} else {
 			for (let fkey in this.faces) {
 				this.faces[fkey].rotation = 0;
 			}
+			this.preview_controller.updateFaces(this);
 		}
 		this.preview_controller.updateUV(this);
 		return this;
@@ -787,7 +787,7 @@ export class Cube extends OutlinerElement {
 				}
 				scope.faces[side].uv = uv;
 			})
-			Canvas.updateUV(scope)
+			scope.preview_controller.updateUV(scope)
 		} else if (scope.autouv === 1) {
 
 			function calcAutoUV(face, size) {
@@ -833,7 +833,7 @@ export class Cube extends OutlinerElement {
 			scope.faces.up.uv =	   calcAutoUV('up',	   [scope.size(0), scope.size(2)])
 			scope.faces.down.uv =  calcAutoUV('down',  [scope.size(0), scope.size(2)])
 
-			Canvas.updateUV(scope)
+			scope.preview_controller.updateUV(scope)
 		}
 	}
 	moveVector(arr, axis, update = true) {
@@ -931,7 +931,7 @@ export class Cube extends OutlinerElement {
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
 				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
 			}
-			Canvas.updateUV(this);
+			this.preview_controller.updateUV(this);
 		}
 		this.preview_controller.updateGeometry(this);
 		TickUpdates.selection = true;
@@ -944,13 +944,17 @@ export class Cube extends OutlinerElement {
 	static behavior = {
 		select_faces: 'enum',
 		cube_faces: true,
+		support_box_uv: true,
 		rotatable: true,
 		movable: true,
 		resizable: true,
 		has_pivot: true,
+		use_absolute_position: true,
+		stretchable: true,
 		cube_rotation_limit: true,
 		cube_size_limit: true,
-		unique_name: false
+		marker_color: true,
+		unique_name: false,
 	}
 }
 	Cube.prototype.title = tl('data.cube');
@@ -963,18 +967,7 @@ export class Cube extends OutlinerElement {
 		'update_autouv',
 		'cube_uv_mode',
 		'allow_element_mirror_modeling',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}});
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture && !Format.per_group_texture, children: function() {
 			var arr = [
@@ -1015,7 +1008,6 @@ export class Cube extends OutlinerElement {
 		}},
 		'edit_material_instances',
 		'element_render_order',
-		'cube_light_emission',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -1062,11 +1054,19 @@ new Property(Cube, 'boolean', 'rescale', {
 	}
 });
 new Property(Cube, 'boolean', 'locked');
+new Property(Cube, 'boolean', 'shade', {
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'switches.shade', type: 'checkbox'},
+		}
+	}
+});
 new Property(Cube, 'number', 'light_emission', {
 	condition: {features: ['java_cube_shading_properties']},
 	inputs: {
 		element_panel: {
-			input: {label: 'action.cube_light_emission', type: 'checkbox'},
+			input: {label: 'action.cube_light_emission', type: 'number', min: 0, max: 15, step: 1, force_step: true},
 		}
 	}
 });
@@ -1088,6 +1088,12 @@ export function adjustFromAndToForInflateAndStretch(from, to, element) {
 		from[i] = center[i] - (halfSize[i] + element.inflate) * element.stretch[i];
 		to[i] = center[i] + (halfSize[i] + element.inflate) * element.stretch[i];
 	}
+}
+
+function getRescalingFactor(angle) {
+	angle = Math.abs(angle);
+	if (angle > 45) angle = 90-angle;
+	return 1 / Math.cos(Math.degToRad(angle));
 }
 
 new NodePreviewController(Cube, {
@@ -1560,7 +1566,6 @@ BARS.defineActions(function() {
 		id: 'add_cube',
 		icon: 'add_box',
 		category: 'edit',
-		keybind: new Keybind({key: 'n', ctrl: true}),
 		condition: () => Modes.edit,
 		click: function () {
 			

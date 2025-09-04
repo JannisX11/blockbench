@@ -251,7 +251,7 @@ export class MeshFace extends Face {
 	getEdges() {
 		let vertices = this.getSortedVertices();
 		if (vertices.length == 2) {
-			return vertices;
+			return [vertices];
 		} else if (vertices.length > 2) {
 			return vertices.map((vkey1, i) => {
 				let vkey2 = vertices[i+1] || vertices[0];
@@ -564,6 +564,9 @@ export class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
+	getArmature() {
+		return this.parent instanceof Armature ? this.parent : undefined;
+	}
 	getUndoCopy(aspects = {}) {
 		let el = {};
 
@@ -701,12 +704,54 @@ export class Mesh extends OutlinerElement {
 			return range[1] - range[0];
 		}
 	}
+	calculateNormals() {
+		let vertex_normals = {};
+		if (this.smooth_shading == true) {
+			// Calculate smooth normals
+			let face_normals = {};
+			let used_vertices = new Set();
+			for (let key in this.faces) {
+				let face = this.faces[key];
+				if (face.vertices.length <= 2) continue;
+				face_normals[key] = face.getNormal(true);
+				face.vertices.forEach(vkey => used_vertices.add(vkey));
+			}
+			for (let vkey in this.vertices) {
+				if (used_vertices.has(vkey) == false) continue;
+
+				let average_normal = Reusable.vec8.set(0, 0, 0);
+				let normal_count = 0;
+				for (let fkey in this.faces) {
+					let face = this.faces[fkey];
+					if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
+						let face_normal = face_normals[fkey];
+						if (!face_normals[fkey]) face_normals[fkey] = face_normal;
+						// if (face.getAngleTo(face) > 50) continue;
+						average_normal.x += face_normal[0];
+						average_normal.y += face_normal[1];
+						average_normal.z += face_normal[2];
+						normal_count++;
+					}
+				}
+				average_normal.divideScalar(normal_count);
+
+				vertex_normals[vkey] = [average_normal.x, average_normal.y, average_normal.z];
+			}
+		}
+		return vertex_normals;
+	}
+	sortAllFaceVertices() {
+		for (let fkey in this.faces) {
+			this.faces[fkey].vertices.replace(this.faces[fkey].getSortedVertices());
+		}
+		this.preview_controller.updateUV(this);
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);
 		}
 	}
-	transferOrigin(origin, update = true) {
+	transferOrigin(origin) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
 		var shift = new THREE.Vector3(
@@ -905,6 +950,7 @@ export class Mesh extends OutlinerElement {
 		resizable: true,
 		rotatable: true,
 		has_pivot: true,
+		marker_color: true,
 	}
 }
 	Mesh.prototype.title = tl('data.mesh');
@@ -920,25 +966,16 @@ export class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'apply_mesh_rotation',
+		'set_vertex_weights',
+		'calculate_vertex_weights',
 		new MenuSeparator('mesh_combination'),
+		'apply_mesh_rotation',
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}})
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
 			var arr = [
@@ -999,7 +1036,7 @@ new Property(Mesh, 'boolean', 'smooth_shading', {
 	default: false,
 	inputs: {
 		element_panel: {
-			input: {label: 'Smooth Shading', type: 'checkbox'},
+			input: {label: 'mesh.smooth_shading', type: 'checkbox'},
 			onChange() {
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
 			}
@@ -1015,7 +1052,10 @@ OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh = element.mesh;
+		if (mesh && mesh.parent) mesh.parent.remove(mesh);
+		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
+		mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -1040,7 +1080,7 @@ new NodePreviewController(Mesh, {
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
-		outline.add(points);
+		mesh.add(points);
 
 		// Update
 		this.updateTransform(element);
@@ -1052,68 +1092,193 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element) {
+	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
 		let point_position_array = [];
 		let position_array = [];
+		let color_array = [];
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
-		let face_normals = {};
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
+		
+		let armature_bone;
+		let all_armature_bones = [];
+		let bone_marker_colors;
+		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') && ArmatureBone.all[0]) {
+			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
+			all_armature_bones = element.getArmature().getAllBones();
+			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+		}
 
-		for (let key in vertices) {
-			let vector = vertices[key];
-			point_position_array.push(...vector);
+		function addVertexPosition(vkey, normal) {
+			position_array.push(...vertices[vkey]);
+			normal_array.push(...normal);
+			if (armature_bone) {
+				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				let weight_sum = 0;
+				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
+
+
+				if (true) {
+					let color = [0, 0, 0];
+					for (let bone of all_armature_bones) {
+						let bone_weight = bone.vertex_weights[vkey];
+						let bone_color = bone_marker_colors[bone.color%markerColors.length];
+						if (bone_weight > 0.02) {
+							let amount = bone_weight / weight_sum;
+							color[0] += bone_color.r * amount;
+							color[1] += bone_color.g * amount;
+							color[2] += bone_color.b * amount;
+						}
+					}
+					color_array.push(...color);
+				} else {
+					if (weight_sum > weight) weight = weight / weight_sum;
+					if (weight < 0.25) {
+						color_array.push(0, 0, weight * 4);
+					} else if (weight < 0.5) {
+						let fade = (weight-0.25) * 4;
+						color_array.push(0, fade, 1-fade);
+					} else if (weight < 0.75) {
+						let fade = (weight-0.5) * 4;
+						color_array.push(fade, 1, 0);
+					} else {
+						let fade = (weight-0.75) * 4;
+						color_array.push(1, 1-fade, 0);
+					}
+				}
+			} else {
+				color_array.push(0, 0, 0);
+			}
+		}
+
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
+
+		// Mesh geometry
+		let vertex_normals = element.smooth_shading && element.calculateNormals();
+
+		// Split Normals
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+
+			let normal;
+
+			if (element.smooth_shading == false) {
+				normal = face.getNormal(true);
+			}
+
+			if (face.vertices.length == 3) {
+				// Tri
+				face.vertices.forEach((vkey, i) => {
+					indices.push(position_array.length / 3);
+					addVertexPosition(vkey, element.smooth_shading ? vertex_normals[vkey] : normal);
+				})
+
+			} else if (face.vertices.length == 4) {
+				// Quad
+				let index_offset = position_array.length / 3;
+				let sorted_vertices = face.getSortedVertices();
+				let face_indices = {};
+				face.vertices.forEach((vkey, i) => {
+					if (!vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					addVertexPosition(vkey, element.smooth_shading ? vertex_normals[vkey] : normal);
+					face_indices[vkey] = index_offset + i;
+				})
+
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[1]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[3]]);
+			}
+		}
+		/*
+		// Indexed geometry
+		let face_normals = {};
+		let used_vertices = new Set();
+		let vertex_indices = {};
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+			face_normals[key] = face.getNormal(true);
+			face.vertices.forEach(vkey => used_vertices.add(vkey));
+		}
+		for (let vkey in element.vertices) {
+			if (used_vertices.has(vkey) == false) continue;
+
+			let average_normal = Reusable.vec2.set(0, 0, 0);
+			let normal_count = 0;
+			for (let fkey in faces) {
+				let face = faces[fkey];
+				if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
+					let face_normal = face_normals[fkey];
+					if (!face_normals[fkey]) face_normals[fkey] = face_normal;
+					// if (face.getAngleTo(face) > 50) continue;
+					average_normal.x += face_normal[0];
+					average_normal.y += face_normal[1];
+					average_normal.z += face_normal[2];
+					normal_count++;
+				}
+			}
+			average_normal.divideScalar(normal_count);
+
+			vertex_indices[vkey] = position_array.length / 3;
+			addVertexPosition(vkey, [average_normal.x, average_normal.y, average_normal.z]);
+			console.log('adding', vkey, 'as', vertex_indices[vkey]);
 		}
 
 		for (let key in faces) {
 			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
 
-			if (face.vertices.length > 2) {
-				// Normals
-				if (element.smooth_shading == false) {
-					let normal = face.getNormal(true);
-					face.vertices.forEach((vkey) => {
-						normal_array.push(...normal);
-					});
-				} else {
-					face.vertices.forEach((vkey) => {
-						let average_normal = Reusable.vec2.set(0, 0, 0);
-						let normal_count = 0;
-						for (let fkey2 in faces) {
-							let face2 = faces[fkey2];
-							if (face2.vertices.length > 2 && face2.vertices.includes(vkey)) {
-								let face_normal = face_normals[fkey2] ?? face2.getNormal(true);
-								if (!face_normals[fkey2]) face_normals[fkey2] = face_normal;
-								// if (face2.getAngleTo(face) > 50) continue;
-								average_normal.x += face_normal[0];
-								average_normal.y += face_normal[1];
-								average_normal.z += face_normal[2];
-								normal_count++;
-							}
-						}
-						average_normal.divideScalar(normal_count);
-						normal_array.push(average_normal.x, average_normal.y, average_normal.z);
-					})
-				}
+			if (face.vertices.length == 3) {
+				// Tri
+				face.vertices.forEach((key, i) => {
+					indices.push(vertex_indices[key]);
+				})
+
+			} else if (face.vertices.length == 4) {
+				let sorted_vertices = face.getSortedVertices();
+				let face_indices = {};
+				face.vertices.forEach((vkey, i) => {
+					if (!vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					face_indices[vkey] = vertex_indices[vkey];
+				})
+
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[1]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[3]]);
 			}
-
+		}*/
+		
+		// Outline
+		for (let key in faces) {
+			let face = faces[key];
 			if (face.vertices.length == 2) {
-				// Outline
 				mesh.outline.vertex_order.push(face.vertices[0]);
 				mesh.outline.vertex_order.push(face.vertices[1]);
 
 			} else if (face.vertices.length == 3) {
-				// Tri
-				face.vertices.forEach((key, i) => {
-					indices.push(position_array.length / 3);
-					position_array.push(...vertices[key])
-				})
-
-				// Outline
 				face.vertices.forEach((key, i) => {
 
 					mesh.outline.vertex_order.push(key);
@@ -1124,28 +1289,7 @@ new NodePreviewController(Mesh, {
 				mesh.outline.vertex_order.push(face.vertices[0]);
 
 			} else if (face.vertices.length == 4) {
-
-				let index_offset = position_array.length / 3;
-				let face_indices = {};
-				face.vertices.forEach((vkey, i) => {
-					if (!vertices[vkey]) {
-						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
-					}
-					position_array.push(...vertices[vkey])
-					face_indices[vkey] = index_offset + i;
-				})
-
 				let sorted_vertices = face.getSortedVertices();
-
-				indices.push(face_indices[sorted_vertices[0]]);
-				indices.push(face_indices[sorted_vertices[1]]);
-				indices.push(face_indices[sorted_vertices[2]]);
-				indices.push(face_indices[sorted_vertices[0]]);
-				indices.push(face_indices[sorted_vertices[2]]);
-				indices.push(face_indices[sorted_vertices[3]]);
-				
-
-				// Outline
 				sorted_vertices.forEach((key, i) => {
 					mesh.outline.vertex_order.push(key);
 					if (i != 0) mesh.outline.vertex_order.push(key);
@@ -1154,27 +1298,34 @@ new NodePreviewController(Mesh, {
 			}
 		}
 
+		for (let key in vertices) {
+			let vector = vertices[key];
+			point_position_array.push(...vector);
+		}
 		mesh.outline.vertex_order.forEach(key => {
 			outline_positions.push(...vertices[key]);
 		})
 
-		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 		
+		// Update geometry
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(color_array), 3));
 		mesh.geometry.setIndex(indices);
 
+		// Update selection
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(outline_positions.length/3).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
+		// Compute bounding boxes
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
-
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
-		Mesh.preview_controller.updateHighlight(element);
 
+		Mesh.preview_controller.updateHighlight(element);
 		Mesh.preview_controller.updatePixelGrid(element);
 
 		if (Project.view_mode == 'wireframe' && this.fixWireframe) {
@@ -1186,8 +1337,11 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
+		if (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') {
+			mesh.material = Canvas.vertexWeightHelperMaterial
+
+		} else if (Project.view_mode === 'solid') {
+				mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
 			mesh.material = Canvas.getSolidColorMaterial(element.color);
@@ -1310,7 +1464,7 @@ new NodePreviewController(Mesh, {
 	},
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection.call(this, element);
-	
+
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
 		let join = new THREE.Color(0x16d606);
@@ -1380,7 +1534,8 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true;
 		
-		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool';
+		mesh.vertex_points.visible = ((Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool') && element.selected;
+		if (Toolbox.selected.id == 'weight_brush') mesh.vertex_points.visible = true;
 
 		this.dispatchEvent('update_selection', {element});
 	},

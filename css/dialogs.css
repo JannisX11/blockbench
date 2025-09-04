@@ -1,3 +1,4 @@
+@layer base {
 /*Dialog*/
 	#blackout {
 		display: none;
@@ -60,6 +61,7 @@
 		border-color: var(--color-button);
 		border-top-color: transparent !important;
 		border-left-color: transparent !important;
+		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
@@ -515,6 +517,22 @@
 		right: 6px;
 		margin-top: -17px;
 	}
+	.dialog_sidebar_separator {
+		min-height: 4px;
+		color: var(--color-subtle_text);
+		margin-bottom: -1px;
+		margin-top: 4px;
+		text-indent: 16px;
+		display: flex;
+		align-items: center;
+	}
+	.dialog_sidebar_separator > span {
+		background-color: var(--color-button);
+		width: 0;
+		height: 2px;
+		flex-grow: 1;
+		margin: 0 5px;
+	}
 	
 	.dialog_sidebar .dialog_sidebar_actions {
 		bottom: 10px;
@@ -907,17 +925,21 @@
 		cursor: inherit;
 	}
 	.theme_name {
-		display: inline-block;
+		padding-left: 2px;
+	}
+	.theme_details_bar {
+		display: flex;
+		align-items: center;
+		width: 100%;
 	}
 	.theme_author {
 		color: var(--color-subtle_text);
+		margin-right: auto;
 	}
 	.theme_type_icon {
-		float: right;
-		margin-right: 5px;
-	}
-	.theme_type_icon > i {
 		color: var(--color-subtle_text);
+		height: 24px;
+		margin-right: 2px;
 	}
 
 	#theme_list .theme_preview, .custom_thumbnail_preview {
@@ -2006,6 +2028,7 @@
 		display: flex;
 		overflow-wrap: anywhere;
 		align-items: center;
+		border-radius: 6px;
 	}
 	li.validator_dialog_problem.validator_warning > i {
 		color: var(--color-warning);
@@ -2268,6 +2291,10 @@
 		bottom: 0;
 		left: 0;
 		right: 0;
+	}
+/* Molang */
+	dialog#expression_editor .dialog_content {
+		overflow: unset;
 	}
 
 /* Texture Edit */
@@ -2637,6 +2664,7 @@
 		pointer-events: all;
 		box-shadow: 0 0 0 2px var(--color-accent);
 		width: min(100vw, 326px);
+		border-radius: 5px;
 	}
 	#tab_overview_grid {
 		display: flex;
@@ -2678,3 +2706,4 @@
 	#tab_overview_grid > li label {
 		cursor: inherit;
 	}
+}

@@ -1,3 +1,5 @@
+import { clipboard, nativeImage } from "../native_apis";
+
 export const TextureAnimator = {
 	isPlaying: false,
 	interval: false,
@@ -155,7 +157,7 @@ BARS.defineActions(function() {
 	new Action('animated_texture_editor', {
 		icon: 'theaters',
 		category: 'textures',
-		condition: Format.animated_textures && Texture.selected,
+		condition: () => Format.animated_textures && Texture.selected?.frameCount > 1,
 		click() {
 			let texture = Texture.selected;
 			let frametime = 1000/settings.texture_fps.value;

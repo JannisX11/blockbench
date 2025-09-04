@@ -1,3 +1,6 @@
+import { ipcRenderer } from "../native_apis";
+import ColorPickerNormal from "./ColorPickerNormal.vue";
+
 function colorDistance(color1, color2) {
 	return Math.sqrt(
 		Math.pow(color2._r - color1._r, 2) +
@@ -547,10 +550,11 @@ Interface.definePanels(() => {
 			})
 		},
 		component: {
+			components: {ColorPickerNormal},
 			data: {
 				width: 100,
 				picker_height: 100,
-				picker_type: Settings.get('color_wheel') ? 'wheel' : 'box',
+				picker_type: Settings.get('color_picker_style'),
 				main_color: '#ffffff',
 				second_color: '#000000',
 				hover_color: '',
@@ -580,14 +584,18 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.picker_type',
 							icon: 'palette',
 							children: [
-								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_wheel') ? 'far.fa-circle' : 'far.fa-dot-circle', click: () => {
-									settings.color_wheel.set(false);
+								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_picker_style') == 'box' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+									settings.color_picker_style.set('box');
 									Panels.color.onResize();
 								}},
-								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_wheel') ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									settings.color_wheel.set(true);
+								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_picker_style') == 'wheel' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+									settings.color_picker_style.set('wheel');
 									Panels.color.onResize();
-								}}
+								}},
+								{name: 'menu.color_picker.picker_type.normal', icon: Settings.get('color_picker_style') == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
+									settings.color_picker_style.set('normal');
+									Panels.color.onResize();
+								}},
 							]
 						},
 						{
@@ -624,7 +632,7 @@ Interface.definePanels(() => {
 				},
 				onMouseWheel(event) {
 					if (!event.target) return;
-					if (settings.color_wheel.value || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
+					if (settings.color_picker_style.value == 'wheel' || event.target.classList.contains('sp-hue') || event.target.classList.contains('sp-slider')) {
 						let sign = Math.sign(event.deltaY);
 						if (event.shiftKey) sign *= 4;
 						BarItems.slider_color_h.change(v => v+sign);
@@ -634,6 +642,7 @@ Interface.definePanels(() => {
 					ColorPanel.set(color, second_color);
 				},
 				changeColor(color, secondary = this.second_color_selected) {
+					console.log(color, secondary)
 					this[secondary ? 'second_color' : 'main_color'] = color;
 				},
 				swapColors() {
@@ -719,11 +728,12 @@ Interface.definePanels(() => {
 						</div>
 					</div>
 
-					<div @wheel="onMouseWheel($event)">
+					<div @wheel="onMouseWheel($event)" class="color_picker_wrapper">
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
 						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
+						<color-picker-normal v-if="picker_type == 'normal' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-picker-normal>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
 				</div>

@@ -1,13 +1,64 @@
-import { Vue } from "../../lib/libs";
+import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
 import { setProjectTitle } from "../interface/interface";
-import { Settings } from "../interface/settings";
+import { settings, Settings } from "../interface/settings";
 import { TickUpdates } from "../misc";
 import { Mode, Modes } from "../modes";
 import { Group } from "../outliner/group";
 import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
+import { SplineMesh } from "../outliner/spline_mesh";
+
+interface FormatPage {
+	component?: Vue.Component
+	content?: (
+		| {
+				type?: 'image' | 'h2' | 'h3' | 'h4' | 'text' | 'label' | 'image' | ''
+				text?: string
+				source?: string
+				width?: number
+				height?: number
+		  }
+		| string
+	)[]
+	button_text?: string
+}
+interface CubeSizeLimiter {
+	/**
+	 * Test whether the cube with the optionally provided values violates the size restrictions
+	 */
+	test: (
+		cube: Cube,
+		values?: { from: ArrayVector3; to: ArrayVector3; inflate: number }
+	) => boolean
+	/**
+	 * Move the cube back into the restructions
+	 */
+	move(cube: Cube, values?: { from: ArrayVector3; to: ArrayVector3; inflate: number }): void
+	/**
+	 * Clamp the cube to fit into the restrictions. When an axis and direction is provided, clamp the element on that side to prevent wandering.
+	 */
+	clamp: (
+		cube: Cube,
+		values?: { from: ArrayVector3; to: ArrayVector3; inflate: number },
+		axis?: number,
+		direction?: boolean | null
+	) => void
+	/**
+	 * Set to true to tell Blockbench to check and adjust the cube limit after rotating a cube
+	 */
+	rotation_affected?: boolean
+	/**
+	 * Optionally set the coordinate limits of cubes in local space
+	 */
+	coordinate_limits?: [number, number]
+}
+
+/**
+ * The current format
+ */
+declare const Format: ModelFormat
 
 export const Formats = {};
 
@@ -28,18 +79,16 @@ interface FormatOptions {
 	confidential?: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen?: boolean
-	show_in_new_list?: boolean
 	can_convert_to?: boolean
-	plugin?: string
 	format_page?: FormatPage
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(project: ModelProject, newModel?: boolean): void
-	new?(): boolean
 	convertTo?(): void
+	new?(): boolean
 
 	/**
-	 * Enables Box UV on cubes by default or something
+	 * Enables Box UV on cubes by default
 	 */
 	box_uv: boolean
 	/**
@@ -87,6 +136,10 @@ interface FormatOptions {
 	 */
 	bone_rig: boolean
 	/**
+	 * Enable armatures to rig meshes
+	 */
+	armature_rig: boolean
+	/**
 	 * Align the grid center with the model origin, instead of the grid corner
 	 */
 	centered_grid: boolean
@@ -107,17 +160,25 @@ interface FormatOptions {
 	 */
 	meshes: boolean
 	/**
+	 * Enable spline elements
+	 */
+	splines: boolean
+	/**
 	 * Enable texture meshes
 	 */
 	texture_meshes: boolean
 	/**
-	 * Enable billboards
+	 * Enable billboard elements
 	 */
 	billboards: boolean
 	/**
 	 * Enable locators
 	 */
 	locators: boolean
+	/**
+	 * Enable PBR texture materials yay
+	 */
+	pbr: boolean
 	/**
 	 * Enforces a rotation limit for cubes of up to 45 degrees in either direction and one axis at a time
 	 */
@@ -212,6 +273,7 @@ interface FormatOptions {
 	onActivation?(): void
 	onDeactivation?(): void
 }
+export interface ModelFormat extends FormatOptions {}
 
 export class ModelFormat implements FormatOptions {
 	id: string
@@ -230,48 +292,8 @@ export class ModelFormat implements FormatOptions {
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(project: ModelProject, newModel?: boolean): void
+	
 
-	box_uv: boolean
-	optional_box_uv: boolean
-	single_texture: boolean
-	single_texture_default: boolean
-	per_group_texture: boolean
-	per_texture_uv_size: boolean
-	model_identifier: boolean
-	legacy_editable_file_name: boolean
-	parent_model_id: boolean
-	vertex_color_ambient_occlusion: boolean
-	animated_textures: boolean
-	bone_rig: boolean
-	centered_grid: boolean
-	rotate_cubes: boolean
-	stretch_cubes: boolean
-	integer_size: boolean
-	meshes: boolean
-	texture_meshes: boolean
-	billboards: boolean
-	locators: boolean
-	rotation_limit: boolean
-	rotation_snap: boolean
-	uv_rotation: boolean
-	java_face_properties: boolean
-	select_texture_for_particles: boolean
-	texture_mcmeta: boolean
-	bone_binding_expression: boolean
-	animation_files: boolean
-	texture_folder: boolean
-	image_editor: boolean
-	edit_mode: boolean
-	paint_mode: boolean
-	display_mode: boolean
-	animation_mode: boolean
-	pose_mode: boolean
-	animation_controllers: boolean
-	box_uv_float_size: boolean
-	java_cube_shading_properties: boolean
-	cullfaces: boolean
-	node_name_regex: string
-	render_sides: 'front' | 'double' | 'back' | (() => 'front' | 'double' | 'back')
 
 	cube_size_limiter?: CubeSizeLimiter
 
@@ -281,7 +303,7 @@ export class ModelFormat implements FormatOptions {
 
 	static properties: Record<string, Property>
 
-	constructor(id, data: FormatOptions) {
+	constructor(id: string, data: Partial<FormatOptions>) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
@@ -477,6 +499,13 @@ export class ModelFormat implements FormatOptions {
 			})
 		}
 
+		//Splines
+		if (!this.splines && old_format.splines) {
+			SplineMesh.all.slice().forEach(spline => {
+				spline.remove()
+			})
+		}
+
 		//Locators
 		if (!this.locators && old_format.locators) {
 			Locator.all.slice().forEach(locator => {
@@ -563,11 +592,13 @@ new Property(ModelFormat, 'boolean', 'parent_model_id');
 new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
 new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
+new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
 new Property(ModelFormat, 'boolean', 'meshes');
+new Property(ModelFormat, 'boolean', 'splines');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'billboards');
 new Property(ModelFormat, 'boolean', 'locators');

@@ -1,4 +1,16 @@
-import LZUTF8 from '../../lib/lzutf8';
+import LZUTF8 from '../lib/lzutf8';
+
+export class oneLiner {
+	constructor(data: any) {
+		if (data !== undefined) {
+			for (var key in data) {
+				if (data.hasOwnProperty(key)) {
+					this[key] = data[key]
+				}
+			}
+		}
+	}
+}
 
 interface JSONCompileOptions {
 	/**
@@ -94,7 +106,7 @@ export function compileJSON(object: any, options: JSONCompileOptions = {}): stri
 			out += ']'
 		} else if (type === 'object') {
 			//Object
-			breaks = breaks && o.constructor.name !== 'oneLiner';
+			breaks = breaks && !(o instanceof oneLiner);
 			var has_content = false
 			out += '{'
 			for (var key in o) {
@@ -143,6 +155,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 		} catch (err) {
 			if (feedback === false) return;
 			if (data.match(/\n\r?[><]{7}/)) {
+				// @ts-ignore
 				Blockbench.showMessageBox({
 					title: 'message.invalid_file.title',
 					icon: 'fab.fa-git-alt',
@@ -173,6 +186,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 
 				logErrantPart(data, data.length-16, 10)
 			}
+			// @ts-ignore
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
@@ -185,6 +199,7 @@ export function autoParseJSON(data: string, feedback = true): any {
 }
 
 Object.assign(window, {
+	oneLiner,
 	compileJSON,
 	autoParseJSON,
 })

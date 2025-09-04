@@ -1,3 +1,7 @@
+import { clipboard } from "../native_apis";
+import { invertMolang } from "../util/molang";
+import { openMolangEditor } from "./molang_editor";
+
 export class KeyframeDataPoint {
 	constructor(keyframe) {
 		this.keyframe = keyframe;
@@ -39,9 +43,10 @@ new Property(KeyframeDataPoint, 'molang', 'x', { label: 'X', condition: point =>
 new Property(KeyframeDataPoint, 'molang', 'y', { label: 'Y', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
 new Property(KeyframeDataPoint, 'molang', 'z', { label: 'Z', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
 new Property(KeyframeDataPoint, 'string', 'effect', {label: tl('data.effect'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
-new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => 'particle' == point.keyframe.channel});
+new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'boolean', 'bind_to_actor', {exposed: false, default: true, condition: point => ['particle'].includes(point.keyframe.channel)});
 
 export class Keyframe {
 	constructor(data, uuid, animator) {
@@ -158,32 +163,18 @@ export class Keyframe {
 	}
 	flip(axis) {
 		if (!this.transform || this.channel == 'scale') return this;
-		function negate(value) {
-			if (!value || value === '0') {
-				return value;
-			}
-			if (typeof value === 'number') {
-				return -value;
-			}
-			var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
-			if (start) {
-				var number = parseFloat( start[0].substr(0, start[0].length-1) );
-				return trimFloatNumber(-number) + value.substr(start[0].length-1);
-			} else {
-				return `-(${value})`;
-			}
-		}
+
 		this.data_points.forEach((data_point, data_point_i) => {
 			if (this.channel == 'rotation') {
 				for (var i = 0; i < 3; i++) {
 					if (i != axis) {
 						let l = getAxisLetter(i)
-						this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+						this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 					}
 				}
 			} else if (this.channel == 'position') {
 				let l = getAxisLetter(axis)
-				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+				this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 			}
 		})
 		if (this.interpolation == 'bezier') {
@@ -281,8 +272,8 @@ export class Keyframe {
 		if (this.channel === 'rotation') {
 			let fix = this.animator.group.mesh.fix_rotation;
 			let euler = new THREE.Euler(
-				(fix.x||0) - Math.degToRad(this.calc('x', data_point)),
-				(fix.y||0) - Math.degToRad(this.calc('y', data_point)),
+				(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
+				(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
 				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
 				'ZYX'
 			)
@@ -290,7 +281,7 @@ export class Keyframe {
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(
-				fix.x - this.calc('x', data_point),
+				fix.x + this.calc('x', data_point),
 				fix.y + this.calc('y', data_point),
 				fix.z + this.calc('z', data_point)
 			)
@@ -316,13 +307,22 @@ export class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-
+			let flipArray = array => {
+				if (this.channel == 'position') {
+					array[0] = invertMolang(array[0]);
+				}
+				if (this.channel == 'rotation') {
+					array[0] = invertMolang(array[0]);
+					array[1] = invertMolang(array[1]);
+				}
+				return array;
+			}
 			if (this.interpolation == 'catmullrom') {
 				let previous = this.getPreviousKeyframe();
 				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
-					pre: include_pre ? this.getArray(0) : undefined,
-					post: this.getArray(include_pre ? 1 : 0),
+					pre: include_pre ? flipArray(this.getArray(0)) : undefined,
+					post: flipArray(this.getArray(include_pre ? 1 : 0)),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
@@ -330,15 +330,15 @@ export class Keyframe {
 				if (previous && previous.interpolation == 'step') {
 					return new oneLiner({
 						pre:  previous.getArray(1),
-						post: this.getArray(),
+						post: flipArray(this.getArray()),
 					})
 				} else {
-					return this.getArray();
+					return flipArray(this.getArray());
 				}
 			} else {
 				return new oneLiner({
-					pre:  this.getArray(0),
-					post: this.getArray(1),
+					pre:  flipArray(this.getArray(0)),
+					post: flipArray(this.getArray(1)),
 				})
 			}
 		} else if (this.channel == 'timeline') {
@@ -361,6 +361,7 @@ export class Keyframe {
 					points.push({
 						effect: data_point.effect,
 						locator: data_point.locator || undefined,
+						bind_to_actor: data_point.bind_to_actor == false ? false : undefined,
 						pre_effect_script: script,
 					})
 				}
@@ -1353,6 +1354,13 @@ Interface.definePanels(function() {
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
 				},
+				changeBindToActor(event, i) {
+					Undo.initEdit({keyframes: Timeline.selected});
+					for (let kf of Timeline.selected) {
+						if (kf.data_points[i]) kf.data_points[i].bind_to_actor = event.target.checked;
+					}
+					Undo.finishEdit('Change keyframe property bind to actor');
+				},
 				focusAxis(axis) {
 					if ('xyz'.includes(axis)) {
 						Timeline.vue.graph_editor_axis = axis;
@@ -1491,7 +1499,33 @@ Interface.definePanels(function() {
 						})
 					}
 				},
+				openMolangContextMenu(axis, event, value, data_point_i) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click() {
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.KeyframeContext,
+									text: value
+								}, result => {
+									Undo.initEdit({keyframes: Timeline.selected});
+									Timeline.selected.forEach(function(kf) {
+										if (data_point_i && !kf.data_points[data_point_i]) return;
+										kf.set(axis, result, data_point_i);
+									})
+									Undo.finishEdit('Change keyframe value')
+									if (!['effect', 'locator', 'script'].includes(axis)) {
+										Animator.preview();
+										updateKeyframeSelection();
+									}
+								})
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
+					if (Settings.get('autocomplete_code') == false) return [];
 					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},
@@ -1563,6 +1597,7 @@ Interface.definePanels(function() {
 											class="molang_input keyframe_input tab_target"
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
+											@contextmenu="openMolangContextMenu('uniform', $event, data_point['x_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
@@ -1579,13 +1614,14 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang', axis: !!channel_colors[key]}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input keyframe_input tab_target"
 											v-model="data_point[key+'_string']"
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
+											@contextmenu="openMolangContextMenu(key, $event, data_point[key+'_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
@@ -1600,6 +1636,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
+										<input type="checkbox" v-if="key == 'locator'" :checked="data_point.bind_to_actor" title="${tl('timeline.bind_to_actor')}" @input="changeBindToActor($event, data_point_i)">
 										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, firstKeyframe)">
 											<i class="material-icons">upload_file</i>
 										</div>

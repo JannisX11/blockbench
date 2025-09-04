@@ -1,3 +1,5 @@
+import { fs } from "../../native_apis";
+
 function F(num) {
 	var s = trimFloatNumber(num) + '';
 	if (!s.includes('.')) {
@@ -1019,6 +1021,13 @@ codec.compileAnimations = function(animations = Animation.all) {
 				let keyframes = animator[channel_id].slice().sort((a, b) => a.time - b.time);
 				let keyframe_strings = [];
 				function addKeyframe(time, x, y, z, interpolation) {
+					if (channel_id == 'position') {
+						x *= -1;
+					}
+					if (channel_id == 'rotation') {
+						x *= -1;
+						y *= -1;
+					}
 					let kf_string = AnimationTemplates.get('keyframe_'+channel_id);
 					kf_string = kf_string.replace(R('time'), F(time));
 					kf_string = kf_string.replace(R('x'), F(x));
@@ -1078,6 +1087,7 @@ var format = new ModelFormat({
 	rotate_cubes: true,
 	integer_size: true,
 	animation_mode: true,
+	pbr: true,
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size') || settings.modded_entity_integer_size.value});
 codec.format = format;

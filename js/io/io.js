@@ -569,7 +569,7 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: async function(event) {
 			if (isApp) {
-				saveTextures()
+				await saveTextures()
 				if (Format) {
 					let export_codec = Format.codec;
 					if (Project.save_path) {
@@ -621,7 +621,7 @@ BARS.defineActions(function() {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {
-				saveTextures()
+				await saveTextures()
 				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}

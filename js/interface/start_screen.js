@@ -1,4 +1,6 @@
+import { Filesystem } from "../file_system";
 import { documentReady } from "../misc";
+import { app, fs } from "../native_apis";
 
 export const StartScreen = {
 	loaders: {},
@@ -259,7 +261,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							showItemInFolder(recent_project.path)
+							Filesystem.showFileInFolder(recent_project.path)
 						}
 					},
 					{
@@ -443,15 +445,15 @@ onVueSetup(async function() {
 									<span v-else>{{ viewed_format.target }}</span>
 								</p>
 
-								<content v-if="viewed_format.format_page && viewed_format.format_page.content">
+								<content v-if="viewed_format.format_page && viewed_format.format_page.content" class="markdown">
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
-										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
-										<label v-else-if="item.type == 'label'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else class="markdown" v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 
@@ -465,7 +467,7 @@ onVueSetup(async function() {
 						</div>
 
 						<div class="start_screen_right" v-else>
-							<h2>${tl('mode.start.recent')}</h2>
+							<h2 v-if="isApp">${tl('mode.start.recent')}</h2>
 							<div id="start_screen_view_menu" v-if="isApp && !redact_names">
 								<search-bar :hide="true" v-model="search_term"></search-bar>
 								<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
@@ -628,7 +630,7 @@ ModelLoader.loaders = {};
 					languages: Language.options,
 					keymap: 'default',
 					keymap_changed: false,
-					theme: 'dark',
+					theme: 'default',
 					keymap_options: {
 						default: tl('action.load_keymap.default'),
 						mouse: tl('action.load_keymap.mouse'),
@@ -694,8 +696,8 @@ ModelLoader.loaders = {};
 						</div>
 						<div style="width: 640px;">
 							<label>${tl('dialog.settings.theme')}:</label>
-							<div class="quick_setup_theme" :class="{selected: theme == 'dark'}" @click="loadTheme('dark')"><div :style="getThemeThumbnailStyle('dark')"></div>Dark</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'light'}" @click="loadTheme('light')"><div :style="getThemeThumbnailStyle('light')"></div>Light</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
 							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
 							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
 						</div>

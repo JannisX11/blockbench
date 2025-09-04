@@ -1,16 +1,5 @@
-export const electron = require('@electron/remote');
-export const {clipboard, shell, nativeImage, ipcRenderer, dialog, webUtils} = require('electron');
-export const app = electron.app;
-export const fs = require('fs');
-export const NodeBuffer = require('buffer');
-export const zlib = require('zlib');
-export const exec = require('child_process').exec;
-export const https = require('https');
-export const PathModule = require('path');
+import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage } from './native_apis';
 
-export const currentwindow = electron.getCurrentWindow();
-var dialog_win	 = null,
-	latest_version = false;
 export const recent_projects = (function() {
 	let array = [];
 	var raw = localStorage.getItem('recent_projects')
@@ -122,9 +111,7 @@ export function loadOpenWithBlockbenchFile() {
 		load(path);
 	}
 }
-(function() {
-	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
-})()
+console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 
 window.confirm = function(message, title) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {
@@ -305,12 +292,8 @@ export function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
-export function showItemInFolder(path) {
-	ipcRenderer.send('show-item-in-folder', path);
-}
-
 //Window Controls
-export function updateWindowState(e, type) {
+function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();
 	$('#header_free_bar').toggleClass('resize_space', !maximized);
 	document.body.classList.toggle('maximized', maximized);
@@ -374,6 +357,7 @@ export function changeImageEditor(texture, not_found) {
 			}
 			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
+				ipcRenderer.send('edit-launch-setting', {key: 'image_editor', value: path});
 				if (texture) {
 					texture.openEditor()
 				}
@@ -583,6 +567,17 @@ BARS.defineActions(() => {
 	})
 })
 
+// Windows/Linux window controls
+document.getElementById('window_controls_button_minimize').addEventListener('click', () => {
+	currentwindow.minimize()
+})
+document.getElementById('window_controls_button_maximize').addEventListener('click', () => {
+	currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()
+})
+document.getElementById('window_controls_button_close').addEventListener('click', () => {
+	currentwindow.close()
+})
+
 //Close
 window.onbeforeunload = function (event) {
 	try {
@@ -668,7 +663,7 @@ window.onbeforeunload = function (event) {
 	}
 }
 
-export async function closeBlockbenchWindow() {
+async function closeBlockbenchWindow() {
 	for (let project of ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
@@ -752,34 +747,14 @@ ipcRenderer.on('update-available', (event, arg) => {
 })
 
 Object.assign(window, {
-	electron,
-	clipboard,
-	shell,
-	nativeImage,
-	ipcRenderer,
-	dialog,
-	webUtils,
-	app,
-	fs,
-	NodeBuffer,
-	zlib,
-	exec,
-	https,
 	PathModule,
-	currentwindow,
 	recent_projects,
-	initializeDesktopApp,
-	loadOpenWithBlockbenchFile,
+	nativeImage,
 	updateRecentProjects,
 	addRecentProject,
 	updateRecentProjectData,
 	loadDataFromModelMemory,
-	showItemInFolder,
-	updateWindowState,
 	changeImageEditor,
 	openDefaultTexturePath,
-	findExistingFile,
-	createBackup,
 	updateRecentProjectThumbnail,
-	closeBlockbenchWindow,
 })

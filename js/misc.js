@@ -1,7 +1,8 @@
+import { currentwindow } from "./native_apis";
+
 window.osfs = '/'
 window.open_dialog = false;
 window.open_interface = false;
-window.tex_version = 1;
 
 export const Pressing = {
 	shift: false,
@@ -77,6 +78,11 @@ export function updateNslideValues() {
 		if (Condition(BarItems.slider_face_tint)) {
 			BarItems.slider_face_tint.update()
 		}
+
+		if (Condition(BarItems.slider_spline_handle_tilt)) {
+			BarItems.slider_spline_handle_tilt.update()
+			BarItems.slider_spline_handle_size.update()
+		}
 	}
 	if (Outliner.selected.length || (Format.bone_rig && Group.first_selected)) {
 		BarItems.slider_origin_x.update()
@@ -101,7 +107,7 @@ export function updateSelection(options = {}) {
 	Project.elements.forEach(obj => {
 		let included = Project.selected_elements.includes(obj);
 		if (included && !obj.selected && !obj.locked) {
-			obj.selectLow()
+			obj.markAsSelected()
 		} else if ((!included || obj.locked) && obj.selected) {
 			obj.unselect()
 			if (UVEditor.selected_element_faces[obj.uuid]) {
@@ -125,6 +131,17 @@ export function updateSelection(options = {}) {
 				Project.mesh_selection[obj.uuid].faces.forEachReverse(fkey => {
 					if (fkey in obj.faces == false) {
 						Project.mesh_selection[obj.uuid].faces.remove(fkey);
+					}
+				})
+			}
+		}
+		if (obj instanceof SplineMesh && Project.spline_selection[obj.uuid]) {
+			if (!included) {
+				delete Project.spline_selection[obj.uuid];
+			} else {
+				Project.spline_selection[obj.uuid].vertices.forEachReverse(vkey => {
+					if (vkey in obj.vertices == false) {
+						Project.spline_selection[obj.uuid].vertices.remove(vkey);
 					}
 				})
 			}
@@ -155,6 +172,11 @@ export function updateSelection(options = {}) {
 		} else {
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
 			Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
+		}
+	}
+	if (Format.splines && Outliner.selected.length && Modes.edit && BarItems.spline_selection_mode.value == "handles") {
+		if (SplineMesh.selected.length) {
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.spline_select_multiple_points');
 		}
 	}
 	if (UVEditor.vue.mode == 'face_properties' && Outliner.selected.length) {
@@ -460,10 +482,6 @@ export const documentReady = new Promise((resolve, reject) => {
 });
 
 
-export const entityMode = {
-	hardcodes: JSON.parse('{"geometry.chicken":{"body":{"rotation":[90,0,0]}},"geometry.llama":{"chest1":{"rotation":[0,90,0]},"chest2":{"rotation":[0,90,0]},"body":{"rotation":[90,0,0]}},"geometry.cow":{"body":{"rotation":[90,0,0]}},"geometry.sheep.sheared":{"body":{"rotation":[90,0,0]}},"geometry.sheep":{"body":{"rotation":[90,0,0]}},"geometry.phantom":{"body":{"rotation":[0,0,0]},"wing0":{"rotation":[0,0,5.7]},"wingtip0":{"rotation":[0,0,5.7]},"wing1":{"rotation":[0,0,-5.7]},"wingtip1":{"rotation":[0,0,-5.7]},"head":{"rotation":[11.5,0,0]},"tail":{"rotation":[0,0,0]},"tailtip":{"rotation":[0,0,0]}},"geometry.pig":{"body":{"rotation":[90,0,0]}},"geometry.ocelot":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.cat":{"body":{"rotation":[90,0,0]},"tail1":{"rotation":[90,0,0]},"tail2":{"rotation":[90,0,0]}},"geometry.turtle":{"eggbelly":{"rotation":[90,0,0]},"body":{"rotation":[90,0,0]}},"geometry.villager.witch":{"hat2":{"rotation":[-3,0,1.5]},"hat3":{"rotation":[-6,0,3]},"hat4":{"rotation":[-12,0,6]}},"geometry.pufferfish.mid":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.pufferfish.large":{"spines_top_front":{"rotation":[45,0,0]},"spines_top_back":{"rotation":[-45,0,0]},"spines_bottom_front":{"rotation":[-45,0,0]},"spines_bottom_back":{"rotation":[45,0,0]},"spines_left_front":{"rotation":[0,45,0]},"spines_left_back":{"rotation":[0,-45,0]},"spines_right_front":{"rotation":[0,-45,0]},"spines_right_back":{"rotation":[0,45,0]}},"geometry.tropicalfish_a":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}},"geometry.tropicalfish_b":{"leftFin":{"rotation":[0,-35,0]},"rightFin":{"rotation":[0,35,0]}}}')
-}
-
 Object.assign(window, {
 	Pressing,
 	Prop,
@@ -478,6 +496,5 @@ Object.assign(window, {
 	AutoBackup,
 	TickUpdates,
 	factoryResetAndReload,
-	benchmarkCode,
-	entityMode
+	benchmarkCode
 })

@@ -1,15 +1,15 @@
 Blockbench.queries = {};
-(function() {
-	let query_string = location.search || location.hash;
-	if (query_string) {
-		query_string = decodeURIComponent(query_string.substring(1));
-		let queries = query_string.split('&');
-		queries.forEach(string => {
-			let [key, value] = string.split(/=\s*(.+)/);
-			Blockbench.queries[key] = value || true;
-		})
-	}
-})()
+
+let query_string = location.search || location.hash;
+if (query_string) {
+	query_string = decodeURIComponent(query_string.substring(1));
+	let queries = query_string.split('&');
+	queries.forEach(string => {
+		let [key, value] = string.split(/=\s*(.+)/);
+		Blockbench.queries[key] = value || true;
+	})
+}
+
 
 export function initializeWebApp() {
 	
@@ -157,6 +157,23 @@ window.onbeforeunload = function() {
 		Blockbench.dispatchEvent('before_closing')
 		if (Project.EditSession) Project.EditSession.quit()
 	}
+}
+
+// Match exports to desktop.js
+const NULL = null;
+export {
+	NULL as recent_projects,
+	NULL as initializeDesktopApp,
+	NULL as loadOpenWithBlockbenchFile,
+	NULL as updateRecentProjects,
+	NULL as addRecentProject,
+	NULL as updateRecentProjectData,
+	NULL as updateRecentProjectThumbnail,
+	NULL as loadDataFromModelMemory,
+	NULL as changeImageEditor,
+	NULL as openDefaultTexturePath,
+	NULL as findExistingFile,
+	NULL as createBackup,
 }
 
 Object.assign(window, {

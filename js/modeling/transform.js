@@ -3,7 +3,7 @@ import { autoFixMeshEdit } from "./mesh_editing";
 
 //Actions
 export function getSelectionCenter(all = false) {
-	if (Group.first_selected && Group.multi_selected.length == 1 && selected.length == 0 && !all) {
+	if (Group.selected.length == 1 && Outliner.selected.length == 0 && !all) {
 		let vec = THREE.fastWorldPosition(Group.first_selected.mesh, new THREE.Vector3());
 		return vec.toArray();
 	}
@@ -29,6 +29,70 @@ export function getSelectionCenter(all = false) {
 	}
 	return center;
 }
+// Spline Point Selection
+export function selectSplinePoints(spline, handle, axis) {
+	let selection = spline.getSelectedVertices(true);
+	let addToPrevious = Pressing.shift;
+	let toAdd = { "C1": [handle.control1], "C2": [handle.control2], "J": [handle.control1, handle.joint, handle.control2] };
+	let selectionLength = 0;
+	let toAddLength = 0;
+
+	// Silly workaround because both of these don't have a length for some reason
+	selection.forEach((e) => selectionLength++);
+	toAdd[axis].forEach((e) => toAddLength++);
+
+	// Determine which points to select
+	if (!toAdd[axis].some((value) => selection.includes(value))) { // Selection doesn't include any of the points this axis would select.
+		if (addToPrevious) {
+			// Add axis points to the selection.
+			selection.push(...toAdd[axis]);
+		} else {
+			// Replace selection.
+			selection.replace(toAdd[axis]);
+		}
+	} else { // Selection includes some of the points this axis would select.
+		if (addToPrevious) {
+			if (selection.includes(handle.joint) && (axis === "C1" || axis === "C2")) {
+				// Attempted to unselect one control, unselect whole handle.
+				selection.remove(...toAdd["J"]);
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
+				// Simply clear this axis from the selection.
+				selection.remove(...toAdd[axis]);
+			}
+		} else {
+			if (selectionLength > toAddLength) {
+				// Clicked on a control, clear and select it.
+				selection.empty();
+				selection.push(...toAdd[axis]);
+			} 
+			else if (selectionLength === toAddLength) {
+				// Clicked on selected handle, unselect.
+				selection.remove(...toAdd[axis]);
+			} 
+			else if ((selection.includes(handle.control1) || selection.includes(handle.control2)) && (axis === "J")) {
+				// Clicked on handle with selected controls, select whole handle.
+				selection.remove(...toAdd[axis]);
+				selection.push(...toAdd[axis]);
+			} 
+			else {
+				// Simply clear this axis from the selection.
+				selection.remove(...toAdd[axis]);
+			}
+		}
+	}
+
+	return selection.lenght > 0;
+}
+// Spline handle tilt
+export function tiltSplineHandle(modify, handle) {
+	handle.tilt = modify(handle.tilt);
+}
 //Movement
 export function moveElementsRelative(difference, index, event) { //Multiple
 	if (!Preview.selected || !Outliner.selected.length) {
@@ -36,7 +100,7 @@ export function moveElementsRelative(difference, index, event) { //Multiple
 	}
 	var _has_groups = Format.bone_rig && Group.first_selected && Toolbox.selected.transformerMode == 'translate';
 
-	Undo.initEdit({elements: Outliner.selected, outliner: _has_groups})
+	Undo.initEdit({elements: getSelectedMovingElements(), outliner: _has_groups})
 	var axes = []
 	// < >
 	// PageUpDown
@@ -81,7 +145,7 @@ export function moveElementsRelative(difference, index, event) { //Multiple
 }
 //Rotate
 export function rotateSelected(axis, steps) {
-	let affected = [...Cube.selected, ...Mesh.selected];
+	let affected = [...Cube.selected, ...Mesh.selected, ...SplineMesh.selected];
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
 	if (!steps) steps = 1
@@ -199,12 +263,25 @@ export const Vertexsnap = {
 		if (!mesh.vertex_points) {
 			mesh.updateMatrixWorld()
 			let vectors = [];
+
 			if (mesh.geometry) {
 				let positions = mesh.geometry.attributes.position.array;
-				for (let i = 0; i < positions.length; i += 3) {
-					let vec = [positions[i], positions[i+1], positions[i+2]];
-					if (!vectors.find(vec2 => vec.equals(vec2))) {
-						vectors.push(vec);
+
+				// If this is a spline, we need to merge the path geo into 
+				// positions, so we can snap to the start or end of the spline.
+				if (element instanceof SplineMesh) {
+					let mesh_position = positions.slice();			
+					let path_positions = mesh.pathLine.geometry.attributes.position.array;
+
+					positions = new Float32Array(mesh_position.length + path_positions.length);
+					positions.set(mesh_position);
+					positions.set(path_positions, mesh_position.length);
+				} else if (positions.length && (positions.length % 3) == 0) {
+					for (let i = 0; i < positions.length; i += 3) {
+						let vec = [positions[i], positions[i+1], positions[i+2]];
+						if (!vectors.find(vec2 => vec.equals(vec2))) {
+							vectors.push(vec);
+						}
 					}
 				}
 			}
@@ -303,13 +380,14 @@ export const Vertexsnap = {
 		}
 	},
 	canvasClick: function(data) {
-		if (!data || data.type !== 'vertex') return;
+		if (!data) return;
+		if (data.type !== 'vertex' && ['locator', 'null_object'].includes(data.element?.type) == false) return;
 
 		if (Vertexsnap.step1) {
 			Vertexsnap.step1 = false
 			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			Vertexsnap.vertex_index = data.vertex_index;
-			Vertexsnap.move_origin = typeof data.vertex !== 'string' && data.vertex.allEqual(0);
+			Vertexsnap.move_origin = data.vertex instanceof Array ? data.vertex.allEqual(0) : false;
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.groups = Group.multi_selected;
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
@@ -328,7 +406,11 @@ export const Vertexsnap = {
 	},
 	getGlobalVertexPos(element, vertex) {
 		let vector = new THREE.Vector3();
-		vector.fromArray(vertex instanceof Array ? vertex : element.vertices[vertex]);
+		if (vertex instanceof Array) {
+			vector.fromArray(vertex);
+		} else if (typeof vertex == 'string') {
+			vector.fromArray(element.vertices[vertex]);
+		}
 		element.mesh.localToWorld(vector);
 		return vector;
 	},
@@ -406,7 +488,7 @@ export const Vertexsnap = {
 						Format.cube_size_limiter.clamp(obj)
 					}
 					if (obj.box_uv && obj.visibility) {
-						Canvas.updateUV(obj)
+						obj.preview_controller.updateUV(obj)
 					}
 				})
 			} else if (mode === 'move') {
@@ -432,9 +514,13 @@ export const Vertexsnap = {
 							obj.origin.V3_add(local_offset);
 						}
 						ignoreVectorAxes(local_offset);
-						var in_box = obj.moveVector(local_offset.toArray());
-						if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-							Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+						if (obj.moveVector) {
+							var in_box = obj.moveVector(local_offset.toArray());
+							if (!in_box && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+								Blockbench.showMessageBox({translateKey: 'canvas_limit_error'})
+							}
+						} else if (obj.position) {
+							obj.position.V3_add(local_offset.toArray());
 						}
 					}
 				})
@@ -581,6 +667,12 @@ export function moveElementsInSpace(difference, axis) {
 
 	Outliner.selected.forEach(el => {
 
+		if (el.getTypeBehavior('movable') == false) return;
+		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected && el.parent.getTypeBehavior('movable')) {
+			return;
+		}
+
+		// Mesh Vertex (and more ?) translation
 		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
@@ -630,7 +722,41 @@ export function moveElementsInSpace(difference, axis) {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
 
+		}
+		// Spline handle point translation
+		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
+
+			
+			let handle = el.getSelectedHandles(true)[0];
+			let selection_rotation = space == 3 && [...el.getHandleEuler(handle).combined].V3_toEuler();
+			let selected_vertices = el.getSelectedVertices();
+			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
+
+			let difference_vec = [0, 0, 0];
+			if (space == 2) {
+				difference_vec[axis] += difference;
+
+			} else if (space == 3) {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyEuler(selection_rotation);
+				difference_vec.V3_set(m.x, m.y, m.z);
+			} else {
+				let m = vector.set(0, 0, 0);
+				m[getAxisLetter(axis)] = difference;
+				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
+				difference_vec.V3_set(m.x, m.y, m.z);
+			}
+
+			selected_vertices.forEach(vkey => {
+				el.vertices[vkey].V3_add(difference_vec);
+				el.applyHandleModeOnVertex(vkey);
+			})
+
+
 		} else {
+
+			let old_position = el.position?.slice();
 		
 			if (space == 2 && !group_m) {
 				if (el.position) {
@@ -697,12 +823,29 @@ export function moveElementsInSpace(difference, axis) {
 					el.position.V3_add(m.x, m.y, m.z);
 				} 
 				if (move_origin) {
-					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) el.origin.V3_add(m.x, m.y, m.z);
+					if (el.getTypeBehavior('rotatable') && !el.position && el instanceof TextureMesh == false) {
+						el.origin.V3_add(m.x, m.y, m.z);
+					}
+				}
+			}
+
+			// Counter child positions
+			if (el.getTypeBehavior('parent') && el.getTypeBehavior('movable') && !el.getTypeBehavior('use_absolute_position')) {
+				for (let child of el.children) {
+					if (child.selected || !el.position) continue;
+					let position_delta = Reusable.vec2.fromArray(el.position.slice().V3_subtract(old_position));
+					position_delta.applyQuaternion(Reusable.quat1.copy(el.mesh.quaternion).invert());
+					child.position.V3_subtract(position_delta.toArray());
+
+					child.preview_controller.updateTransform(child);
 				}
 			}
 		}
 		if (el instanceof Cube) {
 			el.mapAutoUV()
+		}
+		if (el instanceof SplineMesh && BarItems.spline_selection_mode.value == "handles") {
+			el.refreshTubeFaces();
 		}
 	})
 	Canvas.updateView({
@@ -711,6 +854,16 @@ export function moveElementsInSpace(difference, axis) {
 		groups: Group.all.filter(g => g.selected),
 		group_aspects: {transform: true}
 	})
+}
+
+export function getSelectedMovingElements() {
+	let selection = Outliner.selected.filter(el => el.movable || el.getTypeBehavior('movable'));
+	for (let el of selection.slice()) {
+		if (el.getTypeBehavior('parent') && !el.getTypeBehavior('use_absolute_position')) {
+			selection.safePush(...el.children);
+		}
+	}
+	return selection;
 }
 
 export function getSpatialInterval(event = 0) {
@@ -792,8 +945,10 @@ export function rotateOnAxis(modify, axis, slider) {
 				obj.origin.V3_set(origin)
 			}
 		}
-		
-		if (!Group.first_selected && obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length > 0) {
+
+		let mesh_cond = obj instanceof Mesh && Project.mesh_selection[obj.uuid] && Project.mesh_selection[obj.uuid].vertices.length;
+		let spline_cond = obj instanceof SplineMesh && Project.spline_selection[obj.uuid] && Project.spline_selection[obj.uuid].vertices.length;
+		if (!Group.first_selected && (mesh_cond || spline_cond)) {
 
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
@@ -815,12 +970,18 @@ export function rotateOnAxis(modify, axis, slider) {
 			let vector = new THREE.Vector3();
 			let local_pivot = obj.mesh.worldToLocal(new THREE.Vector3().copy(Transformer.position))
 
-			Project.mesh_selection[obj.uuid].vertices.forEach(key => {
+			let verts;
+			if (mesh_cond) verts = Project.mesh_selection[obj.uuid].vertices
+			if (spline_cond) verts = Project.spline_selection[obj.uuid].vertices
+			verts.forEach(key => {
 				vector.fromArray(obj.vertices[key]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);
 				vector.add(local_pivot);
 				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+				if (obj instanceof SplineMesh) {
+					obj.applyHandleModeOnVertex(key);
+				}
 			})
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
@@ -911,6 +1072,11 @@ export function afterRotateOnAxis() {
 		})
 		Canvas.updateView({elements: Cube.selected, element_aspects: {transform: true, geometry: true}})
 	}
+	SplineMesh.selected.forEach((spline) => {
+		if (BarItems.spline_selection_mode.value == "handles") {
+			spline.refreshTubeFaces();
+		}
+	});
 }
 
 BARS.defineActions(function() {
@@ -920,7 +1086,7 @@ BARS.defineActions(function() {
 		condition: {
 			modes: ['edit', 'animate'],
 			tools: ['move_tool', 'resize_tool'],
-			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && Mesh.all.length === 0)
+			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && (Mesh.all.length === 0 || SplineMesh.all.length === 0))
 		},
 		category: 'transform',
 		value: 'parent',
@@ -928,7 +1094,7 @@ BARS.defineActions(function() {
 			global: true,
 			parent: true,
 			local: true,
-			normal: {condition: () => Mesh.selected.length, name: true}
+			normal: {condition: () => Mesh.selected.length || SplineMesh.selected.length, name: true}
 		},
 		onChange() {
 			updateSelection();
@@ -974,11 +1140,15 @@ BARS.defineActions(function() {
 
 	function moveOnAxis(modify, axis) {
 		selected.forEach(function(obj, i) {
-			if (obj instanceof Mesh && obj.getSelectedVertices().length) {
+			if ((obj instanceof Mesh || obj instanceof SplineMesh) && obj.getSelectedVertices().length) {
 
 				let vertices = obj.getSelectedVertices();
 				vertices.forEach(vkey => {
 					obj.vertices[vkey][axis] = modify(obj.vertices[vkey][axis]);
+				
+					if (obj instanceof SplineMesh) {
+						obj.applyHandleModeOnVertex(vkey);
+					}
 				})
 				obj.preview_controller.updateGeometry(obj);
 
@@ -1005,7 +1175,7 @@ BARS.defineActions(function() {
 	}
 	function getPos(axis) {
 		let element = Outliner.selected[0];
-		if (element instanceof Mesh && element.getSelectedVertices().length) {
+		if ((element instanceof Mesh || element instanceof SplineMesh) && element.getSelectedVertices().length) {
 			let vertices = element.getSelectedVertices();
 			let sum = 0;
 			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);
@@ -1085,7 +1255,7 @@ BARS.defineActions(function() {
 
 
 	function resizeOnAxis(modify, axis) {
-		selected.forEach(function(obj, i) {
+		Outliner.selected.forEach(function(obj, i) {
 			if (obj.getTypeBehavior('resizable')) {
 				obj.resize(modify, axis, false, true, obj instanceof Mesh)
 			} else if (obj.getTypeBehavior('scalable')) {
@@ -1445,7 +1615,13 @@ BARS.defineActions(function() {
 		} else {
 			rotation_objects.forEach(function(obj, i) {
 				let val = modify(obj.origin[axis]);
-				obj.origin[axis] = val;
+				if (obj.transferOrigin && !obj.getTypeBehavior('use_absolute_position')) {
+					let origin_copy = obj.origin.slice();
+					origin_copy[axis] = val;
+					obj.transferOrigin(origin_copy);
+				} else {
+					obj.origin[axis] = val;
+				}
 			})
 			Canvas.updateView({elements: rotation_objects, element_aspects: {transform: true, geometry: true}, selection: true})
 		}
@@ -1536,6 +1712,65 @@ BARS.defineActions(function() {
 	})
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
+	
+	new NumSlider('slider_spline_handle_tilt', {
+		name: tl('action.slider_spline_handle_tilt'),
+		description: tl('action.slider_spline_handle_tilt.desc'),
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].tilt;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.tilt);
+					handle.tilt = v;
+					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	new NumSlider('slider_spline_handle_size', {
+		name: tl('action.slider_spline_handle_size'),
+		description: tl('action.slider_spline_handle_size.desc'),
+		category: 'transform',
+		condition: () => Modes.edit && SplineMesh.selected.length && SplineMesh.selected[0].getSelectedHandles().length,
+		getInterval: getSpatialInterval,
+		get: function () {
+			let hKey = SplineMesh.selected[0].getSelectedHandles()[0];
+			return SplineMesh.selected[0].handles[hKey].size;
+		},
+		change: function (modify) {
+			SplineMesh.selected.forEach((obj, i) => {
+				obj.getSelectedHandles().forEach((hKey, i) => {
+					let handle = obj.handles[hKey];
+					var v = modify(handle.size);
+					handle.size = Math.max(0, v);
+					obj.preview_controller.updateGeometry(obj);
+					obj.refreshTubeFaces();
+				})
+			})
+		},
+		onBefore: function () {
+			Undo.initEdit({ elements: SplineMesh.selected })
+		},
+		onAfter: function () {
+			Undo.finishEdit('Adjust tilt of selected handle')
+		}
+	})
+	let slider_vector_spline_resolution = [BarItems.slider_spline_handle_tilt, BarItems.slider_spline_handle_size];
+	slider_vector_spline_resolution.forEach(slider => slider.slider_vector = slider_vector_spline_resolution);
 
 	new Action('rotate_x_cw', {
 		name: tl('action.rotate_cw', 'X'),
@@ -1626,7 +1861,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(0, true);
 			Undo.finishEdit('Center selection on X axis')
 		}
@@ -1637,7 +1872,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(1, true);
 			Undo.finishEdit('Center selection on Y axis')
 		}
@@ -1648,7 +1883,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(2, true);
 			Undo.finishEdit('Center selection on Z axis')
 		}
@@ -1657,7 +1892,7 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, outliner: true});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			centerElements(0, false);
 			centerElements(2, true);
 			Undo.finishEdit('Center selection')
@@ -1735,35 +1970,35 @@ BARS.defineActions(function() {
 	new Toggle('toggle_visibility', {
 		icon: 'visibility',
 		category: 'transform',
-		onChange() {toggleCubeProperty('visibility')}
+		onChange() {toggleElementProperty('visibility')}
 	})
 	new Toggle('toggle_locked', {
 		icon: 'fas.fa-lock',
 		category: 'transform',
-		onChange() {toggleCubeProperty('locked')}
+		onChange() {toggleElementProperty('locked')}
 	})
 	new Toggle('toggle_export', {
 		icon: 'save',
 		category: 'transform',
-		onChange() {toggleCubeProperty('export')}
+		onChange() {toggleElementProperty('export')}
 	})
 	new Toggle('toggle_autouv', {
 		icon: 'fullscreen_exit',
 		category: 'transform',
 		condition: {modes: ['edit']},
-		onChange() {toggleCubeProperty('autouv')}
+		onChange() {toggleElementProperty('autouv')}
 	})
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
 		condition: () => Format.java_cube_shading_properties && Modes.edit,
-		onChange() {toggleCubeProperty('shade')}
+		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {
 		icon: 'icon-mirror_x',
 		category: 'transform',
 		condition: () => (Modes.edit || Modes.paint) && UVEditor.isBoxUV(),
-		onChange() {toggleCubeProperty('mirror_uv')}
+		onChange() {toggleElementProperty('mirror_uv')}
 	})
 	function updateToggle(toggle, key) {
 		if (!Condition(toggle.condition)) return;
@@ -2033,5 +2268,7 @@ Object.assign(window, {
 	getRotationObjects,
 	getPivotObjects,
 	rotateOnAxis,
-	afterRotateOnAxis
+	afterRotateOnAxis,
+	selectSplinePoints,
+	tiltSplineHandle
 });

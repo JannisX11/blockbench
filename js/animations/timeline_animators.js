@@ -1,4 +1,5 @@
 import Wintersky from 'wintersky';
+import { THREE } from '../lib/libs';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -52,10 +53,10 @@ export class GeneralAnimator {
 		return this;
 	}
 	addKeyframe(data, uuid) {
-		var channel = data.channel;
+		let channel = data.channel;
 		if (typeof channel == 'number') channel = Object.keys(this.channels)[channel];
 		if (channel && this[channel]) {
-			var kf = new Keyframe(data, uuid, this);
+			let kf = new Keyframe(data, uuid, this);
 			this[channel].push(kf);
 			kf.animator = this;
 			return kf;
@@ -64,13 +65,14 @@ export class GeneralAnimator {
 	createKeyframe(value, time, channel, undo, select) {
 		if (!this.channels[channel]) return;
 		if (typeof time !== 'number') time = Timeline.time;
-		var keyframes = [];
+		let keyframes = [];
 		if (undo) {
 			Undo.initEdit({keyframes})
 		}
-		var keyframe = new Keyframe({
+		let keyframe = new Keyframe({
 			channel: channel,
-			time: time
+			time: time,
+			interpolation: settings.default_keyframe_interpolation.value,
 		}, null, this);
 		keyframes.push(keyframe);
 
@@ -89,7 +91,7 @@ export class GeneralAnimator {
 		if (select !== false) {
 			keyframe.select();
 		}
-		var deleted = [];
+		let deleted = [];
 		delete keyframe.time_before;
 		keyframe.replaceOthers(deleted);
 		if (deleted.length && Undo.current_save) {
@@ -345,13 +347,13 @@ export class BoneAnimator extends GeneralAnimator {
 		if (arr) {
 			if (arr.length === 4) {
 				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
-				bone.rotation.x -= added_rotation.x * multiplier
-				bone.rotation.y -= added_rotation.y * multiplier
+				bone.rotation.x += added_rotation.x * multiplier
+				bone.rotation.y += added_rotation.y * multiplier
 				bone.rotation.z += added_rotation.z * multiplier
 			} else {
-				arr.forEach((n, i) => {
-					bone.rotation[getAxisLetter(i)] += Math.degToRad(n) * (i == 2 ? 1 : -1) * multiplier
-				})
+				bone.rotation.x += Math.degToRad(arr[0]) * multiplier
+				bone.rotation.y += Math.degToRad(arr[1]) * multiplier
+				bone.rotation.z += Math.degToRad(arr[2]) * multiplier
 			}
 		}
 		if (this.rotation_global) {
@@ -365,7 +367,7 @@ export class BoneAnimator extends GeneralAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.group.mesh
 		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
+			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
 		}
@@ -536,6 +538,120 @@ export class BoneAnimator extends GeneralAnimator {
 		new MenuSeparator('presets'),
 		'apply_animation_preset'
 	])
+// -
+
+class ArmatureBoneAnimator extends BoneAnimator {
+	constructor(uuid, animation, name) {
+		super(uuid, animation);
+		this.uuid = uuid;
+		this._name = name;
+
+		this.solver = new FIK.Structure3D(scene);
+		this.chain = new FIK.Chain3D();
+
+		this.position = [];
+	}
+	get name() {
+		var element = this.getElement();
+		if (element) return element.name;
+		return this._name;
+	}
+	set name(name) {
+		this._name = name;
+	}
+	getElement() {
+		this.element = OutlinerNode.uuids[this.uuid];
+		return this.element
+	}
+	select(element_is_selected) {
+		if (!this.getElement()) {
+			unselectAllElements();
+			return this;
+		}
+		if (this.getElement().locked) return;
+
+		if (element_is_selected !== true && this.element) {
+			this.element.select();
+		}
+		GeneralAnimator.prototype.select.call(this);
+		
+		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
+			var nearest;
+			this[Toolbox.selected.animation_channel].forEach(kf => {
+				if (Math.abs(kf.time - Timeline.time) < 0.002) {
+					nearest = kf;
+				}
+			})
+			if (nearest) {
+				nearest.select();
+			}
+		}
+
+		if (this.element && this.element.parent && this.element.parent !== 'root') {
+			this.element.parent.openUp();
+		}
+		return this;
+	}
+	doRender() {
+		this.getElement()
+		return (this.element && this.element && this.element.mesh);
+	}
+	displayPosition(arr, multiplier = 1) {
+		var bone = this.element.mesh
+		if (arr) {
+			bone.position.x += arr[0] * multiplier;
+			bone.position.y += arr[1] * multiplier;
+			bone.position.z += arr[2] * multiplier;
+		}
+		return this;
+	}
+	displayRotation(arr, multiplier = 1) {
+		var mesh = this.element.mesh
+		if (arr) {
+			if (arr.length === 4) {
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				mesh.rotation.x += added_rotation.x * multiplier
+				mesh.rotation.y += added_rotation.y * multiplier
+				mesh.rotation.z += added_rotation.z * multiplier
+			} else {
+				mesh.rotation.x += Math.degToRad(arr[0]) * multiplier
+				mesh.rotation.y += Math.degToRad(arr[1]) * multiplier
+				mesh.rotation.z += Math.degToRad(arr[2]) * multiplier
+			}
+		}
+		return this;
+	}
+	displayScale(arr, multiplier = 1) {
+		if (!arr) return this;
+		var bone = this.element.mesh
+		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
+		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
+		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
+		return this;
+	}
+	displayFrame(multiplier = 1) {
+		if (!this.doRender()) return;
+		this.getElement()
+
+		if (!this.muted.position) {
+			this.displayPosition(this.interpolate('position'), multiplier);
+		}
+		if (!this.muted.rotation) {
+			this.displayRotation(this.interpolate('rotation'), multiplier);
+		}
+		if (!this.muted.scale) {
+			this.displayScale(this.interpolate('scale'), multiplier);
+		}
+		this.element.mesh.updateMatrixWorld();
+	}
+}
+	ArmatureBoneAnimator.prototype.type = 'armature_bone';
+	ArmatureBoneAnimator.prototype.channels = {
+		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
+		rotation: {name: tl('timeline.rotation'), mutable: true, transform: true, max_data_points: 2},
+		scale: {name: tl('timeline.scale'), mutable: true, transform: true, max_data_points: 2},
+	}
+	ArmatureBone.animator = ArmatureBoneAnimator;
 
 export class NullObjectAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
@@ -596,7 +712,7 @@ export class NullObjectAnimator extends BoneAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.element.mesh
 		if (arr) {
-			bone.position.x -= arr[0] * multiplier;
+			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
 		}

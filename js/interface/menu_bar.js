@@ -64,7 +64,7 @@ export const MenuBar = {
 					let redact = settings.streamer_mode.value;
 					for (let key in Formats) {
 						let format = Formats[key];
-						if (!format.show_in_new_list) continue;
+						if (format.show_in_new_list === false) continue;
 						arr.push({
 							id: format.id,
 							name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
@@ -189,6 +189,7 @@ export const MenuBar = {
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
+				'export_stl',
 				'export_collada',
 				'export_modded_animations',
 				'upload_sketchfab',
@@ -241,13 +242,8 @@ export const MenuBar = {
 			'redo',
 			'edit_history',
 			new MenuSeparator('add_element'),
-			'add_cube',
-			'add_mesh',
+			'add_element',
 			'add_group',
-			'add_billboard',
-			'add_locator',
-			'add_null_object',
-			'add_texture_mesh',
 			new MenuSeparator('modify_elements'),
 			'duplicate',
 			'rename',
@@ -310,6 +306,7 @@ export const MenuBar = {
 			'merge_vertices',
 			'dissolve_edges',
 			'solidify_mesh_selection',
+			'set_vertex_weights',
 			new MenuSeparator('element'),
 			'apply_mesh_rotation',
 			'split_mesh',

@@ -1,6 +1,9 @@
-import LZUTF8 from './../../../lib/lzutf8'
+import { invertMolang } from '../../util/molang';
+import { compareVersions } from '../../util/util';
+import LZUTF8 from '../../lib/lzutf8'
+import { fs } from '../../native_apis';
 
-const FORMATV = '4.10';
+const FORMATV = '5.0';
 
 function processHeader(model) {
 	if (!model.meta) {
@@ -62,6 +65,23 @@ function processCompatibility(model) {
 		if (isApp && compareVersions('4.10', model.meta.format_version)) {
 			for (let texture of model.textures) {
 				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
+			}
+		}
+	}
+	if (model.animations && compareVersions('5.0', model.meta.format_version)) {
+		for (let anim of model.animations) {
+			for (let uuid in anim.animators) {
+				let animator = anim.animators[uuid]
+				for (let keyframe of animator.keyframes) {
+					for (let data_point of keyframe.data_points) {
+						if ((keyframe.channel == 'position' || keyframe.channel == 'rotation') && data_point.x) {
+							data_point.x = invertMolang(data_point.x);
+						}
+						if (keyframe.channel == 'rotation' && data_point.y) {
+							data_point.y = invertMolang(data_point.y);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -207,12 +227,20 @@ var codec = new Codec('project', {
 				var all_collection_children = options.collection_only.getAllChildren();
 			}
 			model.elements = [];
-			elements.forEach(el => {
+			Outliner.elements.forEach(el => {
 				if (options.collection_only && !all_collection_children.includes(el)) return;
 				let copy = el.getSaveCopy(model.meta);
 				model.elements.push(copy);
 			})
-			model.outliner = compileGroups(true);
+			model.groups = [];
+			Group.all.forEach(group => {
+				if (options.collection_only && !all_collection_children.includes(group)) return;
+				let copy = group.getSaveCopy(false);
+				model.groups.push(copy);
+			});
+
+			model.outliner = Outliner.toJSON(true);
+
 			if (options.collection_only) {
 				function filterList(list) {
 					list.forEachReverse(item => {
@@ -439,7 +467,7 @@ var codec = new Codec('project', {
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
-			model.elements.forEach(function(template) {
+			model.elements.forEach((template) => {
 
 				let copy = OutlinerElement.fromSave(template, true)
 				for (let face in copy.faces) {
@@ -455,8 +483,13 @@ var codec = new Codec('project', {
 				copy.init()
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				new Group(template, template.uuid).init();
+			})
+		}
 		if (model.outliner) {
-			parseGroups(model.outliner)
+			Outliner.loadJSON(model.outliner)
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
@@ -578,11 +611,13 @@ var codec = new Codec('project', {
 		let uuid_map = {};
 		let tex_uuid_map = {};
 		let new_elements = [];
+		let new_groups = [];
 		let new_textures = [];
 		let new_animations = [];
 		let imported_format = Formats[model.meta.model_format];
 		Undo.initEdit({
 			elements: new_elements,
+			groups: new_groups,
 			textures: new_textures,
 			animations: Format.animation_mode && new_animations,
 			outliner: true,
@@ -706,6 +741,15 @@ var codec = new Codec('project', {
 				new_elements.push(copy);
 			})
 		}
+		if (model.groups) {
+			model.groups.forEach((template) => {
+				if (Group.all.find(g => g.uuid == template.uuid)) {
+					template.uuid = uuid_map[template.uuid] = guid();
+				}
+				let group = new Group(template, template.uuid).init();
+				new_groups.push(group);
+			})
+		}
 		if (model.outliner) {
 			// Handle existing UUIDs
 			function processList(list) {
@@ -717,8 +761,8 @@ var codec = new Codec('project', {
 						}
 					} else if (node && node.uuid) {
 						// Group
-						if (Group.all.find(g => g.uuid == node.uuid)) {
-							node.uuid = uuid_map[node.uuid] = guid();
+						if (uuid_map[node.uuid]) {
+							node.uuid = uuid_map[node.uuid];
 						}
 						if (node.children) processList(node.children);
 					}
@@ -726,12 +770,17 @@ var codec = new Codec('project', {
 			}
 			processList(model.outliner);
 
-			parseGroups(model.outliner, true);
+			Outliner.loadJSON(model.outliner, true);
 		}
 		if (model.collections instanceof Array) {
 			for (let collection_data of model.collections) {
 				let collection = new Collection(collection_data, collection_data.uuid);
 				collection.add();
+				for (let i = 0; i < collection.children.length; i++) {
+					if (uuid_map[collection.children[i]]) {
+						collection.children[i] = uuid_map[collection.children[i]];
+					}
+				}
 			}
 		}
 		if (model.animations && Format.animation_mode) {

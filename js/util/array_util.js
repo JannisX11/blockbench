@@ -61,7 +61,36 @@ Array.prototype.findInArray = function(key, value) {
 	}
 	return false;
 }
+Array.prototype.findHighest = function(callback) {
+	let highest_value = -Infinity, highest;
+	for (let item of this) {
+		let result = callback(item);
+		if (result > highest_value) {
+			highest_value = result;
+			highest = item;
+		}
+	}
+	return highest;
+}
 Array.prototype.last = function() {
+	return this[this.length-1];
+}
+if (!Array.prototype.findLast) {
+	Array.prototype.findLast = function(callback) {
+		for (let i = this.length-1; i >= 0; i--) {
+			let result = callback(this[i], i);
+			if (result) return this[i];
+		}
+	}
+	Array.prototype.findLastIndex = function(callback) {
+		for (let i = this.length-1; i >= 0; i--) {
+			let result = callback(this[i], i);
+			if (result) return i;
+		}
+	}
+}
+Array.prototype.atWrapped = function(index) {
+	index = (index + this.length*5) % this.length;
 	return this[this.length-1];
 }
 Array.prototype.positiveItems = function() {
@@ -153,6 +182,9 @@ Array.prototype.V3_divide = function(x, y, z) {
 }
 Array.prototype.V3_toThree = function() {
 	return new THREE.Vector3(this[0], this[1], this[2]);
+}
+Array.prototype.V3_toEuler = function() {
+	return new THREE.Euler().fromArray(this);
 }
 Array.prototype.V2_set = function(x, y) {
 	if (x instanceof Array) return this.V2_set(...x);

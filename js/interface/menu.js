@@ -5,8 +5,8 @@ export class MenuSeparator {
 		this.id = id || '';
 		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
 		if (label) {
-			label = tl(label);
-			this.menu_node.append(Interface.createElement('label', {}, label));
+			this.label = tl(label);
+			this.menu_node.append(Interface.createElement('label', {}, this.label));
 			this.menu_node.classList.add('has_label');
 		}
 	}

@@ -17,18 +17,39 @@ import { tl } from "../languages";
 import { Panel } from "../interface/panels";
 import { Codecs } from "../io/codec";
 
+interface CollectionOptions {
+	children?: string[]
+	name?: string
+	export_codec?: string
+	export_path?: string
+	visibility?: boolean
+}
 
+/**
+ * Collections are "selection presets" for a set of groups and elements in your project, independent from outliner hierarchy
+ */
 export class Collection {
 	uuid: string
 	name: string
 	selected: boolean
+	/**
+	 * List of direct children, referenced by UUIDs
+	 */
 	children: string[]
 	export_path: string
 	codec: string
 	menu: Menu
+	export_codec: string
+	visibility: boolean
 
-	static properties: Record<string, Property>
+	static properties: Record<string, Property<any>>
+	/**
+	 * Get all collections
+	 */
 	static all: Collection[]
+	/**
+	 * Get selected collections
+	 */
 	static selected: Collection[]
 
 	constructor(data: CollectionOptions, uuid?: string) {
@@ -40,13 +61,13 @@ export class Collection {
 		}
 		if (data) this.extend(data);
 	}
-	extend(data: CollectionOptions) {
+	extend(data: CollectionOptions): this {
 		for (var key in Collection.properties) {
 			Collection.properties[key].merge(this, data)
 		}
 		return this;
 	}
-	select(event?: KeyboardEvent | MouseEvent) {
+	select(event?: KeyboardEvent | MouseEvent): this {
 		this.selected = true;
 		if ((!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) || Modes.animate) {
 			unselectAllElements();
@@ -86,6 +107,9 @@ export class Collection {
 		this.select(event);
 		Undo.finishSelection('Select collection');
 	}
+	/**
+	 * Get all direct children
+	 */
 	getChildren(): OutlinerNode[] {
 		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
 	}
@@ -93,6 +117,9 @@ export class Collection {
 		Collection.all.safePush(this);
 		return this;
 	}
+	/**
+	 * Adds the current outliner selection to this collection
+	 */
 	addSelection(): this {
 		if (Group.multi_selected.length) {
 			for (let group of Group.multi_selected) {
@@ -106,6 +133,9 @@ export class Collection {
 		}
 		return this;
 	}
+	/**
+	 * Returns the visibility of the first contained node that supports visibility. Otherwise returns true.
+	 */
 	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
 			return node && 'visibility' in node && typeof node.visibility == 'boolean';
@@ -113,6 +143,9 @@ export class Collection {
 		// @ts-ignore
 		return match ? match.visibility : true;
 	}
+	/**
+	 * Get all children, including indirect ones
+	 */
 	getAllChildren(): OutlinerNode[] {
 		let children = this.getChildren();
 		let nodes = [];
@@ -124,13 +157,17 @@ export class Collection {
 		}
 		return nodes;
 	}
+	/**
+	 * Toggle visibility of everything in the collection
+	 * @param event If the alt key is pressed, the result is inverted and the visibility of everything but the collection will be toggled
+	 */
 	toggleVisibility(event: KeyboardEvent | MouseEvent): void {
 		let children = this.getChildren();
 		if (!children.length) return;
 		let groups = [];
 		let elements = [];
-		function update(node) {
-			if (typeof node.visibility != 'boolean') return;
+		function update(node: OutlinerNode) {
+			if ('visibility' in node == false || typeof node.visibility != 'boolean') return;
 			if (node instanceof Group) {
 				groups.push(node);
 			} else {
@@ -157,6 +194,9 @@ export class Collection {
 		Canvas.updateView({elements, element_aspects: {visibility: true}});
 		Undo.finishEdit('Toggle collection visibility');
 	}
+	/**
+	 * Opens the context menu
+	 */
 	showContextMenu(event) {
 		if (!this.selected) this.clickSelect(event);
 		this.menu.open(event, this);
@@ -181,6 +221,9 @@ export class Collection {
 		}
 		return copy;
 	}
+	/**
+	 * Opens the properties dialog
+	 */
 	propertiesDialog() {
 		/**
 		 * Name

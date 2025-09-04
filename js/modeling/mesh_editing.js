@@ -1,102 +1,7 @@
-export function sameMeshEdge(edge_a, edge_b) {
-	return edge_a.equals(edge_b) || (edge_a[0] == edge_b[1] && edge_a[1] == edge_b[0])
-}
-
-export const ProportionalEdit = {
-	vertex_weights: {},
-	calculateWeights(mesh) {
-		if (!BarItems.proportional_editing.value) return;
-	
-		let selected_vertices = mesh.getSelectedVertices();
-		let {range, falloff, selection} = ProportionalEdit.config;
-		let linear_distance = selection == 'linear';
-		
-		let all_mesh_connections;
-		if (!linear_distance) {
-			all_mesh_connections = {};
-			for (let fkey in mesh.faces) {
-				let face = mesh.faces[fkey];
-				face.getEdges().forEach(edge => {
-					if (!all_mesh_connections[edge[0]]) {
-						all_mesh_connections[edge[0]] = [edge[1]];
-					} else {
-						all_mesh_connections[edge[0]].safePush(edge[1]);
-					}
-					if (!all_mesh_connections[edge[1]]) {
-						all_mesh_connections[edge[1]] = [edge[0]];
-					} else {
-						all_mesh_connections[edge[1]].safePush(edge[0]);
-					}
-				})
-			}
-		}
-
-		ProportionalEdit.vertex_weights[mesh.uuid] = {};
-	
-		for (let vkey in mesh.vertices) {
-			if (selected_vertices.includes(vkey)) continue;
-	
-			let distance = Infinity;
-			if (linear_distance) {
-				// Linear Distance
-				selected_vertices.forEach(vkey2 => {
-					let pos1 = mesh.vertices[vkey];
-					let pos2 = mesh.vertices[vkey2];
-					let distance_square = Math.pow(pos1[0] - pos2[0], 2) + Math.pow(pos1[1] - pos2[1], 2) + Math.pow(pos1[2] - pos2[2], 2);
-					if (distance_square < distance) {
-						distance = distance_square;
-					}
-				})
-				distance = Math.sqrt(distance);
-			} else {
-				// Connection Distance
-				let found_match_depth = 0;
-				let scanned = [];
-				let frontier = [vkey];
-	
-				depth_crawler:
-				for (let depth = 1; depth <= range; depth++) {
-					let new_frontier = [];
-					for (let vkey1 of frontier) {
-						let connections = all_mesh_connections[vkey1]?.filter(vkey2 => !scanned.includes(vkey2));
-						if (!connections || connections.length == 0) continue;
-						scanned.push(...connections);
-						new_frontier.push(...connections);
-					}
-					for (let vkey2 of new_frontier) {
-						if (selected_vertices.includes(vkey2)) {
-							found_match_depth = depth;
-							break depth_crawler;
-						}
-					}
-					frontier = new_frontier;
-				}
-				if (found_match_depth) {
-					distance = found_match_depth;
-				}
-			}
-			if (distance > range) continue;
-	
-			let blend = 1 - (distance / (linear_distance ? range : range+1));
-			switch (falloff) {
-				case 'hermite_spline': blend = Math.hermiteBlend(blend); break;
-				case 'constant': blend = 1; break;
-			}
-			ProportionalEdit.vertex_weights[mesh.uuid][vkey] = blend;
-		}
-	},
-	editVertices(mesh, per_vertex) {
-		if (!BarItems.proportional_editing.value) return;
-
-		let selected_vertices = mesh.getSelectedVertices();
-		for (let vkey in mesh.vertices) {
-			if (selected_vertices.includes(vkey)) continue;
-	
-			let blend = ProportionalEdit.vertex_weights[mesh.uuid][vkey];
-			per_vertex(vkey, blend);
-		}
-	}
-}
+import './mesh/attach_armature'
+import { ProportionalEdit } from './mesh/proportional_edit';
+import './mesh/set_vertex_weights'
+import { sameMeshEdge } from './mesh/util';
 
 export class KnifeToolContext {
 	/**
@@ -861,19 +766,17 @@ export class KnifeToolCubeContext {
 }
 KnifeToolCubeContext.map.magFilter = KnifeToolCubeContext.map.minFilter = THREE.NearestFilter;
 
-export async function autoFixMeshEdit() {
-	let meshes = Mesh.selected;
-	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
-
-	// Merge Vertices
+// this takes forever to complete on larger meshes, need to see how it can be optimized
+export function gatherGeoOverlaps(meshes, vertexGatherer) {
 	let overlaps = {};
 	let e = 0.004;
 	meshes.forEach(mesh => {
 		let mesh_overlaps = {};
-		let vertices = mesh.getSelectedVertices();
-		for (let vkey of vertices) {
+
+		for (let vkey of vertexGatherer(mesh)) {
 			let vertex = mesh.vertices[vkey];
 			let matches = [];
+
 			for (let vkey2 in mesh.vertices) {
 				if (vkey2 == vkey || mesh_overlaps[vkey2]) continue;
 				let vertex2 = mesh.vertices[vkey2];
@@ -882,12 +785,70 @@ export async function autoFixMeshEdit() {
 					matches.push(vkey2);
 				}
 			}
+			
 			if (matches.length) {
 				mesh_overlaps[vkey] = matches;
 			}
 		}
 		if (Object.keys(mesh_overlaps).length) overlaps[mesh.uuid] = mesh_overlaps;
 	})
+
+	return overlaps;
+}
+
+export function mergeVerticesOverlaps(meshes, overlaps) {
+	let merge_counter = 0;
+	let cluster_counter = 0;
+	for (let mesh_id in overlaps) {
+		let mesh = meshes.find(m => m.uuid == mesh_id);
+		let selected_vertices = mesh.getSelectedVertices(true);
+		for (let first_vertex in overlaps[mesh_id]) {
+			let other_vertices = overlaps[mesh_id][first_vertex];
+			cluster_counter++;
+
+			for (let vkey of other_vertices) {
+				for (let fkey in mesh.faces) {
+					let face = mesh.faces[fkey];
+					let index = face.vertices.indexOf(vkey);
+					if (index === -1) continue;
+
+					if (face.vertices.includes(first_vertex)) {
+						face.vertices.remove(vkey);
+						delete face.uv[vkey];
+						if (face.vertices.length < 2) {
+							delete mesh.faces[fkey];
+						} else if (face.vertices.length == 2) {
+							// Find face that overlaps the remaining edge
+							for (let fkey2 in mesh.faces) {
+								let face2 = mesh.faces[fkey2];
+								if (face2.vertices.length >= 3 && face2.vertices.includes(face.vertices[0]) && face2.vertices.includes(face.vertices[1])) {
+									delete mesh.faces[fkey];
+								}
+							}
+						}
+					} else {
+						let uv = face.uv[vkey];
+						face.vertices.splice(index, 1, first_vertex);
+						face.uv[first_vertex] = uv;
+						delete face.uv[vkey];
+					}
+				}
+				delete mesh.vertices[vkey];
+				selected_vertices.remove(vkey);
+				merge_counter++;
+			}
+		}
+	}
+	return [merge_counter, cluster_counter];
+}
+
+export async function autoFixMeshEdit() {
+	let meshes = Mesh.selected;
+	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
+
+	// Merge Vertices
+	let overlaps = gatherGeoOverlaps(meshes, (mesh) => mesh.getSelectedVertices());
+
 	if (Object.keys(overlaps).length) {
 		await new Promise(resolve => {Blockbench.showMessageBox({
 			title: 'message.auto_fix_mesh_edit.title',
@@ -904,51 +865,12 @@ export async function autoFixMeshEdit() {
 
 				let meshes = Mesh.selected.filter(m => overlaps[m.uuid]);
 				Undo.initEdit({ elements: meshes });
-				let merge_counter = 0;
-				let cluster_counter = 0;
-				for (let mesh_id in overlaps) {
-					let mesh = Mesh.selected.find(m => m.uuid == mesh_id);
-					let selected_vertices = mesh.getSelectedVertices(true);
-					for (let first_vertex in overlaps[mesh_id]) {
-						let other_vertices = overlaps[mesh_id][first_vertex];
-						cluster_counter++;
 
-						for (let vkey of other_vertices) {
-							for (let fkey in mesh.faces) {
-								let face = mesh.faces[fkey];
-								let index = face.vertices.indexOf(vkey);
-								if (index === -1) continue;
+				let results = mergeVerticesOverlaps(meshes, overlaps);
 
-								if (face.vertices.includes(first_vertex)) {
-									face.vertices.remove(vkey);
-									delete face.uv[vkey];
-									if (face.vertices.length < 2) {
-										delete mesh.faces[fkey];
-									} else if (face.vertices.length == 2) {
-										// Find face that overlaps the remaining edge
-										for (let fkey2 in mesh.faces) {
-											let face2 = mesh.faces[fkey2];
-											if (face2.vertices.length >= 3 && face2.vertices.includes(face.vertices[0]) && face2.vertices.includes(face.vertices[1])) {
-												delete mesh.faces[fkey];
-											}
-										}
-									}
-								} else {
-									let uv = face.uv[vkey];
-									face.vertices.splice(index, 1, first_vertex);
-									face.uv[first_vertex] = uv;
-									delete face.uv[vkey];
-								}
-							}
-							delete mesh.vertices[vkey];
-							selected_vertices.remove(vkey);
-							merge_counter++;
-						}
-					}
-				}
 				Undo.finishEdit('Auto-merge vertices')
 				Canvas.updateView({elements: meshes, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
-				Blockbench.showQuickMessage(tl('message.merged_vertices', [merge_counter, cluster_counter]), 2000);
+				Blockbench.showQuickMessage(tl('message.merged_vertices', [results[0], results[1]]), 2000);
 			}
 			resolve();
 		})})
@@ -1310,6 +1232,7 @@ BARS.defineActions(function() {
 		onConfirm(result) {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
+			const color = Math.floor(Math.random()*markerColors.length);
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
@@ -1322,7 +1245,7 @@ BARS.defineActions(function() {
 				let mesh = new Mesh({
 					name: result.shape,
 					vertices: {},
-					color: Math.floor(Math.random()*markerColors.length)
+					color
 				});
 				let group = getCurrentGroup();
 				if (group) {
@@ -1686,7 +1609,7 @@ BARS.defineActions(function() {
 			vertex: {name: true, icon: 'fiber_manual_record'},
 		},
 		icon_mode: true,
-		condition: () => Modes.edit && Mesh.hasAny() && Toolbox.selected.id != 'knife_tool',
+		condition: () => Modes.edit && Mesh.selected.length && Toolbox.selected.id != 'knife_tool',
 		onChange({value}) {
 			if (value == 'cluster') value = 'face';
 			if (value === previous_selection_mode) return;
@@ -2053,9 +1976,9 @@ BARS.defineActions(function() {
 	new Action('convert_to_mesh', {
 		icon: 'fa-gem',
 		category: 'edit',
-		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.selected.length)},
+		condition: {modes: ['edit'], features: ['meshes'], method: () => (Cube.hasSelected() || SplineMesh.hasSelected())},
 		click() {
-			Undo.initEdit({elements: Cube.selected, outliner: true});
+			Undo.initEdit({elements: [...Cube.selected, ...SplineMesh.selected], outliner: true});
 
 			let new_meshes = [];
 			Cube.selected.forEach(cube => {
@@ -2134,9 +2057,33 @@ BARS.defineActions(function() {
 				new_meshes.push(mesh);
 				selected.push(mesh);
 				cube.remove();
-			})
+			});
+
+			// Turn splines into meshes, half handled by the spline itself.
+			SplineMesh.selected.forEach(spline => {
+				let mesh = new Mesh({
+					name: spline.name,
+					color: spline.color,
+					origin: spline.origin,
+					rotation: spline.rotation,
+					vertices: []
+				})
+
+				let rotation_euler = new THREE.Euler(0, 0, 0, 'ZYX').fromArray(spline.rotation.map(Math.degToRad));
+				rotation_euler.reorder('XYZ');
+				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
+				mesh.smooth_shading = spline.smooth_shading;
+
+				spline.getTubeMesh(true, mesh);
+				
+				mesh.sortInBefore(spline).init();
+				new_meshes.push(mesh);
+				selected.push(mesh);
+				spline.remove();
+			});
+
 			updateSelection();
-			Undo.finishEdit('Convert cubes to meshes', {elements: new_meshes, outliner: true});
+			Undo.finishEdit('Convert elements to meshes', {elements: new_meshes, outliner: true});
 		}
 	})
 	new Action('apply_mesh_rotation', {
@@ -2201,7 +2148,7 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
+		condition: {modes: ['edit'], features: ['meshes'], selected: {mesh: true}, method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
 			function runEdit(amended, extend = 1, direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
@@ -2649,7 +2596,7 @@ BARS.defineActions(function() {
 	
 					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {
 						let vector = mesh.vertices[vkey].slice();
-						affected_faces = selected_faces.filter(face => {
+						let affected_faces = selected_faces.filter(face => {
 							return face.vertices.includes(vkey)
 						})
 						if (affected_faces.length == 0) return;
@@ -3625,53 +3572,6 @@ BARS.defineActions(function() {
 			import_obj_dialog.show();
 		}
 	})
-
-	new NumSlider('proportional_editing_range', {
-		category: 'edit',
-		condition: {modes: ['edit'], features: ['meshes']},
-		get() {
-			return ProportionalEdit.config.range
-		},
-		change(modify) {
-			ProportionalEdit.config.range = modify(ProportionalEdit.config.range);
-		},
-		onAfter() {
-			BarItems.proportional_editing.side_menu.save();
-		}
-	})
-	new Toggle('proportional_editing', {
-		icon: 'wifi_tethering',
-		category: 'edit',
-		condition: {modes: ['edit'], features: ['meshes']},
-		tool_config: new ToolConfig('proportional_editing_options', {
-			title: 'action.proportional_editing',
-			width: 400,
-			form: {
-				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
-				range: {type: 'number', label: 'dialog.proportional_editing.range', value: 8},
-				falloff: {type: 'select', label: 'dialog.proportional_editing.falloff', value: 'linear', options: {
-					linear: 'dialog.proportional_editing.falloff.linear',
-					hermite_spline: 'dialog.proportional_editing.falloff.hermite_spline',
-					constant: 'dialog.proportional_editing.falloff.constant',
-				}},
-				selection: {type: 'select', label: 'dialog.proportional_editing.selection', value: 'linear', options: {
-					linear: 'dialog.proportional_editing.selection.linear',
-					connections: 'dialog.proportional_editing.selection.connections',
-					//path: 'Connection Path',
-				}},
-			},
-			onOpen() {
-				this.setFormValues({enabled: BarItems.proportional_editing.value});
-			},
-			onFormChange(formResult) {
-				if (BarItems.proportional_editing.value != formResult.enabled) {
-					BarItems.proportional_editing.trigger();
-				}
-				BarItems.proportional_editing_range.update();
-			}
-		})
-	})
-	ProportionalEdit.config = BarItems.proportional_editing.tool_config.options;
 })
 
 Object.assign(window, {

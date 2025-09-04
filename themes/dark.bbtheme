@@ -1,28 +1,25 @@
-{
-	"id": "dark",
-	"name": "Default (Dark)",
-	"author": "Default",
-	"main_font": "",
-	"headline_font": "",
-	"code_font": "",
-	"css": "",
-	"colors": {
-		"ui": "#282c34",
-		"back": "#21252b",
-		"dark": "#17191d",
-		"border": "#181a1f",
-		"selected": "#474d5d",
-		"button": "#3a3f4b",
-		"bright_ui": "#f4f3ff",
-		"accent": "#3e90ff",
-		"frame": "#121418",
-		"text": "#cacad4",
-		"light": "#f4f3ff",
-		"accent_text": "#000006",
-		"subtle_text": "#848891",
-		"bright_ui_text": "#000006",
-		"grid": "#495061",
-		"wireframe": "#576f82",
-		"checkerboard": "#1c2026"
-	}
+/*
+id: default
+name: Default (Dark)
+author: Default
+*/
+body {
+	--color-ui: #1e2127;
+	--color-back: #181b1f;
+	--color-dark: #101316;
+	--color-border: #101316;
+	--color-selected: #3b3e49;
+	--color-elevated: #272a31;
+	--color-button: #33383f;
+	--color-bright_ui: #f4f3ff;
+	--color-accent: #3e90ff;
+	--color-frame: #0f1012;
+	--color-text: #cacad4;
+	--color-light: #f4f3ff;
+	--color-accent_text: #000006;
+	--color-bright_ui_text: #000006;
+	--color-subtle_text: #848891;
+	--color-grid: #495061;
+	--color-wireframe: #576f82;
+	--color-checkerboard: #14171b;
 }

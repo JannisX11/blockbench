@@ -1,3 +1,5 @@
+import { changeImageEditor } from "../desktop";
+import { currentwindow } from "../native_apis";
 import { Setting, Settings, SettingsProfile } from "./settings";
 import { addStartScreenSection } from "./start_screen";
 
@@ -70,6 +72,7 @@ function setupSettings() {
 	new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
 		Timeline.vue.show_all_handles = !val;
 	}});
+	new Setting('autocomplete_code',	{category: 'interface', value: true});
 	
 	//Preview 
 	new Setting('brightness',  		{category: 'preview', value: 50, type: 'number', min: 0, max: 400, onChange() {
@@ -79,7 +82,7 @@ function setupSettings() {
 		Canvas.updateShading()
 	}});
 	new Setting('antialiasing', 	{category: 'preview', value: true, requires_restart: true});
-	new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: false, requires_restart: true});
+	new Setting('antialiasing_bleed_fix', 	{category: 'preview', value: true, requires_restart: true});
 	new Setting('fov', 		  		{category: 'preview', value: 45, type: 'number', min: 1, max: 120, onChange(val) {
 		Preview.all.forEach(preview => preview.setFOV(val));
 	}});
@@ -158,13 +161,21 @@ function setupSettings() {
 		'face': tl('menu.paste.face'),
 		'mesh_selection': tl('menu.paste.mesh_selection'),
 	}});
-	new Setting('stretch_linked',		{category: 'edit', value: true});
-	new Setting('auto_keyframe',		{category: 'edit', value: true});
+	new Setting('stretch_linked',			{category: 'edit', value: true});
+	new Setting('auto_keyframe',			{category: 'edit', value: true});
+	new Setting('detect_flipbook_textures',	{category: 'edit', value: true});
 
 	//Paint
-	new Setting('color_wheel',					{category: 'paint', value: false, onChange(value) {
-		Interface.Panels.color.vue.picker_type = value ? 'wheel' : 'box';
-	}});
+	new Setting('color_picker_style',			{category: 'paint', value: 'box', type: 'select',
+		options: {
+			box: 'menu.color_picker.picker_type.square',
+			wheel: 'menu.color_picker.picker_type.wheel',
+			normal: 'menu.color_picker.picker_type.normal',
+		},
+		onChange(value) {
+			Interface.Panels.color.vue.picker_type = value;
+		}
+	});
 	new Setting('brush_cursor_2d',			{category: 'paint', value: true});
 	new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
 		if (!value) scene.remove(Canvas.brush_outline);
@@ -186,7 +197,12 @@ function setupSettings() {
 		'tilt': tl('settings.brush_modifier.tilt'),
 		'none': tl('settings.brush_modifier.none'),
 	}});
-	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click', condition: isApp, icon: 'fas.fa-pen-square', click: function() {changeImageEditor(null) }});
+	new Setting('image_editor',  	{category: 'paint', value: false, type: 'click',
+		launch_setting: true,
+		condition: isApp,
+		icon: 'fas.fa-pen-square',
+		click: function() {changeImageEditor(null) }
+	});
 	
 	//Grid
 	new Setting('grids',				{category: 'grid', value: true, onChange() {Canvas.buildGrid()}});
@@ -224,14 +240,20 @@ function setupSettings() {
 	new Setting('nearest_rectangle_select',{category: 'snapping', value: false});
 	
 	//Defaults
-	new Setting('default_cube_size',		{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
-	new Setting('autouv',					{category: 'defaults', value: true});
-	new Setting('inherit_parent_color',		{category: 'defaults', value: false});
-	new Setting('create_rename', 			{category: 'defaults', value: false});
-	new Setting('show_only_selected_uv', 	{category: 'defaults', value: false});
-	new Setting('default_path', 			{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
-	new Setting('animation_snap',			{category: 'defaults', value: 24, type: 'number'});
-	new Setting('uniform_keyframe',			{category: 'defaults', value: true});
+	new Setting('default_cube_size',				{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
+	new Setting('autouv',							{category: 'defaults', value: true});
+	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
+	new Setting('create_rename', 					{category: 'defaults', value: false});
+	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
+	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
+	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
+		linear: 'action.keyframe_interpolation.linear',
+		catmullrom: 'action.keyframe_interpolation.catmullrom',
+		bezier: 'action.keyframe_interpolation.bezier',
+		step: 'action.keyframe_interpolation.step',
+	}});
+	new Setting('uniform_keyframe',					{category: 'defaults', value: true});
 	
 	//Dialogs
 	new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
@@ -278,8 +300,8 @@ function setupSettings() {
 	new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 	new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 
-	Blockbench.onUpdateTo('4.12.1', () => {
-		settings.antialiasing_bleed_fix.set(false);
+	Blockbench.onUpdateTo('5.0.0', () => {
+		settings.antialiasing_bleed_fix.set(true);
 	})
 }
 function setupSettingsProfiles() {

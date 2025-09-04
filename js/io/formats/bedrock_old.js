@@ -1,3 +1,5 @@
+import { currentwindow, dialog, electron, fs } from "../../native_apis";
+
 export function parseGeometry(data, args) {
 	let geometry_name = data.name.replace(/^geometry\./, '');
 
@@ -349,7 +351,7 @@ var codec = new Codec('bedrock_old', {
 				obj = autoParseJSON(data, false)
 			} catch (err) {
 				err = err+''
-				var answer = electron.dialog.showMessageBoxSync(currentwindow, {
+				var answer = dialog.showMessageBoxSync(currentwindow, {
 					type: 'warning',
 					buttons: [
 						tl('message.bedrock_overwrite_error.backup_overwrite'),
@@ -416,6 +418,7 @@ var format = new ModelFormat({
 	animation_controllers: true,
 	animation_mode: true,
 	locators: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {

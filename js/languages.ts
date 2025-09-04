@@ -1,4 +1,3 @@
-
 import cz from '../lang/cz.json';
 import de from '../lang/de.json';
 import en from '../lang/en.json';
@@ -12,12 +11,14 @@ import pl from '../lang/pl.json';
 import pt from '../lang/pt.json';
 import ru from '../lang/ru.json';
 import sv from '../lang/sv.json';
+import tr from '../lang/tr.json';
 import uk from '../lang/uk.json';
 import vi from '../lang/vi.json';
 import zh from '../lang/zh.json';
 import zh_tw from '../lang/zh_tw.json';
 
-export const data = {
+type Language = Record<string, string>;
+export const data: Record<string, Language> = {
 	cz: cz,
 	de: de,
 	en: en,
@@ -31,6 +32,7 @@ export const data = {
 	pt: pt,
 	ru: ru,
 	sv: sv,
+	tr: tr,
 	uk: uk,
 	vi: vi,
 	zh: zh,
@@ -43,7 +45,7 @@ export const data = {
  * @param variables Array of variables that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
  * @param default_value String value to default to if the translation is not available
  */
-export const tl = function(string: string, variables?: string | string[], default_value?: string): string {
+export const tl = function(string: string, variables?: string | number | (string|number)[], default_value?: string): string {
 	if (string && string.length > 100) return string;
 	var result = Language.data[string]
 	if (result && result.length > 0) {
@@ -61,6 +63,7 @@ export const tl = function(string: string, variables?: string | string[], defaul
 	} else if (default_value != undefined) {
 		return default_value;
 	} else {
+		//console.warn('Unable to find translation for key', string);
 		return string;
 	}
 }
@@ -94,6 +97,7 @@ export const Language = {
 		pt: 'Portugu\u00EAs (Portuguese)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
 		sv: 'Svenska (Swedish)',
+		tr: 'Türkçe (Turkish)',
 		uk: 'Українська (Ukrainian)',
 		vi: 'Tiếng việt (Vietnamese)',
 		zh: '\u4e2d\u6587 (Chinese)',//中文

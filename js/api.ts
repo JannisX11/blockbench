@@ -1,16 +1,43 @@
-import { MessageBox } from "./interface/dialog";
+import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
 import { compareVersions } from "./util/util";
-import { FileSystem } from "./file_system";
+import { Filesystem } from "./file_system";
+import { MessageBoxOptions } from "./interface/dialog";
+import { currentwindow, shell, SystemInfo } from "./native_apis";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
 
+
+interface ToastNotificationOptions {
+	/**
+	 * Text message
+	 */
+	text: string
+	/**
+	 * Blockbench icon string
+	 */
+	icon?: string
+	/**
+	 * Expire time in miliseconds
+	 */
+	expire?: number
+	/**
+	 * Background color, accepts any CSS color string
+	 */
+	color?: string
+	/**
+	 * Method to run on click. 
+	 * @returns Return `true` to close toast
+	 */
+	click?: (event: Event) => boolean
+}
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
 export const Blockbench = {
+	...window.Blockbench,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -109,6 +136,12 @@ export const Blockbench = {
 				node.classList.add('color_y');
 			} else if (color === 'z') {
 				node.classList.add('color_z');
+			}  else if (color === 'u') {
+				node.classList.add('color_u');
+			}   else if (color === 'v') {
+				node.classList.add('color_v');
+			}   else if (color === 'w') {
+				node.classList.add('color_w');
 			} else if (typeof color === 'string') {
 				node.style.color = color;
 			}
@@ -124,17 +157,8 @@ export const Blockbench = {
 			quick_message_box.remove()
 		}, time);
 	},
-	/**
-	 * 
-	 * @param {object} options Options
-	 * @param {string} options.text Text Message
-	 * @param {string} [options.icon] Blockbench icon string
-	 * @param {number} [options.expire] Expire time in miliseconds
-	 * @param {string} [options.color] Background color, accepts any CSS color string
-	 * @param {function} [options.click] Method to run on click. Return `true` to close toast
-	 * 
-	 */
-	showToastNotification(options) {
+
+	showToastNotification(options: ToastNotificationOptions) {
 		let notification = document.createElement('li');
 		notification.className = 'toast_notification';
 		if (options.icon) {
@@ -204,7 +228,7 @@ export const Blockbench = {
 			Blockbench.showQuickMessage(message)
 		}
 	},
-	showMessageBox(options, cb?: (button, result, event) => void) {
+	showMessageBox(options: MessageBoxOptions, cb?: (button: number | string, result?: Record<string, boolean>, event?: Event) => void) {
 		return new MessageBox(options, cb).show();
 	},
 	/**
@@ -223,7 +247,7 @@ export const Blockbench = {
 			console.warn('textPrompt: 4th argument is expected to be an object');
 		}
 		let answer = await new Promise((resolve) => {
-			let form: Record<string, FormElement> = {
+			let form: Record<string, FormElementOptions> = {
 				text: {type: 'text', full_width: true, placeholder: options.placeholder, value, description: options.description},
 			};
 			if (options.info) {
@@ -280,7 +304,7 @@ export const Blockbench = {
 		})
 	},
 	//CSS
-	addCSS(css: string) {
+	addCSS(css: string): Deletable {
 		let style_node = document.createElement('style');
 		style_node.type ='text/css';
 		style_node.appendChild(document.createTextNode(css));
@@ -293,19 +317,19 @@ export const Blockbench = {
 		return new deletableStyle(style_node);
 	},
 	//Flags
-	addFlag(flag: string) {
+	addFlag(flag: string): void {
 		this.flags[flag] = true;
 	},
-	removeFlag(flag: string) {
+	removeFlag(flag: string): void {
 		delete this.flags[flag];
 	},
-	hasFlag(flag: string) {
+	hasFlag(flag: string): boolean | undefined {
 		return this.flags[flag];
 	},
 	//Events
-	dispatchEvent(event_name: EventName, data) {
+	dispatchEvent(event_name: EventName, data: any): any[] {
 		let list = this.events[event_name];
-		let results;
+		let results: any[];
 		if (list) {
 			results = [];
 			for (let i = 0; i < list.length; i++) {
@@ -345,17 +369,17 @@ export const Blockbench = {
 		return Project?.undo;
 	},
 	// File System
-	import: FileSystem.importFile,
-	importFile: FileSystem.importFile,
-	pickDirectory: FileSystem.pickDirectory,
-	read: FileSystem.readFile,
-	readFile: FileSystem.readFile,
-	export: FileSystem.exportFile,
-	exportFile: FileSystem.exportFile,
-	writeFile: FileSystem.writeFile,
-	findFileFromContent: FileSystem.findFileFromContent,
-	addDragHandler: FileSystem.addDragHandler,
-	removeDragHandler: FileSystem.removeDragHandler,
+	import: Filesystem.importFile,
+	importFile: Filesystem.importFile,
+	pickDirectory: Filesystem.pickDirectory,
+	read: Filesystem.readFile,
+	readFile: Filesystem.readFile,
+	export: Filesystem.exportFile,
+	exportFile: Filesystem.exportFile,
+	writeFile: Filesystem.writeFile,
+	findFileFromContent: Filesystem.findFileFromContent,
+	addDragHandler: Filesystem.addDragHandler,
+	removeDragHandler: Filesystem.removeDragHandler,
 };
 
 (function() {
@@ -372,7 +396,7 @@ export const Blockbench = {
 })();
 
 if (isApp) {
-	Blockbench.platform = process.platform;
+	Blockbench.platform = SystemInfo.platform;
 	switch (Blockbench.platform) {
 		case 'win32': 	Blockbench.operating_system = 'Windows'; break;
 		case 'darwin': 	Blockbench.operating_system = 'macOS'; break;

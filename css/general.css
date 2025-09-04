@@ -1,3 +1,4 @@
+@layer base {
 /*Defaults*/
 	div.tool.wide {
 		width: 72px;
@@ -67,6 +68,15 @@
 	}
 	.color_z {
 		color: var(--color-axis-z);
+	}
+	.color_u {
+		color: var(--color-axis-u);
+	}
+	.color_v {
+		color: var(--color-axis-v);
+	}
+	.color_w {
+		color: var(--color-axis-w);
 	}
 	.button {
 		display: inline-block;
@@ -158,6 +168,17 @@
 	}
 	.preview > canvas.selectable_cursor {
 		cursor: copy;
+	}
+	#weight_brush_outline {
+		--radius: 50;
+		position: absolute;
+		width: calc(var(--radius) * 2px);
+		height: calc(var(--radius) * 2px);
+		margin: calc(var(--radius) * -1px);
+		border-radius: 50%;
+		border: 1px dashed var(--color-light);
+		pointer-events: none;
+		z-index: 12;
 	}
 	.text_padding {
 		margin-left: 5px;
@@ -327,7 +348,9 @@
 		cursor: inherit;
 		margin: 8px 0;
 	}
-	.markdown li > p {
+	.markdown li > p,
+	.markdown h2 > p,
+	.markdown h3 > p {
 		margin: 0;
 	}
 	.markdown ul {
@@ -864,7 +887,7 @@
 	body.theme_borders .dialog_close_button {
 		right: -1px;
 		top: -1px;
-		height: 31px;
+		height: 34px;
 	}
 	body.theme_borders li.animation_file {
 		border-top: 1px solid var(--color-border);
@@ -884,3 +907,4 @@
 	body.theme_borders #animation_controllers_wrapper .controller_state {
 		border-color: var(--color-border);
 	}
+}

@@ -1,8 +1,38 @@
+import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
-import { FileSystem } from "../file_system"
+import { Filesystem } from "../file_system"
+import { tl } from "../languages"
 import { EventSystem } from "../util/event_system"
-import { getStringWidth } from "../util/util"
+import { getStringWidth, pureMarked } from "../util/util"
 import { Interface } from "./interface"
+
+type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+interface FileResult {
+	name: string
+	path: string
+	content: string | ArrayBuffer
+	no_file?: boolean
+}
+export enum FormInputType {
+	Text = 'text',
+	Password = 'password',
+	Number = 'number',
+	Range = 'range',
+	Checkbox = 'checkbox',
+	Select = 'select',
+	Radio = 'radio',
+	Textarea = 'textarea',
+	Vector = 'vector',
+	Color = 'color',
+	File = 'file',
+	Folder = 'folder',
+	Save = 'save',
+	InlineSelect = 'inline_select',
+	InlineMultiSelect = 'inline_multi_select',
+	Info = 'info',
+	NumSlider = 'num_slider',
+	Buttons = 'buttons',
+}
 
 export interface FormElementOptions {
 	label?: string
@@ -10,25 +40,10 @@ export interface FormElementOptions {
 	 * Detailed description of the field, available behind the questionmark icon or on mouse hover
 	 */
 	description?: string
-	type:
-		| 'text'
-		| 'password'
-		| 'number'
-		| 'range'
-		| 'checkbox'
-		| 'select'
-		| 'radio'
-		| 'textarea'
-		| 'vector'
-		| 'color'
-		| 'file'
-		| 'folder'
-		| 'save'
-		| 'inline_select'
-		| 'inline_multi_select'
-		| 'info'
-		| 'num_slider'
-		| 'buttons'
+	/**
+	 * Type of the input. If unspecified, defaults to text
+	 */
+	type?: FormInputType | `${FormInputType}`
 	/**
 	 * Stretch the input field across the whole width of the form
 	 */
@@ -70,6 +85,10 @@ export interface FormElementOptions {
 	 */
 	step?: number
 	/**
+	 * On num slider inputs, The color of the slider
+	 */
+	color?: string
+	/**
 	 * If enabled, the value is forced to multiples of the "step" value. This can be used to create integer-only inputs etc.
 	 */
 	force_step?: boolean
@@ -84,7 +103,7 @@ export interface FormElementOptions {
 	/**
 	 * Available options on select or inline_select inputs
 	 */
-	options?: { [key: string]: string | { name: string } }
+	options?: Record<string, string | { name: string }> | (() => Record<string, string | { name: string }>)
 	/**
 	 * List of buttons for the button type
 	 */
@@ -127,9 +146,9 @@ export interface FormElementOptions {
 	filetype?: string
 }
 
-type FormResultValue = string | number | boolean | any[] | {}
+export type FormResultValue = string | number | boolean | any[] | {}
 
-type InputFormConfig = {
+export type InputFormConfig = {
 	[formElement: string]: '_' | FormElementOptions
 }
 type FormValues = Record<string, FormResultValue>
@@ -738,6 +757,7 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 			onChange: () => {
 				this.change();
 			},
+			color: this.options.color || "",
 			getInterval,
 			settings: {
 				default: this.options.value || 0,
@@ -862,7 +882,7 @@ FormElement.types.color = class FormElementColor extends FormElement {
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
-		this.colorpicker.on('modify_color', ({color}) => {
+		this.colorpicker.on('modify_color', () => {
 			scope.change();
 		})
 		bar.append(this.colorpicker.getNode())
@@ -885,8 +905,8 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 			type: 'checkbox',
 			class: 'focusable_input',
 			id: this.id,
-			checked: this.options.value
 		})
+		this.input.checked = this.options.value;
 		bar.append(this.input)
 		this.input.addEventListener('change', () => {
 			this.change();
@@ -904,7 +924,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 };
 
 class FormElementFile extends FormElement {
-	file: FileSystem.FileResult
+	file: Filesystem.FileResult
 	value: string
 	content: any
 	input: HTMLInputElement
@@ -938,7 +958,7 @@ class FormElementFile extends FormElement {
 		})
 
 		input_wrapper.on('click', e => {
-			function fileCB(files) {
+			const fileCB = (files) => {
 				this.value = files[0].path;
 				this.content = files[0].content;
 				this.file = files[0];
@@ -977,7 +997,7 @@ class FormElementFile extends FormElement {
 			}
 		})
 	}
-	getValue(): FileSystem.FileResult | string | any {
+	getValue(): Filesystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
 			return this.file;
 		} else {

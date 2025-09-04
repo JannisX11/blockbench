@@ -1,5 +1,5 @@
-
-/*INIT*/
+@layer reset, lib, base, theme, theme-override;
+@layer reset {
 	* {
 		margin: 0;
 		padding: 0;
@@ -10,9 +10,35 @@
 		user-select: none;
 		-webkit-user-select: none;
 	}
+	div {
+		cursor: default;
+		box-sizing: border-box;
+	}
+	a {
+		text-decoration: none;
+		cursor: default;
+		color: inherit;
+	}
+	i {
+		cursor: inherit;
+	}
+
+	b {
+		font-weight: bolder;
+	}
+	li {
+		list-style: none;
+		cursor: default;
+	}
+}
+@layer base {
+/*INIT*/
 	body.is_mobile * {
 		user-select: none;
 		-webkit-user-select: none;
+	}
+	[hidden], template {
+		display: none;
 	}
 	/*Webkit*/
 	a[href] {
@@ -150,6 +176,15 @@
 	}
 
 
+	.icon-keyframe_discontinuous_bezier:before {
+		content: "\e92d";
+	}
+	.icon-keyframe_smooth:before {
+		content: "\e92c";
+	}
+	.icon-keyframe_step:before {
+		content: "\e92b";
+	}
 	.icon-keyframe_bezier:before {
 		content: "\e92a";
 	}
@@ -326,14 +361,15 @@
 
 /*Vars*/
 	body {
-		--color-back: #21252b;
-		--color-dark: #17191d;
-		--color-border: #181a1f;
-		--color-ui: #282c34;
+		--color-back: #181b1f;
+		--color-dark: #101316;
+		--color-border: #101316;
+		--color-ui: #1e2127;
 		--color-accent: #3e90ff;
-		--color-button: #3a3f4b;
-		--color-selected: #474d5d;
-		--color-elevated: #323640;
+		--color-button: #33383f;
+		--color-selected: #3b3e49;
+		--color-elevated: #272a31;
+		--color-frame: #121418;
 		--color-text: #cacad4;
 		--color-light: #f4f3ff;
 		--color-accent_text: #000006;
@@ -342,7 +378,8 @@
 		--color-bright_ui: #f4f3ff;
 		--color-bright_border: var(--color-text);
 		--color-grid: #495061;
-		--color-checkerboard: #1c2026;
+		--color-wireframe: #576f82;
+		--color-checkerboard: #14171b;
 
 		--color-menu_separator: #b0afba;
 		--color-guidelines: rgba(136, 150, 157, 0.35);
@@ -356,7 +393,14 @@
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
 		--color-axis-z: #0894ed;
+		--color-axis-u: #23d4ed;
+		--color-axis-v: #ff12ed;
+		--color-axis-w: #ffd442;
 
+		--color-spline-handle-mirrored: #ff1242;
+		--color-spline-handle-aligned: #F0B000;
+		--color-spline-handle-free: #00D123;
+		
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';
@@ -386,26 +430,6 @@
 		background-color: var(--color-dark);
 		image-rendering: pixelated;
 		forced-color-adjust: none;
-	}
-	div {
-		cursor: default;
-		box-sizing: border-box;
-	}
-	a {
-		text-decoration: none;
-		cursor: default;
-		color: inherit;
-	}
-	i {
-		cursor: inherit;
-	}
-
-	b {
-		font-weight: bolder;
-	}
-	li {
-		list-style: none;
-		cursor: default;
 	}
 	hr {
 		border-top: 1px solid var(--color-border);
@@ -825,3 +849,4 @@
 	.y_scrollable {
 		overflow-y: scroll;
 	}
+}
