@@ -122,6 +122,9 @@ export class Texture {
 			if (this.flags.has('update_uv_size_from_resolution')) {
 				this.flags.delete('update_uv_size_from_resolution');
 				let size = [scope.width, scope.display_height];
+				if (settings.detect_flipbook_textures.value == false) {
+					size[1] = scope.height;
+				}
 				this.uv_width = size[0];
 				this.uv_height = size[1];
 			}
@@ -1847,12 +1850,12 @@ export class Texture {
 				icon: (texture) => texture.frameCount > 1,
 				condition: (tex) => Format.animated_textures,
 				click(texture) {
+					let is_animated = texture.frameCount;
+					if (!is_animated && texture.getUVHeight() == texture.getUVWidth()) {
+						BarItems.animated_texture_editor.click();
+						return;
+					}
 					if (Format.per_texture_uv_size) {
-						let is_animated = texture.frameCount;
-						if (!is_animated && texture.uv_height == texture.uv_width) {
-							BarItems.animated_texture_editor.click();
-							return;
-						}
 						Undo.initEdit({textures: [texture]});
 						if (is_animated) {
 							texture.uv_height = texture.height * (texture.uv_width / texture.width);
@@ -1861,6 +1864,17 @@ export class Texture {
 						}
 						Undo.finishEdit('Toggle flipbook animation');
 						updateSelection();
+					} else if (Texture.all.length == 1) {
+						Undo.initEdit({uv_mode: true});
+						if (is_animated) {
+							Project.texture_height = Project.texture_width * (texture.height / texture.width);
+						} else {
+							Project.texture_height = Project.texture_width;
+						}
+						Undo.finishEdit('Toggle flipbook animation');
+						updateSelection();
+					} else {
+						Blockbench.showQuickMessage('This format does not support per-texture UV sizes')
 					}
 				}
 			},

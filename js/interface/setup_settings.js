@@ -161,8 +161,9 @@ function setupSettings() {
 		'face': tl('menu.paste.face'),
 		'mesh_selection': tl('menu.paste.mesh_selection'),
 	}});
-	new Setting('stretch_linked',		{category: 'edit', value: true});
-	new Setting('auto_keyframe',		{category: 'edit', value: true});
+	new Setting('stretch_linked',			{category: 'edit', value: true});
+	new Setting('auto_keyframe',			{category: 'edit', value: true});
+	new Setting('detect_flipbook_textures',	{category: 'edit', value: true});
 
 	//Paint
 	new Setting('color_picker_style',			{category: 'paint', value: 'box', type: 'select',
