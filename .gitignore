@@ -1,5 +1,9 @@
 /dist/
 /dist-electron/
+/dist-docs/
+/types/generated/
+.env
+.DS_store
 electron-builder.env
 node_modules/
 workbox-*.js
