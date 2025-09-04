@@ -61,7 +61,7 @@ export function setupDragHandlers() {
 	)
 }
 
-export function loadModelFile(file) {
+export function loadModelFile(file, args) {
 	
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
@@ -75,7 +75,7 @@ export function loadModelFile(file) {
 				if (existing_tab && !codec.multiple_per_file) {
 					existing_tab.select();
 				} else {
-					codec.load(content, file);
+					codec.load(content, file, args);
 				}
 				return true;
 			}

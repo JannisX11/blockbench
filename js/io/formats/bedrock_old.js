@@ -1,6 +1,6 @@
 import { currentwindow, dialog, electron, fs } from "../../native_apis";
 
-export function parseGeometry(data) {
+export function parseGeometry(data, args) {
 	let geometry_name = data.name.replace(/^geometry\./, '');
 
 	let existing_tab = isApp && ModelProject.all.find(project => (
@@ -117,7 +117,7 @@ export function parseGeometry(data) {
 	Canvas.updateAllBones()
 	setProjectTitle()
 	if (isApp && Project.geometry_name && Project.BedrockEntityManager) {
-		Project.BedrockEntityManager.initEntity()
+		Project.BedrockEntityManager.initEntity(args)
 	}
 	Validator.validate()
 	updateSelection()
@@ -247,7 +247,7 @@ var codec = new Codec('bedrock_old', {
 			})
 		}
 	},
-	parse(data, path) {
+	parse(data, path, args) {
 		let geometries = [];
 		for (let key in data) {
 			if (typeof data[key] !== 'object') continue;
@@ -257,10 +257,10 @@ var codec = new Codec('bedrock_old', {
 			});
 		}
 		if (geometries.length === 1) {
-			parseGeometry(geometries[0]);
+			parseGeometry(geometries[0], args);
 			return;
 		} else if (isApp && BedrockEntityManager.CurrentContext?.geometry) {
-			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
+			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry), args);
 		}
 
 		geometries.forEach(geo => {
@@ -302,7 +302,7 @@ var codec = new Codec('bedrock_old', {
 					},
 					open(geo) {
 						Dialog.open.hide();
-						parseGeometry(geo);
+						parseGeometry(geo, args);
 					},
 					tl
 				},
@@ -319,7 +319,7 @@ var codec = new Codec('bedrock_old', {
 				`
 			},
 			onConfirm() {
-				parseGeometry(selected);
+				parseGeometry(selected, args);
 			}
 		}).show();
 	},

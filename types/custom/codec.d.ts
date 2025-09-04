@@ -1,9 +1,13 @@
 /// <reference path="./blockbench.d.ts"/>
+interface LoadOptions {
+	import_to_current_project?: boolean
+	externalDataLoader?: (path: string) => any
+}
 interface CodecOptions {
 	name: string
-	load?(model: any, file: FileResult, add?: boolean): void
+	load?(model: any, file: FileResult, args?: LoadOptions): void
 	compile?(options?: any): string | ArrayBuffer | any
-	parse?(data: any, path: string, add?: boolean): void
+	parse?(data: any, path: string, args?: LoadOptions): void
 	export?(): void
 	/**
 	 * Generate a file name to suggest when exporting
@@ -63,7 +67,7 @@ declare class Codec extends Deletable {
 	 * @param file
 	 * @param add
 	 */
-	load(model: any, file?: any, add?: boolean): void
+	load(model: any, file?: any, args?: LoadOptions): void
 	/**
 	 * Compiles the file content
 	 * @param options
@@ -74,7 +78,7 @@ declare class Codec extends Deletable {
 	 * @param data File content
 	 * @param path File path
 	 */
-	parse?(data: any, path: string, add?: boolean): void
+	parse?(data: any, path: string, args?: LoadOptions): void
 	/**
 	 * Opens the file browser to export a file of this type
 	 */

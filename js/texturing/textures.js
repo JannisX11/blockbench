@@ -372,7 +372,7 @@ export class Texture {
 		this.load_callback = cb;
 		return this;
 	}
-	fromJavaLink(link, path_array) {
+	fromJavaLink(link, path_array, externalDataLoader) {
 		if (typeof link !== 'string' || (link.substr(0, 1) === '#' && !link.includes('/'))) {
 			this.load();
 			return this;
@@ -384,7 +384,7 @@ export class Texture {
 		}
 		if (isApp && (link.substr(1, 2) === ':\\' || link.substr(1, 2) === ':/')) {
 			var path = link.replace(/\\|\//g, osfs).replace(/\?\d+$/, '')
-			this.fromPath(path)
+			this.fromPath(path, externalDataLoader)
 			return this;
 		}
 		var can_load = !!path_array.length
@@ -405,8 +405,8 @@ export class Texture {
 		}
 		var path = path_array.join(osfs);
 
-		if (path && can_load) {
-			this.fromPath(path)
+		if (path && can_load || externalDataLoader) {
+			this.fromPath(path || link, externalDataLoader)
 		} else {
 			this.path = path
 			this.folder = link.replace(/\\/g, '/').split('/')
@@ -418,7 +418,7 @@ export class Texture {
 		}
 		return this;
 	}
-	fromFile(file) {
+	fromFile(file, externalDataLoader) {
 		if (!file) return this;
 		if (file.name) this.name = file.name
 		if (typeof file.content === 'string' && file.content.substr(0, 4) === 'data') {
@@ -432,16 +432,34 @@ export class Texture {
 			}
 
 		} else if (isApp) {
-			this.fromPath(file.path)
+			this.fromPath(file.path, externalDataLoader)
 		}
 		this.saved = true
 		return this;
 	}
-	fromPath(path) {
+	fromPath(path, externalDataLoader) {
 		var scope = this;
 		if (path && pathToExtension(path) === 'tga') {
-			var targa_loader = new Targa()
-			targa_loader.open(path, function() {
+			let load_path = path
+			const targa_loader = new Targa()
+			if (externalDataLoader) {
+				const external = externalDataLoader(path.replaceAll("\\", "/"))
+				if (external) {
+					if (typeof external === "string") {
+						load_path = external
+					} else if (external instanceof Uint8Array) {
+						const u8 = new Uint8Array(external)
+						let base64
+						if (typeof Buffer !== "undefined" && external instanceof Buffer) {
+							base64 = external.toString("base64")
+						} else {
+							base64 = btoa(String.fromCharCode(...u8))
+						}
+						load_path = `data:image/x-tga;base64,${base64}`
+					}
+				}
+			}
+			targa_loader.open(load_path, function() {
 				scope.fromFile({
 					name: pathToName(path, true),
 					path: path,
@@ -457,7 +475,35 @@ export class Texture {
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
-			this.source = path.replace(/#/g, '%23') + '?' + tex_version
+			if (externalDataLoader) {
+				const external = externalDataLoader(path.replaceAll("\\", "/"))
+				if (external) {
+					if (typeof external === "string") {
+						this.source = external
+					} else if (external instanceof Uint8Array) {
+						// If the returned data is a Buffer, infer the data type and turn it into a data URL
+						const u8 = new Uint8Array(external)
+						let mime
+						if (u8.slice(0, 4).toString() === [0x89, 0x50, 0x4E, 0x47].toString()) {
+							mime = 'image/png'
+						} else if (u8.slice(0, 3).toString() === [0xFF, 0xD8, 0xFF].toString()) {
+							mime = 'image/jpeg'
+						} else if (u8.slice(0, 4).toString() === [0x52, 0x49, 0x46, 0x46].toString() && u8.slice(8, 12).toString() === [0x57, 0x45, 0x42, 0x50].toString()) {
+							mime = 'image/webp'
+						}
+						if (mime) {
+							let base64
+							if (typeof Buffer !== "undefined" && external instanceof Buffer) {
+								base64 = external.toString("base64")
+							} else {
+								base64 = btoa(String.fromCharCode(...u8))
+							}
+							this.source = `data:${mime};base64,${base64}`
+						}
+					}
+				}
+			}
+			this.source ||= path.replace(/#/g, '%23') + '?' + tex_version
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
@@ -480,11 +526,18 @@ export class Texture {
 		}
 		if (isApp && Format.texture_mcmeta) {
 			let mcmeta_path = this.path + '.mcmeta';
-			if (fs.existsSync(mcmeta_path)) {
+			let mcmeta_text;
+			if (externalDataLoader) {
+				mcmeta_text = externalDataLoader(mcmeta_path.replaceAll("\\", "/"));
+				if (mcmeta_text instanceof Uint8Array) {
+					mcmeta_text = new TextDecoder().decode(mcmeta_text);
+				}
+			}
+			if (mcmeta_text || fs.existsSync(mcmeta_path)) {
 				let mcmeta;
 				try {
-					let text = fs.readFileSync(mcmeta_path, 'utf8');
-					mcmeta = autoParseJSON(text, true);
+					mcmeta_text ??= fs.readFileSync(mcmeta_path, 'utf8');
+					mcmeta = autoParseJSON(mcmeta_text.toString(), true);
 				} catch (err) {
 					console.error(err);
 				}
