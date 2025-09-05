@@ -240,6 +240,10 @@ BARS.defineActions(function() {
 			armature.createUniqueName();
 			armature.init().select();
 
+			if (add_to_node instanceof Mesh) {
+				add_to_node.addTo(armature);
+			}
+
 			let bone = new ArmatureBone();
 			bone.addTo(armature).init();
 

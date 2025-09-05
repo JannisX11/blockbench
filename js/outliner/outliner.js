@@ -1030,6 +1030,26 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 		Undo.finishEdit('Move elements in outliner')
 	}
 }
+export function canAddOutlinerSelectionTo(target) {
+	if (target == 'root') {
+		for (let node of Outliner.selected) {
+			let parent_types = node.getTypeBehavior('parent_types');
+			if (parent_types && !parent_types.includes('root')) return false;
+		}
+		return true;
+	}
+	if (!target.getTypeBehavior('parent')) return false;
+	if (target.selected) return false;
+	let child_types = target.getTypeBehavior('child_types');
+	if (child_types) {
+		if (Outliner.selected.find(el => child_types.includes(el.type) == false)) return false;
+	}
+	for (let node of Outliner.selected) {
+		let parent_types = node.getTypeBehavior('parent_types');
+		if (parent_types && !parent_types.includes(target.type)) return false;
+	}
+	return true;
+}
 
 //Misc
 export function renameOutliner(element) {
@@ -1389,24 +1409,8 @@ BARS.defineActions(function() {
 		category: 'edit',
 		searchable: true,
 		children(element) {
-			let elements = Outliner.elements.filter(element => {
-				if (!element.getTypeBehavior('parent')) return false;
-				if (Outliner.selected.includes(element)) return false;
-				let child_types = element.getTypeBehavior('child_types');
-				if (child_types) {
-					if (Outliner.selected.find(el => child_types.includes(el.type) == false)) return false;
-				}
-				return true;
-			});
-			let nodes = [...getAllGroups(), ...elements];
-			let root = {
-				name: 'Root',
-				icon: 'list_alt',
-				click(event) {
-					moveOutlinerSelectionTo(element, undefined, event);
-				}
-			};
-			return [root, ...nodes.map(node => {
+			let nodes = [...getAllGroups(), ...Outliner.elements].filter(g => canAddOutlinerSelectionTo(g));
+			let menu_list = nodes.map(node => {
 				return {
 					name: node.name,
 					icon: node.icon,
@@ -1416,7 +1420,17 @@ BARS.defineActions(function() {
 						element.showInOutliner();
 					}
 				}
-			})]
+			});
+			if (canAddOutlinerSelectionTo('root')) {
+				menu_list.splice(0, 0, {
+					name: 'Root',
+					icon: 'list_alt',
+					click(event) {
+						moveOutlinerSelectionTo(element, undefined, event);
+					}
+				});
+			}
+			return menu_list;
 		},
 		click(event) {
 			new Menu('move_to_group', this.children(this), {searchable: true}).open(event.target, this)
@@ -1958,16 +1972,20 @@ Interface.definePanels(function() {
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target, drop_target_node] = eventTargetToNode(target);
 							if (drop_target) {
-								var location = e2.clientY - $(drop_target_node).offset().top;
-								order = getOrder(location, drop_target)
-								drop_target_node.setAttribute('order', order)
-								drop_target_node.classList.add('drag_hover');
-								let parent_node = drop_target_node.parentElement.parentElement;
-								if ((drop_target instanceof OutlinerElement || order) && parent_node && parent_node.classList.contains('outliner_node')) {
-									parent_node.classList.add('drag_hover_level');
+								let location = e2.clientY - $(drop_target_node).offset().top;
+								order = getOrder(location, drop_target);
+
+								let parent_target = order ? drop_target.parent : drop_target;
+								if (canAddOutlinerSelectionTo(parent_target)) {
+									drop_target_node.setAttribute('order', order)
+									drop_target_node.classList.add('drag_hover');
+									let parent_node = drop_target_node.parentElement.parentElement;
+									if ((drop_target instanceof OutlinerElement || order) && parent_node && parent_node.classList.contains('outliner_node')) {
+										parent_node.classList.add('drag_hover_level');
+									}
 								}
 
-							} else if ($('#cubes_list').is(':hover')) {
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
 								$('#cubes_list').addClass('drag_hover');
 							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
 								for (let node of document.querySelectorAll('.collection')) {
@@ -1995,8 +2013,11 @@ Interface.definePanels(function() {
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target] = eventTargetToNode(target);
 							if (drop_target) {
-								moveOutlinerSelectionTo(item, drop_target, e2, order);
-							} else if ($('#cubes_list').is(':hover')) {
+								let parent_target = order ? drop_target.parent : drop_target;
+								if (canAddOutlinerSelectionTo(parent_target)) {
+									moveOutlinerSelectionTo(item, drop_target, e2, order);
+								}
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
 								moveOutlinerSelectionTo(item, undefined, e2);
 							} else if (document.querySelector('.collection:hover')) {
 								let collection_node = document.querySelector('.collection:hover');

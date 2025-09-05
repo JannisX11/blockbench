@@ -667,6 +667,7 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
+			if (add_group.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
 
 			if (lowest_selected.length >= 2 && add_group) {
 				base_group.sortInBefore(add_group, 1);
@@ -692,7 +693,7 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.first_selected),
+		condition: () => Modes.edit && (selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true, groups: []});
