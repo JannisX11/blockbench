@@ -15,11 +15,12 @@ declare class OutlinerNode {
 	uuid: UUID
 	export: boolean
 	locked: boolean
-	parent?: Group | 'root'
+	parent?: OutlinerNode | 'root'
 	menu?: Menu
 
 	public preview_controller: NodePreviewController
 	static preview_controller: NodePreviewController
+	readonly scene_object: THREE.Object3D
 
 	/**
 	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
@@ -65,6 +66,9 @@ declare class OutlinerNode {
 	showContexMenu(event: Event | HTMLElement): this
 	getSaveCopy?(...args: any[]): Record<string, any>
 	sanitizeName(): string
+
+	static addBehaviorOverride(override_options: {condition: ConditionResolvable, behavior: Record<string, any>}): Deletable
+	static behavior_overrides = [];
 
 	static uuids: {
 		[uuid: UUID]: OutlinerNode

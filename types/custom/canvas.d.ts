@@ -67,6 +67,7 @@ declare namespace Canvas {
 	const emptyMaterials: {
 		[uuid: UUID]: THREE.Material
 	}
+	const coloredSolidMaterials: THREE.ShaderMaterial[]
 	const meshes: {
 		[uuid: UUID]: THREE.Mesh
 	}
@@ -181,7 +182,7 @@ declare namespace Canvas {
 	/**
 	 * Update the hierarchy and position of all bones
 	 */
-	function updateAllBones(): void
+	function updateAllBones(bones?: OutlinerNode[]): void
 	/**
 	 * Update the position of the origin / pivot point gizmo
 	 */
@@ -264,6 +265,7 @@ interface NodePreviewControllerOptions {
 	updateFaces?(element: OutlinerNode): void
 	updatePaintingGrid?(element: OutlinerNode): void
 	updateHighlight?(element: OutlinerNode, ...args: any[]): void
+	[key: string]: any
 }
 declare class NodePreviewController {
 	constructor(

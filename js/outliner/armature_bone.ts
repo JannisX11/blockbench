@@ -1,8 +1,38 @@
+import { Animation } from "../animations/animation";
+import { Blockbench } from "../api";
 import { THREE } from "../lib/libs";
-import { gizmo_colors } from "../preview/preview";
+import { flipNameOnAxis } from "../modeling/transform";
+import { Armature } from "./armature";
+import { Vue } from '../lib/libs'
+
+interface ArmatureBoneOptions {
+	name?: string
+	export?: boolean
+	locked?: boolean
+	visibility?: boolean
+	origin?: ArrayVector3
+	rotation?: ArrayVector3
+	vertex_weights?: Record<string, number>
+	length?: number
+	color?: number
+}
+
 
 export class ArmatureBone extends OutlinerElement {
-	constructor(data, uuid) {
+	children: ArmatureBone[]
+	isOpen: boolean
+	visibility: boolean
+	origin: ArrayVector3
+	rotation: ArrayVector3
+	vertex_weights: Record<string, number>
+	length: number
+	color: number
+	old_size?: number
+	
+
+	static preview_controller: NodePreviewController
+
+	constructor(data: ArmatureBoneOptions, uuid?: UUID) {
 		super(data, uuid);
 
 		for (let key in ArmatureBone.properties) {
@@ -28,7 +58,7 @@ export class ArmatureBone extends OutlinerElement {
 	get position() {
 		return this.origin;
 	}
-	extend(object) {
+	extend(object: ArmatureBoneOptions) {
 		for (let key in ArmatureBone.properties) {
 			ArmatureBone.properties[key].merge(this, object)
 		}
@@ -39,32 +69,29 @@ export class ArmatureBone extends OutlinerElement {
 		Merge.boolean(this, object, 'visibility')
 		return this;
 	}
-	/**
-	 * @returns {Armature}
-	 */
-	getArmature() {
+	getArmature(): Armature {
 		let parent = this.parent;
 		while (parent instanceof Armature == false && parent instanceof OutlinerNode) {
 			parent = parent.parent;
 		}
-		return parent;
+		return parent as Armature;
 	}
-	init() {
+	init(): this {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {
-			this.constructor.preview_controller.setup(this);
+			this.preview_controller.setup(this);
 		}
 		Canvas.updateAllBones([this]);
 		return this;
 	}
-	select(event, isOutlinerClick) {
+	select(event?: Event, isOutlinerClick?: boolean): this {
 		super.select(event, isOutlinerClick);
 		if (Animator.open && Animation.selected) {
 			Animation.selected.getBoneAnimator(this).select(true);
 		}
 		return this;
 	}
-	markAsSelected(descendants) {
+	markAsSelected(descendants: boolean): this {
 		Outliner.selected.safePush(this);
 		this.selected = true;
 		if (descendants) {
@@ -92,11 +119,12 @@ export class ArmatureBone extends OutlinerElement {
 		this.isOpen = true;
 		this.updateElement();
 		if (this.parent && this.parent !== 'root') {
+			// @ts-expect-error
 			this.parent.openUp();
 		}
 		return this;
 	}
-	transferOrigin(origin) {
+	transferOrigin(origin: ArrayVector3) {
 		if (!this.mesh) return;
 		let q = new THREE.Quaternion().copy(this.mesh.quaternion)
 		let shift = new THREE.Vector3(
@@ -110,19 +138,10 @@ export class ArmatureBone extends OutlinerElement {
 		shift.applyQuaternion(q.invert())
 		this.origin.V3_set(origin);
 
-		function iterateChild(obj) {
+		function iterateChild(obj: ArmatureBone) {
 			if (obj instanceof ArmatureBone) {
 				obj.origin.V3_add(shift);
 				obj.children.forEach(child => iterateChild(child));
-
-			} else {
-				if (obj.movable) {
-					obj.origin.V3_add(shift);
-				}
-				if (obj.to) {
-					obj.from.V3_add(shift);
-					obj.to.V3_add(shift);
-				}
 			}
 		}
 		this.children.forEach(child => iterateChild(child));
@@ -130,12 +149,12 @@ export class ArmatureBone extends OutlinerElement {
 		Canvas.updatePositions()
 		return this;
 	}
-	getWorldCenter(with_animation) {
+	getWorldCenter(): THREE.Vector3 {
 		let pos = new THREE.Vector3();
 		this.mesh.localToWorld(pos);
 		return pos;
 	}
-	flip(axis, center) {
+	flip(axis: number, center: number): this {
 		var offset = this.position[axis] - center
 		this.position[axis] = center - offset;
 		this.rotation.forEach((n, i) => {
@@ -148,7 +167,9 @@ export class ArmatureBone extends OutlinerElement {
 		this.preview_controller.updateTransform(this);
 		return this;
 	}
-	size(axis) {
+	size(): ArrayVector3
+	size(axis: axisLetter): number
+	size(axis?: axisLetter): number | ArrayVector3 {
 		if (typeof axis == 'number') {
 			return axis == 1 ? this.length : 0;
 		}
@@ -205,7 +226,7 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		return copy;
 	}
-	getChildlessCopy(keep_uuid) {
+	getChildlessCopy(keep_uuid: boolean = false) {
 		let base_bone = new ArmatureBone({name: this.name}, keep_uuid ? this.uuid : null);
 		for (let key in ArmatureBone.properties) {
 			ArmatureBone.properties[key].copy(this, base_bone)
@@ -219,7 +240,7 @@ export class ArmatureBone extends OutlinerElement {
 		base_bone.isOpen = this.isOpen;
 		return base_bone;
 	}
-	forEachChild(cb, type, forSelf) {
+	forEachChild(cb: ((element: ArmatureBone) => void), type?: any, forSelf?: boolean) {
 		let i = 0
 		if (forSelf) {
 			cb(this)
@@ -246,22 +267,16 @@ export class ArmatureBone extends OutlinerElement {
 		hide_in_screenshot: true,
 		marker_color: true,
 	}
-}
-ArmatureBone.addBehaviorOverride({
-	condition: {features: ['bone_rig']},
-	behavior: {
-		unique_name: true
-	}
-})
-	ArmatureBone.prototype.title = tl('data.armature_bone');
-	ArmatureBone.prototype.type = 'armature_bone';
-	ArmatureBone.prototype.icon = 'humerus';
-	ArmatureBone.prototype.name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
-	ArmatureBone.prototype.buttons = [
+	
+	public title = tl('data.armature_bone');
+	public type = 'armature_bone';
+	public icon = 'humerus';
+	public name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
+	public buttons = [
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	ArmatureBone.prototype.menu = new Menu([
+	public menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -272,6 +287,13 @@ ArmatureBone.addBehaviorOverride({
 		'rename',
 		'delete'
 	]);
+}
+ArmatureBone.addBehaviorOverride({
+	condition: {features: ['bone_rig']},
+	behavior: {
+		unique_name: true
+	}
+})
 
 OutlinerElement.registerType(ArmatureBone, 'armature_bone');
 
@@ -281,6 +303,8 @@ new Property(ArmatureBone, 'number', 'length', {default: 8});
 new Property(ArmatureBone, 'number', 'color');
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
+type FakeObjectType = {isElement: boolean, no_export: boolean, fix_position: THREE.Vector3, fix_rotation: THREE.Euler, inverse_bind_matrix: THREE.Matrix4};
+type PreviewControllerType = (NodePreviewController & {material: THREE.MeshLambertMaterial, material_selected: THREE.MeshLambertMaterial});
 new NodePreviewController(ArmatureBone, {
 	material: new THREE.MeshLambertMaterial({
 		color: 0xc8c9cb,
@@ -296,8 +320,8 @@ new NodePreviewController(ArmatureBone, {
 		transparent: true,
 		vertexColors: true,
 	}),
-	setup(element) {
-		let object_3d = new THREE.Bone();
+	setup(element: ArmatureBone) {
+		let object_3d = new THREE.Bone() as FakeObjectType & THREE.Bone;
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
@@ -337,8 +361,8 @@ new NodePreviewController(ArmatureBone, {
 		geometry.normalizeNormals();
 		geometry.computeBoundingBox();
 		geometry.computeBoundingSphere();
-		let material = ArmatureBone.preview_controller.material;
-		let mesh = new THREE.Mesh(geometry, material);
+		let material = (ArmatureBone.preview_controller as PreviewControllerType).material;
+		let mesh: ({no_export?: boolean, isElement?: true, type?: string} & THREE.Mesh) = new THREE.Mesh(geometry, material);
 		mesh.renderOrder = 20;
 		mesh.visible = element.visibility;
 		mesh.no_export = true;
@@ -346,8 +370,9 @@ new NodePreviewController(ArmatureBone, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 		object_3d.add(mesh);
-		object_3d.no_export = true;
 
+
+		object_3d.no_export = true;
 		object_3d.fix_position = new THREE.Vector3();
 		object_3d.fix_rotation = new THREE.Euler();
 		object_3d.inverse_bind_matrix = new THREE.Matrix4();
@@ -358,25 +383,26 @@ new NodePreviewController(ArmatureBone, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateFaces(element) {
+	updateFaces(element: ArmatureBone) {
 		let color_material = Canvas.coloredSolidMaterials[element.color % markerColors.length];
 		let color_value = color_material.uniforms.base.value;
 		let color_array = [];
 		for (let i = 0; i < 24; i++) {
 			color_array.push(color_value.r, color_value.g, color_value.b);
 		}
-		element.mesh.children[0].geometry.setAttribute('color', new THREE.Float32BufferAttribute(color_array, 3));
+		(element.mesh.children[0] as THREE.Mesh).geometry.setAttribute('color', new THREE.Float32BufferAttribute(color_array, 3));
 	},
-	updateTransform(element) {
-		let bone = element.mesh;
+	updateTransform(element: ArmatureBone) {
+		let bone = element.scene_object as FakeObjectType & THREE.Bone;
 
 		bone.rotation.order = 'ZYX';
+		// @ts-expect-error
 		bone.rotation.setFromDegreeArray(element.rotation);
 		bone.position.fromArray(element.origin);
 		bone.scale.x = bone.scale.y = bone.scale.z = 1;
 
 		if (element.parent instanceof OutlinerNode) {
-			let parent_bone = element.parent.mesh;
+			let parent_bone = element.parent.scene_object;
 			parent_bone.add(bone);
 			if (element.parent instanceof ArmatureBone) {
 				ArmatureBone.preview_controller.updateTransform(element.parent);
@@ -408,17 +434,18 @@ new NodePreviewController(ArmatureBone, {
 		bone.fix_rotation.copy(bone.rotation);
 		bone.inverse_bind_matrix.copy(bone.matrixWorld).invert();
 
-		for (let bone2 of bone.children) {
-			if (bone2.mesh) this.updateTransform(bone2);
-		}
+		/*for (let child of element.children) {
+			if (child.scene_object) this.updateTransform(child);
+		}*/
 
 		bone.updateMatrixWorld();
 
 		this.dispatchEvent('update_transform', {element});
 	},
-	updateSelection(element) {
+	updateSelection(element: ArmatureBone) {
 		let material = element.selected ? this.material_selected : this.material;
-		element.mesh.children[0].material = material;
+		let preview_mesh = element.scene_object.children[0] as THREE.Mesh;
+		preview_mesh.material = material;
 	}
 })
 

@@ -667,7 +667,7 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
-			if (add_group.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
+			if (add_group?.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
 
 			if (lowest_selected.length >= 2 && add_group) {
 				base_group.sortInBefore(add_group, 1);

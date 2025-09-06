@@ -27,6 +27,7 @@ interface KeyframeOptions {
 	bezier_right_value?: ArrayVector3
 }
 type axisLetter = 'x' | 'y' | 'z'
+type axisNumber = 0 | 1 | 2
 
 declare class _Keyframe {
 	constructor(options: KeyframeOptions, uuid: any)

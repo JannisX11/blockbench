@@ -340,6 +340,9 @@ export class OutlinerNode {
 	get mesh() {
 		return Project.nodes_3d[this.uuid];
 	}
+	get scene_object() {
+		return Project.nodes_3d[this.uuid];
+	}
 	getDepth() {
 		var d = 0;
 		function it(p) {
