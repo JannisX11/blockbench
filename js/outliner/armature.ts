@@ -210,8 +210,8 @@ new NodePreviewController(Armature, {
 	updateTransform(element: Armature) {
 		let mesh = element.mesh;
 
-		if (Format.bone_rig && element.parent instanceof OutlinerNode && element.parent.mesh) {
-			element.parent.mesh.add(mesh);
+		if (Format.bone_rig && element.parent instanceof OutlinerNode && element.parent.scene_object) {
+			element.parent.scene_object.add(mesh);
 		} else if (mesh.parent !== Project.model_3d) {
 			Project.model_3d.add(mesh)
 		}

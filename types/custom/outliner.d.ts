@@ -2,6 +2,11 @@
 type ArrayVector4 = [number, number, number, number]
 type ArrayVector3 = [number, number, number]
 type ArrayVector2 = [number, number]
+interface OutlinerNodeParentTraits {
+	children: OutlinerNode[]
+	openUp(): void
+	isOpen: boolean
+}
 
 declare const elements: OutlinerNode[]
 /**
@@ -15,7 +20,7 @@ declare class OutlinerNode {
 	uuid: UUID
 	export: boolean
 	locked: boolean
-	parent?: OutlinerNode | 'root'
+	parent?: (OutlinerNode & OutlinerNodeParentTraits) | 'root'
 	menu?: Menu
 
 	public preview_controller: NodePreviewController

@@ -14,6 +14,7 @@ interface ArmatureBoneOptions {
 	rotation?: ArrayVector3
 	vertex_weights?: Record<string, number>
 	length?: number
+	width?: number
 	color?: number
 }
 
@@ -26,13 +27,14 @@ export class ArmatureBone extends OutlinerElement {
 	rotation: ArrayVector3
 	vertex_weights: Record<string, number>
 	length: number
+	width: number
 	color: number
 	old_size?: number
 	
 
 	static preview_controller: NodePreviewController
 
-	constructor(data: ArmatureBoneOptions, uuid?: UUID) {
+	constructor(data?: ArmatureBoneOptions, uuid?: UUID) {
 		super(data, uuid);
 
 		for (let key in ArmatureBone.properties) {
@@ -48,6 +50,7 @@ export class ArmatureBone extends OutlinerElement {
 		this.isOpen = false;
 		this.visibility = true;
 		this.vertex_weights = {};
+		this.color = Math.floor(Math.random()*markerColors.length);
 
 		if (typeof data === 'object') {
 			this.extend(data)
@@ -119,7 +122,6 @@ export class ArmatureBone extends OutlinerElement {
 		this.isOpen = true;
 		this.updateElement();
 		if (this.parent && this.parent !== 'root') {
-			// @ts-expect-error
 			this.parent.openUp();
 		}
 		return this;
@@ -171,14 +173,14 @@ export class ArmatureBone extends OutlinerElement {
 	size(axis: axisLetter): number
 	size(axis?: axisLetter): number | ArrayVector3 {
 		if (typeof axis == 'number') {
-			return axis == 1 ? this.length : 0;
+			return axis == 1 ? this.length : this.width;
 		}
-		return [0, this.length, 0];
+		return [this.width, this.length, this.width];
 	}
 	getSize(axis) {
 		return this.size(axis);
 	}
-	resize(move_value, axis_number, invert) {
+	resize(move_value: number | ((input: number) => number), axis_number?: axisNumber, invert?: boolean) {
 		if (axis_number == 1) {
 			let previous_length = this.old_size ?? this.length;
 			if (typeof move_value == 'function') {
@@ -186,8 +188,15 @@ export class ArmatureBone extends OutlinerElement {
 			} else {
 				this.length = previous_length + move_value * (invert ? -1 : 1);
 			}
-			this.preview_controller.updateTransform(this);
+		} else {
+			let previous_width = this.old_size ?? this.width;
+			if (typeof move_value == 'function') {
+				this.width = move_value(previous_width);
+			} else {
+				this.width = previous_width + move_value * (invert ? -1 : 1);
+			}
 		}
+		this.preview_controller.updateTransform(this);
 	}
 	setColor(index) {
 		this.color = index;
@@ -300,6 +309,7 @@ OutlinerElement.registerType(ArmatureBone, 'armature_bone');
 new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
 new Property(ArmatureBone, 'vector', 'rotation');
 new Property(ArmatureBone, 'number', 'length', {default: 8});
+new Property(ArmatureBone, 'number', 'width', {default: 2});
 new Property(ArmatureBone, 'number', 'color');
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
@@ -427,6 +437,8 @@ new NodePreviewController(ArmatureBone, {
 
 		} else {
 			bone.children[0].rotation.set(0,0,0);
+			bone.children[0].scale.x = element.width/2;
+			bone.children[0].scale.z = element.width/2;
 			bone.children[0].scale.y = element.length;
 		}
 
@@ -477,7 +489,7 @@ BARS.defineActions(function() {
 				add_to_node = selected.last();
 			}
 			let new_instance = new ArmatureBone({
-				origin: add_to_node instanceof ArmatureBone ? [0, add_to_node.length??8, 0] : undefined
+				origin: add_to_node instanceof ArmatureBone ? [0, add_to_node.length??8, 0] : undefined,
 			})
 			new_instance.addTo(add_to_node)
 			new_instance.isOpen = true

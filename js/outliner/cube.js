@@ -138,7 +138,7 @@ export class Cube extends OutlinerElement {
 		let size = Settings.get('default_cube_size');
 		this.shade = true;
 		this.mirror_uv = false;
-		this.color = Math.floor(Math.random()*markerColors.length)
+		this.color = Math.floor(Math.random()*markerColors.length);
 		this.uv_offset = [0,0]
 		this.inflate = 0;
 		this.stretch = [1, 1, 1];
