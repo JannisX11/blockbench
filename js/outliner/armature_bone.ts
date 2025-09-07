@@ -15,6 +15,7 @@ interface ArmatureBoneOptions {
 	vertex_weights?: Record<string, number>
 	length?: number
 	width?: number
+	connected?: boolean
 	color?: number
 }
 
@@ -28,6 +29,7 @@ export class ArmatureBone extends OutlinerElement {
 	vertex_weights: Record<string, number>
 	length: number
 	width: number
+	connected: boolean
 	color: number
 	old_size?: number
 	
@@ -310,6 +312,22 @@ new Property(ArmatureBone, 'vector', 'origin', {default: [0, 0, 0]});
 new Property(ArmatureBone, 'vector', 'rotation');
 new Property(ArmatureBone, 'number', 'length', {default: 8});
 new Property(ArmatureBone, 'number', 'width', {default: 2});
+new Property(ArmatureBone, 'boolean', 'connected', {
+	default: true,
+	inputs: {
+		element_panel: {
+			input: {label: 'armature_bone.connected', type: 'checkbox'},
+			onChange() {
+				let parents = [];
+				ArmatureBone.selected.forEach(b => {
+					if (b.parent instanceof ArmatureBone) parents.safePush(b.parent)
+				});
+				console.log(parents)
+				Canvas.updateView({elements: parents, element_aspects: {transform: true}});
+			}
+		}
+	}
+});
 new Property(ArmatureBone, 'number', 'color');
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
@@ -421,17 +439,18 @@ new NodePreviewController(ArmatureBone, {
 			bone.parent.remove(bone);
 		}
 
-		if (element.children.length >= 2) {
+		let connected_children = element.children.filter(b => b.connected);
+		if (connected_children.length >= 2) {
 			let box = new THREE.Box3();
-			for (let bone of element.children) {
+			for (let bone of connected_children) {
 				box.expandByPoint(Reusable.vec1.fromArray(bone.position));
 			}
 			let tail_offset = box.getCenter(Reusable.vec1);
 			bone.children[0].scale.y = Math.max(2, tail_offset.length());
 			bone.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tail_offset.normalize());
 
-		} else if (element.children.length == 1) {
-			let tail_offset = Reusable.vec1.fromArray(element.children[0].position);
+		} else if (connected_children.length == 1) {
+			let tail_offset = Reusable.vec1.fromArray(connected_children[0].position);
 			bone.children[0].scale.y = tail_offset.length();
 			bone.children[0].quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), tail_offset.normalize());
 

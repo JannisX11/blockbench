@@ -2477,6 +2477,8 @@
 	"billboard.facing_mode.rotate": "Rotate",
 	"billboard.facing_mode.rotate_y": "Rotate Y",
 
+	"armature_bone.connected": "Connected",
+
 	"switches.visibility": "Visibility",
 	"switches.lock": "Lock",
 	"switches.export": "Export",
