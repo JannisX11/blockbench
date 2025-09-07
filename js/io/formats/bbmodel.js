@@ -239,7 +239,7 @@ var codec = new Codec('project', {
 				model.groups.push(copy);
 			});
 
-			model.outliner = Outliner.toJSON(true);
+			model.outliner = Outliner.toJSON();
 
 			if (options.collection_only) {
 				function filterList(list) {

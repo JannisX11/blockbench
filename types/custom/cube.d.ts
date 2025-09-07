@@ -72,9 +72,13 @@ declare class Cube extends OutlinerElement {
 
 	extend(options: ICubeOptions): this
 	/**
-	 * Calculates and returns the size of a cube across a certain axis. If the axis argument is omitted, it returns all sizes as an array vector.
+	 * Calculates and returns the size of the cube
 	 */
-	size(axis?: number, floored?: boolean): number | ArrayVector3
+	size(): ArrayVector3
+	/**
+	 * Calculates and returns the size of a cube on a certain axis
+	 */
+	size(axis: number, floored?: boolean): number
 	rotationAxis(): string
 	getUndoCopy(aspects?: any): void
 	getSaveCopy(project?: boolean): Cube
@@ -116,7 +120,7 @@ declare class Cube extends OutlinerElement {
 }
 
 interface FaceOptions {
-	texture?: Texture
+	texture?: Texture | UUID | false
 }
 declare class Face {
 	constructor()

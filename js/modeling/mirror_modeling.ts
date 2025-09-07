@@ -1,22 +1,25 @@
+import { Blockbench } from "../api";
 import { ArmatureBone } from "../outliner/armature_bone";
 import { Billboard } from "../outliner/billboard";
+import { flipNameOnAxis } from "./transform";
 
 export const MirrorModeling = {
 	initial_transformer_position: 0,
-	isCentered(element) {
+	outliner_snapshot: null,
+	isCentered(element: OutlinerElement) {
 		let center = Format.centered_grid ? 0 : 8;
 		let element_type_options = MirrorModeling.element_types[element.type];
 
 		if (element_type_options.isCentered) {
-			let result = element_type_options.isCentered(element, center);
+			let result = element_type_options.isCentered(element, {center});
 			if (result == false) return false;
 		}
 
 		if (element_type_options.check_parent_symmetry != false) {
 			let isAsymmetrical = (parent) => {
 				if (parent instanceof OutlinerNode) {
-					if (parent.origin && parent.origin[0] != center) return true;
-					if (parent.rotation && (parent.rotation[1] || parent.rotation[2])) return true;
+					if ("origin" in parent && parent.origin[0] != center) return true;
+					if ("rotation" in parent && (parent.rotation[1] || parent.rotation[2])) return true;
 					return isAsymmetrical(parent.parent);
 				}
 			}
@@ -25,9 +28,9 @@ export const MirrorModeling = {
 
 		return true;
 	},
-	createClone(original, undo_aspects) {
+	createClone(original: OutlinerElement, undo_aspects: UndoAspects) {
 		// Create or update clone
-		let options = BarItems.mirror_modeling.tool_config.options;
+		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
@@ -48,6 +51,12 @@ export const MirrorModeling = {
 			if (!mirror_uv && element_type_options.maintainUV) {
 				element_type_options.maintainUV(mirror_element, element_before_snapshot)
 			}
+			if (element_type_options.updateCounterpart) {
+				element_type_options.updateCounterpart(original, mirror_element, {
+					element_before_snapshot,
+					center,
+				})
+			}
 
 			// Update hierarchy up
 			function updateParent(child, child_b) {
@@ -65,26 +74,31 @@ export const MirrorModeling = {
 			updateParent(original, mirror_element);
 
 		} else {
-			function getParentMirror(child) {
+			function getParentMirror(child: OutlinerNode) {
 				let parent = child.parent;
 				if (parent instanceof OutlinerNode == false) return 'root';
 
-				if (parent.origin[0] == center && MirrorModeling.isParentTreeSymmetrical(child, {center})) {
+				if ('origin' in parent && parent.origin[0] == center && MirrorModeling.isParentTreeSymmetrical(child, {center})) {
 					return parent;
 				} else {
-					let mirror_group_parent = getParentMirror(parent);
+					let mirror_group_parent = getParentMirror(parent) as OutlinerNode & OutlinerNodeParentTraits;
+					// @ts-ignore
 					let mirror_group = new parent.constructor(parent);
 
-					flipNameOnAxis(mirror_group, 0, name => true, parent.name);
+					flipNameOnAxis(mirror_group, 0, (name: string) => true, parent.name);
 					mirror_group.origin[0] = MirrorModeling.flipCoord(mirror_group.origin[0]);
 					mirror_group.rotation[1] *= -1;
 					mirror_group.rotation[2] *= -1;
 					mirror_group.isOpen = parent.isOpen;
 
 					let parent_list = mirror_group_parent instanceof OutlinerNode ? mirror_group_parent.children : Outliner.root;
-					let match = parent_list.find(node => {
+					let match = parent_list.find((node) => {
 						if (node instanceof OutlinerNode == false) return false;
-						if ((node.name == mirror_group.name || Condition(mirror_group.getTypeBehavior('unique_name'))) && node.rotation.equals(mirror_group.rotation) && node.origin.equals(mirror_group.origin)) {
+						if (
+							(node.name == mirror_group.name || Condition(mirror_group.getTypeBehavior('unique_name'))) &&
+							('rotation' in node && node.rotation instanceof Array && node.rotation.equals(mirror_group.rotation)) &&
+							('origin' in node && node.origin instanceof Array && node.origin.equals(mirror_group.origin))
+						) {
 							return true;
 						}
 					})
@@ -98,8 +112,17 @@ export const MirrorModeling = {
 				}
 			}
 			let add_to = getParentMirror(original);
-			mirror_element = new original.constructor(original).addTo(add_to).init();
+			// @ts-ignore
+			mirror_element = new original.constructor(original);
+			mirror_element.addTo(add_to).init();
 			mirror_element.flip(0, center);
+
+			if (element_type_options.updateCounterpart) {
+				element_type_options.updateCounterpart(original, mirror_element, {
+					options,
+					center,
+				})
+			}
 		}
 
 		MirrorModeling.insertElementIntoUndo(mirror_element, undo_aspects, element_before_snapshot);
@@ -108,7 +131,7 @@ export const MirrorModeling = {
 		preview_controller.updateAll(mirror_element);
 		return mirror_element;
 	},
-	updateParentNodeCounterpart(node, original) {
+	updateParentNodeCounterpart(node: OutlinerNode, original: OutlinerNode) {
 		let keep_properties = {
 			name: node.name
 		};
@@ -116,10 +139,10 @@ export const MirrorModeling = {
 		node.extend(keep_properties);
 
 		//flipNameOnAxis(node, 0, name => true, original.name);
-		if (node.origin) {
+		if ('origin' in node) {
 			node.origin[0] = MirrorModeling.flipCoord(node.origin[0]);
 		}
-		if (node.rotation) {
+		if ('rotation' in node) {
 			node.rotation[1] *= -1;
 			node.rotation[2] *= -1;
 		}
@@ -127,21 +150,22 @@ export const MirrorModeling = {
 	getEditSide() {
 		return Math.sign(Transformer.position.x || MirrorModeling.initial_transformer_position) || 1;
 	},
-	flipCoord(input) {
+	flipCoord(input: number): number {
 		if (Format.centered_grid) {
 			return -input;
 		} else {
 			return 16 - input;
 		}
 	},
-	getMirrorElement(element) {
+	getMirrorElement(element: OutlinerElement): OutlinerElement | false {
 		let element_type_options = MirrorModeling.element_types[element.type];
 		let center = Format.centered_grid ? 0 : 8;
 		if (element_type_options.getMirroredElement) {
 			return element_type_options.getMirroredElement(element, {center})
 		}
+		return false;
 	},
-	isParentTreeSymmetrical(element, {center}) {
+	isParentTreeSymmetrical(element: OutlinerNode, {center}) {
 		if (element.parent instanceof Group && Format.bone_rig == false)  return true;
 		let parents = [];
 		let subject = element;
@@ -157,7 +181,7 @@ export const MirrorModeling = {
 			return true;
 		})
 	},
-	insertElementIntoUndo(element, undo_aspects, element_before_snapshot) {
+	insertElementIntoUndo(element: OutlinerElement, undo_aspects: UndoAspects, element_before_snapshot: any) {
 		// pre
 		if (element_before_snapshot) {
 			if (!Undo.current_save.elements[element.uuid]) Undo.current_save.elements[element.uuid] = element_before_snapshot;
@@ -169,37 +193,50 @@ export const MirrorModeling = {
 		if (!element_before_snapshot) undo_aspects.outliner = true;
 		undo_aspects.elements.safePush(element);
 	},
-	element_types: {},
-	registerElementType(type_class, options) {
+	element_types: {} as Record<string, MirrorModelingElementTypeOptions>,
+	registerElementType(type_class: any, options: MirrorModelingElementTypeOptions) {
 		new Property(type_class, 'boolean', 'allow_mirror_modeling', {default: true});
 		let type = type_class.prototype.type;
 		MirrorModeling.element_types[type] = options;
 	},
 	cached_elements: {}
 }
+interface MirrorModelingElementTypeOptions {
+	check_parent_symmetry?: boolean
+	isCentered?(element: OutlinerElement, options?: {center: number}): boolean
+	getMirroredElement?(element: OutlinerElement, options?: {center: number}): OutlinerElement | false
+	maintainUV?(element: OutlinerElement, original_data: any): void
+	discoverConnectionsPreEdit?(mesh: Mesh): {faces: Record<string, string>, vertices: Record<string, string>}
+	updateCounterpart?(original: OutlinerElement, counterpart: OutlinerElement, context: {}): void
+	createLocalSymmetry?(element: OutlinerElement, cached_data: any): void
+}
 
 
 Blockbench.on('init_edit', ({aspects}) => {
-	if (!BarItems.mirror_modeling.value) return;
+	if (!(BarItems.mirror_modeling as Toggle).value) return;
 
 	MirrorModeling.initial_transformer_position = Transformer.position.x;
 
 	if (aspects.elements) {
 		MirrorModeling.cached_elements = {};
-		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON(true);
+		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON();
 		let edit_side = MirrorModeling.getEditSide();
 
 		aspects.elements.forEach((element) => {
 			if (element.allow_mirror_modeling) {
 				let is_centered = MirrorModeling.isCentered(element);
 
-				let data = MirrorModeling.cached_elements[element.uuid] = {is_centered};
+				let data = MirrorModeling.cached_elements[element.uuid] = {
+					is_centered,
+					is_copy: false,
+					counterpart: false as false | OutlinerElement,
+					pre_part_connections: undefined
+				};
 				if (!is_centered) {
 					data.is_copy = Math.sign(element.getWorldCenter().x) != edit_side;
 					data.counterpart = MirrorModeling.getMirrorElement(element);
 					if (!data.counterpart) data.is_copy = false;
 				} else {
-					data.is_copy = false;
 					if (MirrorModeling.element_types[element.type]?.discoverConnectionsPreEdit) {
 						data.pre_part_connections = MirrorModeling.element_types[element.type]?.discoverConnectionsPreEdit(element)
 					}
@@ -210,10 +247,10 @@ Blockbench.on('init_edit', ({aspects}) => {
 	if (aspects.group || aspects.groups) {
 		if (!MirrorModeling.cached_elements) MirrorModeling.cached_elements = {};
 		let selected_groups = aspects.groups ?? [aspects.group];
-		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON(true);
+		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON();
 
 		// update undo
-		if (!Undo.current_save.outliner) Undo.current_save.outliner = Outliner.toJSON(true);
+		if (!Undo.current_save.outliner) Undo.current_save.outliner = Outliner.toJSON();
 		aspects.outliner = true;
 
 		selected_groups.forEach(group => {
@@ -239,7 +276,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 	}
 })
 Blockbench.on('finish_edit', ({aspects}) => {
-	if (!BarItems.mirror_modeling.value) return;
+	if (!(BarItems.mirror_modeling as Toggle).value) return;
 
 	if (aspects.elements) {
 		aspects.elements = aspects.elements.slice();
@@ -251,7 +288,7 @@ Blockbench.on('finish_edit', ({aspects}) => {
 
 				if (is_centered && MirrorModeling.element_types[element.type]?.createLocalSymmetry) {
 					// Complete other side of mesh
-					MirrorModeling.element_types[element.type]?.createLocalSymmetry.createLocalSymmetry(element, cached_data);
+					MirrorModeling.element_types[element.type].createLocalSymmetry(element, cached_data);
 				}
 				if (is_centered) {
 					let mirror_element = cached_data?.counterpart;
@@ -287,12 +324,12 @@ Blockbench.on('finish_edit', ({aspects}) => {
 // Register element types
 
 MirrorModeling.registerElementType(Cube, {
-	isCentered(element, {center}) {
+	isCentered(element: Cube, {center}) {
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		if (!Math.epsilon(element.to[0], MirrorModeling.flipCoord(element.from[0]), 0.01)) return false;
 		return true;
 	},
-	getMirroredElement(element, {center}) {
+	getMirroredElement(element: Cube, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
 		let off_axes = [1, 2];
@@ -319,7 +356,7 @@ MirrorModeling.registerElementType(Cube, {
 		}
 		return false;
 	},
-	maintainUV(element, original_data) {
+	maintainUV(element: Cube, original_data) {
 		element.extend({
 			faces: original_data.faces,
 			uv_offset: original_data.uv_offset,
@@ -330,12 +367,12 @@ MirrorModeling.registerElementType(Cube, {
 	}
 })
 MirrorModeling.registerElementType(Mesh, {
-	isCentered(element, {center}) {
+	isCentered(element: Mesh, {center}) {
 		if (Math.roundTo(element.origin[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
-	getMirroredElement(element, {center}) {
+	getMirroredElement(element: Mesh, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
 		let off_axes = [ 1, 2];
@@ -365,7 +402,7 @@ MirrorModeling.registerElementType(Mesh, {
 		}
 		return false;
 	},
-	maintainUV(element, original_data) {
+	maintainUV(element: Mesh, original_data) {
 		for (let fkey in element.faces) {
 			let face = element.faces[fkey];
 			let face_before = original_data.faces[fkey];
@@ -379,7 +416,7 @@ MirrorModeling.registerElementType(Mesh, {
 			}
 		}
 	},
-	discoverConnectionsPreEdit(mesh) {
+	discoverConnectionsPreEdit(mesh: Mesh) {
 		let data = {
 			faces: {},
 			vertices: {},
@@ -418,10 +455,10 @@ MirrorModeling.registerElementType(Mesh, {
 		}
 		return data;
 	},
-	createLocalSymmetry(mesh, cached_data) {
+	createLocalSymmetry(mesh: Mesh, cached_data) {
 		// Create or update clone
 		let edit_side = MirrorModeling.getEditSide();
-		let options = BarItems.mirror_modeling.tool_config.options;
+		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let pre_part_connections = cached_data?.pre_part_connections;
 		// Delete all vertices on the non-edit side
@@ -448,7 +485,7 @@ MirrorModeling.registerElementType(Mesh, {
 				vertex_counterpart[vkey] = vkey;
 				center_vertices.push(vkey);
 			} else {
-				let position = [MirrorModeling.flipCoord(vertex[0]), vertex[1], vertex[2]];
+				let position = [MirrorModeling.flipCoord(vertex[0]), vertex[1], vertex[2]] as ArrayVector3;
 				let vkey_new = deleted_vertices_by_position[positionKey(position)];
 				if (vkey_new) {
 					mesh.vertices[vkey_new] = position;
@@ -500,7 +537,7 @@ MirrorModeling.registerElementType(Mesh, {
 						let counterpart = new_counterparts.pop();
 						if (vkey != counterpart && counterpart) {
 							face.vertices.splice(i, 1, counterpart);
-							face.uv[counterpart] = face.uv[vkey].slice();
+							face.uv[counterpart] = face.uv[vkey].slice() as ArrayVector2;
 							delete face.uv[vkey];
 						}
 					}
@@ -517,7 +554,7 @@ MirrorModeling.registerElementType(Mesh, {
 					new_face.vertices.splice(i, 1, new_vkey);
 					delete new_face.uv[vkey];
 					if (mirror_uv || !original_face) {
-						new_face.uv[new_vkey] = face.uv[vkey].slice();
+						new_face.uv[new_vkey] = face.uv[vkey].slice() as ArrayVector2;
 					} else {
 						// change
 						let original_vkey = pre_part_connections.vertices[vkey];
@@ -548,12 +585,12 @@ MirrorModeling.registerElementType(Mesh, {
 	}
 })
 MirrorModeling.registerElementType(ArmatureBone, {
-	isCentered(element, {center}) {
+	isCentered(element: ArmatureBone, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
-	getMirroredElement(element, {center}) {
+	getMirroredElement(element: ArmatureBone, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
 		let off_axes = [1, 2];
@@ -575,25 +612,34 @@ MirrorModeling.registerElementType(ArmatureBone, {
 			}
 		}
 		return false;
+	},
+	createLocalSymmetry(element: ArmatureBone, cached_data) {
+		let edit_side = MirrorModeling.getEditSide();
+		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+
+		// Update vertex weights on centered bones
+	},
+	updateCounterpart(original, counterpart, context) {
+		// Update vertex weights on off-centered bones
 	}
 })
 MirrorModeling.registerElementType(Billboard, {
-	isCentered(element, {center}) {
+	isCentered(element: Billboard, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
-		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
+		//if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
-	getMirroredElement(element, {center}) {
+	getMirroredElement(element: Billboard, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
 		let off_axes = [1, 2];
 		if (
-			symmetry_axes.find((axis) => !Math.epsilon(element.position[axis], center, e)) == undefined &&
-			off_axes.find(axis => element.rotation[axis]) == undefined
+			symmetry_axes.find((axis) => !Math.epsilon(element.position[axis], center, e)) == undefined
+			//off_axes.find(axis => element.rotation[axis]) == undefined
 		) {
 			return element;
 		} else {
-			for (let element2 of ArmatureBone.all) {
+			for (let element2 of (Billboard.all as Billboard[])) {
 				if (element == element2) continue;
 				if (
 					symmetry_axes.find(axis => !Math.epsilon(element.position[axis]-center, center-element2.position[axis], e)) == undefined &&
@@ -605,7 +651,7 @@ MirrorModeling.registerElementType(Billboard, {
 		}
 		return false;
 	},
-	maintainUV(element, original_data) {
+	maintainUV(element: Billboard, original_data) {
 		element.extend({
 			faces: original_data.faces,
 		});
@@ -614,7 +660,7 @@ MirrorModeling.registerElementType(Billboard, {
 
 BARS.defineActions(() => {
 	
-	new Toggle('mirror_modeling', {
+	let toggle = new Toggle('mirror_modeling', {
 		icon: 'align_horizontal_center',
 		category: 'edit',
 		condition: {modes: ['edit']},
@@ -630,11 +676,11 @@ BARS.defineActions(() => {
 				mirror_uv: {type: 'checkbox', label: 'menu.mirror_modeling.mirror_uv', value: true}
 			},
 			onOpen() {
-				this.setFormValues({enabled: BarItems.mirror_modeling.value}, false);
+				this.setFormValues({enabled: toggle.value}, false);
 			},
 			onFormChange(formResult) {
-				if (BarItems.mirror_modeling.value != formResult.enabled) {
-					BarItems.mirror_modeling.trigger();
+				if (toggle.value != formResult.enabled) {
+					toggle.trigger();
 				}
 			}
 		})
@@ -642,16 +688,18 @@ BARS.defineActions(() => {
 	let allow_toggle = new Toggle('allow_element_mirror_modeling', {
 		icon: 'align_horizontal_center',
 		category: 'edit',
-		condition: {modes: ['edit'], selected: {element: true}, method: () => BarItems.mirror_modeling.value},
+		condition: {modes: ['edit'], selected: {element: true}, method: () => toggle.value},
 		onChange(value) {
 			Outliner.selected.forEach(element => {
-				if (!element.constructor.properties.allow_mirror_modeling) return;
+				if ('allow_mirror_modeling' in (element.constructor as any).properties == false) return;
+				// @ts-ignore
 				element.allow_mirror_modeling = value;
 			})
 		}
 	})
 	Blockbench.on('update_selection', () => {
 		if (!Condition(allow_toggle.condition)) return;
+		// @ts-ignore
 		let disabled = Outliner.selected.find(el => el.allow_mirror_modeling === false);
 		if (allow_toggle.value != !disabled) {
 			allow_toggle.value = !disabled;
@@ -663,11 +711,11 @@ BARS.defineActions(() => {
 		category: 'edit',
 		condition: {modes: ['edit']},
 		click() {
-			let value_before = BarItems.mirror_modeling.value;
-			BarItems.mirror_modeling.value = true;
+			let value_before = toggle.value;
+			toggle.value = true;
 			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
 			Undo.finishEdit('Applied mirror modeling');
-			BarItems.mirror_modeling.value = value_before;
+			toggle.value = value_before;
 		}
 	})
 })

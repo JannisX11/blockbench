@@ -2,7 +2,7 @@
 type ArrayVector4 = [number, number, number, number]
 type ArrayVector3 = [number, number, number]
 type ArrayVector2 = [number, number]
-interface OutlinerNodeParentTraits {
+declare interface OutlinerNodeParentTraits {
 	children: OutlinerNode[]
 	openUp(): void
 	isOpen: boolean
@@ -31,6 +31,7 @@ declare class OutlinerNode {
 	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
 	 */
 	init(): this
+	extend(data: any): void
 	addTo(target?: OutlinerNode | 'root'): this
 	sortInBefore(target?: OutlinerNode, index_modifier?: number): this
 	select(event?: any, isOutlinerClick?: boolean): this
@@ -71,6 +72,8 @@ declare class OutlinerNode {
 	showContexMenu(event: Event | HTMLElement): this
 	getSaveCopy?(...args: any[]): Record<string, any>
 	sanitizeName(): string
+
+	getTypeBehavior(flag: string): boolean | string | any
 
 	static addBehaviorOverride(override_options: {condition: ConditionResolvable, behavior: Record<string, any>}): Deletable
 	static behavior_overrides = [];
@@ -203,7 +206,9 @@ declare namespace Outliner {
 		shade: OutlinerToggle
 		visibility: OutlinerToggle
 		[id: string]: OutlinerToggle
-	}
+	};
+	function toJSON(): []
+	function loadJSON(array: [], add_to_project?: boolean): void;
 }
 
 declare const markerColors: {

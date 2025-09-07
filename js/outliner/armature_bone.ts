@@ -278,6 +278,8 @@ export class ArmatureBone extends OutlinerElement {
 		hide_in_screenshot: true,
 		marker_color: true,
 	}
+	static all: ArmatureBone[]
+	static selected: ArmatureBone[]
 	
 	public title = tl('data.armature_bone');
 	public type = 'armature_bone';

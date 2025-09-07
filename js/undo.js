@@ -294,7 +294,7 @@ UndoSystem.save = class {
 		}
 
 		if (aspects.outliner) {
-			this.outliner = Outliner.toJSON(true)
+			this.outliner = Outliner.toJSON()
 		}
 
 		if (aspects.groups) {
