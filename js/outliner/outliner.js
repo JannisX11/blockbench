@@ -1034,8 +1034,9 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 	}
 }
 export function canAddOutlinerSelectionTo(target) {
+	let elements_to_move = Outliner.selected.filter(element => element.parent == 'root' || element.parent.selected != true)
 	if (target == 'root') {
-		for (let node of Outliner.selected) {
+		for (let node of elements_to_move) {
 			let parent_types = node.getTypeBehavior('parent_types');
 			if (parent_types && !parent_types.includes('root')) return false;
 		}
@@ -1045,9 +1046,9 @@ export function canAddOutlinerSelectionTo(target) {
 	if (target.selected) return false;
 	let child_types = target.getTypeBehavior('child_types');
 	if (child_types) {
-		if (Outliner.selected.find(el => child_types.includes(el.type) == false)) return false;
+		if (elements_to_move.find(el => child_types.includes(el.type) == false)) return false;
 	}
-	for (let node of Outliner.selected) {
+	for (let node of elements_to_move) {
 		let parent_types = node.getTypeBehavior('parent_types');
 		if (parent_types && !parent_types.includes(target.type)) return false;
 	}
@@ -2178,6 +2179,7 @@ Object.assign(window, {
 	compileGroups,
 	parseGroups,
 	moveOutlinerSelectionTo,
+	canAddOutlinerSelectionTo,
 	renameOutliner,
 	stopRenameOutliner,
 	toggleElementProperty,

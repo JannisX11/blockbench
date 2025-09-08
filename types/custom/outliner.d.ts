@@ -21,6 +21,7 @@ declare class OutlinerNode {
 	export: boolean
 	locked: boolean
 	parent?: (OutlinerNode & OutlinerNodeParentTraits) | 'root'
+	selected: boolean
 	menu?: Menu
 
 	public preview_controller: NodePreviewController
