@@ -642,7 +642,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		if (!this.muted.scale) {
 			this.displayScale(this.interpolate('scale'), multiplier);
 		}
-		this.element.mesh.updateMatrixWorld();
+		this.element.scene_object.updateMatrixWorld();
 	}
 }
 	ArmatureBoneAnimator.prototype.type = 'armature_bone';

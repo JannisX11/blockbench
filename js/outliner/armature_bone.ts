@@ -424,6 +424,7 @@ new NodePreviewController(ArmatureBone, {
 	},
 	updateTransform(element: ArmatureBone) {
 		let bone = element.scene_object as FakeObjectType & THREE.Bone;
+		let armature = element.getArmature();
 
 		bone.rotation.order = 'ZYX';
 		// @ts-expect-error
@@ -465,13 +466,15 @@ new NodePreviewController(ArmatureBone, {
 
 		bone.fix_position.copy(bone.position);
 		bone.fix_rotation.copy(bone.rotation);
-		bone.inverse_bind_matrix.copy(bone.matrixWorld).invert();
-
-		/*for (let child of element.children) {
-			if (child.scene_object) this.updateTransform(child);
-		}*/
-
+		
 		bone.updateMatrixWorld();
+		if (armature?.scene_object) {
+			bone.inverse_bind_matrix.copy(armature.scene_object.matrixWorld).invert();
+			bone.inverse_bind_matrix.multiply(bone.matrixWorld);
+			bone.inverse_bind_matrix.invert();
+		} else {
+			bone.inverse_bind_matrix.copy(bone.matrixWorld).invert();
+		}
 
 		this.dispatchEvent('update_transform', {element});
 	},

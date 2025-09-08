@@ -402,7 +402,7 @@
 	"message.timelapse_stop": "Timelapse stopped",
 
 	"message.no_animation_selected": "You have to select an animation to do this",
-	"message.group_required_to_animate": "You cannot animate this type of element. Create a group to animate it.",
+	"message.group_required_to_animate": "You cannot animate this type of element. Create a group or armature to animate it.",
 	"message.bone_material": "Change bone material",
 	"message.no_bone_selected": "You have to select a bone to do this",
 	"message.duplicate_groups.title": "Bone Name Duplicate",

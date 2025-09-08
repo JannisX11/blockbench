@@ -299,10 +299,13 @@ export const Animator = {
 		for (let mesh of Mesh.all) {
 			let armature = mesh.getArmature();
 			if (armature) {
-				let bind_matrix = mesh.mesh.matrixWorld;
+				let armature_matrix_inverse = new THREE.Matrix4().copy(armature.scene_object.parent.matrixWorld).invert();
+				let bind_matrix = new THREE.Matrix4().copy(armature_matrix_inverse);
+				bind_matrix.multiply(mesh.mesh.matrixWorld);
 				let bind_matrix_inverse = bind_matrix.clone().invert();
 				let bones = armature.getAllBones();
 				let vertex_offsets = {};
+
 				for (let vkey in mesh.vertices) {
 
 					_basePosition.fromArray(mesh.vertices[vkey]);
@@ -330,7 +333,8 @@ export const Animator = {
 						for ( let i = 0; i < 4; i ++ ) {
 							const weight = weights[i];
 							if ( weight !== 0 && affecting_bones[i] ) {
-								_matrix4.multiplyMatrices( affecting_bones[i].mesh.matrixWorld, affecting_bones[i].mesh.inverse_bind_matrix );
+								_matrix4.multiplyMatrices( armature_matrix_inverse, affecting_bones[i].scene_object.matrixWorld );
+								_matrix4.multiply( affecting_bones[i].scene_object.inverse_bind_matrix );
 								target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
 							}		
 						}
@@ -373,10 +377,11 @@ export const Animator = {
 			})
 		})
 
+		scene.updateMatrixWorld();
+
 		Animator.displayMeshDeformation();
 
 		Animator.resetLastValues();
-		scene.updateMatrixWorld();
 
 		// Effects
 		Animator.resetParticles(true);
