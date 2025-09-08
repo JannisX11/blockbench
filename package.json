@@ -137,7 +137,8 @@
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
 		"generate-docs": "node ./scripts/generate_docs.js",
-		"generate-wiki": "node ./scripts/generate_docs.js --out \"../../blockbench.net/content/api/\""
+		"generate-wiki": "node ./scripts/generate_docs.js --out \"../../blockbench.net/content/api/\"",
+		"format": "prettier --write \"js/**/*.{ts,json,vue}\""
 	},
 	"overrides": {
 		"three": "$three"
@@ -153,6 +154,7 @@
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
+		"prettier": "^3.6.2",
 		"typedoc": "^0.28.2",
 		"typescript": "^5.8.3",
 		"workbox-build": "^6.5.3"

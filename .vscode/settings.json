@@ -1,5 +1,9 @@
 {
-  "editor.indentSize": "tabSize",
-  "editor.tabSize": 4,
-  "editor.insertSpaces": false
+	"editor.indentSize": "tabSize",
+	"editor.tabSize": 4,
+	"editor.insertSpaces": false,
+	"editor.formatOnSave": true,
+	// Disable foramtting and error checking of node_modules to reduce clutter and improve performance.
+	"npm.exclude": ["**/node_modules"],
+	"errorLens.excludePatterns": ["**/node_modules/**/*"]
 }
