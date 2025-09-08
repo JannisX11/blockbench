@@ -1,9 +1,9 @@
-import { Blockbench } from "../api";
-import { ipcRenderer } from "../native_apis";
-import { Plugins } from "../plugin_loader";
-import { compileJSON } from "../util/json";
-import { Dialog } from "./dialog";
-import { Setting, SettingsProfile } from "./settings";
+import { Blockbench } from '../api'
+import { ipcRenderer } from '../native_apis'
+import { Plugins } from '../plugin_loader'
+import { compileJSON } from '../util/json'
+import { Dialog } from './dialog'
+import { Setting, SettingsProfile } from './settings'
 
 BARS.defineActions(() => {
 	new Action('settings_window', {
@@ -15,94 +15,106 @@ BARS.defineActions(() => {
 					Settings.old[sett] = settings[sett].value
 				}
 			}
-			Settings.dialog.show();
-			(document.querySelector('dialog#settings .search_bar > input') as HTMLElement).focus();
-		}
+			Settings.dialog.show()
+			;(document.querySelector('dialog#settings .search_bar > input') as HTMLElement).focus()
+		},
 	})
-	
+
 	new Action('import_settings', {
 		icon: 'folder',
 		category: 'blockbench',
 		click: function () {
 			// @ts-ignore for now
-			Blockbench.import({
-				resource_id: 'config',
-				extensions: ['bbsettings'],
-				type: 'Blockbench Settings'
-			}, function(files) {
-				Settings.import(files[0]);
-			})
-		}
+			Blockbench.import(
+				{
+					resource_id: 'config',
+					extensions: ['bbsettings'],
+					type: 'Blockbench Settings',
+				},
+				function (files) {
+					Settings.import(files[0])
+				}
+			)
+		},
 	})
 	new Action('export_settings', {
 		icon: 'fas.fa-user-cog',
 		category: 'blockbench',
 		click: async function () {
-			let private_data = [];
+			let private_data = []
 			var settings_copy = {}
 			for (var key in settings) {
-				settings_copy[key] = settings[key].value;
+				settings_copy[key] = settings[key].value
 				if (settings[key].value && settings[key].type == 'password') {
-					private_data.push(key);
+					private_data.push(key)
 				}
 			}
 			if (private_data.length) {
 				let go_on = await new Promise((resolve, reject) => {
-					Blockbench.showMessageBox({
-						title: 'dialog.export_private_settings.title',
-						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
-						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.omit', 'dialog.cancel']
-					}, result => {
-						if (result == 1) {
-							private_data.forEach(key => {
-								delete settings_copy[key];
-							})
+					Blockbench.showMessageBox(
+						{
+							title: 'dialog.export_private_settings.title',
+							message: tl('dialog.export_private_settings.message', [
+								private_data.map(key => settings[key].name).join(', '),
+							]),
+							buttons: [
+								'dialog.export_private_settings.keep',
+								'dialog.export_private_settings.omit',
+								'dialog.cancel',
+							],
+						},
+						result => {
+							if (result == 1) {
+								private_data.forEach(key => {
+									delete settings_copy[key]
+								})
+							}
+							resolve(result !== 2)
 						}
-						resolve(result !== 2);
-					})
-				});
-				if (!go_on) return;
+					)
+				})
+				if (!go_on) return
 			}
 			// @ts-ignore for now
 			Blockbench.export({
 				resource_id: 'config',
 				type: 'Blockbench Settings',
 				extensions: ['bbsettings'],
-				content: compileJSON({settings: settings_copy})
+				content: compileJSON({ settings: settings_copy }),
 			})
-		}
+		},
 	})
-	let title_bar = document.getElementById('settings_title_bar');
-	BarItems.import_settings.toElement(title_bar);
-	BarItems.export_settings.toElement(title_bar);
+	let title_bar = document.getElementById('settings_title_bar')
+	BarItems.import_settings.toElement(title_bar)
+	BarItems.export_settings.toElement(title_bar)
 })
 
-onVueSetup(function() {
+onVueSetup(function () {
 	for (var key in settings) {
-		if (settings[key].condition == false) continue;
+		if (settings[key].condition == false) continue
 		var category = settings[key].category
 		if (!category) category = 'general'
 
 		if (!Settings.structure[category]) {
 			Settings.structure[category] = {
-				name: tl('settings.category.'+category),
+				name: tl('settings.category.' + category),
 				open: category === 'general',
-				items: {}
+				items: {},
 			}
 		}
 		Settings.structure[category].items[key] = settings[key]
 	}
 
-	let sidebar_pages = {};
+	let sidebar_pages = {}
 	for (let key in Settings.structure) {
-		sidebar_pages[key] = Settings.structure[key].name;
+		sidebar_pages[key] = Settings.structure[key].name
 	}
 
 	interface SettingsDialogVueData {
-		structure: any,
-		profile: null | SettingsProfile,
-		all_profiles: SettingsProfile[],
-		open_category: string,
+		structure: any
+		profile: null | SettingsProfile
+		all_profiles: SettingsProfile[]
+		open_category: string
 		search_term: string
 	}
 	Settings.dialog = new Dialog({
@@ -119,26 +131,25 @@ onVueSetup(function() {
 		sidebar: {
 			pages: sidebar_pages,
 			page: 'general',
-			actions: [
-				'import_settings',
-				'export_settings',
-			],
+			actions: ['import_settings', 'export_settings'],
 			onPageSwitch(page) {
-				Settings.dialog.content_vue.open_category = page;
-				Settings.dialog.content_vue.search_term = '';
-			}
+				Settings.dialog.content_vue.open_category = page
+				Settings.dialog.content_vue.search_term = ''
+			},
 		},
 		component: {
-			data() {return {
-				structure: Settings.structure,
-				profile: null,
-				all_profiles: SettingsProfile.all,
-				open_category: 'general',
-				search_term: ''
-			} as SettingsDialogVueData},
+			data() {
+				return {
+					structure: Settings.structure,
+					profile: null,
+					all_profiles: SettingsProfile.all,
+					open_category: 'general',
+					search_term: '',
+				} as SettingsDialogVueData
+			},
 			methods: {
 				saveSettings(this: SettingsDialogVueData) {
-					Settings.saveLocalStorages();
+					Settings.saveLocalStorages()
 				},
 				settingContextMenu(setting: Setting, event: MouseEvent) {
 					new Menu([
@@ -146,11 +157,11 @@ onVueSetup(function() {
 							name: 'dialog.settings.reset_to_default',
 							icon: 'replay',
 							click: () => {
-								setting.ui_value = setting.default_value;
-								this.saveSettings();
-							}
-						}
-					]).open(event);
+								setting.ui_value = setting.default_value
+								this.saveSettings()
+							},
+						},
+					]).open(event)
 				},
 				showProfileMenu(this: SettingsDialogVueData) {
 					let items: MenuItem[] = [
@@ -159,111 +170,112 @@ onVueSetup(function() {
 							icon: 'remove',
 							color: '',
 							click: () => {
-								this.profile = null;
-							}
-						}
-					];
+								this.profile = null
+							},
+						},
+					]
 					SettingsProfile.all.forEach(profile => {
 						items.push({
 							name: profile.name,
 							icon: 'manage_accounts',
 							color: markerColors[profile.color % markerColors.length].standard,
 							click: () => {
-								this.profile = profile;
+								this.profile = profile
 								if (profile.condition.type == 'selectable') {
-									profile.select();
+									profile.select()
 								} else {
-									SettingsProfile.unselect();
+									SettingsProfile.unselect()
 								}
-							}
+							},
 						})
 					})
 
-					items.push(
-						'_',
-						{name: 'dialog.settings.create_profile', icon: 'add', click: () => {
-							this.profile = new SettingsProfile({});
-							this.profile.openDialog();
-						}}
-					)
+					items.push('_', {
+						name: 'dialog.settings.create_profile',
+						icon: 'add',
+						click: () => {
+							this.profile = new SettingsProfile({})
+							this.profile.openDialog()
+						},
+					})
 					// @ts-ignore
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
 				},
 				profileButtonPress(this: SettingsDialogVueData) {
 					if (!this.profile) {
-						this.profile = new SettingsProfile({});
+						this.profile = new SettingsProfile({})
 					}
-					this.profile.openDialog();
+					this.profile.openDialog()
 				},
 				getProfileValuesForSetting(this: SettingsDialogVueData, key) {
 					return this.all_profiles.filter(profile => {
-						return profile.settings[key] !== undefined;
-					});
+						return profile.settings[key] !== undefined
+					})
 				},
 				getProfileColor(profile?: SettingsProfile): string {
 					if (profile && markerColors[profile.color % markerColors.length]) {
 						return markerColors[profile.color % markerColors.length].standard
 					}
-					return '';
+					return ''
 				},
 				isFullWidth(setting: Setting): boolean {
-					return ['text', 'password', 'select'].includes(setting.type);
+					return ['text', 'password', 'select'].includes(setting.type)
 				},
 				getPluginName(plugin_id: string): string {
-					let plugin = Plugins.all.find(p => p.id == plugin_id);
-					return plugin?.title ?? plugin_id;
+					let plugin = Plugins.all.find(p => p.id == plugin_id)
+					return plugin?.title ?? plugin_id
 				},
 				revealPlugin(plugin_id: string) {
-					let plugin = Plugins.all.find(p => p.id == plugin_id);
-					if (!plugin) return;
-					
-					Plugins.dialog.show();
-					Plugins.dialog.content_vue.selectPlugin!(plugin);
+					let plugin = Plugins.all.find(p => p.id == plugin_id)
+					if (!plugin) return
+
+					Plugins.dialog.show()
+					Plugins.dialog.content_vue.selectPlugin!(plugin)
 				},
 				getIconNode: Blockbench.getIconNode,
 				tl,
-				Condition
+				Condition,
 			},
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
-						var items = {};
+						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ')
+						var items = {}
 						for (var key in settings) {
-							var setting = settings[key];
+							var setting = settings[key]
 							if (Condition(setting.condition)) {
-								var name = setting.name.toLowerCase();
-								var desc = setting.description.toLowerCase();
-								var missmatch = false;
+								var name = setting.name.toLowerCase()
+								var desc = setting.description.toLowerCase()
+								var missmatch = false
 								for (var word of keywords) {
 									if (
 										!key.includes(word) &&
 										!name.includes(word) &&
 										!desc.includes(word)
 									) {
-										missmatch = true;
+										missmatch = true
 									}
 								}
 								if (!missmatch) {
-									items[key] = setting;
+									items[key] = setting
 								}
 							}
 						}
-						return items;
+						return items
 					} else {
-						return this.structure[this.open_category].items;
+						return this.structure[this.open_category].items
 					}
 				},
 				title() {
 					if (this.search_term) {
-						return tl('dialog.settings.search_results');
+						return tl('dialog.settings.search_results')
 					} else {
-						return this.structure[this.open_category].name;
+						return this.structure[this.open_category].name
 					}
 				},
 				profile_name() {
-					return this.profile ? this.profile.name : tl('generic.none');
-				}
+					return this.profile ? this.profile.name : tl('generic.none')
+				},
 			},
 			template: `
 				<div :style="{'--color-profile': getProfileColor(profile)}">
@@ -334,32 +346,32 @@ onVueSetup(function() {
 							</template>
 						</li>
 					</ul>
-				</div>`
+				</div>`,
 		},
 		onButton() {
-			Settings.save();
+			Settings.save()
 			function hasSettingChanged(id) {
-				return (Settings.old && settings[id].value !== Settings.old[id])
+				return Settings.old && settings[id].value !== Settings.old[id]
 			}
-			let changed_settings = [];
+			let changed_settings = []
 			for (let id in settings) {
-				let setting = settings[id];
-				if (!Condition(setting.condition)) continue;
-				let has_changed = hasSettingChanged(id);
+				let setting = settings[id]
+				if (!Condition(setting.condition)) continue
+				let has_changed = hasSettingChanged(id)
 				if (has_changed) {
-					changed_settings.push(setting);
+					changed_settings.push(setting)
 					if (setting.onChange) {
-						setting.onChange(setting.value);
+						setting.onChange(setting.value)
 					}
 					if (isApp && setting.launch_setting) {
-						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+						ipcRenderer.send('edit-launch-setting', { key: id, value: setting.value })
 					}
 				}
 			}
-			let restart_settings = changed_settings.filter(setting => setting.requires_restart);
+			let restart_settings = changed_settings.filter(setting => setting.requires_restart)
 			if (restart_settings.length) {
-				Settings.showRestartMessage(restart_settings);
+				Settings.showRestartMessage(restart_settings)
 			}
-		}
+		},
 	})
 })

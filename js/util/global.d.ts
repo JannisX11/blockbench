@@ -1,7 +1,6 @@
 declare global {
 	const Transformer: any
 
-
 	interface HTMLImageElement {
 		src: string
 		tex: THREE.Texture & {
@@ -134,5 +133,4 @@ declare global {
 	let osfs: string
 }
 
-export { }
-
+export {}

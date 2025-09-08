@@ -1,4 +1,4 @@
-import { ModelFormat as _ModelFormat } from "./io/format"
+import { ModelFormat as _ModelFormat } from './io/format'
 declare global {
 	const ModelFormat: typeof _ModelFormat
 	const Format: _ModelFormat
@@ -26,10 +26,7 @@ declare global {
 		const Settings: typeof _Settings
 	}
 }
-import {
-	Modes as _Modes,
-	Mode as _Mode,
-} from './modes'
+import { Modes as _Modes, Mode as _Mode } from './modes'
 declare global {
 	const Modes: typeof _Modes
 	const Mode: typeof _Mode
@@ -50,9 +47,7 @@ declare global {
 	const ShapelessDialog: typeof _ShapelessDialog
 	const ToolConfig: typeof _ToolConfig
 }
-import {
-	Property as _Property,
-} from './util/property'
+import { Property as _Property } from './util/property'
 declare global {
 	const Property: typeof _Property
 }

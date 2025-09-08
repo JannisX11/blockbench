@@ -1,14 +1,14 @@
-import { Vue } from "../lib/libs";
-import { Blockbench } from "../api";
-import { setProjectTitle } from "../interface/interface";
-import { settings, Settings } from "../interface/settings";
-import { TickUpdates } from "../misc";
-import { Mode, Modes } from "../modes";
-import { Group } from "../outliner/group";
-import { Canvas } from "../preview/canvas";
-import { DefaultCameraPresets } from "../preview/preview";
-import { Property } from "../util/property";
-import { SplineMesh } from "../outliner/spline_mesh";
+import { Vue } from '../lib/libs'
+import { Blockbench } from '../api'
+import { setProjectTitle } from '../interface/interface'
+import { settings, Settings } from '../interface/settings'
+import { TickUpdates } from '../misc'
+import { Mode, Modes } from '../modes'
+import { Group } from '../outliner/group'
+import { Canvas } from '../preview/canvas'
+import { DefaultCameraPresets } from '../preview/preview'
+import { Property } from '../util/property'
+import { SplineMesh } from '../outliner/spline_mesh'
 
 interface FormatPage {
 	component?: Vue.Component
@@ -60,12 +60,12 @@ interface CubeSizeLimiter {
  */
 declare const Format: ModelFormat
 
-export const Formats = {};
+export const Formats = {}
 
 Object.defineProperty(window, 'Format', {
 	get() {
-		return Blockbench.Format;
-	}
+		return Blockbench.Format
+	},
 })
 
 //Formats
@@ -292,8 +292,6 @@ export class ModelFormat implements FormatOptions {
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(project: ModelProject, newModel?: boolean): void
-	
-
 
 	cube_size_limiter?: CubeSizeLimiter
 
@@ -305,137 +303,136 @@ export class ModelFormat implements FormatOptions {
 
 	constructor(id: string, data: Partial<FormatOptions>) {
 		if (typeof id == 'object') {
-			data = id;
-			id = data.id;
+			data = id
+			id = data.id
 		}
-		Formats[id] = this;
-		this.id = id;
-		this.name = data.name || tl('format.'+this.id);
-		this.description = data.description || tl('format.'+this.id+'.desc');
-		if (this.description == 'format.'+this.id+'.desc') this.description = '';
-		this.category = data.category || 'other';
-		this.target = data.target;
-		this.show_on_start_screen = true;
-		this.confidential = false;
-		this.can_convert_to = true;
+		Formats[id] = this
+		this.id = id
+		this.name = data.name || tl('format.' + this.id)
+		this.description = data.description || tl('format.' + this.id + '.desc')
+		if (this.description == 'format.' + this.id + '.desc') this.description = ''
+		this.category = data.category || 'other'
+		this.target = data.target
+		this.show_on_start_screen = true
+		this.confidential = false
+		this.can_convert_to = true
 
 		for (let id in ModelFormat.properties) {
-			ModelFormat.properties[id].reset(this);
+			ModelFormat.properties[id].reset(this)
 		}
-		this.render_sides = data.render_sides;
-		this.cube_size_limiter = data.cube_size_limiter;
+		this.render_sides = data.render_sides
+		this.cube_size_limiter = data.cube_size_limiter
 
-		this.codec = data.codec;
-		this.onSetup = data.onSetup;
-		this.onFormatPage = data.onFormatPage;
-		this.onActivation = data.onActivation;
-		this.onDeactivation = data.onDeactivation;
-		this.format_page = data.format_page;
-		Merge.string(this, data, 'icon');
-		Merge.boolean(this, data, 'show_on_start_screen');
-		Merge.boolean(this, data, 'show_in_new_list');
-		Merge.boolean(this, data, 'can_convert_to');
-		Merge.boolean(this, data, 'confidential');
+		this.codec = data.codec
+		this.onSetup = data.onSetup
+		this.onFormatPage = data.onFormatPage
+		this.onActivation = data.onActivation
+		this.onDeactivation = data.onDeactivation
+		this.format_page = data.format_page
+		Merge.string(this, data, 'icon')
+		Merge.boolean(this, data, 'show_on_start_screen')
+		Merge.boolean(this, data, 'show_in_new_list')
+		Merge.boolean(this, data, 'can_convert_to')
+		Merge.boolean(this, data, 'confidential')
 
-		if (data.new) this.new = data.new;
+		if (data.new) this.new = data.new
 
 		if (data.rotation_limit && data.rotation_snap === undefined) {
-			data.rotation_snap = true;
+			data.rotation_snap = true
 		}
 		for (let id in ModelFormat.properties) {
-			ModelFormat.properties[id].merge(this, data);
+			ModelFormat.properties[id].merge(this, data)
 		}
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
-		Blockbench.dispatchEvent('construct_format', {format: this});
+		Blockbench.dispatchEvent('construct_format', { format: this })
 	}
 	select() {
 		if (Format && typeof Format.onDeactivation == 'function') {
 			Format.onDeactivation()
 		}
 		// @ts-ignore Incompatible internal and external types
-		Blockbench.Format = Blockbench.Project.format = this;
+		Blockbench.Format = Blockbench.Project.format = this
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
 		Canvas.buildGrid()
 		if (Format.centered_grid) {
-			scene.position.set(0, 0, 0);
-			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			scene.position.set(0, 0, 0)
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8
 		} else {
-			scene.position.set(-8, 0, -8);
-			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
+			scene.position.set(-8, 0, -8)
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0
 		}
 		PreviewModel.getActiveModels().forEach(model => {
-			model.update();
+			model.update()
 		})
-		Settings.updateSettingsInProfiles();
+		Settings.updateSettingsInProfiles()
 		Preview.all.forEach(preview => {
 			if (preview.isOrtho && typeof preview.angle == 'number') {
 				// @ts-ignore Incompatible internal and external types
-				preview.loadAnglePreset(DefaultCameraPresets[preview.angle+1] as AnglePreset)
+				preview.loadAnglePreset(DefaultCameraPresets[preview.angle + 1] as AnglePreset)
 			}
 		})
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
-			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
+			;(this.pose_mode ? Modes.options.paint : Modes.options.edit).select()
 		}
-		Interface.Panels.animations.inside_vue.$data.animation_files_enabled = this.animation_files;
+		Interface.Panels.animations.inside_vue.$data.animation_files_enabled = this.animation_files
 		// @ts-ignore
-		Interface.status_bar.vue.Format = this;
-		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		if (Modes.vue) Modes.vue.$forceUpdate();
-		TickUpdates.interface = true;
-		Canvas.updateShading();
+		Interface.status_bar.vue.Format = this
+		UVEditor.vue.cube_uv_rotation = this.uv_rotation
+		if (Modes.vue) Modes.vue.$forceUpdate()
+		TickUpdates.interface = true
+		Canvas.updateShading()
 		Canvas.updateRenderSides()
-		Blockbench.dispatchEvent('select_format', {format: this, project: Project});
-		return this;
+		Blockbench.dispatchEvent('select_format', { format: this, project: Project })
+		return this
 	}
 	new(): boolean {
 		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
-			(BarItems.project_window as Action).click();
-			return true;
+			;(BarItems.project_window as Action).click()
+			return true
 		}
-		return false;
+		return false
 	}
 	convertTo() {
+		Undo.history.empty()
+		Undo.index = 0
+		Project.export_path = ''
+		Project.unhandled_root_fields = {}
 
-		Undo.history.empty();
-		Undo.index = 0;
-		Project.export_path = '';
-		Project.unhandled_root_fields = {};
-
-		var old_format = Blockbench.Format as ModelFormat;
-		this.select();
+		var old_format = Blockbench.Format as ModelFormat
+		this.select()
 		Modes.options.edit.select()
 
 		// Box UV
 		if (!this.optional_box_uv) {
-			Project.box_uv = this.box_uv;
+			Project.box_uv = this.box_uv
 			Cube.all.forEach(cube => {
-				cube.setUVMode(this.box_uv);
+				cube.setUVMode(this.box_uv)
 			})
 		}
 
 		if (!this.per_texture_uv_size && old_format.per_texture_uv_size) {
-			let tex = Texture.getDefault();
+			let tex = Texture.getDefault()
 			if (tex) {
-				Project.texture_width = tex.uv_width;
-				Project.texture_height = tex.uv_height;
+				Project.texture_width = tex.uv_width
+				Project.texture_height = tex.uv_height
 			}
 		}
 		if (this.per_texture_uv_size && !old_format.per_texture_uv_size) {
 			Texture.all.forEach(tex => {
-				tex.uv_width = Project.texture_width;
-				tex.uv_height = Project.texture_height;
+				tex.uv_width = Project.texture_width
+				tex.uv_height = Project.texture_height
 			})
 		}
 
 		//Bone Rig
 		if (!this.bone_rig && old_format.bone_rig) {
 			Group.all.forEach(group => {
-				group.rotation.V3_set(0, 0, 0);
+				group.rotation.V3_set(0, 0, 0)
 			})
 		}
 		if (this.bone_rig && !old_format.bone_rig) {
@@ -454,35 +451,37 @@ export class ModelFormat implements FormatOptions {
 			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
 				// @ts-ignore
-				Project.geometry_name = Project.name;
+				Project.geometry_name = Project.name
 			}
 		}
 		if (this.bone_rig) {
 			Group.all.forEach(group => {
-				group.createUniqueName();
+				group.createUniqueName()
 			})
 		}
 		if (this.centered_grid != old_format.centered_grid) {
-			let offset = this.centered_grid ? -8 : 8;
+			let offset = this.centered_grid ? -8 : 8
 			Cube.all.forEach(cube => {
 				for (let axis of [0, 2]) {
-					cube.from[axis] += offset;
-					cube.to[axis] += offset;
-					cube.origin[axis] += offset;
+					cube.from[axis] += offset
+					cube.to[axis] += offset
+					cube.origin[axis] += offset
 				}
 			})
 			Group.all.forEach(group => {
-				group.origin[0] += offset;
-				group.origin[2] += offset;
+				group.origin[0] += offset
+				group.origin[2] += offset
 			})
 		}
 
 		if (!this.single_texture && old_format.single_texture && Texture.all.length) {
-			let texture = Texture.getDefault();
-			Outliner.elements.filter((el: OutlinerElement) => 'applyTexture' in el).forEach(el => {
-				// @ts-ignore
-				el.applyTexture(texture, true)
-			})
+			let texture = Texture.getDefault()
+			Outliner.elements
+				.filter((el: OutlinerElement) => 'applyTexture' in el)
+				.forEach(el => {
+					// @ts-ignore
+					el.applyTexture(texture, true)
+				})
 		}
 
 		//Rotate Cubes
@@ -529,12 +528,16 @@ export class ModelFormat implements FormatOptions {
 		}
 
 		//Canvas Limit
-		if (this.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+		if (
+			this.cube_size_limiter &&
+			!old_format.cube_size_limiter &&
+			!settings.deactivate_size_limit.value
+		) {
 			Cube.all.forEach(cube => {
-				this.cube_size_limiter.move(cube);
+				this.cube_size_limiter.move(cube)
 			})
 			Cube.all.forEach(cube => {
-				this.cube_size_limiter.clamp(cube);
+				this.cube_size_limiter.clamp(cube)
 			})
 		}
 
@@ -542,24 +545,26 @@ export class ModelFormat implements FormatOptions {
 		if (this.rotation_limit && !old_format.rotation_limit && this.rotate_cubes) {
 			Cube.all.forEach(cube => {
 				if (!cube.rotation.allEqual(0)) {
-					var axis = (getAxisNumber(cube.rotationAxis())) || 0;
-					var cube_rotation = this.rotation_snap ? Math.round(cube.rotation[axis]/22.5)*22.5 : cube.rotation[axis];
-					var angle = limitNumber( cube_rotation, -45, 45 );
+					var axis = getAxisNumber(cube.rotationAxis()) || 0
+					var cube_rotation = this.rotation_snap
+						? Math.round(cube.rotation[axis] / 22.5) * 22.5
+						: cube.rotation[axis]
+					var angle = limitNumber(cube_rotation, -45, 45)
 					cube.rotation.V3_set(0, 0, 0)
-					cube.rotation[axis] = angle;
+					cube.rotation[axis] = angle
 				}
 			})
 		}
 
 		//Animation Mode
 		if (!this.animation_mode && old_format.animation_mode) {
-			Animator.animations.length = 0;
+			Animator.animations.length = 0
 		}
 
-		Project.saved = false;
-		setProjectTitle();
+		Project.saved = false
+		setProjectTitle()
 
-		Blockbench.dispatchEvent('convert_format', {format: this, old_format})
+		Blockbench.dispatchEvent('convert_format', { format: this, old_format })
 
 		if (typeof this.onSetup == 'function') {
 			this.onSetup(Project)
@@ -571,59 +576,58 @@ export class ModelFormat implements FormatOptions {
 		updateSelection()
 	}
 	delete() {
-		delete Formats[this.id];
+		delete Formats[this.id]
 		// @ts-ignore
-		if (this.codec && this.codec.format == this) delete this.codec.format;
-		Blockbench.dispatchEvent('delete_format', {format: this});
+		if (this.codec && this.codec.format == this) delete this.codec.format
+		Blockbench.dispatchEvent('delete_format', { format: this })
 	}
 }
 
-new Property(ModelFormat, 'string', 'node_name_regex');
-new Property(ModelFormat, 'boolean', 'box_uv');
-new Property(ModelFormat, 'boolean', 'optional_box_uv');
-new Property(ModelFormat, 'boolean', 'box_uv_float_size');
-new Property(ModelFormat, 'boolean', 'single_texture');
-new Property(ModelFormat, 'boolean', 'single_texture_default');
-new Property(ModelFormat, 'boolean', 'per_group_texture');
-new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
-new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
-new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
-new Property(ModelFormat, 'boolean', 'parent_model_id');
-new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion');
-new Property(ModelFormat, 'boolean', 'animated_textures');
-new Property(ModelFormat, 'boolean', 'bone_rig');
-new Property(ModelFormat, 'boolean', 'armature_rig');
-new Property(ModelFormat, 'boolean', 'centered_grid');
-new Property(ModelFormat, 'boolean', 'rotate_cubes');
-new Property(ModelFormat, 'boolean', 'stretch_cubes');
-new Property(ModelFormat, 'boolean', 'integer_size');
-new Property(ModelFormat, 'boolean', 'meshes');
-new Property(ModelFormat, 'boolean', 'splines');
-new Property(ModelFormat, 'boolean', 'texture_meshes');
-new Property(ModelFormat, 'boolean', 'billboards');
-new Property(ModelFormat, 'boolean', 'locators');
-new Property(ModelFormat, 'boolean', 'rotation_limit');
-new Property(ModelFormat, 'boolean', 'rotation_snap');
-new Property(ModelFormat, 'boolean', 'uv_rotation');
-new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
-new Property(ModelFormat, 'boolean', 'java_face_properties');
-new Property(ModelFormat, 'boolean', 'cullfaces');
-new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
-new Property(ModelFormat, 'boolean', 'texture_mcmeta');
-new Property(ModelFormat, 'boolean', 'bone_binding_expression');
-new Property(ModelFormat, 'boolean', 'animation_files');
-new Property(ModelFormat, 'boolean', 'animation_controllers');
-new Property(ModelFormat, 'boolean', 'image_editor');
-new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
-new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
-new Property(ModelFormat, 'boolean', 'pose_mode');
-new Property(ModelFormat, 'boolean', 'display_mode');
-new Property(ModelFormat, 'boolean', 'animation_mode');
-new Property(ModelFormat, 'boolean', 'texture_folder');
-new Property(ModelFormat, 'boolean', 'pbr');
-
+new Property(ModelFormat, 'string', 'node_name_regex')
+new Property(ModelFormat, 'boolean', 'box_uv')
+new Property(ModelFormat, 'boolean', 'optional_box_uv')
+new Property(ModelFormat, 'boolean', 'box_uv_float_size')
+new Property(ModelFormat, 'boolean', 'single_texture')
+new Property(ModelFormat, 'boolean', 'single_texture_default')
+new Property(ModelFormat, 'boolean', 'per_group_texture')
+new Property(ModelFormat, 'boolean', 'per_texture_uv_size')
+new Property(ModelFormat, 'boolean', 'model_identifier', { default: true })
+new Property(ModelFormat, 'boolean', 'legacy_editable_file_name')
+new Property(ModelFormat, 'boolean', 'parent_model_id')
+new Property(ModelFormat, 'boolean', 'vertex_color_ambient_occlusion')
+new Property(ModelFormat, 'boolean', 'animated_textures')
+new Property(ModelFormat, 'boolean', 'bone_rig')
+new Property(ModelFormat, 'boolean', 'armature_rig')
+new Property(ModelFormat, 'boolean', 'centered_grid')
+new Property(ModelFormat, 'boolean', 'rotate_cubes')
+new Property(ModelFormat, 'boolean', 'stretch_cubes')
+new Property(ModelFormat, 'boolean', 'integer_size')
+new Property(ModelFormat, 'boolean', 'meshes')
+new Property(ModelFormat, 'boolean', 'splines')
+new Property(ModelFormat, 'boolean', 'texture_meshes')
+new Property(ModelFormat, 'boolean', 'billboards')
+new Property(ModelFormat, 'boolean', 'locators')
+new Property(ModelFormat, 'boolean', 'rotation_limit')
+new Property(ModelFormat, 'boolean', 'rotation_snap')
+new Property(ModelFormat, 'boolean', 'uv_rotation')
+new Property(ModelFormat, 'boolean', 'java_cube_shading_properties')
+new Property(ModelFormat, 'boolean', 'java_face_properties')
+new Property(ModelFormat, 'boolean', 'cullfaces')
+new Property(ModelFormat, 'boolean', 'select_texture_for_particles')
+new Property(ModelFormat, 'boolean', 'texture_mcmeta')
+new Property(ModelFormat, 'boolean', 'bone_binding_expression')
+new Property(ModelFormat, 'boolean', 'animation_files')
+new Property(ModelFormat, 'boolean', 'animation_controllers')
+new Property(ModelFormat, 'boolean', 'image_editor')
+new Property(ModelFormat, 'boolean', 'edit_mode', { default: true })
+new Property(ModelFormat, 'boolean', 'paint_mode', { default: true })
+new Property(ModelFormat, 'boolean', 'pose_mode')
+new Property(ModelFormat, 'boolean', 'display_mode')
+new Property(ModelFormat, 'boolean', 'animation_mode')
+new Property(ModelFormat, 'boolean', 'texture_folder')
+new Property(ModelFormat, 'boolean', 'pbr')
 
 Object.assign(window, {
 	ModelFormat,
-	Formats
-});
+	Formats,
+})

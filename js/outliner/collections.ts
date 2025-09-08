@@ -1,21 +1,21 @@
-import { Animation } from "../animations/animation";
-import { SharedActions } from "../interface/shared_actions";
-import { Prop } from "../misc";
-import { guid } from "../util/math_util";
-import { Property } from "../util/property";
-import { OutlinerElement, OutlinerNode } from "./outliner";
+import { Animation } from '../animations/animation'
+import { SharedActions } from '../interface/shared_actions'
+import { Prop } from '../misc'
+import { guid } from '../util/math_util'
+import { Property } from '../util/property'
+import { OutlinerElement, OutlinerNode } from './outliner'
 import { Toolbar } from '../interface/toolbars'
-import { Group } from "./group";
-import { Interface } from "../interface/interface";
-import { Menu } from "../interface/menu";
-import { Blockbench } from "../api";
-import { removeEventListeners } from "../util/util";
+import { Group } from './group'
+import { Interface } from '../interface/interface'
+import { Menu } from '../interface/menu'
+import { Blockbench } from '../api'
+import { removeEventListeners } from '../util/util'
 import { Action } from '../interface/actions'
-import { Clipbench } from "../copy_paste";
-import { getFocusedTextInput } from "../interface/keyboard";
-import { tl } from "../languages";
-import { Panel } from "../interface/panels";
-import { Codecs } from "../io/codec";
+import { Clipbench } from '../copy_paste'
+import { getFocusedTextInput } from '../interface/keyboard'
+import { tl } from '../languages'
+import { Panel } from '../interface/panels'
+import { Codecs } from '../io/codec'
 
 interface CollectionOptions {
 	children?: string[]
@@ -53,69 +53,73 @@ export class Collection {
 	static selected: Collection[]
 
 	constructor(data: CollectionOptions, uuid?: string) {
-		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
-		this.selected = false;
-		this.children = [];
+		this.uuid = uuid && isUUID(uuid) ? uuid : guid()
+		this.selected = false
+		this.children = []
 		for (let key in Collection.properties) {
-			Collection.properties[key].reset(this);
+			Collection.properties[key].reset(this)
 		}
-		if (data) this.extend(data);
+		if (data) this.extend(data)
 	}
 	extend(data: CollectionOptions): this {
 		for (var key in Collection.properties) {
 			Collection.properties[key].merge(this, data)
 		}
-		return this;
+		return this
 	}
 	select(event?: KeyboardEvent | MouseEvent): this {
-		this.selected = true;
-		if ((!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) || Modes.animate) {
-			unselectAllElements();
-			Collection.all.forEach(c => c.selected = false);
+		this.selected = true
+		if (
+			(!(event?.shiftKey || Pressing.overrides.shift) &&
+				!(event?.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+			Modes.animate
+		) {
+			unselectAllElements()
+			Collection.all.forEach(c => (c.selected = false))
 		}
-		this.selected = true;
-		let i = 0;
+		this.selected = true
+		let i = 0
 		if (Modes.animate && Animation.selected && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) {
-			Timeline.animators.empty();
+			Timeline.animators.empty()
 		}
 		for (let node of this.getChildren()) {
 			if (Modes.animate && Animation.selected) {
 				// @ts-ignore
 				if (node.constructor.animator) {
-					let animator = Animation.selected.getBoneAnimator(node);
+					let animator = Animation.selected.getBoneAnimator(node)
 					if (animator) {
-						animator.addToTimeline(true);
+						animator.addToTimeline(true)
 					}
 					if (i == 0) {
-						node.select();
+						node.select()
 					}
 				}
 			} else {
 				if (node instanceof Group) {
-					node.multiSelect();
+					node.multiSelect()
 				} else {
-					Outliner.selected.safePush(node);
+					Outliner.selected.safePush(node)
 				}
 			}
-			i++;
+			i++
 		}
-		updateSelection();
-		return this;
+		updateSelection()
+		return this
 	}
 	clickSelect(event) {
-		Undo.initSelection({collections: true, timeline: Modes.animate});
-		this.select(event);
-		Undo.finishSelection('Select collection');
+		Undo.initSelection({ collections: true, timeline: Modes.animate })
+		this.select(event)
+		Undo.finishSelection('Select collection')
 	}
 	/**
 	 * Get all direct children
 	 */
 	getChildren(): OutlinerNode[] {
-		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
+		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined)
 	}
 	add(): this {
-		Collection.all.safePush(this);
-		return this;
+		Collection.all.safePush(this)
+		return this
 	}
 	/**
 	 * Adds the current outliner selection to this collection
@@ -123,103 +127,103 @@ export class Collection {
 	addSelection(): this {
 		if (Group.multi_selected.length) {
 			for (let group of Group.multi_selected) {
-				this.children.safePush(group.uuid);
+				this.children.safePush(group.uuid)
 			}
 		}
 		for (let element of Outliner.selected) {
 			if (!(element instanceof OutlinerNode && element.parent.selected)) {
-				this.children.safePush(element.uuid);
+				this.children.safePush(element.uuid)
 			}
 		}
-		return this;
+		return this
 	}
 	/**
 	 * Returns the visibility of the first contained node that supports visibility. Otherwise returns true.
 	 */
 	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
-			return node && 'visibility' in node && typeof node.visibility == 'boolean';
-		});
+			return node && 'visibility' in node && typeof node.visibility == 'boolean'
+		})
 		// @ts-ignore
-		return match ? match.visibility : true;
+		return match ? match.visibility : true
 	}
 	/**
 	 * Get all children, including indirect ones
 	 */
 	getAllChildren(): OutlinerNode[] {
-		let children = this.getChildren();
-		let nodes = [];
+		let children = this.getChildren()
+		let nodes = []
 		for (let child of children) {
-			nodes.safePush(child);
+			nodes.safePush(child)
 			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
-				child.forEachChild(subchild => nodes.safePush(subchild));
+				child.forEachChild(subchild => nodes.safePush(subchild))
 			}
 		}
-		return nodes;
+		return nodes
 	}
 	/**
 	 * Toggle visibility of everything in the collection
 	 * @param event If the alt key is pressed, the result is inverted and the visibility of everything but the collection will be toggled
 	 */
 	toggleVisibility(event: KeyboardEvent | MouseEvent): void {
-		let children = this.getChildren();
-		if (!children.length) return;
-		let groups = [];
-		let elements = [];
+		let children = this.getChildren()
+		if (!children.length) return
+		let groups = []
+		let elements = []
 		function update(node: OutlinerNode) {
-			if ('visibility' in node == false || typeof node.visibility != 'boolean') return;
+			if ('visibility' in node == false || typeof node.visibility != 'boolean') return
 			if (node instanceof Group) {
-				groups.push(node);
+				groups.push(node)
 			} else {
-				elements.push(node);
+				elements.push(node)
 			}
 		}
 		for (let child of children) {
-			update(child);
+			update(child)
 			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
-				child.forEachChild(update);
+				child.forEachChild(update)
 			}
 		}
 		if (event.altKey) {
 			// invert selection
-			elements = Outliner.elements.filter(e => !elements.includes(e));
-			groups = Group.all.filter(e => !groups.includes(e));
+			elements = Outliner.elements.filter(e => !elements.includes(e))
+			groups = Group.all.filter(e => !groups.includes(e))
 		}
-		let all = groups.concat(elements);
-		let state = all[0]?.visibility != true;
-		Undo.initEdit({groups, elements});
+		let all = groups.concat(elements)
+		let state = all[0]?.visibility != true
+		Undo.initEdit({ groups, elements })
 		all.forEach(node => {
-			node.visibility = state;
+			node.visibility = state
 		})
-		Canvas.updateView({elements, element_aspects: {visibility: true}});
-		Undo.finishEdit('Toggle collection visibility');
+		Canvas.updateView({ elements, element_aspects: { visibility: true } })
+		Undo.finishEdit('Toggle collection visibility')
 	}
 	/**
 	 * Opens the context menu
 	 */
 	showContextMenu(event) {
-		if (!this.selected) this.clickSelect(event);
-		this.menu.open(event, this);
-		return this;
+		if (!this.selected) this.clickSelect(event)
+		this.menu.open(event, this)
+		return this
 	}
 	getUndoCopy() {
 		let copy = {
 			uuid: this.uuid,
-			index: Collection.all.indexOf(this)
-		};
-		for (var key in Collection.properties) {
-			Collection.properties[key].copy(this, copy);
+			index: Collection.all.indexOf(this),
 		}
-		return copy;
+		for (var key in Collection.properties) {
+			Collection.properties[key].copy(this, copy)
+		}
+		return copy
 	}
 	getSaveCopy() {
 		let copy = {
-			uuid: this.uuid
-		};
-		for (var key in Collection.properties) {
-			Collection.properties[key].copy(this, copy);
+			uuid: this.uuid,
 		}
-		return copy;
+		for (var key in Collection.properties) {
+			Collection.properties[key].copy(this, copy)
+		}
+		return copy
 	}
 	/**
 	 * Opens the properties dialog
@@ -232,28 +236,31 @@ export class Collection {
 		 * Export Format
 		 * Offset
 		 */
-		let collection = this;
+		let collection = this
 		function getContentList() {
 			let types = {
-				group: []
+				group: [],
 			}
 			for (let child of collection.getChildren()) {
 				// @ts-ignore
-				let type = child.type;
-				if (!types[type]) types[type] = [];
-				types[type].push(child);
+				let type = child.type
+				if (!types[type]) types[type] = []
+				types[type].push(child)
 			}
-			let list = [];
+			let list = []
 			for (let key in types) {
 				for (let node of types[key]) {
 					list.push({
 						name: node.name,
 						uuid: node.uuid,
-						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+						icon:
+							key == 'group'
+								? Group.prototype.icon
+								: OutlinerElement.types[key].prototype.icon,
 					})
 				}
 			}
-			return list;
+			return list
 		}
 		type PropertiesComponentData = {
 			content: {
@@ -269,15 +276,15 @@ export class Collection {
 			resizable: 'x',
 			keyboard_actions: {
 				delete: {
-					keybind: new Keybind({key: 46}),
+					keybind: new Keybind({ key: 46 }),
 					run() {
-						this.content_vue.remove();
-					}
-				}
+						this.content_vue.remove()
+					},
+				},
 			},
 			part_order: ['form', 'component'],
 			form: {
-				name: {type: 'text', label: 'generic.name', value: this.name},
+				name: { type: 'text', label: 'generic.name', value: this.name },
 				export_path: {
 					label: 'dialog.collection.export_path',
 					value: this.export_path,
@@ -285,46 +292,47 @@ export class Collection {
 					condition: isApp && this.codec,
 					extensions: ['json'],
 					filetype: 'JSON collection',
-				}
+				},
 			},
 			component: {
-				components: {VuePrismEditor},
+				components: { VuePrismEditor },
 				data: {
 					content: getContentList(),
-					selected: []
+					selected: [],
 				} as PropertiesComponentData,
 				methods: {
 					selectAll(this: PropertiesComponentData) {
 						for (let node of this.content) {
-							this.selected.safePush(node.uuid);
+							this.selected.safePush(node.uuid)
 						}
 					},
 					selectNone(this: PropertiesComponentData) {
-						this.selected.empty();
+						this.selected.empty()
 					},
 					remove(this: PropertiesComponentData) {
 						for (let uuid of this.selected) {
-							this.content.remove(this.content.find(node => node.uuid == uuid));
+							this.content.remove(this.content.find(node => node.uuid == uuid))
 						}
-						this.selected.empty();
+						this.selected.empty()
 					},
 					addWithFilter(this: PropertiesComponentData, event) {
 						// @ts-ignore
-						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
-							for (let node of elements.concat(groups)) {
-								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
-									this.content.push({
-										uuid: node.uuid,
-										name: node.name,
-										icon: node.icon
-									})
+						BarItems.select_window.click(event, {
+							returnResult: ({ elements, groups }) => {
+								for (let node of elements.concat(groups)) {
+									if (!this.content.find(node2 => node2.uuid == node.uuid)) {
+										this.content.push({
+											uuid: node.uuid,
+											name: node.name,
+											icon: node.icon,
+										})
+									}
 								}
-							}
-						}})
+							},
+						})
 					},
 				},
-				template: 
-					`<div id="collection_properties_vue">
+				template: `<div id="collection_properties_vue">
 						<ul class="list">
 							<li v-for="node of content" :class="{selected: selected.includes(node.uuid)}" @click="selected.toggle(node.uuid)">
 								<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" />
@@ -337,39 +345,41 @@ export class Collection {
 							<button @click="addWithFilter()">${tl('dialog.collection.add_with_filter')}</button>
 							<button @click="remove()" v-if="selected.length">${tl('dialog.collection.remove')}</button>
 						</div>
-					</div>`
+					</div>`,
 			},
 			onFormChange(form) {
-				this.component.data.loop_mode = form.loop;
+				this.component.data.loop_mode = form.loop
 			},
 			onConfirm: form_data => {
-				let vue_data = dialog.content_vue.$data as PropertiesComponentData;
+				let vue_data = dialog.content_vue.$data as PropertiesComponentData
 				if (
 					form_data.name != this.name ||
 					form_data.export_path != this.export_path ||
 					vue_data.content.find(node => !collection.children.includes(node.uuid)) ||
-					collection.children.find(uuid => !vue_data.content.find(node => node.uuid == uuid))
+					collection.children.find(
+						uuid => !vue_data.content.find(node => node.uuid == uuid)
+					)
 				) {
-					Undo.initEdit({collections: [this]});
+					Undo.initEdit({ collections: [this] })
 
 					this.extend({
 						name: form_data.name,
 						export_path: form_data.export_path,
 					})
-					if (isApp) this.export_path = form_data.path;
-					this.children.replace(vue_data.content.map(node => node.uuid));
+					if (isApp) this.export_path = form_data.path
+					this.children.replace(vue_data.content.map(node => node.uuid))
 
-					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
+					Blockbench.dispatchEvent('edit_collection_properties', { collection: this })
 
-					Undo.finishEdit('Edit collection properties');
+					Undo.finishEdit('Edit collection properties')
 				}
-				dialog.hide().delete();
+				dialog.hide().delete()
 			},
 			onCancel() {
-				dialog.hide().delete();
-			}
+				dialog.hide().delete()
+			},
 		})
-		dialog.show();
+		dialog.show()
 	}
 }
 Collection.prototype.menu = new Menu([
@@ -382,18 +392,22 @@ Collection.prototype.menu = new Menu([
 	'duplicate',
 	'delete',
 	new MenuSeparator('export'),
-	(collection) => {
-		let codec = Codecs[collection.codec];
-		if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
-			let export_action = codec.export_action;
+	collection => {
+		let codec = Codecs[collection.codec]
+		if (
+			codec?.export_action &&
+			collection.export_path &&
+			Condition(codec.export_action.condition)
+		) {
+			let export_action = codec.export_action
 			return {
 				id: 'export_as',
 				name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
 				icon: export_action.icon,
 				description: export_action.description,
 				click() {
-					codec.writeCollection(collection);
-				}
+					codec.writeCollection(collection)
+				},
 			}
 		}
 	},
@@ -401,20 +415,25 @@ Collection.prototype.menu = new Menu([
 		id: 'export',
 		name: 'generic.export',
 		icon: 'insert_drive_file',
-		children: (collection) => {
-			let actions = [];
+		children: collection => {
+			let actions = []
 			for (let id in Codecs) {
-				let codec = Codecs[id];
-				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
+				let codec = Codecs[id]
+				if (
+					!codec.export_action ||
+					!codec.support_partial_export ||
+					!Condition(codec.export_action.condition)
+				)
+					continue
 
-				let export_action = codec.export_action;
+				let export_action = codec.export_action
 				let new_action = {
 					name: export_action.name,
 					icon: export_action.icon,
 					description: export_action.description,
 					click() {
-						codec.exportCollection(collection);
-					}
+						codec.exportCollection(collection)
+					},
 				}
 				if (id == 'project') {
 					new_action = {
@@ -422,157 +441,162 @@ Collection.prototype.menu = new Menu([
 						icon: 'icon-blockbench_file',
 						description: '',
 						click() {
-							codec.exportCollection(collection);
-						}
+							codec.exportCollection(collection)
+						},
 					}
 				}
-				actions.push(new_action);
+				actions.push(new_action)
 			}
-			return actions;
-		}
+			return actions
+		},
 	},
 	new MenuSeparator('properties'),
 	{
 		icon: 'list',
 		name: 'menu.texture.properties',
-		click(collection) { collection.propertiesDialog()}
-	}
+		click(collection) {
+			collection.propertiesDialog()
+		},
+	},
 ])
-new Property(Collection, 'string', 'name', {default: 'collection'});
-new Property(Collection, 'string', 'export_codec');
-new Property(Collection, 'string', 'export_path');
-new Property(Collection, 'array', 'children');
-new Property(Collection, 'boolean', 'visibility', {default: false});
+new Property(Collection, 'string', 'name', { default: 'collection' })
+new Property(Collection, 'string', 'export_codec')
+new Property(Collection, 'string', 'export_path')
+new Property(Collection, 'array', 'children')
+new Property(Collection, 'boolean', 'visibility', { default: false })
 
 Object.defineProperty(Collection, 'all', {
 	get() {
 		// @ts-ignore
 		return Project.collections
-	}
+	},
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
 		// @ts-ignore
-		return Project ? Project.collections.filter(c => c.selected) : [];
-	}
+		return Project ? Project.collections.filter(c => c.selected) : []
+	},
 })
 
 SharedActions.add('delete', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
-		let selected = Collection.selected.slice();
-		Undo.initEdit({collections: selected});
+		let selected = Collection.selected.slice()
+		Undo.initEdit({ collections: selected })
 		for (let c of selected) {
 			Collection.all.remove(c)
 		}
-		selected.empty();
-		Undo.finishEdit('Remove collection');
-	}
+		selected.empty()
+		Undo.finishEdit('Remove collection')
+	},
 })
 SharedActions.add('duplicate', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
-		let new_collections = [];
-		Undo.initEdit({collections: new_collections});
+		let new_collections = []
+		Undo.initEdit({ collections: new_collections })
 		for (let original of Collection.selected.slice()) {
-			let copy = new Collection(original);
-			copy.name += ' - copy';
-			copy.add().select();
-			new_collections.push(copy);
+			let copy = new Collection(original)
+			copy.name += ' - copy'
+			copy.add().select()
+			new_collections.push(copy)
 		}
-		Undo.finishEdit('Duplicate collection');
-	}
+		Undo.finishEdit('Duplicate collection')
+	},
 })
 SharedActions.add('copy', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
-		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy());
-	}
+		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy())
+	},
 })
 SharedActions.add('paste', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Clipbench.collections?.length,
 	run() {
-		let new_collections = [];
-		Undo.initEdit({collections: new_collections});
+		let new_collections = []
+		Undo.initEdit({ collections: new_collections })
 		for (let data of Clipbench.collections) {
-			let copy = new Collection(data);
-			copy.name += ' - copy';
-			copy.add().select();
-			new_collections.push(copy);
+			let copy = new Collection(data)
+			copy.name += ' - copy'
+			copy.add().select()
+			new_collections.push(copy)
 		}
-		Undo.finishEdit('Paste collection');
-	}
+		Undo.finishEdit('Paste collection')
+	},
 })
 
 BARS.defineActions(() => {
 	new Action('create_collection', {
 		icon: 'inventory_2',
 		category: 'select',
-		keybind: new Keybind({key: 'l', ctrl: true}),
-		condition: {modes: ['edit', 'paint', 'animate']},
+		keybind: new Keybind({ key: 'l', ctrl: true }),
+		condition: { modes: ['edit', 'paint', 'animate'] },
 		click() {
-			Undo.initEdit({collections: []});
-			let collection = new Collection({});
-			collection.add().addSelection().select();
-			Undo.finishEdit('Create collection', {collections: [collection]});
-			updateSelection();
-		}
+			Undo.initEdit({ collections: [] })
+			let collection = new Collection({})
+			collection.add().addSelection().select()
+			Undo.finishEdit('Create collection', { collections: [collection] })
+			updateSelection()
+		},
 	})
 	new Action('set_collection_content_to_selection', {
 		icon: 'unarchive',
 		category: 'select',
 		condition: () => Collection.selected.length,
 		click() {
-			let collections = Collection.selected;
-			Undo.initEdit({collections});
+			let collections = Collection.selected
+			Undo.initEdit({ collections })
 			for (let collection of collections) {
-				collection.children.empty();
-				collection.addSelection();
+				collection.children.empty()
+				collection.addSelection()
 			}
-			Undo.finishEdit('Set collection content to selection');
-		}
+			Undo.finishEdit('Set collection content to selection')
+		},
 	})
 	new Action('add_to_collection', {
 		icon: 'box_add',
 		category: 'select',
 		condition: () => Collection.selected.length,
 		click() {
-			let collections = Collection.selected;
-			Undo.initEdit({collections});
+			let collections = Collection.selected
+			Undo.initEdit({ collections })
 			for (let collection of collections) {
-				collection.addSelection();
+				collection.addSelection()
 			}
-			Undo.finishEdit('Add selection to collection');
-		}
+			Undo.finishEdit('Add selection to collection')
+		},
 	})
 })
 
-Interface.definePanels(function() {
-
+Interface.definePanels(function () {
 	function eventTargetToCollection(target: HTMLElement): [Collection?, HTMLElement?] {
-		let target_node: HTMLElement | undefined = target;
-		let i = 0;
-		while (target_node && target_node.classList && !target_node.classList.contains('collection')) {
+		let target_node: HTMLElement | undefined = target
+		let i = 0
+		while (
+			target_node &&
+			target_node.classList &&
+			!target_node.classList.contains('collection')
+		) {
 			if (i < 3 && target_node) {
-				target_node = target_node.parentElement;
-				i++;
+				target_node = target_node.parentElement
+				i++
 			} else {
-				return [];
+				return []
 			}
 		}
-		let uuid_value = target_node.getAttribute('uuid') as string;
-		return [Collection.all.find(collection => collection.uuid == uuid_value), target_node];
+		let uuid_value = target_node.getAttribute('uuid') as string
+		return [Collection.all.find(collection => collection.uuid == uuid_value), target_node]
 	}
 	function getOrder(loc, obj) {
 		if (!obj) {
-			return;
+			return
 		} else {
-			if (loc <= 20) return -1;
-			return 1;
+			if (loc <= 20) return -1
+			return 1
 		}
 	}
 	new Panel('collections', {
@@ -585,158 +609,166 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 300],
 			height: 300,
-			folded: false
+			folded: false,
 		},
-		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
+		condition: { modes: ['edit', 'paint', 'animate'], method: () => !Format.image_editor },
 		toolbars: [
 			new Toolbar('collections', {
-				children: [
-					'create_collection',
-				]
-			})
+				children: ['create_collection'],
+			}),
 		],
 		component: {
 			name: 'panel-collections',
-			data() { return {
-				collections: [],
-			}},
+			data() {
+				return {
+					collections: [],
+				}
+			},
 			methods: {
 				openMenu(event) {
 					Interface.Panels.collections.menu.show(event)
 				},
 				dragCollection(e1) {
-					if (getFocusedTextInput()) return;
-					if (e1.button == 1 || e1.button == 2) return;
-					convertTouchEvent(e1);
+					if (getFocusedTextInput()) return
+					if (e1.button == 1 || e1.button == 2) return
+					convertTouchEvent(e1)
 
-					let [collection] = eventTargetToCollection(e1.target);
-					if (!collection) return;
-					let active = false;
-					let helper: HTMLDivElement;
-					let timeout: NodeJS.Timeout | null = null;
-					let drop_target, drop_target_node, order;
-					let last_event = e1;
+					let [collection] = eventTargetToCollection(e1.target)
+					if (!collection) return
+					let active = false
+					let helper: HTMLDivElement
+					let timeout: NodeJS.Timeout | null = null
+					let drop_target, drop_target_node, order
+					let last_event = e1
 
 					function move(e2) {
-						convertTouchEvent(e2);
-						let offset = [
-							e2.clientX - e1.clientX,
-							e2.clientY - e1.clientY,
-						]
+						convertTouchEvent(e2)
+						let offset = [e2.clientX - e1.clientX, e2.clientY - e1.clientY]
 						if (!active) {
-							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							let distance = Math.sqrt(
+								Math.pow(offset[0], 2) + Math.pow(offset[1], 2)
+							)
 							if (Blockbench.isTouch) {
 								if (distance > 20 && timeout) {
-									clearTimeout(timeout);
-									timeout = null;
+									clearTimeout(timeout)
+									timeout = null
 								} else {
-									document.getElementById('collections_list').scrollTop += last_event.clientY - e2.clientY;
+									document.getElementById('collections_list').scrollTop +=
+										last_event.clientY - e2.clientY
 								}
 							} else if (distance > 6) {
-								active = true;
+								active = true
 							}
 						} else {
-							if (e2) e2.preventDefault();
-							
-							if (Menu.open) Menu.open.hide();
+							if (e2) e2.preventDefault()
+
+							if (Menu.open) Menu.open.hide()
 
 							if (!helper) {
-								helper = document.createElement('div');
-								helper.id = 'animation_drag_helper';
-								let icon = Blockbench.getIconNode('inventory_2'); helper.append(icon);
-								let span = document.createElement('span');	span.innerText = collection.name;	helper.append(span);
-								document.body.append(helper);
-								Blockbench.addFlag('dragging_collections');
+								helper = document.createElement('div')
+								helper.id = 'animation_drag_helper'
+								let icon = Blockbench.getIconNode('inventory_2')
+								helper.append(icon)
+								let span = document.createElement('span')
+								span.innerText = collection.name
+								helper.append(span)
+								document.body.append(helper)
+								Blockbench.addFlag('dragging_collections')
 							}
-							helper.style.left = `${e2.clientX}px`;
-							helper.style.top = `${e2.clientY}px`;
+							helper.style.left = `${e2.clientX}px`
+							helper.style.top = `${e2.clientY}px`
 
 							// drag
-							$('.drag_hover').removeClass('drag_hover');
-							$('.collection[order]').attr('order', null);
+							$('.drag_hover').removeClass('drag_hover')
+							$('.collection[order]').attr('order', null)
 
-							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[drop_target, drop_target_node] = eventTargetToCollection(target as HTMLElement);
+							let target = document.elementFromPoint(e2.clientX, e2.clientY)
+							;[drop_target, drop_target_node] = eventTargetToCollection(
+								target as HTMLElement
+							)
 							if (drop_target) {
-								var location = e2.clientY - $(drop_target_node).offset().top;
+								var location = e2.clientY - $(drop_target_node).offset().top
 								order = getOrder(location, drop_target)
 								drop_target_node.setAttribute('order', order)
-								drop_target_node.classList.add('drag_hover');
+								drop_target_node.classList.add('drag_hover')
 							}
 						}
-						last_event = e2;
+						last_event = e2
 					}
 					function off(e2) {
-						if (helper) helper.remove();
-						removeEventListeners(document, 'mousemove touchmove', move);
-						removeEventListeners(document, 'mouseup touchend', off);
-						$('.drag_hover').removeClass('drag_hover');
-						$('.collection[order]').attr('order', null);
-						if (Blockbench.isTouch) clearTimeout(timeout);
-						
+						if (helper) helper.remove()
+						removeEventListeners(document, 'mousemove touchmove', move)
+						removeEventListeners(document, 'mouseup touchend', off)
+						$('.drag_hover').removeClass('drag_hover')
+						$('.collection[order]').attr('order', null)
+						if (Blockbench.isTouch) clearTimeout(timeout)
+
 						setTimeout(() => {
-							Blockbench.removeFlag('dragging_collections');
-						}, 10);
+							Blockbench.removeFlag('dragging_collections')
+						}, 10)
 
 						if (active && !Menu.open) {
-							convertTouchEvent(e2);
-							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							let [target_collection] = eventTargetToCollection(target as HTMLElement);
-							if (!target_collection || target_collection == collection ) return;
+							convertTouchEvent(e2)
+							let target = document.elementFromPoint(e2.clientX, e2.clientY)
+							let [target_collection] = eventTargetToCollection(target as HTMLElement)
+							if (!target_collection || target_collection == collection) return
 
-							let index = Collection.all.indexOf(target_collection);
-							if (index == -1) return;
-							if (Collection.all.indexOf(collection) < index) index--;
-							if (order == 1) index++;
-							if (Collection.all[index] == collection) return;
-							
-							Undo.initEdit({collections: [collection]});
+							let index = Collection.all.indexOf(target_collection)
+							if (index == -1) return
+							if (Collection.all.indexOf(collection) < index) index--
+							if (order == 1) index++
+							if (Collection.all[index] == collection) return
 
-							Collection.all.remove(collection);
-							Collection.all.splice(index, 0, collection);
+							Undo.initEdit({ collections: [collection] })
 
-							Undo.finishEdit('Reorder collections');
+							Collection.all.remove(collection)
+							Collection.all.splice(index, 0, collection)
+
+							Undo.finishEdit('Reorder collections')
 						}
 					}
 
 					if (Blockbench.isTouch) {
 						timeout = setTimeout(() => {
-							active = true;
-							move(e1);
+							active = true
+							move(e1)
 						}, 320)
 					}
 
-					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
-					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+					addEventListeners(document, 'mousemove touchmove', move, { passive: false })
+					addEventListeners(document, 'mouseup touchend', off, { passive: false })
 				},
 				unselect() {
-					if (Blockbench.hasFlag('dragging_collections')) return;
+					if (Blockbench.hasFlag('dragging_collections')) return
 					Collection.all.forEach(collection => {
-						collection.selected = false;
+						collection.selected = false
 					})
-					updateSelection();
+					updateSelection()
 				},
 				getContentList(collection: Collection) {
 					let types = {
-						group: []
+						group: [],
 					}
 					for (let child of collection.getChildren()) {
 						// @ts-ignore
-						let type = child.type;
-						if (!types[type]) types[type] = [];
-						types[type].push(child);
+						let type = child.type
+						if (!types[type]) types[type] = []
+						types[type].push(child)
 					}
-					let list = [];
+					let list = []
 					for (let key in types) {
-						if (!types[key].length) continue;
+						if (!types[key].length) continue
 						list.push({
 							count: types[key].length == 1 ? '' : types[key].length,
 							name: types[key].length == 1 ? types[key][0].name : '',
-							icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+							icon:
+								key == 'group'
+									? Group.prototype.icon
+									: OutlinerElement.types[key].prototype.icon,
 						})
 					}
-					return list;
-				}
+					return list
+				},
 			},
 			template: `
 				<ul
@@ -778,15 +810,12 @@ Interface.definePanels(function() {
 						</div>
 					</li>
 				</ul>
-			`
+			`,
 		},
-		menu: new Menu([
-			'create_collection',
-			'copy',
-		])
+		menu: new Menu(['create_collection', 'copy']),
 	})
 })
 
 Object.assign(window, {
-	Collection
-});
+	Collection,
+})

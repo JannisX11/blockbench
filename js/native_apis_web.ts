@@ -1,6 +1,6 @@
 // Dummy exports for native APIs when running on web
 
-const NULL = null;
+const NULL = null
 /** @internal */
 export {
 	NULL as electron,
@@ -30,7 +30,5 @@ export {
  * @internal
  */
 export function getPCUsername() {
-	return '';
+	return ''
 }
-
-
