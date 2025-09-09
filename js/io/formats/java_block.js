@@ -307,7 +307,7 @@ var codec = new Codec('java_block', {
 			groups.push(import_group);
 		}
 
-		if (!add && typeof model.format_version == 'string') {
+		if (!import_to_current_project && typeof model.format_version == 'string') {
 			Project.java_block_version = model.format_version;
 		}
 
