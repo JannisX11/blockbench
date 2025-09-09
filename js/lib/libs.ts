@@ -19,6 +19,7 @@ Vue.directive('sortable', {
     }
 })
 
+threejs.ColorManagement.enabled = false;
 const THREE = Object.assign({}, threejs);
 
 export {

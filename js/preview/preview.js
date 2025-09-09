@@ -284,6 +284,7 @@ export class Preview {
 				alpha: true,
 				preserveDrawingBuffer: true
 			});
+			this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 		} catch (err) {
 			let error_element = document.querySelector('#loading_error_detail')
 			error_element.innerHTML = `Error creating WebGL context. Try to update your graphics drivers.`
@@ -2244,13 +2245,20 @@ export function updateShading() {
 		if (Canvas.material_light) {
 			Canvas.scene.remove(Canvas.material_light);
 		}
-		Texture.all.forEach(tex => {
-			let material = tex.getMaterial();
+		function updateShaderMaterial(material) {
 			if (!material.uniforms) return;
 			material.uniforms.SHADE.value = settings.shading.value;
 			material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 			material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
+		}
+		Texture.all.forEach(tex => {
+			let material = tex.getMaterial();
+			updateShaderMaterial(material);
 		})
+		for (let id in PreviewModel.models) {
+			let model = PreviewModel.models[id];
+			if (model.material) updateShaderMaterial(model.material);
+		}
 		Canvas.emptyMaterials.forEach(material => {
 			material.uniforms.SHADE.value = settings.shading.value;
 			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;

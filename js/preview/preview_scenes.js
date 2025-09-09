@@ -1,4 +1,8 @@
 import { toSnakeCase } from "../util/util";
+import { THREE } from "../lib/libs";
+import VertShader from './../shaders/texture.vert.glsl';
+import FragShader from './../shaders/texture.frag.glsl';
+import { prepareShader } from "../shaders/shader";
 
 export class PreviewScene {
 	constructor(id, data = 0) {
@@ -44,7 +48,7 @@ export class PreviewScene {
 					Canvas.updateShading();
 				}
 			});
-			texture_cube.colorSpace = THREE.SRGBColorSpace;
+			texture_cube.colorSpace = THREE.NoColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
 		}
@@ -219,6 +223,7 @@ export class PreviewModel {
 			let img = new Image();
 			img.src = this.build_data.texture;
 			tex = new THREE.Texture(img);
+			//tex.colorSpace = THREE.NoColorSpace;
 			tex.magFilter = THREE.NearestFilter;
 			tex.minFilter = THREE.NearestFilter;
 			tex.wrapS = THREE.RepeatWrapping;
@@ -228,11 +233,17 @@ export class PreviewModel {
 				tex.needsUpdate = true;
 			}
 		}
-		this.material = new (this.shading ? THREE.MeshLambertMaterial : THREE.MeshBasicMaterial)({
-			color: this.color,
-			map: tex,
-			side: this.render_side,
-			alphaTest: 0.05
+		this.material = new THREE.ShaderMaterial({
+			uniforms: {
+				map: {type: 't', value: tex},
+				SHADE: {type: 'bool', value: this.shading},
+				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
+				LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
+				EMISSIVE: {type: 'bool', value: false}
+			},
+			vertexShader: prepareShader(VertShader),
+			fragmentShader: prepareShader(FragShader),
+			side: this.render_side
 		});
 		if (typeof this.color == 'object') {
 			this.material.color.copy(this.color);
