@@ -203,7 +203,9 @@ export class InputForm extends EventSystem {
 			if (!form_element || (ignore_hidden && !Condition(form_element.condition))) continue;
 
 			if (form_element.uses_wide_inputs) this.uses_wide_inputs = true;
-			this.max_label_width = Math.max(form_element.label_width, this.max_label_width);
+			if (form_element.label_width) {
+				this.max_label_width = Math.max(form_element.label_width, this.max_label_width);
+			}
 		}
 		this.node.style.setProperty('--max_label_width', this.max_label_width+'px');
 	}

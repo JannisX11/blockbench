@@ -13,7 +13,7 @@ export const ProportionalEdit = {
 		let {range, falloff, selection} = ProportionalEdit.config;
 		let linear_distance = selection == 'linear';
 		
-		let all_mesh_connections;
+		let all_mesh_connections: Record<string, string[]>;
 		if (!linear_distance) {
 			all_mesh_connections = {};
 			for (let fkey in mesh.faces) {
@@ -87,7 +87,7 @@ export const ProportionalEdit = {
 			ProportionalEdit.vertex_weights[mesh.uuid][vkey] = blend;
 		}
 	},
-	editVertices(mesh, per_vertex) {
+	editVertices(mesh: Mesh, per_vertex: (vkey: string, blend: number) => void) {
 		if (!pe_toggle.value) return;
 
 		let selected_vertices = mesh.getSelectedVertices();
@@ -121,16 +121,16 @@ const pe_toggle = new Toggle('proportional_editing', {
 				//path: 'Connection Path',
 			}},
 		},
-		onOpen() {
-			this.setFormValues({enabled: pe_toggle.value});
-		},
 		onFormChange(formResult) {
 			if (pe_toggle.value != formResult.enabled) {
 				pe_toggle.trigger();
 			}
 			(BarItems.proportional_editing_range as NumSlider).update();
 		}
-	})
+	}),
+	onChange(value) {
+		ProportionalEdit.config.enabled = value;
+	}
 })
 // @ts-ignore
 ProportionalEdit.config = (pe_toggle.tool_config as ToolConfig).options;
