@@ -39,6 +39,7 @@
 		}
 		window.ErrorLog = [];
 		window.onerror = (message, file, line) => {
+			if (message.includes('ResizeObserver loop completed with undelivered notifications')) return;
 			window.ErrorLog.push({message, file, line})
 			if (typeof Blockbench != 'undefined' && Blockbench.setup_successful) return;
 
