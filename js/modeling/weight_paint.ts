@@ -88,8 +88,8 @@ new Tool('weight_brush', {
 			return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 		}
 
-		// @ts-ignore
-		Undo.initEdit({elements: [armature_bone]});
+		let undo_tracked = [armature_bone];
+		Undo.initEdit({elements: undo_tracked});
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
@@ -134,6 +134,10 @@ new Tool('weight_brush', {
 				for (let bone of other_bones) {
 					if (bone.vertex_weights[vkey] && !subtract) {
 						bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, 0, 1);
+						if (Undo.current_save && !undo_tracked.includes(bone)) {
+							Undo.current_save.addElements([bone]);
+							undo_tracked.push(bone);
+						}
 					}
 				}
 
@@ -200,8 +204,13 @@ new Toggle('weight_brush_xray', {
 	condition: () => Toolbox?.selected?.id == 'weight_brush',
 })
 
-Blockbench.on('update_selection', (data) => {
-	if (Toolbox.selected.id == 'weight_brush' || Project.view_mode === 'vertex_weight') {
+const vertex_weight_view_modes = ['vertex_weight', 'weighted_bone_colors'];
+function updateWeightPreview() {
+	if (Toolbox.selected.id == 'weight_brush' || 
+		vertex_weight_view_modes.includes(Project.view_mode)
+	) {
 		Canvas.updateView({elements: Mesh.all.filter(mesh => mesh.getArmature()), element_aspects: {geometry: true}});
+		if (Modes.animate) Animator.preview();
 	}
-})
+}
+Blockbench.on('update_selection', updateWeightPreview);

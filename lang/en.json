@@ -1880,6 +1880,7 @@
 	"action.view_mode.uv": "UV Preview",
 	"action.view_mode.normal": "Face Orientation",
 	"action.view_mode.vertex_weight": "Vertex Weight",
+	"action.view_mode.weighted_bone_colors": "Vertex Bone Colors",
 	"action.view_mode.material": "Material Preview",
 	"action.preview_scene": "Preview Scene",
 	"action.preview_scene.desc": "Change the model preview scene",

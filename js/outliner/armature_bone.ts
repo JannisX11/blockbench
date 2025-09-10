@@ -342,6 +342,7 @@ new NodePreviewController(ArmatureBone, {
 		depthWrite: false,
 		transparent: true,
 		vertexColors: true,
+		side: THREE.FrontSide,
 	}),
 	material_selected: new THREE.MeshLambertMaterial({
 		color: 0xffffff,
@@ -349,6 +350,7 @@ new NodePreviewController(ArmatureBone, {
 		depthWrite: false,
 		transparent: true,
 		vertexColors: true,
+		side: THREE.FrontSide,
 	}),
 	setup(element: ArmatureBone) {
 		let object_3d = new THREE.Bone() as FakeObjectType & THREE.Bone;

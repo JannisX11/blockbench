@@ -604,6 +604,7 @@ export const Canvas = {
 	updateViewMode() {
 		this.updateAllFaces();
 		this.updateShading();
+		updateSelection();
 	},
 	//Main updaters
 	clear() {

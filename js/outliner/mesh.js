@@ -1107,7 +1107,7 @@ new NodePreviewController(Mesh, {
 		let armature_bone;
 		let all_armature_bones = [];
 		let bone_marker_colors;
-		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') && ArmatureBone.all[0]) {
+		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0]) {
 			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
 			all_armature_bones = element.getArmature().getAllBones();
 			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
@@ -1122,7 +1122,7 @@ new NodePreviewController(Mesh, {
 				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
 
 
-				if (true) {
+				if (Project.view_mode === 'weighted_bone_colors') {
 					let color = [0, 0, 0];
 					for (let bone of all_armature_bones) {
 						let bone_weight = bone.vertex_weights[vkey];
@@ -1337,7 +1337,7 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight') {
+		if (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') {
 			mesh.material = Canvas.vertexWeightHelperMaterial
 
 		} else if (Project.view_mode === 'solid') {
