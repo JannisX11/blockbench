@@ -34,4 +34,4 @@ new ModelFormat('free', {
 	animated_textures: true,
 	locators: true,
 	pbr: true,
-})
+});

@@ -1,4 +1,4 @@
-import { PreviewModel } from '../preview/preview_scenes'
+import { PreviewModel } from '../preview/preview_scenes';
 
 /**
  * @internal
@@ -912,5 +912,5 @@ const DisplayReferences = {
 			},
 		],
 	},
-}
-export default DisplayReferences
+};
+export default DisplayReferences;

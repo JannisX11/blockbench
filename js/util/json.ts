@@ -1,11 +1,11 @@
-import LZUTF8 from '../lib/lzutf8'
+import LZUTF8 from '../lib/lzutf8';
 
 export class oneLiner {
 	constructor(data: any) {
 		if (data !== undefined) {
 			for (var key in data) {
 				if (data.hasOwnProperty(key)) {
-					this[key] = data[key]
+					this[key] = data[key];
 				}
 			}
 		}
@@ -16,15 +16,15 @@ interface JSONCompileOptions {
 	/**
 	 * Indentation string. If omitted, will default to the indentation from Blockbench's settings
 	 */
-	indentation?: string
+	indentation?: string;
 	/**
 	 * If true, minify everything into one line
 	 */
-	small?: boolean
+	small?: boolean;
 	/**
 	 * Whether to add a newline character at the end of the file. If omitted, use value from Blockbench settings
 	 */
-	final_newline?: boolean
+	final_newline?: boolean;
 }
 /**
  * Compile an Object into a JSON string
@@ -33,128 +33,128 @@ interface JSONCompileOptions {
  * @returns JSON string
  */
 export function compileJSON(object: any, options: JSONCompileOptions = {}): string {
-	let indentation = options.indentation
+	let indentation = options.indentation;
 	if (typeof indentation !== 'string') {
 		switch (settings.json_indentation.value) {
 			case 'spaces_4':
-				indentation = '    '
-				break
+				indentation = '    ';
+				break;
 			case 'spaces_2':
-				indentation = '  '
-				break
+				indentation = '  ';
+				break;
 			case 'tabs':
 			default:
-				indentation = '\t'
-				break
+				indentation = '\t';
+				break;
 		}
 	}
 	function newLine(tabs) {
 		if (options.small === true) {
-			return ''
+			return '';
 		}
-		let s = '\n'
+		let s = '\n';
 		for (let i = 0; i < tabs; i++) {
-			s += indentation
+			s += indentation;
 		}
-		return s
+		return s;
 	}
 	function escape(string) {
 		if (string.includes('\\')) {
-			string = string.replace(/\\/g, '\\\\')
+			string = string.replace(/\\/g, '\\\\');
 		}
 		if (string.includes('"')) {
-			string = string.replace(/"/g, '\\"')
+			string = string.replace(/"/g, '\\"');
 		}
 		if (string.includes('\n')) {
-			string = string.replace(/\n|\r\n/g, '\\n')
+			string = string.replace(/\n|\r\n/g, '\\n');
 		}
 		if (string.includes('\t')) {
-			string = string.replace(/\t/g, '\\t')
+			string = string.replace(/\t/g, '\\t');
 		}
-		return string
+		return string;
 	}
 	function handleVar(o, tabs, breaks = true) {
-		var out = ''
-		let type = typeof o
+		var out = '';
+		let type = typeof o;
 		if (type === 'string') {
 			//String
-			out += '"' + escape(o) + '"'
+			out += '"' + escape(o) + '"';
 		} else if (type === 'boolean') {
 			//Boolean
-			out += o ? 'true' : 'false'
+			out += o ? 'true' : 'false';
 		} else if (o === null || o === Infinity || o === -Infinity) {
 			//Null
-			out += 'null'
+			out += 'null';
 		} else if (type === 'number') {
 			//Number
-			o = (Math.round(o * 100000) / 100000).toString()
-			if (o == 'NaN') o = null
-			out += o
+			o = (Math.round(o * 100000) / 100000).toString();
+			if (o == 'NaN') o = null;
+			out += o;
 		} else if (o instanceof Array) {
 			//Array
-			let has_content = false
-			let multiline = !!o.find(item => typeof item === 'object')
+			let has_content = false;
+			let multiline = !!o.find(item => typeof item === 'object');
 			if (!multiline) {
-				let length = 0
+				let length = 0;
 				o.forEach(item => {
-					length += typeof item === 'string' ? item.length + 4 : 3
-				})
-				if (length > 140) multiline = true
+					length += typeof item === 'string' ? item.length + 4 : 3;
+				});
+				if (length > 140) multiline = true;
 			}
-			out += '['
+			out += '[';
 			for (var i = 0; i < o.length; i++) {
-				var compiled = handleVar(o[i], tabs + 1)
+				var compiled = handleVar(o[i], tabs + 1);
 				if (compiled) {
 					if (has_content) {
-						out += ',' + (options.small || multiline ? '' : ' ')
+						out += ',' + (options.small || multiline ? '' : ' ');
 					}
 					if (multiline) {
-						out += newLine(tabs)
+						out += newLine(tabs);
 					}
-					out += compiled
-					has_content = true
+					out += compiled;
+					has_content = true;
 				}
 			}
 			if (multiline) {
-				out += newLine(tabs - 1)
+				out += newLine(tabs - 1);
 			}
-			out += ']'
+			out += ']';
 		} else if (type === 'object') {
 			//Object
-			breaks = breaks && !(o instanceof oneLiner)
-			var has_content = false
-			out += '{'
+			breaks = breaks && !(o instanceof oneLiner);
+			var has_content = false;
+			out += '{';
 			for (var key in o) {
 				if (o.hasOwnProperty(key)) {
-					var compiled = handleVar(o[key], tabs + 1, breaks)
+					var compiled = handleVar(o[key], tabs + 1, breaks);
 					if (compiled) {
 						if (has_content) {
-							out += ',' + (breaks || options.small ? '' : ' ')
+							out += ',' + (breaks || options.small ? '' : ' ');
 						}
 						if (breaks) {
-							out += newLine(tabs)
+							out += newLine(tabs);
 						}
-						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ')
-						out += compiled
-						has_content = true
+						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ');
+						out += compiled;
+						has_content = true;
 					}
 				}
 			}
 			if (breaks && has_content) {
-				out += newLine(tabs - 1)
+				out += newLine(tabs - 1);
 			}
-			out += '}'
+			out += '}';
 		}
-		return out
+		return out;
 	}
-	let file = handleVar(object, 1)
+	let file = handleVar(object, 1);
 	if (
 		(settings.final_newline.value && options.final_newline != false) ||
 		options.final_newline == true
 	) {
-		file += '\n'
+		file += '\n';
 	}
-	return file
+	return file;
 }
 
 /**
@@ -165,49 +165,49 @@ export function compileJSON(object: any, options: JSONCompileOptions = {}): stri
  */
 export function autoParseJSON(data: string, feedback = true): any {
 	if (data.substr(0, 4) === '<lz>') {
-		data = LZUTF8.decompress(data.substr(4), { inputEncoding: 'StorageBinaryString' })
+		data = LZUTF8.decompress(data.substr(4), { inputEncoding: 'StorageBinaryString' });
 	}
 	if (data.charCodeAt(0) === 0xfeff) {
-		data = data.substr(1)
+		data = data.substr(1);
 	}
 	try {
-		data = JSON.parse(data)
+		data = JSON.parse(data);
 	} catch (err1) {
-		data = data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '')
+		data = data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '');
 		try {
-			data = JSON.parse(data)
+			data = JSON.parse(data);
 		} catch (err) {
-			if (feedback === false) return
+			if (feedback === false) return;
 			if (data.match(/\n\r?[><]{7}/)) {
 				// @ts-ignore
 				Blockbench.showMessageBox({
 					title: 'message.invalid_file.title',
 					icon: 'fab.fa-git-alt',
 					message: 'message.invalid_file.merge_conflict',
-				})
-				return
+				});
+				return;
 			}
-			let error_part = ''
+			let error_part = '';
 			function logErrantPart(whole, start, length) {
-				var line = whole.substr(0, start).match(/\n/gm)
-				line = line ? line.length + 1 : 1
-				var result = ''
-				var lines = whole.substr(start, length).split(/\n/gm)
+				var line = whole.substr(0, start).match(/\n/gm);
+				line = line ? line.length + 1 : 1;
+				var result = '';
+				var lines = whole.substr(start, length).split(/\n/gm);
 				lines.forEach((s, i) => {
-					result += `#${line + i} ${s}\n`
-				})
-				error_part = result.substr(0, result.length - 1) + ' <-- HERE'
-				console.log(error_part)
+					result += `#${line + i} ${s}\n`;
+				});
+				error_part = result.substr(0, result.length - 1) + ' <-- HERE';
+				console.log(error_part);
 			}
-			console.error(err)
-			var length = err.toString().split('at position ')[1]
+			console.error(err);
+			var length = err.toString().split('at position ')[1];
 			if (length) {
-				length = parseInt(length)
-				var start = limitNumber(length - 32, 0, Infinity)
+				length = parseInt(length);
+				var start = limitNumber(length - 32, 0, Infinity);
 
-				logErrantPart(data, start, 1 + length - start)
+				logErrantPart(data, start, 1 + length - start);
 			} else if (err.toString().includes('Unexpected end of JSON input')) {
-				logErrantPart(data, data.length - 16, 10)
+				logErrantPart(data, data.length - 16, 10);
 			}
 			// @ts-ignore
 			Blockbench.showMessageBox({
@@ -216,15 +216,15 @@ export function autoParseJSON(data: string, feedback = true): any {
 				message:
 					tl('message.invalid_file.message', [err]) +
 					(error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : ''),
-			})
-			return
+			});
+			return;
 		}
 	}
-	return data
+	return data;
 }
 
 Object.assign(window, {
 	oneLiner,
 	compileJSON,
 	autoParseJSON,
-})
+});

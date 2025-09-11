@@ -1,19 +1,19 @@
-import { Blockbench } from '../../api'
-import { Filesystem } from '../../file_system'
-import { Armature } from '../../outliner/armature'
-import { adjustFromAndToForInflateAndStretch } from '../../outliner/cube'
-import { patchedAtob } from '../../util/util'
-import { JSZip, THREE } from './../../lib/libs'
+import { Blockbench } from '../../api';
+import { Filesystem } from '../../file_system';
+import { Armature } from '../../outliner/armature';
+import { adjustFromAndToForInflateAndStretch } from '../../outliner/cube';
+import { patchedAtob } from '../../util/util';
+import { JSZip, THREE } from './../../lib/libs';
 
-const _FBX_VERSION = 7300
+const _FBX_VERSION = 7300;
 
-type TNumType = 'I' | 'D' | 'F' | 'L' | 'C' | 'Y'
+type TNumType = 'I' | 'D' | 'F' | 'L' | 'C' | 'Y';
 type TNumVal = {
-	type: TNumType
-	value: number | BigInt
-	isTNum: true
-	toString: () => string
-}
+	type: TNumType;
+	value: number | BigInt;
+	isTNum: true;
+	toString: () => string;
+};
 /**
  * Wraps a number to include the type
  * @param {TNumType} type
@@ -25,7 +25,7 @@ function TNum(type: TNumType, value: number | BigInt): TNumVal {
 		value,
 		isTNum: true,
 		toString: () => 'key' + value.toString(),
-	}
+	};
 }
 
 function printAttributeList(list, type = 'i', key = 'a') {
@@ -33,25 +33,25 @@ function printAttributeList(list, type = 'i', key = 'a') {
 		_values: [`_*${list.length}`],
 		_type: type,
 		[key]: list,
-	}
+	};
 }
 
 type FBXNode = {
-	_key?: string
-	_values: (string | number | TNumVal)[]
-	[key: string]: any
-}
+	_key?: string;
+	_values: (string | number | TNumVal)[];
+	[key: string]: any;
+};
 
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
 	extension: 'fbx',
 	support_partial_export: true,
 	compile(options) {
-		options = Object.assign(this.getExportOptions(), options)
-		let scope = this
-		let export_scale = (options.scale || 16) / 100
-		let model = []
-		let armature_scale_const = new THREE.Vector3(1, 1, 1)
+		options = Object.assign(this.getExportOptions(), options);
+		let scope = this;
+		let export_scale = (options.scale || 16) / 100;
+		let model = [];
+		let armature_scale_const = new THREE.Vector3(1, 1, 1);
 		model.push(
 			[
 				'; FBX 7.3.0 project file',
@@ -61,52 +61,52 @@ var codec = new Codec('fbx', {
 				'',
 				'',
 			].join('\n')
-		)
+		);
 
 		function formatFBXComment(comment) {
 			return (
 				'\n; ' +
 				comment.split(/\n/g).join('\n; ') +
 				'\n;------------------------------------------------------------------\n\n'
-			)
+			);
 		}
-		let UUIDMap = {}
+		let UUIDMap = {};
 		function getID(uuid: string | number): TNumVal {
-			if (uuid == 0) return TNum('L', 0)
-			if (UUIDMap[uuid]) return UUIDMap[uuid]
-			let string_array = []
+			if (uuid == 0) return TNum('L', 0);
+			if (UUIDMap[uuid]) return UUIDMap[uuid];
+			let string_array = [];
 			for (let i = 0; i < 8; i++) {
-				string_array.push(Math.floor(Math.random() * 10))
+				string_array.push(Math.floor(Math.random() * 10));
 			}
-			string_array[0] = '7'
-			let s = string_array.join('')
-			UUIDMap[uuid] = TNum('L', parseInt(s))
-			return UUIDMap[uuid]
+			string_array[0] = '7';
+			let s = string_array.join('');
+			UUIDMap[uuid] = TNum('L', parseInt(s));
+			return UUIDMap[uuid];
 		}
-		let UniqueNames = {}
+		let UniqueNames = {};
 		function getUniqueName(namespace: string, uuid: string, original_name: string): string {
-			if (!UniqueNames[namespace]) UniqueNames[namespace] = {}
-			let names = UniqueNames[namespace]
-			if (names[uuid]) return names[uuid]
+			if (!UniqueNames[namespace]) UniqueNames[namespace] = {};
+			let names = UniqueNames[namespace];
+			if (names[uuid]) return names[uuid];
 
-			let existing_names = Object.values(names)
+			let existing_names = Object.values(names);
 			if (!existing_names.includes(original_name)) {
-				names[uuid] = original_name
-				return names[uuid]
+				names[uuid] = original_name;
+				return names[uuid];
 			}
 
-			let i = 1
+			let i = 1;
 			while (existing_names.includes(original_name + '_' + i)) {
-				i++
+				i++;
 			}
-			names[uuid] = original_name + '_' + i
-			return names[uuid]
+			names[uuid] = original_name + '_' + i;
+			return names[uuid];
 		}
 
 		// FBXHeaderExtension
-		let date = new Date()
-		let dateString = date.toISOString().replace('T', ' ').replace('.', ':').replace('Z', '')
-		let model_url = 'C:\\Users\\Blockbench\\foobar.fbx'
+		let date = new Date();
+		let dateString = date.toISOString().replace('T', ' ').replace('.', ':').replace('Z', '');
+		let model_url = 'C:\\Users\\Blockbench\\foobar.fbx';
 		model.push({
 			FBXHeaderExtension: {
 				FBXHeaderVersion: 1003,
@@ -241,7 +241,7 @@ var codec = new Codec('fbx', {
 			FileId: 'iVFoobar',
 			CreationTime: dateString,
 			Creator: Settings.get('credit'),
-		})
+		});
 
 		model.push({
 			GlobalSettings: {
@@ -294,11 +294,11 @@ var codec = new Codec('fbx', {
 					},
 				},
 			},
-		})
+		});
 
 		// Documents Description
-		model.push(formatFBXComment('Documents Description'))
-		const uuid = BigInt(Math.floor(Math.random() * 2147483647) + 1)
+		model.push(formatFBXComment('Documents Description'));
+		const uuid = BigInt(Math.floor(Math.random() * 2147483647) + 1);
 		model.push({
 			Documents: {
 				Count: 1,
@@ -312,13 +312,13 @@ var codec = new Codec('fbx', {
 					RootNode: 0,
 				},
 			},
-		})
+		});
 
 		// Document References
-		model.push(formatFBXComment('Document References'))
+		model.push(formatFBXComment('Document References'));
 		model.push({
 			References: {},
-		})
+		});
 
 		let DefinitionCounter = {
 			node_attributes: 0,
@@ -333,28 +333,28 @@ var codec = new Codec('fbx', {
 			animation_layer: 0,
 			animation_curve_node: 0,
 			animation_curve: 0,
-		}
-		let Objects: Record<string, FBXNode> = {}
+		};
+		let Objects: Record<string, FBXNode> = {};
 		let Connections: {
-			name: string[]
-			id: (string | TNumVal)[]
-			property?: string
-		}[] = []
+			name: string[];
+			id: (string | TNumVal)[];
+			property?: string;
+		}[] = [];
 		let Takes = {
 			Current: '',
-		}
-		let root = { name: 'RootNode', uuid: 0 }
+		};
+		let root = { name: 'RootNode', uuid: 0 };
 
 		function getElementPos(element) {
-			let arr = element.origin.slice()
+			let arr = element.origin.slice();
 			if (element.parent instanceof Group) {
-				arr.V3_subtract(element.parent.origin)
+				arr.V3_subtract(element.parent.origin);
 			}
-			return arr.V3_divide(export_scale)
+			return arr.V3_divide(export_scale);
 		}
 		function addNodeBase(node, fbx_type) {
-			let unique_name = getUniqueName('object', node.uuid, node.name)
-			let rotation_order = node.mesh.rotation.order == 'XYZ' ? 5 : 0
+			let unique_name = getUniqueName('object', node.uuid, node.name);
+			let rotation_order = node.mesh.rotation.order == 'XYZ' ? 5 : 0;
 			Objects['key' + node.uuid] = {
 				_key: 'Model',
 				_values: [getID(node.uuid), `Model::${unique_name}`, fbx_type],
@@ -419,88 +419,88 @@ var codec = new Codec('fbx', {
 				},
 				Shading: true,
 				Culling: 'CullingOff',
-			}
-			let parent = node.parent == 'root' ? root : node.parent
+			};
+			let parent = node.parent == 'root' ? root : node.parent;
 			Connections.push({
 				name: [
 					`Model::${unique_name}`,
 					`Model::${getUniqueName('object', parent.uuid, parent.name)}`,
 				],
 				id: [getID(node.uuid), getID(parent.uuid)],
-			})
-			DefinitionCounter.model++
-			return Objects['key' + node.uuid]
+			});
+			DefinitionCounter.model++;
+			return Objects['key' + node.uuid];
 		}
 
 		// Groups
 		Group.all.forEach(group => {
-			if (!group.export) return
-			addNodeBase(group, 'Null')
-		})
+			if (!group.export) return;
+			addNodeBase(group, 'Null');
+		});
 		// Locators + Null Objects
-		;[...Locator.all, ...NullObject.all].forEach(group => {
-			if (!group.export) return
-			addNodeBase(group, 'Null')
-		})
+		[...Locator.all, ...NullObject.all].forEach(group => {
+			if (!group.export) return;
+			addNodeBase(group, 'Null');
+		});
 
 		// Meshes
 		Mesh.all.forEach(mesh => {
-			if (!mesh.export) return
-			addNodeBase(mesh, 'Mesh')
-			let unique_name = getUniqueName('object', mesh.uuid, mesh.name)
+			if (!mesh.export) return;
+			addNodeBase(mesh, 'Mesh');
+			let unique_name = getUniqueName('object', mesh.uuid, mesh.name);
 
 			// Geometry
-			let positions = []
-			let normals = []
-			let uv = []
-			let vertex_keys = []
-			let indices = []
-			let mesh_normals = mesh.calculateNormals()
+			let positions = [];
+			let normals = [];
+			let uv = [];
+			let vertex_keys = [];
+			let indices = [];
+			let mesh_normals = mesh.calculateNormals();
 
 			function addPosition(x, y, z) {
-				positions.push(x / export_scale, y / export_scale, z / export_scale)
+				positions.push(x / export_scale, y / export_scale, z / export_scale);
 			}
 
 			for (let vkey in mesh.vertices) {
-				addPosition(...mesh.vertices[vkey])
-				vertex_keys.push(vkey)
+				addPosition(...mesh.vertices[vkey]);
+				vertex_keys.push(vkey);
 				if (mesh.smooth_shading == true) {
-					normals.push(...mesh_normals[vkey])
+					normals.push(...mesh_normals[vkey]);
 				}
 			}
-			let textures = []
+			let textures = [];
 
 			for (let key in mesh.faces) {
 				if (mesh.faces[key].vertices.length >= 3) {
-					let face = mesh.faces[key]
-					let vertices = face.getSortedVertices()
-					let tex = mesh.faces[key].getTexture()
-					textures.push(tex)
+					let face = mesh.faces[key];
+					let vertices = face.getSortedVertices();
+					let tex = mesh.faces[key].getTexture();
+					textures.push(tex);
 
 					vertices.forEach(vkey => {
 						uv.push(
 							face.uv[vkey][0] / Project.getUVWidth(tex),
 							1 - face.uv[vkey][1] / Project.getUVHeight(tex)
-						)
-					})
+						);
+					});
 
 					if (mesh.smooth_shading == false) {
-						normals.push(...face.getNormal(true))
+						normals.push(...face.getNormal(true));
 					}
 
 					vertices.forEach((vkey, vi) => {
-						let index = vertex_keys.indexOf(vkey)
-						if (vi + 1 == vertices.length) index = -1 - index
-						indices.push(index)
-					})
+						let index = vertex_keys.indexOf(vkey);
+						if (vi + 1 == vertices.length) index = -1 - index;
+						indices.push(index);
+					});
 				}
 			}
 
-			DefinitionCounter.geometry++
+			DefinitionCounter.geometry++;
 
-			let used_textures = Texture.all.filter(t => textures.includes(t))
+			let used_textures = Texture.all.filter(t => textures.includes(t));
 
-			let geo_id = getID(mesh.uuid + '_geo')
+			let geo_id = getID(mesh.uuid + '_geo');
 			let geometry: FBXNode = {
 				_key: 'Geometry',
 				_values: [geo_id, `Geometry::${unique_name}`, 'Mesh'],
@@ -586,13 +586,13 @@ var codec = new Codec('fbx', {
 						TypedIndex: 0,
 					},
 				},
-			}
-			Objects[geo_id.toString()] = geometry
+			};
+			Objects[geo_id.toString()] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
 				id: [geo_id, getID(mesh.uuid)],
-			})
+			});
 			used_textures.forEach(tex => {
 				Connections.push({
 					name: [
@@ -600,24 +600,24 @@ var codec = new Codec('fbx', {
 						`Model::${unique_name}`,
 					],
 					id: [getID(tex.uuid + '_m'), getID(mesh.uuid)],
-				})
-			})
-		})
+				});
+			});
+		});
 		Armature.all.forEach(armature => {
-			let mesh = Mesh.all.find(m => m.getArmature() == armature)
-			let armature_name = getUniqueName('armature', armature.uuid, armature.name)
-			DefinitionCounter.pose++
+			let mesh = Mesh.all.find(m => m.getArmature() == armature);
+			let armature_name = getUniqueName('armature', armature.uuid, armature.name);
+			DefinitionCounter.pose++;
 
 			// Armature
-			let armature_attribute_id = getID(armature.uuid + '_attribute')
+			let armature_attribute_id = getID(armature.uuid + '_attribute');
 			Objects[armature_attribute_id.toString()] = {
 				_key: 'NodeAttribute',
 				_values: [armature_attribute_id, `NodeAttribute::${armature_name}`, 'Null'],
 				TypeFlags: 'Null',
-			}
-			DefinitionCounter.node_attributes++
+			};
+			DefinitionCounter.node_attributes++;
 
-			let armature_id = getID(armature.uuid)
+			let armature_id = getID(armature.uuid);
 			Objects[armature_id.toString()] = {
 				_key: 'Model',
 				_values: [armature_id, `Model::${armature_name}`, 'Null'],
@@ -657,26 +657,26 @@ var codec = new Codec('fbx', {
 					},
 				},
 				Culling: 'CullingOff',
-			}
-			let parent = armature.parent == 'root' ? root : armature.parent
+			};
+			let parent = armature.parent == 'root' ? root : armature.parent;
 			Connections.push({
 				name: [
 					`Model::${armature_name}`,
 					`Model::${getUniqueName('object', parent.uuid as string, parent.name)}`,
 				],
 				id: [getID(armature.uuid), getID(parent.uuid)],
-			})
-			DefinitionCounter.model++
+			});
+			DefinitionCounter.model++;
 
 			Connections.push({
 				name: [`NodeAttribute::${armature_name}`, `Model::${armature_name}`],
 				id: [armature_attribute_id, armature_id],
-			})
+			});
 
 			// Bind pose
-			let pose: FBXNode
+			let pose: FBXNode;
 			if (mesh) {
-				let pose_id = getID(mesh.uuid + '_bind_pose')
+				let pose_id = getID(mesh.uuid + '_bind_pose');
 				pose = {
 					_key: 'Pose',
 					_values: [
@@ -687,40 +687,40 @@ var codec = new Codec('fbx', {
 					Type: 'BindPose',
 					Version: 100,
 					NbPoseNodes: 0,
-				}
+				};
 
 				// Mesh bind pose
-				let matrix = new THREE.Matrix4()
-				matrix.scale(armature_scale_const)
+				let matrix = new THREE.Matrix4();
+				matrix.scale(armature_scale_const);
 				pose['PoseNode_object'] = {
 					_key: 'PoseNode',
 					Node: getID(mesh.uuid),
 					Matrix: printAttributeList(matrix.elements, 'd'),
-				}
-				pose.NbPoseNodes++
+				};
+				pose.NbPoseNodes++;
 
 				// Armature bind pose
-				let matrix2 = new THREE.Matrix4()
-				matrix.scale(armature_scale_const)
+				let matrix2 = new THREE.Matrix4();
+				matrix.scale(armature_scale_const);
 				pose['PoseNode_object'] = {
 					_key: 'PoseNode',
 					Node: getID(armature.uuid),
 					Matrix: printAttributeList(matrix2.elements, 'd'),
-				}
-				pose.NbPoseNodes++
+				};
+				pose.NbPoseNodes++;
 
-				Objects[pose_id.toString()] = pose
-				DefinitionCounter.pose++
+				Objects[pose_id.toString()] = pose;
+				DefinitionCounter.pose++;
 			}
 
 			// Bones
-			const bone_list = []
-			const bind_matrix_list = []
+			const bone_list = [];
+			const bind_matrix_list = [];
 			function processBone(bone) {
-				console.log(bone)
-				bone_list.push(bone)
-				let unique_name = getUniqueName('bone', bone.uuid, bone.name)
-				let attribute_id = getID(bone.uuid + '_attribute')
+				console.log(bone);
+				bone_list.push(bone);
+				let unique_name = getUniqueName('bone', bone.uuid, bone.name);
+				let attribute_id = getID(bone.uuid + '_attribute');
 				Objects[attribute_id.toString()] = {
 					_key: 'NodeAttribute',
 					_values: [attribute_id, `NodeAttribute::${unique_name}`, 'LimbNode'],
@@ -737,10 +737,10 @@ var codec = new Codec('fbx', {
 						},
 					},
 					TypeFlags: 'Skeleton',
-				}
-				DefinitionCounter.node_attributes++
+				};
+				DefinitionCounter.node_attributes++;
 
-				let object_id = getID(bone.uuid)
+				let object_id = getID(bone.uuid);
 				Objects[object_id.toString()] = {
 					_key: 'Model',
 					_values: [object_id, `Model::${unique_name}`, 'LimbNode'],
@@ -774,25 +774,25 @@ var codec = new Codec('fbx', {
 						//P4: {_key: 'P', _values: ["RotationOrder", "enum", "", "", rotation_order]},
 					},
 					Culling: 'CullingOff',
-				}
-				let parent = bone.parent == 'root' ? root : bone.parent
+				};
+				let parent = bone.parent == 'root' ? root : bone.parent;
 				Connections.push({
 					name: [
 						`Model::${unique_name}`,
 						`Model::${getUniqueName('object', parent.uuid, parent.name)}`,
 					],
 					id: [getID(bone.uuid), getID(parent.uuid)],
-				})
-				DefinitionCounter.model++
+				});
+				DefinitionCounter.model++;
 
 				Connections.push({
 					name: [`NodeAttribute::${unique_name}`, `Model::${unique_name}`],
 					id: [attribute_id, object_id],
-				})
+				});
 
 				if (bone.children.length == 0) {
 					// End bone node
-					let attribute_id_end = getID(bone.uuid + '_end_attribute')
+					let attribute_id_end = getID(bone.uuid + '_end_attribute');
 					Objects[attribute_id_end.toString()] = {
 						_key: 'NodeAttribute',
 						_values: [
@@ -813,10 +813,10 @@ var codec = new Codec('fbx', {
 							},
 						},
 						TypeFlags: 'Skeleton',
-					}
-					DefinitionCounter.node_attributes++
+					};
+					DefinitionCounter.node_attributes++;
 
-					let object_id_end = getID(bone.uuid + '_end')
+					let object_id_end = getID(bone.uuid + '_end');
 					Objects[object_id_end.toString()] = {
 						_key: 'Model',
 						_values: [object_id_end, `Model::${unique_name}_end`, 'LimbNode'],
@@ -841,73 +841,73 @@ var codec = new Codec('fbx', {
 							},
 						},
 						Culling: 'CullingOff',
-					}
+					};
 					Connections.push({
 						name: [`Model::${unique_name}_end`, `Model::${unique_name}`],
 						id: [object_id_end, getID(bone.uuid)],
-					})
-					DefinitionCounter.model++
+					});
+					DefinitionCounter.model++;
 
 					Connections.push({
 						name: [`NodeAttribute::${unique_name}_end`, `Model::${unique_name}_end`],
 						id: [attribute_id_end, object_id_end],
-					})
+					});
 				}
 
 				// Bind pose
 				if (mesh) {
-					let matrix = new THREE.Matrix4().copy(bone.mesh.inverse_bind_matrix).invert()
-					matrix.scale(armature_scale_const)
+					let matrix = new THREE.Matrix4().copy(bone.mesh.inverse_bind_matrix).invert();
+					matrix.scale(armature_scale_const);
 					pose['PoseNode' + object_id] = {
 						_key: 'PoseNode',
 						Node: object_id,
 						Matrix: printAttributeList(matrix.elements, 'd'),
-					}
-					pose.NbPoseNodes++
-					bind_matrix_list.push(matrix)
+					};
+					pose.NbPoseNodes++;
+					bind_matrix_list.push(matrix);
 				}
 
 				// Children
 				for (let child of bone.children) {
-					processBone(child)
+					processBone(child);
 				}
 			}
 			for (let child of armature.children) {
-				processBone(child)
+				processBone(child);
 			}
 
 			// Mesh deformers
 			if (mesh) {
-				let deformer_id = getID(armature.uuid + '_deformer')
+				let deformer_id = getID(armature.uuid + '_deformer');
 				Objects[deformer_id.toString()] = {
 					_key: 'Deformer',
 					_values: [deformer_id, `Deformer::${armature_name}`, 'Skin'],
 					Version: 101,
 					Link_DeformAcuracy: 50,
-				}
-				DefinitionCounter.deformer++
+				};
+				DefinitionCounter.deformer++;
 				Connections.push({
 					name: [
 						`Deformer::${armature_name}`,
 						`Geometry::${getUniqueName('object', mesh.uuid, mesh.name)}`,
 					],
 					id: [deformer_id, getID(mesh.uuid + '_geo')],
-				})
+				});
 
-				let mesh_transform = new THREE.Matrix4().copy(mesh.mesh.matrixWorld)
-				let vertex_keys = Object.keys(mesh.vertices)
+				let mesh_transform = new THREE.Matrix4().copy(mesh.mesh.matrixWorld);
+				let vertex_keys = Object.keys(mesh.vertices);
 				for (let bone of bone_list) {
-					let sub_deformer_id = getID(bone.uuid + '_deformer')
-					let bone_name = getUniqueName('bone', bone.uuid, bone.name)
-					let indices = []
-					let weights = []
+					let sub_deformer_id = getID(bone.uuid + '_deformer');
+					let bone_name = getUniqueName('bone', bone.uuid, bone.name);
+					let indices = [];
+					let weights = [];
 					for (let vkey in bone.vertex_weights) {
 						if (bone.vertex_weights[vkey] > 0.001) {
-							indices.push(vertex_keys.indexOf(vkey))
-							weights.push(Math.clamp(bone.vertex_weights[vkey], 0, 1))
+							indices.push(vertex_keys.indexOf(vkey));
+							weights.push(Math.clamp(bone.vertex_weights[vkey], 0, 1));
 						}
 					}
-					let bind_matrix = bind_matrix_list[bone_list.indexOf(bone)]
+					let bind_matrix = bind_matrix_list[bone_list.indexOf(bone)];
 
 					Objects[sub_deformer_id.toString()] = {
 						_key: 'Deformer',
@@ -918,23 +918,23 @@ var codec = new Codec('fbx', {
 						Weights: printAttributeList(weights, 'd'),
 						Transform: printAttributeList(mesh_transform.elements, 'd'),
 						TransformLink: printAttributeList(bind_matrix.elements, 'd'),
-					}
-					DefinitionCounter.deformer++
+					};
+					DefinitionCounter.deformer++;
 
 					Connections.push({
 						name: [`SubDeformer::${bone_name}`, `Deformer::${armature_name}`],
 						id: [sub_deformer_id, deformer_id],
-					})
+					});
 					Connections.push({
 						name: [
 							`Model::${getUniqueName('bone', bone.uuid, bone.name)}`,
 							`SubDeformer::${bone_name}`,
 						],
 						id: [getID(bone.uuid), sub_deformer_id],
-					})
+					});
 				}
 			}
-		})
+		});
 
 		// Cubes
 		const cube_face_normals = {
@@ -944,47 +944,47 @@ var codec = new Codec('fbx', {
 			west: [-1, 0, 0],
 			up: [0, 1, 0],
 			down: [0, -1, 0],
-		}
+		};
 		Cube.all.forEach(cube => {
-			if (!cube.export) return
-			addNodeBase(cube, 'Mesh')
-			let unique_name = getUniqueName('object', cube.uuid, cube.name)
+			if (!cube.export) return;
+			addNodeBase(cube, 'Mesh');
+			let unique_name = getUniqueName('object', cube.uuid, cube.name);
 
 			// Geometry
-			let positions = []
-			let normals = []
-			let uv = []
-			let indices = []
+			let positions = [];
+			let normals = [];
+			let uv = [];
+			let indices = [];
 
 			function addPosition(x, y, z) {
 				positions.push(
 					(x - cube.origin[0]) / export_scale,
 					(y - cube.origin[1]) / export_scale,
 					(z - cube.origin[2]) / export_scale
-				)
+				);
 			}
 
-			var adjustedFrom = cube.from.slice()
-			var adjustedTo = cube.to.slice()
-			adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube)
+			var adjustedFrom = cube.from.slice();
+			var adjustedTo = cube.to.slice();
+			adjustFromAndToForInflateAndStretch(adjustedFrom, adjustedTo, cube);
 
-			addPosition(adjustedTo[0], adjustedTo[1], adjustedTo[2])
-			addPosition(adjustedTo[0], adjustedTo[1], adjustedFrom[2])
-			addPosition(adjustedTo[0], adjustedFrom[1], adjustedTo[2])
-			addPosition(adjustedTo[0], adjustedFrom[1], adjustedFrom[2])
-			addPosition(adjustedFrom[0], adjustedTo[1], adjustedFrom[2])
-			addPosition(adjustedFrom[0], adjustedTo[1], adjustedTo[2])
-			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedFrom[2])
-			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedTo[2])
+			addPosition(adjustedTo[0], adjustedTo[1], adjustedTo[2]);
+			addPosition(adjustedTo[0], adjustedTo[1], adjustedFrom[2]);
+			addPosition(adjustedTo[0], adjustedFrom[1], adjustedTo[2]);
+			addPosition(adjustedTo[0], adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedTo[1], adjustedTo[2]);
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedFrom[2]);
+			addPosition(adjustedFrom[0], adjustedFrom[1], adjustedTo[2]);
 
-			let textures = []
+			let textures = [];
 
 			for (let fkey in cube.faces) {
-				let face = cube.faces[fkey]
-				if (face.texture === null) continue
-				let texture = face.getTexture()
-				textures.push(texture)
-				normals.push(...cube_face_normals[fkey])
+				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
+				let texture = face.getTexture();
+				textures.push(texture);
+				normals.push(...cube_face_normals[fkey]);
 
 				let uv_outputs = [
 					[
@@ -1003,45 +1003,45 @@ var codec = new Codec('fbx', {
 						face.uv[0] / Project.getUVWidth(texture),
 						1 - face.uv[1] / Project.getUVHeight(texture),
 					],
-				]
-				var rot = face.rotation || 0
+				];
+				var rot = face.rotation || 0;
 				while (rot > 0) {
-					uv_outputs.splice(0, 0, uv_outputs.pop())
-					rot -= 90
+					uv_outputs.splice(0, 0, uv_outputs.pop());
+					rot -= 90;
 				}
 				uv_outputs.forEach(coord => {
-					uv.push(...coord)
-				})
+					uv.push(...coord);
+				});
 
-				let vertices
+				let vertices;
 				switch (fkey) {
 					case 'north':
-						vertices = [3, 6, 4, -1 - 1]
-						break
+						vertices = [3, 6, 4, -1 - 1];
+						break;
 					case 'east':
-						vertices = [2, 3, 1, -1 - 0]
-						break
+						vertices = [2, 3, 1, -1 - 0];
+						break;
 					case 'south':
-						vertices = [7, 2, 0, -1 - 5]
-						break
+						vertices = [7, 2, 0, -1 - 5];
+						break;
 					case 'west':
-						vertices = [6, 7, 5, -1 - 4]
-						break
+						vertices = [6, 7, 5, -1 - 4];
+						break;
 					case 'up':
-						vertices = [5, 0, 1, -1 - 4]
-						break
+						vertices = [5, 0, 1, -1 - 4];
+						break;
 					case 'down':
-						vertices = [6, 3, 2, -1 - 7]
-						break
+						vertices = [6, 3, 2, -1 - 7];
+						break;
 				}
-				indices.push(...vertices)
+				indices.push(...vertices);
 			}
 
-			DefinitionCounter.geometry++
+			DefinitionCounter.geometry++;
 
-			let used_textures = Texture.all.filter(t => textures.includes(t))
+			let used_textures = Texture.all.filter(t => textures.includes(t));
 
-			let geo_id = getID(cube.uuid + '_geo')
+			let geo_id = getID(cube.uuid + '_geo');
 			let geometry = {
 				_key: 'Geometry',
 				_values: [geo_id, `Geometry::${unique_name}`, 'Mesh'],
@@ -1127,13 +1127,13 @@ var codec = new Codec('fbx', {
 						TypedIndex: 0,
 					},
 				},
-			}
-			Objects['key' + geo_id] = geometry
+			};
+			Objects['key' + geo_id] = geometry;
 
 			Connections.push({
 				name: [`Geometry::${unique_name}`, `Model::${unique_name}`],
 				id: [geo_id, getID(cube.uuid)],
-			})
+			});
 			used_textures.forEach(tex => {
 				Connections.push({
 					name: [
@@ -1141,30 +1141,30 @@ var codec = new Codec('fbx', {
 						`Model::${unique_name}`,
 					],
 					id: [getID(tex.uuid + '_m'), getID(cube.uuid)],
-				})
-			})
-		})
+				});
+			});
+		});
 
 		// Textures
 		Texture.all.forEach(tex => {
-			DefinitionCounter.material++
-			DefinitionCounter.texture++
-			DefinitionCounter.image++
+			DefinitionCounter.material++;
+			DefinitionCounter.texture++;
+			DefinitionCounter.image++;
 
-			let fileContent = null
-			let fileName = tex.path
-			let relativeName = tex.name
+			let fileContent = null;
+			let fileName = tex.path;
+			let relativeName = tex.name;
 
 			// If no file path, use embedded texture
 			if (tex.path == '') {
-				fileName = ''
-				relativeName = ''
+				fileName = '';
+				relativeName = '';
 			}
 			if (options.embed_textures || tex.path == '') {
-				fileContent = tex.getBase64()
+				fileContent = tex.getBase64();
 			}
 
-			let unique_name = getUniqueName('texture', tex.uuid, tex.name)
+			let unique_name = getUniqueName('texture', tex.uuid, tex.name);
 
 			let mat_object = {
 				_key: 'Material',
@@ -1211,7 +1211,7 @@ var codec = new Codec('fbx', {
 					},
 					P5: { _key: 'P', _values: ['Opacity', 'double', 'Number', '', TNum('D', 1)] },
 				},
-			}
+			};
 			let tex_object = {
 				_key: 'Texture',
 				_values: [getID(tex.uuid + '_t'), `Texture::${unique_name}`, ''],
@@ -1225,7 +1225,7 @@ var codec = new Codec('fbx', {
 				ModelUVScaling: [TNum('D', 1), TNum('D', 1)],
 				Texture_Alpha_Source: 'None',
 				Cropping: [0, 0, 0, 0],
-			}
+			};
 			let image_object = {
 				_key: 'Video',
 				_values: [getID(tex.uuid + '_i'), `Video::${unique_name}`, 'Clip'],
@@ -1237,34 +1237,34 @@ var codec = new Codec('fbx', {
 				Filename: fileName,
 				RelativeFilename: relativeName,
 				Content: fileContent,
-			}
-			Objects['key' + tex.uuid + '_m'] = mat_object
-			Objects['key' + tex.uuid + '_t'] = tex_object
-			Objects['key' + tex.uuid + '_i'] = image_object
+			};
+			Objects['key' + tex.uuid + '_m'] = mat_object;
+			Objects['key' + tex.uuid + '_t'] = tex_object;
+			Objects['key' + tex.uuid + '_i'] = image_object;
 
 			Connections.push({
 				name: [`Texture::${unique_name}`, `Material::${unique_name}`],
 				id: [getID(tex.uuid + '_t'), getID(tex.uuid + '_m')],
 				property: 'DiffuseColor',
-			})
+			});
 			Connections.push({
 				name: [`Video::${unique_name}`, `Texture::${unique_name}`],
 				id: [getID(tex.uuid + '_i'), getID(tex.uuid + '_t')],
-			})
-		})
+			});
+		});
 
 		// Animations
 		if (options.include_animations) {
-			let anim_clips = Codecs.gltf.buildAnimationTracks(export_scale, false) // Handles sampling of math based curves etc.
-			let time_factor = 46186158000 // Arbitrary factor, found in three.js FBX importer
+			let anim_clips = Codecs.gltf.buildAnimationTracks(export_scale, false); // Handles sampling of math based curves etc.
+			let time_factor = 46186158000; // Arbitrary factor, found in three.js FBX importer
 			anim_clips.forEach(clip => {
-				DefinitionCounter.animation_stack++
-				DefinitionCounter.animation_layer++
+				DefinitionCounter.animation_stack++;
+				DefinitionCounter.animation_layer++;
 
-				let stack_id = getID(clip.uuid + '_s')
-				let layer_id = getID(clip.uuid + '_l')
-				let unique_name = getUniqueName('animation', clip.uuid, clip.name)
-				let fbx_duration = Math.round(clip.duration * time_factor)
+				let stack_id = getID(clip.uuid + '_s');
+				let layer_id = getID(clip.uuid + '_l');
+				let unique_name = getUniqueName('animation', clip.uuid, clip.name);
+				let fbx_duration = Math.round(clip.duration * time_factor);
 
 				let stack = {
 					_key: 'AnimationStack',
@@ -1285,24 +1285,24 @@ var codec = new Codec('fbx', {
 							],
 						},
 					},
-				}
+				};
 				let layer = {
 					_key: 'AnimationLayer',
 					_values: [layer_id, `AnimLayer::${unique_name}`, ''],
 					_force_compound: true,
-				}
-				Objects['key' + clip.uuid + '_s'] = stack
-				Objects['key' + clip.uuid + '_l'] = layer
+				};
+				Objects['key' + clip.uuid + '_s'] = stack;
+				Objects['key' + clip.uuid + '_l'] = layer;
 				Connections.push({
 					name: [`AnimLayer::${unique_name}`, `AnimStack::${unique_name}`],
 					id: [layer_id, stack_id],
-				})
+				});
 
 				clip.tracks.forEach(track => {
 					// Track = CurveNode
-					DefinitionCounter.animation_curve_node++
-					let track_id = getID(clip.uuid + '.' + track.name)
-					let track_name = `AnimCurveNode::${unique_name}.${track.channel[0].toUpperCase()}`
+					DefinitionCounter.animation_curve_node++;
+					let track_id = getID(clip.uuid + '.' + track.name);
+					let track_name = `AnimCurveNode::${unique_name}.${track.channel[0].toUpperCase()}`;
 					let curve_node = {
 						_key: 'AnimationCurveNode',
 						_values: [track_id, track_name, ''],
@@ -1311,9 +1311,9 @@ var codec = new Codec('fbx', {
 							p2: { _key: 'P', _values: [`d|Y`, 'Number', '', 'A', TNum('D', 1)] },
 							p3: { _key: 'P', _values: [`d|Z`, 'Number', '', 'A', TNum('D', 1)] },
 						},
-					}
-					let timecodes = track.times.map(second => Math.round(second * time_factor))
-					Objects['key' + clip.uuid + '.' + track.name] = curve_node
+					};
+					let timecodes = track.times.map(second => Math.round(second * time_factor));
+					Objects['key' + clip.uuid + '.' + track.name] = curve_node;
 
 					// Connect to bone
 					Connections.push({
@@ -1328,22 +1328,21 @@ var codec = new Codec('fbx', {
 								: track.channel == 'rotation'
 									? 'Lcl Rotation'
 									: 'Lcl Scaling',
-					})
+					});
 					// Connect to layer
 					Connections.push({
 						name: [track_name, `AnimLayer::${unique_name}`],
 						id: [track_id, layer_id],
-					})
+					});
+					['X', 'Y', 'Z'].forEach((axis_letter, axis_number) => {
+						DefinitionCounter.animation_curve++;
 
-					;['X', 'Y', 'Z'].forEach((axis_letter, axis_number) => {
-						DefinitionCounter.animation_curve++
+						let curve_id = getID(clip.uuid + '.' + track.name + '.' + axis_letter);
+						let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`;
 
-						let curve_id = getID(clip.uuid + '.' + track.name + '.' + axis_letter)
-						let curve_name = `AnimCurve::${unique_name}.${track.channel[0].toUpperCase()}${axis_letter}`
-
-						let values = track.values.filter((val, i) => i % 3 == axis_number)
+						let values = track.values.filter((val, i) => i % 3 == axis_number);
 						if (track.channel == 'rotation') {
-							values.forEach((v, i) => (values[i] = Math.radToDeg(v)))
+							values.forEach((v, i) => (values[i] = Math.radToDeg(v)));
 						}
 						let curve = {
 							_key: 'AnimationCurve',
@@ -1375,17 +1374,17 @@ var codec = new Codec('fbx', {
 								_type: 'i',
 								a: [timecodes.length],
 							},
-						}
-						Objects['key' + clip.uuid + '.' + track.name + axis_letter] = curve
+						};
+						Objects['key' + clip.uuid + '.' + track.name + axis_letter] = curve;
 
 						// Connect to track
 						Connections.push({
 							name: [curve_name, track_name],
 							id: [curve_id, track_id],
 							property: `d|${axis_letter}`,
-						})
-					})
-				})
+						});
+					});
+				});
 
 				Takes[clip.uuid] = {
 					_key: 'Take',
@@ -1393,15 +1392,15 @@ var codec = new Codec('fbx', {
 					FileName: `${unique_name}.tak`,
 					LocalTime: [0, fbx_duration],
 					ReferenceTime: [0, fbx_duration],
-				}
-			})
+				};
+			});
 		}
 
 		// Object definitions
-		model.push(formatFBXComment('Object definitions'))
-		let total_definition_count = 1
+		model.push(formatFBXComment('Object definitions'));
+		let total_definition_count = 1;
 		for (let key in DefinitionCounter) {
-			total_definition_count += DefinitionCounter[key]
+			total_definition_count += DefinitionCounter[key];
 		}
 		model.push({
 			Definitions: {
@@ -2584,84 +2583,84 @@ var codec = new Codec('fbx', {
 						}
 					: undefined,
 			},
-		})
+		});
 
-		model.push(formatFBXComment('Object properties'))
+		model.push(formatFBXComment('Object properties'));
 		model.push({
 			Objects,
-		})
+		});
 
 		// Object connections
-		model.push(formatFBXComment('Object connections'))
-		let connections = {}
+		model.push(formatFBXComment('Object connections'));
+		let connections = {};
 		Connections.forEach((connection, i) => {
-			connections[`connection_${i}_comment`] = { _comment: connection.name.join(', ') }
+			connections[`connection_${i}_comment`] = { _comment: connection.name.join(', ') };
 			connections[`connection_${i}`] = {
 				_key: 'C',
 				_values: [connection.property ? 'OP' : 'OO', ...connection.id],
-			}
+			};
 			if (connection.property) {
-				connections[`connection_${i}`]._values.push(connection.property)
+				connections[`connection_${i}`]._values.push(connection.property);
 			}
 			//model += `\t;${connection.name.join(', ')}\n`;
 			//model += `\tC: "${property ? 'OP' : 'OO'}",${connection.id.join(',')}${property}\n\n`;
-		})
+		});
 
 		model.push({
 			Connections: connections,
-		})
+		});
 
 		// Takes (Animation)
-		model.push(formatFBXComment('Takes section'))
+		model.push(formatFBXComment('Takes section'));
 		model.push({
 			Takes,
-		})
+		});
 
-		scope.dispatchEvent('compile', { model, options })
+		scope.dispatchEvent('compile', { model, options });
 
-		let compiled_model
+		let compiled_model;
 		if (options.encoding == 'binary') {
-			let top_level_object = {}
+			let top_level_object = {};
 			model.forEach(section => {
 				if (typeof section == 'object') {
 					for (let key in section) {
-						top_level_object[key] = section[key]
+						top_level_object[key] = section[key];
 					}
 				}
-			})
-			compiled_model = compileBinaryFBXModel(top_level_object)
+			});
+			compiled_model = compileBinaryFBXModel(top_level_object);
 		} else {
 			compiled_model = model
 				.map(section => {
 					if (typeof section == 'object') {
-						return compileASCIIFBXSection(section)
+						return compileASCIIFBXSection(section);
 					} else {
-						return section
+						return section;
 					}
 				})
-				.join('')
+				.join('');
 		}
 
-		return compiled_model
+		return compiled_model;
 	},
 	write(content, path) {
-		var scope = this
+		var scope = this;
 
-		Blockbench.writeFile(path, { content }, path => scope.afterSave(path))
+		Blockbench.writeFile(path, { content }, path => scope.afterSave(path));
 
 		Texture.all.forEach(tex => {
-			if (tex.error) return
-			var name = tex.name
+			if (tex.error) return;
+			var name = tex.name;
 			if (name.substr(-4).toLowerCase() !== '.png') {
-				name += '.png'
+				name += '.png';
 			}
-			var image_path = path.split(osfs)
-			image_path.splice(-1, 1, name)
+			var image_path = path.split(osfs);
+			image_path.splice(-1, 1, name);
 			Blockbench.writeFile(image_path.join(osfs), {
 				content: tex.source,
 				savetype: 'image',
-			})
-		})
+			});
+		});
 	},
 	export_options: {
 		encoding: {
@@ -2683,10 +2682,10 @@ var codec = new Codec('fbx', {
 	},
 	async export() {
 		if (Object.keys(this.export_options).length) {
-			let result = await this.promptExportOptions()
-			if (result === null) return
+			let result = await this.promptExportOptions();
+			if (result === null) return;
 		}
-		var scope = this
+		var scope = this;
 		if (isApp) {
 			Filesystem.exportFile(
 				{
@@ -2699,23 +2698,23 @@ var codec = new Codec('fbx', {
 					custom_writer: (a, b) => scope.write(a, b),
 				},
 				path => this.afterDownload(path)
-			)
+			);
 		} else {
-			var archive = new JSZip()
-			var content = this.compile()
+			var archive = new JSZip();
+			var content = this.compile();
 
-			archive.file((Project.name || 'model') + '.fbx', content)
+			archive.file((Project.name || 'model') + '.fbx', content);
 
 			Texture.all.forEach(tex => {
-				if (tex.error) return
-				var name = tex.name
+				if (tex.error) return;
+				var name = tex.name;
 				if (name.substr(-4).toLowerCase() !== '.png') {
-					name += '.png'
+					name += '.png';
 				}
 				archive.file(name, tex.source.replace('data:image/png;base64,', ''), {
 					base64: true,
-				})
-			})
+				});
+			});
 			archive.generateAsync({ type: 'blob' }).then(content => {
 				Filesystem.exportFile(
 					{
@@ -2726,11 +2725,11 @@ var codec = new Codec('fbx', {
 						savetype: 'zip',
 					},
 					path => scope.afterDownload(path)
-				)
-			})
+				);
+			});
 		}
 	},
-})
+});
 
 BARS.defineActions(function () {
 	codec.export_action = new Action('export_fbx', {
@@ -2738,157 +2737,157 @@ BARS.defineActions(function () {
 		category: 'file',
 		condition: () => Project,
 		click: function () {
-			codec.export()
+			codec.export();
 		},
-	})
-})
+	});
+});
 
 class BinaryWriter {
-	array: Uint8Array
-	buffer: ArrayBuffer
-	view: DataView
-	cursor: number
-	little_endian: boolean
-	textEncoder: TextEncoder
+	array: Uint8Array;
+	buffer: ArrayBuffer;
+	view: DataView;
+	cursor: number;
+	little_endian: boolean;
+	textEncoder: TextEncoder;
 	constructor(minimal_length, little_endian) {
-		this.array = new Uint8Array(minimal_length)
+		this.array = new Uint8Array(minimal_length);
 		// @ts-ignore
-		this.buffer = this.array.buffer
-		this.view = new DataView(this.buffer)
-		this.cursor = 0
-		this.little_endian = !!little_endian
-		this.textEncoder = new TextEncoder()
+		this.buffer = this.array.buffer;
+		this.view = new DataView(this.buffer);
+		this.cursor = 0;
+		this.little_endian = !!little_endian;
+		this.textEncoder = new TextEncoder();
 	}
 	expand(n) {
 		if (this.cursor + n > this.buffer.byteLength) {
-			var oldArray = this.array
+			var oldArray = this.array;
 			// Expand by at least 160 bytes at a time to improve performance. Only works for FBX since 176+ arbitrary bytes are added to the file end.
-			this.array = new Uint8Array(this.cursor + Math.max(n, 176))
-			this.buffer = this.array.buffer
-			this.array.set(oldArray)
-			this.view = new DataView(this.buffer)
+			this.array = new Uint8Array(this.cursor + Math.max(n, 176));
+			this.buffer = this.array.buffer;
+			this.array.set(oldArray);
+			this.view = new DataView(this.buffer);
 		}
 	}
 	WriteUInt8(value) {
-		this.expand(1)
-		this.view.setUint8(this.cursor, value)
-		this.cursor += 1
+		this.expand(1);
+		this.view.setUint8(this.cursor, value);
+		this.cursor += 1;
 	}
 	WriteUInt16(value) {
-		this.expand(2)
-		this.view.setUint16(this.cursor, value, this.little_endian)
-		this.cursor += 2
+		this.expand(2);
+		this.view.setUint16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
 	}
 	WriteInt16(value) {
-		this.expand(2)
-		this.view.setInt16(this.cursor, value, this.little_endian)
-		this.cursor += 2
+		this.expand(2);
+		this.view.setInt16(this.cursor, value, this.little_endian);
+		this.cursor += 2;
 	}
 	WriteInt32(value) {
-		this.expand(4)
-		this.view.setInt32(this.cursor, value, this.little_endian)
-		this.cursor += 4
+		this.expand(4);
+		this.view.setInt32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteInt64(value) {
-		this.expand(8)
-		this.view.setBigInt64(this.cursor, BigInt(value), this.little_endian)
-		this.cursor += 8
+		this.expand(8);
+		this.view.setBigInt64(this.cursor, BigInt(value), this.little_endian);
+		this.cursor += 8;
 	}
 	WriteUInt32(value) {
-		this.expand(4)
-		this.view.setUint32(this.cursor, value, this.little_endian)
-		this.cursor += 4
+		this.expand(4);
+		this.view.setUint32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteFloat32(value) {
-		this.expand(4)
-		this.view.setFloat32(this.cursor, value, this.little_endian)
-		this.cursor += 4
+		this.expand(4);
+		this.view.setFloat32(this.cursor, value, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteFloat64(value) {
-		this.expand(8)
-		this.view.setFloat64(this.cursor, value, this.little_endian)
-		this.cursor += 8
+		this.expand(8);
+		this.view.setFloat64(this.cursor, value, this.little_endian);
+		this.cursor += 8;
 	}
 	WriteBoolean(value: boolean) {
-		this.WriteUInt8(value ? 1 : 0)
+		this.WriteUInt8(value ? 1 : 0);
 	}
 	Write7BitEncodedInt(value) {
 		while (value >= 0x80) {
-			this.WriteUInt8(value | 0x80)
-			value = value >> 7
+			this.WriteUInt8(value | 0x80);
+			value = value >> 7;
 		}
-		this.WriteUInt8(value)
+		this.WriteUInt8(value);
 	}
 	WriteRawString(string: string) {
-		var array = this.EncodeString(string)
-		this.WriteBytes(array)
+		var array = this.EncodeString(string);
+		this.WriteBytes(array);
 	}
 	WriteString(string: string, raw?: boolean) {
-		var array = this.EncodeString(string)
-		if (!raw) this.Write7BitEncodedInt(array.byteLength)
-		this.WriteBytes(array)
+		var array = this.EncodeString(string);
+		if (!raw) this.Write7BitEncodedInt(array.byteLength);
+		this.WriteBytes(array);
 	}
 	WriteU32String(string: string) {
-		var array = this.EncodeString(string)
-		this.WriteUInt32(array.byteLength)
-		this.WriteBytes(array)
+		var array = this.EncodeString(string);
+		this.WriteUInt32(array.byteLength);
+		this.WriteBytes(array);
 	}
 	WriteU32Base64(base64) {
-		let data = patchedAtob(base64)
-		let array = Uint8Array.from(data, c => c.charCodeAt(0))
-		this.WriteUInt32(array.length)
-		this.WriteBytes(array)
+		let data = patchedAtob(base64);
+		let array = Uint8Array.from(data, c => c.charCodeAt(0));
+		this.WriteUInt32(array.length);
+		this.WriteBytes(array);
 	}
 	WritePoint(point) {
-		this.expand(8)
-		this.view.setInt32(this.cursor, point.x, this.little_endian)
-		this.cursor += 4
-		this.view.setInt32(this.cursor, point.y, this.little_endian)
-		this.cursor += 4
+		this.expand(8);
+		this.view.setInt32(this.cursor, point.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, point.y, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteVector2(vector) {
-		this.expand(8)
-		this.view.setFloat32(this.cursor, vector.x, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, vector.y, this.little_endian)
-		this.cursor += 4
+		this.expand(8);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteVector3(vector) {
-		this.expand(12)
-		this.view.setFloat32(this.cursor, vector.x, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, vector.y, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, vector.z, this.little_endian)
-		this.cursor += 4
+		this.expand(12);
+		this.view.setFloat32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteIntVector3(vector) {
-		this.expand(12)
-		this.view.setInt32(this.cursor, vector.x, this.little_endian)
-		this.cursor += 4
-		this.view.setInt32(this.cursor, vector.y, this.little_endian)
-		this.cursor += 4
-		this.view.setInt32(this.cursor, vector.z, this.little_endian)
-		this.cursor += 4
+		this.expand(12);
+		this.view.setInt32(this.cursor, vector.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setInt32(this.cursor, vector.z, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteQuaternion(quat) {
-		this.expand(16)
-		this.view.setFloat32(this.cursor, quat.w, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, quat.x, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, quat.y, this.little_endian)
-		this.cursor += 4
-		this.view.setFloat32(this.cursor, quat.z, this.little_endian)
-		this.cursor += 4
+		this.expand(16);
+		this.view.setFloat32(this.cursor, quat.w, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.x, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.y, this.little_endian);
+		this.cursor += 4;
+		this.view.setFloat32(this.cursor, quat.z, this.little_endian);
+		this.cursor += 4;
 	}
 	WriteBytes(array) {
-		this.expand(array.byteLength)
-		this.array.set(array, this.cursor)
-		this.cursor += array.byteLength
+		this.expand(array.byteLength);
+		this.array.set(array, this.cursor);
+		this.cursor += array.byteLength;
 	}
 	EncodeString(string: string) {
-		return this.textEncoder.encode(string)
+		return this.textEncoder.encode(string);
 	}
 }
 
@@ -2896,112 +2895,112 @@ export function compileBinaryFBXModel(top_level_object) {
 	// https://code.blender.org/2013/08/fbx-binary-file-format-specification/
 	// https://github.com/jskorepa/fbx.js/blob/master/src/lib/index.ts
 
-	let _BLOCK_SENTINEL_DATA
+	let _BLOCK_SENTINEL_DATA;
 	if (_FBX_VERSION < 7500) {
-		_BLOCK_SENTINEL_DATA = new Uint8Array(Array(13).fill(0x00))
+		_BLOCK_SENTINEL_DATA = new Uint8Array(Array(13).fill(0x00));
 	} else {
-		_BLOCK_SENTINEL_DATA = new Uint8Array(Array(25).fill(0x00))
+		_BLOCK_SENTINEL_DATA = new Uint8Array(Array(25).fill(0x00));
 	}
 
 	// Awful exceptions from Blender: those "classes" of elements seem to need block sentinel even when having no children and some props.
-	const _KEYS_IGNORE_BLOCK_SENTINEL = ['AnimationStack', 'AnimationLayer']
+	const _KEYS_IGNORE_BLOCK_SENTINEL = ['AnimationStack', 'AnimationLayer'];
 
 	// TODO: if FBX_VERSION >= 7500, use 64-bit offsets (for read_fbx_elem_uint)
 
-	var writer = new BinaryWriter(20, true)
+	var writer = new BinaryWriter(20, true);
 	// Header
-	writer.WriteRawString('Kaydara FBX Binary  ')
-	writer.WriteUInt8(0x00)
-	writer.WriteUInt8(0x1a)
-	writer.WriteUInt8(0x00)
+	writer.WriteRawString('Kaydara FBX Binary  ');
+	writer.WriteUInt8(0x00);
+	writer.WriteUInt8(0x1a);
+	writer.WriteUInt8(0x00);
 	// Version
-	writer.WriteUInt32(_FBX_VERSION)
+	writer.WriteUInt32(_FBX_VERSION);
 
 	function writeObjectRecursively(key, object) {
-		let tuple
+		let tuple;
 		if (typeof object == 'object' && typeof object.map === 'function') {
-			tuple = object
+			tuple = object;
 		} else if (typeof object !== 'object') {
-			tuple = [object]
+			tuple = [object];
 		} else if (object._values) {
-			tuple = object._values
+			tuple = object._values;
 		} else {
-			tuple = []
+			tuple = [];
 		}
 		let is_data_array =
 			object.hasOwnProperty('_values') &&
 			object.hasOwnProperty('a') &&
-			object._type != undefined
+			object._type != undefined;
 
 		// EndOffset, change later
-		let end_offset_index = writer.cursor
-		writer.WriteUInt32(0)
+		let end_offset_index = writer.cursor;
+		writer.WriteUInt32(0);
 		// NumProperties
-		writer.WriteUInt32(tuple.length)
+		writer.WriteUInt32(tuple.length);
 		// PropertyListLen, change later
-		let property_length_index = writer.cursor
-		writer.WriteUInt32(0)
+		let property_length_index = writer.cursor;
+		writer.WriteUInt32(0);
 		// Name
-		writer.WriteString(key)
+		writer.WriteString(key);
 
-		let property_start_index = writer.cursor
+		let property_start_index = writer.cursor;
 		// Data Array
 		if (is_data_array) {
-			let type = object._type || 'i'
-			if (!object._type) console.log('default', key, 'to int')
-			let array = object.a
-			if (array instanceof Array == false) array = [array]
+			let type = object._type || 'i';
+			if (!object._type) console.log('default', key, 'to int');
+			let array = object.a;
+			if (array instanceof Array == false) array = [array];
 
-			writer.WriteRawString(type)
-			writer.WriteUInt32(array.length)
+			writer.WriteRawString(type);
+			writer.WriteUInt32(array.length);
 			// Encoding (compression, unused by Blockbench)
-			writer.WriteUInt32(0)
+			writer.WriteUInt32(0);
 			// Compressed Length (but we don't use compression, so it's just the data length)
-			let data_size = 0
+			let data_size = 0;
 			switch (type) {
 				case 'f':
 				case 'i':
-					data_size = 4
-					break
+					data_size = 4;
+					break;
 				case 'd':
 				case 'l':
-					data_size = 8
-					break
+					data_size = 8;
+					break;
 				case 'b':
-					data_size = 1
-					break
+					data_size = 1;
+					break;
 			}
-			writer.WriteUInt32(array.length * data_size)
+			writer.WriteUInt32(array.length * data_size);
 			// Contents
 			for (let v of array) {
 				switch (type) {
 					case 'f':
-						writer.WriteFloat32(v)
-						break
+						writer.WriteFloat32(v);
+						break;
 					case 'd':
-						writer.WriteFloat64(v)
-						break
+						writer.WriteFloat64(v);
+						break;
 					case 'l':
-						writer.WriteInt64(v)
-						break
+						writer.WriteInt64(v);
+						break;
 					case 'i':
-						writer.WriteInt32(v)
-						break
+						writer.WriteInt32(v);
+						break;
 					case 'b':
-						writer.WriteBoolean(v)
-						break
+						writer.WriteBoolean(v);
+						break;
 				}
 			}
 		} else {
 			// Tuple
 			tuple.forEach((value, i) => {
-				let type: string = typeof value
+				let type: string = typeof value;
 				if (typeof value == 'object' && value.isTNum) {
-					type = value.type
-					value = value.value
+					type = value.type;
+					value = value.value;
 				}
 				if (type == 'number') {
-					type = value % 1 ? 'D' : 'I'
+					type = value % 1 ? 'D' : 'I';
 					//if (!object._type) console.log('default', key, i, 'to', type, object)
 				}
 				// handle number types
@@ -3015,44 +3014,44 @@ export function compileBinaryFBXModel(top_level_object) {
 				// L: int64
 
 				if (type == 'boolean') {
-					writer.WriteRawString('C')
-					writer.WriteBoolean(value)
+					writer.WriteRawString('C');
+					writer.WriteBoolean(value);
 				} else if (type == 'string' && value.startsWith('iV')) {
 					// base64
-					writer.WriteRawString('R')
-					writer.WriteU32Base64(value)
+					writer.WriteRawString('R');
+					writer.WriteU32Base64(value);
 				} else if (type == 'string') {
 					// Replace '::' with 0x00 0x01 and swap the order
 					// E.g. "Geometry::cube" becomes "cube\x00\x01Geometry"
 					// Will this break any normal text that contains those characters? I hope not.
 					if (value.includes('::')) {
-						const hex00 = String.fromCharCode(0x00)
-						const hex01 = String.fromCharCode(0x01)
+						const hex00 = String.fromCharCode(0x00);
+						const hex01 = String.fromCharCode(0x01);
 
-						const parts = value.split('::')
-						value = parts[1] + hex00 + hex01 + parts[0]
+						const parts = value.split('::');
+						value = parts[1] + hex00 + hex01 + parts[0];
 					}
 					// string
-					writer.WriteRawString('S')
-					if (value.startsWith('_')) value = value.substring(1)
-					writer.WriteU32String(value)
+					writer.WriteRawString('S');
+					if (value.startsWith('_')) value = value.substring(1);
+					writer.WriteU32String(value);
 				} else if (type == 'Y') {
-					writer.WriteRawString('Y')
-					writer.WriteInt16(value)
+					writer.WriteRawString('Y');
+					writer.WriteInt16(value);
 				} else if (type == 'I') {
-					writer.WriteRawString('I')
-					writer.WriteInt32(value)
+					writer.WriteRawString('I');
+					writer.WriteInt32(value);
 				} else if (type == 'F') {
-					writer.WriteRawString('F')
-					writer.WriteFloat32(value)
+					writer.WriteRawString('F');
+					writer.WriteFloat32(value);
 				} else if (type == 'D') {
-					writer.WriteRawString('D')
-					writer.WriteFloat64(value)
+					writer.WriteRawString('D');
+					writer.WriteFloat64(value);
 				} else if (type == 'L') {
-					writer.WriteRawString('L')
-					writer.WriteInt64(value)
+					writer.WriteRawString('L');
+					writer.WriteInt64(value);
 				}
-			})
+			});
 		}
 
 		// Property Byte Length
@@ -3060,141 +3059,141 @@ export function compileBinaryFBXModel(top_level_object) {
 			property_length_index,
 			writer.cursor - property_start_index,
 			writer.little_endian
-		)
+		);
 
 		// Nested List
 		if (typeof object == 'object' && object instanceof Array == false && !is_data_array) {
-			let is_nested = false
+			let is_nested = false;
 			for (let key in object) {
-				if (typeof key == 'string' && key.startsWith('_')) continue
-				if (object[key] === undefined) continue
-				let child = object[key]
-				if (child === null || child._comment) continue
-				if (child._key) key = child._key
+				if (typeof key == 'string' && key.startsWith('_')) continue;
+				if (object[key] === undefined) continue;
+				let child = object[key];
+				if (child === null || child._comment) continue;
+				if (child._key) key = child._key;
 
-				is_nested = true
+				is_nested = true;
 
-				writeObjectRecursively(key, child)
+				writeObjectRecursively(key, child);
 			}
 			// Null Record, indicating a nested list.
 			if (
 				is_nested ||
 				(Object.keys(object).length === 0 && !_KEYS_IGNORE_BLOCK_SENTINEL.includes(key))
 			) {
-				writer.WriteBytes(_BLOCK_SENTINEL_DATA)
+				writer.WriteBytes(_BLOCK_SENTINEL_DATA);
 			}
 		}
 		// End Offset
-		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian)
+		writer.view.setUint32(end_offset_index, writer.cursor, writer.little_endian);
 	}
 	//writeObjectRecursively('', top_level_object);
 	for (let key in top_level_object) {
-		writeObjectRecursively(key, top_level_object[key])
+		writeObjectRecursively(key, top_level_object[key]);
 	}
 
-	writer.WriteBytes(_BLOCK_SENTINEL_DATA)
+	writer.WriteBytes(_BLOCK_SENTINEL_DATA);
 
 	// Footer
 	//		Write the FOOT ID
 	let footer_id = [
 		0xfa, 0xbc, 0xab, 0x09, 0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26,
 		0x7e, 0x00, 0x00, 0x00, 0x00,
-	]
-	writer.WriteBytes(new Uint8Array(footer_id))
+	];
+	writer.WriteBytes(new Uint8Array(footer_id));
 
 	//		padding for alignment (values between 1 & 16 observed)
 	//		if already aligned to 16, add a full 16 bytes padding.
-	const offset = writer.cursor
-	let pad = ((offset + 15) & ~15) - offset
-	if (pad === 0) pad = 16
+	const offset = writer.cursor;
+	let pad = ((offset + 15) & ~15) - offset;
+	if (pad === 0) pad = 16;
 	for (let i = 0; i < pad; i++) {
-		writer.WriteUInt8(0x00)
+		writer.WriteUInt8(0x00);
 	}
 
 	// 		Write the FBX version
-	writer.WriteUInt32(_FBX_VERSION)
+	writer.WriteUInt32(_FBX_VERSION);
 
 	// 		Write some footer magic
-	writer.WriteBytes(new Uint8Array(Array(120).fill(0x00)))
+	writer.WriteBytes(new Uint8Array(Array(120).fill(0x00)));
 	let footer_magic = [
 		0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29,
 		0x0b,
-	]
-	writer.WriteBytes(new Uint8Array(footer_magic))
+	];
+	writer.WriteBytes(new Uint8Array(footer_magic));
 
 	// Cut the array to the cursor location (because the writer expand method can have added extra bytes)
-	const output = writer.array.subarray(0, writer.cursor)
+	const output = writer.array.subarray(0, writer.cursor);
 
-	return output
+	return output;
 }
 
 export function compileASCIIFBXSection(object: FBXNode) {
-	let depth = 0
+	let depth = 0;
 	function indent() {
-		let spaces = ''
+		let spaces = '';
 		for (let i = 0; i < depth; i++) {
-			spaces += '\t'
+			spaces += '\t';
 		}
-		return spaces
+		return spaces;
 	}
 
 	function handleValue(value) {
-		if (typeof value == 'object' && value.isTNum) value = value.value
-		if (typeof value == 'boolean') return value ? 'Y' : 'N'
-		if (typeof value == 'string' && value.startsWith('_')) return value.substring(1)
-		if (typeof value == 'string') return '"' + value + '"'
-		return value
+		if (typeof value == 'object' && value.isTNum) value = value.value;
+		if (typeof value == 'boolean') return value ? 'Y' : 'N';
+		if (typeof value == 'string' && value.startsWith('_')) return value.substring(1);
+		if (typeof value == 'string') return '"' + value + '"';
+		return value;
 	}
 	function joinArray(array) {
-		let string = ''
-		if (Array.length == 0) return string
-		string += array[0]
+		let string = '';
+		if (Array.length == 0) return string;
+		string += array[0];
 		for (let i = 1; i < array.length; i++) {
-			let item = array[i]
-			string += ','
+			let item = array[i];
+			string += ',';
 			if (typeof item !== 'number') {
-				string += ' '
+				string += ' ';
 			}
-			string += item
+			string += item;
 		}
-		return string
+		return string;
 	}
 	function handleObjectChildren(parent) {
-		let output = ''
+		let output = '';
 		for (let key in parent) {
-			if (typeof key == 'string' && key.startsWith('_')) continue
-			if (parent[key] === undefined || parent[key] === null) continue
-			let object = parent[key]
+			if (typeof key == 'string' && key.startsWith('_')) continue;
+			if (parent[key] === undefined || parent[key] === null) continue;
+			let object = parent[key];
 			if (object._comment) {
-				output += `\n${indent()};${object._comment}\n`
-				continue
+				output += `\n${indent()};${object._comment}\n`;
+				continue;
 			}
-			if (object._key) key = object._key
+			if (object._key) key = object._key;
 
-			let values = ''
+			let values = '';
 			if (typeof object == 'object' && typeof object.map === 'function') {
-				values = joinArray(object.map(handleValue))
+				values = joinArray(object.map(handleValue));
 			} else if (typeof object !== 'object') {
-				values = handleValue(object)
+				values = handleValue(object);
 			} else if (object._values) {
-				values = joinArray(object._values.map(handleValue))
+				values = joinArray(object._values.map(handleValue));
 			}
 
-			output += `${indent()}${key}: ${values}`
+			output += `${indent()}${key}: ${values}`;
 
-			let content
+			let content;
 			if (typeof object == 'object' && typeof object.map !== 'function') {
-				depth++
-				content = handleObjectChildren(object)
-				depth--
+				depth++;
+				content = handleObjectChildren(object);
+				depth--;
 			}
 			if (content || object._force_compound) {
-				output += ` {\n${content}${indent()}}\n`
+				output += ` {\n${content}${indent()}}\n`;
 			} else {
-				output += '\n'
+				output += '\n';
 			}
 		}
-		return output
+		return output;
 	}
-	return handleObjectChildren(object)
+	return handleObjectChildren(object);
 }

@@ -1,37 +1,37 @@
-import { Blockbench } from '../api'
-import { Dialog } from '../interface/dialog'
-import { FormInputType } from '../interface/form'
-import { settings } from '../interface/settings'
-import { BARS } from '../interface/toolbars'
-import { tl } from '../languages'
-import { Mesh } from '../outliner/mesh'
-import { Outliner } from '../outliner/outliner'
-import { ReferenceImage } from '../preview/reference_images'
-import { capitalizeFirstLetter } from '../util/util'
-import { Codecs } from './codec'
+import { Blockbench } from '../api';
+import { Dialog } from '../interface/dialog';
+import { FormInputType } from '../interface/form';
+import { settings } from '../interface/settings';
+import { BARS } from '../interface/toolbars';
+import { tl } from '../languages';
+import { Mesh } from '../outliner/mesh';
+import { Outliner } from '../outliner/outliner';
+import { ReferenceImage } from '../preview/reference_images';
+import { capitalizeFirstLetter } from '../util/util';
+import { Codecs } from './codec';
 
 BARS.defineActions(function () {
 	function uploadSketchfabModel() {
 		if (Outliner.elements.length === 0 || !Format) {
-			return
+			return;
 		}
-		let tag_suggestions = ['low-poly', 'pixel-art', 'NoAI']
-		if (Format.id !== 'free') tag_suggestions.push('minecraft')
-		if (Format.id === 'skin') tag_suggestions.push('skin')
-		if (!Mesh.all.length) tag_suggestions.push('voxel')
+		let tag_suggestions = ['low-poly', 'pixel-art', 'NoAI'];
+		if (Format.id !== 'free') tag_suggestions.push('minecraft');
+		if (Format.id === 'skin') tag_suggestions.push('skin');
+		if (!Mesh.all.length) tag_suggestions.push('voxel');
 		let clean_project_name = Project.name
 			.toLowerCase()
 			.replace(/[_.-]+/g, '-')
 			.replace(/[^a-z0-9-]+/, '')
-			.replace(/-geo/, '')
-		if (Project.name) tag_suggestions.push(clean_project_name)
+			.replace(/-geo/, '');
+		if (Project.name) tag_suggestions.push(clean_project_name);
 		if (clean_project_name.includes('-'))
 			tag_suggestions.safePush(
 				...clean_project_name
 					.split('-')
 					.filter(s => s.length > 2 && s != 'geo')
 					.reverse()
-			)
+			);
 
 		let categories = {
 			'': '-',
@@ -53,7 +53,7 @@ BARS.defineActions(function () {
 			'science-technology': 'Science & Technology',
 			'sports-fitness': 'Sports & Fitness',
 			'weapons-military': 'Weapons & Military',
-		}
+		};
 
 		var dialog = new Dialog('sketchfab_uploader', {
 			title: 'dialog.sketchfab_uploader.title',
@@ -95,11 +95,11 @@ BARS.defineActions(function () {
 					type: 'buttons',
 					buttons: tag_suggestions,
 					click(index) {
-						let { tags } = dialog.getFormResult()
-						let new_tag = tag_suggestions[index]
+						let { tags } = dialog.getFormResult();
+						let new_tag = tag_suggestions[index];
 						if (!(tags as string).split(/\s/g).includes(new_tag)) {
-							tags += ' ' + new_tag
-							dialog.setFormValues({ tags })
+							tags += ' ' + new_tag;
+							dialog.setFormValues({ tags });
 						}
 					},
 				},
@@ -116,39 +116,39 @@ BARS.defineActions(function () {
 			},
 			onConfirm(formResult) {
 				if (!formResult.token || !formResult.name) {
-					Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800)
-					return
+					Blockbench.showQuickMessage('message.sketchfab.name_or_token', 1800);
+					return;
 				}
 				if (!(formResult.tags as string).split(' ').includes('blockbench')) {
-					formResult.tags += ' blockbench'
+					formResult.tags += ' blockbench';
 				}
-				var data = new FormData()
-				data.append('token', formResult.token as string)
-				data.append('name', formResult.name as string)
-				data.append('description', formResult.description as string)
-				data.append('tags', formResult.tags as string)
-				data.append('isPublished', (!formResult.draft as boolean).toString())
+				var data = new FormData();
+				data.append('token', formResult.token as string);
+				data.append('name', formResult.name as string);
+				data.append('description', formResult.description as string);
+				data.append('tags', formResult.tags as string);
+				data.append('isPublished', (!formResult.draft as boolean).toString());
 				//data.append('background', JSON.stringify({color: '#00ff00'}))
-				data.append('private', (formResult.private as boolean).toString())
-				data.append('password', formResult.password as string)
-				data.append('source', 'blockbench')
+				data.append('private', (formResult.private as boolean).toString());
+				data.append('password', formResult.password as string);
+				data.append('source', 'blockbench');
 
 				if (formResult.category1 || formResult.category2) {
-					let selected_categories: string[] = []
+					let selected_categories: string[] = [];
 					if (formResult.category1)
-						selected_categories.push(formResult.category1 as string)
+						selected_categories.push(formResult.category1 as string);
 					if (formResult.category2)
-						selected_categories.push(formResult.category2 as string)
-					data.append('categories', selected_categories.join(' '))
+						selected_categories.push(formResult.category2 as string);
+					data.append('categories', selected_categories.join(' '));
 				}
 
-				settings.sketchfab_token.set(formResult.token)
+				settings.sketchfab_token.set(formResult.token);
 
 				Codecs.gltf.compile({ animations: formResult.animations }).then(content => {
-					var blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-					var file = new File([blob], 'model.gltf')
+					var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+					var file = new File([blob], 'model.gltf');
 
-					data.append('modelFile', file)
+					data.append('modelFile', file);
 
 					$.ajax({
 						url: 'https://api.sketchfab.com/v3/models',
@@ -158,7 +158,7 @@ BARS.defineActions(function () {
 						processData: false,
 						type: 'POST',
 						success: function (response) {
-							let url = `https://sketchfab.com/models/${response.uid}`
+							let url = `https://sketchfab.com/models/${response.uid}`;
 							new Dialog('sketchfab_link', {
 								title: tl('message.sketchfab.success'),
 								icon: 'icon-sketchfab',
@@ -174,7 +174,7 @@ BARS.defineActions(function () {
 										share_text: true,
 									},
 								},
-							}).show()
+							}).show();
 						},
 						error: function (response) {
 							let response_types = {
@@ -187,30 +187,30 @@ BARS.defineActions(function () {
 								[407]: 'Proxy Authentication Required',
 								[408]: 'Request Timeout',
 								[415]: 'Unsupported File Type',
-							}
+							};
 							Blockbench.showQuickMessage(
 								tl('message.sketchfab.error') +
 									`: Error ${response.status} - ${response_types[response.status] || ''}`,
 								1500
-							)
-							console.error(response)
+							);
+							console.error(response);
 						},
-					})
-				})
+					});
+				});
 
-				dialog.hide()
+				dialog.hide();
 			},
-		})
-		dialog.show()
+		});
+		dialog.show();
 	}
 	new Action('upload_sketchfab', {
 		icon: 'icon-sketchfab',
 		category: 'file',
 		condition: () => Project && Outliner.elements.length,
 		click() {
-			uploadSketchfabModel()
+			uploadSketchfabModel();
 		},
-	})
+	});
 
 	new Action('share_model', {
 		icon: 'share',
@@ -218,14 +218,14 @@ BARS.defineActions(function () {
 		async click() {
 			let thumbnail = await new Promise(resolve => {
 				// @ts-ignore
-				Preview.selected.screenshot({ width: 640, height: 480 }, resolve)
-			})
-			let image = new Image()
-			image.src = thumbnail as string
-			image.width = 320
-			image.style.display = 'block'
-			image.style.margin = 'auto'
-			image.style.backgroundColor = 'var(--color-back)'
+				Preview.selected.screenshot({ width: 640, height: 480 }, resolve);
+			});
+			let image = new Image();
+			image.src = thumbnail as string;
+			image.width = 320;
+			image.style.display = 'block';
+			image.style.margin = 'auto';
+			image.style.backgroundColor = 'var(--color-back)';
 
 			var dialog = new Dialog({
 				id: 'share_model',
@@ -264,19 +264,19 @@ BARS.defineActions(function () {
 				lines: [image],
 				part_order: ['form', 'lines'],
 				onFormChange(form) {
-					image.style.display = form.thumbnail ? 'block' : 'none'
+					image.style.display = form.thumbnail ? 'block' : 'none';
 				},
 				buttons: ['generic.share', 'dialog.cancel'],
 				onConfirm: function (formResult) {
-					let name = formResult.name
-					let expire_time = formResult.expire_time
+					let name = formResult.name;
+					let expire_time = formResult.expire_time;
 					let model = Codecs.project.compile({
 						compressed: false,
 						absolute_paths: false,
 						reference_images: formResult.reference_images,
-					})
-					let data = { name, expire_time, model, thumbnail: undefined }
-					if (formResult.thumbnail) data.thumbnail = thumbnail
+					});
+					let data = { name, expire_time, model, thumbnail: undefined };
+					if (formResult.thumbnail) data.thumbnail = thumbnail;
 
 					$.ajax({
 						url: 'https://blckbn.ch/api/model',
@@ -286,7 +286,7 @@ BARS.defineActions(function () {
 						dataType: 'json',
 						type: 'POST',
 						success: function (response) {
-							let link = `https://blckbn.ch/${response.id}`
+							let link = `https://blckbn.ch/${response.id}`;
 
 							new Dialog({
 								id: 'share_model_link',
@@ -300,33 +300,33 @@ BARS.defineActions(function () {
 										share_text: true,
 									},
 								},
-							}).show()
+							}).show();
 						},
 						error: function (response) {
-							let error_text = 'dialog.share_model.failed' + ' - ' + response.status
+							let error_text = 'dialog.share_model.failed' + ' - ' + response.status;
 							if (response.status == 413) {
 								if (
 									ReferenceImage.current_project.length &&
 									formResult.reference_images
 								) {
-									error_text = 'dialog.share_model.too_large_references'
+									error_text = 'dialog.share_model.too_large_references';
 								} else {
-									error_text = 'dialog.share_model.too_large'
+									error_text = 'dialog.share_model.too_large';
 								}
 							}
 							Blockbench.showMessageBox({
 								title: tl('generic.error'),
 								message: error_text,
 								icon: 'error',
-							})
-							console.error(response)
+							});
+							console.error(response);
 						},
-					})
+					});
 
-					dialog.hide()
+					dialog.hide();
 				},
-			})
-			dialog.show()
+			});
+			dialog.show();
 		},
-	})
-})
+	});
+});

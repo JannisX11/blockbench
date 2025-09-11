@@ -1,23 +1,23 @@
-import cz from '../lang/cz.json'
-import de from '../lang/de.json'
-import en from '../lang/en.json'
-import es from '../lang/es.json'
-import fr from '../lang/fr.json'
-import it from '../lang/it.json'
-import ja from '../lang/ja.json'
-import ko from '../lang/ko.json'
-import nl from '../lang/nl.json'
-import pl from '../lang/pl.json'
-import pt from '../lang/pt.json'
-import ru from '../lang/ru.json'
-import sv from '../lang/sv.json'
-import tr from '../lang/tr.json'
-import uk from '../lang/uk.json'
-import vi from '../lang/vi.json'
-import zh from '../lang/zh.json'
-import zh_tw from '../lang/zh_tw.json'
+import cz from '../lang/cz.json';
+import de from '../lang/de.json';
+import en from '../lang/en.json';
+import es from '../lang/es.json';
+import fr from '../lang/fr.json';
+import it from '../lang/it.json';
+import ja from '../lang/ja.json';
+import ko from '../lang/ko.json';
+import nl from '../lang/nl.json';
+import pl from '../lang/pl.json';
+import pt from '../lang/pt.json';
+import ru from '../lang/ru.json';
+import sv from '../lang/sv.json';
+import tr from '../lang/tr.json';
+import uk from '../lang/uk.json';
+import vi from '../lang/vi.json';
+import zh from '../lang/zh.json';
+import zh_tw from '../lang/zh_tw.json';
 
-type Language = Record<string, string>
+type Language = Record<string, string>;
 export const data: Record<string, Language> = {
 	cz: cz,
 	de: de,
@@ -37,7 +37,7 @@ export const data: Record<string, Language> = {
 	vi: vi,
 	zh: zh,
 	zh_tw: zh_tw,
-}
+};
 
 /**
  * Returns a translated string in the current language
@@ -50,33 +50,33 @@ export const tl = function (
 	variables?: string | number | (string | number)[],
 	default_value?: string
 ): string {
-	if (string && string.length > 100) return string
-	var result = Language.data[string]
+	if (string && string.length > 100) return string;
+	var result = Language.data[string];
 	if (result && result.length > 0) {
 		if (variables) {
 			if (variables instanceof Array == false) {
-				variables = [variables]
+				variables = [variables];
 			}
-			var i = variables.length
+			var i = variables.length;
 			while (i > 0) {
-				i--
-				result = result.replace(new RegExp('%' + i, 'g'), variables[i])
+				i--;
+				result = result.replace(new RegExp('%' + i, 'g'), variables[i]);
 			}
 		}
-		return result
+		return result;
 	} else if (default_value != undefined) {
-		return default_value
+		return default_value;
 	} else {
 		//console.warn('Unable to find translation for key', string);
-		return string
+		return string;
 	}
-}
+};
 export const translateUI = function () {
 	$('.tl').each(function (i, obj) {
-		var text = tl($(obj).text())
-		$(obj).text(text)
-	})
-}
+		var text = tl($(obj).text());
+		$(obj).text(text);
+	});
+};
 
 export const Language = {
 	/**
@@ -118,30 +118,30 @@ export const Language = {
 				language == Language.code ||
 				(language == 'en' && Language.data[key] == undefined)
 			) {
-				Language.data[key] = strings[key]
+				Language.data[key] = strings[key];
 			}
 		}
 	},
 	toString: () => Language.code,
-}
+};
 
 // Get language code
-let code
+let code;
 try {
-	code = JSON.parse(localStorage.getItem('settings')).language.value
+	code = JSON.parse(localStorage.getItem('settings')).language.value;
 } catch (err) {}
 
 if (!code) {
-	code = navigator.language.replace(/-\w+/, '')
+	code = navigator.language.replace(/-\w+/, '');
 }
 if (code && Language.options[code]) {
-	Language.code = code
-	document.body.parentElement.setAttribute('lang', Language.code)
+	Language.code = code;
+	document.body.parentElement.setAttribute('lang', Language.code);
 }
 
-Language.data = data[Language.code]
+Language.data = data[Language.code];
 
 Object.assign(window, {
 	tl,
 	Language,
-})
+});

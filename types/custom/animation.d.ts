@@ -6,7 +6,7 @@ declare class AnimationItem {
 	getUndoCopy?(options?: any, save?: any): AnimationOptions
 }
 
-interface AnimationOptions {
+declare interface AnimationOptions {
 	name?: string
 	uuid?: string
 	path?: string
@@ -19,7 +19,7 @@ interface AnimationOptions {
 	animators?: any
 }
 
-interface AnimationUndoCopy {
+declare interface AnimationUndoCopy {
 	uuid: any
 	name: any
 	loop: any
@@ -40,7 +40,7 @@ interface AnimationUndoCopy {
  * Blockbench overwrites libdom's {@link Animation} type with its own `Animation` Class, but TypeScript doesn't include a way to overwrite UMD global types.
  * To get around this, we changed the name of this class type declaration to `_Animation` and use that in the type definitions.
  */
-interface Animation {}
+declare interface Animation {}
 
 /**
  * ⚠️ THIS IS TYPE ONLY ⚠️
@@ -116,12 +116,6 @@ declare class _Animation extends AnimationItem {
 	file_menu: Menu
 }
 
-interface MolangAutoCompletionItem {
-	text: string
-	label: string | undefined
-	overlap: number
-}
-
 declare namespace Animator {
 	const open: boolean
 	const MolangParser: Molang
@@ -150,11 +144,6 @@ declare namespace Animator {
 	function exportAnimationFile(path: string, save_as?: boolean): void
 	function exportAnimationControllerFile(path: string, save_as?: boolean): void
 	function resetLastValues(): void
-	function autocompleteMolang(
-		text: string,
-		position: number,
-		type: string
-	): MolangAutoCompletionItem[]
 }
 
 interface AddChannelOptions {

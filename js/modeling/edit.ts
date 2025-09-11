@@ -1,4 +1,4 @@
-import { Mode } from '../modes'
+import { Mode } from '../modes';
 
 BARS.defineActions(function () {
 	new Mode('edit', {
@@ -10,16 +10,16 @@ BARS.defineActions(function () {
 			Outliner.elements.forEach(cube => {
 				// @ts-ignore
 				if (cube.preview_controller.updatePixelGrid)
-					cube.preview_controller.updatePixelGrid(cube)
-			})
+					cube.preview_controller.updatePixelGrid(cube);
+			});
 		},
 		onUnselect: () => {
-			if (Undo) Undo.closeAmendEditMenu()
+			if (Undo) Undo.closeAmendEditMenu();
 			Outliner.elements.forEach(cube => {
 				// @ts-ignore
 				if (cube.preview_controller.updatePixelGrid)
-					cube.preview_controller.updatePixelGrid(cube)
-			})
+					cube.preview_controller.updatePixelGrid(cube);
+			});
 		},
-	})
-})
+	});
+});

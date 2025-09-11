@@ -1,4 +1,4 @@
-import { settings } from '../interface/settings'
+import { settings } from '../interface/settings';
 
 /**
  * Prepare shader with the correct options depending on device and settings
@@ -9,10 +9,10 @@ export function prepareShader(shader: string): string {
 		settings.antialiasing_bleed_fix.value == false ||
 		Preview.selected?.renderer.capabilities.isWebGL2 != true
 	) {
-		shader = shader.replace(/centroid /g, '')
+		shader = shader.replace(/centroid /g, '');
 	}
 	if (!isApp) {
-		shader = shader.replace('precision highp', 'precision mediump')
+		shader = shader.replace('precision highp', 'precision mediump');
 	}
-	return shader
+	return shader;
 }

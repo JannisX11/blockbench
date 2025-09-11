@@ -93,8 +93,8 @@
 					:step="0.5"
 					@input="change(axis, 'rotation')"
 					@change="
-						focusout(axis, 'rotation')
-						save()
+						focusout(axis, 'rotation');
+						save();
 					"
 					@mousedown="start()"
 				/>
@@ -146,8 +146,8 @@
 					:step="0.5"
 					@input="change(axis, 'translation')"
 					@change="
-						focusout(axis, 'translation')
-						save()
+						focusout(axis, 'translation');
+						save();
 					"
 					@mousedown="start()"
 				/>
@@ -205,8 +205,8 @@
 					:step="0.01"
 					@input="change(axis, 'scale')"
 					@change="
-						focusout(axis, 'scale')
-						save()
+						focusout(axis, 'scale');
+						save();
 					"
 					@mousedown="start()"
 				/>
@@ -265,8 +265,8 @@
 						:step="0.05"
 						@input="change(axis, 'rotation_pivot')"
 						@change="
-							focusout(axis, 'rotation_pivot')
-							save()
+							focusout(axis, 'rotation_pivot');
+							save();
 						"
 						@mousedown="start()"
 					/>
@@ -293,8 +293,8 @@
 						:step="0.05"
 						@input="change(axis, 'scale_pivot')"
 						@change="
-							focusout(axis, 'scale_pivot')
-							save()
+							focusout(axis, 'scale_pivot');
+							save();
 						"
 						@mousedown="start()"
 					/>
@@ -305,8 +305,8 @@
 </template>
 
 <script lang="js">
-import { DisplayMode, displayReferenceObjects } from './display_mode'
-import { tl } from '../languages'
+import { DisplayMode, displayReferenceObjects } from './display_mode';
+import { tl } from '../languages';
 
 export default {
 	data() {
@@ -316,94 +316,95 @@ export default {
 			pose_angle: 0,
 			slot: new DisplaySlot(''),
 			allow_mirroring: Settings.get('allow_display_slot_mirror'),
-		}
+		};
 	},
 	watch: {
 		pose_angle(value) {
-			displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value
+			displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value;
 			if (displayReferenceObjects.active.updateBasePosition)
-				displayReferenceObjects.active.updateBasePosition()
+				displayReferenceObjects.active.updateBasePosition();
 		},
 	},
 	methods: {
 		tl,
 		allowMirroring() {
-			return this.allow_mirroring && !this.isBedrockStyle()
+			return this.allow_mirroring && !this.isBedrockStyle();
 		},
 		allowEnablingMirroring() {
-			return Format.id != 'bedrock_block'
+			return Format.id != 'bedrock_block';
 		},
 		isBedrockStyle() {
-			return Format.id == 'bedrock_block'
+			return Format.id == 'bedrock_block';
 		},
 		isMirrored: axis => {
 			if (Project.display_settings[DisplayMode.display_slot]) {
-				return Project.display_settings[DisplayMode.display_slot].scale[axis] < 0
+				return Project.display_settings[DisplayMode.display_slot].scale[axis] < 0;
 			}
 		},
 		change: (axis, channel) => {
 			if (channel === 'scale') {
 				if (Pressing.shift || Pressing.overrides.shift) {
-					var val = limitNumber(parseFloat(DisplayMode.slot.scale[axis]), 0, 4)
-					DisplayMode.slot.scale[0] = val
-					DisplayMode.slot.scale[1] = val
-					DisplayMode.slot.scale[2] = val
+					var val = limitNumber(parseFloat(DisplayMode.slot.scale[axis]), 0, 4);
+					DisplayMode.slot.scale[0] = val;
+					DisplayMode.slot.scale[1] = val;
+					DisplayMode.slot.scale[2] = val;
 				}
 			}
-			DisplayMode.updateDisplayBase()
+			DisplayMode.updateDisplayBase();
 		},
 		focusout: (axis, channel) => {
 			if (channel === 'scale') {
-				var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4)
-				DisplayMode.slot.scale[axis] = val
+				var val = limitNumber(DisplayMode.slot.scale[axis], 0, 4);
+				DisplayMode.slot.scale[axis] = val;
 				if (Pressing.shift || Pressing.overrides.shift) {
-					DisplayMode.slot.scale[0] = val
-					DisplayMode.slot.scale[1] = val
-					DisplayMode.slot.scale[2] = val
+					DisplayMode.slot.scale[0] = val;
+					DisplayMode.slot.scale[1] = val;
+					DisplayMode.slot.scale[2] = val;
 				}
 			} else if (channel === 'translation') {
 				DisplayMode.slot.translation[axis] =
-					limitNumber(DisplayMode.slot.translation[axis], -80, 80) || 0
+					limitNumber(DisplayMode.slot.translation[axis], -80, 80) || 0;
 			} else if (channel == 'rotation') {
-				DisplayMode.slot.rotation[axis] = Math.trimDeg(DisplayMode.slot.rotation[axis]) || 0
+				DisplayMode.slot.rotation[axis] =
+					Math.trimDeg(DisplayMode.slot.rotation[axis]) || 0;
 			} else {
-				DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0
+				DisplayMode.slot[channel][axis] = DisplayMode.slot[channel][axis] ?? 0;
 			}
-			DisplayMode.updateDisplayBase()
+			DisplayMode.updateDisplayBase();
 		},
 		resetChannel: channel => {
-			var v = channel === 'scale' ? 1 : 0
-			Undo.initEdit({ display_slots: [DisplayMode.display_slot] })
-			DisplayMode.slot.extend({ [channel]: [v, v, v] })
+			var v = channel === 'scale' ? 1 : 0;
+			Undo.initEdit({ display_slots: [DisplayMode.display_slot] });
+			DisplayMode.slot.extend({ [channel]: [v, v, v] });
 			if (channel === 'scale') {
-				DisplayMode.slot.extend({ mirror: [false, false, false] })
+				DisplayMode.slot.extend({ mirror: [false, false, false] });
 			}
-			Undo.finishEdit('Reset display channel')
+			Undo.finishEdit('Reset display channel');
 		},
 		invert: axis => {
-			Undo.initEdit({ display_slots: [DisplayMode.display_slot] })
-			DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis]
-			DisplayMode.slot.update()
-			Undo.finishEdit('Mirror display setting')
+			Undo.initEdit({ display_slots: [DisplayMode.display_slot] });
+			DisplayMode.slot.mirror[axis] = !DisplayMode.slot.mirror[axis];
+			DisplayMode.slot.update();
+			Undo.finishEdit('Mirror display setting');
 		},
 		start: () => {
-			Undo.initEdit({ display_slots: [DisplayMode.display_slot] })
-			Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling')
+			Undo.initEdit({ display_slots: [DisplayMode.display_slot] });
+			Interface.addSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 		},
 		save: () => {
-			Undo.finishEdit('Change display setting')
-			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling')
+			Undo.finishEdit('Change display setting');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 		},
 		toggleFitToFrame() {
-			Undo.initEdit({ display_slots: [DisplayMode.display_slot] })
-			this.slot.fit_to_frame = !this.slot.fit_to_frame
-			Undo.finishEdit('Change display setting fit-to-frame property')
-			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling')
+			Undo.initEdit({ display_slots: [DisplayMode.display_slot] });
+			this.slot.fit_to_frame = !this.slot.fit_to_frame;
+			Undo.finishEdit('Change display setting fit-to-frame property');
+			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.uniform_scaling');
 		},
 		showMirroringSetting() {
-			Settings.openDialog({ search_term: tl('settings.allow_display_slot_mirror') })
+			Settings.openDialog({ search_term: tl('settings.allow_display_slot_mirror') });
 		},
 		getAxisLetter,
 	},
-}
+};
 </script>

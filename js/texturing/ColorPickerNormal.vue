@@ -14,8 +14,8 @@
 </template>
 
 <script lang="js">
-import tinycolor from 'tinycolor2'
-import { tl } from '../languages'
+import tinycolor from 'tinycolor2';
+import { tl } from '../languages';
 
 export default {
 	name: 'color-picker-normal',
@@ -25,49 +25,49 @@ export default {
 		value: String,
 	},
 	data() {
-		return {}
+		return {};
 	},
 	computed: {
 		position() {
-			let color = new tinycolor(this.value)
-			let rgb = color.toRgb()
+			let color = new tinycolor(this.value);
+			let rgb = color.toRgb();
 			let square = {
 				x: (rgb.r / 255 - 0.5) * 100,
 				y: (rgb.g / 255 - 0.5) * 100,
-			}
-			let angle = Math.atan2(square.y, square.x)
-			let distance = Math.sqrt(Math.pow(square.x, 2) + Math.pow(square.y, 2))
-			distance = Math.clamp(distance, -50, 50)
+			};
+			let angle = Math.atan2(square.y, square.x);
+			let distance = Math.sqrt(Math.pow(square.x, 2) + Math.pow(square.y, 2));
+			distance = Math.clamp(distance, -50, 50);
 			return {
 				x: ((50 + Math.cos(angle) * distance) / 100) * (this.height - 10) + 5,
 				y: ((50 - Math.sin(angle) * distance) / 100) * (this.width - 10) + 5,
-			}
+			};
 		},
 	},
 	methods: {
 		pointerDown(e1) {
-			let bounding_box = this.$refs.reference.getBoundingClientRect()
+			let bounding_box = this.$refs.reference.getBoundingClientRect();
 			let onMove = e2 => {
-				let x = e2.clientX - bounding_box.x
-				let y = e2.clientY - bounding_box.y
+				let x = e2.clientX - bounding_box.x;
+				let y = e2.clientY - bounding_box.y;
 				let color = new tinycolor({
 					r: (x / (this.width - 10)) * 255,
 					g: (1 - y / (this.height - 10)) * 255,
 					b: 255,
-				})
-				this.$emit('input', '#' + color.toHex())
-			}
+				});
+				this.$emit('input', '#' + color.toHex());
+			};
 			let onUp = e2 => {
-				document.removeEventListener('pointermove', onMove)
-				document.removeEventListener('pointerup', onUp)
-			}
-			document.addEventListener('pointermove', onMove)
-			document.addEventListener('pointerup', onUp)
-			onMove(e1)
+				document.removeEventListener('pointermove', onMove);
+				document.removeEventListener('pointerup', onUp);
+			};
+			document.addEventListener('pointermove', onMove);
+			document.addEventListener('pointerup', onUp);
+			onMove(e1);
 		},
 		tl,
 	},
-}
+};
 </script>
 
 <style>
