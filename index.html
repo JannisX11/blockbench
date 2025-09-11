@@ -15,7 +15,7 @@
 	<link rel="stylesheet" href="css/fontawesome.css">
 	<link rel="stylesheet" href="css/spectrum.css">
 	<link rel="stylesheet" href="css/prism.css">
-	<link rel="stylesheet" href="css/setup.css">
+	<link rel="stylesheet" href="css/setup.css" id="setup_stylesheet">
 	<link rel="stylesheet" href="css/general.css">
 	<link rel="stylesheet" href="css/window.css">
 	<link rel="stylesheet" href="css/start_screen.css">
@@ -195,7 +195,8 @@
 		// Browser compatibility check
 		try {
 			eval('[1].at(0)');
-			if (document.body.computedStyleMap().get('position').value != 'fixed') {
+			let stylesheet = document.getElementById('setup_stylesheet');
+			if (!stylesheet || !stylesheet.sheet?.cssRules?.length) {
 				throw 'Stylesheet not loaded';
 			}
 			browser_check_passed = true;
