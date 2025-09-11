@@ -1,27 +1,26 @@
-import { Blockbench } from "../api"
-import { Prop } from "../misc"
-import { FormElementOptions, FormResultValue, InputForm, InputFormConfig } from "./form"
-import { Vue } from './../lib/libs'
-import { getStringWidth } from "../util/util"
+import { Blockbench } from '../api';
+import { Prop } from '../misc';
+import { FormElementOptions, FormResultValue, InputForm, InputFormConfig } from './form';
+import { Vue } from './../lib/libs';
+import { getStringWidth } from '../util/util';
 
 interface ActionInterface {
-	name: string
-	description?: string
-	icon: string
-	color?: string
-	click(event: Event): void
-	condition?: ConditionResolvable
+	name: string;
+	description?: string;
+	icon: string;
+	color?: string;
+	click(event: Event): void;
+	condition?: ConditionResolvable;
 }
-type DialogLineOptions = (
+type DialogLineOptions =
 	| HTMLElement
 	| {
-			label?: string
-			widget?: Widget | (() => Widget)
-			nocolon?: boolean
-			node?: HTMLElement
+			label?: string;
+			widget?: Widget | (() => Widget);
+			nocolon?: boolean;
+			node?: HTMLElement;
 	  }
-	| string
-)
+	| string;
 
 function buildForm(dialog: Dialog) {
 	dialog.form = new InputForm(dialog.form_config);
@@ -29,34 +28,43 @@ function buildForm(dialog: Dialog) {
 	dialog_content.append(dialog.form.node);
 	dialog.max_label_width = Math.max(dialog.max_label_width, dialog.form.max_label_width);
 	if (dialog.form.uses_wide_inputs) dialog.uses_wide_inputs = true;
-	dialog.form.on('change', ({result}) => {
+	dialog.form.on('change', ({ result }) => {
 		if (dialog.onFormChange) dialog.onFormChange(result);
-	})
+	});
 }
 function buildLines(dialog: Dialog) {
 	let dialog_content = dialog.object.querySelector('.dialog_content');
 	dialog.lines.forEach(l => {
 		if (typeof l === 'object' && ('label' in l || 'widget' in l)) {
-
-			let bar = Interface.createElement('div', {class: 'dialog_bar'});
+			let bar = Interface.createElement('div', { class: 'dialog_bar' });
 			if (l.label) {
-				let label = Interface.createElement('label', {class: 'name_space_left'}, tl(l.label))
+				let label = Interface.createElement(
+					'label',
+					{ class: 'name_space_left' },
+					tl(l.label)
+				);
 				bar.append(label);
-				dialog.max_label_width = Math.max(getStringWidth(label.textContent), dialog.max_label_width)
+				dialog.max_label_width = Math.max(
+					getStringWidth(label.textContent),
+					dialog.max_label_width
+				);
 			}
 			if (l.node) {
-				bar.append(l.node)
+				bar.append(l.node);
 			} else if (l.widget) {
 				let widget: Widget;
 				if (typeof l.widget === 'string') {
-					widget = BarItems[l.widget]
+					widget = BarItems[l.widget];
 				} else if (typeof l.widget === 'function') {
-					widget = l.widget()
+					widget = l.widget();
 				} else {
-					widget = l.widget
+					widget = l.widget;
 				}
 				bar.append(widget.getNode());
-				dialog.max_label_width = Math.max(getStringWidth(widget.name), dialog.max_label_width)
+				dialog.max_label_width = Math.max(
+					getStringWidth(widget.name),
+					dialog.max_label_width
+				);
 			}
 			dialog.uses_wide_inputs = true;
 			dialog_content.append(bar);
@@ -65,7 +73,7 @@ function buildLines(dialog: Dialog) {
 		} else if (l instanceof HTMLElement) {
 			dialog_content.append(l);
 		}
-	})
+	});
 }
 function buildComponent(dialog: Dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
@@ -77,11 +85,11 @@ function buildComponent(dialog: Dialog) {
 		mount = Interface.createElement('div');
 		dialog_content.append(mount);
 	}
-	dialog.component.name = 'dialog-content'
+	dialog.component.name = 'dialog-content';
 	dialog.content_vue = new Vue(dialog.component).$mount(mount);
 }
 function buildToolbars(dialog: Dialog) {
-	let dialog_content = $(dialog.object).find('.dialog_content')
+	let dialog_content = $(dialog.object).find('.dialog_content');
 	for (let id in dialog.toolbars) {
 		let toolbar = dialog.toolbars[id];
 		dialog_content.append(toolbar.node);
@@ -91,24 +99,24 @@ function buildToolbars(dialog: Dialog) {
 const toggle_sidebar = window.innerWidth < 640;
 interface DialogSidebarOptions {
 	pages?: {
-		[key: string]: string | { label: string; icon: IconString; color?: string } | MenuSeparator
-	}
-	page?: string
-	actions?: (Action | ActionInterface | string)[]
-	onPageSwitch?(page: string): void
+		[key: string]: string | { label: string; icon: IconString; color?: string } | MenuSeparator;
+	};
+	page?: string;
+	actions?: (Action | ActionInterface | string)[];
+	onPageSwitch?(page: string): void;
 }
 export class DialogSidebar {
-	open: boolean
+	open: boolean;
 	pages: {
-		[key: string]: string | { label: string; icon: IconString; color?: string } | MenuSeparator
-	}
-	page: string
-	actions: (Action | ActionInterface | string)[]
-	dialog: Dialog
+		[key: string]: string | { label: string; icon: IconString; color?: string } | MenuSeparator;
+	};
+	page: string;
+	actions: (Action | ActionInterface | string)[];
+	dialog: Dialog;
 
-	node: HTMLDivElement
-	page_menu: Record<string, HTMLLIElement>
-	onPageSwitch?(page: string): void
+	node: HTMLDivElement;
+	page_menu: Record<string, HTMLLIElement>;
+	onPageSwitch?(page: string): void;
 
 	constructor(options: DialogSidebarOptions, dialog: Dialog) {
 		this.open = !toggle_sidebar;
@@ -131,7 +139,11 @@ export class DialogSidebar {
 			if (page instanceof MenuSeparator) {
 				let expander = Interface.createElement('span');
 				// @ts-ignore I don't even know what typescript is thinking here
-				let node = Interface.createElement('div', {class: 'dialog_sidebar_separator'}, page ? [page.label, expander] : expander);
+				let node = Interface.createElement(
+					'div',
+					{ class: 'dialog_sidebar_separator' },
+					page ? [page.label, expander] : expander
+				);
 				page_list.append(node);
 				continue;
 			}
@@ -146,7 +158,7 @@ export class DialogSidebar {
 			li.addEventListener('click', event => {
 				this.setPage(key);
 				if (toggle_sidebar) this.toggle();
-			})
+			});
 			page_list.append(li);
 		}
 
@@ -163,7 +175,7 @@ export class DialogSidebar {
 					copy = action.menu_node.cloneNode(true);
 					copy.addEventListener('click', event => {
 						action.trigger(event);
-					})
+					});
 				} else {
 					copy = document.createElement('li');
 					copy.title = action.description ? tl(action.description) : '';
@@ -174,10 +186,10 @@ export class DialogSidebar {
 					copy.append(span);
 					copy.addEventListener('click', event => {
 						action.click(event);
-					})
+					});
 				}
 				action_list.append(copy);
-			})
+			});
 		}
 
 		this.toggle(this.open);
@@ -203,82 +215,81 @@ export class DialogSidebar {
 	}
 }
 
-
 interface DialogOptions {
-	title: string
-	id?: string
-	icon?: IconString
-	width?: number
+	title: string;
+	id?: string;
+	icon?: IconString;
+	width?: number;
 	/**
 	 * Unless set to false, clicking on the darkened area outside of the dialog will cancel the dialog.
 	 */
-	cancel_on_click_outside?: boolean
+	cancel_on_click_outside?: boolean;
 	/**
 	 * Default button to press to confirm the dialog. Defaults to the first button.
 	 */
-	confirmIndex?: number
+	confirmIndex?: number;
 	/**
 	 * Default button to press to cancel the dialog. Defaults to the last button.
 	 */
-	cancelIndex?: number
+	cancelIndex?: number;
 	/**
 	 * Function to execute when the dialog is opened
 	 */
-	onOpen?(): void
+	onOpen?(): void;
 	/**
 	 *  Function to execute when the user confirms the dialog
 	 */
-	onConfirm?(formResult: any, event: Event): void | boolean
+	onConfirm?(formResult: any, event: Event): void | boolean;
 	/**
 	 * Function to execute when the user cancels the dialog
 	 */
-	onCancel?(event: Event): void | boolean
+	onCancel?(event: Event): void | boolean;
 	/**
 	 * Triggered when the user presses a specific button
 	 */
-	onButton?(button_index: number, event?: Event): void | boolean
+	onButton?(button_index: number, event?: Event): void | boolean;
 	/**
 	 * Triggered when the user attemps to close the dialog
 	 */
-	onClose?(button_index: number, event?: Event): void | boolean
+	onClose?(button_index: number, event?: Event): void | boolean;
 	/**
 	 * Runs when the dialog is resized
 	 */
-	onResize?(): void
+	onResize?(): void;
 	/**
 	 * Runs when the dialog is built
 	 */
-	onBuild?(): void
+	onBuild?(): void;
 	/**
 	 * Function to run when anything in the form is changed
 	 */
-	onFormChange?(form_result: { [key: string]: FormResultValue }): void
+	onFormChange?(form_result: { [key: string]: FormResultValue }): void;
 	/**
 	 * Array of HTML any strings for each line of content in the dialog.
 	 */
-	lines?: DialogLineOptions[]
+	lines?: DialogLineOptions[];
 	/**
 	 * Creates a form in the dialog
 	 */
-	form?: InputFormConfig
+	form?: InputFormConfig;
 	/**
 	 * Vue component
 	 */
-	component?: Vue.Component
+	component?: Vue.Component;
 	/**
 	 * Order that the different interface types appear in the dialog. Default is 'form', 'lines', 'component'.
 	 */
-	part_order?: string[]
-	form_first?: boolean
+	part_order?: string[];
+	form_first?: boolean;
 	/**
 	 * Creates a dialog sidebar
 	 */
-	sidebar?: DialogSidebarOptions
-	toolbars?: Record<string, Toolbar>
+	sidebar?: DialogSidebarOptions;
+	toolbars?: Record<string, Toolbar>;
 	/**
 	 * Menu in the handle bar
 	 */
-	title_menu?: Menu
+	title_menu?: Menu;
 	/**
 	 * Display a progress bar in the dialog
 	 */
@@ -286,101 +297,100 @@ interface DialogOptions {
 		/**
 		 * A progress value between 0 and 1
 		 */
-		progress?: number
-	}
+		progress?: number;
+	};
 	/**
 	 * If true, the dialog will only have one button to close it
 	 */
-	singleButton?: boolean
+	singleButton?: boolean;
 	/**
 	 * List of buttons
 	 */
-	buttons?: string[]
+	buttons?: string[];
 	/**
 	 * A list of keyboard shortcuts that only work inside the dialog
 	 */
 	keyboard_actions?: {
 		[id: string]: {
-			keybind: Keybind
-			run: (event: KeyboardEvent) => void
-			condition?: ConditionResolvable
-		}
-	}
+			keybind: Keybind;
+			run: (event: KeyboardEvent) => void;
+			condition?: ConditionResolvable;
+		};
+	};
 	/**
 	 * Select on which axes the dialog can be resized. None by default
 	 */
-	resizable?: 'x' | 'y' | 'xy' | boolean
+	resizable?: 'x' | 'y' | 'xy' | boolean;
 	/**
 	 * Set to false to stop the dialog from being dragged around
 	 */
-	draggable?: false
+	draggable?: false;
 	/**
 	 * Create a dark backdrop behind the dialog
 	 */
-	darken?: boolean
+	darken?: boolean;
 }
 export class Dialog {
-	id: string
-	title: string
-	object: HTMLElement
-	content_vue: Vue | null
+	id: string;
+	title: string;
+	object: HTMLElement;
+	content_vue: Vue | null;
 	progress_bar?: {
 		/**
 		 * The current progress
 		 */
-		progress?: number
+		progress?: number;
 		/**
 		 * Set the progress displayed in the progress bar
 		 * @param value A progress value between 0 and 1
 		 */
-		setProgress(value: number): void
+		setProgress(value: number): void;
 		/**
 		 * The progress bar HTML node
 		 */
-		node?: HTMLDivElement
-	}
+		node?: HTMLDivElement;
+	};
 
-	confirmIndex: number
-	cancelIndex: number
+	confirmIndex: number;
+	cancelIndex: number;
 
-	
-	lines?: DialogLineOptions[]
-	form?: InputForm
-	component?: Vue.Component
-	part_order?: string[]
-	form_first?: boolean
-	sidebar?: DialogSidebar
-	title_menu?: Menu
-	singleButton?: boolean
-	buttons?: string[]
+	lines?: DialogLineOptions[];
+	form?: InputForm;
+	component?: Vue.Component;
+	part_order?: string[];
+	form_first?: boolean;
+	sidebar?: DialogSidebar;
+	title_menu?: Menu;
+	singleButton?: boolean;
+	buttons?: string[];
 	keyboard_actions?: {
 		[id: string]: {
-			keybind: Keybind
-			run: (event: KeyboardEvent) => void
-			condition?: ConditionResolvable
-		}
-	}
-	resizable?: 'x' | 'y' | 'xy' | false
+			keybind: Keybind;
+			run: (event: KeyboardEvent) => void;
+			condition?: ConditionResolvable;
+		};
+	};
+	resizable?: 'x' | 'y' | 'xy' | false;
 
-	configuration: DialogOptions
-	toolbars: Record<string, Toolbar>
-	form_config: InputFormConfig
-	width: number
-	draggable: boolean
-	darken: boolean
-	cancel_on_click_outside: boolean
-	max_label_width?: number
-	uses_wide_inputs?: boolean
-	onConfirm?(formResult: any, event: Event): void | boolean
-	onCancel?(event: Event): void | boolean
-	onButton?(button_index: number, event?: Event): void | boolean
-	onFormChange?(form_result: { [key: string]: FormResultValue }): void
-	onOpen: () => void
-	onBuild: (object: HTMLElement) => void
-	onResize: () => void
+	configuration: DialogOptions;
+	toolbars: Record<string, Toolbar>;
+	form_config: InputFormConfig;
+	width: number;
+	draggable: boolean;
+	darken: boolean;
+	cancel_on_click_outside: boolean;
+	max_label_width?: number;
+	uses_wide_inputs?: boolean;
+	onConfirm?(formResult: any, event: Event): void | boolean;
+	onCancel?(event: Event): void | boolean;
+	onButton?(button_index: number, event?: Event): void | boolean;
+	onFormChange?(form_result: { [key: string]: FormResultValue }): void;
+	onOpen: () => void;
+	onBuild: (object: HTMLElement) => void;
+	onResize: () => void;
 
-	constructor(options: DialogOptions)
-	constructor(id: string, options: DialogOptions)
+	constructor(options: DialogOptions);
+	constructor(id: string, options: DialogOptions);
 	constructor(id: string | DialogOptions, options?: DialogOptions) {
 		if (typeof id == 'object') {
 			options = id;
@@ -388,13 +398,15 @@ export class Dialog {
 		}
 		this.id = id;
 		this.title = options.title;
-		
+
 		this.lines = options.lines;
-		this.toolbars = options.toolbars
-		this.form_config = options.form
-		this.component = options.component
+		this.toolbars = options.toolbars;
+		this.form_config = options.form;
+		this.component = options.component;
 		this.content_vue = null;
-		this.part_order = options.part_order || (options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component'])
+		this.part_order =
+			options.part_order ||
+			(options.form_first ? ['form', 'lines', 'component'] : ['lines', 'form', 'component']);
 
 		this.sidebar = options.sidebar ? new DialogSidebar(options.sidebar, this) : null;
 		this.title_menu = options.title_menu || null;
@@ -407,22 +419,28 @@ export class Dialog {
 					}
 				},
 				progress: options.progress_bar.progress ?? 0,
-				node: null
-			}
+				node: null,
+			};
 		}
 
-		this.width = options.width
-		this.draggable = options.draggable
+		this.width = options.width;
+		this.draggable = options.draggable;
 		this.resizable = options.resizable === true ? 'xy' : options.resizable;
-		this.darken = options.darken !== false
-		this.cancel_on_click_outside = options.cancel_on_click_outside !== false
-		this.singleButton = options.singleButton
-		this.buttons = options.buttons instanceof Array ? options.buttons : (options.singleButton ? ['dialog.close'] : ['dialog.confirm', 'dialog.cancel'])
+		this.darken = options.darken !== false;
+		this.cancel_on_click_outside = options.cancel_on_click_outside !== false;
+		this.singleButton = options.singleButton;
+		this.buttons =
+			options.buttons instanceof Array
+				? options.buttons
+				: options.singleButton
+					? ['dialog.close']
+					: ['dialog.confirm', 'dialog.cancel'];
 		this.form_first = options.form_first;
-		this.confirmIndex = options.confirmIndex||0;
-		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
+		this.confirmIndex = options.confirmIndex || 0;
+		this.cancelIndex =
+			options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length - 1;
 		this.keyboard_actions = options.keyboard_actions || {};
-	
+
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
 		this.onButton = options.onButton || options.onClose;
@@ -430,7 +448,7 @@ export class Dialog {
 		this.onOpen = options.onOpen;
 		this.onBuild = options.onBuild;
 		this.onResize = options.onResize;
-	
+
 		this.object;
 	}
 	/**
@@ -492,14 +510,14 @@ export class Dialog {
 		let handle = document.createElement('div');
 		handle.className = 'dialog_handle';
 		this.object.append(handle);
-		
+
 		if (this.title_menu) {
 			let menu_button = document.createElement('div');
 			menu_button.className = 'dialog_menu_button';
 			menu_button.append(Blockbench.getIconNode('expand_more'));
 			menu_button.addEventListener('click', event => {
 				this.title_menu.open(menu_button);
-			})
+			});
 			handle.append(menu_button);
 		}
 
@@ -518,7 +536,6 @@ export class Dialog {
 		let content = document.createElement('content');
 		content.className = 'dialog_content';
 		this.object.append(wrapper);
-		
 
 		if (this.sidebar) {
 			if (window.innerWidth < 920) {
@@ -527,7 +544,7 @@ export class Dialog {
 				menu_button.append(Blockbench.getIconNode('menu'));
 				menu_button.addEventListener('click', event => {
 					this.sidebar.toggle();
-				})
+				});
 				handle.prepend(menu_button);
 			}
 
@@ -542,41 +559,42 @@ export class Dialog {
 			if (part == 'lines' && this.lines) buildLines(this);
 			if (part == 'toolbars' && this.toolbars) buildToolbars(this);
 			if (part == 'component' && this.component) buildComponent(this);
-		})
+		});
 
 		if (this.max_label_width) {
-			let width = (this.width||540)
+			let width = this.width || 540;
 			let max_width = this.uses_wide_inputs
-				? Math.clamp(this.max_label_width+9, 0, width/2)
-				: Math.clamp(this.max_label_width+16, 0, width - 100);
+				? Math.clamp(this.max_label_width + 9, 0, width / 2)
+				: Math.clamp(this.max_label_width + 16, 0, width - 100);
 			this.object.style.setProperty('--max_label_width', max_width + 'px');
 		}
 
 		if (this.progress_bar) {
-			this.progress_bar.node = Interface.createElement('div', {class: 'progress_bar'},
-				Interface.createElement('div', {class: 'progress_bar_inner'})
+			this.progress_bar.node = Interface.createElement(
+				'div',
+				{ class: 'progress_bar' },
+				Interface.createElement('div', { class: 'progress_bar_inner' })
 			) as HTMLDivElement;
 			this.progress_bar.setProgress(this.progress_bar.progress);
 			this.object.querySelector('content.dialog_content').append(this.progress_bar.node);
 		}
 
 		if (this.buttons.length) {
-
-			let buttons = []
+			let buttons = [];
 			this.buttons.forEach((b, i) => {
-				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				let btn = Interface.createElement('button', { type: 'button' }, tl(b));
 				buttons.push(btn);
-				btn.addEventListener('click', (event) => {
+				btn.addEventListener('click', event => {
 					this.close(i, event);
-				})
-			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
+				});
+			});
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn');
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn');
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				button_bar.append(button)
-			})
+				button_bar.append(button);
+			});
 
 			wrapper.append(button_bar[0]);
 		}
@@ -585,22 +603,22 @@ export class Dialog {
 		close_button.classList.add('dialog_close_button');
 		close_button.innerHTML = '<i class="material-icons">clear</i>';
 		jq_dialog.append(close_button);
-		close_button.addEventListener('click', (e) => {
+		close_button.addEventListener('click', e => {
 			this.cancel();
-		})
+		});
 		//Draggable
 		if (this.draggable !== false) {
-			jq_dialog.addClass('draggable')
+			jq_dialog.addClass('draggable');
 			// @ts-ignore Draggable library doesn't have types
 			jq_dialog.draggable({
-				handle: ".dialog_handle",
-				containment: '#page_wrapper'
-			})
-			jq_dialog.css('position', 'absolute')
+				handle: '.dialog_handle',
+				containment: '#page_wrapper',
+			});
+			jq_dialog.css('position', 'absolute');
 		}
 		if (this.resizable) {
-			this.object.classList.add('resizable')
-			let resize_handle = Interface.createElement('div', {class: 'dialog_resize_handle'});
+			this.object.classList.add('resizable');
+			let resize_handle = Interface.createElement('div', { class: 'dialog_resize_handle' });
 			jq_dialog.append(resize_handle);
 			if (this.resizable == 'x') {
 				resize_handle.style.cursor = 'e-resize';
@@ -615,45 +633,57 @@ export class Dialog {
 				if (!this.width) this.width = this.object.clientWidth;
 				let original_width = this.width;
 				let original_left = parseFloat(this.object.style.left);
-				let original_height = parseFloat(this.object.style.height) || this.object.clientHeight;
-
+				let original_height =
+					parseFloat(this.object.style.height) || this.object.clientHeight;
 
 				let move = (e2: PointerEvent) => {
 					convertTouchEvent(e2);
-					
+
 					if (this.resizable && this.resizable.includes('x')) {
-						let x_offset = (e2.clientX - start_position[0]);
+						let x_offset = e2.clientX - start_position[0];
 						this.width = original_width + x_offset * 2;
-						this.object.style.width = this.width+'px';
+						this.object.style.width = this.width + 'px';
 						if (this.draggable !== false) {
-							this.object.style.left = Math.clamp(original_left - (this.object.clientWidth - original_width) / 2, 0, window.innerWidth) + 'px';
+							this.object.style.left =
+								Math.clamp(
+									original_left - (this.object.clientWidth - original_width) / 2,
+									0,
+									window.innerWidth
+								) + 'px';
 						}
 					}
 					if (this.resizable && this.resizable.includes('y')) {
-						let y_offset = (e2.clientY - start_position[1]);
+						let y_offset = e2.clientY - start_position[1];
 						let height = Math.clamp(original_height + y_offset, 80, window.innerHeight);
-						this.object.style.height = height+'px';
+						this.object.style.height = height + 'px';
 					}
 					if (typeof this.onResize == 'function') {
 						this.onResize();
 					}
-				}
+				};
 				let stop = e2 => {
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', stop);
 					resize_handle.classList.remove('dragging');
-				}
+				};
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
-			})
+			});
 		}
 		let sanitizePosition = () => {
-			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
-				this.object.style.top = Math.max(Interface.page_wrapper.clientHeight - this.object.clientHeight + 26, 26) + 'px';
+			if (
+				this.object.clientHeight + this.object.offsetTop - 26 >
+				Interface.page_wrapper.clientHeight
+			) {
+				this.object.style.top =
+					Math.max(
+						Interface.page_wrapper.clientHeight - this.object.clientHeight + 26,
+						26
+					) + 'px';
 			}
-		}
+		};
 		sanitizePosition();
-		this.resize_observer = new ResizeObserver(sanitizePosition)
+		this.resize_observer = new ResizeObserver(sanitizePosition);
 		this.resize_observer.observe(this.object);
 
 		if (typeof this.onBuild == 'function') {
@@ -662,34 +692,39 @@ export class Dialog {
 
 		return this;
 	}
-	private resize_observer: ResizeObserver
+	private resize_observer: ResizeObserver;
 
 	show(anchor?: HTMLElement): this {
 		// Hide previous
 		// @ts-ignore Need to replace this variable still
-		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
+		if (
+			window.open_interface &&
+			open_interface instanceof Dialog == false &&
+			typeof open_interface.hide == 'function'
+		) {
 			open_interface.hide();
 		}
 
 		if (!this.object) {
 			this.build();
 		} else if (this.form) {
-			this.form.updateValues({cause: 'setup'});
+			this.form.updateValues({ cause: 'setup' });
 		}
 
 		let jq_dialog = $(this.object);
 
 		document.getElementById('dialog_wrapper').append(this.object);
-		
+
 		if (this instanceof ShapelessDialog === false) {
 			this.object.style.display = 'flex';
-			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
+			this.object.style.top =
+				limitNumber(window.innerHeight / 2 - this.object.clientHeight / 2, 0, 100) + 'px';
 			if (this.width) {
-				this.object.style.width = this.width+'px';
+				this.object.style.width = this.width + 'px';
 			}
 			if (this.draggable !== false) {
-				let x = Math.clamp((window.innerWidth-this.object.clientWidth)/2, 0, 2000)
-				this.object.style.left = x+'px';
+				let x = Math.clamp((window.innerWidth - this.object.clientWidth) / 2, 0, 2000);
+				this.object.style.left = x + 'px';
 			}
 		}
 
@@ -739,7 +774,7 @@ export class Dialog {
 		Dialog.stack.remove(this);
 		Prop.active_panel = Prop._previous_active_panel;
 		$(this.object).detach();
-		
+
 		if (Dialog.stack.length) {
 			Dialog.stack.last().focus();
 		}
@@ -747,14 +782,14 @@ export class Dialog {
 		return this;
 	}
 	delete() {
-		$(this.object).remove()
+		$(this.object).remove();
 		if (this.content_vue) {
 			this.content_vue.$destroy();
 			delete this.content_vue;
 		}
 	}
 	getFormBar(form_id: string) {
-		var bar = $(this.object).find(`.form_bar_${form_id}`)
+		var bar = $(this.object).find(`.form_bar_${form_id}`);
 		if (bar.length) return bar;
 	}
 
@@ -769,39 +804,39 @@ export class Dialog {
 }
 
 interface ShapelessDialogOptions {
-	title: string
+	title: string;
 	/**
 	 * Default button to press to confirm the dialog. Defaults to the first button.
 	 */
-	confirmIndex?: number
+	confirmIndex?: number;
 	/**
 	 * Default button to press to cancel the dialog. Defaults to the last button.
 	 */
-	cancelIndex?: number
+	cancelIndex?: number;
 	/**
 	 *  Function to execute when the user confirms the dialog
 	 */
-	onConfirm?(formResult: any): void
+	onConfirm?(formResult: any): void;
 	/**
 	 * Function to execute when the user cancels the dialog
 	 */
-	onCancel?(): void
+	onCancel?(): void;
 	/**
 	 * Triggered when the user presses a specific button
 	 */
-	onClose?(button_index: number, event?: Event): void
+	onClose?(button_index: number, event?: Event): void;
 	/**
 	 * Vue component
 	 */
-	component?: Vue.Component
+	component?: Vue.Component;
 	/**
 	 * Unless set to false, clicking on the darkened area outside of the dialog will cancel the dialog.
 	 */
-	cancel_on_click_outside?: boolean
+	cancel_on_click_outside?: boolean;
 }
 export class ShapelessDialog extends Dialog {
-	onClose?: (event: Event) => void | boolean
-	onConfirm?: (event: Event) => void | boolean
+	onClose?: (event: Event) => void | boolean;
+	onConfirm?: (event: Event) => void | boolean;
 	constructor(id: string, options: ShapelessDialogOptions) {
 		super(id, options);
 
@@ -826,12 +861,12 @@ export class ShapelessDialog extends Dialog {
 		this.hide();
 	}
 	show(): this {
-		super.show()
+		super.show();
 		$(this.object).show();
 		return this;
 	}
 	build(): this {
-		this.object = Interface.createElement('div', {id: this.id, class: 'shapeless_dialog'});
+		this.object = Interface.createElement('div', { id: this.id, class: 'shapeless_dialog' });
 
 		if (this.component) {
 			this.component.name = 'dialog-content';
@@ -840,58 +875,73 @@ export class ShapelessDialog extends Dialog {
 		return this;
 	}
 	delete() {
-		if (this.object) this.object.remove()
+		if (this.object) this.object.remove();
 		this.object = null;
 	}
 }
-type MessageBoxCommandOptions = string |  {
-	text: string
-	icon?: IconString
-	condition?: ConditionResolvable
-	description?: string
-}
-type MessageBoxCheckbox = string | {
-	value?: boolean
-	condition: ConditionResolvable
-	text: string
-}
+type MessageBoxCommandOptions =
+	| string
+	| {
+			text: string;
+			icon?: IconString;
+			condition?: ConditionResolvable;
+			description?: string;
+	  };
+type MessageBoxCheckbox =
+	| string
+	| {
+			value?: boolean;
+			condition: ConditionResolvable;
+			text: string;
+	  };
 export interface MessageBoxOptions {
 	/**
 	 * Index of the confirm button within the buttons array
 	 */
-	confirm?: number
+	confirm?: number;
 	/**
 	 * Index of the cancel button within the buttons array
 	 */
-	cancel?: number
-	buttons?: string[]
-	translateKey?: string
-	title?: string
-	message?: string
-	icon?: string
-	width?: number
-	cancelIndex?: number
-	confirmIndex?: number
+	cancel?: number;
+	buttons?: string[];
+	translateKey?: string;
+	title?: string;
+	message?: string;
+	icon?: string;
+	width?: number;
+	cancelIndex?: number;
+	confirmIndex?: number;
 	/**
 	 * Display a list of actions to do in the dialog. When clicked, the message box closes with the string ID of the command as first argument.
 	 */
-	commands?: Record<string, MessageBoxCommandOptions>
+	commands?: Record<string, MessageBoxCommandOptions>;
 	/**
 	 * Adds checkboxes to the bottom of the message box
 	 */
-	checkboxes?: Record<string, MessageBoxCheckbox>
+	checkboxes?: Record<string, MessageBoxCheckbox>;
 }
 export class MessageBox extends Dialog {
 	// @ts-ignore We should rewrite this to use a common internal DialogBase class
-	declare configuration: MessageBoxOptions
-	callback?: (button: number | string, result?: Record<string, boolean>, event?: Event) => void |boolean
+	declare configuration: MessageBoxOptions;
+	callback?: (
+		button: number | string,
+		result?: Record<string, boolean>,
+		event?: Event
+	) => void | boolean;
 
-	constructor(options: MessageBoxOptions, callback?: (button: number | string, result?: Record<string, boolean>, event?: Event) => void |boolean) {
+	constructor(
+		options: MessageBoxOptions,
+		callback?: (
+			button: number | string,
+			result?: Record<string, boolean>,
+			event?: Event
+		) => void | boolean
+	) {
 		super('message_box', options as DialogOptions);
 		this.configuration = options;
 		if (!options.buttons) this.buttons = ['dialog.ok'];
-		this.cancelIndex = Math.min(this.buttons.length-1, this.cancelIndex);
-		this.confirmIndex = Math.min(this.buttons.length-1, this.confirmIndex);
+		this.cancelIndex = Math.min(this.buttons.length - 1, this.cancelIndex);
+		this.confirmIndex = Math.min(this.buttons.length - 1, this.confirmIndex);
 		this.callback = callback;
 	}
 	// @ts-ignore
@@ -909,21 +959,38 @@ export class MessageBox extends Dialog {
 		let results: Record<string, boolean>;
 
 		if (options.translateKey) {
-			if (!options.title) options.title = tl('message.'+options.translateKey+'.title')
-			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
+			if (!options.title) options.title = tl('message.' + options.translateKey + '.title');
+			if (!options.message)
+				options.message = tl('message.' + options.translateKey + '.message');
 		}
-		let content = Interface.createElement('div', {class: 'dialog_content'});
-		this.object = Interface.createElement('dialog', {class: 'dialog', style: 'width: auto;', id: 'message_box'}, [
-			Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title))),
-			Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear')),
-			content
-		]);
+		let content = Interface.createElement('div', { class: 'dialog_content' });
+		this.object = Interface.createElement(
+			'dialog',
+			{ class: 'dialog', style: 'width: auto;', id: 'message_box' },
+			[
+				Interface.createElement(
+					'div',
+					{ class: 'dialog_handle' },
+					Interface.createElement('div', { class: 'dialog_title' }, tl(options.title))
+				),
+				Interface.createElement(
+					'div',
+					{ class: 'dialog_close_button', onclick: 'Dialog.open.cancel()' },
+					Blockbench.getIconNode('clear')
+				),
+				content,
+			]
+		);
 		let jq_dialog = $(this.object);
 
 		if (options.message) {
-			content.append($(`<div class="dialog_bar markdown" style="height: auto; margin-bottom: 10px;">`+
-				pureMarked(tl(options.message))+
-			'</div></div>')[0]);
+			content.append(
+				$(
+					`<div class="dialog_bar markdown" style="height: auto; margin-bottom: 10px;">` +
+						pureMarked(tl(options.message)) +
+						'</div></div>'
+				)[0]
+			);
 		}
 		if (options.icon) {
 			let bar = jq_dialog.find('.dialog_bar');
@@ -935,9 +1002,14 @@ export class MessageBox extends Dialog {
 			let list = Interface.createElement('ul');
 			for (let id in options.commands) {
 				let command = options.commands[id];
-				if (!command || (typeof command == 'object' && !Condition(command.condition))) continue;
+				if (!command || (typeof command == 'object' && !Condition(command.condition)))
+					continue;
 				let text = tl(typeof command == 'string' ? command : command.text);
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
+				let entry = Interface.createElement(
+					'li',
+					{ class: 'dialog_message_box_command' },
+					text
+				);
 				if (typeof command == 'object') {
 					if (command.icon) {
 						entry.prepend(Blockbench.getIconNode(command.icon));
@@ -949,14 +1021,14 @@ export class MessageBox extends Dialog {
 				}
 				entry.addEventListener('click', e => {
 					this.close(id, results, e);
-				})
+				});
 				list.append(entry);
 			}
 			content.append(list);
 		}
 
 		if (options.checkboxes) {
-			let list = Interface.createElement('ul', {class: 'dialog_message_box_checkboxes'});
+			let list = Interface.createElement('ul', { class: 'dialog_message_box_checkboxes' });
 			results = {};
 			for (let id in options.checkboxes) {
 				let checkbox = options.checkboxes[id];
@@ -967,13 +1039,24 @@ export class MessageBox extends Dialog {
 				}
 
 				let text = tl(typeof checkbox == 'string' ? checkbox : checkbox.text);
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_checkbox'}, [
-					Interface.createElement('input', {type: 'checkbox', id: 'dialog_message_box_checkbox_'+id}),
-					Interface.createElement('label', {for: 'dialog_message_box_checkbox_'+id, checked: results[id]}, text)
-				])
+				let entry = Interface.createElement(
+					'li',
+					{ class: 'dialog_message_box_checkbox' },
+					[
+						Interface.createElement('input', {
+							type: 'checkbox',
+							id: 'dialog_message_box_checkbox_' + id,
+						}),
+						Interface.createElement(
+							'label',
+							{ for: 'dialog_message_box_checkbox_' + id, checked: results[id] },
+							text
+						),
+					]
+				);
 				entry.firstElementChild.addEventListener('change', e => {
 					results[id] = (e.target as HTMLInputElement).checked;
-				})
+				});
 				list.append(entry);
 			}
 			content.append(list);
@@ -981,69 +1064,74 @@ export class MessageBox extends Dialog {
 
 		// Buttons
 		if (this.buttons.length) {
-
-			let buttons = []
+			let buttons = [];
 			this.buttons.forEach((b, i) => {
-				let btn = Interface.createElement('button', {type: 'button'}, tl(b));
+				let btn = Interface.createElement('button', { type: 'button' }, tl(b));
 				buttons.push(btn);
-				btn.addEventListener('click', (event) => {
+				btn.addEventListener('click', event => {
 					this.close(i, results, event);
-				})
-			})
-			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn')
-			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn')
+				});
+			});
+			buttons[this.confirmIndex] && buttons[this.confirmIndex].classList.add('confirm_btn');
+			buttons[this.cancelIndex] && buttons[this.cancelIndex].classList.add('cancel_btn');
 			let button_bar = $('<div class="dialog_bar button_bar"></div>');
 
 			buttons.forEach((button, i) => {
-				button_bar.append(button)
-			})
+				button_bar.append(button);
+			});
 
 			jq_dialog.append(button_bar[0]);
 		}
 
 		//Draggable
 		if (this.draggable !== false) {
-			jq_dialog.addClass('draggable')
+			jq_dialog.addClass('draggable');
 			// @ts-ignore
 			jq_dialog.draggable({
-				handle: ".dialog_handle",
-				containment: '#page_wrapper'
-			})
+				handle: '.dialog_handle',
+				containment: '#page_wrapper',
+			});
 			this.object.style.position = 'absolute';
 		}
 
-		let x = (window.innerWidth-540)/2
-		this.object.style.left = x+'px';
+		let x = (window.innerWidth - 540) / 2;
+		this.object.style.left = x + 'px';
 		this.object.style.position = 'absolute';
 
-		this.object.style.top = limitNumber(window.innerHeight/2-jq_dialog.height()/2 - 140, 0, 2000)+'px';
+		this.object.style.top =
+			limitNumber(window.innerHeight / 2 - jq_dialog.height() / 2 - 140, 0, 2000) + 'px';
 		if (options.width) {
-			this.object.style.width = options.width+'px'
+			this.object.style.width = options.width + 'px';
 		} else {
-			this.object.style.width = limitNumber((options.buttons ? options.buttons.length : 1) * 170+44, 380, 894)+'px';
+			this.object.style.width =
+				limitNumber((options.buttons ? options.buttons.length : 1) * 170 + 44, 380, 894) +
+				'px';
 		}
 		return this;
 	}
 	delete() {
-		if (this.object) this.object.remove()
+		if (this.object) this.object.remove();
 		this.object = null;
 	}
 }
-interface ConfigDialogOptions extends DialogOptions {
-
-}
+interface ConfigDialogOptions extends DialogOptions {}
 export class ConfigDialog extends Dialog {
 	constructor(id: string, options: ConfigDialogOptions) {
 		super(id, options);
 	}
 	show(anchor: HTMLElement) {
-		super.show()
+		super.show();
 		$('#blackout').hide();
-		
+
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
-			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
-			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30)) + 'px';
+			this.object.style.top = anchor_position.top + anchor.offsetHeight + 'px';
+			this.object.style.left =
+				Math.clamp(
+					anchor_position.left - 30,
+					0,
+					window.innerWidth - this.object.clientWidth - (this.title ? 0 : 30)
+				) + 'px';
 		}
 		return this;
 	}
@@ -1057,7 +1145,11 @@ export class ConfigDialog extends Dialog {
 
 		let title_bar;
 		if (this.title) {
-			title_bar = Interface.createElement('div', {class: 'config_dialog_title'}, tl(this.title));
+			title_bar = Interface.createElement(
+				'div',
+				{ class: 'config_dialog_title' },
+				tl(this.title)
+			);
 			this.object.append(title_bar);
 		}
 
@@ -1067,21 +1159,21 @@ export class ConfigDialog extends Dialog {
 		let content = document.createElement('content');
 		content.className = 'dialog_content';
 		this.object.append(wrapper);
-		
+
 		wrapper.append(content);
 
 		this.form = new InputForm(this.form_config);
 		content.append(this.form.node);
 		this.max_label_width = Math.max(this.max_label_width, this.form.max_label_width);
 		if (this.form.uses_wide_inputs) this.uses_wide_inputs = true;
-		this.form.on('change', ({result}) => {
+		this.form.on('change', ({ result }) => {
 			if (this.configuration) {
 				for (let key in result) {
 					this.configuration[key] = result[key];
 				}
 			}
 			if (this.onFormChange) this.onFormChange(result);
-		})
+		});
 
 		if (this.toolbars) {
 			buildToolbars(this);
@@ -1090,9 +1182,9 @@ export class ConfigDialog extends Dialog {
 		let close_button = document.createElement('div');
 		close_button.classList.add('dialog_close_button');
 		close_button.innerHTML = '<i class="material-icons">clear</i>';
-		close_button.addEventListener('click', (e) => {
+		close_button.addEventListener('click', e => {
 			this.cancel();
-		})
+		});
 		if (title_bar) {
 			title_bar.append(close_button);
 		} else {
@@ -1106,21 +1198,21 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	delete() {
-		if (this.object) this.object.remove()
+		if (this.object) this.object.remove();
 		this.object = null;
 	}
 }
 export class ToolConfig extends ConfigDialog {
 	declare options: {
-		[key: string]: FormResultValue
-	}
+		[key: string]: FormResultValue;
+	};
 	constructor(id: string, options: ConfigDialogOptions) {
 		super(id, options);
 
 		this.options = {};
 		let config_saved_data: Record<string, FormResultValue>;
 		try {
-			let stored = localStorage.getItem(`tool_config.${this.id}`);;
+			let stored = localStorage.getItem(`tool_config.${this.id}`);
 			config_saved_data = JSON.parse(stored);
 			if (!config_saved_data) config_saved_data = {};
 		} catch (err) {
@@ -1132,7 +1224,8 @@ export class ToolConfig extends ConfigDialog {
 				this.options[key] = BarItem.constructing.value;
 				continue;
 			}
-			this.options[key] = config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
+			this.options[key] =
+				config_saved_data[key] ?? InputForm.getDefaultValue(options.form[key]);
 		}
 	}
 	/**
@@ -1142,9 +1235,6 @@ export class ToolConfig extends ConfigDialog {
 	show(anchor?: HTMLElement): this {
 		super.show(anchor);
 		this.setFormValues(this.options, false);
-		this.form.on('input', ({result, cause}) => {
-			this.changeOptions(result)
-		})
 		return this;
 	}
 	/**
@@ -1173,7 +1263,6 @@ export class ToolConfig extends ConfigDialog {
 		this.hide();
 	}
 }
-
 
 Object.assign(window, {
 	DialogSidebar,

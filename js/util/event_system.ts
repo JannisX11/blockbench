@@ -1,10 +1,10 @@
 type EventListener = (data: any) => void;
 type Deletable = {
-	delete(): void
-}
+	delete(): void;
+};
 
 export class EventSystem {
-	events: Record<string, EventListener[]>
+	events: Record<string, EventListener[]>;
 	constructor() {
 		this.events = {};
 	}
@@ -33,9 +33,8 @@ export class EventSystem {
 					for (let name of event_names) {
 						this.events[name].remove(cb);
 					}
-				}
-			}
-
+				},
+			};
 		} else {
 			if (!this.events[event_name]) {
 				this.events[event_name] = [];
@@ -44,8 +43,8 @@ export class EventSystem {
 			return {
 				delete: () => {
 					this.events[event_name].remove(cb);
-				}
-			}
+				},
+			};
 		}
 	}
 	once(event_name: string, cb: EventListener): Deletable {
@@ -53,10 +52,10 @@ export class EventSystem {
 			console.warn(cb, 'is not a function!');
 			return;
 		}
-		let listener = (data) => {
+		let listener = data => {
 			this.removeListener(event_name, listener);
 			cb(data);
-		}
+		};
 		return this.on(event_name, listener);
 	}
 	addListener(event_name: string, cb: EventListener) {
@@ -68,11 +67,10 @@ export class EventSystem {
 			for (let name of event_names) {
 				if (this.events[name]) this.events[name].remove(cb);
 			}
-
 		} else if (this.events[event_name]) {
 			this.events[event_name].remove(cb);
 		}
 	}
 }
 // @ts-ignore
-window.EventSystem = EventSystem
+window.EventSystem = EventSystem;

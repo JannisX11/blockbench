@@ -3,6 +3,8 @@
 /// <reference types="@types/prismjs" />
 /// <reference types="@types/jquery" />
 /// <reference types="wintersky" />
+/// <reference types="dompurify" />
+/// <reference types="tinycolor2" />
 
 /// <reference types="./texture_layers" />
 /// <reference types="./texture_group" />
@@ -60,11 +62,11 @@ declare const NativeGlobals: {
 /**
  * Shader support
  */
-declare module "*.glsl" {
-	const value: string;
-	export default value;
+declare module '*.glsl' {
+	const value: string
+	export default value
 }
-declare module "*.bbtheme" {
-	const value: string | any;
-	export default value;
+declare module '*.bbtheme' {
+	const value: string | any
+	export default value
 }

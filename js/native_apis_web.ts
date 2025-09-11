@@ -24,7 +24,7 @@ export {
 	NULL as process,
 	NULL as SystemInfo,
 	NULL as revokePluginPermissions,
-}
+};
 
 /**
  * @internal
@@ -32,5 +32,3 @@ export {
 export function getPCUsername() {
 	return '';
 }
-
-

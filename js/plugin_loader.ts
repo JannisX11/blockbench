@@ -1,26 +1,33 @@
-import { Blockbench } from "./api";
-import StateMemory from "./util/state_memory";
-import { Dialog } from "./interface/dialog";
-import { settings, Settings, SettingsProfile } from "./interface/settings";
-import { ModelLoader, StartScreen } from "./interface/start_screen";
-import { sort_collator } from "./misc";
-import { separateThousands } from "./util/math_util";
-import { getDateDisplay } from "./util/util";
-import { Filesystem } from "./file_system";
-import { Panels } from "./interface/interface";
-import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
+import { Blockbench } from './api';
+import StateMemory from './util/state_memory';
+import { Dialog } from './interface/dialog';
+import { settings, Settings, SettingsProfile } from './interface/settings';
+import { ModelLoader, StartScreen } from './interface/start_screen';
+import { sort_collator } from './misc';
+import { separateThousands } from './util/math_util';
+import { getDateDisplay } from './util/util';
+import { Filesystem } from './file_system';
+import { Panels } from './interface/interface';
+import {
+	app,
+	fs,
+	getPluginPermissions,
+	getPluginScopedRequire,
+	https,
+	revokePluginPermissions,
+} from './native_apis';
 
 interface FileResult {
-	name: string
-	path: string
-	content: string | ArrayBuffer
+	name: string;
+	path: string;
+	content: string | ArrayBuffer;
 }
 
 export const Plugins = {
 	/**
 	 * The plugins window
 	 */
-	dialog: null as null|Dialog,
+	dialog: null as null | Dialog,
 	Vue: null as Vue | null,
 	/**
 	 * Data about which plugins are installed
@@ -38,22 +45,24 @@ export const Plugins = {
 	/**
 	 * The currently used path to the plugin API
 	 */
-	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
+	api_path: settings.cdn_mirror.value
+		? 'https://blckbn.ch/cdn/plugins'
+		: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	path: '',
 	/**
 	 * Dev reload all side-loaded plugins
 	 */
 	devReload() {
 		let reloads = 0;
-		for (let i = Plugins.all.length-1; i >= 0; i--) {
+		for (let i = Plugins.all.length - 1; i >= 0; i--) {
 			let plugin = Plugins.all[i];
 			if (plugin.source == 'file' && plugin.isReloadable()) {
-				Plugins.all[i].reload()
+				Plugins.all[i].reload();
 				reloads++;
 			}
 		}
-		Blockbench.showQuickMessage(tl('message.plugin_reload', [reloads]))
-		console.log('Reloaded '+reloads+ ' plugin'+pluralS(reloads))
+		Blockbench.showQuickMessage(tl('message.plugin_reload', [reloads]));
+		console.log('Reloaded ' + reloads + ' plugin' + pluralS(reloads));
 	},
 	/**
 	 * Update sort order of existing plugins
@@ -62,184 +71,189 @@ export const Plugins = {
 		Plugins.all.sort((a, b) => {
 			if (a.tags.find(tag => tag.match(/deprecated/i))) return 1;
 			if (b.tags.find(tag => tag.match(/deprecated/i))) return -1;
-			let download_difference = (Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
+			let download_difference =
+				(Plugins.download_stats[b.id] || 0) - (Plugins.download_stats[a.id] || 0);
 			if (download_difference) {
-				return download_difference
+				return download_difference;
 			} else {
 				return sort_collator.compare(a.title, b.title);
 			}
 		});
-	}
-}
-StateMemory.init('installed_plugins', 'array')
+	},
+};
+StateMemory.init('installed_plugins', 'array');
 // @ts-ignore
-Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
+Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(
+	p => p && typeof p == 'object'
+);
 
-
-type PluginVariant = 'desktop'|'web'|'both';
-type PluginSource = 'store'|'file'|'url';
+type PluginVariant = 'desktop' | 'web' | 'both';
+type PluginSource = 'store' | 'file' | 'url';
 type PluginDetails = {
-	version: string,
-	last_modified: string,
-	creation_date: string,
-	last_modified_full: string,
-	creation_date_full: string,
-	min_version: string
-	max_version: string
-	website: string
-	repository: string
-	bug_tracker: string
-	contributors: string
-	author: string,
-	variant: PluginVariant | string,
-	permissions: string
-	weekly_installations: string
-}
+	version: string;
+	last_modified: string;
+	creation_date: string;
+	last_modified_full: string;
+	creation_date_full: string;
+	min_version: string;
+	max_version: string;
+	website: string;
+	repository: string;
+	bug_tracker: string;
+	contributors: string;
+	author: string;
+	variant: PluginVariant | string;
+	permissions: string;
+	weekly_installations: string;
+};
 type PluginInstallation = {
-	id: string
-	version: string
-	path: string
-	source: PluginSource
-	dependencies?: string[]
-	disabled?: boolean
-}
-type PluginChangelog = Record<string, {
-	title: string
-	author?: string
-	date?: string
-	categories: {
-		title: string
-		list: string[]
-	}[]
-}>
+	id: string;
+	version: string;
+	path: string;
+	source: PluginSource;
+	dependencies?: string[];
+	disabled?: boolean;
+};
+type PluginChangelog = Record<
+	string,
+	{
+		title: string;
+		author?: string;
+		date?: string;
+		categories: {
+			title: string;
+			list: string[];
+		}[];
+	}
+>;
 
 interface PluginOptions {
-	title: string
-	author: string
+	title: string;
+	author: string;
 	/**
 	 * Description text in the plugin browser
 	 */
-	description: string
+	description: string;
 	/**
 	 * The about text appears when the user unfolds the plugin in the plugin browser. It can contain additional information and usage instructions
 	 */
-	about?: string
+	about?: string;
 	/**
 	 * The version of the plugin.
 	 */
-	version?: string
-	icon: string
+	version?: string;
+	icon: string;
 	/**
 	 * Plugin tags that will show up in the plugin store. You can provide up to 3 tags.
 	 */
-	tags?: [string, string?, string?]
+	tags?: [string, string?, string?];
 	/**
 	 * Where the plugin can be installed. Desktop refers to the electron app, web refers to the web app and PWA
 	 */
-	variant: 'both' | 'desktop' | 'web'
+	variant: 'both' | 'desktop' | 'web';
 	/**
 	 * Minimum Blockbench version in which the plugin can be installed
 	 */
-	min_version?: string
+	min_version?: string;
 	/**
 	 * Maximum Blockbench version in which the plugin can be installed
 	 */
-	max_version?: string
+	max_version?: string;
 	/**
 	 * Set to true if the plugin must finish loading before a project is opened, i. e. because it adds a format
 	 */
-	await_loading?: boolean
+	await_loading?: boolean;
 	/**
 	 * Use the new repository format where plugin, iron, and about are stored in a separate folder
 	 */
-	new_repository_format?: boolean
+	new_repository_format?: boolean;
 	/**
 	 * Can be used to specify which features a plugin adds. This allows Blockbench to be aware of and suggest even plugins that are not installed.
 	 */
 	contributes?: {
-		formats: string[]
-	}
-	has_changelog?: boolean
+		formats: string[];
+	};
+	has_changelog?: boolean;
 	/**
 	 * In combination with a "Deprecated" tag, this can be used to provide context on why a plugin is deprecated
 	 */
-	deprecation_note?: string
+	deprecation_note?: string;
 	/*
 	 * Link to the plugin's website
 	 */
-	website?: string
+	website?: string;
 	/*
 	 * Link to the repository that contains the source for the plugin
 	 */
-	repository?: string
+	repository?: string;
 	/*
 	 * Link to where users can report issues with the plugin
 	 */
-	bug_tracker?: string
+	bug_tracker?: string;
 	/*
 	 * List of secondary contributors to the plugin, excluding the main author(s)
 	 */
-	contributors?: string[]
-	disabled?: boolean
+	contributors?: string[];
+	disabled?: boolean;
 	/**
 	 * Runs when the plugin loads
 	 */
-	onload?(): void
+	onload?(): void;
 	/**
 	 * Runs when the plugin unloads
 	 */
-	onunload?(): void
+	onunload?(): void;
 	/**
 	 * Runs when the user manually installs the plugin
 	 */
-	oninstall?(): void
+	oninstall?(): void;
 	/**
 	 * Runs when the user manually uninstalls the plugin
 	 */
-	onuninstall?(): void
+	onuninstall?(): void;
 }
 interface PluginSetupOptions {
-	disabled?: boolean
+	disabled?: boolean;
 }
 
 export class Plugin {
-	id: string
-	installed: boolean
-	title: string
-	author: string
-	description: string
-	about: string
-	icon: string
-	tags: string[]
-	dependencies: string[]
-	contributors: string[]
-	version: string
-	variant: PluginVariant
-	min_version: string
-	max_version: string
-	deprecation_note: string
-	path: string
-	website: string
-	repository: string
-	bug_tracker: string
-	source: PluginSource
-	creation_date: string|number
-	contributes: {}
-	await_loading: boolean
-	has_changelog: boolean
-	changelog: null|PluginChangelog
-	about_fetched: boolean
-	changelog_fetched: boolean
-	disabled: boolean
-	new_repository_format: boolean
-	cache_version: number
-	menu: Menu
-	details: null|PluginDetails
+	id: string;
+	installed: boolean;
+	title: string;
+	author: string;
+	description: string;
+	about: string;
+	icon: string;
+	tags: string[];
+	dependencies: string[];
+	contributors: string[];
+	version: string;
+	variant: PluginVariant;
+	min_version: string;
+	max_version: string;
+	deprecation_note: string;
+	path: string;
+	website: string;
+	repository: string;
+	bug_tracker: string;
+	source: PluginSource;
+	creation_date: string | number;
+	contributes: {};
+	await_loading: boolean;
+	has_changelog: boolean;
+	changelog: null | PluginChangelog;
+	about_fetched: boolean;
+	changelog_fetched: boolean;
+	disabled: boolean;
+	new_repository_format: boolean;
+	cache_version: number;
+	menu: Menu;
+	details: null | PluginDetails;
 
-	onload?: () => void
-	onunload?: () => void
-	oninstall?: () => void
-	onuninstall?: () => void
+	onload?: () => void;
+	onunload?: () => void;
+	oninstall?: () => void;
+	onuninstall?: () => void;
 
 	constructor(id: string = 'unknown', data?: PluginOptions | PluginSetupOptions) {
 		this.id = id;
@@ -271,26 +285,26 @@ export class Plugin {
 		this.new_repository_format = false;
 		this.cache_version = 0;
 
-		this.extend(data)
+		this.extend(data);
 
 		Plugins.all.safePush(this);
 	}
 	extend(data) {
 		if (!(data instanceof Object)) return this;
-		Merge.boolean(this, data, 'installed')
-		Merge.string(this, data, 'title')
-		Merge.string(this, data, 'author')
-		Merge.string(this, data, 'description')
-		Merge.string(this, data, 'about')
-		Merge.string(this, data, 'icon')
-		Merge.string(this, data, 'version')
-		Merge.string(this, data, 'variant')
-		Merge.string(this, data, 'min_version')
-		Merge.string(this, data, 'max_version')
-		Merge.string(this, data, 'deprecation_note')
-		Merge.string(this, data, 'website')
-		Merge.string(this, data, 'repository')
-		Merge.string(this, data, 'bug_tracker')
+		Merge.boolean(this, data, 'installed');
+		Merge.string(this, data, 'title');
+		Merge.string(this, data, 'author');
+		Merge.string(this, data, 'description');
+		Merge.string(this, data, 'about');
+		Merge.string(this, data, 'icon');
+		Merge.string(this, data, 'version');
+		Merge.string(this, data, 'variant');
+		Merge.string(this, data, 'min_version');
+		Merge.string(this, data, 'max_version');
+		Merge.string(this, data, 'deprecation_note');
+		Merge.string(this, data, 'website');
+		Merge.string(this, data, 'repository');
+		Merge.string(this, data, 'bug_tracker');
 		Merge.boolean(this, data, 'await_loading');
 		Merge.boolean(this, data, 'has_changelog');
 		Merge.boolean(this, data, 'disabled');
@@ -307,10 +321,10 @@ export class Plugin {
 			this.contributes = data.contributes;
 		}
 
-		Merge.function(this, data, 'onload')
-		Merge.function(this, data, 'onunload')
-		Merge.function(this, data, 'oninstall')
-		Merge.function(this, data, 'onuninstall')
+		Merge.function(this, data, 'onload');
+		Merge.function(this, data, 'onunload');
+		Merge.function(this, data, 'oninstall');
+		Merge.function(this, data, 'onuninstall');
 		return this;
 	}
 	get name() {
@@ -322,15 +336,18 @@ export class Plugin {
 			if (this.deprecation_note) {
 				message += '\n\n*' + this.deprecation_note + '*';
 			}
-			let answer = await new Promise((resolve) => {
-				Blockbench.showMessageBox({
-					icon: 'warning',
-					title: this.title,
-					message,
-					cancelIndex: 0,
-					buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway']
-				}, resolve)
-			})
+			let answer = await new Promise(resolve => {
+				Blockbench.showMessageBox(
+					{
+						icon: 'warning',
+						title: this.title,
+						message,
+						cancelIndex: 0,
+						buttons: ['dialog.cancel', 'message.plugin_deprecated.install_anyway'],
+					},
+					resolve
+				);
+			});
 			if (answer == 0) return;
 		}
 		return await this.download(true);
@@ -340,28 +357,38 @@ export class Plugin {
 		Plugins.registered[this.id] = this;
 		return await new Promise<void>((resolve, reject) => {
 			let path = Plugins.path + scope.id + '.js';
-			if (!isApp && this.new_repository_format)  {
+			if (!isApp && this.new_repository_format) {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			this.#runPluginFile(path).then((content) => {
-				if (cb) cb.bind(scope)()
-				if (first && scope.oninstall) {
-					scope.oninstall()
-				}
-				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
-				resolve()
-			}).catch((error) => {
-				if (isApp) {
-					console.log('Could not find file of plugin "'+scope.id+'". Uninstalling it instead.')
-					scope.uninstall()
-				}
-				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
-				reject()
-				console.error(error)
-			})
-			this.#remember()
+			this.#runPluginFile(path)
+				.then(content => {
+					if (cb) cb.bind(scope)();
+					if (first && scope.oninstall) {
+						scope.oninstall();
+					}
+					if (first)
+						Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
+					resolve();
+				})
+				.catch(error => {
+					if (isApp) {
+						console.log(
+							'Could not find file of plugin "' +
+								scope.id +
+								'". Uninstalling it instead.'
+						);
+						scope.uninstall();
+					}
+					if (first)
+						Blockbench.showQuickMessage(
+							tl('message.installed_plugin_fail', [this.title])
+						);
+					reject();
+					console.error(error);
+				});
+			this.#remember();
 			scope.installed = true;
-		})
+		});
 	}
 	async installDependencies(first) {
 		let required_dependencies = [];
@@ -379,7 +406,7 @@ export class Plugin {
 		}
 		if (required_dependencies.length) {
 			let failed_dependency = required_dependencies.find(p => {
-				return !p.isInstallable || p.isInstallable() != true
+				return !p.isInstallable || p.isInstallable() != true;
 			});
 			if (failed_dependency) {
 				let error_message = failed_dependency;
@@ -388,22 +415,30 @@ export class Plugin {
 				}
 				Blockbench.showMessageBox({
 					title: 'message.plugin_dependencies.title',
-					message: `Updating **${this.title||this.id}**:\n\n${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
+					message: `Updating **${this.title || this.id}**:\n\n${tl('message.plugin_dependencies.invalid')}\n\n${error_message}`,
 				});
 				return false;
 			}
 
-			let list = required_dependencies.map(p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`);
+			let list = required_dependencies.map(
+				p => `**${p.title}** ${tl('dialog.plugins.author', [p.author])}`
+			);
 			let response = await new Promise(resolve => {
-				Blockbench.showMessageBox({
-					title: 'message.plugin_dependencies.title',
-					message: `${tl('message.plugin_dependencies.' + (first ? 'message1' : 'message1_update'), [this.title])} \n\n* ${ list.join('\n* ') }\n\n${tl('message.plugin_dependencies.message2')}`,
-					buttons: ['dialog.continue', first ? 'dialog.cancel' : 'dialog.plugins.uninstall'],
-					width: 512,
-				}, button => {
-					resolve(button == 0);
-				})
-			})
+				Blockbench.showMessageBox(
+					{
+						title: 'message.plugin_dependencies.title',
+						message: `${tl('message.plugin_dependencies.' + (first ? 'message1' : 'message1_update'), [this.title])} \n\n* ${list.join('\n* ')}\n\n${tl('message.plugin_dependencies.message2')}`,
+						buttons: [
+							'dialog.continue',
+							first ? 'dialog.cancel' : 'dialog.plugins.uninstall',
+						],
+						width: 512,
+					},
+					button => {
+						resolve(button == 0);
+					}
+				);
+			});
 			if (!response) {
 				if (this.installed) this.uninstall();
 				return false;
@@ -426,20 +461,24 @@ export class Plugin {
 				url: 'https://blckbn.ch/api/event/install_plugin',
 				type: 'POST',
 				data: {
-					plugin: scope.id
-				}
-			})
+					plugin: scope.id,
+				},
+			});
 		}
 		if (!isApp) {
 			if (first) register();
-			return await scope.load(first)
+			return await scope.load(first);
 		}
 
 		// Download files
-		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void) {
+		async function copyFileToDrive(
+			origin_filename?: string,
+			target_filename?: string,
+			callback?: () => void
+		) {
 			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
 			// @ts-ignore
-			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
+			https.get(Plugins.api_path + '/' + origin_filename, function (response) {
 				response.pipe(file);
 				if (callback) response.on('end', callback);
 			});
@@ -449,27 +488,30 @@ export class Plugin {
 			if (this.new_repository_format) {
 				copyFileToDrive(`${this.id}/${this.id}.js`, `${this.id}.js`, () => {
 					if (first) register();
-					setTimeout(async function() {
+					setTimeout(async function () {
 						await scope.load(first);
-						resolve()
-					}, 20)
+						resolve();
+					}, 20);
 				});
 				if (this.hasImageIcon()) {
 					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
 				}
 				await this.fetchAbout();
 				if (this.about) {
-					fs.writeFileSync(PathModule.join(Plugins.path, this.id + '.about.md'), this.about, 'utf-8');
+					fs.writeFileSync(
+						PathModule.join(Plugins.path, this.id + '.about.md'),
+						this.about,
+						'utf-8'
+					);
 				}
-
 			} else {
 				// Legacy system
 				copyFileToDrive(`${this.id}.js`, `${this.id}.js`, () => {
 					if (first) register();
-					setTimeout(async function() {
+					setTimeout(async function () {
 						await scope.load(first);
-						resolve()
-					}, 20)
+						resolve();
+					}, 20);
 				});
 			}
 		});
@@ -492,19 +534,19 @@ export class Plugin {
 		this.tags.safePush('Local');
 
 		if (isApp) {
-			let content = await this.#runPluginFile(file.path).catch((error) => {
+			let content = await this.#runPluginFile(file.path).catch(error => {
 				console.error(error);
 			});
 			if (content) {
 				if (first && scope.oninstall) {
-					scope.oninstall()
+					scope.oninstall();
 				}
 				scope.path = file.path;
 			}
 		} else {
 			this.#runCode(file.content as string);
 			if (first && scope.oninstall) {
-				scope.oninstall()
+				scope.oninstall();
 			}
 		}
 		this.installed = true;
@@ -520,36 +562,38 @@ export class Plugin {
 			}
 		}
 
-		this.id = pathToName(url)
+		this.id = pathToName(url);
 		Plugins.registered[this.id] = this;
-		Plugins.all.safePush(this)
+		Plugins.all.safePush(this);
 		this.tags.safePush('Remote');
 
 		this.source = 'url';
-		let content = await this.#runPluginFile(url).catch(async (error) => {
+		let content = await this.#runPluginFile(url).catch(async error => {
 			if (isApp) {
 				await this.load();
 			}
 			console.error(error);
-		})
+		});
 		if (content) {
 			if (first && this.oninstall) {
-				this.oninstall()
+				this.oninstall();
 			}
-			this.installed = true
-			this.path = url
-			this.#remember()
-			Plugins.sort()
+			this.installed = true;
+			this.path = url;
+			this.#remember();
+			Plugins.sort();
 			// Save
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
+					let file = fs.createWriteStream(Plugins.path + this.id + '.js');
 					// @ts-ignore
-					https.get(url, (response) => {
-						response.pipe(file);
-						response.on('end', resolve)
-					}).on('error', reject);
-				})
+					https
+						.get(url, response => {
+							response.pipe(file);
+							response.on('end', resolve);
+						})
+						.on('error', reject);
+				});
 			}
 		}
 		return this;
@@ -568,7 +612,7 @@ export class Plugin {
 
 		if (!already_exists) Plugins.installed.push(entry);
 
-		StateMemory.save('installed_plugins')
+		StateMemory.save('installed_plugins');
 		return this;
 	}
 	uninstall() {
@@ -583,17 +627,17 @@ export class Plugin {
 		delete Plugins.registered[this.id];
 		let in_installed = Plugins.installed.find(plugin => plugin.id == this.id);
 		Plugins.installed.remove(in_installed);
-		StateMemory.save('installed_plugins')
+		StateMemory.save('installed_plugins');
 		this.installed = false;
 		this.disabled = false;
 
 		if (isApp && this.source !== 'store') {
-			Plugins.all.remove(this)
+			Plugins.all.remove(this);
 		}
 		if (isApp && this.source != 'file') {
 			function removeCachedFile(filepath) {
 				if (fs.existsSync(filepath)) {
-					fs.unlink(filepath, (err) => {
+					fs.unlink(filepath, err => {
 						if (err) console.log(err);
 					});
 				}
@@ -602,12 +646,12 @@ export class Plugin {
 			removeCachedFile(Plugins.path + this.id + '.' + this.icon);
 			removeCachedFile(Plugins.path + this.id + '.about.md');
 		}
-		StateMemory.save('installed_plugins')
+		StateMemory.save('installed_plugins');
 		return this;
 	}
 	unload() {
 		if (this.onunload) {
-			this.onunload()
+			this.onunload();
 		}
 		return this;
 	}
@@ -615,7 +659,7 @@ export class Plugin {
 		if (!isApp && this.source == 'file') return this;
 
 		this.cache_version++;
-		this.unload()
+		this.unload();
 		this.tags.empty();
 		this.contributors.empty();
 		this.dependencies.empty();
@@ -625,10 +669,9 @@ export class Plugin {
 		this.changelog_fetched = false;
 
 		if (this.source == 'file') {
-			this.loadFromFile({path: this.path, name: this.path, content: ''}, false)
-
+			this.loadFromFile({ path: this.path, name: this.path, content: '' }, false);
 		} else if (this.source == 'url') {
-			this.loadFromURL(this.path, false)
+			this.loadFromURL(this.path, false);
 		}
 
 		this.fetchAbout(true);
@@ -654,15 +697,13 @@ export class Plugin {
 					},
 					error() {
 						reject('Failed to load plugin ' + this.id);
-					}
+					},
 				});
-			})
-	
+			});
 		} else if (isApp) {
-			file_content = fs.readFileSync(path, {encoding: 'utf-8'});
-	
+			file_content = fs.readFileSync(path, { encoding: 'utf-8' });
 		} else {
-			throw 'Failed to load plugin: Unknown URL format'
+			throw 'Failed to load plugin: Unknown URL format';
 		}
 		this.#runCode(file_content);
 		return file_content;
@@ -672,7 +713,11 @@ export class Plugin {
 			throw `Issue loading plugin "${this.id}": Plugin file empty`;
 		}
 		try {
-			const func = new Function('requireNativeModule', 'require', code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`);
+			const func = new Function(
+				'requireNativeModule',
+				'require',
+				code + `\n//# sourceURL=PLUGINS/(Plugin):${this.id}.js`
+			);
 			const scoped_require = isApp ? getPluginScopedRequire(this) : undefined;
 			func(scoped_require, scoped_require);
 		} catch (err) {
@@ -682,10 +727,10 @@ export class Plugin {
 	toggleDisabled() {
 		if (!this.disabled) {
 			this.disabled = true;
-			this.unload()
+			this.unload();
 		} else {
 			if (this.onload) {
-				this.onload()
+				this.onload();
 			}
 			this.disabled = false;
 		}
@@ -695,26 +740,27 @@ export class Plugin {
 		Plugin.menu.open(event, this);
 	}
 	isReloadable() {
-		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
+		return (
+			this.installed &&
+			!this.disabled &&
+			((this.source == 'file' && isApp) || this.source == 'url')
+		);
 	}
 	isInstallable() {
 		var scope = this;
-		var result: string | boolean = 
+		var result: string | boolean =
 			scope.variant === 'both' ||
-			(
-				isApp === (scope.variant === 'desktop') && 
-				isApp !== (scope.variant === 'web')
-			);
+			(isApp === (scope.variant === 'desktop') && isApp !== (scope.variant === 'web'));
 		if (result && scope.min_version) {
 			result = Blockbench.isOlderThan(scope.min_version) ? 'outdated_client' : true;
 		}
 		if (result && scope.max_version) {
-			result = Blockbench.isNewerThan(scope.max_version) ? 'outdated_plugin' : true
+			result = Blockbench.isNewerThan(scope.max_version) ? 'outdated_plugin' : true;
 		}
 		if (result === false) {
-			result = (scope.variant === 'web') ? 'web_only' : 'app_only'
+			result = scope.variant === 'web' ? 'web_only' : 'app_only';
 		}
-		return (result === true) ? true : tl('dialog.plugins.'+result);
+		return result === true ? true : tl('dialog.plugins.' + result);
 	}
 	hasImageIcon() {
 		return this.icon.endsWith('.png') || this.icon.endsWith('.svg');
@@ -726,8 +772,11 @@ export class Plugin {
 					return Plugins.path + this.id + '.' + this.icon;
 				}
 				if (this.source != 'store')
-					return this.path.replace(/\w+\.js$/, this.icon + (this.cache_version ? '?'+this.cache_version : ''));
-				}
+					return this.path.replace(
+						/\w+\.js$/,
+						this.icon + (this.cache_version ? '?' + this.cache_version : '')
+					);
+			}
 			return `${Plugins.api_path}/${this.id}/${this.icon}`;
 		}
 		return this.icon;
@@ -742,7 +791,7 @@ export class Plugin {
 					} else {
 						about_path = this.path.replace(/\w+\.js$/, 'about.md');
 					}
-					let content = fs.readFileSync(about_path, {encoding: 'utf-8'});
+					let content = fs.readFileSync(about_path, { encoding: 'utf-8' });
 					this.about = content;
 					this.about_fetched = true;
 					return;
@@ -766,13 +815,13 @@ export class Plugin {
 				let output = {};
 				Object.keys(input).forEachReverse(key => {
 					output[key] = input[key];
-				})
+				});
 				return output;
 			}
 			if (isApp && this.installed && this.source != 'store') {
 				try {
 					let changelog_path = this.path.replace(/\w+\.js$/, 'changelog.json');
-					let content = fs.readFileSync(changelog_path, {encoding: 'utf-8'});
+					let content = fs.readFileSync(changelog_path, { encoding: 'utf-8' });
 					this.changelog = reverseOrder(JSON.parse(content));
 					this.changelog_fetched = true;
 					return;
@@ -798,7 +847,7 @@ export class Plugin {
 			creation_date: 'N/A',
 			last_modified_full: '',
 			creation_date_full: '',
-			min_version: this.min_version ? (this.min_version+'+') : '-',
+			min_version: this.min_version ? this.min_version + '+' : '-',
 			max_version: this.max_version || '',
 			website: this.website || '',
 			repository: this.repository || '',
@@ -828,7 +877,7 @@ export class Plugin {
 			let date = getDateDisplay(input_date);
 			this.details[key] = date.short;
 			this.details[key + '_full'] = date.full;
-		}
+		};
 		if (this.source == 'store') {
 			if (!this.details.bug_tracker) {
 				this.details.bug_tracker = `https://github.com/JannisX11/blockbench-plugins/issues/new?title=[${this.title.replace(/[+&]/g, 'and')}]`;
@@ -837,21 +886,26 @@ export class Plugin {
 				this.details.repository = `https://github.com/JannisX11/blockbench-plugins/tree/master/plugins/${this.id + (this.new_repository_format ? '' : '.js')}`;
 			}
 
-			let github_path = (this.new_repository_format ? (this.id+'/'+this.id) : this.id) + '.js';
+			let github_path =
+				(this.new_repository_format ? this.id + '/' + this.id : this.id) + '.js';
 			let commit_url = `https://api.github.com/repos/JannisX11/blockbench-plugins/commits?path=plugins/${github_path}`;
-			fetch(commit_url).catch((err) => {
-				console.error('Cannot access commit info for ' + this.id, err);
-			}).then(async response => {
-				if (!response) return;
-				let commits = await response.json().catch(err => console.error(err));
-				if (!commits || !commits.length) return;
-				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
+			fetch(commit_url)
+				.catch(err => {
+					console.error('Cannot access commit info for ' + this.id, err);
+				})
+				.then(async response => {
+					if (!response) return;
+					let commits = await response.json().catch(err => console.error(err));
+					if (!commits || !commits.length) return;
+					trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
 
-				if (!this.creation_date) {
-					trackDate(Date.parse(commits.last().commit.committer.date), 'creation_date');
-				}
-			});
-
+					if (!this.creation_date) {
+						trackDate(
+							Date.parse(commits.last().commit.committer.date),
+							'creation_date'
+						);
+					}
+				});
 		}
 		if (this.creation_date) {
 			trackDate(this.creation_date, 'creation_date');
@@ -859,8 +913,8 @@ export class Plugin {
 		return this.details;
 	}
 
-	static selected: Plugin|null = null
-	
+	static selected: Plugin | null = null;
+
 	static menu = new Menu([
 		new MenuSeparator('general'),
 		{
@@ -873,43 +927,43 @@ export class Plugin {
 					title: tl('generic.share') + ': ' + plugin.title,
 					icon: 'extension',
 					form: {
-						link: {type: 'text', value: url, readonly: true, share_text: true}
-					}
+						link: { type: 'text', value: url, readonly: true, share_text: true },
+					},
 				}).show();
-			}
+			},
 		},
 		new MenuSeparator('installation'),
 		{
 			name: 'dialog.plugins.install',
 			icon: 'add',
-			condition: plugin => (!plugin.installed && plugin.isInstallable() == true),
+			condition: plugin => !plugin.installed && plugin.isInstallable() == true,
 			click(plugin) {
 				plugin.install();
-			}
+			},
 		},
 		{
 			name: 'dialog.plugins.uninstall',
 			icon: 'delete',
-			condition: plugin => (plugin.installed),
+			condition: plugin => plugin.installed,
 			click(plugin) {
 				plugin.uninstall();
-			}
+			},
 		},
 		{
 			name: 'dialog.plugins.disable',
 			icon: 'bedtime',
-			condition: plugin => (plugin.installed && !plugin.disabled),
+			condition: plugin => plugin.installed && !plugin.disabled,
 			click(plugin) {
 				plugin.toggleDisabled();
-			}
+			},
 		},
 		{
 			name: 'dialog.plugins.enable',
 			icon: 'bedtime',
-			condition: plugin => (plugin.installed && plugin.disabled),
+			condition: plugin => plugin.installed && plugin.disabled,
 			click(plugin) {
 				plugin.toggleDisabled();
-			}
+			},
 		},
 		{
 			name: 'dialog.plugins.revoke_permissions',
@@ -917,32 +971,35 @@ export class Plugin {
 			condition: isApp && ((plugin: Plugin) => getPluginPermissions(plugin)),
 			click(plugin: Plugin) {
 				let revoked = revokePluginPermissions(plugin);
-				Blockbench.showQuickMessage(`Revoked ${revoked.length} permissions. Restart to apply`, 2000);
+				Blockbench.showQuickMessage(
+					`Revoked ${revoked.length} permissions. Restart to apply`,
+					2000
+				);
 				plugin.getPluginDetails(true);
-			}
+			},
 		},
 		new MenuSeparator('developer'),
 		{
 			name: 'dialog.plugins.reload',
 			icon: 'refresh',
-			condition: plugin => (plugin.installed && plugin.isReloadable()),
+			condition: plugin => plugin.installed && plugin.isReloadable(),
 			click(plugin) {
 				plugin.reload();
-			}
+			},
 		},
 		{
 			name: 'menu.animation.open_location',
 			icon: 'folder',
-			condition: plugin => (isApp && plugin.source == 'file'),
+			condition: plugin => isApp && plugin.source == 'file',
 			click(plugin) {
 				Filesystem.showFileInFolder(plugin.path);
-			}
+			},
 		},
-	])
+	]);
 
 	static register(id: string, data: PluginOptions) {
 		if (typeof id !== 'string' || typeof data !== 'object') {
-			console.warn('Plugin.register: not enough arguments, string and object required.')
+			console.warn('Plugin.register: not enough arguments, string and object required.');
 			return;
 		}
 		var plugin = Plugins.registered[id];
@@ -957,11 +1014,11 @@ export class Plugin {
 		if (!plugin) {
 			Blockbench.showMessageBox({
 				translateKey: 'load_plugin_failed',
-				message: tl('message.load_plugin_failed.message', [id])
-			})
+				message: tl('message.load_plugin_failed.message', [id]),
+			});
 			return;
-		};
-		plugin.extend(data)
+		}
+		plugin.extend(data);
 		if (plugin.isInstallable() == true && plugin.disabled == false) {
 			if (plugin.onload instanceof Function) {
 				Plugins.currently_loading = id;
@@ -973,36 +1030,34 @@ export class Plugin {
 	}
 }
 
-
 // Alias for typescript
 export const BBPlugin = Plugin;
 
-
 if (isApp) {
-	Plugins.path = app.getPath('userData')+osfs+'plugins'+osfs
-	fs.readdir(Plugins.path, function(err) {
+	Plugins.path = app.getPath('userData') + osfs + 'plugins' + osfs;
+	fs.readdir(Plugins.path, function (err) {
 		if (err) {
-			fs.mkdir(Plugins.path, function(a) {})
+			fs.mkdir(Plugins.path, function (a) {});
 		}
-	})
+	});
 } else {
-	Plugins.path = Plugins.api_path+'/';
+	Plugins.path = Plugins.api_path + '/';
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
 	$.ajax({
 		cache: false,
-		url: Plugins.api_path+'.json',
+		url: Plugins.api_path + '.json',
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
-				
+
 			resolve();
 			Plugins.loading_promise = null;
 		},
 		error() {
-			console.log('Could not connect to plugin server')
-			$('#plugin_available_empty').text('Could not connect to plugin server')
+			console.log('Could not connect to plugin server');
+			$('#plugin_available_empty').text('Could not connect to plugin server');
 			resolve();
 			Plugins.loading_promise = null;
 
@@ -1010,16 +1065,16 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 				settings.cdn_mirror.set(true);
 				console.log('Switching to plugin CDN mirror. Restart to apply.');
 			}
-		}
+		},
 	});
-})
+});
 
 $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
 	Plugins.download_stats = data;
 	if (Plugins.json) {
 		Plugins.sort();
 	}
-})
+});
 
 export async function loadInstalledPlugins() {
 	if (Plugins.loading_promise) {
@@ -1038,23 +1093,27 @@ export async function loadInstalledPlugins() {
 
 	// Load plugins
 	if (Plugins.installed.length > 0) {
-
 		// Resolve dependency order
 		// TODO: solve dependency order on plugins that load asynchronously (on update from web etc.)
 		function resolveDependencies(installation: PluginInstallation, depth) {
-			if (depth > 10)  {
-				console.error(`Could not resolve plugin dependencies: Recursive dependency on plugin "${installation.id}"`, installation);
+			if (depth > 10) {
+				console.error(
+					`Could not resolve plugin dependencies: Recursive dependency on plugin "${installation.id}"`,
+					installation
+				);
 				return;
 			}
 			for (let dependency_id of installation.dependencies) {
-				let dependency_installation = Plugins.installed.find(inst => inst.id == dependency_id);
+				let dependency_installation = Plugins.installed.find(
+					inst => inst.id == dependency_id
+				);
 				let this_index = Plugins.installed.indexOf(installation);
-				let dep_index =  Plugins.installed.indexOf(dependency_installation);
+				let dep_index = Plugins.installed.indexOf(dependency_installation);
 				if (dependency_installation && dep_index > this_index) {
 					Plugins.installed.remove(dependency_installation);
 					Plugins.installed.splice(this_index, 0, dependency_installation);
 					if (dependency_installation.dependencies?.length) {
-						resolveDependencies(dependency_installation, depth+1);
+						resolveDependencies(dependency_installation, depth + 1);
 					}
 				}
 			}
@@ -1068,40 +1127,49 @@ export async function loadInstalledPlugins() {
 		// Install plugins
 		var load_counter = 0;
 		Plugins.installed.slice().forEach(function loadPlugin(installation) {
-
 			if (installation.source == 'file') {
 				// Dev Plugins
 				if (isApp && fs.existsSync(installation.path)) {
-					var instance = new Plugin(installation.id, {disabled: installation.disabled});
-					install_promises.push(instance.loadFromFile({path: installation.path, name: installation.path, content: ''}, false));
+					var instance = new Plugin(installation.id, { disabled: installation.disabled });
+					install_promises.push(
+						instance.loadFromFile(
+							{ path: installation.path, name: installation.path, content: '' },
+							false
+						)
+					);
 					load_counter++;
-					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
+					console.log(
+						`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`
+					);
 				} else {
 					Plugins.installed.remove(installation);
 				}
-
 			} else if (installation.source == 'url') {
 				// URL
 				if (installation.path) {
-					var instance = new Plugin(installation.id, {disabled: installation.disabled});
+					var instance = new Plugin(installation.id, { disabled: installation.disabled });
 					install_promises.push(instance.loadFromURL(installation.path, false));
 					load_counter++;
-					console.log(`🧩🌐 Loaded plugin "${installation.id || installation.path}" from URL`);
+					console.log(
+						`🧩🌐 Loaded plugin "${installation.id || installation.path}" from URL`
+					);
 				} else {
 					Plugins.installed.remove(installation);
 				}
-
 			} else if (online_access) {
 				// Store plugin
 				let plugin = Plugins.all.find(p => p.id == installation.id);
 				if (plugin) {
 					plugin.installed = true;
 					if (installation.disabled) plugin.disabled = true;
-					
-					if (isApp && (
-						(installation.version && plugin.version && !compareVersions(plugin.version, installation.version)) ||
-						Blockbench.isOlderThan(plugin.min_version)
-					)) {
+
+					if (
+						isApp &&
+						((installation.version &&
+							plugin.version &&
+							!compareVersions(plugin.version, installation.version)) ||
+							Blockbench.isOlderThan(plugin.min_version))
+					) {
 						// Get from file
 						let promise = plugin.load(false);
 						install_promises.push(promise);
@@ -1114,32 +1182,29 @@ export async function loadInstalledPlugins() {
 					}
 					load_counter++;
 					console.log(`🧩🛒 Loaded plugin "${installation.id}" from store`);
-
 				} else if (Plugins.json instanceof Object && navigator.onLine) {
 					Plugins.installed.remove(installation);
 				}
-
 			} else if (isApp && installation.source == 'store') {
 				// Offline install store plugin
-				let plugin = new Plugin(installation.id); 
+				let plugin = new Plugin(installation.id);
 				let promise = plugin.load(false);
 				install_promises.push(promise);
 			} else {
 				Plugins.installed.remove(installation);
 			}
-		})
-		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
+		});
+		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`);
 	}
-	StateMemory.save('installed_plugins')
-	
+	StateMemory.save('installed_plugins');
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
-	})
+	});
 	return await Promise.allSettled(install_promises);
 }
 
-BARS.defineActions(function() {
+BARS.defineActions(function () {
 	let actions_setup = false;
 	Plugins.dialog = new Dialog({
 		id: 'plugins',
@@ -1150,7 +1215,9 @@ BARS.defineActions(function() {
 		onOpen() {
 			if (!actions_setup) {
 				BarItems.load_plugin.toElement(document.getElementById('plugins_list_main_bar'));
-				BarItems.load_plugin_from_url.toElement(document.getElementById('plugins_list_main_bar'));
+				BarItems.load_plugin_from_url.toElement(
+					document.getElementById('plugins_list_main_bar')
+				);
 				actions_setup = true;
 			}
 		},
@@ -1178,7 +1245,7 @@ BARS.defineActions(function() {
 								item.description.toUpperCase().includes(search_name) ||
 								item.author.toUpperCase().includes(search_name) ||
 								item.tags.find(tag => tag.toUpperCase().includes(search_name))
-							)
+							);
 						});
 						let installed = filtered.filter(p => p.installed);
 						let not_installed = filtered.filter(p => !p.installed);
@@ -1186,40 +1253,57 @@ BARS.defineActions(function() {
 					} else {
 						return this.items.filter(item => {
 							return (this.tab == 'installed') == item.installed;
-						})
+						});
 					}
 				},
 				suggested_rows() {
-					let tags = ["Animation"];
+					let tags = ['Animation'];
 					this.items.forEach(plugin => {
 						if (!plugin.installed) return;
-						tags.safePush(...plugin.tags)
-					})
-					let rows = tags.map(tag => {
-						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
-						return {
-							title: tag,
-							plugins,
-						}
-					}).filter(row => row.plugins.length > 2);
+						tags.safePush(...plugin.tags);
+					});
+					let rows = tags
+						.map(tag => {
+							let plugins = this.items
+								.filter(
+									plugin =>
+										!plugin.installed &&
+										plugin.tags.includes(tag) &&
+										!plugin.tags.includes('Deprecated')
+								)
+								.slice(0, 12);
+							return {
+								title: tag,
+								plugins,
+							};
+						})
+						.filter(row => row.plugins.length > 2);
 					//rows.sort((a, b) => a.plugins.length - b.plugins.length);
 					rows.sort(() => Math.random() - 0.5);
 
-					let cutoff = Date.now() - (3_600_000 * 24 * 28);
-					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
+					let cutoff = Date.now() - 3_600_000 * 24 * 28;
+					let new_plugins = this.items.filter(
+						plugin =>
+							!plugin.installed &&
+							plugin.creation_date > cutoff &&
+							!plugin.tags.includes('Deprecated')
+					);
 					if (new_plugins.length) {
 						new_plugins.sort((a, b) => a.creation_date - b.creation_date);
 						let new_row = {
 							title: 'New',
-							plugins: new_plugins.slice(0, 12)
-						}
+							plugins: new_plugins.slice(0, 12),
+						};
 						rows.splice(0, 0, new_row);
 					}
 
 					return rows.slice(0, 3);
 				},
 				viewed_plugins() {
-					return this.plugin_search.slice(this.page * this.per_page, (this.page+1) * this.per_page);
+					return this.plugin_search.slice(
+						this.page * this.per_page,
+						(this.page + 1) * this.per_page
+					);
 				},
 				pages() {
 					let pages = [];
@@ -1238,7 +1322,7 @@ BARS.defineActions(function() {
 						}
 					}
 					return plugin_settings;
-				}
+				},
 			},
 			methods: {
 				setTab(tab) {
@@ -1281,7 +1365,9 @@ BARS.defineActions(function() {
 				},
 				getDependencyName(dependency: string) {
 					let plugin = Plugins.all.find(p => p.id == dependency);
-					return plugin ? (plugin.title + (plugin.installed ? ' ✓' : '')) : (dependency + ' ⚠');
+					return plugin
+						? plugin.title + (plugin.installed ? ' ✓' : '')
+						: dependency + ' ⚠';
 				},
 				isDependencyInstalled(dependency: string) {
 					let plugin = Plugins.all.find(p => p.id == dependency);
@@ -1289,11 +1375,11 @@ BARS.defineActions(function() {
 				},
 				getTagClass(tag: string): string {
 					if (tag.match(/^(local|remote)$/i)) {
-						return 'plugin_tag_source'
+						return 'plugin_tag_source';
 					} else if (tag.match(/^minecraft/i)) {
-						return 'plugin_tag_mc'
+						return 'plugin_tag_mc';
 					} else if (tag.match(/^deprecated/i)) {
-						return 'plugin_tag_deprecated'
+						return 'plugin_tag_deprecated';
 					}
 				},
 				formatAbout(about: string) {
@@ -1302,7 +1388,7 @@ BARS.defineActions(function() {
 				reduceLink(url: string): string {
 					url = url.replace('https://', '').replace(/\/$/, '');
 					if (url.length > 50) {
-						return url.substring(0, 50)+'...';
+						return url.substring(0, 50) + '...';
 					} else {
 						return url;
 					}
@@ -1319,14 +1405,18 @@ BARS.defineActions(function() {
 					for (let match of line.matchAll(/\[.+?\]\(.+?\)/g)) {
 						let split = match[0].search(/\]\(/);
 						let label = match[0].substring(1, split);
-						let href = match[0].substring(split+2, match[0].length-1);
-						let a = Interface.createElement('a', {href, title: href}, label);
+						let href = match[0].substring(split + 2, match[0].length - 1);
+						let a = Interface.createElement('a', { href, title: href }, label);
 						content.push(line.substring(last_i, match.index));
 						content.push(a);
 						last_i = match.index + match[0].length;
 					}
 					content.push(line.substring(last_i));
-					let node = Interface.createElement('p', {}, content.filter(a => a));
+					let node = Interface.createElement(
+						'p',
+						{},
+						content.filter(a => a)
+					);
 					return node.innerHTML;
 				},
 
@@ -1340,7 +1430,7 @@ BARS.defineActions(function() {
 					}, 20);
 				},
 				openSettingInSettings(key, profile) {
-					Settings.openDialog({search_term: key, profile});
+					Settings.openDialog({ search_term: key, profile });
 				},
 				settingContextMenu(setting, event) {
 					new Menu([
@@ -1350,8 +1440,8 @@ BARS.defineActions(function() {
 							click: () => {
 								setting.ui_value = setting.default_value;
 								Settings.saveLocalStorages();
-							}
-						}
+							},
+						},
 					]).open(event);
 				},
 				getProfileValuesForSetting(key) {
@@ -1378,19 +1468,22 @@ BARS.defineActions(function() {
 									name: format.name,
 									icon: format.icon,
 									description: format.description,
-									click: format.show_on_start_screen && (() => {
-										Dialog.open.close();
-										StartScreen.open();
-										StartScreen.vue.loadFormat(format);
-									})
-								}
-							})
-						})
+									click:
+										format.show_on_start_screen &&
+										(() => {
+											Dialog.open.close();
+											StartScreen.open();
+											StartScreen.vue.loadFormat(format);
+										}),
+								};
+							}),
+						});
 					}
 
 					let loaders = [];
 					for (let id in ModelLoader.loaders) {
-						if (ModelLoader.loaders[id].plugin == plugin.id) loaders.push(ModelLoader.loaders[id]);
+						if (ModelLoader.loaders[id].plugin == plugin.id)
+							loaders.push(ModelLoader.loaders[id]);
 					}
 					if (loaders.length) {
 						types.push({
@@ -1402,14 +1495,16 @@ BARS.defineActions(function() {
 									name: loader.name,
 									icon: loader.icon,
 									description: loader.description,
-									click: loader.show_on_start_screen && (() => {
-										Dialog.open.close();
-										StartScreen.open();
-										StartScreen.vue.loadFormat(loader);
-									})
-								}
-							})
-						})
+									click:
+										loader.show_on_start_screen &&
+										(() => {
+											Dialog.open.close();
+											StartScreen.open();
+											StartScreen.vue.loadFormat(loader);
+										}),
+								};
+							}),
+						});
 					}
 
 					let codecs = [];
@@ -1425,10 +1520,12 @@ BARS.defineActions(function() {
 									id: codec.id,
 									name: codec.name,
 									icon: codec.export_action ? codec.export_action.icon : 'save',
-									description: codec.export_action ? codec.export_action.description : ''
-								}
-							})
-						})
+									description: codec.export_action
+										? codec.export_action.description
+										: '',
+								};
+							}),
+						});
 					}
 
 					let bar_items = Keybinds.actions.filter(action => action.plugin == plugin.id);
@@ -1446,12 +1543,14 @@ BARS.defineActions(function() {
 									icon: tool.icon,
 									description: tool.description,
 									extra_info: tool.keybind.label,
-									click: Condition(tool.condition) && (() => {
-										ActionControl.select(tool.name);
-									})
-								}
-							})
-						})
+									click:
+										Condition(tool.condition) &&
+										(() => {
+											ActionControl.select(tool.name);
+										}),
+								};
+							}),
+						});
 					}
 					if (other_actions.length) {
 						types.push({
@@ -1464,12 +1563,14 @@ BARS.defineActions(function() {
 									icon: action.icon,
 									description: action.description,
 									extra_info: action.keybind.label,
-									click: Condition(action.condition) && (() => {
-										ActionControl.select(action.name);
-									})
-								}
-							})
-						})
+									click:
+										Condition(action.condition) &&
+										(() => {
+											ActionControl.select(action.name);
+										}),
+								};
+							}),
+						});
 					}
 
 					let panels = [];
@@ -1484,10 +1585,10 @@ BARS.defineActions(function() {
 								return {
 									id: panel.id,
 									name: panel.name,
-									icon: panel.icon
-								}
-							})
-						})
+									icon: panel.icon,
+								};
+							}),
+						});
 					}
 
 					let setting_list = [];
@@ -1505,13 +1606,15 @@ BARS.defineActions(function() {
 									icon: setting.icon,
 									click: () => {
 										this.page_tab = 'settings';
-									}
-								}
-							})
-						})
+									},
+								};
+							}),
+						});
 					}
 
-					let validator_checks = Validator.checks.filter(check => check.plugin == plugin.id);
+					let validator_checks = Validator.checks.filter(
+						check => check.plugin == plugin.id
+					);
 					if (validator_checks.length) {
 						types.push({
 							id: 'validator_checks',
@@ -1520,10 +1623,10 @@ BARS.defineActions(function() {
 								return {
 									id: validator_check.id,
 									name: validator_check.name,
-									icon: 'task_alt'
-								}
-							})
-						})
+									icon: 'task_alt',
+								};
+							}),
+						});
 					}
 					//TODO
 					//Modes
@@ -1535,7 +1638,7 @@ BARS.defineActions(function() {
 				pureMarked,
 				capitalizeFirstLetter,
 				tl,
-				Condition
+				Condition,
 			},
 			mount_directly: true,
 			template: `
@@ -1812,17 +1915,14 @@ BARS.defineActions(function() {
 					</div>
 					
 				</content>
-			`
-		}
-	})
+			`,
+		},
+	});
 
 	new Action('plugins_window', {
 		icon: 'extension',
 		category: 'blockbench',
-		side_menu: new Menu('plugins_window', [
-			'load_plugin',
-			'load_plugin_from_url'
-		]),
+		side_menu: new Menu('plugins_window', ['load_plugin', 'load_plugin_from_url']),
 		click(e) {
 			if (settings.classroom_mode.value) {
 				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
@@ -1831,16 +1931,16 @@ BARS.defineActions(function() {
 			Plugins.dialog.show();
 			let none_installed = !Plugins.all.find(plugin => plugin.installed);
 			if (none_installed) Plugins.dialog.content_vue.tab = 'available';
-			$('dialog#plugins #plugin_search_bar input').trigger('focus')
-		}
-	})
+			$('dialog#plugins #plugin_search_bar input').trigger('focus');
+		},
+	});
 	new Action('reload_plugins', {
 		icon: 'sync',
 		category: 'blockbench',
 		click() {
-			Plugins.devReload()
-		}
-	})
+			Plugins.devReload();
+		},
+	});
 	new Action('load_plugin', {
 		icon: 'fa-file-code',
 		category: 'blockbench',
@@ -1849,15 +1949,18 @@ BARS.defineActions(function() {
 				Blockbench.showQuickMessage('message.classroom_mode.install_plugin');
 				return;
 			}
-			Blockbench.import({
-				resource_id: 'dev_plugin',
-				extensions: ['js'],
-				type: 'Blockbench Plugin',
-			}, function(files) {
-				new Plugin().loadFromFile(files[0], true)
-			})
-		}
-	})
+			Blockbench.import(
+				{
+					resource_id: 'dev_plugin',
+					extensions: ['js'],
+					type: 'Blockbench Plugin',
+				},
+				function (files) {
+					new Plugin().loadFromFile(files[0], true);
+				}
+			);
+		},
+	});
 	new Action('load_plugin_from_url', {
 		icon: 'cloud_download',
 		category: 'blockbench',
@@ -1867,29 +1970,28 @@ BARS.defineActions(function() {
 				return;
 			}
 			Blockbench.textPrompt('URL', '', url => {
-				new Plugin().loadFromURL(url, true)
-			})
-		}
-	})
+				new Plugin().loadFromURL(url, true);
+			});
+		},
+	});
 	new Action('add_plugin', {
 		icon: 'add',
 		category: 'blockbench',
 		click() {
 			setTimeout(_ => ActionControl.select('+plugin: '), 1);
-		}
-	})
+		},
+	});
 	new Action('remove_plugin', {
 		icon: 'remove',
 		category: 'blockbench',
 		click() {
 			setTimeout(_ => ActionControl.select('-plugin: '), 1);
-		}
-	})
-})
-
+		},
+	});
+});
 
 Object.assign(window, {
 	Plugins,
 	Plugin,
-	BBPlugin
+	BBPlugin,
 });

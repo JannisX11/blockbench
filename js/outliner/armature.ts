@@ -1,21 +1,21 @@
-import { Blockbench } from "../api";
-import { THREE, Vue } from "../lib/libs";
-import { ArmatureBone } from "./armature_bone";
+import { Blockbench } from '../api';
+import { THREE, Vue } from '../lib/libs';
+import { ArmatureBone } from './armature_bone';
 
 interface ArmatureOptions {
-	name?: string
-	export?: boolean
-	locked?: boolean
-	visibility?: boolean
+	name?: string;
+	export?: boolean;
+	locked?: boolean;
+	visibility?: boolean;
 }
 
 export class Armature extends OutlinerElement {
-	children: ArmatureBone[]
-	isOpen: boolean
-	visibility: boolean
-	origin: ArrayVector3
+	children: ArmatureBone[];
+	isOpen: boolean;
+	visibility: boolean;
+	origin: ArrayVector3;
 
-	static preview_controller: NodePreviewController
+	static preview_controller: NodePreviewController;
 
 	constructor(data?: ArmatureOptions, uuid?: UUID) {
 		super(data, uuid);
@@ -24,7 +24,7 @@ export class Armature extends OutlinerElement {
 			Armature.properties[key].reset(this);
 		}
 
-		this.name = 'armature'
+		this.name = 'armature';
 		this.children = [];
 		this.selected = false;
 		this.locked = false;
@@ -35,20 +35,20 @@ export class Armature extends OutlinerElement {
 		this.origin = [0, 0, 0];
 
 		if (typeof data === 'object') {
-			this.extend(data)
+			this.extend(data);
 		} else if (typeof data === 'string') {
-			this.name = data
+			this.name = data;
 		}
 	}
 	extend(object: ArmatureOptions) {
 		for (let key in Armature.properties) {
-			Armature.properties[key].merge(this, object)
+			Armature.properties[key].merge(this, object);
 		}
-		Merge.string(this, object, 'name')
+		Merge.string(this, object, 'name');
 		this.sanitizeName();
-		Merge.boolean(this, object, 'export')
-		Merge.boolean(this, object, 'locked')
-		Merge.boolean(this, object, 'visibility')
+		Merge.boolean(this, object, 'export');
+		Merge.boolean(this, object, 'locked');
+		Merge.boolean(this, object, 'visibility');
 		return this;
 	}
 	getMesh() {
@@ -76,21 +76,21 @@ export class Armature extends OutlinerElement {
 		let match = true;
 		for (let i = 0; i < selected.length; i++) {
 			if (!selected[i].isChildOf(scope, 128)) {
-				return false
+				return false;
 			}
 		}
 		this.forEachChild(obj => {
 			if (!obj.selected) {
-				match = false
+				match = false;
 			}
-		})
+		});
 		return match;
 	}
 	openUp() {
-		this.isOpen = true
-		this.updateElement()
+		this.isOpen = true;
+		this.updateElement();
 		if (this.parent && this.parent !== 'root') {
-			this.parent.openUp()
+			this.parent.openUp();
 		}
 		return this;
 	}
@@ -121,9 +121,9 @@ export class Armature extends OutlinerElement {
 		return copy;
 	}
 	getChildlessCopy(keep_uuid?: boolean) {
-		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
+		let base_armature = new Armature({ name: this.name }, keep_uuid ? this.uuid : null);
 		for (let key in Armature.properties) {
-			Armature.properties[key].copy(this, base_armature)
+			Armature.properties[key].copy(this, base_armature);
 		}
 		base_armature.name = this.name;
 		base_armature.locked = this.locked;
@@ -132,18 +132,27 @@ export class Armature extends OutlinerElement {
 		base_armature.isOpen = this.isOpen;
 		return base_armature;
 	}
-	forEachChild(cb: ((element: OutlinerElement) => void), type?: typeof OutlinerNode, forSelf?: boolean) {
-		let i = 0
+	forEachChild(
+		cb: (element: OutlinerElement) => void,
+		type?: typeof OutlinerNode,
+		forSelf?: boolean
+	) {
+		let i = 0;
 		if (forSelf) {
-			cb(this)
+			cb(this);
 		}
 		while (i < this.children.length) {
-			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
+			if (
+				!type ||
+				(type instanceof Array
+					? type.find(t2 => this.children[i] instanceof t2)
+					: this.children[i] instanceof type)
+			) {
 				// @ts-ignore
-				cb(this.children[i])
+				cb(this.children[i]);
 			}
 			if (this.children[i].type === 'armature_bone') {
-				this.children[i].forEachChild(cb, type)
+				this.children[i].forEachChild(cb, type);
 			}
 			i++;
 		}
@@ -167,34 +176,34 @@ export class Armature extends OutlinerElement {
 		parent: true,
 		child_types: ['armature_bone', 'mesh'],
 		hide_in_screenshot: true,
-	}
-	
+	};
+
 	public title = tl('data.armature');
 	public type = 'armature';
 	public icon = 'accessibility';
-	public name_regex = () => Format.bone_rig ? 'a-zA-Z0-9_' : false;
-	public buttons = [
-		Outliner.buttons.locked,
-		Outliner.buttons.visibility,
-	];
+	public name_regex = () => (Format.bone_rig ? 'a-zA-Z0-9_' : false);
+	public buttons = [Outliner.buttons.locked, Outliner.buttons.visibility];
 	public menu = new Menu([
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		new MenuSeparator('manage'),
 		'rename',
-		'delete'
+		'delete',
 	]);
-	
-	static all: Armature[]
-	static selected: Armature[]
+
+	static all: Armature[];
+	static selected: Armature[];
 }
 
 OutlinerElement.registerType(Armature, 'armature');
 
 new NodePreviewController(Armature, {
 	setup(element: Armature) {
-		let object_3d = new THREE.Object3D() as {isElement: boolean, no_export: boolean} & THREE.Object3D;
+		let object_3d = new THREE.Object3D() as {
+			isElement: boolean;
+			no_export: boolean;
+		} & THREE.Object3D;
 		object_3d.rotation.order = 'ZYX';
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
@@ -205,31 +214,34 @@ new NodePreviewController(Armature, {
 
 		this.updateTransform(element);
 
-		this.dispatchEvent('setup', {element});
+		this.dispatchEvent('setup', { element });
 	},
 	updateTransform(element: Armature) {
 		let mesh = element.mesh;
 
-		if (Format.bone_rig && element.parent instanceof OutlinerNode && element.parent.scene_object) {
+		if (
+			Format.bone_rig &&
+			element.parent instanceof OutlinerNode &&
+			element.parent.scene_object
+		) {
 			element.parent.scene_object.add(mesh);
 		} else if (mesh.parent !== Project.model_3d) {
-			Project.model_3d.add(mesh)
+			Project.model_3d.add(mesh);
 		}
 
 		mesh.updateMatrixWorld();
 
-		this.dispatchEvent('update_transform', {element});
-	}
-})
+		this.dispatchEvent('update_transform', { element });
+	},
+});
 
-
-BARS.defineActions(function() {
+BARS.defineActions(function () {
 	new Action('add_armature', {
 		icon: 'accessibility',
 		category: 'edit',
 		condition: () => Modes.edit && Project.format?.armature_rig,
 		click: function () {
-			Undo.initEdit({outliner: true, elements: []});
+			Undo.initEdit({ outliner: true, elements: [] });
 			let add_to_node = Outliner.selected[0] || Group.first_selected;
 			if (!add_to_node && selected.length) {
 				add_to_node = selected.last();
@@ -248,19 +260,19 @@ BARS.defineActions(function() {
 			bone.addTo(armature).init();
 
 			// @ts-ignore
-			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
-			Vue.nextTick(function() {
-				updateSelection()
+			Undo.finishEdit('Add armature', { outliner: true, elements: [armature, bone] });
+			Vue.nextTick(function () {
+				updateSelection();
 				if (settings.create_rename.value) {
-					armature.rename()
+					armature.rename();
 				}
-				armature.showInOutliner()
-				Blockbench.dispatchEvent( 'add_armature', {object: armature} )
-			})
-		}
-	})
-})
+				armature.showInOutliner();
+				Blockbench.dispatchEvent('add_armature', { object: armature });
+			});
+		},
+	});
+});
 
 Object.assign(window, {
-	Armature
-})
+	Armature,
+});

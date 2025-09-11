@@ -1,10 +1,9 @@
-import { Armature } from "../../outliner/armature";
-import { ArmatureBone } from "../../outliner/armature_bone";
-
+import { Armature } from '../../outliner/armature';
+import { ArmatureBone } from '../../outliner/armature_bone';
 
 new Action('set_vertex_weights', {
 	icon: 'weight',
-	condition: {modes: ['edit'], method: () => (Mesh.selected[0]?.getArmature())},
+	condition: { modes: ['edit'], method: () => Mesh.selected[0]?.getArmature() },
 	click() {
 		let mesh = Mesh.selected[0];
 		let selected_vertices = mesh.getSelectedVertices();
@@ -22,14 +21,19 @@ new Action('set_vertex_weights', {
 		new Dialog('set_vertex_weights', {
 			title: 'Set vertex weights',
 			form: {
-				bone: {type: 'select', label: 'Bone', value: available_bones[0].name, options: bone_options},
-				weight: {type: 'number', label: 'Weight', value: 1, min: 0, max: 1}
+				bone: {
+					type: 'select',
+					label: 'Bone',
+					value: available_bones[0].name,
+					options: bone_options,
+				},
+				weight: { type: 'number', label: 'Weight', value: 1, min: 0, max: 1 },
 			},
 			onConfirm(result) {
 				let target_bone = available_bones.find(b => b.uuid == result.bone);
 				affected_bones.safePush(target_bone);
 				// @ts-ignore Should be fixed once converting armature_bone.js to ts
-				Undo.initEdit({elements: affected_bones});
+				Undo.initEdit({ elements: affected_bones });
 				for (let bone of affected_bones) {
 					if (bone.uuid == result.bone) continue;
 					for (let vkey of selected_vertices) {
@@ -41,7 +45,7 @@ new Action('set_vertex_weights', {
 				}
 				Undo.finishEdit('Set vertex weights');
 				updateSelection();
-			}
+			},
 		}).show();
-	}
-})
+	},
+});

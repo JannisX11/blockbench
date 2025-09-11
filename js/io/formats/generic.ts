@@ -1,16 +1,24 @@
 new ModelFormat('free', {
 	icon: 'icon-format_free',
 	category: 'general',
-	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender', tl('format.free.info.3d_printing')],
+	target: [
+		'Godot',
+		'Unity',
+		'Unreal Engine',
+		'Sketchfab',
+		'Blender',
+		tl('format.free.info.3d_printing'),
+	],
 	format_page: {
 		content: [
-			{type: 'h3', text: tl('mode.start.format.informations')},
-			{text: `* ${tl('format.free.info.meshes')}
-					* ${tl('format.free.info.limitation')}`.replace(/\t+/g, '')
+			{ type: 'h3', text: tl('mode.start.format.informations') },
+			{
+				text: `* ${tl('format.free.info.meshes')}
+					* ${tl('format.free.info.limitation')}`.replace(/\t+/g, ''),
 			},
-			{type: 'h3', text: tl('mode.start.format.resources')},
-			{text: `* [Low-Poly Modeling Tutorial](https://www.youtube.com/watch?v=WbyCbA1c8BM)`}
-		]
+			{ type: 'h3', text: tl('mode.start.format.resources') },
+			{ text: `* [Low-Poly Modeling Tutorial](https://www.youtube.com/watch?v=WbyCbA1c8BM)` },
+		],
 	},
 	meshes: true,
 	billboards: true,
@@ -26,4 +34,4 @@ new ModelFormat('free', {
 	animated_textures: true,
 	locators: true,
 	pbr: true,
-})
+});

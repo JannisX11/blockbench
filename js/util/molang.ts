@@ -5,9 +5,9 @@ function isStringNumber(string: string) {
 
 const BRACKET_OPEN = '{([';
 const BRACKET_CLOSE = '})]';
-export function invertMolang(molang: string): string
-export function invertMolang(molang: number): number
-export function invertMolang(molang: number|string): number|string {
+export function invertMolang(molang: string): string;
+export function invertMolang(molang: number): number;
+export function invertMolang(molang: number | string): number | string {
 	if (typeof molang == 'number') {
 		return -molang;
 	}
@@ -50,7 +50,7 @@ function testInvertMolang(input: string) {
 	let inverted = invertMolang(input);
 	let negative_result = Animator.MolangParser.parse(inverted);
 	if (positive_result == -negative_result) {
-		return inverted
+		return inverted;
 	} else {
 		console.warn([positive_result, negative_result], inverted);
 	}
@@ -58,5 +58,5 @@ function testInvertMolang(input: string) {
 
 Object.assign(window, {
 	invertMolang,
-	testInvertMolang
-})
+	testInvertMolang,
+});

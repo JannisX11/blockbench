@@ -1,5 +1,5 @@
-const fs: typeof import("node:fs") = require('node:fs');
-const PathModule: typeof import("node:path") = require('node:path');
+const fs: typeof import('node:fs') = require('node:fs');
+const PathModule: typeof import('node:path') = require('node:path');
 
 /**
  * @internal
@@ -157,9 +157,9 @@ export function createScopedFS(scope?: string) {
 			stat(path: string) {
 				checkPath(path);
 				return fs.promises.stat(path);
-			}
-		}
-	}
+			},
+		},
+	};
 }
 
 //cp: cp(src, dest, options, callback)

@@ -1,9 +1,9 @@
-import { Blockbench } from "../api";
-import { ipcRenderer } from "../native_apis";
-import { Plugins } from "../plugin_loader";
-import { compileJSON } from "../util/json";
-import { Dialog } from "./dialog";
-import { Setting, SettingsProfile } from "./settings";
+import { Blockbench } from '../api';
+import { ipcRenderer } from '../native_apis';
+import { Plugins } from '../plugin_loader';
+import { compileJSON } from '../util/json';
+import { Dialog } from './dialog';
+import { Setting, SettingsProfile } from './settings';
 
 BARS.defineActions(() => {
 	new Action('settings_window', {
@@ -12,34 +12,37 @@ BARS.defineActions(() => {
 		click: function () {
 			for (var sett in settings) {
 				if (settings.hasOwnProperty(sett)) {
-					Settings.old[sett] = settings[sett].value
+					Settings.old[sett] = settings[sett].value;
 				}
 			}
 			Settings.dialog.show();
 			(document.querySelector('dialog#settings .search_bar > input') as HTMLElement).focus();
-		}
-	})
-	
+		},
+	});
+
 	new Action('import_settings', {
 		icon: 'folder',
 		category: 'blockbench',
 		click: function () {
 			// @ts-ignore for now
-			Blockbench.import({
-				resource_id: 'config',
-				extensions: ['bbsettings'],
-				type: 'Blockbench Settings'
-			}, function(files) {
-				Settings.import(files[0]);
-			})
-		}
-	})
+			Blockbench.import(
+				{
+					resource_id: 'config',
+					extensions: ['bbsettings'],
+					type: 'Blockbench Settings',
+				},
+				function (files) {
+					Settings.import(files[0]);
+				}
+			);
+		},
+	});
 	new Action('export_settings', {
 		icon: 'fas.fa-user-cog',
 		category: 'blockbench',
 		click: async function () {
 			let private_data = [];
-			var settings_copy = {}
+			var settings_copy = {};
 			for (var key in settings) {
 				settings_copy[key] = settings[key].value;
 				if (settings[key].value && settings[key].type == 'password') {
@@ -48,18 +51,27 @@ BARS.defineActions(() => {
 			}
 			if (private_data.length) {
 				let go_on = await new Promise((resolve, reject) => {
-					Blockbench.showMessageBox({
-						title: 'dialog.export_private_settings.title',
-						message: tl('dialog.export_private_settings.message', [private_data.map(key => settings[key].name).join(', ')]),
-						buttons: ['dialog.export_private_settings.keep', 'dialog.export_private_settings.omit', 'dialog.cancel']
-					}, result => {
-						if (result == 1) {
-							private_data.forEach(key => {
-								delete settings_copy[key];
-							})
+					Blockbench.showMessageBox(
+						{
+							title: 'dialog.export_private_settings.title',
+							message: tl('dialog.export_private_settings.message', [
+								private_data.map(key => settings[key].name).join(', '),
+							]),
+							buttons: [
+								'dialog.export_private_settings.keep',
+								'dialog.export_private_settings.omit',
+								'dialog.cancel',
+							],
+						},
+						result => {
+							if (result == 1) {
+								private_data.forEach(key => {
+									delete settings_copy[key];
+								});
+							}
+							resolve(result !== 2);
 						}
-						resolve(result !== 2);
-					})
+					);
 				});
 				if (!go_on) return;
 			}
@@ -68,29 +80,29 @@ BARS.defineActions(() => {
 				resource_id: 'config',
 				type: 'Blockbench Settings',
 				extensions: ['bbsettings'],
-				content: compileJSON({settings: settings_copy})
-			})
-		}
-	})
+				content: compileJSON({ settings: settings_copy }),
+			});
+		},
+	});
 	let title_bar = document.getElementById('settings_title_bar');
 	BarItems.import_settings.toElement(title_bar);
 	BarItems.export_settings.toElement(title_bar);
-})
+});
 
-onVueSetup(function() {
+onVueSetup(function () {
 	for (var key in settings) {
 		if (settings[key].condition == false) continue;
-		var category = settings[key].category
-		if (!category) category = 'general'
+		var category = settings[key].category;
+		if (!category) category = 'general';
 
 		if (!Settings.structure[category]) {
 			Settings.structure[category] = {
-				name: tl('settings.category.'+category),
+				name: tl('settings.category.' + category),
 				open: category === 'general',
-				items: {}
-			}
+				items: {},
+			};
 		}
-		Settings.structure[category].items[key] = settings[key]
+		Settings.structure[category].items[key] = settings[key];
 	}
 
 	let sidebar_pages = {};
@@ -99,11 +111,11 @@ onVueSetup(function() {
 	}
 
 	interface SettingsDialogVueData {
-		structure: any,
-		profile: null | SettingsProfile,
-		all_profiles: SettingsProfile[],
-		open_category: string,
-		search_term: string
+		structure: any;
+		profile: null | SettingsProfile;
+		all_profiles: SettingsProfile[];
+		open_category: string;
+		search_term: string;
 	}
 	Settings.dialog = new Dialog({
 		id: 'settings',
@@ -119,23 +131,22 @@ onVueSetup(function() {
 		sidebar: {
 			pages: sidebar_pages,
 			page: 'general',
-			actions: [
-				'import_settings',
-				'export_settings',
-			],
+			actions: ['import_settings', 'export_settings'],
 			onPageSwitch(page) {
 				Settings.dialog.content_vue.open_category = page;
 				Settings.dialog.content_vue.search_term = '';
-			}
+			},
 		},
 		component: {
-			data() {return {
-				structure: Settings.structure,
-				profile: null,
-				all_profiles: SettingsProfile.all,
-				open_category: 'general',
-				search_term: ''
-			} as SettingsDialogVueData},
+			data() {
+				return {
+					structure: Settings.structure,
+					profile: null,
+					all_profiles: SettingsProfile.all,
+					open_category: 'general',
+					search_term: '',
+				} as SettingsDialogVueData;
+			},
 			methods: {
 				saveSettings(this: SettingsDialogVueData) {
 					Settings.saveLocalStorages();
@@ -148,8 +159,8 @@ onVueSetup(function() {
 							click: () => {
 								setting.ui_value = setting.default_value;
 								this.saveSettings();
-							}
-						}
+							},
+						},
 					]).open(event);
 				},
 				showProfileMenu(this: SettingsDialogVueData) {
@@ -160,8 +171,8 @@ onVueSetup(function() {
 							color: '',
 							click: () => {
 								this.profile = null;
-							}
-						}
+							},
+						},
 					];
 					SettingsProfile.all.forEach(profile => {
 						items.push({
@@ -175,19 +186,20 @@ onVueSetup(function() {
 								} else {
 									SettingsProfile.unselect();
 								}
-							}
-						})
-					})
+							},
+						});
+					});
 
-					items.push(
-						'_',
-						{name: 'dialog.settings.create_profile', icon: 'add', click: () => {
+					items.push('_', {
+						name: 'dialog.settings.create_profile',
+						icon: 'add',
+						click: () => {
 							this.profile = new SettingsProfile({});
 							this.profile.openDialog();
-						}}
-					)
+						},
+					});
 					// @ts-ignore
-					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
+					new Menu('settings_profiles', items).open(this.$refs.profile_menu);
 				},
 				profileButtonPress(this: SettingsDialogVueData) {
 					if (!this.profile) {
@@ -202,7 +214,7 @@ onVueSetup(function() {
 				},
 				getProfileColor(profile?: SettingsProfile): string {
 					if (profile && markerColors[profile.color % markerColors.length]) {
-						return markerColors[profile.color % markerColors.length].standard
+						return markerColors[profile.color % markerColors.length].standard;
 					}
 					return '';
 				},
@@ -216,13 +228,13 @@ onVueSetup(function() {
 				revealPlugin(plugin_id: string) {
 					let plugin = Plugins.all.find(p => p.id == plugin_id);
 					if (!plugin) return;
-					
+
 					Plugins.dialog.show();
 					Plugins.dialog.content_vue.selectPlugin!(plugin);
 				},
 				getIconNode: Blockbench.getIconNode,
 				tl,
-				Condition
+				Condition,
 			},
 			computed: {
 				list() {
@@ -263,7 +275,7 @@ onVueSetup(function() {
 				},
 				profile_name() {
 					return this.profile ? this.profile.name : tl('generic.none');
-				}
+				},
 			},
 			template: `
 				<div :style="{'--color-profile': getProfileColor(profile)}">
@@ -334,12 +346,12 @@ onVueSetup(function() {
 							</template>
 						</li>
 					</ul>
-				</div>`
+				</div>`,
 		},
 		onButton() {
 			Settings.save();
 			function hasSettingChanged(id) {
-				return (Settings.old && settings[id].value !== Settings.old[id])
+				return Settings.old && settings[id].value !== Settings.old[id];
 			}
 			let changed_settings = [];
 			for (let id in settings) {
@@ -352,7 +364,7 @@ onVueSetup(function() {
 						setting.onChange(setting.value);
 					}
 					if (isApp && setting.launch_setting) {
-						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+						ipcRenderer.send('edit-launch-setting', { key: id, value: setting.value });
 					}
 				}
 			}
@@ -360,6 +372,6 @@ onVueSetup(function() {
 			if (restart_settings.length) {
 				Settings.showRestartMessage(restart_settings);
 			}
-		}
-	})
-})
+		},
+	});
+});

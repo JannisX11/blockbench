@@ -1,59 +1,59 @@
-import { Animation } from "../animations/animation";
-import { SharedActions } from "../interface/shared_actions";
-import { Prop } from "../misc";
-import { guid } from "../util/math_util";
-import { Property } from "../util/property";
-import { OutlinerElement, OutlinerNode } from "./outliner";
-import { Toolbar } from '../interface/toolbars'
-import { Group } from "./group";
-import { Interface } from "../interface/interface";
-import { Menu } from "../interface/menu";
-import { Blockbench } from "../api";
-import { removeEventListeners } from "../util/util";
-import { Action } from '../interface/actions'
-import { Clipbench } from "../copy_paste";
-import { getFocusedTextInput } from "../interface/keyboard";
-import { tl } from "../languages";
-import { Panel } from "../interface/panels";
-import { Codecs } from "../io/codec";
+import { Animation } from '../animations/animation';
+import { SharedActions } from '../interface/shared_actions';
+import { Prop } from '../misc';
+import { guid } from '../util/math_util';
+import { Property } from '../util/property';
+import { OutlinerElement, OutlinerNode } from './outliner';
+import { Toolbar } from '../interface/toolbars';
+import { Group } from './group';
+import { Interface } from '../interface/interface';
+import { Menu } from '../interface/menu';
+import { Blockbench } from '../api';
+import { removeEventListeners } from '../util/util';
+import { Action } from '../interface/actions';
+import { Clipbench } from '../copy_paste';
+import { getFocusedTextInput } from '../interface/keyboard';
+import { tl } from '../languages';
+import { Panel } from '../interface/panels';
+import { Codecs } from '../io/codec';
 
 interface CollectionOptions {
-	children?: string[]
-	name?: string
-	export_codec?: string
-	export_path?: string
-	visibility?: boolean
+	children?: string[];
+	name?: string;
+	export_codec?: string;
+	export_path?: string;
+	visibility?: boolean;
 }
 
 /**
  * Collections are "selection presets" for a set of groups and elements in your project, independent from outliner hierarchy
  */
 export class Collection {
-	uuid: string
-	name: string
-	selected: boolean
+	uuid: string;
+	name: string;
+	selected: boolean;
 	/**
 	 * List of direct children, referenced by UUIDs
 	 */
-	children: string[]
-	export_path: string
-	codec: string
-	menu: Menu
-	export_codec: string
-	visibility: boolean
+	children: string[];
+	export_path: string;
+	codec: string;
+	menu: Menu;
+	export_codec: string;
+	visibility: boolean;
 
-	static properties: Record<string, Property<any>>
+	static properties: Record<string, Property<any>>;
 	/**
 	 * Get all collections
 	 */
-	static all: Collection[]
+	static all: Collection[];
 	/**
 	 * Get selected collections
 	 */
-	static selected: Collection[]
+	static selected: Collection[];
 
 	constructor(data: CollectionOptions, uuid?: string) {
-		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
+		this.uuid = uuid && isUUID(uuid) ? uuid : guid();
 		this.selected = false;
 		this.children = [];
 		for (let key in Collection.properties) {
@@ -63,15 +63,19 @@ export class Collection {
 	}
 	extend(data: CollectionOptions): this {
 		for (var key in Collection.properties) {
-			Collection.properties[key].merge(this, data)
+			Collection.properties[key].merge(this, data);
 		}
 		return this;
 	}
 	select(event?: KeyboardEvent | MouseEvent): this {
 		this.selected = true;
-		if ((!(event?.shiftKey || Pressing.overrides.shift) && !(event?.ctrlOrCmd || Pressing.overrides.ctrl)) || Modes.animate) {
+		if (
+			(!(event?.shiftKey || Pressing.overrides.shift) &&
+				!(event?.ctrlOrCmd || Pressing.overrides.ctrl)) ||
+			Modes.animate
+		) {
 			unselectAllElements();
-			Collection.all.forEach(c => c.selected = false);
+			Collection.all.forEach(c => (c.selected = false));
 		}
 		this.selected = true;
 		let i = 0;
@@ -103,7 +107,7 @@ export class Collection {
 		return this;
 	}
 	clickSelect(event) {
-		Undo.initSelection({collections: true, timeline: Modes.animate});
+		Undo.initSelection({ collections: true, timeline: Modes.animate });
 		this.select(event);
 		Undo.finishSelection('Select collection');
 	}
@@ -111,7 +115,9 @@ export class Collection {
 	 * Get all direct children
 	 */
 	getChildren(): OutlinerNode[] {
-		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
+		return this.children
+			.map(uuid => OutlinerNode.uuids[uuid])
+			.filter(node => node != undefined);
 	}
 	add(): this {
 		Collection.all.safePush(this);
@@ -187,11 +193,11 @@ export class Collection {
 		}
 		let all = groups.concat(elements);
 		let state = all[0]?.visibility != true;
-		Undo.initEdit({groups, elements});
+		Undo.initEdit({ groups, elements });
 		all.forEach(node => {
 			node.visibility = state;
-		})
-		Canvas.updateView({elements, element_aspects: {visibility: true}});
+		});
+		Canvas.updateView({ elements, element_aspects: { visibility: true } });
 		Undo.finishEdit('Toggle collection visibility');
 	}
 	/**
@@ -205,7 +211,7 @@ export class Collection {
 	getUndoCopy() {
 		let copy = {
 			uuid: this.uuid,
-			index: Collection.all.indexOf(this)
+			index: Collection.all.indexOf(this),
 		};
 		for (var key in Collection.properties) {
 			Collection.properties[key].copy(this, copy);
@@ -214,7 +220,7 @@ export class Collection {
 	}
 	getSaveCopy() {
 		let copy = {
-			uuid: this.uuid
+			uuid: this.uuid,
 		};
 		for (var key in Collection.properties) {
 			Collection.properties[key].copy(this, copy);
@@ -235,8 +241,8 @@ export class Collection {
 		let collection = this;
 		function getContentList() {
 			let types = {
-				group: []
-			}
+				group: [],
+			};
 			for (let child of collection.getChildren()) {
 				// @ts-ignore
 				let type = child.type;
@@ -249,35 +255,38 @@ export class Collection {
 					list.push({
 						name: node.name,
 						uuid: node.uuid,
-						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
-					})
+						icon:
+							key == 'group'
+								? Group.prototype.icon
+								: OutlinerElement.types[key].prototype.icon,
+					});
 				}
 			}
 			return list;
 		}
 		type PropertiesComponentData = {
 			content: {
-				name: string
-				uuid: string
-				icon: string
-			}[]
-			selected: string[]
-		}
+				name: string;
+				uuid: string;
+				icon: string;
+			}[];
+			selected: string[];
+		};
 		let dialog = new Dialog({
 			id: 'collection_properties',
 			title: this.name,
 			resizable: 'x',
 			keyboard_actions: {
 				delete: {
-					keybind: new Keybind({key: 46}),
+					keybind: new Keybind({ key: 46 }),
 					run() {
 						this.content_vue.remove();
-					}
-				}
+					},
+				},
 			},
 			part_order: ['form', 'component'],
 			form: {
-				name: {type: 'text', label: 'generic.name', value: this.name},
+				name: { type: 'text', label: 'generic.name', value: this.name },
 				export_path: {
 					label: 'dialog.collection.export_path',
 					value: this.export_path,
@@ -285,13 +294,13 @@ export class Collection {
 					condition: isApp && this.codec,
 					extensions: ['json'],
 					filetype: 'JSON collection',
-				}
+				},
 			},
 			component: {
-				components: {VuePrismEditor},
+				components: { VuePrismEditor },
 				data: {
 					content: getContentList(),
-					selected: []
+					selected: [],
 				} as PropertiesComponentData,
 				methods: {
 					selectAll(this: PropertiesComponentData) {
@@ -310,21 +319,22 @@ export class Collection {
 					},
 					addWithFilter(this: PropertiesComponentData, event) {
 						// @ts-ignore
-						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
-							for (let node of elements.concat(groups)) {
-								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
-									this.content.push({
-										uuid: node.uuid,
-										name: node.name,
-										icon: node.icon
-									})
+						BarItems.select_window.click(event, {
+							returnResult: ({ elements, groups }) => {
+								for (let node of elements.concat(groups)) {
+									if (!this.content.find(node2 => node2.uuid == node.uuid)) {
+										this.content.push({
+											uuid: node.uuid,
+											name: node.name,
+											icon: node.icon,
+										});
+									}
 								}
-							}
-						}})
+							},
+						});
 					},
 				},
-				template: 
-					`<div id="collection_properties_vue">
+				template: `<div id="collection_properties_vue">
 						<ul class="list">
 							<li v-for="node of content" :class="{selected: selected.includes(node.uuid)}" @click="selected.toggle(node.uuid)">
 								<dynamic-icon :icon="node.icon.replace('fa ', '').replace(/ /g, '.')" />
@@ -337,7 +347,7 @@ export class Collection {
 							<button @click="addWithFilter()">${tl('dialog.collection.add_with_filter')}</button>
 							<button @click="remove()" v-if="selected.length">${tl('dialog.collection.remove')}</button>
 						</div>
-					</div>`
+					</div>`,
 			},
 			onFormChange(form) {
 				this.component.data.loop_mode = form.loop;
@@ -348,18 +358,20 @@ export class Collection {
 					form_data.name != this.name ||
 					form_data.export_path != this.export_path ||
 					vue_data.content.find(node => !collection.children.includes(node.uuid)) ||
-					collection.children.find(uuid => !vue_data.content.find(node => node.uuid == uuid))
+					collection.children.find(
+						uuid => !vue_data.content.find(node => node.uuid == uuid)
+					)
 				) {
-					Undo.initEdit({collections: [this]});
+					Undo.initEdit({ collections: [this] });
 
 					this.extend({
 						name: form_data.name,
 						export_path: form_data.export_path,
-					})
+					});
 					if (isApp) this.export_path = form_data.path;
 					this.children.replace(vue_data.content.map(node => node.uuid));
 
-					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
+					Blockbench.dispatchEvent('edit_collection_properties', { collection: this });
 
 					Undo.finishEdit('Edit collection properties');
 				}
@@ -367,8 +379,8 @@ export class Collection {
 			},
 			onCancel() {
 				dialog.hide().delete();
-			}
-		})
+			},
+		});
 		dialog.show();
 	}
 }
@@ -382,9 +394,13 @@ Collection.prototype.menu = new Menu([
 	'duplicate',
 	'delete',
 	new MenuSeparator('export'),
-	(collection) => {
+	collection => {
 		let codec = Codecs[collection.codec];
-		if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
+		if (
+			codec?.export_action &&
+			collection.export_path &&
+			Condition(codec.export_action.condition)
+		) {
 			let export_action = codec.export_action;
 			return {
 				id: 'export_as',
@@ -393,19 +409,24 @@ Collection.prototype.menu = new Menu([
 				description: export_action.description,
 				click() {
 					codec.writeCollection(collection);
-				}
-			}
+				},
+			};
 		}
 	},
 	{
 		id: 'export',
 		name: 'generic.export',
 		icon: 'insert_drive_file',
-		children: (collection) => {
+		children: collection => {
 			let actions = [];
 			for (let id in Codecs) {
 				let codec = Codecs[id];
-				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
+				if (
+					!codec.export_action ||
+					!codec.support_partial_export ||
+					!Condition(codec.export_action.condition)
+				)
+					continue;
 
 				let export_action = codec.export_action;
 				let new_action = {
@@ -414,8 +435,8 @@ Collection.prototype.menu = new Menu([
 					description: export_action.description,
 					click() {
 						codec.exportCollection(collection);
-					}
-				}
+					},
+				};
 				if (id == 'project') {
 					new_action = {
 						name: 'menu.collection.export_project',
@@ -423,59 +444,61 @@ Collection.prototype.menu = new Menu([
 						description: '',
 						click() {
 							codec.exportCollection(collection);
-						}
-					}
+						},
+					};
 				}
 				actions.push(new_action);
 			}
 			return actions;
-		}
+		},
 	},
 	new MenuSeparator('properties'),
 	{
 		icon: 'list',
 		name: 'menu.texture.properties',
-		click(collection) { collection.propertiesDialog()}
-	}
-])
-new Property(Collection, 'string', 'name', {default: 'collection'});
+		click(collection) {
+			collection.propertiesDialog();
+		},
+	},
+]);
+new Property(Collection, 'string', 'name', { default: 'collection' });
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path');
 new Property(Collection, 'array', 'children');
-new Property(Collection, 'boolean', 'visibility', {default: false});
+new Property(Collection, 'boolean', 'visibility', { default: false });
 
 Object.defineProperty(Collection, 'all', {
 	get() {
 		// @ts-ignore
-		return Project.collections
-	}
-})
+		return Project.collections;
+	},
+});
 Object.defineProperty(Collection, 'selected', {
 	get() {
 		// @ts-ignore
 		return Project ? Project.collections.filter(c => c.selected) : [];
-	}
-})
+	},
+});
 
 SharedActions.add('delete', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
 		let selected = Collection.selected.slice();
-		Undo.initEdit({collections: selected});
+		Undo.initEdit({ collections: selected });
 		for (let c of selected) {
-			Collection.all.remove(c)
+			Collection.all.remove(c);
 		}
 		selected.empty();
 		Undo.finishEdit('Remove collection');
-	}
-})
+	},
+});
 SharedActions.add('duplicate', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
 		let new_collections = [];
-		Undo.initEdit({collections: new_collections});
+		Undo.initEdit({ collections: new_collections });
 		for (let original of Collection.selected.slice()) {
 			let copy = new Collection(original);
 			copy.name += ' - copy';
@@ -483,21 +506,21 @@ SharedActions.add('duplicate', {
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Duplicate collection');
-	}
-})
+	},
+});
 SharedActions.add('copy', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
 	run() {
 		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy());
-	}
-})
+	},
+});
 SharedActions.add('paste', {
 	subject: 'collection',
 	condition: () => Prop.active_panel == 'collections' && Clipbench.collections?.length,
 	run() {
 		let new_collections = [];
-		Undo.initEdit({collections: new_collections});
+		Undo.initEdit({ collections: new_collections });
 		for (let data of Clipbench.collections) {
 			let copy = new Collection(data);
 			copy.name += ' - copy';
@@ -505,58 +528,61 @@ SharedActions.add('paste', {
 			new_collections.push(copy);
 		}
 		Undo.finishEdit('Paste collection');
-	}
-})
+	},
+});
 
 BARS.defineActions(() => {
 	new Action('create_collection', {
 		icon: 'inventory_2',
 		category: 'select',
-		keybind: new Keybind({key: 'l', ctrl: true}),
-		condition: {modes: ['edit', 'paint', 'animate']},
+		keybind: new Keybind({ key: 'l', ctrl: true }),
+		condition: { modes: ['edit', 'paint', 'animate'] },
 		click() {
-			Undo.initEdit({collections: []});
+			Undo.initEdit({ collections: [] });
 			let collection = new Collection({});
 			collection.add().addSelection().select();
-			Undo.finishEdit('Create collection', {collections: [collection]});
+			Undo.finishEdit('Create collection', { collections: [collection] });
 			updateSelection();
-		}
-	})
+		},
+	});
 	new Action('set_collection_content_to_selection', {
 		icon: 'unarchive',
 		category: 'select',
 		condition: () => Collection.selected.length,
 		click() {
 			let collections = Collection.selected;
-			Undo.initEdit({collections});
+			Undo.initEdit({ collections });
 			for (let collection of collections) {
 				collection.children.empty();
 				collection.addSelection();
 			}
 			Undo.finishEdit('Set collection content to selection');
-		}
-	})
+		},
+	});
 	new Action('add_to_collection', {
 		icon: 'box_add',
 		category: 'select',
 		condition: () => Collection.selected.length,
 		click() {
 			let collections = Collection.selected;
-			Undo.initEdit({collections});
+			Undo.initEdit({ collections });
 			for (let collection of collections) {
 				collection.addSelection();
 			}
 			Undo.finishEdit('Add selection to collection');
-		}
-	})
-})
+		},
+	});
+});
 
-Interface.definePanels(function() {
-
+Interface.definePanels(function () {
 	function eventTargetToCollection(target: HTMLElement): [Collection?, HTMLElement?] {
 		let target_node: HTMLElement | undefined = target;
 		let i = 0;
-		while (target_node && target_node.classList && !target_node.classList.contains('collection')) {
+		while (
+			target_node &&
+			target_node.classList &&
+			!target_node.classList.contains('collection')
+		) {
 			if (i < 3 && target_node) {
 				target_node = target_node.parentElement;
 				i++;
@@ -585,24 +611,24 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 300],
 			height: 300,
-			folded: false
+			folded: false,
 		},
-		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
+		condition: { modes: ['edit', 'paint', 'animate'], method: () => !Format.image_editor },
 		toolbars: [
 			new Toolbar('collections', {
-				children: [
-					'create_collection',
-				]
-			})
+				children: ['create_collection'],
+			}),
 		],
 		component: {
 			name: 'panel-collections',
-			data() { return {
-				collections: [],
-			}},
+			data() {
+				return {
+					collections: [],
+				};
+			},
 			methods: {
 				openMenu(event) {
-					Interface.Panels.collections.menu.show(event)
+					Interface.Panels.collections.menu.show(event);
 				},
 				dragCollection(e1) {
 					if (getFocusedTextInput()) return;
@@ -619,32 +645,35 @@ Interface.definePanels(function() {
 
 					function move(e2) {
 						convertTouchEvent(e2);
-						let offset = [
-							e2.clientX - e1.clientX,
-							e2.clientY - e1.clientY,
-						]
+						let offset = [e2.clientX - e1.clientX, e2.clientY - e1.clientY];
 						if (!active) {
-							let distance = Math.sqrt(Math.pow(offset[0], 2) + Math.pow(offset[1], 2))
+							let distance = Math.sqrt(
+								Math.pow(offset[0], 2) + Math.pow(offset[1], 2)
+							);
 							if (Blockbench.isTouch) {
 								if (distance > 20 && timeout) {
 									clearTimeout(timeout);
 									timeout = null;
 								} else {
-									document.getElementById('collections_list').scrollTop += last_event.clientY - e2.clientY;
+									document.getElementById('collections_list').scrollTop +=
+										last_event.clientY - e2.clientY;
 								}
 							} else if (distance > 6) {
 								active = true;
 							}
 						} else {
 							if (e2) e2.preventDefault();
-							
+
 							if (Menu.open) Menu.open.hide();
 
 							if (!helper) {
 								helper = document.createElement('div');
 								helper.id = 'animation_drag_helper';
-								let icon = Blockbench.getIconNode('inventory_2'); helper.append(icon);
-								let span = document.createElement('span');	span.innerText = collection.name;	helper.append(span);
+								let icon = Blockbench.getIconNode('inventory_2');
+								helper.append(icon);
+								let span = document.createElement('span');
+								span.innerText = collection.name;
+								helper.append(span);
 								document.body.append(helper);
 								Blockbench.addFlag('dragging_collections');
 							}
@@ -656,11 +685,13 @@ Interface.definePanels(function() {
 							$('.collection[order]').attr('order', null);
 
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[drop_target, drop_target_node] = eventTargetToCollection(target as HTMLElement);
+							[drop_target, drop_target_node] = eventTargetToCollection(
+								target as HTMLElement
+							);
 							if (drop_target) {
 								var location = e2.clientY - $(drop_target_node).offset().top;
-								order = getOrder(location, drop_target)
-								drop_target_node.setAttribute('order', order)
+								order = getOrder(location, drop_target);
+								drop_target_node.setAttribute('order', order);
 								drop_target_node.classList.add('drag_hover');
 							}
 						}
@@ -673,7 +704,7 @@ Interface.definePanels(function() {
 						$('.drag_hover').removeClass('drag_hover');
 						$('.collection[order]').attr('order', null);
 						if (Blockbench.isTouch) clearTimeout(timeout);
-						
+
 						setTimeout(() => {
 							Blockbench.removeFlag('dragging_collections');
 						}, 10);
@@ -681,16 +712,18 @@ Interface.definePanels(function() {
 						if (active && !Menu.open) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							let [target_collection] = eventTargetToCollection(target as HTMLElement);
-							if (!target_collection || target_collection == collection ) return;
+							let [target_collection] = eventTargetToCollection(
+								target as HTMLElement
+							);
+							if (!target_collection || target_collection == collection) return;
 
 							let index = Collection.all.indexOf(target_collection);
 							if (index == -1) return;
 							if (Collection.all.indexOf(collection) < index) index--;
 							if (order == 1) index++;
 							if (Collection.all[index] == collection) return;
-							
-							Undo.initEdit({collections: [collection]});
+
+							Undo.initEdit({ collections: [collection] });
 
 							Collection.all.remove(collection);
 							Collection.all.splice(index, 0, collection);
@@ -703,23 +736,23 @@ Interface.definePanels(function() {
 						timeout = setTimeout(() => {
 							active = true;
 							move(e1);
-						}, 320)
+						}, 320);
 					}
 
-					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
-					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+					addEventListeners(document, 'mousemove touchmove', move, { passive: false });
+					addEventListeners(document, 'mouseup touchend', off, { passive: false });
 				},
 				unselect() {
 					if (Blockbench.hasFlag('dragging_collections')) return;
 					Collection.all.forEach(collection => {
 						collection.selected = false;
-					})
+					});
 					updateSelection();
 				},
 				getContentList(collection: Collection) {
 					let types = {
-						group: []
-					}
+						group: [],
+					};
 					for (let child of collection.getChildren()) {
 						// @ts-ignore
 						let type = child.type;
@@ -732,11 +765,14 @@ Interface.definePanels(function() {
 						list.push({
 							count: types[key].length == 1 ? '' : types[key].length,
 							name: types[key].length == 1 ? types[key][0].name : '',
-							icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
-						})
+							icon:
+								key == 'group'
+									? Group.prototype.icon
+									: OutlinerElement.types[key].prototype.icon,
+						});
 					}
 					return list;
-				}
+				},
 			},
 			template: `
 				<ul
@@ -778,15 +814,12 @@ Interface.definePanels(function() {
 						</div>
 					</li>
 				</ul>
-			`
+			`,
 		},
-		menu: new Menu([
-			'create_collection',
-			'copy',
-		])
-	})
-})
+		menu: new Menu(['create_collection', 'copy']),
+	});
+});
 
 Object.assign(window, {
-	Collection
+	Collection,
 });
