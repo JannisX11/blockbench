@@ -1411,6 +1411,13 @@ new NodePreviewController(Cube, {
 		if (cube.inflate || cube.isStretched()) {
 			adjustFromAndToForInflateAndStretch(from, to, cube);
 		}
+		for (let i = 0; i < 3; i++) {
+			if (to[i] < from[i]) {
+				let x = to[i];
+				to[i] = from[i];
+				from[i] = x;
+			}
+		}
 
 		var vertices = [];
 		var epsilon = 0.0001
