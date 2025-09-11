@@ -689,7 +689,7 @@ export function moveElementsInSpace(difference, axis) {
 				m.applyEuler(selection_rotation);
 				difference_vec.V3_set(m.x, m.y, m.z);
 
-			} else if (space instanceof Group) {
+			} else if (space instanceof OutlinerNode) {
 				let m = vector.set(0, 0, 0);
 				m[getAxisLetter(axis)] = difference;
 				m.applyQuaternion(new THREE.Quaternion().copy(el.mesh.quaternion).invert());
@@ -777,7 +777,7 @@ export function moveElementsInSpace(difference, axis) {
 					}
 				}
 				
-			} else if (space instanceof Group) {
+			} else if (space instanceof OutlinerNode) {
 				if (el.getTypeBehavior('movable') && el.from instanceof Array) {
 					el.from[axis] += difference;
 				} else if (el.getTypeBehavior('movable') && el.position) {
@@ -950,16 +950,17 @@ export function rotateOnAxis(modify, axis, slider) {
 		let spline_cond = obj instanceof SplineMesh && Project.spline_selection[obj.uuid] && Project.spline_selection[obj.uuid].vertices.length;
 		if (!Group.first_selected && (mesh_cond || spline_cond)) {
 
+			// Mesh or spline
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
 			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))
-			if (space instanceof Group || space == 'root') {
+			if (space instanceof OutlinerNode || space == 'root') {
 				rotWorldMatrix.multiply(mesh.matrix);
 			} else if (space == 0) {
 				rotWorldMatrix.multiply(mesh.matrixWorld);
 			}
 			let q = new THREE.Quaternion().setFromRotationMatrix(rotWorldMatrix);
-			if (space instanceof Group || space == 'root') {
+			if (space instanceof OutlinerNode || space == 'root') {
 				q.premultiply(mesh.quaternion.invert());
 				mesh.quaternion.invert();
 			} else if (space == 0) {
@@ -1028,7 +1029,7 @@ export function rotateOnAxis(modify, axis, slider) {
 				obj.rotation[axis] = Math.trimDeg(obj_val);
 			}
 
-		} else if (space instanceof Group) {
+		} else if (space instanceof OutlinerNode) {
 			let normal = axis == 0 ? THREE.NormalX : (axis == 1 ? THREE.NormalY : THREE.NormalZ)
 			let rotWorldMatrix = new THREE.Matrix4();
 			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(modify(0)))

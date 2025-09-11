@@ -1431,10 +1431,15 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 					}
 					Transformer.update()
 
-				} else if (Modes.animate && Group.first_selected) {
+				} else if (Modes.animate && (Group.first_selected || Outliner.selected[0]?.constructor.animator)) {
 
-					this.attach(Group.first_selected);
-					Group.first_selected.mesh.getWorldPosition(this.position);
+					let target_node = Group.first_selected || Outliner.selected[0];
+					this.attach(target_node);
+					if (target_node.getWorldCenter) {
+						this.position.copy(target_node.getWorldCenter(true));
+					} else {
+						target_node.scene_object.getWorldPosition(this.position);
+					}
 
 					if (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value === 'global') {
 						delete Transformer.rotation_ref;
@@ -1443,23 +1448,13 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 						delete Transformer.rotation_ref;
 
 					} else if (Toolbox.selected.id === 'move_tool' && BarItems.transform_space.value === 'local') {
-						Transformer.rotation_ref = Group.first_selected.mesh;
+						Transformer.rotation_ref = target_node.mesh;
 
 					} else if (Toolbox.selected.id == 'resize_tool' || (Toolbox.selected.id === 'rotate_tool' && BarItems.rotation_space.value !== 'global')) {
-						Transformer.rotation_ref = Group.first_selected.mesh;
+						Transformer.rotation_ref = target_node.mesh;
 
 					} else {
-						Transformer.rotation_ref = Group.first_selected.mesh.parent;
-					}
-				} else if (Modes.animate && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
-
-					this.attach(Outliner.selected[0]);
-					this.position.copy(Outliner.selected[0].getWorldCenter(true));
-					
-					if (BarItems.rotation_space.value === 'global') {
-						delete Transformer.rotation_ref;
-					} else {
-						Transformer.rotation_ref = Outliner.selected[0].mesh.parent;
+						Transformer.rotation_ref = target_node.mesh.parent;
 					}
 				}
 			}

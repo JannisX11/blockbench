@@ -461,10 +461,10 @@ new NodePreviewController(ArmatureBone, {
 
 		} else {
 			bone.children[0].rotation.set(0,0,0);
-			bone.children[0].scale.x = element.width/2;
-			bone.children[0].scale.z = element.width/2;
 			bone.children[0].scale.y = element.length;
 		}
+		bone.children[0].scale.x = element.width/2;
+		bone.children[0].scale.z = element.width/2;
 
 		bone.fix_position.copy(bone.position);
 		bone.fix_rotation.copy(bone.rotation);

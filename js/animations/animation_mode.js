@@ -186,7 +186,7 @@ export const Animator = {
 		let i = 0;
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
-			let position = target instanceof Group
+			let position = (target instanceof OutlinerNode && target.children)
 						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
 						 : target.getWorldCenter(true);
 			position = position.toArray();
