@@ -33,6 +33,11 @@ export class MeshFace extends Face {
 		}
 		return this;
 	}
+	getSaveCopy(project) {
+		let copy = super.getSaveCopy(project);
+		copy.vertices = this.getSortedVertices();
+		return copy;
+	}
 	getNormal(normalize, alt_tri) {
 		let vertices = this.getSortedVertices();
 		if (vertices.length < 3) return [0, 0, 0];
