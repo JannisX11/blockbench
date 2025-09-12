@@ -23,7 +23,11 @@ function updateBrushOutline(event: PointerEvent) {
 	preview.node.append(brush_outline);
 	brush_outline.style.left = click_pos[0] + 'px';
 	brush_outline.style.top = click_pos[1] + 'px';
+	brush_outline.style.display = (event.altKey || Pressing.overrides.alt) ? 'none' : 'block'
 }
+Blockbench.on('update_pressed_modifier_keys', (arg) => {
+	updateBrushOutline(arg.event);
+});
 
 
 let screen_space_vertex_positions: null | Record<string, {x:number, y:number}> = null;
@@ -73,6 +77,10 @@ new Tool('weight_brush', {
 	
 	onCanvasClick(data: CanvasClickData) {
 		if ('element' in data == false) return;
+		if (data.element instanceof ArmatureBone) {
+			return data.element.select(data.event);
+		}
+		if (data.event.altKey || Pressing.overrides.alt) return;
 		let preview = Preview.selected as Preview;
 		let preview_offset = $(preview.canvas).offset();
 		let armature_bone = ArmatureBone.selected[0] as ArmatureBone;
@@ -166,6 +174,7 @@ new Tool('weight_brush', {
 		(BarItems.slider_weight_brush_size as NumSlider).update();
 		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
+		Interface.addSuggestedModifierKey('alt', 'modifier_actions.select_bone');
 		// @ts-ignore
 		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = true;
 
@@ -178,6 +187,7 @@ new Tool('weight_brush', {
 		}, 0);
 		Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
+		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.select_bone');
 		// @ts-ignore
 		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = false;
 

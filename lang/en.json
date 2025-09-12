@@ -245,6 +245,7 @@
 	"modifier_actions.snap_to_pixels": "Snap to Pixels",
 	"modifier_actions.subtract": "Subtract",
 	"modifier_actions.reduced_intensity": "Fine-Tune",
+	"modifier_actions.select_bone": "Select Bone",
 	"modifier_actions.spline_select_multiple_points": "Select multiple Points or Handles",
 	"modifier_actions.move_panel_without_docking": "Move without docking",
 

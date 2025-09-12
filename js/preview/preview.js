@@ -4,6 +4,7 @@ import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
+import { Pressing } from '../misc';
 
 window.scene = null;
 window.main_preview = null;
@@ -412,7 +413,7 @@ export class Preview {
 			} else if (element instanceof Locator) {
 				objects.push(element.mesh.sprite);
 			} else if (element instanceof ArmatureBone) {
-				if (Toolbox.selected.id == 'weight_brush') return;
+				if (Toolbox.selected.id == 'weight_brush' && !(event.altKey || Pressing.overrides.alt)) return;
 				objects.push(element.mesh.children[0]);
 			}
 		})

@@ -504,7 +504,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (modifiers_changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event: e});
 	}
 
 	if (e.which === 16) {
@@ -760,7 +760,7 @@ $(document).keyup(function(e) {
 	Pressing.alt = e.altKey;
 	Pressing.ctrl = e.ctrlKey;
 	if (changed) {
-		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event});
+		Blockbench.dispatchEvent('update_pressed_modifier_keys', {before, now: Pressing, event: e});
 	}
 })
 
