@@ -32,7 +32,7 @@ declare class MeshFace extends Face {
 	uv: {
 		[vertex: string]: ArrayVector2
 	}
-	extend(data: MeshFaceOptions): void
+	extend(data: MeshFaceOptions): this
 	/**
 	 * Returns the face normal in mesh space as calculated from the vertex positions
 	 * @param normalize If true, the values will be normalized.

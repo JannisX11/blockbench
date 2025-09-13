@@ -126,7 +126,7 @@ declare class UndoSystem {
 	 * Starts an edit to the current project by saving the state of the provided aspects
 	 * @param aspects Aspects to save
 	 */
-	initEdit(aspects: UndoAspects): UndoEntry
+	initEdit(aspects: UndoAspects, amended: boolean = false): UndoEntry
 	/**
 	 * Finishes an edit by saving the state of the project after it was changed
 	 * @param action Description of the edit
