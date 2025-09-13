@@ -301,7 +301,7 @@ export class ModelFormat implements FormatOptions {
 	onActivation?(): void
 	onDeactivation?(): void
 
-	static properties: Record<string, Property>
+	static properties: Record<string, Property<any>>
 
 	constructor(id: string, data: Partial<FormatOptions>) {
 		if (typeof id == 'object') {
@@ -484,6 +484,10 @@ export class ModelFormat implements FormatOptions {
 				el.applyTexture(texture, true)
 			})
 		}
+
+		// Outliner names
+		Group.all.forEach(group => group.sanitizeName());
+		Outliner.elements.forEach(group => group.sanitizeName());
 
 		//Rotate Cubes
 		if (!this.rotate_cubes && old_format.rotate_cubes) {
