@@ -642,7 +642,6 @@ Interface.definePanels(() => {
 					ColorPanel.set(color, second_color);
 				},
 				changeColor(color, secondary = this.second_color_selected) {
-					console.log(color, secondary)
 					this[secondary ? 'second_color' : 'main_color'] = color;
 				},
 				swapColors() {
