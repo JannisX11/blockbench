@@ -982,6 +982,7 @@ export const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
+								let result_color;
 								if (blend_mode == 'default') {
 									result_color = Painter.combineColors(pxcolor, color, b_opacity);
 								} else {

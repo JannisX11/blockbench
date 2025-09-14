@@ -331,7 +331,7 @@ export const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
+				top: this.get() + Interface.center_screen.offsetTop + 4
 			})}
 		}),
 		bottom: new ResizeLine('bottom', {
