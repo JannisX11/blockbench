@@ -164,7 +164,7 @@ var codec = new Codec('obj', {
 					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
-					if (element.smooth_shading) {
+					if (element.shading == 'smooth') {
 						normal.fromArray(smooth_vertex_normals[vkey]);
 						normal.applyMatrix3( normalMatrixWorld ).normalize();
 						vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
@@ -191,7 +191,7 @@ var codec = new Codec('obj', {
 							nbVertexUvs += 1;
 						})
 
-						if (element.smooth_shading == false) {
+						if (element.shading == 'flat') {
 							normal.fromArray(face.getNormal(true));
 							normal.applyMatrix3( normalMatrixWorld ).normalize();
 							vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
@@ -217,7 +217,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + vi + 1 + indexVertexUvs,
-									element.smooth_shading ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets_a.push(triplet.join('/'));
 							})
@@ -228,7 +228,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + (vi ? 1 : 0) + vi + 1 + indexVertexUvs,
-									element.smooth_shading ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets_b.push(triplet.join('/'));
 							})
@@ -240,7 +240,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + vertices.indexOf(vkey) + 1 + indexVertexUvs,
-									element.smooth_shading ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets.push(triplet.join('/'));
 							})

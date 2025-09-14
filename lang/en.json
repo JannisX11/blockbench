@@ -2468,7 +2468,9 @@
 	"cube.color.pink": "Pink",
 	"cube.color.silver": "Silver",
 
-	"mesh.smooth_shading": "Smooth Shading",
+	"mesh.shading": "Shading",
+	"mesh.shading.flat": "Flat",
+	"mesh.shading.smooth": "Smooth",
 
 	"spline_mesh.cyclic": "Cyclic",
 	"spline_mesh.cyclic.desc": "Whether the selected spline should form a loop (Cycle)",

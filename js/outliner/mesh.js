@@ -711,7 +711,7 @@ export class Mesh extends OutlinerElement {
 	}
 	calculateNormals() {
 		let vertex_normals = {};
-		if (this.smooth_shading == true) {
+		if (this.shading == 'smooth') {
 			// Calculate smooth normals
 			let face_normals = {};
 			let used_vertices = new Set();
@@ -1037,11 +1037,14 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color');
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
-new Property(Mesh, 'boolean', 'smooth_shading', {
-	default: false,
+new Property(Mesh, 'boolean', 'shading', {
+	default: 'flat',
 	inputs: {
 		element_panel: {
-			input: {label: 'mesh.smooth_shading', type: 'checkbox'},
+			input: {label: 'mesh.shading', type: 'inline_select', options: {
+				flat: 'mesh.shading.flat',
+				smooth: 'mesh.shading.smooth',
+			}},
 			onChange() {
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
 			}
@@ -1171,7 +1174,7 @@ new NodePreviewController(Mesh, {
 		}
 
 		// Mesh geometry
-		let vertex_normals = element.smooth_shading && element.calculateNormals();
+		let vertex_normals = element.shading == 'smooth' && element.calculateNormals();
 
 		// Split Normals
 		for (let key in faces) {
@@ -1180,7 +1183,7 @@ new NodePreviewController(Mesh, {
 
 			let normal;
 
-			if (element.smooth_shading == false) {
+			if (element.shading == 'flat') {
 				normal = face.getNormal(true);
 			}
 
@@ -1188,7 +1191,7 @@ new NodePreviewController(Mesh, {
 				// Tri
 				face.vertices.forEach((vkey, i) => {
 					indices.push(position_array.length / 3);
-					addVertexPosition(vkey, element.smooth_shading ? vertex_normals[vkey] : normal);
+					addVertexPosition(vkey, element.shading == 'smooth' ? vertex_normals[vkey] : normal);
 				})
 
 			} else if (face.vertices.length == 4) {
@@ -1200,7 +1203,7 @@ new NodePreviewController(Mesh, {
 					if (!vertices[vkey]) {
 						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
 					}
-					addVertexPosition(vkey, element.smooth_shading ? vertex_normals[vkey] : normal);
+					addVertexPosition(vkey, element.shading == 'smooth' ? vertex_normals[vkey] : normal);
 					face_indices[vkey] = index_offset + i;
 				})
 

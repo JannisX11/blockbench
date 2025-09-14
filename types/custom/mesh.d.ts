@@ -99,7 +99,7 @@ interface MeshOptions {
 	name?: string
 	color?: number
 	visibility?: boolean
-	smooth_shading?: boolean
+	shading?: 'flat' | 'smooth'
 	rotation?: ArrayVector3
 	origin?: ArrayVector3
 	vertices?: {
@@ -109,7 +109,7 @@ interface MeshOptions {
 declare class Mesh extends OutlinerElement {
 	constructor(options: Partial<MeshOptions>, uuid?: string)
 
-	smooth_shading: boolean
+	shading: 'flat' | 'smooth'
 	visibility: boolean
 	color: number
 	origin: ArrayVector3

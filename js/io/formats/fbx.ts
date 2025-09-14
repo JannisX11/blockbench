@@ -298,7 +298,7 @@ var codec = new Codec('fbx', {
 			for (let vkey in mesh.vertices) {
 				addPosition(...mesh.vertices[vkey]);
 				vertex_keys.push(vkey);
-				if (mesh.smooth_shading == true) {
+				if (mesh.shading == 'smooth') {
 					normals.push(...mesh_normals[vkey]);
 				}
 			}
@@ -315,7 +315,7 @@ var codec = new Codec('fbx', {
 						uv.push(face.uv[vkey][0] / Project.getUVWidth(tex), 1 - face.uv[vkey][1] / Project.getUVHeight(tex));
 					})
 
-					if (mesh.smooth_shading == false) {
+					if (mesh.shading == 'flat') {
 						normals.push(...face.getNormal(true));
 					}
 					
@@ -351,7 +351,7 @@ var codec = new Codec('fbx', {
 					_values: [0],
 					Version: 101,
 					Name: "",
-					MappingInformationType: mesh.smooth_shading ? "ByVertex" : "ByPolygon",
+					MappingInformationType: mesh.shading == 'smooth' ? "ByVertex" : "ByPolygon",
 					ReferenceInformationType: "Direct",
 					Normals: {
 						_values: [`_*${normals.length}`],
