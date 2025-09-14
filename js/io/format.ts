@@ -244,6 +244,10 @@ interface FormatOptions {
 	 */
 	animation_controllers: boolean
 	/**
+	 * If true, interpolation between keyframes in looping animations will wrap around
+	 */
+	animation_loop_wrapping: boolean
+	/**
 	 * If true, use quaternion lerping to interpolate between rotation keyframes
 	 */
 	quaternion_interpolation: boolean
@@ -625,6 +629,7 @@ new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
 new Property(ModelFormat, 'boolean', 'animation_controllers');
+new Property(ModelFormat, 'boolean', 'animation_loop_wrapping');
 new Property(ModelFormat, 'boolean', 'quaternion_interpolation');
 new Property(ModelFormat, 'boolean', 'per_animator_rotation_interpolation');
 new Property(ModelFormat, 'boolean', 'image_editor');

@@ -405,9 +405,11 @@ export class BoneAnimator extends GeneralAnimator {
 	}
 	interpolate(channel, allow_expression, axis) {
 		let time = this.animation.time;
-		let before = false
-		let after = false
-		let result = false
+		let before = false;
+		let after = false;
+		let before_time = 0;
+		let after_time = 0;
+		let result = false;
 		let epsilon = 1/1200;
 		let use_quaternions = false;
 		if (channel == 'rotation') {
@@ -429,23 +431,33 @@ export class BoneAnimator extends GeneralAnimator {
 			}
 		}
 
-		let i = 0;
 		for (let keyframe of this[channel]) {
-
 			if (keyframe.time < time) {
-				if (!before || keyframe.time > before.time) {
+				if (!before || keyframe.time > before_time) {
 					before = keyframe
+					before_time = before.time;
 				}
 			} else  {
-				if (!after || keyframe.time < after.time) {
+				if (!after || keyframe.time < after_time) {
 					after = keyframe
+					after_time = after.time;
 				}
 			}
-			i++;
 		}
-		if (before && Math.epsilon(before.time, time, epsilon)) {
+		if (Format.animation_loop_wrapping && this.animation.loop == 'loop' && this[channel].length >= 2) {
+			let anim_length = this.animation.length;
+			if (!before) {
+				before = this[channel].findHighest(kf => kf.time);
+				before_time = before.time - anim_length;
+			}
+			if (!after) {
+				after = this[channel].findHighest(kf => -kf.time);
+				after_time = after.time + anim_length;
+			}
+		}
+		if (before && Math.epsilon(before_time, time, epsilon)) {
 			result = before
-		} else if (after && Math.epsilon(after.time, time, epsilon)) {
+		} else if (after && Math.epsilon(after_time, time, epsilon)) {
 			result = after
 		} else if (before && before.interpolation == Keyframe.interpolation.step) {
 			result = before
@@ -457,7 +469,7 @@ export class BoneAnimator extends GeneralAnimator {
 			//
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
-			let alpha = Math.getLerp(before.time, after.time, time)
+			let alpha = Math.getLerp(before_time, after_time, time)
 			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
 
 			if (use_quaternions) {
