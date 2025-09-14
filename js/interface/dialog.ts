@@ -61,7 +61,14 @@ function buildLines(dialog: Dialog) {
 			dialog.uses_wide_inputs = true;
 			dialog_content.append(bar);
 		} else if (typeof l == 'string') {
-			dialog_content.append(document.createTextNode(l));
+			if (l.match(/^\s*</)) {
+				let template = document.createElement('template');
+				template.innerHTML = l;
+				dialog_content.append(template.content);
+				console.warn('Usage of HTML template string in dialog "lines" is deprecated');
+			} else {
+				dialog_content.append(document.createTextNode(l));
+			}
 		} else if (l instanceof HTMLElement) {
 			dialog_content.append(l);
 		}
