@@ -280,7 +280,7 @@ export const Extruder = {
 			}
 		},
 		lines: [
-			`<canvas height="256" width="256" id="extrusion_canvas" class="checkerboard"></canvas>`
+			Interface.createElement('canvas', {height: 256, width: 256, id: 'extrusion_canvas', class: 'checkerboard'})
 		],
 		onConfirm(formResult) {
 			Extruder.startConversion(formResult);
