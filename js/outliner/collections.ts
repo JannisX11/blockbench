@@ -38,7 +38,6 @@ export class Collection {
 	children: string[]
 	export_path: string
 	codec: string
-	menu: Menu
 	export_codec: string
 	visibility: boolean
 
@@ -371,73 +370,74 @@ export class Collection {
 		})
 		dialog.show();
 	}
-}
-Collection.prototype.menu = new Menu([
-	new MenuSeparator('settings'),
-	new MenuSeparator('edit'),
-	'set_collection_content_to_selection',
-	'add_to_collection',
-	new MenuSeparator('copypaste'),
-	'copy',
-	'duplicate',
-	'delete',
-	new MenuSeparator('export'),
-	(collection) => {
-		let codec = Codecs[collection.codec];
-		if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
-			let export_action = codec.export_action;
-			return {
-				id: 'export_as',
-				name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
-				icon: export_action.icon,
-				description: export_action.description,
-				click() {
-					codec.writeCollection(collection);
-				}
-			}
-		}
-	},
-	{
-		id: 'export',
-		name: 'generic.export',
-		icon: 'insert_drive_file',
-		children: (collection) => {
-			let actions = [];
-			for (let id in Codecs) {
-				let codec = Codecs[id];
-				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
-
+	
+	public menu: Menu = new Menu([
+		new MenuSeparator('settings'),
+		new MenuSeparator('edit'),
+		'set_collection_content_to_selection',
+		'add_to_collection',
+		new MenuSeparator('copypaste'),
+		'copy',
+		'duplicate',
+		'delete',
+		new MenuSeparator('export'),
+		(collection) => {
+			let codec = Codecs[collection.codec];
+			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
 				let export_action = codec.export_action;
-				let new_action = {
-					name: export_action.name,
+				return {
+					id: 'export_as',
+					name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
 					icon: export_action.icon,
 					description: export_action.description,
 					click() {
-						codec.exportCollection(collection);
+						codec.writeCollection(collection);
 					}
 				}
-				if (id == 'project') {
-					new_action = {
-						name: 'menu.collection.export_project',
-						icon: 'icon-blockbench_file',
-						description: '',
+			}
+		},
+		{
+			id: 'export',
+			name: 'generic.export',
+			icon: 'insert_drive_file',
+			children: (collection) => {
+				let actions = [];
+				for (let id in Codecs) {
+					let codec = Codecs[id];
+					if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
+
+					let export_action = codec.export_action;
+					let new_action = {
+						name: export_action.name,
+						icon: export_action.icon,
+						description: export_action.description,
 						click() {
 							codec.exportCollection(collection);
 						}
 					}
+					if (id == 'project') {
+						new_action = {
+							name: 'menu.collection.export_project',
+							icon: 'icon-blockbench_file',
+							description: '',
+							click() {
+								codec.exportCollection(collection);
+							}
+						}
+					}
+					actions.push(new_action);
 				}
-				actions.push(new_action);
+				return actions;
 			}
-			return actions;
+		},
+		new MenuSeparator('properties'),
+		{
+			icon: 'list',
+			name: 'menu.texture.properties',
+			click(collection) { collection.propertiesDialog()}
 		}
-	},
-	new MenuSeparator('properties'),
-	{
-		icon: 'list',
-		name: 'menu.texture.properties',
-		click(collection) { collection.propertiesDialog()}
-	}
-])
+	])
+}
 new Property(Collection, 'string', 'name', {default: 'collection'});
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path');
