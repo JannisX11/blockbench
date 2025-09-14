@@ -244,6 +244,14 @@ interface FormatOptions {
 	 */
 	animation_controllers: boolean
 	/**
+	 * If true, use quaternion lerping to interpolate between rotation keyframes
+	 */
+	quaternion_interpolation: boolean
+	/**
+	 * Toggle quaternion interpolation per node / animator
+	 */
+	per_animator_rotation_interpolation: boolean
+	/**
 	 * If true, cube sizes will not be floored to calculate UV sizes with box UV. This can result in UVs not aligning with pixel edges
 	 */
 	box_uv_float_size: boolean
@@ -617,6 +625,8 @@ new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
 new Property(ModelFormat, 'boolean', 'animation_controllers');
+new Property(ModelFormat, 'boolean', 'quaternion_interpolation');
+new Property(ModelFormat, 'boolean', 'per_animator_rotation_interpolation');
 new Property(ModelFormat, 'boolean', 'image_editor');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});

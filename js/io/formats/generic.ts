@@ -23,6 +23,7 @@ new ModelFormat('free', {
 	per_texture_uv_size: true,
 	uv_rotation: true,
 	animation_mode: true,
+	per_animator_rotation_interpolation: true,
 	animated_textures: true,
 	locators: true,
 	pbr: true,

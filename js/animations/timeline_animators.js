@@ -11,6 +11,9 @@ export class GeneralAnimator {
 		for (let channel in this.channels) {
 			this.muted[channel] = false;
 		}
+		for (let key in this.constructor.properties) {
+			this.constructor.properties[key].reset(this);
+		}
 	}
 	get keyframes() {
 		let array = [];
@@ -18,6 +21,25 @@ export class GeneralAnimator {
 			if (this[channel] && this[channel].length) array.push(...this[channel]);
 		}
 		return array;
+	}
+	extend(data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].merge(this, data)
+		}
+	}
+	getUndoCopy(options) {
+		let copy = {
+			name: this.name,
+			type: this.type,
+		};
+		for (let key in this.constructor.properties) {
+			this.constructor.properties[key].copy(this, copy);
+		}
+		if (this.keyframes.length) copy.keyframes = [];
+		this.keyframes.forEach(kf => {
+			copy.keyframes.push(kf.getUndoCopy(true, {absolute_paths: options.absolute_paths}));
+		})
+		return copy;
 	}
 	select() {
 		var scope = this;
@@ -193,7 +215,7 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 	}
 	get name() {
-		var group = this.getGroup();
+		let group = this.getGroup();
 		if (group) return group.name;
 		return this._name;
 	}
@@ -383,10 +405,14 @@ export class BoneAnimator extends GeneralAnimator {
 	}
 	interpolate(channel, allow_expression, axis) {
 		let time = this.animation.time;
-		var before = false
-		var after = false
-		var result = false
+		let before = false
+		let after = false
+		let result = false
 		let epsilon = 1/1200;
+		let use_quaternions = false;
+		if (channel == 'rotation') {
+			use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+		}
 
 		function mapAxes(cb) {
 			if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
@@ -404,7 +430,7 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 
 		let i = 0;
-		for (var keyframe of this[channel]) {
+		for (let keyframe of this[channel]) {
 
 			if (keyframe.time < time) {
 				if (!before || keyframe.time > before.time) {
@@ -434,7 +460,25 @@ export class BoneAnimator extends GeneralAnimator {
 			let alpha = Math.getLerp(before.time, after.time, time)
 			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
 
-			if (no_interpolations || (
+			if (use_quaternions) {
+				let quat_before = before.getFixed(1, true);
+				let quat_after = after.getFixed(0, true);
+				let slerp = quat_before.slerp(quat_after, alpha);
+				Reusable.euler2.order = this.group.scene_object.rotation.order;
+				let euler = Reusable.euler2.setFromQuaternion(slerp);
+				
+				if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
+				if (axis) {
+					let value = Math.radToDeg(euler[axis]);
+					Animator._last_values[channel][getAxisNumber(axis)] = value;
+					return value;
+				} else {
+					let array = euler.toArray().slice(0, 3).map(Math.radToDeg);
+					Animator._last_values[channel] = array;
+					return array;
+				}
+
+			} else if (no_interpolations || (
 				before.interpolation === linear &&
 				(after.interpolation === linear || after.interpolation === step)
 			)) {
@@ -535,10 +579,24 @@ export class BoneAnimator extends GeneralAnimator {
 				Animator.preview();
 			}
 		},
+		{
+			id: 'quaternion_interpolation',
+			name: 'menu.animator.quaternion_interpolation',
+			condition: animator => animator instanceof BoneAnimator && Format.per_animator_rotation_interpolation,
+			icon: (animator) => animator.quaternion_interpolation == true,
+			click(animator) {
+				Undo.initEdit({animations: [Animation.selected]});
+				animator.quaternion_interpolation = !animator.quaternion_interpolation;
+				Undo.finishEdit('Toggle quaternion interpolation');
+				Animator.preview();
+			}
+		},
 		new MenuSeparator('presets'),
 		'apply_animation_preset'
 	])
 // -
+new Property(BoneAnimator, 'boolean', 'rotation_global', {default: false});
+new Property(BoneAnimator, 'boolean', 'quaternion_interpolation', {default: () => Format.quaternion_interpolation});
 
 class ArmatureBoneAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {

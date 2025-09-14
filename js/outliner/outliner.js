@@ -1229,7 +1229,7 @@ SharedActions.add('duplicate', {
 							if (!orig_animator) continue;
 							let new_animator = animation.getBoneAnimator(all_new[i]);
 		
-							new_animator.rotation_global = orig_animator.rotation_global;
+							new_animator.extend(orig_animator);
 							for (let kf of orig_animator.keyframes) {
 								new_animator.addKeyframe(kf);
 							}

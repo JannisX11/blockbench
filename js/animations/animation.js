@@ -73,6 +73,7 @@ export class Animation extends AnimationItem {
 					if (key == 'effects') {
 						// Effects
 						animator = this.animators[key] = new EffectAnimator(this);
+						animator.extend(animator_blueprint);
 					} else if (animator_blueprint.type && animator_blueprint.type !== 'bone') {
 						// Element
 						let uuid = isUUID(key) && key;
@@ -86,6 +87,7 @@ export class Animation extends AnimationItem {
 						if (element) {
 							animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name);
 						}
+						animator.extend(animator_blueprint);
 					} else {
 						// Bone
 						let uuid = isUUID(key) && key;
@@ -95,20 +97,20 @@ export class Animation extends AnimationItem {
 							uuid = group_match ? group_match.uuid : guid();
 						}
 						animator = this.animators[uuid] = new BoneAnimator(uuid, this, animator_blueprint.name);
-						if (animator_blueprint.rotation_global) animator.rotation_global = true;
+						animator.extend(animator_blueprint);
 					}
 				} else {
 					animator = this.animators[key];
 					for (let channel in animator.channels) {
 						animator[channel].empty()
 					}
+					animator.extend(animator_blueprint);
 				}
 				if (kfs && animator) {
 					kfs.forEach(kf_data => {
 						animator.addKeyframe(kf_data, kf_data.uuid);
 					})
 				}
-
 			}
 		}
 		if (data.markers instanceof Array) {
@@ -121,7 +123,7 @@ export class Animation extends AnimationItem {
 		return this;
 	}
 	getUndoCopy(options = 0, save) {
-		var copy = {
+		let copy = {
 			uuid: this.uuid,
 			name: this.name,
 			loop: this.loop,
@@ -130,7 +132,7 @@ export class Animation extends AnimationItem {
 			snapping: this.snapping,
 			selected: this.selected,
 		}
-		for (var key in Animation.properties) {
+		for (let key in Animation.properties) {
 			Animation.properties[key].copy(this, copy)
 		}
 		if (this.markers.length) {
@@ -138,20 +140,9 @@ export class Animation extends AnimationItem {
 		}
 		if (Object.keys(this.animators).length) {
 			copy.animators = {}
-			for (var uuid in this.animators) {
+			for (let uuid in this.animators) {
 				let ba = this.animators[uuid]
-				let kfs = ba.keyframes
-				if ((kfs && kfs.length) || ba.rotation_global || !save) {
-					let ba_copy = copy.animators[uuid] = {
-						name: ba.name,
-						type: ba.type,
-						rotation_global: ba.rotation_global ? true : undefined,
-						keyframes: []
-					}
-					kfs.forEach(kf => {
-						ba_copy.keyframes.push(kf.getUndoCopy(true, {absolute_paths: options.absolute_paths}));
-					})
-				}
+				copy.animators[uuid] = ba.getUndoCopy(options);
 			}
 		}
 		return copy;
@@ -1831,13 +1822,15 @@ BARS.defineActions(function() {
 						kf.animator = target;
 					}
 				}
-				target.rotation_global = source.rotation_global;
+				target.extend(source);
 			}
 			function resetAnimator(animator) {
 				for (let channel in animator.channels) {
 					animator[channel].empty();
 				}
-				animator.rotation_global = false;
+				for (let key in animator.constructor.properties) {
+					animator.constructor.properties[key].reset(animator);
+				}
 			}
 
 			for (let animator of all_animators) {

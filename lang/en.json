@@ -2414,6 +2414,7 @@
 	"menu.animation_file.import_remaining": "Import Remaining from File",
 
 	"menu.animator.rotation_global": "Rotate in Global Space",
+	"menu.animator.quaternion_interpolation": "Quaternion Interpolation",
 
 	"menu.keyframe.quaternion": "Quaternion",
 
