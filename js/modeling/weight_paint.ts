@@ -83,12 +83,12 @@ new Tool('weight_brush', {
 		if (data.event.altKey || Pressing.overrides.alt) return;
 		let preview = Preview.selected as Preview;
 		let preview_offset = $(preview.canvas).offset();
-		let armature_bone = ArmatureBone.selected[0] as ArmatureBone;
-		let other_bones = armature_bone.getArmature().getAllBones() as ArmatureBone[];
-		other_bones.remove(armature_bone);
+		let armature_bone = ArmatureBone.selected[0] as ArmatureBone | undefined;
 		if (!armature_bone) {
 			return Blockbench.showQuickMessage('Select an armature bone first!');
 		}
+		let other_bones = armature_bone.getArmature().getAllBones() as ArmatureBone[];
+		other_bones.remove(armature_bone);
 		if (data.element instanceof Mesh == false) {
 			return;
 		}

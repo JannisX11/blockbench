@@ -1112,7 +1112,7 @@ new NodePreviewController(Mesh, {
 		let armature_bone;
 		let all_armature_bones = [];
 		let bone_marker_colors;
-		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0]) {
+		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0] && element.getArmature()) {
 			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
 			all_armature_bones = element.getArmature().getAllBones();
 			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
