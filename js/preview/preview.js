@@ -859,6 +859,10 @@ export class Preview {
 			if (!Condition(BarItems.selection_mode.condition)) {
 				select_mode = 'object';
 			}
+			if (select_mode != 'object') {
+				multi_select = group_select;
+				group_select = false;
+			}
 
 			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))) {
 				Undo.initSelection();
@@ -884,6 +888,7 @@ export class Preview {
 						while (node_to_select.parent instanceof Group && node_to_select.selected) {
 							node_to_select = node_to_select.parent;
 						}
+						console.log('GSEL')
 					}
 					if (multi_select) {
 						node_to_select.multiSelect();
