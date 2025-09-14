@@ -1037,8 +1037,9 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color');
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
-new Property(Mesh, 'boolean', 'shading', {
+new Property(Mesh, 'enum', 'shading', {
 	default: 'flat',
+	values: ['flat', 'smooth'],
 	inputs: {
 		element_panel: {
 			input: {label: 'mesh.shading', type: 'inline_select', options: {

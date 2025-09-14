@@ -324,7 +324,6 @@ new Property(ArmatureBone, 'boolean', 'connected', {
 				ArmatureBone.selected.forEach(b => {
 					if (b.parent instanceof ArmatureBone) parents.safePush(b.parent)
 				});
-				console.log(parents)
 				Canvas.updateView({elements: parents, element_aspects: {transform: true}});
 			}
 		}
