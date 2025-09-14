@@ -32,8 +32,8 @@ export class KeyframeDataPoint {
 		}
 	}
 	getUndoCopy() {
-		var copy = {}
-		for (var key in KeyframeDataPoint.properties) {
+		let copy = {}
+		for (let key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].copy(this, copy)
 		}
 		return copy;
@@ -553,10 +553,8 @@ export class Keyframe {
 	Keyframe.prototype.menu = new Menu([
 		new MenuSeparator('settings'),
 		'keyframe_uniform',
-		'keyframe_interpolation',
 		'keyframe_bezier_linked',
-		'reset_keyframe_handles',
-		'reset_keyframe',
+		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
 				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -569,7 +567,11 @@ export class Keyframe {
 					}
 				}})
 			];
-		}},,
+		}},
+		new MenuSeparator('actions'),
+		'resolve_keyframe_expressions',
+		'reset_keyframe_handles',
+		'reset_keyframe',
 		new MenuSeparator('copypaste'),
 		'copy',
 		'save_animation_preset',
