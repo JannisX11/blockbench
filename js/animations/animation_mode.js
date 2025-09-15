@@ -3,6 +3,7 @@ import Wintersky from 'wintersky';
 import { Mode } from "../modes";
 import { invertMolang } from "../util/molang";
 import { fs } from "../native_apis";
+import { openMolangEditor } from "./molang_editor";
 
 export const Animator = {
 	get possible_channels() {
