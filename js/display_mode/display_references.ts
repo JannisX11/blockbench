@@ -684,7 +684,7 @@ const DisplayReferences = {
 	},
 	frame_top_block: {
 		texture: 'assets/missing.png',
-		cubes: [
+		elements: [
 			{"size": [16,16,16], "pos": [8, -8.01, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]
 	},
