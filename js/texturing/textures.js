@@ -1869,7 +1869,7 @@ export class Texture {
 			{
 				icon: 'list',
 				name: 'menu.texture.render_mode',
-				condition: (texture) => (!texture.getGroup()?.is_material),
+				condition: (texture) => (Format.edit_mode && !texture.getGroup()?.is_material),
 				children(texture) {
 					function setViewMode(mode) {
 						let update_layered = (mode == 'layered' || texture.render_mode == 'layered');
