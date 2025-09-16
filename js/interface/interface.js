@@ -993,7 +993,7 @@ onVueSetup(function() {
 						Mesh.selected.forEach(mesh => {
 							let processed_lines = [];
 							mesh.forAllFaces(face => {
-								let vertices = face.getSortedVertices();
+								let vertices = face.vertices;
 								vertices.forEach((vkey, i) => {
 									let vkey2 = vertices[i+1] || vertices[0];
 									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {

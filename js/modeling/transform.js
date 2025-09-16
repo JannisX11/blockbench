@@ -721,6 +721,7 @@ export function moveElementsInSpace(difference, axis) {
 			ProportionalEdit.editVertices(el, (vkey, blend) => {
 				el.vertices[vkey].V3_add(difference_vec[0] * blend, difference_vec[1] * blend, difference_vec[2] * blend);
 			})
+			el.sortAllFaceVertices();
 
 		}
 		// Spline handle point translation
@@ -984,6 +985,9 @@ export function rotateOnAxis(modify, axis, slider) {
 					obj.applyHandleModeOnVertex(key);
 				}
 			})
+			if (obj instanceof Mesh) {
+				obj.sortAllFaceVertices();
+			}
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);

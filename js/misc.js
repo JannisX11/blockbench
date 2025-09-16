@@ -203,7 +203,7 @@ export function updateSelection(options = {}) {
 		let selected_edges = Mesh.selected[0].getSelectedEdges();
 		Mesh.selected[0].forAllFaces((face) => {
 			if (value == '') return;
-			let vertices = face.getSortedVertices();
+			let vertices = face.vertices;
 			vertices.forEach((vkey_a, i) => {
 				let vkey_b = vertices[i+1] || vertices[0];
 				if (selected_edges.find(edge => sameMeshEdge(edge, [vkey_a, vkey_b]))) {

@@ -76,7 +76,7 @@ export class MeshFace extends Face {
 		let face = this;
 		let rect = this.getBoundingRect();
 		let texture = texture_space && this.getTexture();
-		let sorted_vertices = this.getSortedVertices();
+		let sorted_vertices = this.vertices;
 		let factor_x = texture ? (texture.width  / texture.getUVWidth()) : 1;
 		let factor_y = texture ? (texture.display_height / texture.getUVHeight()) : 1;
 
@@ -226,7 +226,7 @@ export class MeshFace extends Face {
 			normal_vec,
 			vec2.fromArray(this.mesh.vertices[this.vertices[0]])
 		)
-		let sorted_vertices = this.getSortedVertices();
+		let sorted_vertices = this.vertices;
 		let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
 		let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
 		
@@ -254,7 +254,7 @@ export class MeshFace extends Face {
 		return false;
 	}
 	getEdges() {
-		let vertices = this.getSortedVertices();
+		let vertices = this.vertices;
 		if (vertices.length == 2) {
 			return [vertices];
 		} else if (vertices.length > 2) {
@@ -267,7 +267,7 @@ export class MeshFace extends Face {
 		}
 	}
 	getAdjacentFace(side_index = 0) {
-		let vertices = this.getSortedVertices();
+		let vertices = this.vertices;
 		side_index = side_index % this.vertices.length;
 		let side_vertices = [
 			vertices[side_index],
@@ -277,7 +277,7 @@ export class MeshFace extends Face {
 			let face = this.mesh.faces[fkey];
 			if (face === this) continue;
 			if (face.vertices.includes(side_vertices[0]) && face.vertices.includes(side_vertices[1])) {
-				let f_vertices = face.getSortedVertices();
+				let f_vertices = face.vertices;
 				let index_a = f_vertices.indexOf(side_vertices[0]);
 				let index_b = f_vertices.indexOf(side_vertices[1]);
 				if (index_b - index_a == -1 || (index_b - index_a == f_vertices.length-1)) {
@@ -297,7 +297,7 @@ export class MeshFace extends Face {
 			if (this.mesh.faces[fkey] == this) return fkey;
 		}
 	}
-	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv, vertices = this.getSortedVertices()) {
+	texelToLocalMatrix(uv, truncate_factor = [1, 1], truncated_uv, vertices = this.vertices) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
@@ -347,7 +347,7 @@ export class MeshFace extends Face {
 		matrix.setPosition(texel_pos);
 		return matrix;
 	}
-	UVToLocal(uv, vertices = this.getSortedVertices()) {
+	UVToLocal(uv, vertices = this.vertices) {
 		let vert_a = vertices[0];
 		let vert_b = vertices[1];
 		let vert_c = vertices[2];
@@ -925,6 +925,7 @@ export class Mesh extends OutlinerElement {
 			vec2.applyEuler(Transformer.rotation_selection);
 			this.vertices[key].replace(vec2.toArray())
 		})
+		this.sortAllFaceVertices();
 		this.preview_controller.updateGeometry(this);
 	}
 	applyTexture(texture, faces) {
@@ -1198,7 +1199,7 @@ new NodePreviewController(Mesh, {
 			} else if (face.vertices.length == 4) {
 				// Quad
 				let index_offset = position_array.length / 3;
-				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
+				let sorted_vertices = face.vertices;
 				let face_indices = {};
 				face.vertices.forEach((vkey, i) => {
 					if (!vertices[vkey]) {
@@ -1298,7 +1299,7 @@ new NodePreviewController(Mesh, {
 				mesh.outline.vertex_order.push(face.vertices[0]);
 
 			} else if (face.vertices.length == 4) {
-				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
+				let sorted_vertices = Modes.animate ? face.vertices : face.vertices;
 				sorted_vertices.forEach((key, i) => {
 					mesh.outline.vertex_order.push(key);
 					if (i != 0) mesh.outline.vertex_order.push(key);
@@ -1603,7 +1604,7 @@ new NodePreviewController(Mesh, {
 			var psize_x = texture ? texture.getUVWidth() / texture.width : 1;
 			var psize_y = texture ? texture.getUVHeight() / texture.display_height : 1;
 
-			let vertices = face.getSortedVertices();
+			let vertices = face.vertices;
 			let tris = vertices.length == 3 ? [vertices] : [vertices.slice(0, 3), [vertices[0], vertices[2], vertices[3]]];
 			tris.forEach(tri_vertices => {
 				let x_memory = {};
@@ -1710,7 +1711,7 @@ new NodePreviewController(Mesh, {
 		} else if (selection_mode == 'edge') {
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
-				let vertices = face.getSortedVertices();
+				let vertices = face.vertices;
 				for (let i = 0; i < vertices.length; i++) {
 					let vkey = vertices[i];
 					let vkey2 = vertices[i+1]||vertices[0];
@@ -1732,7 +1733,7 @@ new NodePreviewController(Mesh, {
 			}
 			for (let fkey in element.faces) {
 				let face = element.faces[fkey];
-				let vertices = face.getSortedVertices();
+				let vertices = face.vertices;
 				let face_intersects;
 				for (let i = 0; i < vertices.length; i++) {
 					let vkey = vertices[i];
