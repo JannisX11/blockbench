@@ -39,7 +39,7 @@ export class MeshFace extends Face {
 		return copy;
 	}
 	getNormal(normalize, alt_tri) {
-		let vertices = this.getSortedVertices();
+		let vertices = this.vertices;
 		if (vertices.length < 3) return [0, 0, 0];
 		let indices = [0, 1, 2];
 		if (vertices.length == 4 && alt_tri) {
@@ -1198,7 +1198,7 @@ new NodePreviewController(Mesh, {
 			} else if (face.vertices.length == 4) {
 				// Quad
 				let index_offset = position_array.length / 3;
-				let sorted_vertices = face.getSortedVertices();
+				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
 				let face_indices = {};
 				face.vertices.forEach((vkey, i) => {
 					if (!vertices[vkey]) {
@@ -1298,7 +1298,7 @@ new NodePreviewController(Mesh, {
 				mesh.outline.vertex_order.push(face.vertices[0]);
 
 			} else if (face.vertices.length == 4) {
-				let sorted_vertices = face.getSortedVertices();
+				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
 				sorted_vertices.forEach((key, i) => {
 					mesh.outline.vertex_order.push(key);
 					if (i != 0) mesh.outline.vertex_order.push(key);

@@ -42,6 +42,9 @@ export const Animator = {
 
 		Animator.open = true;
 		Canvas.updateAllBones();
+		for (let mesh of Mesh.all) {
+			mesh.sortAllFaceVertices();
+		}
 		Animator.MolangParser.resetVariables();
 		processVariablePlaceholderText(Project.variable_placeholders);
 
