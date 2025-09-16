@@ -480,7 +480,11 @@ UndoSystem.save = class {
 			}
 			for (let group_data of reference.groups) {
 				if (!this.groups.find(g => g.uuid == group_data.uuid)) {
-					OutlinerNode.uuids[group_data.uuid]?.remove();
+					let group = OutlinerNode.uuids[group_data.uuid];
+					if (group) {
+						group.children.empty();
+						group.remove();
+					}
 				}
 			}
 		}
