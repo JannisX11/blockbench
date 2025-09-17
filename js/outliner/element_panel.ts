@@ -105,6 +105,14 @@ Interface.definePanels(function() {
 	Blockbench.on('register_element_type', () => {
 		updateElementForm();
 	});
+	let timeout: NodeJS.Timeout | undefined;
+	Blockbench.on('loaded_plugin', () => {
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout(() => {
+			updateElementForm();
+			timeout = undefined;
+		}, 50);
+	});
 	Blockbench.on('update_selection', () => {
 		let values = {};
 		for (let type_id in OutlinerElement.types) {

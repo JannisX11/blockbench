@@ -363,6 +363,13 @@ export class Plugin {
 			scope.installed = true;
 		})
 	}
+	runOnLoad() {
+		if (typeof this.unload != 'function') return;
+		Plugins.currently_loading = this.id;
+		this.onload();
+		Plugins.currently_loading = '';
+		Blockbench.dispatchEvent('loaded_plugin', {plugin: this});
+	}
 	async installDependencies(first) {
 		let required_dependencies = [];
 		for (let id of this.dependencies) {
@@ -684,9 +691,7 @@ export class Plugin {
 			this.disabled = true;
 			this.unload()
 		} else {
-			if (this.onload) {
-				this.onload()
-			}
+			this.runOnLoad();
 			this.disabled = false;
 		}
 		this.#remember();
@@ -961,12 +966,10 @@ export class Plugin {
 			})
 			return;
 		};
-		plugin.extend(data)
+		plugin.extend(data);
 		if (plugin.isInstallable() == true && plugin.disabled == false) {
 			if (plugin.onload instanceof Function) {
-				Plugins.currently_loading = id;
-				plugin.onload();
-				Plugins.currently_loading = '';
+				plugin.runOnLoad();
 			}
 		}
 		return plugin;
