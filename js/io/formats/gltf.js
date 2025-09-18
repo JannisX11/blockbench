@@ -1,4 +1,5 @@
 import { THREE } from "../../lib/libs";
+import { Armature } from "../../outliner/armature";
 
 export function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
@@ -306,7 +307,7 @@ export function buildSkinnedMeshFromGroup(root_group) {
 export function buildSkinnedMesh(mesh_obj, armature, scale) {
 	let skinIndices = [];
 	let skinWeights = [];
-	let bones = [], bones_by_uuid = {};
+	let bones = [], root_bones = [], bones_by_uuid = {};
 
 	let armature_bones = armature.getAllBones();
 
@@ -321,6 +322,7 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 			bones_by_uuid[armature_bone.parent.uuid].add(bone);
 		}
 		bones.push(bone);
+		if (armature_bone.parent instanceof Armature) root_bones.push(bone);
 		bones_by_uuid[armature_bone.uuid] = bone;
 	}
 	let skeleton = new THREE.Skeleton(bones);	
@@ -353,7 +355,7 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 		}
 	}
 
-	skinned_mesh.add(skeleton.bones[0]);
+	root_bones.forEach(bone => skinned_mesh.add(bone));
 	skinned_mesh.bind(skeleton);
 	
 	geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
@@ -388,14 +390,29 @@ var codec = new Codec('gltf', {
 			if (node instanceof Group && options.armature) {
 				let skinned_mesh = buildSkinnedMeshFromGroup(node, options.scale);
 				gl_scene.children.push(skinned_mesh);
-			} else if (node instanceof Mesh && node.getArmature()) {
-				let armature = node.getArmature();
-				let skinned_mesh = buildSkinnedMesh(node, armature, options.scale);
-				gl_scene.children.push(skinned_mesh);
-			} else {
+			} else if (!node.scene_object.no_export) {
 				gl_scene.children.push(node.mesh);
 			}
 		})
+		const remove_later = [];
+		const add_back_later = [];
+		for (let armature of Armature.all) {
+			let node = armature.children.find(c => c instanceof Mesh);
+			if (node) {
+				let skinned_mesh = buildSkinnedMesh(node, armature, options.scale);
+				if (armature.parent == Outliner.ROOT) {
+					gl_scene.add(skinned_mesh);
+					remove_later.push([gl_scene, skinned_mesh]);
+				} else {
+					armature.parent.scene_object.add(skinned_mesh);
+					remove_later.push([armature.parent.scene_object, skinned_mesh]);
+				}
+			}
+			if (armature.root != Outliner.ROOT) {
+				add_back_later.push([armature.scene_object.parent, armature.scene_object]);
+				armature.scene_object.parent.children.remove(armature.scene_object);
+			}
+		}
 		
 		try {
 			if (BarItems.view_mode.value !== 'textured') {
@@ -418,6 +435,13 @@ var codec = new Codec('gltf', {
 					exportFaceColors: false,
 				});
 			})
+
+			for (let [parent, object] of remove_later) {
+				parent.children.remove(object);
+			}
+			for (let [parent, object] of add_back_later) {
+				parent.add(object);
+			}
 			
 			scope.dispatchEvent('compile', {model: result, options});
 			if (options.encoding == 'binary') {
@@ -458,4 +482,10 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
+})
+
+Object.assign(window, {
+	buildAnimationTracks,
+	buildSkinnedMesh,
+	buildSkinnedMeshFromGroup
 })
