@@ -1452,7 +1452,8 @@ export class Preview {
 		unselectAllElements()
 		Outliner.elements.forEach((element) => {
 			let isSelected;
-			if (extend_selection && this.selection.old_selected.includes(element) && ((element instanceof Mesh == false || selection_mode == 'object') || (element instanceof SplineMesh == false || spline_selection_mode == "object"))) {
+			let select_in_object_mode = (element instanceof Mesh == false || selection_mode == 'object') && (element instanceof SplineMesh == false || spline_selection_mode == "object");
+			if (extend_selection && this.selection.old_selected.includes(element) && select_in_object_mode) {
 				isSelected = true
 
 			} else if (element.preview_controller?.viewportRectangleOverlap && element.mesh) {
