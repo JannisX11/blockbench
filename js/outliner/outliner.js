@@ -768,7 +768,7 @@ export class NodePreviewController extends EventSystem {
 		mesh.type = element.type;
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
-		mesh.rotation.order = 'ZYX';
+		mesh.rotation.order = Format.euler_order;
 		this.updateTransform(element);
 
 		this.dispatchEvent('setup', {element});

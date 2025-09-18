@@ -606,7 +606,7 @@ new NodePreviewController(Group, {
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
-		bone.rotation.order = 'ZYX';
+		bone.rotation.order = Format.euler_order;
 
 		this.dispatchEvent('update_transform', {group});
 	},

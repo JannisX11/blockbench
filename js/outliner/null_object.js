@@ -137,7 +137,7 @@ new NodePreviewController(NullObject, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
-		mesh.rotation.order = 'ZYX';
+		mesh.rotation.order = Format.euler_order;
 		element.mesh.fix_position = new THREE.Vector3();
 		this.updateTransform(element);
 

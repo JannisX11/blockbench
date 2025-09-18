@@ -109,7 +109,7 @@ new NodePreviewController(Locator, {
 		mesh.type = element.type;
 		mesh.isElement = true;
 		mesh.visible = element.visibility;
-		mesh.rotation.order = 'ZYX';
+		mesh.rotation.order = Format.euler_order;
 
 		let material = new THREE.SpriteMaterial({
 			map,

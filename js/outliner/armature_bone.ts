@@ -353,7 +353,7 @@ new NodePreviewController(ArmatureBone, {
 	}),
 	setup(element: ArmatureBone) {
 		let object_3d = new THREE.Bone() as FakeObjectType & THREE.Bone;
-		object_3d.rotation.order = 'ZYX';
+		object_3d.rotation.order = Format.euler_order;
 		object_3d.uuid = element.uuid.toUpperCase();
 		object_3d.name = element.name;
 		//object_3d.isElement = true;
@@ -427,7 +427,7 @@ new NodePreviewController(ArmatureBone, {
 		let bone = element.scene_object as FakeObjectType & THREE.Bone;
 		let armature = element.getArmature();
 
-		bone.rotation.order = 'ZYX';
+		bone.rotation.order = Format.euler_order;
 		// @ts-expect-error
 		bone.rotation.setFromDegreeArray(element.rotation);
 		bone.position.fromArray(element.origin);

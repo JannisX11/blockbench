@@ -275,7 +275,7 @@ export class Keyframe {
 				(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
 				(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
 				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
-				'ZYX'
+				Format.euler_order
 			)
 			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
 		} else if (this.channel === 'position') {

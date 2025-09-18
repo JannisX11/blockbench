@@ -368,7 +368,7 @@ export class BoneAnimator extends GeneralAnimator {
 
 		if (arr) {
 			if (arr.length === 4) {
-				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), Format.euler_order)
 				bone.rotation.x += added_rotation.x * multiplier
 				bone.rotation.y += added_rotation.y * multiplier
 				bone.rotation.z += added_rotation.z * multiplier
@@ -679,7 +679,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		var mesh = this.element.mesh
 		if (arr) {
 			if (arr.length === 4) {
-				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), Format.euler_order)
 				mesh.rotation.x += added_rotation.x * multiplier
 				mesh.rotation.y += added_rotation.y * multiplier
 				mesh.rotation.z += added_rotation.z * multiplier
@@ -857,7 +857,7 @@ export class NullObjectAnimator extends BoneAnimator {
 
 			Reusable.quat1.setFromUnitVectors(bone_ref.last_diff, end.sub(start).normalize());
 			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
-			rotation.setFromQuaternion(Reusable.quat1, 'ZYX');
+			rotation.setFromQuaternion(Reusable.quat1, Format.euler_order);
 
 			bone_ref.bone.mesh.rotation.x += rotation.x;
 			bone_ref.bone.mesh.rotation.y += rotation.y;

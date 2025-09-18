@@ -188,6 +188,10 @@ interface FormatOptions {
 	 */
 	rotation_snap: boolean
 	/**
+	 * Rotation euler order for outliner nodes
+	 */
+	euler_order: THREE.EulerOrder
+	/**
 	 * Allows cube UVs to be rotated
 	 */
 	uv_rotation: boolean
@@ -640,6 +644,7 @@ new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
+new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
 
 Object.assign(window, {
