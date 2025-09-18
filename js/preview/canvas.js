@@ -766,37 +766,8 @@ export const Canvas = {
 	updateAllBones(bones = Group.all) {
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
-			let bone = obj.mesh
-			if (bone && obj instanceof Group) {
-
-				bone.rotation.order = 'ZYX';
-				bone.rotation.setFromDegreeArray(obj.rotation);
-				bone.position.fromArray(obj.origin);
-				bone.scale.x = bone.scale.y = bone.scale.z = 1;
-
-				if (obj.parent.type === 'group') {
-
-					bone.position.x -=  obj.parent.origin[0];
-					bone.position.y -=  obj.parent.origin[1];
-					bone.position.z -=  obj.parent.origin[2];
-
-					var parent_bone = obj.parent.mesh;
-					parent_bone.add(bone);
-				} else {
-					Project.model_3d.add(bone);
-				}
-
-				bone.fix_position = bone.position.clone();
-				bone.fix_rotation = bone.rotation.clone();
-			}
+			obj.preview_controller.updateTransform(obj);
 		})
-		if (bones == Group.all) {
-			scene.updateMatrixWorld();
-		} else {
-			bones.forEach(bone => {
-				bone.mesh.updateMatrixWorld();
-			})
-		}
 	},
 	updatePivotMarker() {
 		if (Canvas.pivot_marker.parent) {

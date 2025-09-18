@@ -142,7 +142,7 @@ export class Armature extends OutlinerElement {
 				// @ts-ignore
 				cb(this.children[i])
 			}
-			if (this.children[i].type === 'armature_bone') {
+			if (this.children[i].forEachChild) {
 				this.children[i].forEachChild(cb, type)
 			}
 			i++;

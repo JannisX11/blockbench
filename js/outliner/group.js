@@ -435,7 +435,7 @@ export class Group extends OutlinerNode {
 			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
 				cb(this.children[i])
 			}
-			if (this.children[i].type === 'group') {
+			if (this.children[i].forEachChild) {
 				this.children[i].forEachChild(cb, type)
 			}
 			i++;
@@ -606,13 +606,16 @@ new NodePreviewController(Group, {
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
+		bone.rotation.order = 'ZYX';
 
 		this.dispatchEvent('update_transform', {group});
 	},
 	updateTransform(group) {
-		Canvas.updateAllBones([group]);
-
-		this.dispatchEvent('update_transform', {group});
+		NodePreviewController.prototype.updateTransform.call(this, group);
+		let bone = group.scene_object;
+		bone.scale.x = bone.scale.y = bone.scale.z = 1;
+		bone.fix_position = bone.position.clone();
+		bone.fix_rotation = bone.rotation.clone();
 	}
 })
 

@@ -260,7 +260,7 @@ export class ArmatureBone extends OutlinerElement {
 			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
 				cb(this.children[i])
 			}
-			if (this.children[i].type === 'armature_bone') {
+			if (this.children[i].forEachChild) {
 				this.children[i].forEachChild(cb, type)
 			}
 			i++;

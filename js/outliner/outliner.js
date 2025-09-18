@@ -1,6 +1,7 @@
 import { Blockbench } from "../api"
 
 export const Outliner = {
+	ROOT: 'root',
 	root: [],
 	get elements() {
 		return Project.elements || []

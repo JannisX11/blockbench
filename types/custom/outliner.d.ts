@@ -196,6 +196,7 @@ interface OutlinerToggle {
 
 declare namespace Outliner {
 	const root: OutlinerNode[]
+	const ROOT: 'root'
 	const elements: OutlinerElement[]
 	const selected: OutlinerElement[]
 	let control_menu_group: MenuItem[]
