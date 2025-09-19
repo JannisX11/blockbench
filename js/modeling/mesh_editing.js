@@ -232,7 +232,7 @@ export class KnifeToolContext {
 			}
 
 			let uv_data = {};
-			let face_sorted_vertices = face.vertices;
+			let face_sorted_vertices = face.getSortedVertices();
 			old_face_normal.fromArray(face.getNormal(true));
 			delete mesh.faces[fkey];
 			for (let vkey of face_sorted_vertices) {
@@ -1034,7 +1034,7 @@ SharedActions.add('delete', {
 			} else if (BarItems.selection_mode.value == 'edge') {
 				for (let key in mesh.faces) {
 					let face = mesh.faces[key];
-					let sorted_vertices = face.vertices;
+					let sorted_vertices = face.getSortedVertices();
 					let has_edge = sorted_vertices.find((vkey_a, i) => {
 						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
 						let edge = [vkey_a, vkey_b];
@@ -1124,7 +1124,7 @@ SharedActions.add('select_all', {
 					let edges = mesh.getSelectedEdges(true);
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
-						let f_vertices = face.vertices;
+						let f_vertices = face.getSortedVertices();
 						f_vertices.forEach((vkey_a, i) => {
 							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
 							if (edges.find(edge2 => sameMeshEdge(edge2, edge))) return;
@@ -1176,7 +1176,7 @@ SharedActions.add('invert_selection', {
 				
 				for (let fkey in mesh.faces) {
 					let face = mesh.faces[fkey];
-					let f_vertices = face.vertices;
+					let f_vertices = face.getSortedVertices();
 					f_vertices.forEach((vkey_a, i) => {
 						let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
 						if (!old_edges.find(edge2 => sameMeshEdge(edge2, edge))) {
@@ -1560,7 +1560,6 @@ BARS.defineActions(function() {
 						})
 					}
 				}
-				mesh.sortAllFaceVertices();
 
 				elements.push(mesh);
 				mesh.init()
@@ -1655,7 +1654,7 @@ BARS.defineActions(function() {
 					let faces = mesh.getSelectedFaces(true);
 					faces.forEach(fkey => {
 						let face = mesh.faces[fkey];
-						let vertices = face.vertices;
+						let vertices = face.getSortedVertices();
 						vertices.forEach((vkey_a, i) => {
 							let edge = [vkey_a, (vertices[i+1] || vertices[0])];
 							if (!edges.find(edge2 => sameMeshEdge(edge2, edge))) {
@@ -1673,7 +1672,7 @@ BARS.defineActions(function() {
 					if (!vertices.length) return;
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
-						let f_vertices = face.vertices;
+						let f_vertices = face.getSortedVertices();
 						f_vertices.forEach((vkey_a, i) => {
 							let edge = [vkey_a, (f_vertices[i+1] || f_vertices[0])];
 							if (!vertices.includes(edge[0]) || !vertices.includes(edge[1])) return;
@@ -1846,7 +1845,7 @@ BARS.defineActions(function() {
 						reference_face.vertices.filter(vkey => selected_vertices.includes(vkey)).length == selected_vertices.length
 					) {
 
-						let sorted_vertices = reference_face.vertices;
+						let sorted_vertices = reference_face.getSortedVertices();
 						let unselected_vertices = sorted_vertices.filter(vkey => !selected_vertices.includes(vkey));
 
 						let side_index_diff = Math.abs(sorted_vertices.indexOf(selected_vertices[0]) - sorted_vertices.indexOf(selected_vertices[1]));
@@ -1890,7 +1889,7 @@ BARS.defineActions(function() {
 								let face = mesh.faces[key];
 								let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key))
 								if (common.length == 2) {
-									let old_vertices = face.vertices;
+									let old_vertices = face.getSortedVertices();
 									let new_vertices = new_face.getSortedVertices();
 									let index_diff = old_vertices.indexOf(common[0]) - old_vertices.indexOf(common[1]);
 									let new_index_diff = new_vertices.indexOf(common[0]) - new_vertices.indexOf(common[1]);
@@ -1969,7 +1968,6 @@ BARS.defineActions(function() {
 						start_index += 3;
 					}
 				}
-				mesh.sortAllFaceVertices();
 			})
 			UVEditor.setAutoSize(null, true, faces_to_autouv);
 			Undo.finishEdit('Create mesh face')
@@ -2383,7 +2381,6 @@ BARS.defineActions(function() {
 						});
 					})
 
-					mesh.sortAllFaceVertices();
 					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
 				Undo.finishEdit('Extrude mesh selection');
@@ -2540,7 +2537,7 @@ BARS.defineActions(function() {
 					// Create extra quads on sides
 					let remaining_vertices = new_vertices.slice();
 					selected_faces.forEach((face, face_index) => {
-						let vertices = face.vertices;
+						let vertices = face.getSortedVertices();
 						vertices.forEach((a, i) => {
 							let b = vertices[i+1] || vertices[0];
 							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
@@ -2564,7 +2561,6 @@ BARS.defineActions(function() {
 						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
 
-					mesh.sortAllFaceVertices();
 					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
 				Undo.finishEdit('Solidify mesh selection');
@@ -2688,7 +2684,6 @@ BARS.defineActions(function() {
 						}
 						delete mesh.vertices[b];
 					})
-					mesh.sortAllFaceVertices();
 					UVEditor.setAutoSize(null, true, modified_face_keys);
 
 				})
@@ -2720,7 +2715,7 @@ BARS.defineActions(function() {
 						let face = mesh.faces[fkey];
 						if (!face.vertices.includes(edge[0]) || !face.vertices.includes(edge[1])) continue;
 						
-						let vertices = face.vertices;
+						let vertices = face.getSortedVertices();
 						let index_a = vertices.indexOf(edge[0]), index_b = vertices.indexOf(edge[1]);
 						if (vertices.length < 4 || (Math.abs(index_a - index_b) != 2)) {
 							adjacent_faces.push(face);
@@ -2780,7 +2775,6 @@ BARS.defineActions(function() {
 					}
 				}
 				selected_vertices.empty();
-				mesh.sortAllFaceVertices();
 			})
 			Undo.finishEdit('Dissolve edges')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
@@ -2928,7 +2922,6 @@ BARS.defineActions(function() {
 				}
 			}
 			cleanupOverlappingMeshFaces(mesh);
-			mesh.sortAllFaceVertices();
 		})
 		Undo.finishEdit('Merge vertices')
 		Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
@@ -3006,7 +2999,6 @@ BARS.defineActions(function() {
 					})
 					original.addFaces(new_face)
 				}
-				original.sortAllFaceVertices();
 
 				mesh.remove();
 				elements.remove(mesh);

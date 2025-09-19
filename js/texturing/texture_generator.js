@@ -538,7 +538,7 @@ export const TextureGenerator = {
 						normal_vec,
 						vec2.fromArray(mesh.vertices[face.vertices[0]])
 					)
-					let sorted_vertices = face.vertices;
+					let sorted_vertices = face.getSortedVertices();
 					let rot = cameraTargetToRotation([0, 0, 0], normal_vec.toArray());
 					let e = new THREE.Euler(Math.degToRad(rot[1] - 90), Math.degToRad(rot[0] + 180), 0);
 
@@ -594,7 +594,7 @@ export const TextureGenerator = {
 							i++;
 							if (other_face == connection.face) continue;
 							let other_fkey = face_group.keys[i];
-							let sorted_vertices_b = other_face.vertices;
+							let sorted_vertices_b = other_face.getSortedVertices();
 							let l1 = 0;
 							for (let vkey_1_a of sorted_vertices) {
 								let vkey_1_b = sorted_vertices[l1+1] || sorted_vertices[0]
@@ -701,7 +701,7 @@ export const TextureGenerator = {
 						let precise_rotation_angle = {};
 						face_group.faces.forEach((face, i) => {
 							let fkey = face_group.keys[i];
-							let vertices = face.vertices;
+							let vertices = face.getSortedVertices();
 							vertices.forEach((vkey, i) => {
 								let vkey2 = vertices[i+1] || vertices[0];
 								let edge_length = getEdgeLength([vkey, vkey2]);
@@ -770,7 +770,7 @@ export const TextureGenerator = {
 	
 					// Round
 					if (face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) {
-						let sorted_vertices = face_group.faces[0].vertices;
+						let sorted_vertices = face_group.faces[0].getSortedVertices();
 						sorted_vertices.forEach((vkey, vi) => {
 							let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
 							let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
@@ -939,7 +939,7 @@ export const TextureGenerator = {
 			face_list.forEach(face_group => {
 				if (!face_group.mesh) return;
 				let face_uvs = face_group.faces.map((face, i) => {
-					return face.vertices.map(vkey => {
+					return face.getSortedVertices().map(vkey => {
 						return face_group.vertex_uvs[face_group.keys[i]][vkey];
 					})
 				});
@@ -1075,7 +1075,7 @@ export const TextureGenerator = {
 					let rect = face.getBoundingRect();
 					face_group.posx = rect.ax;
 					face_group.posy = rect.ay;
-					return face.vertices.map(vkey => {
+					return face.getSortedVertices().map(vkey => {
 						return [face.uv[vkey][0]-rect.ax, face.uv[vkey][1]-rect.ay];
 					})
 				});
@@ -1645,7 +1645,7 @@ export const TextureGenerator = {
 			if (face instanceof CubeFace) {
 				face.uv = [x+0.25, y+0.25, x+0.75, y+0.75];
 			} else if (face instanceof MeshFace) {
-				let vertices = face.vertices;
+				let vertices = face.getSortedVertices();
 				face.uv[vertices[0]] = [x+0.75, y+0.25];
 				face.uv[vertices[1]] = [x+0.25, y+0.25];
 				face.uv[vertices[2]] = [x+0.25, y+0.75];

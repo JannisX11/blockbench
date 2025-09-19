@@ -464,7 +464,7 @@ export const UVEditor = {
 		if (reference_face instanceof CubeFace) {
 			reference_face.uv[axis+0] > reference_face.uv[axis+2]
 		} else {
-			let vertices = reference_face.vertices;
+			let vertices = reference_face.getSortedVertices();
 			if (vertices.length <= 2) return false;
 			if (!Math.epsilon(reference_face.uv[vertices[0]][axis], reference_face.uv[vertices[1]][axis], 0.01)) {
 				return reference_face.uv[vertices[0]][axis] > reference_face.uv[vertices[1]][axis];
@@ -1030,7 +1030,7 @@ export const UVEditor = {
 					// Rotate UV to match corners
 					let rotation_angles = {};
 					let precise_rotation_angle = {};
-					let vertices = face.vertices;
+					let vertices = face.getSortedVertices();
 					vertices.forEach((vkey, i) => {
 						let vkey2 = vertices[i+1] || vertices[0];
 						let rot = Math.atan2(
@@ -1390,7 +1390,7 @@ export const UVEditor = {
 			if (element instanceof Mesh) {
 				new_face = new MeshFace(null, tag);
 				Property.resetUniqueValues(MeshFace, new_face);
-				new_face.vertices = tag.vertices;
+				new_face.vertices = tag.getSortedVertices();
 				new_face.direction = key;
 			} else if (element instanceof Billboard) {
 				new_face = new BillboardFace(key, tag);
@@ -1436,7 +1436,7 @@ export const UVEditor = {
 				tag.vertices.forEach(vkey => {
 					uv_points.push(tag.uv[vkey]);
 				})
-				face.vertices.forEach((vkey, i) => {
+				face.getSortedVertices().forEach((vkey, i) => {
 					if (uv_points[i]) face.uv[vkey].replace(uv_points[i]);
 				})
 				face.texture = tag.texture;
@@ -2237,7 +2237,7 @@ BARS.defineActions(function() {
 					let face = element.faces[fkey];
 					if (!face || face.vertices.length < 3) return;
 					let first_uv;
-					let sorted_vertices = face.vertices;
+					let sorted_vertices = face.getSortedVertices();
 					let offset = (event?.shiftKey || Pressing.overrides.shift) ? -1 : 1;
 					sorted_vertices[offset == 1 ? 'forEach' : 'forEachReverse']((vkey, i) => {
 						if (!first_uv) first_uv = face.uv[vkey];
@@ -2262,7 +2262,7 @@ BARS.defineActions(function() {
 				UVEditor.getSelectedFaces(element).forEach(fkey => {
 					let face = element.faces[fkey];
 					if (!face || face.vertices.length < 3) return;
-					let sorted_vertices = face.vertices;
+					let sorted_vertices = face.getSortedVertices();
 					let last_i = sorted_vertices.length-1;
 					let uv1 = face.uv[sorted_vertices[1]];
 					face.uv[sorted_vertices[1]] = face.uv[sorted_vertices[last_i]];
@@ -2856,7 +2856,7 @@ Interface.definePanels(function() {
 									}
 									for (let fkey in element.faces) {
 										let face = element.faces[fkey];
-										let vertices = face.vertices;
+										let vertices = face.getSortedVertices();
 										if (vertices.length >= 3) {
 											let i = 0;
 											for (let vkey of vertices) {
@@ -3599,7 +3599,7 @@ Interface.definePanels(function() {
 						-this.getMeshFaceCorner(face, 0),
 						-this.getMeshFaceCorner(face, 1),
 					]
-					face.vertices.forEach(key => {
+					face.getSortedVertices().forEach(key => {
 						let UV = face.uv[key];
 						coords.push(
 							Math.roundTo((UV[0] + uv_offset[0]) / this.uv_resolution[0] * this.inner_width + 1, 4) + ',' +

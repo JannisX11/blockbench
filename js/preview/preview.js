@@ -1090,7 +1090,7 @@ export class Preview {
 
 					function splitFace(face, side_vertices) {
 						processed_faces.push(face);
-						let sorted_vertices = face.vertices;
+						let sorted_vertices = face.getSortedVertices();
 	
 						let side_index_diff = sorted_vertices.indexOf(side_vertices[0]) - sorted_vertices.indexOf(side_vertices[1]);
 						if (side_index_diff == -1 || side_index_diff > 2) side_vertices.reverse();
@@ -1108,7 +1108,7 @@ export class Preview {
 								let ref_face = mesh.faces[fkey];
 								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 	
-								let sorted_vertices = ref_face.vertices;
+								let sorted_vertices = ref_face.getSortedVertices();
 								let vertices = ref_face.vertices.filter(vkey => vkey == side_vertices[index] || vkey == opposite_vertices[index]);
 	
 								if (vertices.length >= 2) {

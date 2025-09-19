@@ -327,7 +327,6 @@ new Action('loop_cut', {
 				for (let key in center_vertices_map) {
 					selected_vertices.safePush(center_vertices_map[key]);
 				}
-				mesh.sortAllFaceVertices();
 			})
 			Undo.finishEdit('Create loop cut')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
