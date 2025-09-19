@@ -2072,9 +2072,6 @@ BARS.defineActions(function() {
 					vertices: []
 				})
 
-				let rotation_euler = new THREE.Euler(0, 0, 0, Format.euler_order).fromArray(spline.rotation.map(Math.degToRad));
-				rotation_euler.reorder('XYZ');
-				mesh.rotation.V3_set(rotation_euler.toArray().map(r => Math.roundTo(Math.radToDeg(r), 4)));
 				mesh.shading = spline.smooth_shading ? 'smooth' : 'flat';
 
 				spline.getTubeMesh(true, mesh);
