@@ -13,7 +13,7 @@ type CanvasClickData = {event: MouseEvent} | {
 
 let brush_outline: HTMLElement;
 function updateBrushOutline(event: PointerEvent) {
-	if (!brush_outline) return;
+	if (!brush_outline || Toolbox.selected.id != 'weight_brush') return;
 	let preview = Preview.selected as Preview;
 	let preview_offset = $(preview.canvas).offset();
 	let click_pos = [
@@ -178,7 +178,7 @@ new Tool('weight_brush', {
 		// @ts-ignore
 		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = true;
 
-		brush_outline = Interface.createElement('div', {id: 'weight_brush_outline'});
+		brush_outline = brush_outline ?? Interface.createElement('div', {id: 'weight_brush_outline'});
 		document.addEventListener('pointermove', updateBrushOutline);
 	},
 	onUnselect() {
