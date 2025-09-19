@@ -2045,7 +2045,7 @@
 	"action.merge_animation.desc": "Merge the animation into another animation",
 	"action.bake_ik_animation": "Bake Inverse Kinematics",
 	"action.bake_ik_animation.desc": "Bake the rotations applied by inverse kinematics into the selected animation",
-	"action.bake_animation_into_model": "Bake Animation into Model",
+	"action.bake_animation_into_model": "Bake Animation Pose into Model",
 	"action.bake_animation_into_model.desc": "Bake the currently displayed animation frame into the model. Only applies rotation and position, scale is ignored.",
 	"action.slider_animation_length": "Animation Length",
 	"action.slider_animation_length.desc": "Change the length of the selected animation",

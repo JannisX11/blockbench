@@ -1343,18 +1343,20 @@ BARS.defineActions(function() {
 						let animator = animation.getBoneAnimator(node);
 						let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 						
-						if (node instanceof Group) {
+						if (animator.channels.rotation) {
 							let rotation = animator.interpolate('rotation');
-							let position = animator.interpolate('position');
 							if (rotation instanceof Array) offset_rotation.V3_add(rotation.map(v => v * multiplier));
+						}
+						if (animator.channels.position) {
+							let position = animator.interpolate('position');
 							if (position instanceof Array) offset_position.V3_add(position.map(v => v * multiplier));
 						}
 					}
 				})
 				// Rotation
 				if (node.getTypeBehavior('rotatable')) {
-					node.rotation[0] -= offset_rotation[0];
-					node.rotation[1] -= offset_rotation[1];
+					node.rotation[0] += offset_rotation[0];
+					node.rotation[1] += offset_rotation[1];
 					node.rotation[2] += offset_rotation[2];
 				}
 				// Position
@@ -1370,9 +1372,18 @@ BARS.defineActions(function() {
 				}
 				offset(node);
 			});
+			for (let mesh of Mesh.all) {
+				if (mesh.parent instanceof Armature) {
+					let vertex_offsets = mesh.parent.calculateVertexDeformation(mesh);
+					for (let vkey in mesh.vertices) {
+						if (vertex_offsets[vkey]) mesh.vertices[vkey].V3_add(vertex_offsets[vkey]);
+					}
+					Mesh.preview_controller.updateGeometry(mesh);
+				}
+			}
 
 			Modes.options.edit.select();
-			Canvas.updateAllBones();
+			Canvas.updateView({elements: Outliner.elements, element_aspects: {transform: true}, groups: Group.all, group_aspects: {transform: true}});
 			Undo.finishEdit('Bake animation into model')
 		}
 	})

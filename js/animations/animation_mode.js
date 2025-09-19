@@ -295,63 +295,10 @@ export const Animator = {
 		scene.add(Animator.onion_skin_object);
 	},
 	displayMeshDeformation() {
-		const _matrix4 = new THREE.Matrix4();
-		const _basePosition = new THREE.Vector3();
-		const _vector3 = new THREE.Vector3();
-		const target = new THREE.Vector3();
-		
 		for (let mesh of Mesh.all) {
 			let armature = mesh.getArmature();
 			if (armature) {
-				let armature_matrix_inverse = new THREE.Matrix4().copy(armature.scene_object.parent.matrixWorld).invert();
-				let bind_matrix = new THREE.Matrix4().copy(armature_matrix_inverse);
-				bind_matrix.multiply(mesh.mesh.matrixWorld);
-				let bind_matrix_inverse = bind_matrix.clone().invert();
-				let bones = armature.getAllBones();
-				let vertex_offsets = {};
-
-				for (let vkey in mesh.vertices) {
-
-					_basePosition.fromArray(mesh.vertices[vkey]);
-					_basePosition.applyMatrix4(bind_matrix);
-			
-					target.set(0, 0, 0);
-
-					let affecting_bones = bones.filter(bone => bone.vertex_weights[vkey]);
-					if (affecting_bones.length > 4) {
-						affecting_bones.sort((a, b) => a.vertex_weights[vkey] - b.vertex_weights[vkey]).slice(0, 4);
-					}
-					// Normalize weights
-					// The sum of all weights shold be 1, otherwise vertices are not influenced by bones equally and start drifting towards the mesh origin
-					let weights = [];
-					for ( let i = 0; i < 4; i ++ ) {
-						const weight = affecting_bones[i]?.vertex_weights[vkey] ?? 0;
-						weights.push(weight);
-					}
-					let weight_vector = new THREE.Vector4().fromArray(weights);
-					const scale = 1.0 / weight_vector.manhattanLength();
-					if ( scale !== Infinity ) {
-						weight_vector.multiplyScalar( scale );
-						weights = weight_vector.toArray();
-
-						for ( let i = 0; i < 4; i ++ ) {
-							const weight = weights[i];
-							if ( weight !== 0 && affecting_bones[i] ) {
-								_matrix4.multiplyMatrices( armature_matrix_inverse, affecting_bones[i].scene_object.matrixWorld );
-								_matrix4.multiply( affecting_bones[i].scene_object.inverse_bind_matrix );
-								target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
-							}		
-						}
-
-					} else {
-						// fallback
-						//weight_vector.set( 1, 0, 0, 0 ); 
-						target.copy(_basePosition)
-					}
-
-					target.applyMatrix4( bind_matrix_inverse );
-					vertex_offsets[vkey] = target.toArray().V3_subtract(mesh.vertices[vkey]);
-				}
+				let vertex_offsets = armature.calculateVertexDeformation(mesh);
 				Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
 			}
 		}
