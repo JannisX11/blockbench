@@ -569,11 +569,6 @@ export class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
-	init(...args) {
-		super.init(...args);
-		this.sortAllFaceVertices();
-		return this;
-	}
 	getArmature() {
 		return this.parent instanceof Armature ? this.parent : undefined;
 	}
