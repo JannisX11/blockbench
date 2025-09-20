@@ -16,6 +16,7 @@ import { getFocusedTextInput } from "../interface/keyboard";
 import { tl } from "../languages";
 import { Panel } from "../interface/panels";
 import { Codecs } from "../io/codec";
+import { FormElementOptions } from "../interface/form";
 
 interface CollectionOptions {
 	children?: string[]
@@ -262,6 +263,15 @@ export class Collection {
 			}[]
 			selected: string[]
 		}
+		let form: Record<string, FormElementOptions> = {};
+		for (let key in Collection.properties) {
+			let property = Collection.properties[key];
+			if (!Condition(property.condition, this) || !property.inputs?.dialog) continue;
+			let form_input = Object.assign({}, property.inputs.dialog.input);
+			form_input.value = this[key];
+			form[key] = form_input;
+		}
+
 		let dialog = new Dialog({
 			id: 'collection_properties',
 			title: this.name,
@@ -275,17 +285,7 @@ export class Collection {
 				}
 			},
 			part_order: ['form', 'component'],
-			form: {
-				name: {type: 'text', label: 'generic.name', value: this.name},
-				export_path: {
-					label: 'dialog.collection.export_path',
-					value: this.export_path,
-					type: 'file',
-					condition: isApp && this.codec,
-					extensions: ['json'],
-					filetype: 'JSON collection',
-				}
-			},
+			form,
 			component: {
 				components: {VuePrismEditor},
 				data: {
@@ -344,18 +344,13 @@ export class Collection {
 			onConfirm: form_data => {
 				let vue_data = dialog.content_vue.$data as PropertiesComponentData;
 				if (
-					form_data.name != this.name ||
-					form_data.export_path != this.export_path ||
+					Object.keys(form).find(key => form_data[key] != this[key]) ||
 					vue_data.content.find(node => !collection.children.includes(node.uuid)) ||
 					collection.children.find(uuid => !vue_data.content.find(node => node.uuid == uuid))
 				) {
 					Undo.initEdit({collections: [this]});
 
-					this.extend({
-						name: form_data.name,
-						export_path: form_data.export_path,
-					})
-					if (isApp) this.export_path = form_data.path;
+					this.extend(form_data);
 					this.children.replace(vue_data.content.map(node => node.uuid));
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
@@ -381,7 +376,7 @@ export class Collection {
 		'duplicate',
 		'delete',
 		new MenuSeparator('export'),
-		(collection) => {
+		(collection: Collection) => {
 			let codec = Codecs[collection.codec];
 			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
 				let export_action = codec.export_action;
@@ -438,9 +433,28 @@ export class Collection {
 		}
 	])
 }
-new Property(Collection, 'string', 'name', {default: 'collection'});
+new Property(Collection, 'string', 'name', {
+	default: 'collection',
+	inputs: {
+		dialog: {
+			input: {type: 'text', label: 'generic.name'},
+		}
+	}
+});
 new Property(Collection, 'string', 'export_codec');
-new Property(Collection, 'string', 'export_path');
+new Property(Collection, 'string', 'export_path', {
+	condition: (collection: Collection) => isApp && collection.codec,
+	inputs: {
+		dialog: {
+			input: {
+				label: 'dialog.collection.export_path',
+				type: 'file',
+				extensions: ['json'],
+				filetype: 'JSON collection',
+			}
+		}
+	}
+});
 new Property(Collection, 'array', 'children');
 new Property(Collection, 'boolean', 'visibility', {default: false});
 

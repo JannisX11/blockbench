@@ -21,7 +21,7 @@ interface PropertyOptions {
 	reset?(instance: any): void
 	merge_validation?(value: any): boolean
 	inputs?: {
-		element_panel: {
+		[key: 'element_panel' | 'dialog' | string]: {
 			input: FormElementOptions,
 			onChange?: () => void
 		}
