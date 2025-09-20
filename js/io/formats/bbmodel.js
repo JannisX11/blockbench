@@ -72,7 +72,7 @@ function processCompatibility(model) {
 		for (let anim of model.animations) {
 			for (let uuid in anim.animators) {
 				let animator = anim.animators[uuid]
-				for (let keyframe of animator.keyframes) {
+				for (let keyframe of (animator.keyframes??[])) {
 					for (let data_point of keyframe.data_points) {
 						if ((keyframe.channel == 'position' || keyframe.channel == 'rotation') && data_point.x) {
 							data_point.x = invertMolang(data_point.x);
@@ -891,6 +891,68 @@ BARS.defineActions(function() {
 		click: function () {
 			saveTextures(true)
 			codec.export()
+		}
+	})
+	new Action('export_legacy_project', {
+		icon: 'save',
+		name: 'Export Legacy Project',
+		description: 'Export bbmodel file for Blockbench 4',
+		category: 'file',
+		condition: () => Project,
+		click: function () {
+			saveTextures(true);
+			let model = codec.compile({raw: true});
+			model.meta.format_version = '4.10';
+			function compileGroups(undo, lut) {
+				var result = []
+				function iterate(array, save_array) {
+					var i = 0;
+					for (var element of array) {
+						if (element.type === 'group') {
+							var obj = element.compile(undo)
+		
+							if (element.children.length > 0) {
+								iterate(element.children, obj.children)
+							}
+							save_array.push(obj)
+						} else {
+							if (undo) {
+								save_array.push(element.uuid)
+							} else {
+								var index = elements.indexOf(element)
+								if (index >= 0) {
+									save_array.push(index)
+								}
+							}
+						}
+						i++;
+					}
+				}
+				iterate(Outliner.root, result);
+				return result;
+			}
+			model.outliner = compileGroups(true);
+			delete model.groups;
+			for (let anim of (model.animations??[])) {
+				for (let animator_id in anim.animators) {
+					for (let kf of (anim.animators[animator_id].keyframes??[])) {
+						for (let dp of (kf.data_points??[])) {
+							if ((kf.channel == 'rotation' || kf.channel == 'position') && dp.x) dp.x = invertMolang(dp.x);
+							if (kf.channel == 'rotation' && dp.y) dp.y = invertMolang(dp.y);
+						}
+					}
+				}
+			}
+
+			let content = compileJSON(model, {small: Settings.get('minify_bbmodel')});
+			Blockbench.export({
+				resource_id: 'model',
+				type: codec.name,
+				extensions: [codec.extension],
+				name: codec.fileName(),
+				startpath: codec.startPath(),
+				content,
+			}, path => codec.afterDownload(path))
 		}
 	})
 
