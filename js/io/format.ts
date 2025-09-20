@@ -69,24 +69,7 @@ Object.defineProperty(window, 'Format', {
 })
 
 //Formats
-interface FormatOptions {
-	id: string
-	icon: string
-	name?: string
-	description?: string
-	category?: string
-	target?: string | string[]
-	confidential?: boolean
-	condition?: ConditionResolvable
-	show_on_start_screen?: boolean
-	can_convert_to?: boolean
-	format_page?: FormatPage
-	onFormatPage?(): void
-	onStart?(): void
-	onSetup?(project: ModelProject, newModel?: boolean): void
-	convertTo?(): void
-	new?(): boolean
-
+interface FormatFeatures {
 	/**
 	 * Enables Box UV on cubes by default
 	 */
@@ -284,6 +267,24 @@ interface FormatOptions {
 	 * Options to limit the size of cubes
 	 */
 	cube_size_limiter?: CubeSizeLimiter
+}
+type FormatOptions = FormatFeatures & {
+	id: string
+	icon: string
+	name?: string
+	description?: string
+	category?: string
+	target?: string | string[]
+	confidential?: boolean
+	condition?: ConditionResolvable
+	show_on_start_screen?: boolean
+	can_convert_to?: boolean
+	format_page?: FormatPage
+	onFormatPage?(): void
+	onStart?(): void
+	onSetup?(project: ModelProject, newModel?: boolean): void
+	convertTo?(): void
+	new?(): boolean
 
 	codec?: Codec
 	onActivation?(): void

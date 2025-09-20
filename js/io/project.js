@@ -1296,6 +1296,7 @@ BARS.defineActions(function() {
 
 Object.assign(window, {
 	ModelProject,
+	ProjectData,
 	setupProject,
 	newProject,
 	selectNoProject,

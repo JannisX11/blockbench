@@ -1211,7 +1211,7 @@ var codec = new Codec('bedrock', {
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
-			identifier: 'geometry.' + (Project.geometry_name||'unknown'),
+			identifier: 'geometry.' + (this.context?.model_identifier || Project.geometry_name || 'unknown'),
 			texture_width:  Project.texture_width || 16,
 			texture_height: Project.texture_height || 16,
 		}
@@ -1271,7 +1271,7 @@ var codec = new Codec('bedrock', {
 	},
 	overwrite(content, path, cb) {
 		var data, index;
-		var model_id = 'geometry.'+Project.geometry_name;
+		var model_id = 'geometry.'+(this.context?.model_identifier || Project.geometry_name || 'unknown');
 		try {
 			data = fs.readFileSync(path, 'utf-8');
 			data = autoParseJSON(data, false);

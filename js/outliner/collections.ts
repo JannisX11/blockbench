@@ -441,6 +441,15 @@ new Property(Collection, 'string', 'name', {
 		}
 	}
 });
+new Property(Collection, 'string', 'model_identifier', {
+	condition: {features: ['model_identifier', '']},
+	default: () => Project.model_identifier,
+	inputs: {
+		dialog: {
+			input: {type: 'text', label: 'dialog.project.geoname'},
+		}
+	}
+});
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path', {
 	condition: (collection: Collection) => (isApp && collection.codec),
