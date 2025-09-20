@@ -1,4 +1,5 @@
 import { Blockbench } from "../api";
+import { Armature } from "../outliner/armature";
 import { ArmatureBone } from "../outliner/armature_bone";
 import { Billboard } from "../outliner/billboard";
 import { flipNameOnAxis } from "./transform";
@@ -212,17 +213,18 @@ interface MirrorModelingElementTypeOptions {
 }
 
 
-Blockbench.on('init_edit', ({aspects}) => {
+Blockbench.on('init_edit', (args) => {
 	if (!(BarItems.mirror_modeling as Toggle).value) return;
+	let aspects = args.aspects as UndoAspects;
 
 	MirrorModeling.initial_transformer_position = Transformer.position.x;
 
-	if (aspects.elements) {
+	if (aspects.elements && aspects.mirror_modeling != false) {
 		MirrorModeling.cached_elements = {};
 		MirrorModeling.outliner_snapshot = aspects.outliner ? null : Outliner.toJSON();
 		let edit_side = MirrorModeling.getEditSide();
 
-		aspects.elements.forEach((element) => {
+		aspects.elements.forEach((element: any) => {
 			if (element.allow_mirror_modeling) {
 				let is_centered = MirrorModeling.isCentered(element);
 
@@ -278,7 +280,7 @@ Blockbench.on('init_edit', ({aspects}) => {
 Blockbench.on('finish_edit', ({aspects}) => {
 	if (!(BarItems.mirror_modeling as Toggle).value) return;
 
-	if (aspects.elements) {
+	if (aspects.elements && aspects.mirror_modeling != false) {
 		aspects.elements = aspects.elements.slice();
 		let static_elements_copy = aspects.elements.slice();
 		static_elements_copy.forEach((element) => {
@@ -320,6 +322,14 @@ Blockbench.on('finish_edit', ({aspects}) => {
 		Canvas.updateAllBones();
 	}
 })
+
+let symmetry_axes = [0];
+let off_axes = [1, 2];
+function isOppositeVector(vec1: number[], vec2: number[], center: number = 0): boolean {
+	if (symmetry_axes.some(axis => !Math.epsilon(vec1[axis]-center, center-vec2[axis]))) return false;
+	if (off_axes.some(axis => !Math.epsilon(vec1[axis], vec2[axis]))) return false;
+	return true;
+}
 
 // Register element types
 
@@ -592,10 +602,8 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	},
 	getMirroredElement(element: ArmatureBone, {center}) {
 		let e = 0.01;
-		let symmetry_axes = [0];
-		let off_axes = [1, 2];
 		if (
-			symmetry_axes.find((axis) => !Math.epsilon(element.position[axis], center, e)) == undefined &&
+			symmetry_axes.allAre((axis) => Math.epsilon(element.position[axis], center, e)) &&
 			off_axes.find(axis => element.rotation[axis]) == undefined &&
 			MirrorModeling.isParentTreeSymmetrical(element, {center})
 		) {
@@ -604,8 +612,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 			for (let element2 of ArmatureBone.all) {
 				if (element == element2) continue;
 				if (
-					symmetry_axes.find(axis => !Math.epsilon(element.position[axis]-center, center-element2.position[axis], e)) == undefined &&
-					off_axes.find(axis => !Math.epsilon(element.position[axis], element2.position[axis], e)) == undefined
+					isOppositeVector(element.position, element2.position, center)
 				) {
 					return element2;
 				}
@@ -616,8 +623,6 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	createLocalSymmetry(element: ArmatureBone, cached_data) {
 		let edit_side = MirrorModeling.getEditSide();
 		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
-
-		// Update vertex weights on centered bones
 	},
 	updateCounterpart(original, counterpart, context) {
 		// Update vertex weights on off-centered bones
@@ -634,7 +639,7 @@ MirrorModeling.registerElementType(Billboard, {
 		let symmetry_axes = [0];
 		let off_axes = [1, 2];
 		if (
-			symmetry_axes.find((axis) => !Math.epsilon(element.position[axis], center, e)) == undefined
+			symmetry_axes.allAre((axis) => Math.epsilon(element.position[axis], center, e))
 			//off_axes.find(axis => element.rotation[axis]) == undefined
 		) {
 			return element;
@@ -657,6 +662,38 @@ MirrorModeling.registerElementType(Billboard, {
 		});
 	}
 })
+
+function getOppositeMeshVertex(mesh: Mesh, vkey: string): string | undefined {
+	let position = mesh.vertices[vkey];
+	for (let vkey2 in mesh.vertices) {
+		let pos2 = mesh.vertices[vkey2];
+		if (isOppositeVector(position, pos2)) {
+			return vkey2;
+		}
+	}
+}
+export function symmetrizeArmature(armature: Armature, mesh: Mesh, affected_vkeys: Set<string>) {
+	let bones = armature.getAllBones();
+	// For each vkey, copy its value on each bone to the other side
+	for (let vkey in mesh.vertices) {
+		let position = mesh.vertices[vkey];
+		if (position[0] == 0) continue;
+		if (affected_vkeys.has(vkey) == false) continue;
+		let opposite = getOppositeMeshVertex(mesh, vkey);
+		if (!opposite) continue;
+		for (let bone of bones) {
+			//if (!bone.vertex_weights[vkey]) continue;
+			if (MirrorModeling.element_types.armature_bone.isCentered(bone, {center: 0})) {
+				bone.vertex_weights[opposite] = bone.vertex_weights[vkey];
+			} else {
+				let target_bone = MirrorModeling.element_types.armature_bone.getMirroredElement(bone, {center: 0}) as ArmatureBone;
+				if (target_bone) {
+					target_bone.vertex_weights[opposite] = bone.vertex_weights[vkey];
+				}
+			}
+		}
+	}
+}
 
 BARS.defineActions(() => {
 	

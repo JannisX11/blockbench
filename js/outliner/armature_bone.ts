@@ -422,6 +422,9 @@ new NodePreviewController(ArmatureBone, {
 			color_array.push(color_value.r, color_value.g, color_value.b);
 		}
 		(element.mesh.children[0] as THREE.Mesh).geometry.setAttribute('color', new THREE.Float32BufferAttribute(color_array, 3));
+		let wireframe = Toolbox.selected.id == 'weight_brush' && Project.view_mode != 'weighted_bone_colors';
+		// @ts-ignore
+		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = wireframe;
 	},
 	updateTransform(element: ArmatureBone) {
 		let bone = element.scene_object as FakeObjectType & THREE.Bone;

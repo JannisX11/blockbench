@@ -653,7 +653,7 @@ export const Canvas = {
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces || obj instanceof TextureMesh || obj instanceof SplineMesh) {
+			if (obj.preview_controller.updateFaces) {
 				var used = true;
 				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;

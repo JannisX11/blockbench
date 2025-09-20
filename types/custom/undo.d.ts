@@ -35,6 +35,7 @@ interface UndoAspects {
 	keyframes?: _Keyframe[]
 	display_slots?: string[]
 	exploded_view?: boolean
+	mirror_modeling?: false
 }
 interface UndoSelectionAspects {
 	texture_selection?: boolean

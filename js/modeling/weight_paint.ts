@@ -3,6 +3,7 @@ import { THREE } from '../lib/libs';
 import { Armature } from '../outliner/armature';
 import { ArmatureBone } from '../outliner/armature_bone';
 import { Preview } from '../preview/preview';
+import { symmetrizeArmature } from './mirror_modeling';
 
 type CanvasClickData = {event: MouseEvent} | {
 	event: MouseEvent
@@ -87,7 +88,9 @@ new Tool('weight_brush', {
 		if (!armature_bone) {
 			return Blockbench.showQuickMessage('Select an armature bone first!');
 		}
-		let other_bones = armature_bone.getArmature().getAllBones() as ArmatureBone[];
+		let armature = armature_bone.getArmature();
+		let all_bones = armature.getAllBones() as ArmatureBone[];
+		let other_bones = all_bones.slice();
 		other_bones.remove(armature_bone);
 		if (data.element instanceof Mesh == false) {
 			return;
@@ -96,8 +99,8 @@ new Tool('weight_brush', {
 			return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 		}
 
-		let undo_tracked = [armature_bone];
-		Undo.initEdit({elements: undo_tracked});
+		let undo_tracked = all_bones;
+		Undo.initEdit({elements: undo_tracked, mirror_modeling: false});
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
@@ -119,6 +122,8 @@ new Tool('weight_brush', {
 			let vec = new THREE.Vector2();
 			let limit = limit_slider.get() / 100;
 			let base_radius = 0.2;
+			let target_average_x = 0;
+			let affected_vkeys = new Set<string>();
 
 			updateScreenSpaceVertexPositions(mesh);
 
@@ -146,10 +151,6 @@ new Tool('weight_brush', {
 						if (bone.vertex_weights[vkey] && !subtract) {
 							let lower_limit = Math.min(Math.max(0, 1-limit), bone.vertex_weights[vkey]);
 							bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, lower_limit, 1);
-							if (Undo.current_save && !undo_tracked.includes(bone)) {
-								Undo.current_save.addElements([bone]);
-								undo_tracked.push(bone);
-							}
 						}
 					}
 				}
@@ -159,7 +160,10 @@ new Tool('weight_brush', {
 				} else {
 					armature_bone.vertex_weights[vkey] = value
 				}
+				target_average_x += mesh.vertices[vkey][0];
+				affected_vkeys.add(vkey);
 			}
+			symmetrizeArmature(armature, mesh, affected_vkeys);
 			// @ts-ignore
 			Mesh.preview_controller.updateGeometry(mesh);
 		}
@@ -175,27 +179,23 @@ new Tool('weight_brush', {
 
 	},
 	onSelect() {
-		Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
+		Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
 		size_slider.update();
 		limit_slider.update();
 		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 		Interface.addSuggestedModifierKey('alt', 'modifier_actions.select_bone');
-		// @ts-ignore
-		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = true;
 
 		brush_outline = brush_outline ?? Interface.createElement('div', {id: 'weight_brush_outline'});
 		document.addEventListener('pointermove', updateBrushOutline);
 	},
 	onUnselect() {
 		setTimeout(() => {
-			Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
+			Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
 		}, 0);
 		Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.select_bone');
-		// @ts-ignore
-		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = false;
 
 		if (brush_outline) brush_outline.remove()
 		document.removeEventListener('pointermove', updateBrushOutline);
