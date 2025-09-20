@@ -39,7 +39,7 @@ declare class _Keyframe {
 	uuid: string
 	color: number
 	uniform: boolean
-	interpolation: 'linear' | 'catmullrom' | 'bezier' | 'step'
+	interpolation: 'linear' | 'catmullrom' | 'bezier' | 'step' | string
 	cooldown?: boolean
 	bezier_linked: boolean
 	bezier_left_time: ArrayVector3

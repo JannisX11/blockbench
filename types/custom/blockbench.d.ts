@@ -21,6 +21,7 @@
 /// <reference types="./keyframe" />
 /// <reference types="./menu" />
 /// <reference types="./mesh" />
+/// <reference types="./spline_mesh" />
 /// <reference types="./misc" />
 /// <reference types="./molang" />
 /// <reference types="./outliner" />
