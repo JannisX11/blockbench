@@ -904,6 +904,8 @@ export const BARS = {
 			no_wrap: true,
 			children: [
 				'slider_weight_brush_size',
+				'slider_weight_brush_limit',
+				'weight_brush_blend_mode',
 				'weight_brush_xray',
 				'_',
 				'mirror_modeling',

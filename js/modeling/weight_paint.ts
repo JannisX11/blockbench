@@ -101,7 +101,7 @@ new Tool('weight_brush', {
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
-			let radius = (BarItems.slider_weight_brush_size as NumSlider).get();
+			let radius = size_slider.get();
 			let click_pos = [
 				event.clientX - preview_offset.left,
 				event.clientY - preview_offset.top,
@@ -117,17 +117,19 @@ new Tool('weight_brush', {
 			let mesh = data.element;
 			if (mesh instanceof Mesh == false) return;
 			let vec = new THREE.Vector2();
+			let limit = limit_slider.get() / 100;
+			let base_radius = 0.2;
 
 			updateScreenSpaceVertexPositions(mesh);
-			
+
 			for (let vkey in mesh.vertices) {
 				let screen_pos = screen_space_vertex_positions[vkey];
 				if (!screen_pos) continue;
 				let distance = vec.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
-				let base_radius = 0.2;
 				let falloff = (1-(distance / radius)) * (1 + base_radius);
 				let influence = Math.hermiteBlend(Math.clamp(falloff, 0, 1));
 				let value = armature_bone.vertex_weights[vkey] ?? 0;
+				if (influence <= 0) continue;
 				
 				if (event.shiftKey || Pressing.overrides.shift) {
 					influence /= 8;
@@ -135,16 +137,19 @@ new Tool('weight_brush', {
 				if (subtract) {
 					value = value * (1-influence);
 				} else {
-					value = value + (1-value) * influence;
+					value = value + (limit-value) * influence;
 				}
 
 				// Reduce weight on other bones
-				for (let bone of other_bones) {
-					if (bone.vertex_weights[vkey] && !subtract) {
-						bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, 0, 1);
-						if (Undo.current_save && !undo_tracked.includes(bone)) {
-							Undo.current_save.addElements([bone]);
-							undo_tracked.push(bone);
+				if (blend_mode_select.value == 'set') {
+					for (let bone of other_bones) {
+						if (bone.vertex_weights[vkey] && !subtract) {
+							let lower_limit = Math.min(Math.max(0, 1-limit), bone.vertex_weights[vkey]);
+							bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, lower_limit, 1);
+							if (Undo.current_save && !undo_tracked.includes(bone)) {
+								Undo.current_save.addElements([bone]);
+								undo_tracked.push(bone);
+							}
 						}
 					}
 				}
@@ -171,7 +176,8 @@ new Tool('weight_brush', {
 	},
 	onSelect() {
 		Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
-		(BarItems.slider_weight_brush_size as NumSlider).update();
+		size_slider.update();
+		limit_slider.update();
 		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 		Interface.addSuggestedModifierKey('alt', 'modifier_actions.select_bone');
@@ -195,7 +201,7 @@ new Tool('weight_brush', {
 		document.removeEventListener('pointermove', updateBrushOutline);
 	}
 })
-let slider = new NumSlider('slider_weight_brush_size', {
+let size_slider = new NumSlider('slider_weight_brush_size', {
 	condition: () => Toolbox?.selected?.id == 'weight_brush',
 	tool_setting: 'weight_brush_size',
 	category: 'edit',
@@ -203,15 +209,31 @@ let slider = new NumSlider('slider_weight_brush_size', {
 		min: 1, max: 1024, interval: 1, default: 50,
 	}
 })
-slider.on('change', (data: {number: number}) => {
+size_slider.on('change', (data: {number: number}) => {
 	if (brush_outline) {
 		brush_outline.style.setProperty('--radius', data.number.toString());
+	}
+})
+let limit_slider = new NumSlider('slider_weight_brush_limit', {
+	condition: () => Toolbox?.selected?.id == 'weight_brush',
+	tool_setting: 'slider_weight_brush_limit',
+	category: 'edit',
+	
+	settings: {
+		min: 1, max: 100, interval: 1, default: 100, show_bar: true,
 	}
 })
 new Toggle('weight_brush_xray', {
 	icon: 'disabled_visible',
 	category: 'edit',
 	condition: () => Toolbox?.selected?.id == 'weight_brush',
+})
+let blend_mode_select = new BarSelect('weight_brush_blend_mode', {
+	category: 'edit',
+	options: {
+		set: 'action.weight_brush_blend_mode.set',
+		add: 'action.weight_brush_blend_mode.add',
+	}
 })
 
 const vertex_weight_view_modes = ['vertex_weight', 'weighted_bone_colors'];

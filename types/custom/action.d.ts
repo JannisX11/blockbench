@@ -486,6 +486,7 @@ declare global {
 			max?: number
 			interval?: number
 			step?: number
+			show_bar?: boolean
 		}
 		/**
 		 * Define a tool setting key under which the value of the slider is saved on the selected tool
