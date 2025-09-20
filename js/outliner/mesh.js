@@ -39,7 +39,7 @@ export class MeshFace extends Face {
 		return copy;
 	}
 	getNormal(normalize, alt_tri) {
-		let vertices = this.vertices;
+		let vertices = this.getSortedVertices();
 		if (vertices.length < 3) return [0, 0, 0];
 		let indices = [0, 1, 2];
 		if (vertices.length == 4 && alt_tri) {
