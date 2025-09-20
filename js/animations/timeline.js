@@ -1627,6 +1627,12 @@ Interface.definePanels(() => {
 					if (range[0] == range[1]) return null;
 					return range;
 				},
+				getNodeColor(node) {
+					if (node.color >= 0) {
+						return markerColors[node.color % markerColors.length].pastel;
+					}
+					return '';
+				},
 				clamp: Math.clamp,
 				trimFloatNumber,
 				getAxisLetter
@@ -1641,7 +1647,7 @@ Interface.definePanels(() => {
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>
-							<span id="">/</span>
+							<span>/</span>
 							<div id="timeline_framenumber">{{ framenumber }}</div>
 							<div class="channel_axis_selector" v-if="graph_editor_open">
 								<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
@@ -1692,13 +1698,18 @@ Interface.definePanels(() => {
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
-							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
+							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
-										<span v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">{{animator.name}}</span>
+										<dynamic-icon v-if="animator.node" :icon="animator.node.icon.replace('fa ', '').replace(/ /g, '.')" :color="getNodeColor(animator.node)" />
+										<dynamic-icon v-else-if="animator.particle" :icon="wand_shine" />
+										<dynamic-icon v-else :icon="'help'" style="color: var(--color-error)" />
+										<span class="timeline_animator_name" v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
+											{{animator.name}}
+										</span>
 										<div class="text_button" v-on:click.stop="removeAnimator(animator)">
 											<i class="material-icons">remove</i>
 										</div>
@@ -1728,14 +1739,9 @@ Interface.definePanels(() => {
 										@contextmenu.stop="animator.showContextMenu($event)"
 									>
 										<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
-											<template v-if="channel === 'sound'">
-												<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
-												<i class="channel_mute fas fa-volume-up" v-else></i>
-											</template>
-											<template v-else>
-												<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
-												<i class="channel_mute fas fa-eye" v-else></i>
-											</template>
+											<i class="icon material-icons channel_mute" :class="{disabled: animator.muted[channel]}">
+												{{ channel === 'sound' ? (animator.muted[channel] ? 'volume_off' : 'volume_up') : (animator.muted[channel] ? 'visibility_off' : 'visibility') }}
+											</i>
 										</div>
 										<div class="text_button" v-else></div>
 										<span>{{ channel_options.name }}</span>

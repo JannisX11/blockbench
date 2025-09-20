@@ -319,6 +319,7 @@ export class ModelFormat implements FormatOptions {
 	onDeactivation?(): void
 
 	static properties: Record<string, Property<any>>
+	public type = 'format';
 
 	constructor(id: string, data: Partial<FormatOptions>) {
 		if (typeof id == 'object') {

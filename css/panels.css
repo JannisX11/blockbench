@@ -1517,7 +1517,7 @@
 		font-size: 10px;
 		color: var(--color-back);
 		top: 3px;
-		left: 0;
+		left: -0.4px;
 		font-weight: 600;
 	}
 	#timeline_body .animator_head_bar .keyframe {
@@ -1577,9 +1577,9 @@
 		justify-content: space-between;
 		width: 144px;
 		flex-shrink: 0;
-		background-color: var(--color-back);
+		background-color: var(--color-ui);
 		z-index: 6;
-		border-bottom: 1px solid var(--color-border);
+		border-right: 1px solid var(--color-border);
 		height: calc(100% + 1px);
 	}
 	#timeline_timestamp {
@@ -1684,7 +1684,6 @@
 		width: 144px;
 		background-color: var(--color-ui);
 		border-right: 1px solid var(--color-border);
-	    border-left: 2px solid transparent;
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
 	}
@@ -1724,8 +1723,9 @@
 	body:not(.is_mobile) #timeline_body li > .animator_channel_bar .channel_head {
 		padding-left: 16px;
 	}
-	.animator.selected .channel_head {
-	    border-left-color: var(--color-accent);
+	.animator.selected .animator_head_bar .channel_head {
+		border-radius: 5px;
+		background-color: var(--color-selected);
 	}
 	.channel_head.selected {
 		background-color: var(--color-selected);
@@ -1744,7 +1744,11 @@
 		color: var(--color-subtle_text);
 	}
 	.animator_channel_bar .channel_head .text_button .channel_mute {
-		font-size: 11pt;
+		font-size: 14pt;
+		margin-top: 3px;
+	}
+	.animator_channel_bar .channel_head .text_button .channel_mute.disabled {
+		color: var(--color-subtle_text);
 	}
 	.animator_channel_bar .channel_head .text_button .fa-eye-slash,
 	.animator_channel_bar .channel_head .text_button .fa-volume-mute {
@@ -1757,13 +1761,23 @@
 		font-size: 18px;
 		margin: 2px;
 	}
+	.channel_head > i {
+		font-size: 19px;
+		padding-top: 2px;
+	}
 	.channel_head span {
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
 	}
+	.channel_head span.timeline_animator_name {
+		padding-left: 5px;
+		pointer-events: none;
+	}
 	.animator_channel_bar .channel_head:not(.selected) span {
 		color: var(--color-subtle_text);
+		font-size: 0.93em;
+		line-height: 23px;
 	}
 	.animator.boneless .animator_head_bar .channel_head span {
 		color: #ff6b6b;

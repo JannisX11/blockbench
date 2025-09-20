@@ -22,6 +22,9 @@ export class GeneralAnimator {
 		}
 		return array;
 	}
+	get node() {
+		return this.group || this.element;
+	}
 	extend(data) {
 		for (var key in this.constructor.properties) {
 			this.constructor.properties[key].merge(this, data)

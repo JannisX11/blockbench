@@ -397,7 +397,7 @@ onVueSetup(async function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry.type == 'format' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
