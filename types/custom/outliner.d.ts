@@ -92,6 +92,7 @@ declare class OutlinerElement extends OutlinerNode {
 
 	constructor(data: any, uuid: string)
 	selected: boolean
+	allow_mirror_modeling?: boolean
 	mesh: THREE.Object3D | THREE.Mesh
 	static fromSave(data: any, keep_uuid?: boolean): OutlinerElement
 	static isParent: false

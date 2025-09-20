@@ -148,7 +148,7 @@ export class Armature extends OutlinerElement {
 			i++;
 		}
 	}
-	getAllBones() {
+	getAllBones(): ArmatureBone[] {
 		let bones = [];
 		function addBones(array: ArmatureBone[]) {
 			for (let item of array) {
@@ -201,7 +201,7 @@ export class Armature extends OutlinerElement {
 					const weight = weights[i];
 					if ( weight !== 0 && affecting_bones[i] ) {
 						_matrix4.multiplyMatrices( armature_matrix_inverse, affecting_bones[i].scene_object.matrixWorld );
-						_matrix4.multiply( affecting_bones[i].scene_object.inverse_bind_matrix );
+						_matrix4.multiply( (affecting_bones[i].scene_object as any).inverse_bind_matrix );
 						target.addScaledVector( _vector3.copy( _basePosition ).applyMatrix4( _matrix4 ), weight );
 					}		
 				}

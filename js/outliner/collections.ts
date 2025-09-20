@@ -443,7 +443,7 @@ new Property(Collection, 'string', 'name', {
 });
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path', {
-	condition: (collection: Collection) => isApp && collection.codec,
+	condition: (collection: Collection) => (isApp && collection.codec),
 	inputs: {
 		dialog: {
 			input: {

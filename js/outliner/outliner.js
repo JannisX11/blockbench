@@ -891,6 +891,7 @@ Outliner.control_menu_group = [
 
 OutlinerElement.registerType = function(constructor, id) {
 	OutlinerElement.types[id] = constructor;
+	constructor.prototype.type = id;
 	if (!constructor.behavior) constructor.behavior = {};
 	Object.defineProperty(constructor, 'all', {
 		get() {
