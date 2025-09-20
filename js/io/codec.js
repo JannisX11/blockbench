@@ -126,6 +126,8 @@ export class Codec extends EventSystem {
 	}
 	async patchCollectionExport(collection, callback) {
 		this.context = collection;
+		let name = this.name;
+		this.name = collection.name;
 		let element_export_values = {};
 		let all = Outliner.elements.concat(Group.all);
 		for (let node of all) {
@@ -142,6 +144,7 @@ export class Codec extends EventSystem {
 			throw error;
 		} finally {
 			this.context = null;
+			this.name = name;
 			for (let node of all) {
 				if (element_export_values[node.uuid] === undefined) continue;
 				node.export = element_export_values[node.uuid];
@@ -155,7 +158,7 @@ export class Codec extends EventSystem {
 	}
 	async writeCollection(collection) {
 		this.patchCollectionExport(collection, async () => {
-			await this.export();
+			this.write(this.compile(), collection.export_path);
 		})
 	}
 	fileName() {
