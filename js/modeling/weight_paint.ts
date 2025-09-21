@@ -77,9 +77,9 @@ new Tool('weight_brush', {
 	condition: {modes: ['edit'], method: () => Armature.all.length},
 	
 	onCanvasClick(data: CanvasClickData) {
-		if ('element' in data == false) return;
-		if (data.element instanceof ArmatureBone) {
-			return data.element.select(data.event);
+		let element = 'element' in data && data.element;
+		if (element instanceof ArmatureBone) {
+			return element.select(data.event);
 		}
 		if (data.event.altKey || Pressing.overrides.alt) return;
 		let preview = Preview.selected as Preview;
@@ -92,10 +92,13 @@ new Tool('weight_brush', {
 		let all_bones = armature.getAllBones() as ArmatureBone[];
 		let other_bones = all_bones.slice();
 		other_bones.remove(armature_bone);
-		if (data.element instanceof Mesh == false) {
+		if (!element) {
+			element = armature.children.find(el => el instanceof Mesh);
+		}
+		if (element instanceof Mesh == false) {
 			return;
 		}
-		if (!data.element.getArmature()) {
+		if (!element.getArmature()) {
 			return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 		}
 
@@ -116,8 +119,7 @@ new Tool('weight_brush', {
 			last_click_pos = click_pos;
 
 			data = data ?? preview.raycast(event);
-			if (!data || 'element' in data == false) return;
-			let mesh = data.element;
+			let mesh = element;
 			if (mesh instanceof Mesh == false) return;
 			let vec = new THREE.Vector2();
 			let limit = limit_slider.get() / 100;
