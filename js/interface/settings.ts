@@ -267,7 +267,7 @@ export class Setting {
 						type: input_types[this.type] as FormInputType
 					},
 					description: this.description ? {
-						type: 'buttons',
+						type: 'info',
 						text: this.description
 					} : undefined,
 					reset: {

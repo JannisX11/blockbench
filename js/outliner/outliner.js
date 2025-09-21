@@ -1838,13 +1838,13 @@ Interface.definePanels(function() {
 								
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
-								if (node instanceof Group) {
+								if (node instanceof Group) affected_groups.push(node);
+								if (node.forEachChild) {
 									if (toggle_config.change_children != false) {
 										node.forEachChild(node => {
 											if (node.buttons.find(b => b.id == key)) new_affected.push(node)
 										});
 									}
-									affected_groups.push(node);
 								} else if (node.selected && Outliner.selected.length > 1) {
 									Outliner.selected.forEach(el => {
 										if (el.buttons.find(b => b.id == key)) new_affected.safePush(el);
@@ -1867,7 +1867,7 @@ Interface.definePanels(function() {
 							affected.forEach(node => {
 								node[key] = previous_values[node.uuid];
 							})
-							Undo.initEdit({elements: affected.filter(node => node instanceof OutlinerElement), outliner: affected_groups.length > 0})
+							Undo.initEdit({elements: affected.filter(node => node instanceof OutlinerElement), groups: affected_groups})
 							affected.forEach(node => {
 								node[key] = value;
 								if (key == 'shade') node.updateElement();
