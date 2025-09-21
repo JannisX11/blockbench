@@ -124,9 +124,9 @@ export const ModelScaler = {
 			}
 		})
 		scale_groups.forEach((g) => {
-			if (axis_enabled[0]) g.origin[0] = ((g.old_origin[0] - origin[0]) * size) + origin[0];
-			if (axis_enabled[1]) g.origin[1] = ((g.old_origin[1] - origin[1]) * size) + origin[1];
-			if (axis_enabled[2]) g.origin[2] = ((g.old_origin[2] - origin[2]) * size) + origin[2];
+			if (data.axis.x) g.origin[0] = ((g.old_origin[0] - origin[0]) * size) + origin[0];
+			if (data.axis.y) g.origin[1] = ((g.old_origin[1] - origin[1]) * size) + origin[1];
+			if (data.axis.z) g.origin[2] = ((g.old_origin[2] - origin[2]) * size) + origin[2];
 			if (save === true) {
 				delete g.old_origin
 			}

@@ -1769,7 +1769,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 
 							selected.forEach(function(obj, i) {
 								if (obj.getTypeBehavior('resizable')) {
-									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== selected[0] instanceof Mesh;
+									let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== Mesh.hasSelected();
 
 									if (axis == 'e') {
 										let value = move_value;

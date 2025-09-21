@@ -1,6 +1,7 @@
 import { Blockbench } from "../../api";
 import { Filesystem } from "../../file_system";
 import { Armature } from "../../outliner/armature";
+import { ArmatureBone } from "../../outliner/armature_bone";
 import { adjustFromAndToForInflateAndStretch } from "../../outliner/cube";
 import { patchedAtob } from "../../util/util";
 import { JSZip, THREE } from './../../lib/libs'
@@ -228,7 +229,7 @@ var codec = new Codec('fbx', {
 		let Takes = {
 			Current: ''
 		};
-		let root = {name: 'RootNode', uuid: 0};
+		let root = {name: 'RootNode', uuid: '0'};
 
 		function getElementPos(element) {
 			let arr = element.origin.slice();
@@ -511,6 +512,7 @@ var codec = new Codec('fbx', {
 			const bind_matrix_list = [];
 			function processBone(bone) {
 				console.log(bone)
+				if (bone instanceof ArmatureBone == false) return;
 				bone_list.push(bone);
 				let unique_name = getUniqueName('bone', bone.uuid, bone.name);
 				let attribute_id = getID(bone.uuid + '_attribute');
@@ -591,7 +593,8 @@ var codec = new Codec('fbx', {
 
 				// Bind pose
 				if (mesh) {
-					let matrix = new THREE.Matrix4().copy(bone.mesh.inverse_bind_matrix).invert();
+					// @ts-expect-error
+					let matrix = new THREE.Matrix4().copy(bone.scene_object.inverse_bind_matrix).invert();
 					matrix.scale(armature_scale_const);
 					pose['PoseNode'+object_id] = {
 						_key: 'PoseNode',
