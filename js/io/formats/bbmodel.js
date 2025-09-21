@@ -81,6 +81,16 @@ function processCompatibility(model) {
 							data_point.y = invertMolang(data_point.y);
 						}
 					}
+					if (keyframe.interpolation == 'bezier') {
+						if ((keyframe.channel == 'position' || keyframe.channel == 'rotation') && keyframe.bezier_left_value) {
+							keyframe.bezier_left_value[0] *= -1;
+							keyframe.bezier_right_value[0] *= -1;
+						}
+						if (keyframe.channel == 'rotation' && keyframe.bezier_left_value) {
+							keyframe.bezier_left_value[1] *= -1;
+							keyframe.bezier_right_value[1] *= -1;
+						}
+					}
 				}
 			}
 		}
