@@ -299,7 +299,7 @@ export const Animator = {
 			let armature = mesh.getArmature();
 			if (armature) {
 				let vertex_offsets = armature.calculateVertexDeformation(mesh);
-				Mesh.preview_controller.updateGeometry(mesh, vertex_offsets);
+				Mesh.preview_controller.displayDeformation(mesh, vertex_offsets);
 			}
 		}
 	},

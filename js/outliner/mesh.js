@@ -1101,6 +1101,31 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
+	displayDeformation(element, vertex_offsets) {
+		let position_array = [];
+		let {vertices, faces} = element;
+		
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
+		if (Modes.animate && vertex_offsets) {
+			for (let key in faces) {
+				let face = faces[key];
+				if (face.vertices.length <= 2) continue;
+				face.vertices.forEach((vkey, i) => {
+					position_array.push(...vertices[vkey]);
+				})
+			}
+			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+			return;
+		}
+	},
 	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
