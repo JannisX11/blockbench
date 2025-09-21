@@ -31,7 +31,7 @@ export class ArmatureBone extends OutlinerElement {
 	width: number
 	connected: boolean
 	color: number
-	old_size?: number
+	old_size?: number | ArrayVector3
 	
 
 	static preview_controller: NodePreviewController
@@ -184,14 +184,14 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	resize(move_value: number | ((input: number) => number), axis_number?: axisNumber, invert?: boolean) {
 		if (axis_number == 1) {
-			let previous_length = this.old_size ?? this.length;
+			let previous_length = (this.old_size instanceof Array) ? this.old_size[1] : this.old_size ?? this.length;
 			if (typeof move_value == 'function') {
 				this.length = move_value(previous_length);
 			} else {
 				this.length = previous_length + move_value * (invert ? -1 : 1);
 			}
 		} else {
-			let previous_width = this.old_size ?? this.width;
+			let previous_width = (this.old_size instanceof Array) ? this.old_size[0] : this.old_size ?? this.width;
 			if (typeof move_value == 'function') {
 				this.width = move_value(previous_width);
 			} else {
