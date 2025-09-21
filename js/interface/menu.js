@@ -51,6 +51,7 @@ function handleMenuOverflow(node) {
 		offset(-e.deltaY);
 	})
 }
+// FIXME - This should be changed to `Menu implements Deletable` when this is converted to TypeScript
 export class Menu {
 	constructor(id, structure, options) {
 		if (typeof id !== 'string') {
@@ -725,6 +726,9 @@ export class Menu {
 		}
 		traverse(this.structure, 0)
 		rm_item.menus.remove(scope)
+	}
+	delete() {
+		this.node.remove()
 	}
 	static open = null;
 }
