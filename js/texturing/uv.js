@@ -2309,16 +2309,7 @@ BARS.defineActions(function() {
 })
 
 Interface.definePanels(function() {
-	function getCanvasCopy() {
-		var temp_canvas = document.createElement('canvas')
-		var temp_ctx = temp_canvas.getContext('2d');
-		temp_canvas.width = Painter.selection.canvas.width;
-		temp_canvas.height = Painter.selection.canvas.height;
-		temp_ctx.drawImage(Painter.selection.canvas, 0, 0)
-		return temp_canvas
-	}
 
-	
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		expand_button: true,
@@ -2328,7 +2319,8 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [300, 0],
 			float_size: [500, 600],
-			height: 500
+			height: 500,
+			sidebar_index: 1,
 		},
 		min_height: 200,
 		resizable: true,

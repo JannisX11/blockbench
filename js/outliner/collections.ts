@@ -608,7 +608,8 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 300],
 			height: 300,
-			folded: false
+			folded: false,
+			sidebar_index: 9,
 		},
 		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
 		toolbars: [

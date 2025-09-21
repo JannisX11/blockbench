@@ -1,11 +1,11 @@
 import { CanvasFrame } from "../../lib/CanvasFrame"
 import StateMemory from "../../util/state_memory";
-import { Panels, setProjectTitle } from "../../interface/interface"
+import { setProjectTitle } from "../../interface/interface"
 import { getAllGroups } from "../../outliner/group"
 import { DefaultCameraPresets } from "../../preview/preview"
 import { MinecraftEULA } from "../../preview/preview_scenes"
 import { TextureGenerator } from "../../texturing/texture_generator"
-import { Panel } from "../../interface/panels";
+import { Panel, Panels } from "../../interface/panels";
 import { Blockbench } from "../../api";
 import { FormResultValue } from "../../interface/form";
 
@@ -784,7 +784,8 @@ Interface.definePanels(function() {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 80],
-			height: 80
+			height: 80,
+			sidebar_index: 1,
 		},
 		toolbars: [
 			new Toolbar('skin_pose', {

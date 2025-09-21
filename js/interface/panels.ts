@@ -1,7 +1,7 @@
 import { Prop } from "../misc";
 import { EventSystem } from "../util/event_system";
 import { InputForm } from "./form";
-import { Interface, Panels, openTouchKeyboardModifierMenu, resizeWindow, updateInterface } from "./interface";
+import { Interface, openTouchKeyboardModifierMenu, resizeWindow, updateInterface } from "./interface";
 import {Toolbar} from './toolbars'
 import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
@@ -15,6 +15,7 @@ interface PanelPositionData {
 	attached_to?: string
 	attached_index?: number
 	fixed_height: boolean
+	sidebar_index: number
 }
 
 type PanelSlot = 'left_bar' | 'right_bar' | 'top' | 'bottom' | 'float' | 'hidden'
@@ -47,9 +48,8 @@ interface PanelOptions {
 				[id: string]: Toolbar
 		  }
 		| Toolbar[]
-	default_position?:
-		| Partial<PanelPositionData>
-		| number
+	default_position?: Partial<PanelPositionData>
+	mode_positions?: Record<string, Partial<PanelPositionData>>
 	component?: Vue.Component
 	form?: InputForm
 	default_side?: 'right' | 'left'
@@ -74,7 +74,8 @@ const DEFAULT_POSITION_DATA: PanelPositionData = {
 	folded: false,
 	fixed_height: false,
 	attached_to: '',
-	attached_index: undefined
+	attached_index: undefined,
+	sidebar_index: 0,
 }
 
 export class Panel extends EventSystem {
@@ -93,7 +94,6 @@ export class Panel extends EventSystem {
 	onResize: () => void
 	onFold: () => void
 
-	default_position: PanelPositionData
 	previous_slot: PanelSlot
 	width: number
 	height: number
@@ -110,6 +110,17 @@ export class Panel extends EventSystem {
 	toolbars: Toolbar[]
 	sidebar_resize_handle: HTMLElement
 	resize_handles?: HTMLElement
+	/**
+	 * Stores panel position data during the current session
+	 */
+	mode_position_data: Record<string, PanelPositionData>
+	/**
+	 * The default configuration of the panel as it was when constructed without user customization
+	 */
+	default_configuration: {
+		default_position?: Partial<PanelPositionData>,
+		mode_positions?: Record<string, Partial<PanelPositionData>>
+}
 
 	constructor(id: string | PanelOptions, data: PanelOptions) {
 		super();
@@ -137,16 +148,8 @@ export class Panel extends EventSystem {
 		this.toolbars = [];
 		this.open_attached_panel = this;
 
-		if (!Interface.data.panels[this.id]) Interface.data.panels[this.id] = {};
-		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
-		this.default_position = data.default_position || ({} as any);
-		if (this.default_position && this.default_position.slot) this.previous_slot = this.default_position.slot;
-		this.updatePositionData({slot: (data.default_side ? (data.default_side+'_bar') : 'left_bar') as PanelSlot});
-
-		for (let mode_id in Interface.data.modes) {
-			let mode_data = Interface.getModeData(mode_id);
-			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
-		}
+		this.default_configuration = {default_position: data.default_position, mode_positions: data.mode_positions};
+		this.mode_position_data = {};
 
 		this.handle = Interface.createElement('div', {class: 'panel_handle', panel_id: this.id}, Interface.createElement('span', {}, this.name));
 		this.node = Interface.createElement('div', {class: 'panel', id: `panel_${this.id}`});
@@ -554,7 +557,18 @@ export class Panel extends EventSystem {
 		return this.slot === 'left_bar' || this.slot === 'right_bar';
 	}
 	get position_data(): PanelPositionData {
-		return Interface.getModeData().panels[this.id];
+		const mode = Interface.getUIMode();
+		if (!this.mode_position_data[mode]) {
+			let default_config = this.default_configuration;
+			let mode_data = Object.assign({}, DEFAULT_POSITION_DATA);
+			if (default_config.default_position) Object.assign(mode_data, default_config.default_position);
+			if (default_config.mode_positions?.[mode]) Object.assign(mode_data, default_config.mode_positions?.[mode]);
+			if (StoredPanelData[this.id]?.[mode]) Object.assign(mode_data, StoredPanelData[this.id][mode]);
+
+			this.mode_position_data[mode] = mode_data;
+		}
+		return this.mode_position_data[mode];
+
 	}
 	get slot() {
 		return this.position_data.slot;
@@ -586,16 +600,6 @@ export class Panel extends EventSystem {
 	}
 	dispatchEvent(event_name: PanelEvent, data: any): void {
 		super.dispatchEvent(event_name, data);
-	}
-	updatePositionData(data: Partial<PanelPositionData> = {}) {
-		let position_data = this.position_data;
-		for (let key in DEFAULT_POSITION_DATA) {
-			if (position_data[key] == undefined) {
-				position_data[key] = this.default_position[key]
-					?? data[key]
-					?? structuredClone(DEFAULT_POSITION_DATA[key]);
-			}
-		}
 	}
 	getAttachedPanels(): Panel[] {
 		let panels: Panel[] = [];
@@ -638,16 +642,19 @@ export class Panel extends EventSystem {
 		}
 		return this;
 	}
+	customizePosition(data: Partial<PanelPositionData>) {
+		let mode = Interface.getUIMode();
+		let mode_data = this.mode_position_data[mode];
+		Object.assign(mode_data, data);
+		if (!StoredPanelData[this.id]) StoredPanelData[this.id] = {};
+		StoredPanelData[this.id][mode] = mode_data;
+	}
 	resetCustomLayout(): this {
-		if (!Interface.getModeData().panels[this.id]) Interface.getModeData().panels[this.id] = {};
-
-		this.updatePositionData();
-
-		for (let mode_id in Interface.data.modes) {
-			let mode_data = Interface.getModeData(mode_id);
-			if (!mode_data.panels[this.id]) mode_data.panels[this.id] = JSON.parse(JSON.stringify(this.position_data));
+		StoredPanelData[this.id] = {};
+		for (let mode_id in this.mode_position_data) {
+			delete this.mode_position_data[mode_id];
 		}
-		this.moveTo(this.slot);
+		updateInterfacePanels();
 		this.fold(this.folded);
 		return this;
 	}
@@ -749,7 +756,7 @@ export class Panel extends EventSystem {
 			let zindex = 18;
 			Panel.floating_panel_z_order.forEach(id => {
 				let panel = Panels[id];
-				panel.container.style.zIndex = zindex;
+				panel.container.style.zIndex = zindex.toString();
 				panel.dispatchEvent('change_zindex', {zindex});
 				zindex = Math.clamp(zindex-1, 14, 19);
 			})
@@ -775,33 +782,23 @@ export class Panel extends EventSystem {
 		this.node.classList.remove('floating');
 
 		if (slot == 'left_bar' || slot == 'right_bar') {
-			let change_panel_order = !!ref_panel;
-			if (!ref_panel && Interface.getModeData()[slot].includes(this.id)) {
-				let panels = Interface.getModeData()[slot].filter(id => Panels[id] && Panels[id].slot == slot || id == this.id);
-				let index = panels.indexOf(this.id);
-				if (index == 0) {
-					ref_panel = Panels[panels[1]];
-					before = true;
-				} else {
-					ref_panel = Panels[panels[index-1]];
-					before = false;
+			document.getElementById(slot)!.append(this.container);
+			if (ref_panel) {
+				let panel_order = Interface.calculateSidebarOrder(slot);
+				panel_order.remove(this.id);
+				let sign = before ? -1 : 1;
+				let sidebar_index = ref_panel.position_data.sidebar_index + sign;
+				this.customizePosition({sidebar_index});
+				for (let i = panel_order.indexOf(ref_panel.id) + sign; panel_order[i]; i += sign) {
+					let panel = Panels[panel_order[i]];
+					sidebar_index += sign;
+					if ((sign == 1 && panel.position_data.sidebar_index < sidebar_index) || (sign == -1 && panel.position_data.sidebar_index > sidebar_index)) {
+						panel.customizePosition({sidebar_index});
+						console.log('Re-index', panel.id, sidebar_index);
+					}
 				}
 			}
-
-			if (ref_panel instanceof Panel && ref_panel.slot == slot) {
-				if (before) {
-					$(ref_panel.node).before(this.node);
-				} else {
-					$(ref_panel.node).after(this.node);
-				}
-				if (change_panel_order) {
-					Interface.getModeData()[slot].remove(this.id);
-					Interface.getModeData()[slot].splice(Interface.getModeData()[slot].indexOf(ref_panel.id) + (before ? 0 : 1), 0, this.id);
-				}
-			} else {
-				document.getElementById(slot)!.append(this.container);
-				Interface.getModeData()[slot].safePush(this.id);
-			}
+			updateSidebarOrder();
 
 		} else if (slot == 'top') {
 			let top_panel = Interface.getTopPanel();
@@ -848,7 +845,6 @@ export class Panel extends EventSystem {
 		if (slot == 'left_bar' || slot == 'right_bar') {
 
 			document.getElementById(slot)!.append(this.container);
-			Interface.getModeData()[slot].safePush(this.id);
 
 		} else if (slot == 'top') {
 			document.getElementById('top_slot')!.append(this.container);
@@ -1135,6 +1131,23 @@ Panel.prototype.snap_menu = new Menu([
 ])
 
 
+export const Panels: Record<string, Panel> = {};
+Interface.Panels = Panels;
+Interface.panel_definers = []
+Interface.definePanels = function(callback) {
+	Interface.panel_definers.push(callback);
+};
+
+const StoredPanelData: Record<string, Record<string, PanelPositionData>> = {};
+try {
+	let data = JSON.parse(localStorage.getItem('panel_customization'));
+	if (data && typeof data == 'object') {
+		for (let panel_id in data) {
+			StoredPanelData[panel_id] = data[panel_id];
+		}
+	}
+} catch (err) {}
+
 export function setupPanels() {
 	Interface.panel_definers.forEach((definer) => {
 		if (typeof definer === 'function') {
@@ -1184,32 +1197,34 @@ export function updateInterfacePanels() {
 		resizer.update()
 	}
 	updateSidebarOrder();
+	localStorage.setItem('panel_customization', JSON.stringify(StoredPanelData));
 }
 
 export function updateSidebarOrder() {
 	['left_bar', 'right_bar'].forEach(bar => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
-		let current_panels = Array.from(bar_node.childNodes).map(panel_node => (panel_node as HTMLElement).getAttribute('panel_id'));
+		let current_panels = Array.from(bar_node.childNodes).map(panel_node => (panel_node as HTMLElement).getAttribute('panel_id')).filter(panel_id => {
+			return Panels[panel_id] && Condition(Panels[panel_id].condition) && !Panels[panel_id].attached_to;
+		});
 
+		let target_order = Interface.calculateSidebarOrder(bar) as string[];
 		let last_panel: Panel;
 		let panel_count = 0;
-		Interface.getModeData()[bar].forEach((panel_id: string) => {
+		target_order.forEach((panel_id: string) => {
 			let panel: Panel = Panels[panel_id];
-			if (panel && panel.slot == bar) {
-				panel.container.classList.remove('bottommost_panel');
-				panel.container.classList.remove('topmost_panel');
-				if (!panel.attached_to && Condition(panel.condition)) {
-					if (current_panels[panel_count] != panel_id) {
-						bar_node.append(panel.container);
-					}
-					if (panel_count == 0) {
-						panel.container.classList.add('topmost_panel');
-					}
-					panel_count++;
-					last_panel = panel;
-				} else {
-					panel.container.remove();
+			panel.container.classList.remove('bottommost_panel');
+			panel.container.classList.remove('topmost_panel');
+			if (!panel.attached_to && Condition(panel.condition)) {
+				if (current_panels[panel_count] != panel_id) {
+					bar_node.append(panel.container);
 				}
+				if (panel_count == 0) {
+					panel.container.classList.add('topmost_panel');
+				}
+				panel_count++;
+				last_panel = panel;
+			} else {
+				panel.container.remove();
 			}
 		});
 		if (last_panel && panel_count > 1) {
@@ -1290,6 +1305,7 @@ export function setupMobilePanelSelector() {
 
 Object.assign(window, {
 	Panel,
+	Panels,
 	setupPanels,
 	updateInterfacePanels,
 	updateSidebarOrder,

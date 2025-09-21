@@ -13,7 +13,8 @@ Interface.definePanels(function() {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 1,
 		},
 		toolbars: [
 			Toolbars.element_position,
@@ -33,7 +34,8 @@ Interface.definePanels(function() {
 			float_size: [300, 400],
 			height: 400,
 			attached_to: 'transform',
-			attached_index: 1
+			attached_index: 1,
+			sidebar_index: 2,
 		},
 		form: new InputForm({})
 	})

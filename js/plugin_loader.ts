@@ -7,14 +7,9 @@ import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
-import { Panels } from "./interface/interface";
 import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
+import { Panels } from "./interface/panels";
 
-interface FileResult {
-	name: string
-	path: string
-	content: string | ArrayBuffer
-}
 
 export const Plugins = {
 	/**

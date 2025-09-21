@@ -1,8 +1,8 @@
 import { Vue } from "./lib/libs"
 import { Blockbench } from "./api"
-import { Interface, Panels } from "./interface/interface"
+import { Interface } from "./interface/interface"
 import { MenuBar } from "./interface/menu_bar"
-import { updatePanelSelector, updateSidebarOrder } from "./interface/panels"
+import { Panels, updatePanelSelector, updateSidebarOrder } from "./interface/panels"
 import { Prop } from "./misc"
 import { Outliner } from "./outliner/outliner"
 import { ReferenceImage } from "./preview/reference_images"
@@ -118,7 +118,6 @@ export class Mode extends KeybindItem {
 		if (!Blockbench.isMobile) {
 			for (let id in Panels) {
 				let panel = Panels[id];
-				panel.updatePositionData();
 				panel.updateSlot();
 
 			}

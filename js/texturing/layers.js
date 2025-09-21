@@ -614,7 +614,14 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 300],
-			height: 300
+			height: 300,
+			sidebar_index: 5,
+		},
+		mode_positions: {
+			paint_2d: {
+				slot: 'right_bar',
+				sidebar_index: 7,
+			}
 		},
 		toolbars: [
 			new Toolbar('layers', {

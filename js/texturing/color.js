@@ -512,7 +512,8 @@ Interface.definePanels(() => {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 4,
 		},
 		toolbars: [
 			new Toolbar('color_picker', {
@@ -765,6 +766,9 @@ Interface.definePanels(() => {
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400,
+			attached_to: 'color',
+			attached_index: 1,
+			sidebar_index: 5,
 		},
 		toolbars: [
 			new Toolbar('palette', {

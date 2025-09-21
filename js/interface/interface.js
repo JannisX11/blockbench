@@ -90,37 +90,7 @@ export const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
-		modes: {
-			paint_2d: {
-				left_bar: ['uv', 'color', 'palette', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-				right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
-				panels: {
-					layers: {
-						slot: 'right_bar',
-						float_position: [300, 0],
-						float_size: [300, 300],
-						height: 300
-					},
-					textures: {
-						slot: 'right_bar',
-						float_position: [300, 0],
-						float_size: [300, 300],
-						height: 300,
-						folded: true
-					}
-				}
-			}
-		},
-		left_bar: ['uv', 'color', 'palette', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['transform', 'bone', 'color', 'palette', 'skin_pose', 'layers', 'outliner', 'chat'],
-		panels: {
-			paint: {
-				slot: 'left_bar',
-				float_position: [300, 0],
-				float_size: [500, 600],
-				height: window.innerHeight/2-50
-			}
-		}
+		modes: {},
 	},
 	get left_bar_width() {
 		if (Prop.show_left_bar && Interface.getLeftPanels().length) { 
@@ -157,24 +127,26 @@ export const Interface = {
 		}
 	},
 	getLeftPanels() {
-		let list = [];
-		for (let key of Interface.getModeData().left_bar) {
-			let panel = Panels[key];
-			if (panel && panel.slot == 'left_bar' && Condition(panel.condition)) {
-				list.push(panel);
-			}
-		}
-		return list;
+		return Interface.calculateSidebarOrder('left_bar').map(p => this.Panels[p]);
 	},
 	getRightPanels() {
-		let list = [];
-		for (let key of Interface.getModeData().right_bar) {
-			let panel = Panels[key];
-			if (panel && panel.slot == 'right_bar' && Condition(panel.condition)) {
-				list.push(panel);
-			}
+		return Interface.calculateSidebarOrder('right_bar').map(p => this.Panels[p]);
+	},
+	calculateSidebarOrder(bar) {
+		let target_order = [];
+		for (let panel_id in Interface.Panels) {
+			let panel = Interface.Panels[panel_id];
+			if (panel.slot != bar) continue;
+			if (!Condition(panel)) continue;
+			if (panel.attached_to) continue;
+			target_order.push(panel.id);
 		}
-		return list;
+		target_order.sort((a, b) => {
+			let a_i = Panels[a].position_data.sidebar_index;
+			let b_i = Panels[b].position_data.sidebar_index;
+			return (a_i ?? 0) - (b_i ?? 0);
+		})
+		return target_order;
 	},
 	getUIMode() {
 		let mode_id = Mode.selected && Mode.selected.id;
@@ -184,13 +156,12 @@ export const Interface = {
 	},
 	getModeData(ui_mode = Interface.getUIMode()) {
 		if (ui_mode && ui_mode != 'start') {
-			if (!Interface.data.modes[ui_mode]) {Interface.data.modes[ui_mode] = {};}
+			if (!Interface.data.modes[ui_mode]) {
+				Interface.data.modes[ui_mode] = {};
+			}
 			let mode_data = Interface.data.modes[ui_mode];
 			if (mode_data.left_bar_width == undefined) mode_data.left_bar_width = Interface.data.left_bar_width;
 			if (mode_data.right_bar_width == undefined) mode_data.right_bar_width = Interface.data.right_bar_width;
-			if (mode_data.left_bar == undefined) mode_data.left_bar = Interface.data.left_bar.slice();
-			if (mode_data.right_bar == undefined) mode_data.right_bar = Interface.data.right_bar.slice();
-			if (mode_data.panels == undefined) mode_data.panels = JSON.parse(JSON.stringify(Interface.data.panels));
 			return mode_data;
 		} else {
 			return Interface.data;
@@ -202,8 +173,8 @@ export const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
 				if (!Mode.selected) return false;
-				for (let p of Interface.getModeData().left_bar) {
-					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'left_bar') {
+				for (let p of Interface.getLeftPanels()) {
+					if (p && BARS.condition(p.condition) && p.slot == 'left_bar') {
 						return true;
 					}
 				}
@@ -238,8 +209,8 @@ export const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				if (!Mode.selected) return false;
-				for (let p of Interface.getModeData().right_bar) {
-					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'right_bar') {
+				for (let p of Interface.getLeftPanels()) {
+					if (p && BARS.condition(p.condition) && p.slot == 'right_bar') {
 						return true;
 					}
 				}
@@ -409,13 +380,8 @@ export const Interface = {
 		Prop[`show_${side}_bar`] = !!status;
 		resizeWindow();
 	}
-}
-
-export const Panels = Interface.Panels;
-Interface.panel_definers = []
-Interface.definePanels = function(callback) {
-	Interface.panel_definers.push(callback);
 };
+
 
 (function() {
 	Interface.data = $.extend(true, {}, Interface.default_data)
@@ -423,49 +389,10 @@ Interface.definePanels = function(callback) {
 	if (!interface_data) return;
 	try {
 		interface_data = JSON.parse(interface_data)
-		let original_left_bar, original_right_bar;
-		if (interface_data.left_bar) {
-			original_left_bar = Interface.data.left_bar;
-			Interface.data.left_bar = interface_data.left_bar;
-		}
-		if (interface_data.right_bar) {
-			original_right_bar = Interface.data.right_bar;
-			Interface.data.right_bar = interface_data.right_bar;
-		}
-		if (original_left_bar) {
-			original_left_bar.forEach((panel, i) => {
-				if (Interface.data.left_bar.includes(panel)) return;
-				if (Interface.data.right_bar.includes(panel)) return;
-				Interface.data.left_bar.splice(i, 0, panel);
-			})
-		}
-		if (original_right_bar) {
-			original_right_bar.forEach((panel, i) => {
-				if (Interface.data.right_bar.includes(panel)) return;
-				if (Interface.data.left_bar.includes(panel)) return;
-				Interface.data.right_bar.splice(i, 0, panel);
-			})
-		}
 		$.extend(true, Interface.data, interface_data)
-
-		Blockbench.onUpdateTo('5.0.0-beta.2', () => {
-			let lists = [Interface.data.right_bar, Interface.data.left_bar];
-			for (let mode_id in Interface.data.modes) {
-				let mode_data = Interface.data.modes[mode_id];
-				lists.push(mode_data.left_bar, mode_data.right_bar)
-			}
-			lists.forEach(list => {
-				if (list instanceof Array) {
-					let index = list.indexOf('element');
-					if (index != -1) list[index] = 'transform';
-				}
-			})
-			console.log('Upgraded sidebar order to 5.0');
-		})
 	} catch (err) {
 		console.error(err);
 	}
-
 })()
 
 //Misc
@@ -1137,7 +1064,6 @@ BARS.defineActions(function() {
 Object.assign(window, {
 	ResizeLine,
 	Interface,
-	Panels,
 	unselectInterface,
 	setupInterface,
 	updateInterface,

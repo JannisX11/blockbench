@@ -870,7 +870,8 @@ Interface.definePanels(function() {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 3,
 		},
 		component: {
 			template: `

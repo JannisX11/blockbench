@@ -1924,7 +1924,8 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 0,
 		},
 		toolbars: [
 			new Toolbar('animations', {

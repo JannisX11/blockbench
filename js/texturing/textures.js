@@ -2745,7 +2745,18 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 4,
+		},
+		mode_positions: {
+			paint_2d: {
+				slot: 'right_bar',
+				float_position: [300, 0],
+				float_size: [300, 300],
+				height: 300,
+				folded: true,
+				sidebar_index: 6,
+			}
 		},
 		toolbars: [
 			new Toolbar('texturelist', {
