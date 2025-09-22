@@ -96,8 +96,13 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 	let has_permission = false;
 	if (permission === true) {
 		has_permission = true;
-	} else if (module_name == 'fs' && permission?.directories?.includes(options2.scope)) {
-		has_permission = true;
+	} else if (module_name == 'fs' && permission?.directories) {
+		for (let directory of permission?.directories) {
+			if (options2.scope.startsWith(directory)) {
+				has_permission = true;
+				break;
+			}
+		}
 	}
 
 	if (!has_permission) {
