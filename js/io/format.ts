@@ -127,6 +127,10 @@ interface FormatFeatures {
 	 */
 	centered_grid: boolean
 	/**
+	 * Specify how large in pixels a block is. Defaults to 16.
+	 */
+	block_size: number
+	/**
 	 * Add the ability to rotate cubes
 	 */
 	rotate_cubes: boolean
@@ -616,6 +620,7 @@ new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
+new Property(ModelFormat, 'number', 'block_size', {default: 16});
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');

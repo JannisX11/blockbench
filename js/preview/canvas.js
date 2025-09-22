@@ -209,6 +209,8 @@ export const Canvas = {
 		three_grid.name = 'grid_group'
 		gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
 
+		const block_size = Format.block_size ?? 16;
+
 		Canvas.northMarkMaterial.color = gizmo_colors.grid
 
 		function setupAxisLine(origin, length, axis) {
@@ -233,8 +235,8 @@ export const Canvas = {
 		//Axis Lines
 		if (settings.base_grid.value) {
 			var length = Format.centered_grid
-				? (settings.full_grid.value ? 24 : 8)
-				: 16
+				? (settings.full_grid.value ? block_size*1.5 : block_size/2)
+				: block_size
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
@@ -244,7 +246,7 @@ export const Canvas = {
 
 		if (settings.full_grid.value === true) {
 			//Grid
-			let size = settings.large_grid_size.value*16;
+			let size = settings.large_grid_size.value*block_size;
 			var grid = new THREE.GridHelper(size, size/canvasGridSize(), Canvas.gridMaterial);
 			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
@@ -256,7 +258,8 @@ export const Canvas = {
 			side_grid.add(grid.clone())
 
 			//North
-			let geometry = new THREE.PlaneGeometry(5, 5)
+			let north_size = 5 * (block_size/16);
+			let geometry = new THREE.PlaneGeometry(north_size, north_size);
 			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 			if (Format.centered_grid) {
 				north_mark.position.set(0,0, -3 - size/2)
@@ -270,7 +273,7 @@ export const Canvas = {
 			if (settings.large_grid.value === true) {
 				//Grid
 				let size = settings.large_grid_size.value
-				var grid = new THREE.GridHelper(size*16, size, Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(size*block_size, size, Canvas.gridMaterial);
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
 				} else { 
@@ -283,7 +286,7 @@ export const Canvas = {
 
 			if (settings.base_grid.value === true) {
 				//Grid
-				var grid = new THREE.GridHelper(16, 16/canvasGridSize(), Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(block_size, block_size/canvasGridSize(), Canvas.gridMaterial);
 
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
@@ -295,12 +298,13 @@ export const Canvas = {
 				side_grid.add(grid.clone())
 
 				//North
-				let geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				let north_size = 2.4 * (block_size/16);
+				let geometry = new THREE.PlaneGeometry(north_size, north_size);
 				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 				if (Format.centered_grid) {
-					north_mark.position.set(0,0,-9.5)
+					north_mark.position.set(0,0,-0.6*north_size - block_size/2);
 				} else {
-					north_mark.position.set(8,0,-1.5)
+					north_mark.position.set(8,0,-0.6*north_size);
 				}
 				north_mark.rotation.x = Math.PI / -2
 				three_grid.add(north_mark)
