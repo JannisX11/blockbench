@@ -209,7 +209,7 @@ export const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				if (!Mode.selected) return false;
-				for (let p of Interface.getLeftPanels()) {
+				for (let p of Interface.getRightPanels()) {
 					if (p && BARS.condition(p.condition) && p.slot == 'right_bar') {
 						return true;
 					}
