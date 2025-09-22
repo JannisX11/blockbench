@@ -1803,7 +1803,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 						let move_value = point[axis];
 						if (axis == 'e') move_value = point.length() * Math.sign(point.y||point.x);
 						move_value = Math.round( move_value / snap_factor ) * snap_factor;
-						move_value *= (scope.direction ? 1 : -1);
+						move_value *= (scope.direction ? 1 : -1) * 1/8;
 
 						if (previousValue !== move_value) {
 							beforeFirstChange(event)
