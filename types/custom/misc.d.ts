@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 declare class Deletable {
 	/**
@@ -127,54 +127,10 @@ type EventName =
 type IconString = string
 
 
-declare function updateSelection(): void
-
-/**
- * Returns a translated string in the current language
- * @param key Translation key
- * @param arguments Array of arguments that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
- */
-declare function tl(key: string, arguments?: any[]): string
-
-declare namespace Language {
-	/**
-	 * Translation data for the current language
-	 */
-	const data: {
-		[key: string]: string
-	}
-	/**
-	 * Language code indicating the currently selected language
-	 */
-	const code: string
-	/**
-	 * Add translations for custom translation strings
-	 * @param language Two letter language code, e. G. 'en'
-	 * @param strings Object listing the translation keys and values
-	 */
-	function addTranslations(language: string, strings: { [key: string]: string }): void
-}
-
-interface Object {
-	boneConfig: Record<string, Property<any> | undefined>
-}
-
 declare var LZUTF8: any
 
-declare function unselectAllElements(): void
 declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number
-
-declare const Pressing: {
-	shift: boolean
-	ctrl: boolean
-	alt: boolean
-	overrides: {
-		shift: boolean
-		ctrl: boolean
-		alt: boolean
-	}
-}
 
 declare function isStringNumber(value: any): boolean
 

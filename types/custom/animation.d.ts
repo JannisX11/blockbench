@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 declare class AnimationItem {
 	static all: _Animation[]

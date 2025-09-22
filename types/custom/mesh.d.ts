@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 type OccupationMatrix = {
 	[x: number]: {
 		[y: number]: boolean

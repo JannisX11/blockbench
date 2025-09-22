@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 interface ResizeLineOptions {
 	condition?: ConditionResolvable

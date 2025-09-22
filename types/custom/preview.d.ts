@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 interface AnglePreset {
 	position: ArrayVector3
 	target?: ArrayVector3

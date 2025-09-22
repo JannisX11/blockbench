@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 interface LoadOptions {
 	import_to_current_project?: boolean
 	externalDataLoader?: (path: string) => any

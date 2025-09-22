@@ -1,4 +1,4 @@
-import three from 'three'
+import * as threejs from "three";
 
 declare module 'three' {
 	interface Object3D {
@@ -10,4 +10,8 @@ declare module 'three' {
 		isElement?: boolean
 		isGroup?: boolean
 	}
+}
+
+declare global {
+	const THREE: typeof threejs
 }

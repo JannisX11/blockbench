@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 type CardinalDirection = 'north' | 'south' | 'east' | 'west' | 'up' | 'down'
 
 interface ICubeOptions {

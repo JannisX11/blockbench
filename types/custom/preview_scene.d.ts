@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 interface PreviewModelCubeTemplate {
 	position: ArrayVector3
 	size: ArrayVector3

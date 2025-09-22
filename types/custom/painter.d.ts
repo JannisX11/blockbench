@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 /**
  * A global namespace containing various functionality for Blockbench's 2D and 3D paint tools and texture editor
  */

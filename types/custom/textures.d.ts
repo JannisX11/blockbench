@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 import type { FSWatcher } from 'fs'
 import type { ShaderMaterial } from 'three'

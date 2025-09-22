@@ -1,7 +1,7 @@
 /**
  * Registry of all toolbar items, such as actions, tools, etc.
  */
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 import tinycolor from 'tinycolor2'
 

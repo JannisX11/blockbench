@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 declare namespace Timeline {
 	const animators: GeneralAnimator[]
 	const selected: _Keyframe[]

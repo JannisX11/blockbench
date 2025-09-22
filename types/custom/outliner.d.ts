@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 type ArrayVector4 = [number, number, number, number]
 type ArrayVector3 = [number, number, number]
 type ArrayVector2 = [number, number]

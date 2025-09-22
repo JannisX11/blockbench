@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 interface ScreenshotOptions {
 	crop?: boolean
 	width?: number
