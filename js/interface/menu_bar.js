@@ -45,6 +45,11 @@ export class BarMenu extends Menu {
 		this.highlight_action = action;
 		this.label.classList.add('highlighted');
 	}
+	delete() {
+		super.delete();
+		this.label.remove();
+		delete MenuBar.menus[this.id];
+	}
 }
 
 export const MenuBar = {
