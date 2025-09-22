@@ -46,7 +46,7 @@ declare global {
 		/**
 		 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
 		 */
-		internal: boolean
+		internal?: boolean
 		/**
 		 * Flag to indicate that the texture was manually resized, and on load it should not try to automatically adjust UV size
 		 */
@@ -257,7 +257,7 @@ declare global {
 		 * Adds texture to the textures list and initializes it
 		 * @param undo If true, an undo point is created
 		 */
-		add(undo?: boolean): Texture
+		add(undo?: boolean, uv_size_from_resolution?: boolean): Texture
 		/**
 		 * Removes the texture
 		 * @param no_update If true, the texture is silently removed. The interface is not updated, no undo point is created

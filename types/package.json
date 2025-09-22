@@ -4,7 +4,7 @@
 	"description": "Blockbench typescript types",
 	"main": "",
 	"types": "./index.d.ts",
-	"typeScriptVersion": "3.2",
+	"typeScriptVersion": "4.9",
 	"keywords": [
 		"blockbench"
 	],

@@ -13,6 +13,7 @@ interface ICubeOptions {
 	to?: ArrayVector3
 	rotation?: ArrayVector3
 	origin?: ArrayVector3
+	stretch?: ArrayVector3
 	box_uv?: boolean
 	/**
 	 * UV position for box UV mode
@@ -54,6 +55,7 @@ declare class Cube extends OutlinerElement {
 	to: ArrayVector3
 	rotation: ArrayVector3
 	origin: ArrayVector3
+	stretch: ArrayVector3
 	faces: {
 		[fkey: string]: CubeFace
 	}
