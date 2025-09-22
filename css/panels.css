@@ -1686,6 +1686,7 @@
 		border-right: 1px solid var(--color-border);
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
+		border-radius: 5px;
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
@@ -1728,7 +1729,7 @@
 		background-color: var(--color-selected);
 	}
 	.channel_head.selected {
-		background-color: var(--color-selected);
+		background-color: var(--color-elevated);
 	}
 	.channel_head .text_button {
 		width: 26px;
@@ -1774,10 +1775,12 @@
 		padding-left: 5px;
 		pointer-events: none;
 	}
-	.animator_channel_bar .channel_head:not(.selected) span {
-		color: var(--color-subtle_text);
+	.animator_channel_bar .channel_head span {
 		font-size: 0.93em;
 		line-height: 23px;
+	}
+	.animator_channel_bar .channel_head:not(.selected) span {
+		color: var(--color-subtle_text);
 	}
 	.animator.boneless .animator_head_bar .channel_head span {
 		color: #ff6b6b;
