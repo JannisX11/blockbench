@@ -148,7 +148,7 @@ export const Animator = {
 		let bone_stack = [];
 		let iterate = g => {
 			bone_stack.push(g);
-			if (g.parent instanceof Group) iterate(g.parent);
+			if (g.parent instanceof OutlinerElement && g.parent.constructor.animator) iterate(g.parent);
 		}
 		iterate(target)
 		

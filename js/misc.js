@@ -247,6 +247,10 @@ export function unselectAllElements(exceptions) {
 	for (let key in Project.mesh_selection) {
 		delete Project.mesh_selection[key];
 	}
+	if (Modes.animate && Timeline.selected_animator) {
+		Timeline.selected_animator.selected = false;
+		Timeline.selected_animator = null;
+	}
 	TickUpdates.selection = true;
 }
 // Legacy functions

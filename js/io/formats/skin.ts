@@ -7899,6 +7899,7 @@ skin_presets.vindicator = {
 			{
 				"name": "arms",
 				"pivot": [0, 22, 0],
+				"rotation": [-45, 0, 0],
 				"cubes": [
 					{"name": "arms", "origin": [-8, 16, -2], "size": [4, 8, 4], "uv": [44, 22]},
 					{"name": "arms", "origin": [4, 16, -2], "size": [4, 8, 4], "uv": [44, 22]},

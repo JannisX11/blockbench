@@ -1220,6 +1220,7 @@ BARS.defineActions(function() {
 					let animators = [];
 					original_keyframes.forEach(kf => animators.safePush(kf.animator));
 					let channels = ['rotation', 'position', 'scale'];
+					let all_animatable_nodes = Group.all.concat(Outliner.elements.filter(el => el.constructor.animator));
 
 					animators.forEach(animator => {
 						let opposite_animator;
@@ -1229,7 +1230,7 @@ BARS.defineActions(function() {
 							if (!kfs.length) return;
 							if (!opposite_animator) {
 								let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
-								let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
+								let opposite_bone = all_animatable_nodes.find(g => g.name.toLowerCase() == name);
 								if (!opposite_bone) {
 									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
 									return;

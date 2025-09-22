@@ -1676,6 +1676,7 @@
 	}
 	#timeline_vue.graph_editor li.animator > div {
 		width: fit-content !important;
+		background-color: var(--color-ui);
 	}
 	.channel_head {
 		position: sticky;
@@ -1686,7 +1687,6 @@
 		border-right: 1px solid var(--color-border);
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
-		border-radius: 5px;
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
@@ -1730,6 +1730,7 @@
 	}
 	.channel_head.selected {
 		background-color: var(--color-elevated);
+		border-radius: 5px;
 	}
 	.channel_head .text_button {
 		width: 26px;
