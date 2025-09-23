@@ -1298,7 +1298,7 @@ export class Preview {
 			(event.which === 1 || event.which === 3 || event instanceof TouchEvent) &&
 			!this.controls.hasMoved &&
 			!this.selection.activated &&
-			!Transformer.dragging &&
+			!Transformer.was_clicked &&
 			Toolbox.selected.selectElements != false &&
 			!this.selection.click_target
 		) {

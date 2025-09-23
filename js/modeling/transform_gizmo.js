@@ -1534,6 +1534,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 
 					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
 					if ( intersect ) {
+						scope.was_clicked = true;
 						if ( scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J" ) {
 							// Spline Gizmos cannot and should not trigger draggin states.
 							scope.dragging = false;
@@ -2113,6 +2114,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 				//event.preventDefault(); // Prevent MouseEvent on mobile
 				document.removeEventListener( "mouseup", onPointerUp );
 				scope.dragging = false
+				scope.was_clicked = false;
 
 				document.removeEventListener( "mousemove", onPointerMove );
 				document.removeEventListener( "touchmove", onPointerMove );
