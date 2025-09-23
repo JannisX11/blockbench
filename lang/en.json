@@ -631,6 +631,9 @@
 	"dialog.proportional_editing.selection.linear": "Linear Distance",
 	"dialog.proportional_editing.selection.connections": "Connections",
 
+	"dialog.set_vertex_weights.weight": "Weight",
+	"dialog.set_vertex_weights.overwrite": "Overwrite other bones",
+
 	"dialog.material_instances.title": "Material Instances",
 
 	"dialog.plugins.title": "Plugins",

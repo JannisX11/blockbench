@@ -126,8 +126,24 @@ type EventName =
 
 type IconString = string
 
+declare function updateSelection(): void
 
 declare var LZUTF8: any
+
+declare function unselectAllElements(): void
+declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
+declare function getRescalingFactor(angle: number): number
+
+declare const Pressing: {
+	shift: boolean
+	ctrl: boolean
+	alt: boolean
+	overrides: {
+		shift: boolean
+		ctrl: boolean
+		alt: boolean
+	}
+}
 
 declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number

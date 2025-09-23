@@ -4,7 +4,7 @@ import { ArmatureBone } from "../../outliner/armature_bone";
 
 new Action('set_vertex_weights', {
 	icon: 'weight',
-	condition: {modes: ['edit'], method: () => (Mesh.selected[0]?.getArmature())},
+	condition: {modes: ['edit'], method: () => (Mesh.selected[0]?.getArmature() && Mesh.selected[0].getSelectedVertices().length)},
 	click() {
 		let mesh = Mesh.selected[0];
 		let selected_vertices = mesh.getSelectedVertices();
@@ -20,20 +20,22 @@ new Action('set_vertex_weights', {
 
 		// Todo: translations. Add way to configure multiple bones
 		new Dialog('set_vertex_weights', {
-			title: 'Set vertex weights',
+			title: 'action.set_vertex_weights',
 			form: {
-				bone: {type: 'select', label: 'Bone', value: available_bones[0].name, options: bone_options},
-				weight: {type: 'number', label: 'Weight', value: 1, min: 0, max: 1}
+				bone: {type: 'select', label: 'data.armature_bone', value: available_bones[0].name, options: bone_options},
+				weight: {type: 'number', label: 'dialog.set_vertex_weights.weight', value: 1, min: 0, max: 1},
+				overwrite: {type: 'checkbox', label: 'dialog.set_vertex_weights.overwrite', value: true}
 			},
 			onConfirm(result) {
 				let target_bone = available_bones.find(b => b.uuid == result.bone);
 				affected_bones.safePush(target_bone);
-				// @ts-ignore Should be fixed once converting armature_bone.js to ts
 				Undo.initEdit({elements: affected_bones});
-				for (let bone of affected_bones) {
-					if (bone.uuid == result.bone) continue;
-					for (let vkey of selected_vertices) {
-						delete bone.vertex_weights[vkey];
+				if (result.overwrite) {
+					for (let bone of affected_bones) {
+						if (bone.uuid == result.bone) continue;
+						for (let vkey of selected_vertices) {
+							delete bone.vertex_weights[vkey];
+						}
 					}
 				}
 				for (let vkey of selected_vertices) {
