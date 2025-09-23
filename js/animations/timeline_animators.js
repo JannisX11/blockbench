@@ -481,6 +481,10 @@ export class BoneAnimator extends GeneralAnimator {
 				let slerp = quat_before.slerp(quat_after, alpha);
 				Reusable.euler2.order = this.group.scene_object.rotation.order;
 				let euler = Reusable.euler2.setFromQuaternion(slerp);
+				let fix = this.group.scene_object.fix_rotation;
+				euler.x -= fix.x;
+				euler.y -= fix.y;
+				euler.z -= fix.z;
 				
 				if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
 				if (axis) {
