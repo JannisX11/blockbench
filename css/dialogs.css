@@ -1753,7 +1753,7 @@
 	.plugins_suggested_row > ul {
 		display: flex;
 		gap: 12px;
-		overflow-x: scroll;
+		overflow-x: auto;
 		padding: 12px 32px;
 		width: calc(100% + 48px);
 		margin-right: -24px;
