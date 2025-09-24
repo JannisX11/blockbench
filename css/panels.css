@@ -56,7 +56,7 @@
 	.panel_tab_bar {
 		display: flex;
 		width: 100%;
-		height: 40px;
+		height: 36px;
 		flex-shrink: 0;
 		margin: 0;
 		padding: 0;
@@ -91,6 +91,7 @@
 		border-top-left-radius: 5px;
 		border-top-right-radius: 5px;
 		cursor: pointer;
+		align-items: center;
 	}
 	.panel_tab_list > .panel_handle:hover {
 		color: var(--color-text);
@@ -182,7 +183,7 @@
 		cursor: pointer;
 		color: var(--color-subtle_text);
 		height: 100%;
-		padding-top: 3px;
+		padding-top: 1px;
 		margin-right: -10px;
 	}
 	.panel_handle:not(.selected) .panel_menu_button {
