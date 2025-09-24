@@ -453,6 +453,8 @@
 		overflow-x: hidden;
 		overflow-y: auto;
 		border-bottom-left-radius: 6px;
+		margin-top: -10px;
+		padding-top: 10px;
 	}
 	.dialog_content {
 		display: block;
