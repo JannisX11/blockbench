@@ -39,6 +39,7 @@ const SAFE_APIS = [
 	'url',
 	'string_decoder',
 	'querystring',
+	'constants'
 ];
 const REQUESTABLE_APIS = [
 	'fs',
