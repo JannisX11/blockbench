@@ -116,7 +116,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 		let result = dialog.showMessageBoxSync(currentwindow, {
 			title: 'Plugin Permission',
 			message: `Permission to ${api_description} requested`,
-			detail: `The plugin "${plugin.name}" (${plugin_id}) requires permission to ${api_description}.${option_text}${options.message ? `\n\n"${options.message}"` : ''}`,
+			detail: `The plugin "${plugin.name}" (${plugin_id}) requires permission to ${api_description}.${option_text}${options.optional === false ? `\n\nThis permission is not optional and is required for the plugin to function.` : ""}${options.message ? `\n\n"${options.message}"` : ''}`,
 			type: 'question',
 			noLink: true,
 			cancelId: 3,
@@ -124,7 +124,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				'Allow once',
 				'Always allow for this plugin',
 				'Uninstall plugin',
-				'Deny',
+				options.optional === false ? 'Disable plugin' : 'Deny'
 			]
 		});
 		enum Result {
@@ -148,10 +148,13 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				allowed[module_name] = true;
 			}
 			savePluginSettings();
-		}
-		if (result == Result.Uninstall) {
+		} else if (result == Result.Uninstall) {
 			setTimeout(() => {
 				plugin.uninstall();
+			}, 20);
+		} else if (result == Result.Deny && options.optional === false) {
+			setTimeout(() => {
+				plugin.toggleDisabled();
 			}, 20);
 		}
 		if (!(result == Result.Once || result == Result.Always)) {
