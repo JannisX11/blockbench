@@ -3507,6 +3507,7 @@ Interface.definePanels(function() {
 					} else {
 						sel_vertices.replace([vertex_key]);
 					}
+					updateSelection();
 
 					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({elements, uv_only: true})
