@@ -186,19 +186,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [Handon_撼动](https://x.com/_2Lein) & [PICASSO](https://twitter.com/Picasso114514)",
+					description: "Splash Art 1st Place by [zl game](https://contests.blockbench.net/artists/810872057172459570) & [fable](https://contests.blockbench.net/artists/885471035258994709)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [guzuper](https://x.com/guzuper200?s=21) & [rainyday](https://x.com/YuTian131)",
+					description: "Splash Art 2nd Place by [Coco](https://contests.blockbench.net/artists/1008248909631598662) & [hqsss](https://contests.blockbench.net/artists/1418120121486016559)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [PeacedoveWum丨無名.](https://twitter.com/PeacedoveWum) & mccaca",
+					description: "Splash Art 3rd Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277) & [Grettzzz](https://contests.blockbench.net/artists/1207006698842095666)",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 3rd Place by [Orange](https://twitter.com/OrangewithMC)",
+					description: "Splash Art 3rd Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
