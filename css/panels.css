@@ -2756,11 +2756,12 @@ span.controller_state_section_info {
 		position: absolute;
 		pointer-events: initial;
 		z-index: 3;
-		margin: -6px;
-		height: 9px;
-		width: 9px;
+		margin: -4px;
+		height: 10px;
+		width: 10px;
 		background-color:  white;
 		border: 1px solid black;
+		border-radius: 5px;
 		cursor: move;
 	}
 	.uv_mesh_vertex.selected {
@@ -2813,9 +2814,10 @@ span.controller_state_section_info {
 		content: "";
 		display: block;
 		margin: -2px;
-		height: 11px;
-		width: 11px;
+		height: 12px;
+		width: 12px;
 		border: 1px solid white;
+		border-radius: 5px;
 	}
 	.main_corner.selected::after {
 		border-color: var(--color-accent);

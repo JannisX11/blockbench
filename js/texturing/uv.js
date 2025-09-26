@@ -396,6 +396,9 @@ export const UVEditor = {
 			);
 		}
 	},
+	getUVPixelSize() {
+		return this.inner_width/UVEditor.getUVWidth();
+	},
 	getTexturePixelSize() {
 		return this.inner_width/ (
 			(typeof this.texture === 'object' && this.texture.width)
@@ -624,7 +627,6 @@ export const UVEditor = {
 			slider.node.style.setProperty('display', Condition(slider.condition)?'block':'none');
 			slider.update();
 		}
-		console.trace('TOOLS')
 		if (!this.hasElements()) return;
 		let face = UVEditor.getReferenceFace();
 		if (face instanceof CubeFace) {
@@ -3323,8 +3325,8 @@ Interface.definePanels(function() {
 
 					let offset = $(UVEditor.vue.$refs.frame).offset();
 					let center_on_screen = [
-						face_center[0] * UVEditor.getPixelSize() + offset.left,
-						face_center[1] * UVEditor.getPixelSize() + offset.top,
+						face_center[0] * UVEditor.getUVPixelSize() + offset.left,
+						face_center[1] * UVEditor.getUVPixelSize() + offset.top,
 					]
 
 					let angle = 0;
