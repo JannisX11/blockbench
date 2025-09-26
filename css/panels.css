@@ -56,7 +56,7 @@
 	.panel_tab_bar {
 		display: flex;
 		width: 100%;
-		height: 36px;
+		height: 40px;
 		flex-shrink: 0;
 		margin: 0;
 		padding: 0;
@@ -90,7 +90,6 @@
 	}
 	.panel_tab_list > .panel_handle {
 		display: flex;
-		padding: 4px 4px;
 		flex: 1 1 auto;
 		min-width: 58px;
 		overflow: hidden;
@@ -193,8 +192,7 @@
 		text-align: center;
 		cursor: pointer;
 		color: var(--color-subtle_text);
-		height: 100%;
-		padding-top: 1px;
+		padding-top: 2px;
 		margin-right: -10px;
 	}
 	.panel_handle:not(.selected) .panel_menu_button {
