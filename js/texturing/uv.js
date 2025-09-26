@@ -576,7 +576,7 @@ export const UVEditor = {
 		if (this.panel.folded) return this;
 		this.vue.updateTexture();
 		this.displayTools();
-		this.displayTools();
+		//this.displayTools();
 		this.vue.box_uv = UVEditor.isBoxUV();
 		this.vue.uv_resolution.splice(0, 2,
 			UVEditor.getUVWidth(),
@@ -624,6 +624,7 @@ export const UVEditor = {
 			slider.node.style.setProperty('display', Condition(slider.condition)?'block':'none');
 			slider.update();
 		}
+		console.trace('TOOLS')
 		if (!this.hasElements()) return;
 		let face = UVEditor.getReferenceFace();
 		if (face instanceof CubeFace) {
@@ -2105,7 +2106,6 @@ BARS.defineActions(function() {
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			Mesh.selected.forEach(mesh => {
-				let selected_vertices = mesh.getSelectedVertices();
 				let selected_faces = mesh.getSelectedFaces();
 				let face1 = mesh.faces[selected_faces.last()];
 				let face2 = mesh.faces[selected_faces[0]];
@@ -2118,7 +2118,6 @@ BARS.defineActions(function() {
 				} else {
 					// array to make sure we don't end up with 2x the same vkey on face 2
 					let face2_used_vkeys = [];
-					let distance_a = Infinity;
 					let vertex_distances = face1.vertices.map(vkey => {
 						let uv_1 = face1.uv[vkey];
 						let distance_b = Infinity;
@@ -2866,7 +2865,6 @@ Interface.definePanels(function() {
 								}
 							})
 							updateSelection();
-							UVEditor.displayTools();
 						}
 						function stop(e2) {
 							removeEventListeners(document, 'mousemove touchmove', drag);
@@ -3592,11 +3590,12 @@ Interface.definePanels(function() {
 						-this.getMeshFaceCorner(face, 0),
 						-this.getMeshFaceCorner(face, 1),
 					]
+					let uv_factor = this.uv_resolution[0] / this.inner_width;
 					face.getSortedVertices().forEach(key => {
 						let UV = face.uv[key];
 						coords.push(
-							Math.roundTo((UV[0] + uv_offset[0]) / this.uv_resolution[0] * this.inner_width + 1, 4) + ',' +
-							Math.roundTo((UV[1] + uv_offset[1]) / this.uv_resolution[0] * this.inner_width + 1, 4)
+							Math.roundTo((UV[0] + uv_offset[0]) / uv_factor + 1, 4) + ',' +
+							Math.roundTo((UV[1] + uv_offset[1]) / uv_factor + 1, 4)
 						)
 					})
 					return coords.join(' ');
@@ -4453,7 +4452,7 @@ Interface.definePanels(function() {
 										<svg>
 											<polygon :points="getMeshFaceOutline(face)" />
 										</svg>
-										<template v-if="isFaceSelected(element, key) && mode == 'uv'">
+										<template v-if="mode == 'uv' && isFaceSelected(element, key)">
 											<div class="uv_mesh_vertex" v-for="(key, index) in face.vertices"
 												:class="{main_corner: index == 0, selected: element.getSelectedVertices().includes(key)}"
 												@mousedown.prevent.stop="dragVertices(element, key, $event)" @touchstart.prevent.stop="dragVertices(element, key, $event)"

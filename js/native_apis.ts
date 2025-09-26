@@ -151,11 +151,11 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 			}
 			savePluginSettings();
 		}
-		if (result == Result.Uninstall && plugin instanceof BBPlugin) {
+		if (result == Result.Uninstall && "uninstall" in plugin) {
 			setTimeout(() => {
 				plugin.uninstall();
 			}, 20);
-		} else if (result == Result.Deny && options.optional === false && plugin instanceof BBPlugin) {
+		} else if (result == Result.Deny && options.optional === false && "toggleDisabled" in plugin) {
 			setTimeout(() => {
 				plugin.toggleDisabled();
 			}, 20);
