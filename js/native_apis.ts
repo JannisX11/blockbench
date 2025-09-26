@@ -79,6 +79,7 @@ type PluginOrDevTools = InstanceType<typeof BBPlugin> | {name: string, id: strin
 interface GetModuleOptions {
 	scope?: string
 	message?: string
+	optional?: boolean
 }
 function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTools, options: GetModuleOptions = {}) {
 	const no_namespace_name = module_name.replace(/^node:/, '');
@@ -150,11 +151,11 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 			}
 			savePluginSettings();
 		}
-		if (result == Result.Uninstall && "uninstall" in plugin) {
+		if (result == Result.Uninstall && plugin instanceof BBPlugin) {
 			setTimeout(() => {
 				plugin.uninstall();
 			}, 20);
-		} else if (result == Result.Deny && options.optional === false) {
+		} else if (result == Result.Deny && options.optional === false && plugin instanceof BBPlugin) {
 			setTimeout(() => {
 				plugin.toggleDisabled();
 			}, 20);
