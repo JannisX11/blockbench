@@ -1,3 +1,5 @@
+import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
+
 export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
@@ -554,6 +556,11 @@ export const MenuBar = {
 						lines,
 						singleButton: true
 					}).show();
+				}},
+				{name: 'Expose Native Modules', icon: 'terminal', condition: isApp && (() => {
+					return currentwindow.webContents.isDevToolsOpened();
+				}), click: () => {
+					exposeNativeApisInDevTools();
 				}},
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
