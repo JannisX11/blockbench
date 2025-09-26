@@ -56,3 +56,11 @@ import {
 declare global {
 	const Property: typeof _Property
 }
+import {
+	Language as _Language,
+	tl as _tl,
+} from './languages'
+declare global {
+	const Language: typeof _Language
+	const tl: typeof _tl
+}

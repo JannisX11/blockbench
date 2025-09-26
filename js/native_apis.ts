@@ -75,11 +75,12 @@ try {
 function savePluginSettings() {
 	fs.writeFileSync(PLUGIN_SETTINGS_PATH, stringify(PluginSettings), {encoding: 'utf-8'});
 }
+type PluginOrDevTools = InstanceType<typeof BBPlugin> | {name: string, id: string}
 interface GetModuleOptions {
 	scope?: string
 	message?: string
 }
-function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options: GetModuleOptions = {}) {
+function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTools, options: GetModuleOptions = {}) {
 	const no_namespace_name = module_name.replace(/^node:/, '');
 	if (SAFE_APIS.includes(no_namespace_name)) {
 		return originalRequire(module_name);
@@ -148,7 +149,8 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				allowed[module_name] = true;
 			}
 			savePluginSettings();
-		} else if (result == Result.Uninstall) {
+		}
+		if (result == Result.Uninstall && "uninstall" in plugin) {
 			setTimeout(() => {
 				plugin.uninstall();
 			}, 20);
@@ -183,7 +185,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 /**
  * @internal
  */
-export function getPluginScopedRequire(plugin: InstanceType<typeof BBPlugin>) {
+export function getPluginScopedRequire(plugin: PluginOrDevTools) {
 	const plugin_id = plugin.id;
 	return function require(module_id: string, options?: GetModuleOptions) {
 		return getModule(module_id, plugin_id, plugin, options);
@@ -192,21 +194,43 @@ export function getPluginScopedRequire(plugin: InstanceType<typeof BBPlugin>) {
 const originalRequire = window.require;
 delete window.require;
 
-export function revokePluginPermissions(plugin: InstanceType<typeof BBPlugin>): string[] {
+export function revokePluginPermissions(plugin: PluginOrDevTools): string[] {
 	let permissions = Object.keys(PluginSettings[plugin.id]?.allowed ?? {});
 	delete PluginSettings[plugin.id];
 	savePluginSettings();
 	return permissions;
 }
-export function getPluginPermissions(plugin: InstanceType<typeof BBPlugin>) {
+export function getPluginPermissions(plugin: PluginOrDevTools) {
 	let data = PluginSettings[plugin.id]?.allowed;
 	if (data) return parse(stringify(data)) as Record<string, (boolean | any)>;
+}
+
+export function exposeNativeApisInDevTools() {
+	let result = dialog.showMessageBoxSync(currentwindow, {
+		title: 'Expose Native Modules',
+		message: `Espose native modules in globally and dev tools?`,
+		detail: 'Only do this if you are a developer and you know what you are doing.',
+		type: 'question',
+		noLink: true,
+		cancelId: 1,
+		buttons: [
+			'Enable',
+			'Cancel',
+		]
+	});
+	if (result == 0) {
+		// @ts-expect-error
+		window.require = getPluginScopedRequire({id: 'dev_tools', name: 'Dev Tools'});
+		window.process = process;
+		console.warn("Exposed 'require' and 'process' in dev tools");
+	}
 }
 
 export const SystemInfo = {
 	platform: process.platform,
 	home_directory: os.homedir(),
 	appdata_directory: electron.process.env.APPDATA,
+	user_data_directory: app.getPath('userData'),
 	arch: process.arch,
 	os_version: os.version(),
 }
