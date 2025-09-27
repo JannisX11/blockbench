@@ -9,7 +9,7 @@ type CanvasClickData = {event: MouseEvent} | {
 	event: MouseEvent
 	element: OutlinerElement
 	face: string
-	intersects: Array<THREE.Intersection<THREE.Mesh>>
+	intersects: Array<THREE.Intersection>
 }
 
 let brush_outline: HTMLElement;

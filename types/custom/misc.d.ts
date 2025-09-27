@@ -126,6 +126,8 @@ type EventName =
 
 type IconString = string
 
+declare const osfs: '\\' | '/';
+
 declare function updateSelection(): void
 
 declare var LZUTF8: any

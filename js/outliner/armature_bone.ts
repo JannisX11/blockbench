@@ -393,7 +393,7 @@ new NodePreviewController(ArmatureBone, {
 		geometry.computeBoundingBox();
 		geometry.computeBoundingSphere();
 		let material = (ArmatureBone.preview_controller as PreviewControllerType).material;
-		let mesh: ({no_export?: boolean, isElement?: true, type?: string} & THREE.Mesh) = new THREE.Mesh(geometry, material);
+		let mesh = new THREE.Mesh(geometry, material);
 		mesh.renderOrder = 20;
 		mesh.visible = element.visibility;
 		mesh.no_export = true;

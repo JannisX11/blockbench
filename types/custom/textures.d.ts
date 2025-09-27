@@ -25,6 +25,10 @@ declare global {
 		render_mode?: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides?: 'auto' | 'front' | 'double' | string
 		pbr_channel?: 'color' | 'normal' | 'height' | 'mer'
+		/**
+		 * UUID of the texture group that the texture is in
+		 */
+		group: string
 
 		/**
 		 * Texture animation frame time

@@ -177,7 +177,7 @@ interface FormatFeatures {
 	/**
 	 * Rotation euler order for outliner nodes
 	 */
-	euler_order: THREE.EulerOrder
+	euler_order: 'XYZ' | 'ZYX'
 	/**
 	 * Allows cube UVs to be rotated
 	 */

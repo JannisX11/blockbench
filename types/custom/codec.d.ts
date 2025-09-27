@@ -2,6 +2,7 @@
 interface LoadOptions {
 	import_to_current_project?: boolean
 	externalDataLoader?: (path: string) => any
+	[key: string]: unknown
 }
 interface CodecOptions {
 	name: string
