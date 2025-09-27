@@ -531,7 +531,7 @@ export class Panel extends EventSystem {
 
 			})
 		}
-		this.node.addEventListener('mousedown', event => {
+		this.container.addEventListener('mousedown', event => {
 			setActivePanel(this.id);
 			this.moveToFront();
 		})
@@ -654,8 +654,7 @@ export class Panel extends EventSystem {
 		for (let mode_id in this.mode_position_data) {
 			delete this.mode_position_data[mode_id];
 		}
-		updateInterfacePanels();
-		this.fold(this.folded);
+		this.updateSlot();
 		return this;
 	}
 	addToolbar(toolbar: Toolbar, position = this.toolbars.length): void {

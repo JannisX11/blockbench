@@ -1052,9 +1052,10 @@ BARS.defineActions(function() {
 			Prop.show_left_bar = true;
 			Prop.show_right_bar = true;
 
+			updateInterfacePanels();
+
 			Blockbench.dispatchEvent('reset_layout', {});
 
-			updateSidebarOrder();
 			resizeWindow();
 		}
 	})
