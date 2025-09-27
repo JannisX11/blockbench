@@ -726,7 +726,7 @@ export class Panel extends EventSystem {
 			let size_before = [this.width, this.height];
 			let started = false;
 
-			let drag = e2 => {
+			let drag = (e2: MouseEvent) => {
 				convertTouchEvent(e2);
 				if (!started && (Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2)) > 12) {
 					started = true;
@@ -735,6 +735,13 @@ export class Panel extends EventSystem {
 
 				this.position_data.float_size[0] = size_before[0] + (e2.clientX - e1.clientX) * direction_x;
 				this.position_data.float_size[1] = size_before[1] + (e2.clientY - e1.clientY) * direction_y;
+
+				let min_height = this.min_height ?? 60;
+				let panel = this.container.querySelector('.panel');
+				if (panel && !panel.classList.contains('grow')) {
+					min_height = Math.max(min_height, panel.clientHeight+this.tab_bar.clientHeight);
+				}
+				this.position_data.float_size[1] = Math.clamp(this.position_data.float_size[1], min_height, window.innerHeight);
 
 				if (direction_x == -1) this.position_data.float_position[0] = position_before[0] - this.position_data.float_size[0] + size_before[0];
 				if (direction_y == -1) this.position_data.float_position[1] = position_before[1] - this.position_data.float_size[1] + size_before[1];
