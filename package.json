@@ -161,7 +161,7 @@
 		"@electron/remote": "^2.1.2",
 		"@types/jquery": "^3.5.32",
 		"@types/spectrum": "^1.8.7",
-		"@types/three": "^0.150.0",
+		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.2.5",
 		"electron-color-picker": "^0.2.0",
