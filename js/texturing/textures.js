@@ -2348,7 +2348,7 @@ BARS.defineActions(function() {
 	new Action('append_to_template', {
 		icon: 'dashboard_customize',
 		category: 'textures',
-		condition: () => Texture.all.length && (Cube.selected.length || Mesh.selected.length),
+		condition: () => Texture.all.length && Outliner.selected.some(el => el.faces),
 		click() {
 			TextureGenerator.appendToTemplateDialog()
 		}

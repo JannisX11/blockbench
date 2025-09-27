@@ -2,7 +2,7 @@ import { THREE } from "../lib/libs";
 
 export class BillboardFace extends CubeFace {
 	constructor(data, billboard) {
-		super();
+		super('front', data, billboard);
 		this.texture = false;
 		this.billboard = billboard;
 		this.uv = [0, 0, canvasGridSize()*2, canvasGridSize()*2]
@@ -32,6 +32,13 @@ export class BillboardFace extends CubeFace {
 		}
 		return this;
 	}
+	getUndoCopy() {
+		var copy = new BillboardFace(this);
+		delete copy.billboard;
+		delete copy.cube;
+		delete copy.direction;
+		return copy;
+	}
 	reset() {
 		super.reset();
 		this.rotation = 0;
@@ -39,6 +46,26 @@ export class BillboardFace extends CubeFace {
 	}
 	getBoundingRect() {
 		return getRectangle(...this.uv);
+	}
+	getVertexIndices() {
+		return [0, 1, 3, 2];
+	}
+	UVToLocal(point) {
+		let offset = this.element.offset;
+		let size = this.element.size;
+
+		let lerp_x = Math.getLerp(this.uv[0], this.uv[2], point[0]);
+		let lerp_y = Math.getLerp(this.uv[1], this.uv[3], point[1]);
+
+		for (let i = 0; i < this.rotation; i += 90) {
+			[lerp_x, lerp_y] = [1-lerp_y, lerp_x];
+		}
+		let vector = new THREE.Vector3(
+			size[0] * (lerp_x-0.5) + offset[0],
+			size[1] * (-lerp_y+0.5) + offset[1],
+			0,
+		);
+		return vector;
 	}
 }
 new Property(BillboardFace, 'number', 'rotation', {default: 0});
@@ -214,6 +241,7 @@ export class Billboard extends OutlinerElement {
 		return this;
 	}
 	mapAutoUV() {
+		if (this.autouv == 0) return;
 		let size = this.size.slice();
 		size[0] = Math.abs(size[0]);
 		size[1] = Math.abs(size[1]);
@@ -225,20 +253,22 @@ export class Billboard extends OutlinerElement {
 		if (rot === 90 || rot === 270) {
 			size.reverse()
 		}
-		//Limit Input to 16
-		size[0] = Math.clamp(size[0], -Project.texture_width, Project.texture_width)
-		size[1] = Math.clamp(size[1], -Project.texture_height, Project.texture_height)
+		let texture = this.faces.front.getTexture();
+		let uv_width = Project.getUVWidth(texture);
+		let uv_height = Project.getUVHeight(texture);
+		size[0] = Math.clamp(size[0], -uv_width, uv_width)
+		size[1] = Math.clamp(size[1], -uv_height, uv_height)
 
 		//Calculate End Points
 		let x = sx + size[0]
 		let y = sy + size[1]
-		if (x > Project.texture_width) {
-			sx = Project.texture_width - (x - sx)
-			x = Project.texture_width
+		if (x > uv_width) {
+			sx = uv_width - (x - sx)
+			x = uv_width
 		}
-		if (y > Project.texture_height) {
-			sy = Project.texture_height - (y - sy)
-			y = Project.texture_height
+		if (y > uv_height) {
+			sy = uv_height - (y - sy)
+			y = uv_height
 		}
 		//Prevent Negative
 		if (sx < 0) sx = 0;
