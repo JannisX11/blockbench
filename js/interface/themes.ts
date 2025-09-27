@@ -544,13 +544,14 @@ export class CustomTheme {
 				cancelText: tl('dialog.cancel'),
 				chooseText: tl('dialog.confirm'),
 				move(c) {
-					CustomTheme.selected.colors[scope_key] = c.toHexString();
 					CustomTheme.customizeTheme();
+					CustomTheme.selected.colors[scope_key] = c.toHexString();
 				},
 				change(c) {
 					last_color = c.toHexString();
 				},
 				hide(c) {
+					CustomTheme.customizeTheme();
 					CustomTheme.selected.colors[scope_key] = last_color;
 					field.spectrum('set', last_color);
 				},
