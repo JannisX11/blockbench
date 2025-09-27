@@ -321,7 +321,7 @@ export class Panel extends EventSystem {
 				}
 			}
 
-			addEventListeners(this.handle, 'mousedown touchstart', (e1: MouseEvent) => {
+			let dragPanel =	(e1: MouseEvent, drag_container: boolean = false) => {
 				if (e1.target instanceof HTMLElement && e1.target.classList.contains('panel_menu_button')) return;
 				if (e1.which == 2 || e1.which == 3) return;
 				convertTouchEvent(e1);
@@ -336,7 +336,7 @@ export class Panel extends EventSystem {
 				let target_panel: Panel | null;
 				let target_before = false;
 				let attach_to = false;
-				let move_attached_panels = e1.shiftKey || Pressing.overrides.shift;
+				let move_attached_panels = drag_container || e1.shiftKey || Pressing.overrides.shift;
 				function updateTargetHighlight(event: MouseEvent) {
 					$(`.panel_container[order], .panel_handle[order]`).attr('order', null);
 					$(`.panel_container.attach_target`).removeClass('attach_target');
@@ -388,7 +388,7 @@ export class Panel extends EventSystem {
 							this.moveTo('float');
 							this.moveToFront();
 						}
-						this.node.classList.add('dragging');
+						this.container.classList.add('dragging');
 
 						Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.move_panel_without_docking');
 					}
@@ -455,7 +455,7 @@ export class Panel extends EventSystem {
 				}
 				let stop = e2 => {
 					convertTouchEvent(e2);
-					this.node.classList.remove('dragging');
+					this.container.classList.remove('dragging');
 					Interface.center_screen.removeAttribute('snapside');
 					$(`.panel_container[order], .panel_handle[order]`).attr('order', null);
 					Interface.left_bar.classList.remove('drop_target');
@@ -476,6 +476,7 @@ export class Panel extends EventSystem {
 						this.position_data.float_position[0] = position_before[0];
 						this.position_data.float_position[1] = position_before[1];
 					}
+					this.customizePosition();
 					this.update();
 					updateInterface();
 					
@@ -484,8 +485,13 @@ export class Panel extends EventSystem {
 				}
 				addEventListeners(document, 'mousemove touchmove', drag);
 				addEventListeners(document, 'mouseup touchend', stop);
+			};
+			addEventListeners(this.handle, 'mousedown touchstart', dragPanel);
+			addEventListeners(this.tab_bar, 'mousedown touchstart', (e1: MouseEvent) => {
+				if (e1.target != this.tab_bar) return;
+				dragPanel(e1, true);
+			});
 
-			})
 		} else {			
 
 			let close_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('clear'))
@@ -626,14 +632,22 @@ export class Panel extends EventSystem {
 	}
 	attachPanel(panel: Panel, index?: number) {
 		let old_host_panel = panel.getHostPanel();
-		panel.attached_to = this.id;
-		if (index != undefined) panel.attached_index = index;
+		let panel_attached_panels = panel.getAttachedPanels();
+		panel.customizePosition({
+			attached_to: this.id,
+			attached_index: index ?? panel.attached_index,
+		})
 
 		this.update();
 		if (old_host_panel) {
 			old_host_panel.update();
 		}
 		updateInterfacePanels()
+		index = panel.attached_index + 1;
+		for (let panel of panel_attached_panels) {
+			index++;
+			this.attachPanel(panel, index);
+		}
 	}
 	selectTab(panel: Panel = this): this{
 		if (this.open_attached_panel != panel) {
@@ -642,10 +656,12 @@ export class Panel extends EventSystem {
 		}
 		return this;
 	}
-	customizePosition(data: Partial<PanelPositionData>) {
+	customizePosition(data?: Partial<PanelPositionData>) {
 		let mode = Interface.getUIMode();
 		let mode_data = this.mode_position_data[mode];
-		Object.assign(mode_data, data);
+		if (data) {
+			Object.assign(mode_data, data);
+		}
 		if (!StoredPanelData[this.id]) StoredPanelData[this.id] = {};
 		StoredPanelData[this.id][mode] = mode_data;
 	}
@@ -876,6 +892,7 @@ export class Panel extends EventSystem {
 			}
 		}
 		
+		this.customizePosition();
 		this.update();
 
 		if (Panels[this.id]) {

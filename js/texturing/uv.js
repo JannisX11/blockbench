@@ -2533,7 +2533,7 @@ Interface.definePanels(function() {
 					} else {
 						this.height = Math.clamp(
 							UVEditor.panel.height
-							-UVEditor.panel.handle.clientHeight - 8
+							-UVEditor.panel.tab_bar.clientHeight - 9
 							-(this.$refs.uv_cube_face_bar ? this.$refs.uv_cube_face_bar.clientHeight : 0)
 							-(this.$refs.uv_toolbars ? this.$refs.uv_toolbars.clientHeight : 0)
 							-(this.mode == 'paint' ? 30 : 0),

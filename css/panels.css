@@ -39,6 +39,7 @@
 		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
 		box-sizing: content-box;
 		z-index: 14;
+		border-radius: 5px;
 	}
 	.panel_container.floating > .panel_vue_wrapper:not(.list) {
 		overflow: hidden;
@@ -63,6 +64,14 @@
 		align-items: center;
 		background-color: var(--color-back);
 		position: relative;
+	}
+	.panel_container.floating .panel_tab_bar {
+		border-top-left-radius: inherit;
+		border-top-right-radius: inherit;
+	}
+	.panel_container.floating > .panel {
+		border-bottom-left-radius: inherit;
+		border-bottom-right-radius: inherit;
 	}
 	#right_bar .panel_container.topmost_panel .panel_tab_bar:not(.single_tab)::before {
 		content: "";
