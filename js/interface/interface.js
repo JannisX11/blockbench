@@ -250,9 +250,9 @@ export const Interface = {
 			position() {
 				let p = Interface.preview;
 				if (!p) return;
-				let top = 32;
+				let top = Interface.center_screen.offsetTop;
 				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
-				let left = Interface.left_bar_width + p.clientWidth*Interface.data.quad_view_x/100;
+				let left = Interface.left_bar_width + 3 + p.clientWidth*Interface.data.quad_view_x/100;
 				if (Preview.split_screen.mode == 'triple_top') {
 					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
 				} else if (Preview.split_screen.mode == 'triple_bottom') {
@@ -276,7 +276,7 @@ export const Interface = {
 				if (!p) return;
 				let left = Interface.left_bar_width+2;
 				let right = Interface.right_bar_width+2;
-				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
+				let top = Interface.center_screen.offsetTop + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
 				if (Preview.split_screen.mode == 'triple_left') {
 					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
 				} else if (Preview.split_screen.mode == 'triple_right') {
