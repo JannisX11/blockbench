@@ -3091,9 +3091,6 @@ BARS.defineActions(function() {
 				if (!result.axis.x && !result.axis.z) {
 					this.setFormValues({axis: {x: true, z: false}});
 				}
-				if (!result.global && !result.local) {
-					this.setFormValues({global: true});
-				}
 			}
 		})
 	})
