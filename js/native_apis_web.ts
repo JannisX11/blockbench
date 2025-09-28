@@ -24,6 +24,7 @@ export {
 	NULL as process,
 	NULL as SystemInfo,
 	NULL as revokePluginPermissions,
+	NULL as exposeNativeApisInDevTools,
 }
 
 /**
