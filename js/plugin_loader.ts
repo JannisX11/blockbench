@@ -9,6 +9,7 @@ import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
 import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
 import { Panels } from "./interface/panels";
+import versionUtil from './util/versionUtil'
 
 
 export const Plugins = {
@@ -295,7 +296,7 @@ export class Plugin {
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
-		if (this.min_version != '' && !compareVersions('4.8.0', this.min_version)) {
+		if (this.min_version != '' && versionUtil.compare(this.min_version, '<=', '4.8.0')) {
 			this.new_repository_format = true;
 		}
 		if (typeof data.contributes == 'object') {
@@ -1097,7 +1098,7 @@ export async function loadInstalledPlugins() {
 					if (installation.disabled) plugin.disabled = true;
 					
 					if (isApp && (
-						(installation.version && plugin.version && !compareVersions(plugin.version, installation.version)) ||
+						(installation.version && plugin.version && versionUtil.compare(plugin.version, '<=', installation.version)) ||
 						Blockbench.isOlderThan(plugin.min_version)
 					)) {
 						// Get from file

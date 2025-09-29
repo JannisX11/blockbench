@@ -1,3 +1,5 @@
+import versionUtil from '../util/versionUtil'
+
 BARS.defineActions(() => {
 	new Action('about_window', {
 		name: tl('dialog.settings.about') + '...',
@@ -14,14 +16,18 @@ BARS.defineActions(() => {
 				cache: false,
 				type: 'GET',
 				success(release) {
-					let v = release.tag_name.replace(/^v/, '');
-					let version_string = Blockbench.version.replace('-beta.', ' Beta ')
-					if (compareVersions(v, Blockbench.version)) {
-						data.version_label = `${version_string} (${tl('about.version.update_available', [v])})`;
-					} else if (compareVersions(Blockbench.version, v)) {
-						data.version_label = `${version_string} (Pre-release)`;
-					} else {
-						data.version_label = `${version_string} (${tl('about.version.up_to_date')}😄)`;
+					let releaseVersion = release.tag_name.replace(/^v/, '');
+					let displayReleaseVersion = versionUtil.format(releaseVersion);
+					switch (versionUtil.compare(Blockbench.version, releaseVersion)) {
+						case 1:
+							data.version_label = `${displayReleaseVersion} (Pre-release)`;
+							break;
+						case 0:
+							data.version_label = `${displayReleaseVersion} (${tl('about.version.up_to_date')}😄)`;
+							break;
+						case -1:
+							data.version_label = `${displayReleaseVersion} (${tl('about.version.update_available', [releaseVersion])})`;
+							break;
 					}
 				},
 				error(err) {}

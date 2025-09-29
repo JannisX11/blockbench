@@ -44,6 +44,7 @@
 /// <reference types="./canvas_frame" />
 /// <reference types="./io" />
 /// <reference types="./native_apis" />
+/// <reference types="./util/versionUtil" />
 
 /**
  * Provides access to global Javascript/DOM variables that are overwritten by Blockbench's own variables

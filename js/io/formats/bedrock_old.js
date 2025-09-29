@@ -133,7 +133,7 @@ var codec = new Codec('bedrock_old', {
 		type: 'json',
 		extensions: ['json'],
 		condition(model) {
-			return (model.format_version && compareVersions('1.12.0', model.format_version)) ||
+			return (model.format_version && versions.compare(model.format_version, '<=', '1.12.0')) ||
 				Object.keys(model).find(s => s.match(/^geometry\./));
 		}
 	},
