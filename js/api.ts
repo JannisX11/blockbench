@@ -118,7 +118,7 @@ export const Blockbench = {
 			//Icomoon
 			node = document.createElement('i');
 			node.classList.add(icon, 'icon');
-		} else if (icon.substr(0, 14) === 'data:image/png') {
+		} else if (icon.startsWith('data:image/')) {
 			//Data URL
 			node = document.createElement('img');
 			node.classList.add('icon');
