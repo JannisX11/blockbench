@@ -34,6 +34,7 @@ type EventName =
 	| 'user_leaves_session'
 	| 'process_chat_message'
 	| 'loaded_plugin'
+	| 'unloaded_plugin'
 	| 'update_settings'
 	| 'update_project_settings'
 	| 'save_project'
