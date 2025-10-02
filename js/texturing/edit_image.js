@@ -654,9 +654,10 @@ BARS.defineActions(function() {
 			Undo.initEdit({textures: [texture], bitmap: true});
 
 			texture.layers_enabled = true;
+			texture.layers.empty();
 			let i = 0;
 			for (let color of ['red', 'green', 'blue']) {
-				data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+				let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
 				for (let j = 0; j < data_copy.data.length; j += 4) {
 					if (i != 0) data_copy.data[j+0] = 0;
 					if (i != 1) data_copy.data[j+1] = 0;
