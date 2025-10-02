@@ -611,6 +611,7 @@ export class Plugin {
 		if (this.onunload) {
 			this.onunload()
 		}
+		Blockbench.dispatchEvent('unloaded_plugin', {plugin: this});
 		return this;
 	}
 	reload() {
