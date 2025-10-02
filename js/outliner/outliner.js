@@ -2092,6 +2092,10 @@ Interface.definePanels(function() {
 			'outliner_toggle'
 		])
 	})
+	Blockbench.onUpdateTo('5.0.0', () => {
+		Toolbars.outliner.remove('add_cube');
+		Toolbars.outliner.remove('add_mesh');
+	})
 	Outliner.vue = Interface.Panels.outliner.inside_vue;
 	
 	Blockbench.on('change_active_panel', ({last_panel, panel}) => {

@@ -777,6 +777,7 @@
 		margin: -4px -8px -4px 2px;
 		padding: 4px 0;
 		text-align: center;
+		border-radius: 5px;
 	}
 	.contextMenu .menu_more_button:hover,
 	.hybrid_parent.opened .menu_more_button {
