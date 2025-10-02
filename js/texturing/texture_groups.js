@@ -591,16 +591,23 @@ export function importTextureSet(file) {
 			for (let key in channels) {
 				let source = content_json['minecraft:texture_set'][key];
 				if (typeof source == 'string' && !source.startsWith('#')) {
-					let path = PathModule.resolve(file.path, '../' + source + '.png');
-					Blockbench.read([path], {
+					let paths = [
+						PathModule.resolve(file.path, '../' + source + '.png'),
+						PathModule.resolve(file.path, '../' + source + '.tga'),
+					]
+					Blockbench.read(paths, {
 						readtype: 'image',
-					}, ([file2]) => {
-						let t = new Texture({
-							name: file2.name,
-							pbr_channel: channels[key]
-						}).fromFile(file2).add(false, true).fillParticle();
-						new_textures.push(t);
-						t.group = texture_group.uuid;
+					}, files => {
+						for (let file2 of files) {
+							if (!fs.existsSync(file2.path)) continue;
+							let t = new Texture({
+								name: file2.name,
+								pbr_channel: channels[key]
+							}).fromFile(file2).add(false, true).fillParticle();
+							new_textures.push(t);
+							t.group = texture_group.uuid;
+							break;
+						}
 					})
 					if (key == 'metalness_emissive_roughness_subsurface') {
 						texture_group.material_config.subsurface_value = 1;

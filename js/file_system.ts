@@ -183,7 +183,7 @@ export namespace Filesystem {
 				if (readtype === 'image') {
 					//
 					let extension = pathToExtension(file)
-					if (extension === 'tga') {
+					if (extension === 'tga' && fs.existsSync(file)) {
 						let targa_loader = new Targa()
 						targa_loader.open(file, () => {
 

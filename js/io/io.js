@@ -109,7 +109,8 @@ export async function loadImages(files, event) {
 	await new Promise((resolve, reject) => {
 		img.src = isApp ? files[0].path : files[0].content;
 		img.onload = resolve;
-		img.onerror = reject;
+		// TGA images will fail, should still continue
+		img.onerror = resolve;
 	})
 
 	// Options
