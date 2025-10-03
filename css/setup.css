@@ -555,7 +555,8 @@
 		user-select: initial;
 		-webkit-user-select: initial;
 	}
-	div.bb-select {
+	div.bb-select,
+	select {
 		display: block;
 		position: relative;
 		background-color: var(--color-button);
@@ -570,7 +571,8 @@
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	div.bb-select:hover{
+	div.bb-select:hover,
+	select {
 		color: var(--color-light);
 	}
 

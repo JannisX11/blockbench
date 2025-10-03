@@ -143,9 +143,9 @@ export class Mode extends KeybindItem {
 		delete Modes[this.id];
 		Modes.previous_id = this.id;
 		if (typeof this.onUnselect === 'function') {
-			Blockbench.dispatchEvent('unselect_mode', {mode: this})
 			this.onUnselect()
 		}
+		Blockbench.dispatchEvent('unselect_mode', {mode: this})
 		this.selected = false;
 		Mode.selected = Modes.selected = false;
 	}

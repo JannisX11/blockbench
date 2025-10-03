@@ -40,7 +40,7 @@ export function invertMolang(molang: number|string): number|string {
 			} else if ('+-*/&|'.includes(char)) {
 				operator = char;
 			}
-			last_operator = operator;
+			if (operator) last_operator = operator;
 		}
 		if (BRACKET_OPEN.includes(char)) {
 			bracket_depth++;
