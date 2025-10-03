@@ -240,6 +240,7 @@ export class Plugin {
 	constructor(id: string = 'unknown', data?: PluginOptions | PluginSetupOptions) {
 		this.id = id;
 		this.installed = false;
+		this.path = '';
 		this.title = '';
 		this.author = '';
 		this.description = '';

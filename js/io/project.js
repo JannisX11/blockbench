@@ -1045,7 +1045,8 @@ BARS.defineActions(function() {
 				width: 500,
 				form,
 				onConfirm: function(formResult) {
-					var save;
+					let save;
+					let was_changed = false;
 					let box_uv = formResult.uv_mode == 'box_uv';
 					let texture_width = Math.clamp(formResult.texture_size[0], 1, Infinity);
 					let texture_height = Math.clamp(formResult.texture_size[1], 1, Infinity);
@@ -1054,6 +1055,7 @@ BARS.defineActions(function() {
 						Project.texture_width != texture_width ||
 						Project.texture_height != texture_height
 					) {
+						was_changed = true;
 						/*
 						// Adjust UV Mapping if resolution changed
 						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
@@ -1104,6 +1106,9 @@ BARS.defineActions(function() {
 					}
 					
 					for (var key in ModelProject.properties) {
+						if (formResult[key] != undefined && Project[key] != formResult[key] && typeof Project[key] != 'object') {
+							was_changed = true;
+						}
 						ModelProject.properties[key].merge(Project, formResult);
 					}
 					Project.name = Project.name.trim();
@@ -1111,6 +1116,9 @@ BARS.defineActions(function() {
 
 					if (save) {
 						Undo.finishEdit('Change project UV settings')
+					}
+					if (was_changed) {
+						Project.saved = false;
 					}
 
 					Blockbench.dispatchEvent('update_project_settings', formResult);
