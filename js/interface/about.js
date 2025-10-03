@@ -1,4 +1,4 @@
-import versionUtil from '../util/versionUtil'
+import VersionUtil from '../util/version_util'
 
 BARS.defineActions(() => {
 	new Action('about_window', {
@@ -17,8 +17,8 @@ BARS.defineActions(() => {
 				type: 'GET',
 				success(release) {
 					let releaseVersion = release.tag_name.replace(/^v/, '');
-					let displayReleaseVersion = versionUtil.format(releaseVersion);
-					switch (versionUtil.compare(Blockbench.version, releaseVersion)) {
+					let displayReleaseVersion = VersionUtil.format(releaseVersion);
+					switch (VersionUtil.compare(Blockbench.version, releaseVersion)) {
 						case 1:
 							data.version_label = `${displayReleaseVersion} (Pre-release)`;
 							break;

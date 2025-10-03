@@ -6,7 +6,7 @@ interface ParsedVersion {
 
 type Operator = '<=' | '==' | '>=' | '>' | '<'
 
-declare namespace versionUtil {
+declare namespace VersionUtil {
 	function parse(versionString: string): ParsedVersion
 
 	/**
@@ -28,5 +28,5 @@ declare namespace versionUtil {
 }
 
 declare interface Window {
-	versionUtil: typeof versionUtil
+	VersionUtil: typeof VersionUtil
 }

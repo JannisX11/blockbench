@@ -2,7 +2,7 @@ import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
-import versionUtil from './util/versionUtil';
+import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
 import { currentwindow, shell, SystemInfo } from "./native_apis";
@@ -72,10 +72,10 @@ export const Blockbench = {
 		}
 	},
 	isNewerThan(version: string): boolean {
-		return versionUtil.compare(Blockbench.version, '>', version);
+		return VersionUtil.compare(Blockbench.version, '>', version);
 	},
 	isOlderThan(version: string): boolean {
-		return versionUtil.compare(Blockbench.version, '<', version);
+		return VersionUtil.compare(Blockbench.version, '<', version);
 	},
 	registerEdit() {
 		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
@@ -358,7 +358,7 @@ export const Blockbench = {
 	},
 	// Update
 	onUpdateTo(version, callback) {
-		if (LastVersion && versionUtil.compare(version, '>', LastVersion) && !Blockbench.isOlderThan(version)) {
+		if (LastVersion && VersionUtil.compare(version, '>', LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
 	},

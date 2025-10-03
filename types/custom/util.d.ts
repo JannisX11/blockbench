@@ -68,7 +68,7 @@ declare function removeEventListeners(
 ): void
 
 /**
- * @deprecated Use {@link versionUtil.compare} instead.
+ * @deprecated Use {@link VersionUtil.compare} instead.
  */
 declare function compareVersions(versionA: any, versionB: any): boolean
 declare function convertTouchEvent(event: TouchEvent | MouseEvent): MouseEvent

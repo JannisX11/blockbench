@@ -106,7 +106,7 @@ function format(version: string): string {
 // Backwards compatability
 window.compareVersions = (versionA: string, versionB: string) => compare(versionA, '>', versionB)
 
-const versionUtil = {
+const VersionUtil = {
 	compare,
 	parse,
 	format,
@@ -114,9 +114,9 @@ const versionUtil = {
 
 declare global {
 	interface Window {
-		versionUtil: typeof versionUtil
+		VersionUtil: typeof VersionUtil
 	}
 }
-window.versionUtil = versionUtil
+window.VersionUtil = VersionUtil
 
-export default versionUtil
+export default VersionUtil

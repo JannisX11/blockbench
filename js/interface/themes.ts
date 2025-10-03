@@ -10,7 +10,7 @@ import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
 import { Filesystem } from '../file_system'
 import { fs } from '../native_apis'
-import versionUtil from '../util/versionUtil'
+import VersionUtil from '../util/version_util'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -856,7 +856,7 @@ export function loadThemes() {
 				if (!text_content) return;
 				let theme = new CustomTheme().parseBBTheme(text_content);
 
-				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && versionUtil.compare(theme.version, '>', stored_theme.version))) {
+				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && VersionUtil.compare(theme.version, '>', stored_theme.version))) {
 					// Update theme
 					stored_theme.extend(theme);
 					stored_theme.source = 'repository';

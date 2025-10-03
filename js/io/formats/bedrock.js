@@ -1,6 +1,6 @@
 import { findExistingFile } from "../../desktop";
 import { currentwindow, dialog, fs } from "../../native_apis";
-import versionUtil from '../../util/versionUtil'
+import VersionUtil from '../../util/version_util'
 
 if (isApp) {
 window.BedrockEntityManager = class BedrockEntityManager {
@@ -1161,7 +1161,7 @@ var codec = new Codec('bedrock', {
 		type: 'json',
 		extensions: ['json'],
 		condition(model) {
-			return model.format_version && versionUtil.compare(model.format_version, '<=', '1.12.0');
+			return model.format_version && VersionUtil.compare(model.format_version, '<=', '1.12.0');
 		}
 	},
 	load(model, file, args = {}) {
@@ -1305,7 +1305,7 @@ var codec = new Codec('bedrock', {
 		}
 		if (data && index !== undefined) {
 
-			if (!data.format_version || versionUtil.compare(data.format_version, '<=', getFormatVersion())) {
+			if (!data.format_version || VersionUtil.compare(data.format_version, '<=', getFormatVersion())) {
 				data.format_version = getFormatVersion();
 			}
 

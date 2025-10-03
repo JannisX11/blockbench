@@ -28,7 +28,7 @@ declare global {
 		/**
 		 * UUID of the texture group that the texture is in
 		 */
-		group: string
+		group?: string
 
 		/**
 		 * Texture animation frame time

@@ -1,7 +1,7 @@
 import { Filesystem } from "../file_system";
 import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
-import versionUtil from '../util/versionUtil';
+import VersionUtil from '../util/version_util';
 
 export const StartScreen = {
 	loaders: {},
@@ -728,8 +728,8 @@ ModelLoader.loaders = {};
 				if (typeof data.psa.version == 'string') {
 					if (data.psa.version.includes('-')) {
 						limits = data.psa.version.split('-');
-						if (limits[0] && versionUtil.compare(Blockbench.version, '<', limits[0])) return;
-						if (limits[1] && versionUtil.compare(Blockbench.version, '>', limits[1])) return;
+						if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
+						if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
 					} else {
 						if (data.psa.version != Blockbench.version) return;
 					}
