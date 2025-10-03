@@ -17,16 +17,16 @@ BARS.defineActions(() => {
 				type: 'GET',
 				success(release) {
 					let releaseVersion = release.tag_name.replace(/^v/, '');
-					let displayReleaseVersion = VersionUtil.format(releaseVersion);
+					let display_version = VersionUtil.format(Blockbench.version);
 					switch (VersionUtil.compare(Blockbench.version, releaseVersion)) {
 						case 1:
-							data.version_label = `${displayReleaseVersion} (Pre-release)`;
+							data.version_label = `${display_version} (Pre-release)`;
 							break;
 						case 0:
-							data.version_label = `${displayReleaseVersion} (${tl('about.version.up_to_date')}😄)`;
+							data.version_label = `${display_version} (${tl('about.version.up_to_date')}😄)`;
 							break;
 						case -1:
-							data.version_label = `${displayReleaseVersion} (${tl('about.version.update_available', [releaseVersion])})`;
+							data.version_label = `${display_version} (${tl('about.version.update_available', [releaseVersion])})`;
 							break;
 					}
 				},
