@@ -296,7 +296,7 @@ export class Plugin {
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
-		if (this.min_version != '' && VersionUtil.compare(this.min_version, '<=', '4.8.0')) {
+		if (this.min_version != '' && VersionUtil.compare(this.min_version, '>=', '4.8.0')) {
 			this.new_repository_format = true;
 		}
 		if (typeof data.contributes == 'object') {
