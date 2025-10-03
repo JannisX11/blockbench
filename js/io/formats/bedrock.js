@@ -611,6 +611,7 @@ export function calculateVisibleBox() {
 
 	return Project.visible_box;
 }
+window.calculateVisibleBox = calculateVisibleBox;
 
 
 // Parse
