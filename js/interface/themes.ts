@@ -1,7 +1,7 @@
 import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
-import { compareVersions, patchedAtob } from '../util/util'
+import { patchedAtob } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
@@ -10,6 +10,7 @@ import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
 import { Filesystem } from '../file_system'
 import { fs } from '../native_apis'
+import VersionUtil from '../util/version_util'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -855,7 +856,7 @@ export function loadThemes() {
 				if (!text_content) return;
 				let theme = new CustomTheme().parseBBTheme(text_content);
 
-				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && compareVersions(theme.version, stored_theme.version))) {
+				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && VersionUtil.compare(theme.version, '>', stored_theme.version))) {
 					// Update theme
 					stored_theme.extend(theme);
 					stored_theme.source = 'repository';

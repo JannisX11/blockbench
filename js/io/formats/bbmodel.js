@@ -1,7 +1,7 @@
 import { invertMolang } from '../../util/molang';
-import { compareVersions } from '../../util/util';
 import LZUTF8 from '../../lib/lzutf8'
 import { fs } from '../../native_apis';
+import VersionUtil from '../../util/version_util';
 
 const FORMATV = '5.0';
 
@@ -16,7 +16,7 @@ function processHeader(model) {
 	if (!model.meta.format_version) {
 		model.meta.format_version = model.meta.format;
 	}
-	if (compareVersions(model.meta.format_version, FORMATV)) {
+	if (VersionUtil.compare(model.meta.format_version, '>', FORMATV)) {
 		Blockbench.showMessageBox({
 			translateKey: 'outdated_client',
 			icon: 'error',
@@ -39,7 +39,7 @@ function processCompatibility(model) {
 	}
 	if (model.geometry_name) model.model_identifier = model.geometry_name;
 
-	if (model.elements && model.meta.box_uv && compareVersions('4.5', model.meta.format_version)) {
+	if (model.elements && model.meta.box_uv && VersionUtil.compare(model.meta.format_version, '<', '4.5')) {
 		model.elements.forEach(element => {
 			if (element.shade === false) {
 				element.mirror_uv = true;
@@ -48,7 +48,7 @@ function processCompatibility(model) {
 	}
 
 	if (model.outliner) {
-		if (compareVersions('3.2', model.meta.format_version)) {
+		if (VersionUtil.compare(model.meta.format_version, '<', '3.2')) {
 			//Fix Z-axis inversion pre 3.2
 			function iterate(list) {
 				for (var child of list) {
@@ -62,13 +62,13 @@ function processCompatibility(model) {
 		}
 	}
 	if (model.textures) {
-		if (isApp && compareVersions('4.10', model.meta.format_version)) {
+		if (isApp && VersionUtil.compare(model.meta.format_version, '<', '4.10')) {
 			for (let texture of model.textures) {
 				if (texture.relative_path) texture.relative_path = PathModule.join('/', texture.relative_path);
 			}
 		}
 	}
-	if (model.animations && compareVersions('5.0', model.meta.format_version)) {
+	if (model.animations && VersionUtil.compare(model.meta.format_version, '<', '5.0')) {
 		for (let anim of model.animations) {
 			for (let uuid in anim.animators) {
 				let animator = anim.animators[uuid]

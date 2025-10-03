@@ -1,34 +1,7 @@
 import './molang'
 
 //Blockbench
-/**
- * Compare two versions
- * @param {string} version1 
- * @param {string} version2 
- * @returns Whether version1 is higher/newer than version2
- */
-export function compareVersions(version1, version2) {
-	var arr1 = version1.split(/[.-]/);
-	var arr2 = version2.split(/[.-]/);
-	var i = 0;
-	var num1 = 0;
-	var num2 = 0;
-	while (i < Math.max(arr1.length, arr2.length)) {
-		num1 = arr1[i];
-		num2 = arr2[i];
-		if (num1 == 'beta') num1 = -1;
-		if (num2 == 'beta') num2 = -1;
-		num1 = parseInt(num1) || 0;
-		num2 = parseInt(num2) || 0;
-		if (num1 > num2) {
-			return true;
-		} else if (num1 < num2) {
-			return false
-		}
-		i++;
-	}
-	return false;
-}
+
 /**
  * 
  * @param {*} condition Input condition. Can be undefined, a boolean, a function or a condition object
@@ -746,7 +719,6 @@ Object.assign(window, {
 	Condition,
 	Objector,
 	Merge,
-	compareVersions,
 	pureMarked,
 	convertTouchEvent,
 	addEventListeners,

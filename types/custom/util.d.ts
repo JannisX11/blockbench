@@ -67,7 +67,10 @@ declare function removeEventListeners(
 	option?: any
 ): void
 
-declare function compareVersions(string1: any, string2: any): boolean
+/**
+ * @deprecated Use {@link VersionUtil.compare} instead.
+ */
+declare function compareVersions(versionA: any, versionB: any): boolean
 declare function convertTouchEvent(event: TouchEvent | MouseEvent): MouseEvent
 declare function guid(): string
 declare function isUUID(s: any): any
