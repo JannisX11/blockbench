@@ -477,8 +477,10 @@ export class Panel extends EventSystem {
 						this.position_data.float_position[1] = position_before[1];
 					}
 					this.customizePosition();
-					this.update();
 					updateInterface();
+					setTimeout(() => {
+						this.update();
+					}, 0);
 					
 					removeEventListeners(document, 'mousemove touchmove', drag);
 					removeEventListeners(document, 'mouseup touchend', stop);

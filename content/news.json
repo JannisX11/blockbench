@@ -32,9 +32,9 @@
 				"text": "The Element Panel introduces panel tabs and lets you see and edit properties of elements in one place"
 			},
 			{
-				"image": "./content/redesign.png",
+				"image": "./content/expression_editor.png",
 				"title": "Expression Editor",
-				"text": "The expression editor offers more space and tools to edit complex Molang expressions in your animations!"
+				"text": "The expression editor offers more space and tools to edit complex Molang expressions for your animations!"
 			}
 		]
 	}
