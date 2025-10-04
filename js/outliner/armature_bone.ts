@@ -371,6 +371,20 @@ new NodePreviewController(ArmatureBone, {
 			0,1,0, r,m,r,  r,m,-r,
 			-r,m,r, 0,1,0, -r,m,-r,
 		];
+		let b = -0.003; let t = 1.007;
+		let line_vertices = [
+			0,b,0,r,m,r,
+			0,t,0,-r,m,r,
+			0,b,0,r,m,-r,
+			0,t,0,-r,m,-r,
+			-r,m,r,r,m,r,
+			r,m,-r,-r,m,-r,
+			0,b,0,
+		];
+		for (let i = 0; i < line_vertices.length; i += 3) {
+			line_vertices[i+0] *= 1.02;
+			line_vertices[i+2] *= 1.02;
+		}
 		let normals = [
 			0.0,-0.5,0.4,
 			0.0,-0.5,-0.4,
@@ -402,6 +416,18 @@ new NodePreviewController(ArmatureBone, {
 		mesh.isElement = true;
 		object_3d.add(mesh);
 
+		let line_geometry = new THREE.BufferGeometry();
+		line_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( line_vertices, 3 ) );
+		let line_material = new THREE.LineBasicMaterial({
+			color: 0x111111,
+			depthTest: false,
+			depthWrite: false,
+			transparent: true,
+		});
+		let outline = new THREE.Line(line_geometry, line_material);
+		outline.renderOrder = 19;
+		mesh.add(outline)
+
 
 		object_3d.no_export = true;
 		object_3d.fix_position = new THREE.Vector3();
@@ -424,7 +450,7 @@ new NodePreviewController(ArmatureBone, {
 		(element.mesh.children[0] as THREE.Mesh).geometry.setAttribute('color', new THREE.Float32BufferAttribute(color_array, 3));
 		let wireframe = Toolbox.selected.id == 'weight_brush' && Project.view_mode != 'weighted_bone_colors';
 		// @ts-ignore
-		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = wireframe;
+		ArmatureBone.preview_controller.material.opacity = wireframe ? 0.3 : 1;
 	},
 	updateTransform(element: ArmatureBone) {
 		let bone = element.scene_object as FakeObjectType & THREE.Bone;
@@ -486,6 +512,8 @@ new NodePreviewController(ArmatureBone, {
 		let material = element.selected ? this.material_selected : this.material;
 		let preview_mesh = element.scene_object.children[0] as THREE.Mesh;
 		preview_mesh.material = material;
+		let outline = preview_mesh.children[0] as THREE.Line;
+		(outline.material as THREE.LineBasicMaterial).color.set(element.selected ? 0xffffff : 0x111111);
 	}
 })
 
