@@ -63,6 +63,7 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 						<button @click="findReplace()">${tl('dialog.expression_editor.find_replace')}</button>
 					</div>
 					<vue-prism-editor
+						style="height: 100px"
 						class="molang_input"
 						id="expression_editor_prism"
 						v-model="text"
@@ -76,11 +77,11 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 		},
 		onOpen() {
 			let element = document.querySelector('#expression_editor_prism.molang_input') as HTMLElement;
-			element.style.height = (dialog.object.clientHeight - 50) + 'px';
+			element.style.height = (dialog.object.clientHeight - 148) + 'px';
 		},
 		onResize() {
 			let element = document.querySelector('#expression_editor_prism.molang_input') as HTMLElement;
-			element.style.height = (dialog.object.clientHeight - 50) + 'px';
+			element.style.height = (dialog.object.clientHeight - 148) + 'px';
 		},
 		onConfirm() {
 			callback(dialog.content_vue.$data.text);
