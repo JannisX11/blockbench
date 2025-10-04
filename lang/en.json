@@ -2347,6 +2347,7 @@
 	"menu.uv.texture": "Texture",
 
 	"menu.panel.enable": "Enable",
+	"menu.panel.reset_size": "Reset Size",
 	"menu.panel.move_to": "Move To",
 	"menu.panel.attach_to": "Attach To",
 	"menu.panel.move_to.left_bar": "Left Sidebar",

@@ -1150,6 +1150,16 @@ Panel.prototype.snap_menu = new Menu([
 				panel.moveTo('hidden');
 			}
 		}
+	},
+	{
+		id: 'reset_size',
+		name: 'menu.panel.reset_size',
+		icon: 'lock_reset',
+		condition: (panel: Panel) => panel.fixed_height,
+		click(panel: Panel) {
+			panel.fixed_height = false;
+			panel.update();
+		}
 	}
 ])
 
