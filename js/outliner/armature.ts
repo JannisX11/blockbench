@@ -223,7 +223,6 @@ export class Armature extends OutlinerElement {
 		rotatable: false,
 		parent: true,
 		child_types: ['armature_bone', 'mesh'],
-		hide_in_screenshot: true,
 	}
 	
 	public title = tl('data.armature');
