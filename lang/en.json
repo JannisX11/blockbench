@@ -435,6 +435,9 @@
 	"message.import_palette.selection_only": "Selection only",
 	"message.import_palette.replace_palette": "Replace old palette",
 	"message.import_palette.threshold": "Merge Threshold",
+
+	"message.load_palette.title": "Load Palette",
+	"message.load_palette.message": "Are you sure you want to load this palette? This will replace your current color palette.",
 	
 	"message.load_plugin_failed.title": "Failed to load plugin",
 	"message.load_plugin_failed.message": "Ensure that the base file name of the plugin matches the plugin ID `%0`, as specified in Plugin.register().",

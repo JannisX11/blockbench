@@ -1,3 +1,4 @@
+import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
 import ColorPickerNormal from "./ColorPickerNormal.vue";
 
@@ -1018,7 +1019,16 @@ BARS.defineActions(function() {
 		}
 	})
 
-	function loadPalette(arr) {
+	async function loadPalette(arr) {
+		if (ColorPanel.palette.length) {
+			let result = await new Promise((resolve, reject) => {
+				Blockbench.showMessageBox({
+					translateKey: 'load_palette',
+					buttons: ['dialog.confirm', 'dialog.cancel']
+				}, resolve);
+			})
+			if (result != 0) return;
+		}
 		ColorPanel.palette.splice(0, Infinity, ...arr);
 		ColorPanel.saveLocalStorages();
 	}
