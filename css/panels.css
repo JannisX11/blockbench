@@ -1943,6 +1943,7 @@
 	border: 1px solid transparent;
 	transition: width 100ms ease-in-out;
 	position: relative;
+	border-radius: 6px;
 }
 #animation_controllers_wrapper .controller_state.selected {
 	width: min(100vw, 300px);
@@ -1957,7 +1958,9 @@
 }
 .controller_state_title_bar {
 	height: 30px;
-	background-color: var(--color-button);
+	background-color: var(--color-elevated);
+	border-radius: inherit;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 	display: flex;
 	cursor: pointer;
 	transition: background-color var(--blend-transition) linear, color var(--blend-transition) linear;

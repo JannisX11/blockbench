@@ -213,6 +213,7 @@
 		z-index: 12;
 		opacity: 0;
 		touch-action: none;
+		border-radius: 3px;
 	}
 	.resizer.vertical { /*	|	*/
 		cursor: ew-resize;

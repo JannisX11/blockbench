@@ -33,8 +33,8 @@
 			},
 			{
 				"image": "./content/redesign.png",
-				"title": "STL Export",
-				"text": "For 3D printing!"
+				"title": "Expression Editor",
+				"text": "The expression editor offers more space and tools to edit complex Molang expressions in your animations!"
 			}
 		]
 	}
