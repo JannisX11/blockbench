@@ -18,6 +18,9 @@
 	#start_screen h3 {
 		margin: 0;
 	}
+	#start_screen .start_screen_features h3 {
+		font-weight: 800;
+	}
 	#start_screen .bar.next_to_title {
 		position: absolute;
 		right: 8px;

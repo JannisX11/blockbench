@@ -143,6 +143,14 @@
 		src: local('Assistant-ExtraBold'),
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
+	@font-face {
+		font-family: 'Montserrat';
+		font-style: normal;
+		font-weight: 100 1000;
+		src: local('Montserrat-VariableFont'),
+			url(../font/Montserrat-VariableFont_wght.ttf) format('truetype'),
+			url(../font/Montserrat-VariableFont_wght.ttf) format('truetype');
+	}
 	
 	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
@@ -406,7 +414,7 @@
 		--font-custom-code: '';
 
 		--font-main: var(--font-custom-main), Assistant, segoe ui, sans-serif;
-		--font-headline: var(--font-custom-headline), var(--font-custom-main), Assistant, segoe ui, sans-serif;
+		--font-headline: var(--font-custom-headline), Montserrat, segoe ui, sans-serif;
 		--font-code: var(--font-custom-code), Consolas, Monospace;
 	}
 
@@ -441,6 +449,7 @@
 	}
 	h1 {
 		letter-spacing: -0.03em;
+		font-weight: 800;
 	}
 	h2 {
 		font-weight: lighter;
@@ -448,7 +457,6 @@
 	}
 	h3 {
 		font-size: 1.28em;
-		padding-bottom: 4px;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
