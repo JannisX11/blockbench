@@ -93,7 +93,7 @@ export function loadModelFile(file, args) {
 		if (success) return;
 	}
 	// JSON
-	let model = autoParseJSON(file.content);
+	let model = autoParseJSON(file.content, {file_path: file.path});
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'json', model);
 		if (success) return;

@@ -578,7 +578,7 @@ export function importTextureSet(file) {
 		texture_group.name = file.name.replace('.texture_set.json', '.png material');
 
 		let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
-		let content_json = autoParseJSON(content);
+		let content_json = autoParseJSON(content, {file_path: file.path});
 
 		if (content_json && content_json['minecraft:texture_set']) {
 			let channels = {

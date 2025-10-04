@@ -175,6 +175,7 @@
 		"molangjs": "^1.6.5",
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
+		"strip-json-comments": "^5.0.3",
 		"three": "^0.129.0",
 		"tinycolor2": "^1.6.0",
 		"vue": "^2.7.16",

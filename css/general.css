@@ -374,6 +374,7 @@
 		cursor: text;
 		user-select: text;
 		-webkit-user-select: text;
+		overflow: auto;
 	}
 	.markdown pre code {
 		user-select: text;

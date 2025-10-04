@@ -442,7 +442,7 @@ export const Animator = {
 	},
 	particle_effects: {},
 	loadParticleEmitter(path, content) {
-		let json_content = autoParseJSON(content);
+		let json_content = autoParseJSON(content, {file_path: path});
 		if (!json_content || !json_content.particle_effect) return;
 
 		if (Animator.particle_effects[path]) {
@@ -476,7 +476,7 @@ export const Animator = {
 		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
-		var json = file.json || autoParseJSON(file.content);
+		var json = file.json || autoParseJSON(file.content, {file_path: file.path});
 		let path = file.path;
 		let new_animations = [];
 		function multilinify(string) {
@@ -739,7 +739,7 @@ export const Animator = {
 		if (auto_loaded && file.path) {
 			form['_path'] = {type: 'info', text: file.path};
 		}
-		let json = autoParseJSON(file.content)
+		let json = autoParseJSON(file.content, {file_path: file.path})
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
 		let entries = json.animations || json.animation_controllers;

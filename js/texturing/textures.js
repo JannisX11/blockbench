@@ -537,7 +537,7 @@ export class Texture {
 				let mcmeta;
 				try {
 					mcmeta_text ??= fs.readFileSync(mcmeta_path, 'utf8');
-					mcmeta = autoParseJSON(mcmeta_text.toString(), true);
+					mcmeta = autoParseJSON(mcmeta_text.toString(), {file_path: mcmeta_path});
 				} catch (err) {
 					console.error(err);
 				}
