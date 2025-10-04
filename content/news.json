@@ -1,38 +1,40 @@
 {
 	"new_version": {
-		"color": "var(--color-dark)",
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-accent_text)",
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.12", "type": "h3"},
-			{"text": "The Collection & Selection Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.12.0)!"}
+			{"text": "Welcome to the next iteration of Blockbench!", "type": "h3"},
+			{"text": "Blockbench 5.0 - The Element Update!", "type": "h1"},
+			{"text": "Get ready for brand new elements, a new design, and over 100 new features and changes!"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.0.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/pbr.png",
-				"title": "PBR Editing + Preview",
-				"text": "Create, edit, and view physically based materials"
+				"image": "./content/armatures.png",
+				"title": "Armatures",
+				"text": "Animate your models with mesh deformation using armatures! This is super fun!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/collections.png",
-				"title": "Collections",
-				"text": "A new way to organize your model!"
+				"image": "./content/redesign.png",
+				"title": "Splines & Billboards",
+				"text": "Two brand new types of elements: Splines make it easy to create shapes that follow a path such as tubes or cables. Billboards let you add sprites into your scene that always face the camera!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/lasso.png",
-				"title": "Lasso Selection Tool",
-				"text": "Select free-form shapes in the 2D Editor"
+				"image": "./content/redesign.png",
+				"title": "New Design",
+				"text": "Blockbench's design has been refreshed with new colors, rounded corners"
 			},
 			{
-				"image": "https://web.blockbench.net/content/group_multi_select.png",
-				"title": "Group Multi Selection",
-				"text": "You can finally select multiple groups at once!"
+				"image": "./content/element_panel.png",
+				"title": "Element Panel",
+				"text": "The Element Panel introduces panel tabs and lets you see and edit properties of elements in one place"
 			},
 			{
-				"image": "https://web.blockbench.net/content/rotation_snap.png",
-				"title": "Rotation Snap",
-				"text": "It's vertex snap, but for rotations!"
+				"image": "./content/redesign.png",
+				"title": "STL Export",
+				"text": "For 3D printing!"
 			}
 		]
 	}

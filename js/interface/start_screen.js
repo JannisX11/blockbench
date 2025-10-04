@@ -115,7 +115,9 @@ export function addStartScreenSection(id, data) {
 			let img = new Image(); img.src = feature.image;
 			let title = document.createElement('h3'); title.textContent = feature.title;
 			let text = document.createElement('p'); text.textContent = feature.text;
-			li.append(img, title, text);
+			let text_wrapper = document.createElement('div');
+			text_wrapper.append(title, text);
+			li.append(img, text_wrapper);
 			features_section.append(li);
 		})
 		obj.append(features_section);
@@ -562,9 +564,9 @@ ModelLoader.loaders = {};
 
 
 (function() {
-	/*$.getJSON('./content/news.json').then(data => {
+	$.getJSON('./content/news.json').then(data => {
 		addStartScreenSection('new_version', data.new_version)
-	})*/
+	})
 
 	var news_call = $.ajax({
 		cache: false,
