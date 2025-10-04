@@ -45,6 +45,10 @@ export interface FormElementOptions {
 	 */
 	type?: FormInputType | `${FormInputType}`
 	/**
+	 * Visual style of the input. Checkbox inputs support 'checkbox' or 'toggle_switch'
+	 */
+	style?: 'checkbox' | 'toggle_switch'
+	/**
 	 * Stretch the input field across the whole width of the form
 	 */
 	full_width?: boolean
@@ -905,7 +909,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 		super.build(bar);
 		this.input = Interface.createElement('input', {
 			type: 'checkbox',
-			class: 'focusable_input',
+			class: 'focusable_input' + (this.options.style == 'toggle_switch' ? ' toggle_switch' : ''),
 			id: this.id,
 		})
 		this.input.checked = this.options.value;

@@ -692,7 +692,7 @@
 	}
 	input[type=checkbox].toggle_switch {
 		height: 22px;
-		width: 42px;
+		width: 46px;
 		background-color: var(--color-button);
 		position: relative;
 		--color: var(--color-text);
@@ -702,9 +702,6 @@
 		transition: background-color 70ms ease-out;
 	}
 	input[type=checkbox].toggle_switch:checked {
-		height: 22px;
-		width: 46px;
-		border-radius: 12px;
 		background-color: var(--color-accent);
 		--color: var(--color-light);
 	}

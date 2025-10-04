@@ -1767,12 +1767,12 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 				return result;
 			}
 		},
-		shading: { label: 'settings.shading', type: 'checkbox' },
-		grids: { label: 'settings.grids', type: 'checkbox' },
-		ground_plane: { label: 'settings.ground_plane', type: 'checkbox' },
-		pixel_grid: { label: 'settings.pixel_grid', condition: () => !Modes.paint, type: 'checkbox' },
-		painting_grid: { label: 'settings.painting_grid', condition: () => Modes.paint, type: 'checkbox' },
-		show_gizmos: { label: 'dialog.preview_options.show_gizmos', type: 'checkbox', value: true },
+		shading: { label: 'settings.shading', type: 'checkbox', style: 'toggle_switch' },
+		grids: { label: 'settings.grids', type: 'checkbox', style: 'toggle_switch' },
+		ground_plane: { label: 'settings.ground_plane', type: 'checkbox', style: 'toggle_switch' },
+		pixel_grid: { label: 'settings.pixel_grid', condition: () => !Modes.paint, type: 'checkbox', style: 'toggle_switch' },
+		painting_grid: { label: 'settings.painting_grid', condition: () => Modes.paint, type: 'checkbox', style: 'toggle_switch' },
+		show_gizmos: { label: 'dialog.preview_options.show_gizmos', type: 'checkbox', style: 'toggle_switch', value: true },
 	},
 	onOpen() {
 		let custom_color = StateMemory.get('viewport_background_color');

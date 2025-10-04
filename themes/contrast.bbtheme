@@ -53,7 +53,7 @@ body {
 	color: var(--color-accent_text);
 }
 .dialog_handle {
-	background: transparent;
+	background: var(--color-ui);
 }
 .controller_state_gate {
 	background-color: var(--color-border);
@@ -80,4 +80,12 @@ body {
 }
 #tab_bar .project_tab.selected::before, #tab_bar .project_tab.selected::after {
     display: none;
+}
+input[type=checkbox].toggle_switch {
+	height: 24px;
+	background: var(--color-ui);
+    border: 1px solid var(--color-border);
+}
+input[type=checkbox].toggle_switch:checked {
+	background-color: var(--color-accent);
 }

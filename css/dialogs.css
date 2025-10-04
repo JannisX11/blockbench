@@ -313,6 +313,7 @@
 		font-size: 1.1em;
 		background-color: var(--color-back);
 		margin-top: 6px;
+		border-radius: 5px;
 	}
 	.dialog_message_box_command:hover {
 		background-color: var(--color-accent);
@@ -323,7 +324,7 @@
 		content: "\f105";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
-		margin-right: 10px;
+		margin-right: 4px;
 		pointer-events: none;
 	}
 	.dialog_message_box_command > .icon {
@@ -492,7 +493,7 @@
 	}
 	.dialog_sidebar .dialog_sidebar_pages li {
 		width: 100%;
-		padding: 4px 20px;
+		padding: 6px 20px;
 		border-left: 4px solid transparent;
 		cursor: pointer;
 	}
@@ -706,6 +707,7 @@
 		text-align: right;
 	}
 	.settings_list input[type=text], .settings_list input[type=password] {
+		height: 36px;
 		padding: 10px;
 		margin-left: 5px;
 		vertical-align: bottom;
