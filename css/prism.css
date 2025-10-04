@@ -54,6 +54,9 @@ https://prismjs.com/download.html#themes=prism-okaidia&languages=css+json */
 		flex-shrink: 0;
 		padding-top: 4px;
 		margin-top: 0;
+		border-right: 1px solid var(--color-border);
+		margin-right: 4px;
+		padding-right: 4px;
 	}
 	.prism-editor__line-number {
 		text-align: right;
