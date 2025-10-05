@@ -269,7 +269,7 @@
 		display: flex;
 		gap: 20px;
 	}
-	#start_screen .start_screen_features > li:nth-child(even) {
+	#start_screen .start_screen_features > li:nth-child(odd) {
 		flex-direction: row-reverse;
 		text-align: right;
 	}
@@ -314,6 +314,13 @@
 		#start_screen > content > section > div.start_screen_left {
 			width: 100% !important;
 			float: none;
+		}
+		#start_screen .start_screen_features > li {
+			flex-direction: column !important;
+			text-align: center !important;
+		}
+		#start_screen .start_screen_features > li > * {
+			width: 100% !important;
 		}
 	}
 
