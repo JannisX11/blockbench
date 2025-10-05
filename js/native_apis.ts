@@ -82,6 +82,7 @@ interface GetModuleOptions {
 	scope?: string
 	message?: string
 	optional?: boolean
+	show_permission_dialog?: boolean
 }
 function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTools, options: GetModuleOptions = {}) {
 	const no_namespace_name = module_name.replace(/^node:/, '');
@@ -110,6 +111,10 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 	}
 
 	if (!has_permission) {
+		if (options.show_permission_dialog == false) {
+			return;
+		}
+
 		let api_description = API_DESCRIPTIONS[module_name] ?? `the module "${module_name}"`;
 		let option_text = '';
 		if (module_name == 'fs' && options2.scope) {
