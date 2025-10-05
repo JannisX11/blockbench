@@ -965,6 +965,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 				let splineNode = OutlinerNode.uuids[gizmo.spline]
 				let splineMesh = splineNode.mesh;
             	let splineMeshQuat = splineMesh.getWorldQuaternion(quat1);
+				
         		vec1.set(0, 0, 0)
             	vec1.applyQuaternion(splineMeshQuat);
             	vec1.add(THREE.fastWorldPosition(splineMesh, Reusable.vec2));
