@@ -332,20 +332,22 @@ export class SplineMesh extends OutlinerElement {
             this.radius_multiplier = data.resolution[2];
         }
 
+        // Deprecated property
         if ("render_mesh" in data) {
             this.render_mode = data.render_mesh ? "mesh" : "path";
         }
 
-        if ("smooth_shading" in data && "display_space" in data) {
+        if ("shading" in data && "display_space" in data) {
             let prop = {
-                shade_smooth: data.smooth_shading, 
+                shading: data.shading, 
                 display_space: data.display_space
             }
             this.render_options = {...prop};
         }
 
+        // Deprecated property
         if ("render_options" in data) {
-            this.smooth_shading = data.render_options.shade_smooth;
+            this.shading = data.render_options.shade_smooth ? "smooth" : "flat";
             this.display_space = data.render_options.display_space;
         }
 
@@ -1512,8 +1514,11 @@ export class SplineMesh extends OutlinerElement {
 		marker_color: true,
 	}
     updateShading(shade_smooth) {
-        this.smooth_shading = shade_smooth;
+        this.shading = shade_smooth ? "smooth" : "flat";
         this.preview_controller.updateGeometry(this);
+    }
+    isSmoothShaded() {
+        return this.shading == "smooth";
     }
 }
 SplineMesh.prototype.title = tl('data.spline_mesh');
@@ -1645,11 +1650,15 @@ new Property(SplineMesh, 'enum', 'uv_mode', {
         }
     }
 });
-new Property(SplineMesh, 'boolean', 'smooth_shading', {
-    default: false,
+new Property(SplineMesh, 'enum', 'shading', {
+    default: 'flat',
+    values: ['flat', 'smooth'],
     inputs: {
         element_panel: {
-            input: {label: 'action.spline_smooth_shading', type: 'checkbox', description: 'action.spline_smooth_shading.desc'},
+            input: {label: 'spline.shading', type: 'inline_select', options: {
+                flat: 'spline.shading.flat',
+                smooth: 'spline.shading.smooth',
+            }, description: 'spline.shading.desc'},
             onChange() {
                 Canvas.updateView({elements: SplineMesh.selected, element_aspects: {geometry: true}});
             }
@@ -1817,7 +1826,7 @@ new NodePreviewController(SplineMesh, {
         let arr_indices = [];
         let arr_outline = [];
         if (element.render_mode == "mesh") {
-            let tube = element.getTubeGeo(element.smooth_shading);
+            let tube = element.getTubeGeo(element.isSmoothShaded());
             arr_vertices = tube.vertices;
             arr_normals = tube.normals;
             arr_uvs = tube.uvs;

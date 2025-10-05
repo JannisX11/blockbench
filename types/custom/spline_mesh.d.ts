@@ -86,7 +86,7 @@ export declare class SplineMesh extends OutlinerElement {
     uv_mode: 'length_accurate' |'uniform' | 'per_segment'
     render_mode: 'mesh' | 'path'
     render_order: 'default' | 'behind' | 'in_front'
-    smooth_shading: boolean
+	shading: 'flat' | 'smooth'
 
     addVertices(...vectors: ArrayVector3[]): any[];
     addHandles(...handles: SplineHandle[]): any[];

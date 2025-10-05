@@ -2070,7 +2070,7 @@ BARS.defineActions(function() {
 					vertices: []
 				})
 
-				mesh.shading = spline.smooth_shading ? 'smooth' : 'flat';
+				mesh.shading = spline.shading;
 
 				spline.getTubeMesh(true, mesh);
 				
