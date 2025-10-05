@@ -50,6 +50,7 @@
 			"css/",
 			"font/",
 			"dist/bundle.js",
+			"gif.worker.js",
 			"electron/",
 			"index.html",
 			"package.json",
