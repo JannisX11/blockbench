@@ -720,7 +720,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 				this.handleGizmos["DEBUG_PICKER"][0][0].position.set( newPos.x, newPos.y, newPos.z );
 			}
 			this.setHandleScale = function() {
-				
+
 				// What's below might be a little dirty, need to see if it can be improved
 				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
 				for (let name in this.handleGizmos) {
@@ -744,7 +744,8 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
 				}
 			};
-
+			// Gets the scale for each point of this handle, 
+			// using the same scaling as regular transform gizmos.
 			this.getScale = function(pointPos) {
 				let splineNode = OutlinerNode.uuids[this.spline]
 				let splineMesh = splineNode.mesh;
