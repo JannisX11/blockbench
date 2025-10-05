@@ -275,6 +275,8 @@
 	"message.cannot_re_import.message": "The exported model format cannot be imported into Blockbench again. Please make sure to save your model as a project file.",
 	"message.outdated_client.title": "Outdated client",
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
+	"message.newer_project_format_version.title": "Outdated client",
+	"message.newer_project_format_version.message": "This file was saved in a newer version of Blockbench. Update to Blockbench %0 or newer to be able to open it correctly",
 	"message.child_model_only.title": "Empty Child Model",
 	"message.child_model_only.message": "This file is a child of %0 and does not contain a model.",
 	"message.child_model_only.open": "Open Parent",

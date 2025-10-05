@@ -18,7 +18,8 @@ function processHeader(model) {
 	}
 	if (VersionUtil.compare(model.meta.format_version, '>', FORMATV)) {
 		Blockbench.showMessageBox({
-			translateKey: 'outdated_client',
+			title: 'message.newer_project_format_version.title',
+			message: tl('message.newer_project_format_version.message', [model.meta.format_version]),
 			icon: 'error',
 		})
 		return;
