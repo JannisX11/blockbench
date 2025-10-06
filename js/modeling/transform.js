@@ -672,8 +672,8 @@ export function moveElementsInSpace(difference, axis) {
 			return;
 		}
 
-		// Mesh Vertex (and more ?) translation
-		if (!group_m && el instanceof Mesh && (el.getSelectedVertices().length > 0 || space >= 2)) {
+		// General Vertex translation (Mesh & SplineMesh)
+		if (!group_m && (el instanceof Mesh || el instanceof SplineMesh) && (el.getSelectedVertices().length > 0 || space >= 2)) {
 
 			let selection_rotation = space == 3 && el.getSelectionRotation();
 			let selected_vertices = el.getSelectedVertices();
@@ -702,10 +702,14 @@ export function moveElementsInSpace(difference, axis) {
 				difference_vec.V3_set(m.x, m.y, m.z);
 			}
 
+			// Perform vertex movement
 			selected_vertices.forEach(vkey => {
 				el.vertices[vkey].V3_add(difference_vec);
+				if (el instanceof SplineMesh) el.applyHandleModeOnVertex(vkey);
 			})
+
 			// mirror modeling: Snap to middle to connect
+			if (el instanceof SplineMesh) return; // Spline meshes don't support mirror modeling, or proportional editing (TODO ?)
 			if (
 				BarItems.mirror_modeling.value &&
 				difference_vec[0] &&
@@ -723,38 +727,7 @@ export function moveElementsInSpace(difference, axis) {
 			})
 
 		}
-		// Spline handle point translation
-		else if (!group_m && el instanceof SplineMesh && el.getSelectedVertices().length > 0) {
-
-			
-			let handle = el.getSelectedHandles(true)[0];
-			let selection_rotation = space == 3 && [...el.getHandleEuler(handle).combined].V3_toEuler();
-			let selected_vertices = el.getSelectedVertices();
-			if (!selected_vertices.length) selected_vertices = Object.keys(el.vertices);
-
-			let difference_vec = [0, 0, 0];
-			if (space == 2) {
-				difference_vec[axis] += difference;
-
-			} else if (space == 3) {
-				let m = vector.set(0, 0, 0);
-				m[getAxisLetter(axis)] = difference;
-				m.applyEuler(selection_rotation);
-				difference_vec.V3_set(m.x, m.y, m.z);
-			} else {
-				let m = vector.set(0, 0, 0);
-				m[getAxisLetter(axis)] = difference;
-				m.applyQuaternion(el.mesh.getWorldQuaternion(quaternion).invert());
-				difference_vec.V3_set(m.x, m.y, m.z);
-			}
-
-			selected_vertices.forEach(vkey => {
-				el.vertices[vkey].V3_add(difference_vec);
-				el.applyHandleModeOnVertex(vkey);
-			})
-
-
-		} else {
+		else {
 
 			let old_position = el.position?.slice();
 		

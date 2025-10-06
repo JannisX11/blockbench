@@ -763,6 +763,10 @@ export class SplineMesh extends OutlinerElement {
             combined: eulerJ.toArray()
         };
     }
+    getSelectionRotation() {
+		let handles = this.getSelectedHandles(true)[0];
+		return [...this.getHandleEuler(handles).combined].V3_toEuler();
+    }
     // Determines Gizmo locations
     getWorldCenter(ignore_mesh_selection) {
         let m = this.mesh;
@@ -934,10 +938,16 @@ export class SplineMesh extends OutlinerElement {
             if (bidirectional) val /= 2;
         }
 
-        // Clamp value to 1 if handles are selected.
+        // normal scaling value
         let unit_scale = (size + val * (negative ? -1 : 1) * (bidirectional ? 2 : 1));
-        let clamped_unit_scale = Math.clamp(unit_scale, 1, Infinity);
-        let scale = (this.getSelectedHandles().length ? clamped_unit_scale : unit_scale) / size;
+        let scale = unit_scale / size;
+
+        // Clamp value to 1 if handles are selected, and transformed along their length.
+        // so users don't end up with 0 scale handles that they can't fix (possibly not needed, users should know better)
+        if (axis == 2 && Transformer.getTransformSpace() == 3 && this.getSelectedHandles().length) {
+            let clamped_unit_scale = Math.clamp(unit_scale, 1, Infinity);
+            scale = clamped_unit_scale / size;
+        }
 
         if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
         if (scale < 0 && !allow_negative) scale = 0;
@@ -957,7 +967,7 @@ export class SplineMesh extends OutlinerElement {
 
             // Apply handle effect if applicable.
             if (this.getSelectedHandles(true).length && !same_spot) { 
-                this.applyHandleModeOnVertex(key);
+                this.applyHandleModeOnVertex(key); // doesn't work in normal space for some reason
             }
         })
         this.refreshTubeFaces();
