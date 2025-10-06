@@ -378,9 +378,6 @@ export class ModelFormat implements FormatOptions {
 		}
 		// @ts-ignore Incompatible internal and external types
 		Blockbench.Format = Blockbench.Project.format = this;
-		if (typeof this.onActivation == 'function') {
-			Format.onActivation()
-		}
 		Canvas.buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
@@ -402,10 +399,14 @@ export class ModelFormat implements FormatOptions {
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
 		}
-		Interface.Panels.animations.inside_vue.$data.animation_files_enabled = this.animation_files;
+		Interface.Panels.animations.inside_vue.$data.group_animations_by_file = this.animation_files;
 		// @ts-ignore
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
+		
+		if (typeof this.onActivation == 'function') {
+			Format.onActivation()
+		}
 		if (Modes.vue) Modes.vue.$forceUpdate();
 		TickUpdates.interface = true;
 		Canvas.updateShading();

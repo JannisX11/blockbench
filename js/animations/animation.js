@@ -1947,7 +1947,7 @@ Interface.definePanels(function() {
 				animations: Animation.all,
 				animation_controllers: AnimationController.all,
 				files_folded: {},
-				animation_files_enabled: true,
+				group_animations_by_file: true,
 				search_enabled: false,
 				search_term: '',
 			}},
@@ -1967,11 +1967,11 @@ Interface.definePanels(function() {
 					}
 				},
 				addAnimation(group_name) {
-					let other_animation = AnimationItem.all.find(a => (this.animation_files_enabled ? a.path : a.group_name) == group_name);
+					let other_animation = AnimationItem.all.find(a => (this.group_animations_by_file ? a.path : a.group_name) == group_name);
 					if (other_animation instanceof Animation) {
 						new Animation({
 							name: other_animation && other_animation.name.replace(/\w+$/, 'new'),
-							path: this.animation_files_enabled ? group_name : undefined,
+							path: this.group_animations_by_file ? group_name : undefined,
 							group_name: group_name,
 							saved: false
 						}).add(true).propertiesDialog()
@@ -1984,7 +1984,7 @@ Interface.definePanels(function() {
 					}
 				},
 				showFileContextMenu(event, id) {
-					if (this.animation_files_enabled) {
+					if (this.group_animations_by_file) {
 						Animation.prototype.file_menu.open(event, id);
 					} else {
 						Animation.prototype.group_menu.open(event, id);
@@ -2010,7 +2010,7 @@ Interface.definePanels(function() {
 					let drop_target, drop_target_node, order;
 					let last_event = e1;
 
-					let group_name_key = this.animation_files_enabled ? 'path' : 'group_name';
+					let group_name_key = this.group_animations_by_file ? 'path' : 'group_name';
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -2137,8 +2137,8 @@ Interface.definePanels(function() {
 					}
 					const groups = {};
 					this.animations.forEach(animation => {
-						let key = (this.animation_files_enabled ? animation.path : animation.group_name) || '';
-						let name = this.animation_files_enabled ? (pathToName(key, true) || 'Unsaved') : key;
+						let key = (this.group_animations_by_file ? animation.path : animation.group_name) || '';
+						let name = this.group_animations_by_file ? (pathToName(key, true) || 'Unsaved') : key;
 						if (!groups[key]) {
 							groups[key] = {
 								animations: [],
@@ -2147,7 +2147,7 @@ Interface.definePanels(function() {
 								saved: true
 							};
 						}
-						if (!key && !this.animation_files_enabled) groups[key].hide_head = true;
+						if (!key && !this.group_animations_by_file) groups[key].hide_head = true;
 						if (!animation.saved) groups[key].saved = false;
 						if (!filter(animation)) return;
 						groups[key].animations.push(animation);
@@ -2246,7 +2246,7 @@ Interface.definePanels(function() {
 						<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
 							<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
 							<label :title="key">{{ file.name }}</label>
-							<div class="in_list_button" v-if="animation_files_enabled && !file.saved" v-on:click.stop="saveFile(key, file)">
+							<div class="in_list_button" v-if="group_animations_by_file && !file.saved" v-on:click.stop="saveFile(key, file)">
 								<i class="material-icons">save</i>
 							</div>
 							<div class="in_list_button" v-on:click.stop="addAnimation(key)">
@@ -2274,7 +2274,7 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="animation_files_enabled" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
+								<div v-if="group_animations_by_file" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>

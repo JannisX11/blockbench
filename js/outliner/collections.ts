@@ -158,6 +158,19 @@ export class Collection {
 		return nodes;
 	}
 	/**
+	 * Check if the node is contained in this collection, directly or indirectly
+	 * @returns {true} if the collection contains the node
+	 */
+	contains(node: OutlinerNode): boolean {
+		while (node instanceof OutlinerNode) {
+			if (this.children.includes(node.uuid)) {
+				return true;
+			}
+			node = node.parent;
+		}
+		return false;
+	}
+	/**
 	 * Toggle visibility of everything in the collection
 	 * @param event If the alt key is pressed, the result is inverted and the visibility of everything but the collection will be toggled
 	 */
@@ -199,7 +212,7 @@ export class Collection {
 	 */
 	showContextMenu(event) {
 		if (!this.selected) this.clickSelect(event);
-		this.menu.open(event, this);
+		Collection.menu.open(event, this);
 		return this;
 	}
 	getUndoCopy() {
@@ -366,7 +379,7 @@ export class Collection {
 		dialog.show();
 	}
 	
-	public menu: Menu = new Menu([
+	static menu = new Menu([
 		new MenuSeparator('settings'),
 		new MenuSeparator('edit'),
 		'set_collection_content_to_selection',
@@ -433,6 +446,9 @@ export class Collection {
 		}
 	])
 }
+// @ts-expect-error
+Collection.prototype.menu = Collection.menu;
+
 new Property(Collection, 'string', 'name', {
 	default: 'collection',
 	inputs: {
