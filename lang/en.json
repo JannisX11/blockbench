@@ -1651,8 +1651,10 @@
 	"action.spline_tube_segments.desc": "How Many subdivisions this Spline has along its path.",
 	"action.spline_tube_radius": "Tube Radius",
 	"action.spline_tube_radius.desc": "Set the Spline's Tube Radius.",
-	"action.spline_smooth_shading": "Smooth Shading",
-	"action.spline_smooth_shading.desc": "If this spline's tube should be shaded smooth.",
+	"spline.shading.flat": "Flat",
+	"spline.shading.smooth": "Smooth",
+	"spline.shading": "Shading",
+	"spline.shading.desc": "How this spline's tube should be shaded.",
 	"action.spline_display_space": "Display Space",
 	"action.spline_display_space.desc": "Display spline space indicators on its path.",
 

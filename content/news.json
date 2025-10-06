@@ -17,7 +17,7 @@
 				"text": "Animate your models with mesh deformation using armatures! This is super fun!"
 			},
 			{
-				"image": "./content/redesign.png",
+				"image": "./content/splines_and_billboards.png",
 				"title": "Splines & Billboards",
 				"text": "Two brand new types of elements: Splines make it easy to create shapes that follow a path such as tubes or cables. Billboards let you add sprites into your scene that always face the camera!"
 			},

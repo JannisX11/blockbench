@@ -674,8 +674,6 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 					
 				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
 			}
-			
-			// this.isTilt = handlePropertiesEdit;
 			this.spline = data.uuid;
 			this.handle = data.hKey;
 			this.joint = data.joint;
@@ -722,7 +720,6 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 				this.handleGizmos["DEBUG_PICKER"][0][0].position.set( newPos.x, newPos.y, newPos.z );
 			}
 			this.setHandleScale = function() {
-				let scale = this.getScale();
 
 				// What's below might be a little dirty, need to see if it can be improved
 				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
@@ -730,6 +727,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 					if (name === "DEBUG_PICKER") continue;
 					let object = this.handleGizmos[name][0][0];
 					let position = this.handleGizmos[name][0][1];
+					let scale = this.getScale(position);
 
 					object.geometry.center();
 					object.scale.set(scale, scale, scale);
@@ -739,18 +737,21 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 				for (let name in this.pickerGizmos) {
 					let object = this.pickerGizmos[name][0][0];
 					let position = this.pickerGizmos[name][0][1];
+					let scale = this.getScale(position);
 
 					object.geometry.center();
 					object.scale.set(scale, scale, scale);
 					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
 				}
 			};
+			// Gets the scale for each point of this handle, 
+			// using the same scaling as regular transform gizmos.
+			this.getScale = function(pointPos) {
+				let splineNode = OutlinerNode.uuids[this.spline]
+				let splineMesh = splineNode.mesh;
 
-			this.getScale = function() {
-				let jointPos = this.joint.V3_toThree();
-				let handlePos = OutlinerNode.uuids[this.spline].position.V3_toThree();
-				let center = new THREE.Vector3().addVectors(jointPos, handlePos);
-				return Transformer.camera.preview.calculateControlScale(center) * settings.control_size.value * 0.74;
+				let jointPos = splineMesh.localToWorld(pointPos.V3_toThree());
+				return Transformer.camera.preview.calculateControlScale(jointPos) * settings.control_size.value * 0.74;
 			}
 			// Get any matches in the spline selection
 			this.verifySelection = function() {
@@ -957,16 +958,22 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 					this.updateGizmoTransform(gizmo);
 				})
 			}
+			// Spline Gizmos are treated as having no transform by default, 
+			// so they need to be oriented and positioned over their splines to work.
 			this.updateGizmoTransform = function(gizmo) {
-				let { vec1, euler1 } = Reusable;
-				let splinePosArr = OutlinerNode.uuids[gizmo.spline].position;
-				let splineRotArr = OutlinerNode.uuids[gizmo.spline].rotation;
-				let splinePos = vec1.fromArray(splinePosArr);
-				let splineRot = euler1.fromArray([Math.degToRad(splineRotArr[0]), Math.degToRad(splineRotArr[1]), Math.degToRad(splineRotArr[2])]);
+				let { vec1, euler1, quat1 } = Reusable;
+				let splineNode = OutlinerNode.uuids[gizmo.spline]
+				let splineMesh = splineNode.mesh;
+            	let splineMeshQuat = splineMesh.getWorldQuaternion(quat1);
+				
+        		vec1.set(0, 0, 0)
+            	vec1.applyQuaternion(splineMeshQuat);
+            	vec1.add(THREE.fastWorldPosition(splineMesh, Reusable.vec2));
+				euler1.setFromQuaternion(splineMeshQuat);
 
 				gizmo.setHandleScale();
-				gizmo.position.copy(splinePos);
-				gizmo.rotation.copy(splineRot);
+				gizmo.position.copy(vec1);
+				gizmo.rotation.copy(euler1);
 			}
 		}
 	};
