@@ -875,7 +875,7 @@ export interface MessageBoxOptions {
 	translateKey?: string
 	title?: string
 	message?: string
-	icon?: string
+	icon?: IconString
 	width?: number
 	cancelIndex?: number
 	confirmIndex?: number

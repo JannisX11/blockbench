@@ -157,7 +157,7 @@ declare global {
 	interface BarItemOptions extends KeybindItemOptions {
 		name?: string
 		description?: string
-		icon?: string
+		icon?: IconString
 		condition?: ConditionResolvable
 		category?: string
 		keybind?: Keybind
@@ -170,7 +170,7 @@ declare global {
 		id: string
 		name: string
 		description: string
-		icon?: string
+		icon?: IconString
 		category?: string
 
 		node: HTMLElement
@@ -274,7 +274,7 @@ declare global {
 		tool_config?: ToolConfig
 		click: ActionOptions['click']
 
-		condition?(): boolean
+		condition?: ConditionResolvable
 		/**
 		 * Trigger to run or select the action. This is the equivalent of clicking or using a keybind to trigger it. Also checks if the condition is met.
 		 */

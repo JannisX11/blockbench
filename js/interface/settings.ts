@@ -28,7 +28,7 @@ interface SettingOptions {
 	min?: number
 	max?: number
 	step?: number
-	icon?: string
+	icon?: IconString
 	plugin?: string
 	click?(): void
 	options?: {
@@ -58,7 +58,7 @@ export class Setting {
 	min?: number
 	max?: number
 	step?: number
-	icon: string
+	icon: IconString
 	click: (event: MouseEvent | KeyboardEvent) => void
 	options: Record<string, string>
 	hidden: boolean

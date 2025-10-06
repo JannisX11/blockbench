@@ -19,7 +19,7 @@ interface ToastNotificationOptions {
 	/**
 	 * Blockbench icon string
 	 */
-	icon?: string
+	icon?: IconString
 	/**
 	 * Expire time in miliseconds
 	 */

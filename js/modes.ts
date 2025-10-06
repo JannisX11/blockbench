@@ -10,7 +10,7 @@ import { ReferenceImage } from "./preview/reference_images"
 interface ModeOptions {
 	id?: string
 	name?: string
-	icon?: string
+	icon?: IconString
 	default_tool?: string
 	selectElements?: boolean
 	category?: string
@@ -29,7 +29,7 @@ interface ModeOptions {
 export class Mode extends KeybindItem {
 	id: string
 	name: string
-	icon: string
+	icon: IconString
 	selected: boolean
 	tool: string
 	default_tool?: string
