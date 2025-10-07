@@ -87,7 +87,7 @@ export function selectSplinePoints(spline, handle, axis) {
 		}
 	}
 
-	return selection.lenght > 0;
+	return selection.length > 0;
 }
 // Spline handle tilt
 export function tiltSplineHandle(modify, handle) {
@@ -170,6 +170,8 @@ export function flipNameOnAxis(node, axis, check, original_name) {
 			right: 'left',
 			Right: 'Left',
 			RIGHT: 'LEFT',
+			R: 'L',
+			r: 'l',
 		},
 		1: {
 			top: 'bottom',
@@ -186,13 +188,20 @@ export function flipNameOnAxis(node, axis, check, original_name) {
 		}
 	};
 	function matchAndReplace(a, b) {
-		if (node.name.includes(a)) {
-			let name = original_name
-						? original_name.replace(a, b)
-						: node.name.replace(a, b).replace(/2/, '');
-			if (!check || check(name)) node.name = name;
-			return true;
+		if (!node.name.includes(a)) return false;
+		let name = original_name ?? node.name;
+		let regex_filter = a;
+		if (a.length == 1) {
+			regex_filter = new RegExp(`(?<=^|[_. -])${a}(?=[_. -]|$)`);
 		}
+		name = name.replace(regex_filter, b);
+		if (name == (original_name ?? node.name)) return false;
+
+		if (!original_name) {
+			name = name.replace(/2$/, '');
+		}
+		if (!check || check(name)) node.name = name;
+		return node.name;
 	}
 	let pairs = flip_pairs[axis];
 	Blockbench.dispatchEvent('flip_node_name', {pairs, node, axis, original_name});
@@ -201,6 +210,7 @@ export function flipNameOnAxis(node, axis, check, original_name) {
 		if (matchAndReplace(a, b)) break;
 		if (matchAndReplace(b, a)) break;
 	}
+	return node.name;
 }
 export function mirrorSelected(axis) {
 	if (Modes.animate && Timeline.selected.length) {
@@ -562,7 +572,7 @@ export const Vertexsnap = {
 			element_aspects: {transform: true, geometry: true},
 			selection: true
 		};
-		if (Vertexsnap.groups.lenght) {
+		if (Vertexsnap.groups.length) {
 			update_options.elements = [...update_options.elements];
 			for (let group of Vertexsnap.groups) {
 				Vertexsnap.groups.forEachChild(child => {

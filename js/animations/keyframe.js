@@ -1,3 +1,4 @@
+import { flipNameOnAxis } from "../modeling/transform";
 import { clipboard } from "../native_apis";
 import { invertMolang } from "../util/molang";
 import { openMolangEditor } from "./molang_editor";
@@ -1229,8 +1230,8 @@ BARS.defineActions(function() {
 							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
 							if (!kfs.length) return;
 							if (!opposite_animator) {
-								let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
-								let opposite_bone = all_animatable_nodes.find(g => g.name.toLowerCase() == name);
+								let name = flipNameOnAxis({name: animator.name}, 0);
+								let opposite_bone = all_animatable_nodes.find(g => g.name == name);
 								if (!opposite_bone) {
 									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
 									return;
