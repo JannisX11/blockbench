@@ -2841,6 +2841,11 @@ span.controller_state_section_info {
 		border: 1px solid white;
 		border-radius: 5px;
 	}
+	.cube_uv_face > .main_corner::after {
+		height: 11px;
+		width: 11px;
+		border-radius: 2px;
+	}
 	.main_corner.selected::after {
 		border-color: var(--color-accent);
 	}

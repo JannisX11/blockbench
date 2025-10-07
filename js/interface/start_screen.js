@@ -1,6 +1,7 @@
 import { Filesystem } from "../file_system";
 import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
+import { pureMarked } from "../util/util";
 import VersionUtil from '../util/version_util';
 
 export const StartScreen = {
@@ -114,7 +115,7 @@ export function addStartScreenSection(id, data) {
 			let li = document.createElement('li');
 			let img = new Image(); img.src = feature.image;
 			let title = document.createElement('h3'); title.textContent = feature.title;
-			let text = document.createElement('p'); text.textContent = feature.text;
+			let text = document.createElement('p'); text.innerHTML = pureMarked(feature.text);
 			let text_wrapper = document.createElement('div');
 			text_wrapper.append(title, text);
 			li.append(img, text_wrapper);
