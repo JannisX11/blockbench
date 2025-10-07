@@ -80,9 +80,9 @@ export namespace Filesystem {
 	 */
 	export function importFile(options: ImportOptions, callback?: (files: FileResult[]) => void) {
 		if (isApp) {
-			let properties = [];
+			let properties = ['openFile'];
 			if (options.multiple) {
-				properties.push('openFile', 'multiSelections')
+				properties.push('multiSelections')
 			}
 			if (options.extensions[0] === 'image/*') {
 				options.type = 'Images'
