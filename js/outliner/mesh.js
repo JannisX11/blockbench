@@ -1103,6 +1103,7 @@ new NodePreviewController(Mesh, {
 	},
 	displayDeformation(element, vertex_offsets) {
 		let position_array = [];
+		let outline_positions = [];
 		let {vertices, faces} = element;
 		
 		if (vertex_offsets) {
@@ -1122,7 +1123,11 @@ new NodePreviewController(Mesh, {
 					position_array.push(...vertices[vkey]);
 				})
 			}
+			element.mesh.outline.vertex_order.forEach(key => {
+				outline_positions.push(...vertices[key]);
+			})
 			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
 			return;
 		}
 	},
