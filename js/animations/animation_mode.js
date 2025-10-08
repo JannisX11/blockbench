@@ -1328,7 +1328,7 @@ BARS.defineActions(function() {
 		}
 	})
 	// Onion Skin
-	new Toggle('animation_onion_skin', {
+	let onion_skin_toggle = new Toggle('animation_onion_skin', {
 		category: 'view',
 		condition: {modes: ['animate']},
 		tool_config: new ToolConfig('animation_onion_skin', {
@@ -1345,9 +1345,6 @@ BARS.defineActions(function() {
 				interval: {type: 'number', label: 'menu.animation_onion_skin.interval', value: 1, condition: form => form.frames != 'select'},
 				selective: {type: 'checkbox', label: 'menu.animation_onion_skin_selective', value: true},
 			},
-			onOpen() {
-				this.setFormValues({enabled: BarItems.animation_onion_skin.value}, false);
-			},
 			onFormChange(formResult) {
 				if (BarItems.animation_onion_skin.value != formResult.enabled) {
 					BarItems.animation_onion_skin.trigger();
@@ -1359,6 +1356,7 @@ BARS.defineActions(function() {
 		}),
 		onChange() {
 			Timeline.vue.onion_skin_selectable = this.value && this.tool_config.options.frames == 'select';
+			onion_skin_toggle.tool_config.options.enabled = this.value;
 			Animator.updateOnionSkin();
 		}
 	})

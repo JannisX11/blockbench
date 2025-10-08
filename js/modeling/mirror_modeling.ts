@@ -703,6 +703,7 @@ BARS.defineActions(() => {
 		condition: {modes: ['edit']},
 		onChange() {
 			Project.mirror_modeling_enabled = this.value;
+			toggle.tool_config.options.enabled = this.value;
 			MirrorModeling.cached_elements = {};
 			updateSelection();
 		},
@@ -711,9 +712,6 @@ BARS.defineActions(() => {
 			form: {
 				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: false},
 				mirror_uv: {type: 'checkbox', label: 'menu.mirror_modeling.mirror_uv', value: true}
-			},
-			onOpen() {
-				this.setFormValues({enabled: toggle.value}, false);
 			},
 			onFormChange(formResult) {
 				if (toggle.value != formResult.enabled) {
