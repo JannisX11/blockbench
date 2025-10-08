@@ -2099,11 +2099,11 @@ class Chain3D {
 
 }
 
-//import * as THREE from 'three'
+import * as THREE from 'three'
 
 class Structure3D {
 
-    constructor( scene, THREE ) {
+    constructor( scene ) {
 
         this.THREE = THREE;
 
@@ -3338,7 +3338,7 @@ class Chain2D {
 
 class Structure2D {
 
-    constructor( scene, THREE ) {
+    constructor( scene ) {
 
         this.THREE = THREE;
 
@@ -3697,7 +3697,7 @@ class IKSolver {
 
 class HISolver {
 
-    constructor( o, THREE ) {
+    constructor( o ) {
 
     	this.THREE = THREE;
 

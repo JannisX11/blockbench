@@ -203,19 +203,18 @@ BARS.defineActions(function() {
 
 			function iterate(arr, level) {
 				arr.forEach(node => {
-					if (node instanceof Group) {
+					if (node.constructor.animator) {
 						if (level) nodes.push(node);
-						iterate(node.children, level+1);
 					}
-					if (node instanceof Locator) {
-						if (level) nodes.push(node);
+					if (node.children) {
+						iterate(node.children, level+1);
 					}
 				})
 			}
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
-					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					icon: node.icon,
 					marked: node.uuid == NullObject.selected[0].ik_target,
 					color: markerColors[node.color % markerColors.length]?.standard,
 					click() {
@@ -247,8 +246,10 @@ BARS.defineActions(function() {
 
 			function iterate(arr) {
 				arr.forEach(node => {
-					if (node instanceof Group) {
-						nodes.push(node);
+					if (node.children) {
+						if (node.constructor.animator) {
+							nodes.push(node);
+						}
 						iterate(node.children)
 					}
 				})

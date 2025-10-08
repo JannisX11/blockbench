@@ -797,7 +797,7 @@ export class NullObjectAnimator extends BoneAnimator {
 	}
 	displayIK(get_samples) {
 		let null_object = this.getElement();
-		let target = [...Group.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
+		let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
 		if (!null_object || !target) return;
 
 		let bones = [];
@@ -807,14 +807,14 @@ export class NullObjectAnimator extends BoneAnimator {
 
 		let source;
 		if (null_object.ik_source) {
-			source = [...Group.all].find(node => node.uuid == null_object.ik_source);
+			source = [...Group.all, ...ArmatureBone.all].find(node => node.uuid == null_object.ik_source);
 		} else {
 			source = null_object.parent;
 		}
 		if (!source) return;
 		if (!target.isChildOf(source) && source != 'root') return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
-			target instanceof Group &&
+			(target instanceof Group || target instanceof ArmatureBone) &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
 		while (current !== source) {
@@ -875,8 +875,8 @@ export class NullObjectAnimator extends BoneAnimator {
 				results[bone_ref.bone.uuid] = {
 					euler: rotation,
 					array: [
-						Math.radToDeg(-rotation.x),
-						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.x),
+						Math.radToDeg(rotation.y),
 						Math.radToDeg(rotation.z),
 					]
 				}
@@ -900,8 +900,8 @@ export class NullObjectAnimator extends BoneAnimator {
 				results[target.uuid] = {
 					euler: rotation,
 					array: [
-						Math.radToDeg(-rotation.x),
-						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.x),
+						Math.radToDeg(rotation.y),
 						Math.radToDeg(rotation.z),
 					]
 				}
