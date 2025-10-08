@@ -76,12 +76,13 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 
 				let polygon: ArrayVector2[] = [];
 				let vkeys: string[] = [];
+				let flat_point = new THREE.Vector3();
 				loop.forEach((edge: MeshEdge) => {
 					let vkey2 = edge[0];
 					let point = new THREE.Vector3().fromArray(mesh.vertices[vkey2]);
-					plane.projectPoint(point, point);
-					point.applyQuaternion(plane_quaternion);
-					polygon.push([point.x, point.z]);
+					plane.projectPoint(point, flat_point);
+					flat_point.applyQuaternion(plane_quaternion);
+					polygon.push([flat_point.x, flat_point.z]);
 					vkeys.push(vkey2);
 				});
 

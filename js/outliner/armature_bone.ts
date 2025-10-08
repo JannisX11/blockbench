@@ -293,6 +293,7 @@ export class ArmatureBone extends OutlinerElement {
 		'add_armature_bone',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
+		'allow_element_mirror_modeling',
 		'set_element_marker_color',
 		"randomize_marker_colors",
 		'apply_animation_preset',
@@ -336,7 +337,7 @@ type FakeObjectType = {isElement: boolean, no_export: boolean, fix_position: THR
 type PreviewControllerType = (NodePreviewController & {material: THREE.MeshLambertMaterial, material_selected: THREE.MeshLambertMaterial});
 new NodePreviewController(ArmatureBone, {
 	material: new THREE.MeshLambertMaterial({
-		color: 0xc8c9cb,
+		color: 0xdadbdd,
 		depthTest: false,
 		depthWrite: false,
 		transparent: true,
