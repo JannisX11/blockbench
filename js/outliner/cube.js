@@ -1007,7 +1007,6 @@ export class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
-		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -1029,7 +1028,7 @@ new Property(Cube, 'enum', 'render_order', {
 	values: ['default', 'behind', 'in_front'],
 	inputs: {
 		element_panel: {
-			input: {label: 'action.element_render_order', type: 'select', options: {
+			input: {label: 'action.element_render_order.short', description: 'action.element_render_order.desc', type: 'select', options: {
 				default: 'action.element_render_order.default',
 				behind: 'action.element_render_order.behind',
 				in_front: 'action.element_render_order.in_front'

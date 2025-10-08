@@ -1021,7 +1021,6 @@ export class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
-		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -1055,7 +1054,24 @@ new Property(Mesh, 'enum', 'shading', {
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
-new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
+new Property(Mesh, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order.short', description: 'action.element_render_order.desc', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {
+				Mesh.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 

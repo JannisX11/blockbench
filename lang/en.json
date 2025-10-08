@@ -1628,6 +1628,8 @@
 	"action.edit_bedrock_binding": "Edit Binding...",
 	"action.edit_bedrock_binding.desc": "Change which bone the geometry is bound to",
 	"action.element_render_order": "Transparency Render Order",
+	"action.element_render_order.short": "Render Order",
+	"action.element_render_order.desc": "Render order of elements. This can help fix elements that are hidden behind other elements with transparent textures. Leave it on Auto for opaque elements.",
 	"action.element_render_order.default": "Auto",
 	"action.element_render_order.behind": "Behind",
 	"action.element_render_order.in_front": "In Front",

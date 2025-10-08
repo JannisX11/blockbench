@@ -1700,7 +1700,24 @@ new Property(SplineMesh, 'boolean', 'cyclic', {
 new Property(SplineMesh, 'boolean', 'export', { default: true });
 new Property(SplineMesh, 'boolean', 'visibility', { default: true });
 new Property(SplineMesh, 'boolean', 'locked');
-new Property(SplineMesh, 'enum', 'render_order', { default: 'default', values: ['default', 'behind', 'in_front'] });
+new Property(SplineMesh, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order.short', description: 'action.element_render_order.desc', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {
+				SplineMesh.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
 
 OutlinerElement.registerType(SplineMesh, 'spline');
 
