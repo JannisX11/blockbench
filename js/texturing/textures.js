@@ -475,6 +475,7 @@ export class Texture {
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
+			this.source = '';
 			if (externalDataLoader) {
 				const external = externalDataLoader(path.replaceAll("\\", "/"))
 				if (external) {
@@ -503,7 +504,7 @@ export class Texture {
 					}
 				}
 			}
-			this.source ||= path.replace(/#/g, '%23') + '?' + tex_version
+			this.source = this.source || path.replace(/#/g, '%23') + '?' + tex_version;
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
