@@ -1234,6 +1234,8 @@ BARS.defineActions(function() {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
 			const color = Math.floor(Math.random()*markerColors.length);
+			let parent = getCurrentGroup() ?? Armature.selected[0];
+
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
@@ -1242,16 +1244,15 @@ BARS.defineActions(function() {
 						Group.first_selected = group_to_select;
 					}
 				}
-				Undo.initEdit({elements, selection: true}, amended);
+				Undo.initEdit({elements, selection: true, outliner: true}, amended);
 				let mesh = new Mesh({
 					name: result.shape,
 					vertices: {},
 					color
 				});
-				let group = getCurrentGroup();
-				if (group) {
-					mesh.addTo(group);
-					if (settings.inherit_parent_color.value) mesh.color = group.color;
+				if (parent) {
+					mesh.addTo(parent);
+					if (settings.inherit_parent_color.value) mesh.color = parent.color;
 				}
 				let diameter_factor = result.align_edges ? 1 / Math.cos(Math.PI/result.sides) : 1;
 				let off_ang = result.align_edges ? 0.5 : 0;
@@ -1553,8 +1554,8 @@ BARS.defineActions(function() {
 					UVEditor.loadData()
 				}
 				if (Format.bone_rig) {
-					if (group) {
-						var pos1 = group.origin.slice()
+					if (parent && parent.origin) {
+						var pos1 = parent.origin.slice()
 						mesh.extend({
 							origin: pos1.slice()
 						})

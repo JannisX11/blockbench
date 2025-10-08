@@ -1407,6 +1407,7 @@
 		background-color: var(--color-ui);
 		display: flex;
 		flex-direction: column;
+		min-height: 120px;
 	}
 	#timeline_vue {
 		flex-grow: 1;
