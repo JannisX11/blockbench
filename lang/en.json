@@ -1956,6 +1956,8 @@
 	"action.save_textures.desc": "Save all unsaved textures",
 	"action.change_textures_folder": "Change Texture Location",
 	"action.change_textures_folder.desc": "Change the folder that all textures are saved in",
+	"action.apply_texture_to_elements": "Apply Texture to Elements",
+	"action.apply_texture_to_elements.desc": "Apply the selected texture to the selected elements",
 
 	"action.animated_textures": "Play Animated Textures",
 	"action.animated_textures.desc": "Play and pause the preview of animated textures",

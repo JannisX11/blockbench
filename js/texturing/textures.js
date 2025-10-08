@@ -1812,19 +1812,20 @@ export class Texture {
 				}
 			}),
 			{
-				icon: 'crop_original',
+				icon: 'credit_score',
 				name: 'menu.texture.face', 
 				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
 				click(texture) {texture.apply()}
 			},
 			{
-				icon: 'texture',
+				icon: 'inventory',
 				name: 'menu.texture.blank', 
 				condition() {return !Format.single_texture && Outliner.selected.length > 0 && !Format.per_group_texture},
+				keybind: BarItems.apply_texture_to_elements?.keybind,
 				click(texture) {texture.apply('blank')}
 			},
 			{
-				icon: 'fa-cube',
+				icon: 'list_alt_check',
 				name: 'menu.texture.elements',
 				condition() {return !Format.single_texture && Outliner.selected.length > 0},
 				click(texture) {texture.apply(true)}
@@ -2405,6 +2406,13 @@ BARS.defineActions(function() {
 					document.getElementById('texture_search_bar').firstChild.focus();
 				});
 			}
+		}
+	})
+	new Action('apply_texture_to_elements', {
+		icon: 'list_alt_check',
+		condition() {return !Format.single_texture && Outliner.selected.length > 0 && Texture.selected},
+		click() {
+			Texture.selected.apply(true)
 		}
 	})
 })
