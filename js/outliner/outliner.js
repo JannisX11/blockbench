@@ -1035,10 +1035,9 @@ export function moveOutlinerSelectionTo(item, target, event, order) {
 		Undo.finishEdit('Move elements in outliner')
 	}
 }
-export function canAddOutlinerSelectionTo(target) {
-	let elements_to_move = Outliner.selected.filter(element => element.parent == 'root' || element.parent.selected != true)
+export function canAddOutlinerNodesTo(selection, target) {
 	if (target == 'root') {
-		for (let node of elements_to_move) {
+		for (let node of selection) {
 			let parent_types = node.getTypeBehavior('parent_types');
 			if (parent_types && !parent_types.includes('root')) return false;
 		}
@@ -1048,13 +1047,17 @@ export function canAddOutlinerSelectionTo(target) {
 	if (target.selected) return false;
 	let child_types = target.getTypeBehavior('child_types');
 	if (child_types) {
-		if (elements_to_move.find(el => child_types.includes(el.type) == false)) return false;
+		if (selection.find(el => child_types.includes(el.type) == false)) return false;
 	}
-	for (let node of elements_to_move) {
+	for (let node of selection) {
 		let parent_types = node.getTypeBehavior('parent_types');
 		if (parent_types && !parent_types.includes(target.type)) return false;
 	}
 	return true;
+}
+export function canAddOutlinerSelectionTo(target) {
+	let nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
+	return canAddOutlinerNodesTo(nodes_to_move, target);
 }
 
 //Misc
@@ -2186,6 +2189,7 @@ Object.assign(window, {
 	compileGroups,
 	parseGroups,
 	moveOutlinerSelectionTo,
+	canAddOutlinerNodesTo,
 	canAddOutlinerSelectionTo,
 	renameOutliner,
 	stopRenameOutliner,

@@ -165,7 +165,9 @@ new Tool('weight_brush', {
 				target_average_x += mesh.vertices[vkey][0];
 				affected_vkeys.add(vkey);
 			}
-			symmetrizeArmature(armature, mesh, affected_vkeys);
+			if ((BarItems.mirror_modeling as Toggle).value) {
+				symmetrizeArmature(armature, mesh, affected_vkeys);
+			}
 			// @ts-ignore
 			Mesh.preview_controller.updateGeometry(mesh);
 		}
