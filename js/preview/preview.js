@@ -892,7 +892,7 @@ export class Preview {
 					if (multi_select) {
 						node_to_select.multiSelect();
 					} else {
-						node_to_select.select();
+						node_to_select.select(event);
 					}
 					if (settings.outliner_reveal_on_select.value) {
 						node_to_select.showInOutliner();
