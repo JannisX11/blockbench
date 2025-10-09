@@ -128,8 +128,11 @@ export async function loadImages(files, event) {
 		if (!Format.image_editor && Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
-			options.layer = 'data.layer';
+		if (Modes.paint && Texture.selected) {
+			options.layer = 'message.load_images.add_layer';
+		}
+		if (Modes.edit && (!Project.box_uv || Format.optional_box_uv)) {
+			options.extrude_with_cubes = 'dialog.extrude.title';
 		}
 	}
 	options.edit = 'message.load_images.edit_image';
@@ -145,9 +148,6 @@ export async function loadImages(files, event) {
 		} else {
 			options.texture = 'action.import_texture';
 		}
-	}
-	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
-		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
 
 	function doLoadImages(method) {
@@ -228,9 +228,30 @@ export async function loadImages(files, event) {
 			minecraft_skin: 'icon-player',
 			extrude_with_cubes: 'eject',
 		};
+		let categories = {
+			replace_texture: 'message.load_images.category.add_to_project',
+			texture: 'message.load_images.category.add_to_project',
+			layer: 'message.load_images.category.add_to_project',
+			reference_image: 'message.load_images.category.add_to_project',
+			edit: 'message.load_images.category.new_project',
+			minecraft_skin: 'message.load_images.category.new_project',
+			extrude_with_cubes: 'message.load_images.category.add_to_project',
+		}
 		let commands = {};
 		for (let id in options) {
-			commands[id] = {text: options[id], icon: icons[id]};
+			if (categories[id] == 'message.load_images.category.new_project') continue;
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
+		}
+		for (let id in options) {
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
 		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;

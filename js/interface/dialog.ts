@@ -856,6 +856,7 @@ type MessageBoxCommandOptions = string |  {
 	icon?: IconString
 	condition?: ConditionResolvable
 	description?: string
+	category?: string
 }
 type MessageBoxCheckbox = string | {
 	value?: boolean
@@ -940,10 +941,16 @@ export class MessageBox extends Dialog {
 
 		if (options.commands) {
 			let list = Interface.createElement('ul');
+			let category: string;
 			for (let id in options.commands) {
 				let command = options.commands[id];
 				if (!command || (typeof command == 'object' && !Condition(command.condition))) continue;
 				let text = tl(typeof command == 'string' ? command : command.text);
+				if (typeof command == 'object' && command.category && command.category != category) {
+					category = command.category;
+					let label = Interface.createElement('li', {class: 'dialog_message_box_command_category'}, tl(category));
+					list.append(label);
+				}
 				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
 				if (typeof command == 'object') {
 					if (command.icon) {

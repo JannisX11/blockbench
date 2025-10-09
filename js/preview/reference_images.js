@@ -134,6 +134,9 @@ export class ReferenceImage {
 			this.enableBlueprintMode();
 			this.changeLayer('background');
 		}
+		if (Format.image_editor) {
+			this.changeLayer('viewport');
+		}
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -144,6 +147,9 @@ export class ReferenceImage {
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
 			this.changeLayer('background');
+		}
+		if (Format.image_editor) {
+			this.changeLayer('viewport');
 		}
 		this.scope = 'global';
 		this.update();
