@@ -148,8 +148,8 @@ export const MirrorModeling = {
 			node.rotation[2] *= -1;
 		}
 	},
-	getEditSide() {
-		return Math.sign(Transformer.position.x || MirrorModeling.initial_transformer_position) || 1;
+	getEditSide(fallback = 1) {
+		return Math.sign(Transformer.position.x || MirrorModeling.initial_transformer_position) || fallback;
 	},
 	flipCoord(input: number): number {
 		if (Format.centered_grid) {
@@ -231,6 +231,7 @@ Blockbench.on('init_edit', (args) => {
 				let data = MirrorModeling.cached_elements[element.uuid] = {
 					is_centered,
 					is_copy: false,
+					edit_side: MirrorModeling.getEditSide(0),
 					counterpart: false as false | OutlinerElement,
 					pre_part_connections: undefined
 				};
@@ -430,11 +431,16 @@ MirrorModeling.registerElementType(Mesh, {
 		let data = {
 			faces: {},
 			vertices: {},
+			vertex_sides: {},
 		}
 		// Detect vertex counterparts
 		for (let vkey in mesh.vertices) {
+			let position = mesh.vertices[vkey];
+			if (position[0]) {
+				data.vertex_sides[vkey] = Math.sign(Math.round(position[0] * 200));
+			}
 			if (data.vertices[vkey]) continue;
-			let vector = Reusable.vec1.fromArray(mesh.vertices[vkey]);
+			let vector = Reusable.vec1.fromArray(position);
 			vector.x *= -1;
 			for (let vkey2 in mesh.vertices) {
 				//if (vkey == vkey2) continue;
@@ -467,18 +473,22 @@ MirrorModeling.registerElementType(Mesh, {
 	},
 	createLocalSymmetry(mesh: Mesh, cached_data) {
 		// Create or update clone
-		let edit_side = MirrorModeling.getEditSide();
+		let edit_side = cached_data?.edit_side || MirrorModeling.getEditSide();
 		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let pre_part_connections = cached_data?.pre_part_connections;
+
 		// Delete all vertices on the non-edit side
 		let deleted_vertices = {};
 		let deleted_vertices_by_position = {};
-		function positionKey(position) {
+		function positionKey(position: ArrayVector3): string {
 			return position.map(p => Math.round(p*25)/25).join(',');
 		}
 		for (let vkey in mesh.vertices) {
-			if (mesh.vertices[vkey][0] && Math.round(mesh.vertices[vkey][0] * edit_side * 50) < 0) {
+			let to_delete = pre_part_connections?.vertex_sides[vkey] != undefined
+				? pre_part_connections.vertex_sides[vkey] == -edit_side
+				: mesh.vertices[vkey][0] && Math.round(mesh.vertices[vkey][0] * edit_side * 50) < 0;
+			if (to_delete) {
 				deleted_vertices[vkey] = mesh.vertices[vkey];
 				delete mesh.vertices[vkey];
 				deleted_vertices_by_position[positionKey(deleted_vertices[vkey])] = vkey;
@@ -504,6 +514,7 @@ MirrorModeling.registerElementType(Mesh, {
 				}
 				added_vertices.push(vkey_new);
 				vertex_counterpart[vkey] = vkey_new;
+				vertex_counterpart[vkey_new] = vkey;
 			}
 		}
 
