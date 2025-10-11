@@ -14,6 +14,14 @@ export function createScopedFS(scope?: string) {
 	}
 	return {
 		scope: scope_path,
+		access(path: string, mode, callback) {
+			checkPath(path);
+			return fs.access(path, mode, callback);
+		},
+		accessSync(path: string, mode) {
+			checkPath(path);
+			return fs.accessSync(path, mode);
+		},
 		copyFile(src: string, dest: string, mode, callback) {
 			checkPath(src);
 			checkPath(dest);
@@ -102,16 +110,20 @@ export function createScopedFS(scope?: string) {
 			checkPath(path);
 			return fs.unlinkSync(path);
 		},
-		stat(path: string, callback) {
+		stat(path: string, options, callback) {
 			checkPath(path);
-			return fs.stat(path, callback);
+			return fs.stat(path, options, callback);
 		},
-		statSync(path: string) {
+		statSync(path: string, options) {
 			checkPath(path);
-			return fs.statSync(path);
+			return fs.statSync(path, options);
 		},
 
 		promises: {
+			access(path: string, mode) {
+				checkPath(path);
+				return fs.access(path, mode);
+			},
 			copyFile(src: string, dest: string, mode) {
 				checkPath(src);
 				checkPath(dest);
@@ -154,9 +166,9 @@ export function createScopedFS(scope?: string) {
 				checkPath(path);
 				return fs.promises.unlink(path);
 			},
-			stat(path: string) {
+			stat(path: string, options) {
 				checkPath(path);
-				return fs.promises.stat(path);
+				return fs.promises.stat(path, options);
 			}
 		}
 	}
