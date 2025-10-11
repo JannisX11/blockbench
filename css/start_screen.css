@@ -32,6 +32,7 @@
 	#start_screen .recent_project {
 		margin: 2px 0;
 		display: flex;
+		align-items: center;
 		cursor: pointer;
 	}
 	#start_screen .recent_project:hover {
@@ -74,8 +75,8 @@
 	#start_screen .recent_project.thumbnail .recent_favorite_button {
 		color: var(--color-text);
 		position: absolute;
-		top: 0;
-		right: 0;
+		top: 4px;
+		right: 4px;
 		padding: 2px 4px;
 	}
 	#start_screen .recent_project .recent_favorite_button:hover {
@@ -143,7 +144,8 @@
 		pointer-events: none;
 		padding: 2px;
 		color: var(--color-text);
-		top: -1px;
+		top: 4px;
+		left: 5px;
 	}
 	#start_screen .recent_project.thumbnail:hover .recent_project_name {
 		color: var(--color-light);
