@@ -687,7 +687,11 @@ export class Plugin {
 	toggleDisabled() {
 		if (!this.disabled) {
 			this.disabled = true;
-			this.unload()
+			try {
+				this.unload();
+			} catch (err) {
+				console.error(err);
+			}
 		} else {
 			this.runOnLoad();
 			this.disabled = false;

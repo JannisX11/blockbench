@@ -48,7 +48,7 @@ Interface.definePanels(function() {
 		let registerInput = (type_id: string, prop_id: string, property: Property<any>) => {
 			if (!property?.inputs?.element_panel) return;
 			let {input, onChange} = property.inputs.element_panel;
-			let input_id = type_id + '_' + prop_id;
+			let input_id = type_id + '__' + prop_id;
 			input.condition = {
 				selected: {[type_id]: true},
 				method: () => Condition(property.condition),
@@ -75,9 +75,9 @@ Interface.definePanels(function() {
 				Undo.initEdit({groups});
 				for (let key of changed_keys) {
 					for (let group of groups) {
-						let property_id = key.replace(group.type+'_', '');
+						let property_id = key.replace(group.type+'__', '');
 						// @ts-ignore
-						if (group.constructor.properties[property_id]) {
+						if (group.constructor.properties?.[property_id]) {
 							group[property_id] = result[key];
 						}
 					}
@@ -89,9 +89,9 @@ Interface.definePanels(function() {
 				Undo.initEdit({elements});
 				for (let key of changed_keys) {
 					for (let element of elements) {
-						let property_id = key.replace(element.type+'_', '');
+						let property_id = key.replace(element.type+'__', '');
 						// @ts-ignore
-						if (element.constructor.properties[property_id]) {
+						if (element.constructor.properties?.[property_id]) {
 							element[property_id] = result[key];
 						}
 					}
@@ -101,6 +101,7 @@ Interface.definePanels(function() {
 			}
 		})
 		element_properties_panel.form.buildForm();
+		updateSelection();
 	}
 	updateElementForm();
 
@@ -124,7 +125,7 @@ Interface.definePanels(function() {
 				for (let prop_id in type.properties) {
 					let property = type.properties[prop_id];
 					if (property?.inputs?.element_panel) {
-						let input_id = type_id + '_' + prop_id;
+						let input_id = type_id + '__' + prop_id;
 						if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
 							values[input_id] = {...first_element[prop_id]};
 						}

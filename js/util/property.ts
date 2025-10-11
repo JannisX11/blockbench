@@ -23,7 +23,8 @@ interface PropertyOptions {
 	inputs?: {
 		[key: 'element_panel' | 'dialog' | string]: {
 			input: FormElementOptions,
-			onChange?: () => void
+			shared?: boolean
+			onChange?: (value: any, nodes: OutlinerNode[]) => void
 		}
 	}
 }
