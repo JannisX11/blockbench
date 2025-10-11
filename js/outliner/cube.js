@@ -1070,6 +1070,18 @@ new Property(Cube, 'number', 'light_emission', {
 		}
 	}
 });
+new Property(Cube, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, elements) {
+				elements.forEach(el => el.setColor(result));
+			}
+		}
+	}
+});
 
 OutlinerElement.registerType(Cube, 'cube');
 

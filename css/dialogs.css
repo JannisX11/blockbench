@@ -416,6 +416,24 @@
 		flex-grow: 1;
 		padding: 3px 5px;
 	}
+	.form_marker_color {
+		display: flex;
+		flex-wrap: wrap;
+	}
+	.form_marker_color > li {
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background-color: var(--color);
+		border: 1px solid var(--color-border);
+		margin: 1px 2px;
+		position: relative;
+		cursor: pointer;
+		--border-padding: -3px;
+	}
+	.form_marker_color > li.selected {
+		outline: 2px solid var(--color-accent);
+	}
 	.form_bar > .nslide_tool {
 		flex-grow: 1;
 	}

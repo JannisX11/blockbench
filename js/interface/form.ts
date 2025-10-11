@@ -32,6 +32,7 @@ export enum FormInputType {
 	Info = 'info',
 	NumSlider = 'num_slider',
 	Buttons = 'buttons',
+	MarkerColor = 'marker_color',
 }
 
 export interface FormElementOptions {
@@ -727,6 +728,44 @@ FormElement.types.radio = class FormElementRadio extends FormElement {
 	}
 	getDefault() {
 		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.marker_color = class FormElementMarkerColor extends FormElement {
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let options = [];
+		let val = this.options.value || this.options.default;
+		let i = 0;
+		for (let color of markerColors) {
+			let is_selected = i == (val || 0);
+			let node = Interface.createElement('li', {
+				class: is_selected ? 'selected' : '',
+				style: `--color: ${color.pastel}`,
+				key: i,
+				title: tl(`cube.color.${color.id}`, [], color.name)
+			});
+			node.onclick = () => {
+				options.forEach(li => {
+					li.classList.toggle('selected', li == node);
+				})
+				this.change();
+			}
+			options.push(node);
+			i++;
+		}
+		let wrapper = Interface.createElement('ul', {class: 'form_marker_color'}, options);
+		bar.append(wrapper);
+	}
+	getValue(): number {
+		return parseInt($(this.bar).find('li.selected')[0]?.getAttribute('key')) || 0;
+	}
+	setValue(value: number) {
+		$(this.bar).find('li').each((i, el) => {
+			el.classList.toggle('selected', i == value);
+		})
+	}
+	getDefault(): number {
+		return 0;
 	}
 };
 FormElement.types.buttons = class FormElementButtons extends FormElement {

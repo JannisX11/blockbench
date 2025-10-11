@@ -108,6 +108,9 @@ Interface.definePanels(function() {
 	Blockbench.on('register_element_type', () => {
 		updateElementForm();
 	});
+	Blockbench.on('update_marker_color_materials', () => {
+		updateElementForm();
+	});
 	let timeout: NodeJS.Timeout | undefined;
 	Blockbench.on('loaded_plugin', () => {
 		if (timeout) clearTimeout(timeout);

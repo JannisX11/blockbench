@@ -330,7 +330,18 @@ new Property(ArmatureBone, 'boolean', 'connected', {
 		}
 	}
 });
-new Property(ArmatureBone, 'number', 'color');
+new Property(ArmatureBone, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, elements) {
+				elements.forEach(el => 'setColor' in el && typeof el.setColor == 'function' && el.setColor(result));
+			}
+		}
+	}
+});
 new Property(ArmatureBone, 'object', 'vertex_weights');
 
 type FakeObjectType = {isElement: boolean, no_export: boolean, fix_position: THREE.Vector3, fix_rotation: THREE.Euler, inverse_bind_matrix: THREE.Matrix4};

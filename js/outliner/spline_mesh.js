@@ -1587,7 +1587,18 @@ SplineMesh.prototype.buttons = [
 ];
 
 new Property(SplineMesh, 'string', 'name', { default: 'spline' });
-new Property(SplineMesh, 'number', 'color');
+new Property(SplineMesh, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, elements) {
+				elements.forEach(el => el.setColor(result));
+			}
+		}
+	}
+});
 new Property(SplineMesh, 'vector', 'origin');
 new Property(SplineMesh, 'vector', 'rotation');
 new Property(SplineMesh, 'number', 'radial_resolution', {

@@ -1033,7 +1033,6 @@ export class Mesh extends OutlinerElement {
 	];
 
 new Property(Mesh, 'string', 'name', {default: 'mesh'})
-new Property(Mesh, 'number', 'color');
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
 new Property(Mesh, 'enum', 'shading', {
@@ -1068,6 +1067,18 @@ new Property(Mesh, 'enum', 'render_order', {
 				Mesh.selected.forEach(element => {
 					element.preview_controller.updateRenderOrder(element);
 				});
+			}
+		}
+	}
+});
+new Property(Mesh, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, elements) {
+				elements.forEach(el => el.setColor(result));
 			}
 		}
 	}

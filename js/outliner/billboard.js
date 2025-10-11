@@ -345,7 +345,18 @@ new Property(Billboard, 'vector2', 'offset', {
 		}
 	}
 });
-new Property(Billboard, 'number', 'color')
+new Property(Billboard, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, elements) {
+				elements.forEach(el => el.setColor(result));
+			}
+		}
+	}
+});
 new Property(Billboard, 'boolean', 'visibility', {default: true});
 new Property(Billboard, 'boolean', 'locked');
 new Property(Billboard, 'enum', 'facing_mode', {

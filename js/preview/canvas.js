@@ -175,6 +175,7 @@ export const Canvas = {
 				side: THREE.DoubleSide
 			});
 		})
+		Blockbench.dispatchEvent('update_marker_color_materials', {});
 	},
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	global_light_color: new THREE.Color(0xffffff),

@@ -598,7 +598,18 @@ new Property(Group, 'number', 'cem_scale', {
 new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
-new Property(Group, 'number', 'color');
+new Property(Group, 'number', 'color', {
+	default: () => Math.randomInteger(0, markerColors.length-1),
+	inputs: {
+		element_panel: {
+			input: {label: 'menu.cube.color', type: 'marker_color'},
+			shared: true,
+			onChange(result, node) {
+				node.forEach(el => el.setColor(result));
+			}
+		}
+	}
+});
 
 new NodePreviewController(Group, {
 	setup(group) {

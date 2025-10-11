@@ -123,6 +123,7 @@ type EventName =
 	| 'select_texture'
 	| 'compile_texture_mcmeta'
 	| 'register_element_type'
+	| 'update_marker_color_materials'
 	| 'edit_collection_properties'
 
 type IconString = string
