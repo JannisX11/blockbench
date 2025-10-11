@@ -843,12 +843,12 @@ export function mergeVerticesOverlaps(meshes, overlaps) {
 	return [merge_counter, cluster_counter];
 }
 
-export async function autoFixMeshEdit() {
+export async function autoFixMeshEdit(affected_vertices) {
 	let meshes = Mesh.selected;
 	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
 
 	// Merge Vertices
-	let overlaps = gatherGeoOverlaps(meshes, (mesh) => mesh.getSelectedVertices());
+	let overlaps = gatherGeoOverlaps(meshes, (mesh) => affected_vertices instanceof Array ? affected_vertices : mesh.getSelectedVertices());
 
 	if (Object.keys(overlaps).length) {
 		await new Promise(resolve => {Blockbench.showMessageBox({

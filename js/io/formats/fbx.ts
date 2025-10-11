@@ -511,7 +511,6 @@ var codec = new Codec('fbx', {
 			const bone_list = [];
 			const bind_matrix_list = [];
 			function processBone(bone) {
-				console.log(bone)
 				if (bone instanceof ArmatureBone == false) return;
 				bone_list.push(bone);
 				let unique_name = getUniqueName('bone', bone.uuid, bone.name);
@@ -1666,7 +1665,6 @@ export function compileBinaryFBXModel(top_level_object) {
 		// Data Array
 		if (is_data_array) {
 			let type = object._type || 'i';
-			if (!object._type) console.log('default', key, 'to int')
 			let array = object.a;
 			if (array instanceof Array == false) array = [array];
 			
