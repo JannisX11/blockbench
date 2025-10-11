@@ -101,7 +101,7 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 	let has_permission = false;
 	if (permission === true) {
 		has_permission = true;
-	} else if (module_name == 'fs' && permission?.directories) {
+	} else if (no_namespace_name == 'fs' && permission?.directories) {
 		for (let directory of permission?.directories) {
 			if (options2.scope.startsWith(directory)) {
 				has_permission = true;
@@ -115,9 +115,9 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 			return;
 		}
 
-		let api_description = API_DESCRIPTIONS[module_name] ?? `the module "${module_name}"`;
+		let api_description = API_DESCRIPTIONS[no_namespace_name] ?? `the module "${no_namespace_name}"`;
 		let option_text = '';
-		if (module_name == 'fs' && options2.scope) {
+		if (no_namespace_name == 'fs' && options2.scope) {
 			api_description = 'a folder';
 			option_text = '\nLocation: "' + options2.scope.replace(/\n/g, '') + '"';
 		}
@@ -150,7 +150,7 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 				}
 			}
 			let allowed = PluginSettings[plugin_id].allowed;
-			if (module_name == 'fs' && options2.scope) {
+			if (no_namespace_name == 'fs' && options2.scope) {
 				if (typeof allowed[module_name] != 'object') allowed[module_name] = {directories: []}
 				allowed[module_name].directories.push(options2.scope);
 			} else {
