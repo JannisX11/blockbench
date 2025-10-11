@@ -1337,8 +1337,8 @@ export class Texture {
 
 					if (scope.layers_enabled && scope.layers.length) {
 						for (let layer of scope.layers) {
-							resizeCanvas(layer.ctx);
 							if (formResult.mode == 'scale') {
+								resizeCanvas(layer.ctx);
 								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
 								layer.offset[1] = Math.round(layer.offset[1] * (formResult.size[1] / scope.height));
 							}
