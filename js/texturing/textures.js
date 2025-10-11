@@ -2321,7 +2321,6 @@ BARS.defineActions(function() {
 				multiple: true,
 				startpath: start_path
 			}, function(files) {
-				console.log(files)
 				if (files[0].name.endsWith('texture_set.json')) {
 					importTextureSet(files[0]);
 					return;
