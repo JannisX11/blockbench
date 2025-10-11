@@ -278,6 +278,15 @@ new NodePreviewController(Armature, {
 	}
 })
 
+// Don't allow multiple meshes per armature for now
+Blockbench.on('update_selection', arg => {
+	for (let armature of Armature.all) {
+		while (armature.children.filter(c => c instanceof Mesh).length > 1) {
+			let mesh = armature.children.findLast(c => c instanceof Mesh);
+			mesh.addTo(armature.parent);
+		}
+	}
+})
 
 BARS.defineActions(function() {
 	new Action('add_armature', {

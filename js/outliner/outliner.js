@@ -1049,6 +1049,9 @@ export function canAddOutlinerNodesTo(selection, target) {
 	if (child_types) {
 		if (selection.find(el => child_types.includes(el.type) == false)) return false;
 	}
+	// Don't allow multiple meshes per armature for now
+	if (target instanceof Armature && selection.find(el => el instanceof Mesh) && target.children.find(el => el instanceof Mesh)) return false;
+
 	for (let node of selection) {
 		let parent_types = node.getTypeBehavior('parent_types');
 		if (parent_types && !parent_types.includes(target.type)) return false;
