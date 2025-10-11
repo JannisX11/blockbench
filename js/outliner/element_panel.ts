@@ -44,7 +44,7 @@ Interface.definePanels(function() {
 		for (let key in form_config) {
 			delete form_config[key];
 		}
-		let onchanges = [];
+		let onchanges = {};
 		let registerInput = (type_id: string, prop_id: string, property: Property<any>) => {
 			if (!property?.inputs?.element_panel) return;
 			let {input, onChange} = property.inputs.element_panel;
@@ -53,7 +53,7 @@ Interface.definePanels(function() {
 				selected: {[type_id]: true},
 				method: () => Condition(property.condition),
 			};
-			if (onChange) onchanges.push(onChange);
+			if (onChange) onchanges[input_id] = onChange;
 			form_config[input_id] = input;
 		}
 		for (let type_id in OutlinerElement.types) {
@@ -73,31 +73,31 @@ Interface.definePanels(function() {
 			if (changed_keys[0]?.startsWith('group_')) {
 				let groups = Group.multi_selected;
 				Undo.initEdit({groups});
-				for (let group of groups) {
-					for (let key in result) {
+				for (let key of changed_keys) {
+					for (let group of groups) {
 						let property_id = key.replace(group.type+'_', '');
 						// @ts-ignore
 						if (group.constructor.properties[property_id]) {
 							group[property_id] = result[key];
 						}
 					}
+					if (onchanges[key]) onchanges[key](result[key], groups)
 				}
 				Undo.finishEdit('Change group property');
-				onchanges.forEach(onchange => onchange(result));
 			} else {
 				let elements = Outliner.selected.slice();
 				Undo.initEdit({elements});
-				for (let element of elements) {
-					for (let key in result) {
+				for (let key of changed_keys) {
+					for (let element of elements) {
 						let property_id = key.replace(element.type+'_', '');
 						// @ts-ignore
 						if (element.constructor.properties[property_id]) {
 							element[property_id] = result[key];
 						}
 					}
+					if (onchanges[key]) onchanges[key](result[key], elements)
 				}
 				Undo.finishEdit('Change element property');
-				onchanges.forEach(onchange => onchange(result));
 			}
 		})
 		element_properties_panel.form.buildForm();

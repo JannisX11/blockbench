@@ -80,7 +80,7 @@ export namespace Filesystem {
 	 */
 	export function importFile(options: ImportOptions, callback?: (files: FileResult[]) => void) {
 		if (isApp) {
-			let properties = ['openFile'];
+			let properties = ['openFile'] as any[];
 			if (options.multiple) {
 				properties.push('multiSelections')
 			}
