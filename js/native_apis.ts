@@ -240,6 +240,7 @@ export const SystemInfo = {
 	appdata_directory: electron.process.env.APPDATA,
 	user_data_directory: app.getPath('userData'),
 	desktop_directory: app.getPath('desktop'),
+	temp_directory: os.tmpdir(),
 	arch: process.arch,
 	os_version: os.version(),
 }
