@@ -1456,7 +1456,7 @@ export class Preview {
 			if (extend_selection && this.selection.old_selected.includes(element) && select_in_object_mode) {
 				isSelected = true
 
-			} else if (element.preview_controller?.viewportRectangleOverlap && element.mesh) {
+			} else if (element.visibility != false && element.preview_controller?.viewportRectangleOverlap) {
 				isSelected = element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
 			}
 			if (isSelected) {
