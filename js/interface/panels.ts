@@ -540,8 +540,10 @@ export class Panel extends EventSystem {
 			})
 		}
 		this.container.addEventListener('mousedown', event => {
-			setActivePanel(this.id);
 			this.moveToFront();
+		})
+		this.node.addEventListener('mousedown', event => {
+			setActivePanel(this.id);
 		})
 		this.handle.addEventListener('mousedown', event => {
 			setActivePanel(this.id);
@@ -1038,6 +1040,7 @@ export class Panel extends EventSystem {
 		this.container.remove();
 		updateInterfacePanels();
 	}
+	static selected: Panel | undefined
 	static floating_panel_z_order: string[] = []
 }
 export interface Panel {
@@ -1277,8 +1280,9 @@ export function updatePanelSelector() {
 	}
 }
 
-export function setActivePanel(panel) {
-	Prop.active_panel = panel
+export function setActivePanel(panel_id: string) {
+	Prop.active_panel = panel_id;
+	Panel.selected = Panels[panel_id];
 }
 
 export function setupMobilePanelSelector() {
