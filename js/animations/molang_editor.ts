@@ -37,12 +37,13 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 						},
 						onConfirm(form) {
 							if (!form.find) return;
+							let replace_text = form.replace.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 							function replace(text: string) {
 								if (form.regex) {
 									let regex = new RegExp(form.find, 'g');
-									return text.replace(regex, form.replace);
+									return text.replace(regex, replace_text);
 								} else {
-									return text.split(form.find).join(form.replace);
+									return text.split(form.find).join(replace_text);
 								}
 							}
 							scope.text = replace(scope.text);
