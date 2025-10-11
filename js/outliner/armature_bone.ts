@@ -538,7 +538,7 @@ BARS.defineActions(function() {
 		icon: 'humerus',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: () => Modes.edit && (ArmatureBone.selected[0] || Armature.selected[0]),
+		condition: {modes: ['edit'], selected: {mesh: false, spline: false}, method: () => ((ArmatureBone.hasSelected() || Armature.hasSelected()))},
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;

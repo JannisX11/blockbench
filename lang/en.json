@@ -1773,7 +1773,7 @@
 	"action.switch_face_crease.desc": "Switch in which direction the quad folds in the middle",
 	"action.extrude_mesh_selection": "Extrude Selection",
 	"action.extrude_mesh_selection.desc": "Extrude the selected parts of the mesh",
-	"action.extrude_spline_selection": "Extrude Selection",
+	"action.extrude_spline_selection": "Extrude Spline",
 	"action.extrude_spline_selection.desc": "Extrude the selected handle on all splines",
 	"action.solidify_mesh_selection": "Solidify Faces",
 	"action.solidify_mesh_selection.desc": "Solidify the selected faces of the mesh",

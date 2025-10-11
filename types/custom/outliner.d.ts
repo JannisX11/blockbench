@@ -102,6 +102,11 @@ declare class OutlinerElement extends OutlinerNode {
 	static registerType(constructor: any, id: string): void
 	select(event?: any, isOutlinerClick?: boolean): this
 	unselect(...args: any[]): this
+
+	/**Check if any elements of the type are in the project */
+	static hasAny: () => boolean
+	/**Check if any elements of the type are currently selected */
+	static hasSelected: () => boolean
 }
 
 interface LocatorOptions {
@@ -118,10 +123,6 @@ declare class Locator extends OutlinerElement {
 
 	static all: Locator[]
 	static selected: Locator[]
-	/**Check if any elements of the type are in the project */
-	static hasAny: () => boolean
-	/**Check if any elements of the type are currently selected */
-	static hasSelected: () => boolean
 }
 
 interface NullObjectOptions {
@@ -142,10 +143,6 @@ declare class NullObject extends OutlinerElement {
 
 	static all: NullObject[]
 	static selected: NullObject[]
-	/**Check if any elements of the type are in the project */
-	static hasAny: () => boolean
-	/**Check if any elements of the type are currently selected */
-	static hasSelected: () => boolean
 }
 
 interface TextureMeshOptions {
