@@ -581,6 +581,8 @@ MirrorModeling.registerElementType(Mesh, {
 						let original_vkey = pre_part_connections.vertices[vkey];
 						if (original_face.uv[original_vkey]) {
 							new_face.uv[new_vkey] = original_face.uv[original_vkey].slice();
+						} else {
+							new_face.uv[new_vkey] = face.uv[vkey].slice() as ArrayVector2;
 						}
 					}
 				})
