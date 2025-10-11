@@ -37,7 +37,6 @@ export {
 }
 Object.assign(window, {
     GIFEnc,
-    GIF,
     THREE,
     jQuery: $,
     $,

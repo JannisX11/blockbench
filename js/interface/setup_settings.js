@@ -303,6 +303,13 @@ function setupSettings() {
 	Blockbench.onUpdateTo('5.0.0', () => {
 		settings.antialiasing_bleed_fix.set(true);
 	})
+	// Fail-safe
+	setTimeout(() => {
+		if (Preview.selected && Preview.selected.renderer.capabilities.isWebGL2 == false) {
+			settings.antialiasing_bleed_fix.set(false);
+			console.warn('Downgrading settings to support WebGL 1');
+		}
+	}, 4*1000);
 }
 function setupSettingsProfiles() {
 	if (localStorage.getItem('settings_profiles') != null) {
