@@ -162,7 +162,7 @@ export const MirrorModeling = {
 		let element_type_options = MirrorModeling.element_types[element.type];
 		let center = Format.centered_grid ? 0 : 8;
 		if (element_type_options.getMirroredElement) {
-			return element_type_options.getMirroredElement(element, {center})
+			return element_type_options.getMirroredElement(element, {center});
 		}
 		return false;
 	},
@@ -181,6 +181,35 @@ export const MirrorModeling = {
 			if (parent.origin && !symmetry_axes.allAre(axis => parent.origin[axis] == center)) return false;
 			return true;
 		})
+	},
+	isParentTreeOpposite(element1: OutlinerNode, element2: OutlinerNode): boolean {
+		const getAllAncestors = (el: OutlinerNode) => {
+			let list = [];
+			while (el.parent instanceof OutlinerNode && list.length < 50) {
+				el = el.parent;
+				list.push(el);
+			}
+			return list;
+		}
+		let e1_parents = getAllAncestors(element1);
+		let e2_parents = getAllAncestors(element2);
+		if (e1_parents.length != e2_parents.length) return false;
+		for (let i = 0; i < e1_parents.length; i++) {
+			let parent1 = e1_parents[i];
+			let parent2 = e2_parents[i];
+			if (parent1.type != parent2.type) return false;
+			if (parent1.origin) {
+				if (!Math.epsilon(parent1.origin[0], -parent2.origin[0])) return false;
+				if (!Math.epsilon(parent1.origin[1], parent2.origin[1])) return false;
+				if (!Math.epsilon(parent1.origin[2], parent2.origin[2])) return false;
+			}
+			if (parent1.rotation) {
+				if (!Math.epsilon(parent1.rotation[0], parent2.rotation[0])) return false;
+				if (!Math.epsilon(parent1.rotation[1], -parent2.rotation[1])) return false;
+				if (!Math.epsilon(parent1.rotation[2], -parent2.rotation[2])) return false;
+			}
+		}
+		return true;
 	},
 	insertElementIntoUndo(element: OutlinerElement, undo_aspects: UndoAspects, element_before_snapshot: any) {
 		// pre
@@ -625,7 +654,8 @@ MirrorModeling.registerElementType(ArmatureBone, {
 			for (let element2 of ArmatureBone.all) {
 				if (element == element2) continue;
 				if (
-					isOppositeVector(element.position, element2.position, center)
+					isOppositeVector(element.position, element2.position, center) &&
+					MirrorModeling.isParentTreeOpposite(element, element2)
 				) {
 					return element2;
 				}
