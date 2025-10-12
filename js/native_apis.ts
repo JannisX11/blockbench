@@ -164,7 +164,7 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 			}, 20);
 		} else if (result == Result.Deny && options.optional === false && "toggleDisabled" in plugin) {
 			setTimeout(() => {
-				plugin.toggleDisabled();
+				if (!plugin.disabled) plugin.toggleDisabled();
 			}, 20);
 		}
 		if (!(result == Result.Once || result == Result.Always)) {
