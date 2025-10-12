@@ -679,7 +679,7 @@ export function cameraRotationToTarget(position, rotation) {
 
 export function getDateDisplay(input_date) {
 	let date = new Date(input_date);
-	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+	var diff = Math.floor(Blockbench.openTime / (60_000*60*24)) - Math.floor(date / (60_000*60*24));
 	let label;
 	if (diff <= 0) {
 		label = tl('dates.today');
