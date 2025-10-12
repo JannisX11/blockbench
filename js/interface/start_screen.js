@@ -1,4 +1,10 @@
-const StartScreen = {
+import { Filesystem } from "../file_system";
+import { documentReady } from "../misc";
+import { app, fs } from "../native_apis";
+import { pureMarked } from "../util/util";
+import VersionUtil from '../util/version_util';
+
+export const StartScreen = {
 	loaders: {},
 	open() {
 		Interface.tab_bar.openNewTab();
@@ -12,14 +18,14 @@ const StartScreen = {
  * @param {object} data 
  * @param {object} data.graphic
  * @param {'icon'|string} data.graphic.type
- * @param {string} data.graphic.icon
- * @param {string} data.graphic.source
- * @param {number} data.graphic.width
- * @param {number} data.graphic.height
- * @param {number} data.graphic.aspect_ratio Section aspect ratio
- * @param {string} data.graphic.description Markdown string
- * @param {string} data.graphic.text_color
- * @param {Array.<{text: String, type: String, list: Array.String, click: Function}>} data.text
+ * @param {string} [data.graphic.icon]
+ * @param {string} [data.graphic.source]
+ * @param {number} [data.graphic.width]
+ * @param {number} [data.graphic.height]
+ * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
+ * @param {string} [data.graphic.description] Markdown string
+ * @param {string} [data.graphic.text_color]
+ * @param {Array.<{text: String, type: String, [list]: Array.String, [click]: Function}>} data.text
  * @param {'vertical'|'horizontal'} data.layout
  * @param {Array} data.features
  * @param {boolean} data.closable
@@ -31,7 +37,7 @@ const StartScreen = {
  * @param {string} data.insert_before
  * @returns 
  */
-function addStartScreenSection(id, data) {
+export function addStartScreenSection(id, data) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
@@ -109,8 +115,10 @@ function addStartScreenSection(id, data) {
 			let li = document.createElement('li');
 			let img = new Image(); img.src = feature.image;
 			let title = document.createElement('h3'); title.textContent = feature.title;
-			let text = document.createElement('p'); text.textContent = feature.text;
-			li.append(img, title, text);
+			let text = document.createElement('p'); text.innerHTML = pureMarked(feature.text);
+			let text_wrapper = document.createElement('div');
+			text_wrapper.append(title, text);
+			li.append(img, text_wrapper);
 			features_section.append(li);
 		})
 		obj.append(features_section);
@@ -182,19 +190,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [Handon_撼动](https://x.com/_2Lein) & [PICASSO](https://twitter.com/Picasso114514)",
+					description: "Splash Art 1st Place by [zl game](https://contests.blockbench.net/artists/810872057172459570) & [fable](https://contests.blockbench.net/artists/885471035258994709)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [guzuper](https://x.com/guzuper200?s=21) & [rainyday](https://x.com/YuTian131)",
+					description: "Splash Art 2nd Place by [Coco](https://contests.blockbench.net/artists/1008248909631598662) & [hqsss](https://contests.blockbench.net/artists/1418120121486016559)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [PeacedoveWum丨無名.](https://twitter.com/PeacedoveWum) & mccaca",
+					description: "Splash Art 3rd Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277) & [Grettzzz](https://contests.blockbench.net/artists/1207006698842095666)",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 3rd Place by [Orange](https://twitter.com/OrangewithMC)",
+					description: "Splash Art 3rd Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -257,7 +265,7 @@ onVueSetup(async function() {
 						name: 'menu.texture.folder',
 						icon: 'folder',
 						click() {
-							showItemInFolder(recent_project.path)
+							Filesystem.showFileInFolder(recent_project.path)
 						}
 					},
 					{
@@ -393,7 +401,7 @@ onVueSetup(async function() {
 									<ul>
 										<li
 											v-for="format_entry in category.entries" :key="format_entry.id"
-											class="format_entry" :class="{[format_entry.constructor.name == 'ModelFormat' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
+											class="format_entry" :class="{[format_entry.type == 'format' ? 'format' : 'loader']: true, selected: format_entry.id == selected_format_id}"
 											:title="format_entry.description"
 											:format="format_entry.id"
 											v-if="(!redact_names || !format_entry.confidential)"
@@ -441,15 +449,15 @@ onVueSetup(async function() {
 									<span v-else>{{ viewed_format.target }}</span>
 								</p>
 
-								<content v-if="viewed_format.format_page && viewed_format.format_page.content">
+								<content v-if="viewed_format.format_page && viewed_format.format_page.content" class="markdown">
 									<template v-for="item in viewed_format.format_page.content">
 
 										<img v-if="item.type == 'image'" :src="item.source" :width="item.width" :height="item.height">
-										<h2 v-else-if="item.type == 'h2'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
-										<h3 v-else-if="item.type == 'h3'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
-										<h4 v-else-if="item.type == 'h4'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
-										<label v-else-if="item.type == 'label'" class="markdown" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
-										<p v-else class="markdown" v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
+										<h2 v-else-if="item.type == 'h2'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h2>
+										<h3 v-else-if="item.type == 'h3'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h3>
+										<h4 v-else-if="item.type == 'h4'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></h4>
+										<label v-else-if="item.type == 'label'" v-html="pureMarked(item.text.replace(/\\n/g, '\\n\\n'))"></label>
+										<p v-else v-html="pureMarked((item.text || item).replace(/\\n/g, '\\n\\n'))"></p>
 									</template>
 								</content>
 
@@ -463,7 +471,7 @@ onVueSetup(async function() {
 						</div>
 
 						<div class="start_screen_right" v-else>
-							<h2>${tl('mode.start.recent')}</h2>
+							<h2 v-if="isApp">${tl('mode.start.recent')}</h2>
 							<div id="start_screen_view_menu" v-if="isApp && !redact_names">
 								<search-bar :hide="true" v-model="search_term"></search-bar>
 								<li class="tool" v-bind:class="{selected: list_type == 'grid'}" v-on:click="setListType('grid')">
@@ -519,15 +527,10 @@ onVueSetup(async function() {
 	Blockbench.on('construct_format delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
-
-	
-	if (settings.streamer_mode.value) {
-		updateStreamerModeNotification()
-	}
 });
 
 
-class ModelLoader {
+export class ModelLoader {
 	constructor(id, options) {
 		this.id = id;
 		this.name = tl(options.name);
@@ -631,7 +634,7 @@ ModelLoader.loaders = {};
 					languages: Language.options,
 					keymap: 'default',
 					keymap_changed: false,
-					theme: 'dark',
+					theme: 'default',
 					keymap_options: {
 						default: tl('action.load_keymap.default'),
 						mouse: tl('action.load_keymap.mouse'),
@@ -697,8 +700,8 @@ ModelLoader.loaders = {};
 						</div>
 						<div style="width: 640px;">
 							<label>${tl('dialog.settings.theme')}:</label>
-							<div class="quick_setup_theme" :class="{selected: theme == 'dark'}" @click="loadTheme('dark')"><div :style="getThemeThumbnailStyle('dark')"></div>Dark</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'light'}" @click="loadTheme('light')"><div :style="getThemeThumbnailStyle('light')"></div>Light</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
+							<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
 							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
 							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
 						</div>
@@ -728,8 +731,8 @@ ModelLoader.loaders = {};
 				if (typeof data.psa.version == 'string') {
 					if (data.psa.version.includes('-')) {
 						limits = data.psa.version.split('-');
-						if (limits[0] && compareVersions(limits[0], Blockbench.version)) return;
-						if (limits[1] && compareVersions(Blockbench.version, limits[1])) return;
+						if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
+						if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
 					} else {
 						if (data.psa.version != Blockbench.version) return;
 					}
@@ -740,3 +743,9 @@ ModelLoader.loaders = {};
 
 	})
 })()
+
+Object.assign(window, {
+	StartScreen,
+	addStartScreenSection,
+	ModelLoader,
+});

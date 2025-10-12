@@ -1,5 +1,5 @@
 
-class Group extends OutlinerNode {
+export class Group extends OutlinerNode {
 	constructor(data, uuid) {
 		super(uuid)
 
@@ -7,7 +7,7 @@ class Group extends OutlinerNode {
 			Group.properties[key].reset(this);
 		}
 
-		this.name = Format.bone_rig ? 'bone' : 'group'
+		this.name = (Format.bone_rig && !Format.armature_rig) ? 'bone' : 'group';
 		this.children = []
 		this.reset = false;
 		this.shade = true;
@@ -95,7 +95,7 @@ class Group extends OutlinerNode {
 					if (s instanceof Group) {
 						s.multiSelect()
 					} else if (!Outliner.selected.includes(s)) {
-						s.selectLow()
+						s.markAsSelected()
 					}
 				}
 			})
@@ -117,7 +117,7 @@ class Group extends OutlinerNode {
 				selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
-				s.selectLow()
+				s.markAsSelected()
 			})
 		}
 		if (Animator.open && Animation.selected) {
@@ -137,7 +137,7 @@ class Group extends OutlinerNode {
 		this.selected = true;
 		Group.multi_selected.safePush(this);
 		this.children.forEach(function(s) {
-			s.selectLow()
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -145,13 +145,10 @@ class Group extends OutlinerNode {
 	selectChildren(event) {
 		console.warn('Group#selectChildren is deprecated');
 	}
-	selectLow(highlight) {
-		//Only Select
-		if (highlight !== false) {
-			this.selected = true
-		}
+	markAsSelected() {
+		this.selected = true
 		this.children.forEach(function(s) {
-			s.selectLow(highlight)
+			s.markAsSelected()
 		})
 		TickUpdates.selection = true;
 		return this;
@@ -193,21 +190,23 @@ class Group extends OutlinerNode {
 		return this;
 	}
 	remove(undo) {
-		var scope = this;
 		let elements = [];
+		let groups = [this];
 		if (undo) {
 			this.forEachChild(function(element) {
-				if (element.type !== 'group') {
+				if (element.type == 'group') {
+					groups.push(element)
+				} else {
 					elements.push(element)
 				}
 			})
 			let animations = [];
 			Animator.animations.forEach(animation => {
-				if (animation.animators && animation.animators[scope.uuid]) {
+				if (animation.animators && animation.animators[this.uuid]) {
 					animations.push(animation);
 				}
 			})
-			Undo.initEdit({elements: elements, outliner: true, selection: true, animations})
+			Undo.initEdit({elements, groups, outliner: true, selection: true, animations})
 		}
 		this.unselect()
 		super.remove();
@@ -217,8 +216,8 @@ class Group extends OutlinerNode {
 			i--;
 		}
 		Animator.animations.forEach(animation => {
-			if (animation.animators && animation.animators[scope.uuid]) {
-				animation.removeAnimator(scope.uuid);
+			if (animation.animators && animation.animators[this.uuid]) {
+				animation.removeAnimator(this.uuid);
 			}
 			if (animation.selected && Animator.open) {
 				updateKeyframeSelection();
@@ -229,6 +228,7 @@ class Group extends OutlinerNode {
 		delete OutlinerNode.uuids[this.uuid];
 		if (undo) {
 			elements.empty();
+			groups.empty();
 			Undo.finishEdit('Delete group')
 		}
 	}
@@ -236,18 +236,21 @@ class Group extends OutlinerNode {
 		var array = this.children.slice();
 		var index = this.getParentArray().indexOf(this)
 		let all_elements = [];
+		let all_groups = [this];
 		this.forEachChild(obj => {
 			if (obj instanceof Group == false) {
 				all_elements.push(obj);
+			} else {
+				all_groups.push(obj);
 			}
 		})
 
-		if (undo) Undo.initEdit({outliner: true, elements: all_elements})
+		if (undo) Undo.initEdit({outliner: true, groups: all_groups, elements: all_elements})
 
 		array.forEach((obj, i) => {
 			obj.addTo(this.parent, index)
 			
-			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.rotatable) || (obj instanceof Group && Format.bone_rig)) {
+			if ((obj instanceof Cube && Format.rotate_cubes) || (obj instanceof OutlinerElement && obj.getTypeBehavior('rotatable')) || (obj instanceof Group && Format.bone_rig)) {
 				let quat = new THREE.Quaternion().copy(obj.mesh.quaternion);
 				quat.premultiply(obj.mesh.parent.quaternion);
 				let e = new THREE.Euler().setFromQuaternion(quat, obj.mesh.rotation.order);
@@ -266,7 +269,7 @@ class Group extends OutlinerNode {
 
 				if (obj.from) obj.from.V3_add(diff);
 				if (obj.to) obj.to.V3_add(diff);
-				if (obj.rotatable || obj instanceof Group) obj.origin.V3_add(diff);
+				if (obj.getTypeBehavior('rotatable') || obj instanceof Group) obj.origin.V3_add(diff);
 
 				if (obj instanceof Group) {
 					obj.forEachChild(child => {
@@ -287,7 +290,10 @@ class Group extends OutlinerNode {
 			Canvas.updateAllBones();
 		}
 		this.remove(false);
-		if (undo) Undo.finishEdit('Resolve group')
+		if (undo) {
+			all_groups.empty();
+			Undo.finishEdit('Resolve group');
+		}
 		return array;
 	}
 	showContextMenu(event) {
@@ -295,6 +301,9 @@ class Group extends OutlinerNode {
 		if (!Group.multi_selected.includes(this)) this.select(event);
 		this.menu.open(event, this)
 		return this;
+	}
+	getWorldCenter() {
+		return THREE.fastWorldPosition(this.mesh, new THREE.Vector3());
 	}
 	transferOrigin(origin) {
 		if (!this.mesh) return;
@@ -316,7 +325,7 @@ class Group extends OutlinerNode {
 				obj.children.forEach(child => iterateChild(child));
 
 			} else {
-				if (obj.movable) {
+				if (obj.getTypeBehavior('movable')) {
 					obj.origin.V3_add(shift);
 				}
 				if (obj.to) {
@@ -328,6 +337,10 @@ class Group extends OutlinerNode {
 		this.children.forEach(child => iterateChild(child));
 
 		Canvas.updatePositions()
+		return this;
+	}
+	setColor(index) {
+		this.color = index;
 		return this;
 	}
 	sortContent() {
@@ -355,10 +368,12 @@ class Group extends OutlinerNode {
 		Canvas.updatePositions();
 		return copy;
 	}
-	getSaveCopy(project) {
-		var base_group = this.getChildlessCopy(true);
-		for (var child of this.children) {
-			base_group.children.push(child.getSaveCopy(project));
+	getSaveCopy(nested) {
+		let base_group = this.getChildlessCopy(true);
+		if (nested) {
+			for (let child of this.children) {
+				base_group.children.push(child.getSaveCopy(nested));
+			}
 		}
 		delete base_group.parent;
 		return base_group;
@@ -420,7 +435,7 @@ class Group extends OutlinerNode {
 			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
 				cb(this.children[i])
 			}
-			if (this.children[i].type === 'group') {
+			if (this.children[i].forEachChild) {
 				this.children[i].forEachChild(cb, type)
 			}
 			i++;
@@ -434,12 +449,26 @@ class Group extends OutlinerNode {
 		this.autouv = val;
 		this.updateElement()
 	}
+	static behavior = {
+		unique_name: false,
+		parent: true,
+		select_children: 'all_first',
+		movable: true,
+		rotatable: true,
+		has_pivot: true,
+		use_absolute_position: true,
+		marker_color: true,
+	}
 }
+Group.addBehaviorOverride({
+	condition: {features: ['bone_rig']},
+	behavior: {
+		unique_name: true
+	}
+})
 	Group.prototype.title = tl('data.group');
 	Group.prototype.type = 'group';
 	Group.prototype.icon = 'folder';
-	Group.prototype.isParent = true;
-	Group.prototype.rotatable = true;
 	Group.prototype.name_regex = () => Format.bone_rig ? (Format.node_name_regex ?? 'a-zA-Z0-9_') : false;
 	Group.prototype.buttons = [
 		Outliner.buttons.autouv,
@@ -449,39 +478,16 @@ class Group extends OutlinerNode {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	Group.prototype.needsUniqueName = () => Format.bone_rig;
-	function setGroupColor(color) {
-		let elements = Outliner.selected.filter(el => el.setColor)
-		Undo.initEdit({outliner: true, elements: elements, selection: true})
-		Group.all.forEach(group => {
-			if (group.selected) {
-				group.color = color;
-			}
-		})
-		elements.forEach(el => {
-			el.setColor(color);
-		})
-		Undo.finishEdit('Change group marker color')
-	}
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'edit_bedrock_binding',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click() {
-					setGroupColor(i);
-				}
-			}})
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
 			function applyTexture(texture_value, undo_message) {
 				let affected_groups = Group.all.filter(g => g.selected);
-				Undo.initEdit({outliner: true});
+				Undo.initEdit({groups: affected_groups});
 				for (let group of affected_groups) {
 					group.texture = texture_value;
 				}
@@ -534,16 +540,13 @@ class Group extends OutlinerNode {
 	})
 	Object.defineProperty(Group, 'selected', {
 		get() {
-			console.warn('"Group.selected" will be an array in the future!');
-			return Project.selected_groups?.[0]
+			return Project.selected_groups || []
 		},
-		set(group) {
-			console.warn('"Group.selected" will be an array in the future!');
-			if (group instanceof Group) {
-				Project.selected_groups.replace([group]);
-			} else {
-				Project.selected_groups.empty();
+		set(arr) {
+			if (arr instanceof Array == false) {
+				console.warn('Not an array!')
 			}
+			Project.selected_groups.replace(arr)
 		}
 	})
 	Object.defineProperty(Group, 'first_selected', {
@@ -559,10 +562,39 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
-new Property(Group, 'string', 'bedrock_binding', {condition: {formats: ['bedrock']}});
+new Property(Group, 'string', 'bedrock_binding', {
+	condition: {formats: ['bedrock']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.bedrock_binding', description: 'action.edit_bedrock_binding.desc', type: 'text'}
+		}
+	}
+});
 new Property(Group, 'array', 'cem_animations', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'boolean', 'cem_attach', {condition: {formats: ['optifine_entity']}});
-new Property(Group, 'number', 'cem_scale', {condition: {formats: ['optifine_entity']}});
+new Property(Group, 'boolean', 'cem_attach', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_attach', type: 'checkbox'}
+		}
+	}
+});
+new Property(Group, 'string', 'cem_model', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_model', type: 'text'}
+		}
+	}
+});
+new Property(Group, 'number', 'cem_scale', {
+	condition: {formats: ['optifine_entity']},
+	inputs: {
+		element_panel: {
+			input: {label: 'group.cem_scale', type: 'number'}
+		}
+	}
+});
 new Property(Group, 'string', 'texture', {condition: {features: ['per_group_texture']}});
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
@@ -574,18 +606,21 @@ new NodePreviewController(Group, {
 		bone.name = group.uuid;
 		bone.isGroup = true;
 		Project.nodes_3d[group.uuid] = bone;
+		bone.rotation.order = Format.euler_order;
 
 		this.dispatchEvent('update_transform', {group});
 	},
 	updateTransform(group) {
-		Canvas.updateAllBones([group]);
-
-		this.dispatchEvent('update_transform', {group});
+		NodePreviewController.prototype.updateTransform.call(this, group);
+		let bone = group.scene_object;
+		bone.scale.x = bone.scale.y = bone.scale.z = 1;
+		bone.fix_position = bone.position.clone();
+		bone.fix_rotation = bone.rotation.clone();
 	}
 })
 
 
-function getCurrentGroup() {
+export function getCurrentGroup() {
 	if (Group.first_selected) {
 		return Group.first_selected
 	} else if (selected.length) {
@@ -600,7 +635,7 @@ function getCurrentGroup() {
 		}
 	}
 }
-function getAllGroups() {
+export function getAllGroups() {
 	var ta = []
 	function iterate(array) {
 		for (var obj of array) {
@@ -625,7 +660,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({outliner: true, groups: []});
 			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
 			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
@@ -635,6 +670,7 @@ BARS.defineActions(function() {
 			if (Format.bone_rig) {
 				base_group.createUniqueName()
 			}
+			if (add_group?.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
 
 			if (lowest_selected.length >= 2 && add_group) {
 				base_group.sortInBefore(add_group, 1);
@@ -646,7 +682,7 @@ BARS.defineActions(function() {
 			}
 
 			base_group.init().select()
-			Undo.finishEdit('Add group');
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -660,10 +696,10 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.first_selected),
+		condition: () => Modes.edit && (selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
-			Undo.initEdit({outliner: true});
+			Undo.initEdit({outliner: true, groups: []});
 			let add_group = Group.first_selected
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
@@ -686,7 +722,7 @@ BARS.defineActions(function() {
 				s.preview_controller.updateTransform(s);
 			})
 			base_group.select()
-			Undo.finishEdit('Add group');
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -772,6 +808,7 @@ BARS.defineActions(function() {
 							]).show(event.target);
 						},
 						autocomplete(text, position) {
+							if (Settings.get('autocomplete_code') == false) return [];
 							let test = MolangAutocomplete.BedrockBindingContext.autocomplete(text, position);
 							return test;
 						}
@@ -813,10 +850,12 @@ BARS.defineActions(function() {
 					}
 				})
 			}
-			Undo.initEdit({outliner: true, elements: all_elements})
-			for (let group of Group.multi_selected.slice()) {
+			let affected_groups = Group.multi_selected.slice();
+			Undo.initEdit({outliner: true, elements: all_elements, groups: affected_groups})
+			for (let group of affected_groups) {
 				group.resolve(false);
 			}
+			affected_groups.empty();
 			Undo.finishEdit('Resolve group');
 		}
 	})
@@ -831,7 +870,8 @@ Interface.definePanels(function() {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 3,
 		},
 		component: {
 			template: `
@@ -843,3 +883,9 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Group,
+	getCurrentGroup,
+	getAllGroups
+});

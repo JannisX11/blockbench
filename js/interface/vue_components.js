@@ -15,7 +15,6 @@ Vue.component('search-bar', {
 				this.hidden = false;
 				this.$refs.input.focus();
 			} else {
-				this.value = '';
 				this.$emit('input', '');
 			}
 		}
@@ -38,7 +37,6 @@ Vue.component('select-input', {
 	}},
 	methods: {
 		set(value) {
-			this.value = value;
 			this.$emit('input', value);
 		},
 		getNameFor(key) {
@@ -75,9 +73,9 @@ Vue.component('select-input', {
 		}
 	},
 	template: `
-		<bb-select @click="open($event)">
+		<div class="bb-select" @click="open($event)">
 			{{ getNameFor(value) }}
-		</bb-select>
+		</div>
 	`
 })
 
@@ -158,7 +156,7 @@ Vue.component('numeric-input', {
 })
 Vue.component('dynamic-icon', {
 	props: {
-		icon: String,
+		icon: [String, HTMLElement],
 		color: String,
 	},
 	render(h) {

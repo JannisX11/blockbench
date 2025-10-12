@@ -1,9 +1,13 @@
-class ReferenceImage {
+import { clipboard } from "../native_apis";
+import { Preview } from "./preview";
+
+export class ReferenceImage {
 	constructor(data = {}) {
 
 		this.name = '';
 		this.layer = '';
 		this.scope = '';
+		this.is_blueprint = false;
 		this.position = [0, 0];
 		this.size = [0, 0];
 		this.flip_x = false;
@@ -99,6 +103,9 @@ class ReferenceImage {
 		for (let key in ReferenceImage.properties) {
 			ReferenceImage.properties[key].merge(this, data)
 		}
+		if (data.is_blueprint) {
+			this.enableBlueprintMode();
+		}
 	}
 	getSaveCopy() {
 		let copy = {};
@@ -116,14 +123,20 @@ class ReferenceImage {
 	resolveCondition() {
 		if (!Condition(this.condition)) return false;
 		if (this.modes.length && !this.modes.includes(Modes.selected.id)) return false;
-		if (this.layer == 'blueprint') {
+		if (this.is_blueprint) {
 			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
 		}
 		return true;
 	}
 	addAsReference(save) {
 		Project.reference_images.push(this);
-		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) {
+			this.enableBlueprintMode();
+			this.changeLayer('background');
+		}
+		if (Format.image_editor) {
+			this.changeLayer('viewport');
+		}
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -131,7 +144,13 @@ class ReferenceImage {
 	}
 	addAsGlobalReference(save) {
 		ReferenceImage.global.push(this);
-		if (Preview.selected && Preview.selected.angle) this.changeLayer('blueprint');
+		if (Preview.selected && Preview.selected.angle) {
+			this.enableBlueprintMode();
+			this.changeLayer('background');
+		}
+		if (Format.image_editor) {
+			this.changeLayer('viewport');
+		}
 		this.scope = 'global';
 		this.update();
 		if (save) this.save();
@@ -196,15 +215,8 @@ class ReferenceImage {
 
 		this.node.setAttribute('reference_layer', this.layer);
 		switch (this.layer) {
-			case 'background': {
-				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
-				break;
-			}
+			case 'background':
 			case 'viewport': {
-				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
-				break;
-			}
-			case 'blueprint': {
 				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
 				break;
 			}
@@ -271,12 +283,12 @@ class ReferenceImage {
 		return this;
 	}
 	getZoomLevel() {
-		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		return preview ? preview.camOrtho.zoom * 2 : 1;
 	}
 	updateTransform() {
 		if (!this.node.isConnected) return this;
-		let preview = this.layer == 'blueprint' && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
 			let zoom = this.getZoomLevel();;
@@ -364,7 +376,7 @@ class ReferenceImage {
 					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
-					if (this.layer !== 'blueprint') {
+					if (!this.is_blueprint) {
 						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
 						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
 					}
@@ -457,9 +469,6 @@ class ReferenceImage {
 				viewport: 'reference_image.layer.viewport',
 				float: 'reference_image.layer.float',
 			}
-			if (Preview.selected.angle) {
-				layers.blueprint = 'reference_image.layer.blueprint';
-			}
 			let options = Object.keys(layers).map(key => {
 				return {
 					name: layers[key],
@@ -526,7 +535,7 @@ class ReferenceImage {
 					this.position[0] = original_position[0] + offset[0] / zoom;
 					this.position[1] = original_position[1] + offset[1] / zoom;
 
-					if (this.layer !== 'blueprint') {
+					if (!this.is_blueprint) {
 						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
 						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
 					}
@@ -620,6 +629,7 @@ class ReferenceImage {
 	changeLayer(layer) {
 		if (layer == this.layer) return;
 
+		if (this.is_blueprint) this.is_blueprint = false;
 		if (layer == 'float' || this.layer == 'float') {
 			let preview_offset = $(Interface.preview).offset();
 			let workscreen_offset = $(Interface.work_screen).offset();
@@ -627,10 +637,6 @@ class ReferenceImage {
 			
 			this.position[0] += (preview_offset.left - workscreen_offset.left) * sign;
 			this.position[1] += (preview_offset.top - workscreen_offset.top) * sign;
-		}
-		if (layer == 'blueprint' && Preview.selected?.angle) {
-			this.attached_side = Preview.selected.angle;
-			this.position.V2_set(0, 0);
 		}
 		this.layer = layer;
 		return this;
@@ -651,6 +657,14 @@ class ReferenceImage {
 		}
 		return this;
 	}
+	enableBlueprintMode() {
+		if (Preview.selected?.angle) {
+			this.is_blueprint = true;
+			if (this.layer == 'float') this.changeLayer('viewport');
+			this.attached_side = Preview.selected.angle;
+			this.position.V2_set(0, 0);
+		}
+	}
 	propertiesDialog() {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
@@ -664,7 +678,6 @@ class ReferenceImage {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
 					float: 'reference_image.layer.float',
-					blueprint:  Preview.selected.angle ? 'reference_image.layer.blueprint' : undefined,
 				}},
 				scope: {type: 'select', label: 'reference_image.scope', value: this.scope, options: {
 					project: 'reference_image.scope.project',
@@ -676,6 +689,7 @@ class ReferenceImage {
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
+				is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -683,6 +697,7 @@ class ReferenceImage {
 				let clear_mode_before = this.clear_mode;
 				this.extend({
 					source: result.source,
+					is_blueprint: result.is_blueprint,
 					position: result.position,
 					size: result.size,
 					rotation: result.rotation,
@@ -743,10 +758,23 @@ ReferenceImage.prototype.menu = new Menu([
 		}
 	},
 	{
+		id: 'blueprint',
+		name: 'reference_image.blueprint',
+		icon: (ref) => ref.is_blueprint,
+		click(ref) {
+			if (ref.is_blueprint) {
+				ref.is_blueprint = false;
+			} else {
+				ref.enableBlueprintMode();
+			}
+			ref.update().save();
+		}
+	},
+	{
 		id: 'clear_mode',
 		name: 'reference_image.clear_mode',
 		icon: (ref) => ref.clear_mode,
-		//condition: ref => ref.layer == 'blueprint',
+		//condition: ref => ref.is_blueprint,
 		click(ref) {
 			ref.clear_mode = !ref.clear_mode;
 			ref.updateClearMode();
@@ -767,9 +795,6 @@ ReferenceImage.prototype.menu = new Menu([
 				background: 'reference_image.layer.background',
 				viewport: 'reference_image.layer.viewport',
 				float: 'reference_image.layer.float',
-			}
-			if (Preview.selected.angle) {
-				layers.blueprint = 'reference_image.layer.blueprint';
 			}
 			let children = [];
 			for (let key in layers) {
@@ -839,6 +864,7 @@ ReferenceImage.prototype.menu = new Menu([
 new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
 new Property(ReferenceImage, 'string', 'layer', {default: 'background'});
 new Property(ReferenceImage, 'string', 'scope', {default: 'global'});
+new Property(ReferenceImage, 'boolean', 'is_blueprint');
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'boolean', 'flip_x');
@@ -920,7 +946,7 @@ Blockbench.on('timeline_pause', () => {
 	})
 })
 
-const ReferenceImageMode = {
+export const ReferenceImageMode = {
 	active: false,
 	toolbar: null,
 	activate() {
@@ -1162,4 +1188,9 @@ Interface.definePanels(function() {
 			'toggle_all_reference_images',
 		]
 	})
+})
+
+Object.assign(window, {
+	ReferenceImage,
+	ReferenceImageMode,
 })

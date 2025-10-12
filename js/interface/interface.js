@@ -1,4 +1,8 @@
-class ResizeLine {
+import { Blockbench } from "../api";
+import { translateUI } from "../languages";
+import { currentwindow } from "../native_apis";
+
+export class ResizeLine {
 	constructor(id, data) {
 		var scope = this;
 		if (typeof id == 'object') {
@@ -79,44 +83,14 @@ class ResizeLine {
 		}
 	}
 }
-const Interface = {
+export const Interface = {
 	default_data: {
 		left_bar_width: 366,
 		right_bar_width: 314,
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
-		modes: {
-			paint_2d: {
-				left_bar: ['uv', 'color', , 'display', 'animations', 'keyframe', 'variable_placeholders'],
-				right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'textures', 'outliner', 'chat'],
-				panels: {
-					layers: {
-						slot: 'right_bar',
-						float_position: [300, 0],
-						float_size: [300, 300],
-						height: 300
-					},
-					textures: {
-						slot: 'right_bar',
-						float_position: [300, 0],
-						float_size: [300, 300],
-						height: 300,
-						folded: true
-					}
-				}
-			}
-		},
-		left_bar: ['uv', 'color', 'textures', 'display', 'animations', 'keyframe', 'variable_placeholders'],
-		right_bar: ['element', 'bone', 'color', 'skin_pose', 'layers', 'outliner', 'chat'],
-		panels: {
-			paint: {
-				slot: 'left_bar',
-				float_position: [300, 0],
-				float_size: [500, 600],
-				height: window.innerHeight/2-50
-			}
-		}
+		modes: {},
 	},
 	get left_bar_width() {
 		if (Prop.show_left_bar && Interface.getLeftPanels().length) { 
@@ -153,24 +127,26 @@ const Interface = {
 		}
 	},
 	getLeftPanels() {
-		let list = [];
-		for (let key of Interface.getModeData().left_bar) {
-			let panel = Panels[key];
-			if (panel && panel.slot == 'left_bar' && Condition(panel.condition)) {
-				list.push(panel);
-			}
-		}
-		return list;
+		return Interface.calculateSidebarOrder('left_bar').map(p => this.Panels[p]);
 	},
 	getRightPanels() {
-		let list = [];
-		for (let key of Interface.getModeData().right_bar) {
-			let panel = Panels[key];
-			if (panel && panel.slot == 'right_bar' && Condition(panel.condition)) {
-				list.push(panel);
-			}
+		return Interface.calculateSidebarOrder('right_bar').map(p => this.Panels[p]);
+	},
+	calculateSidebarOrder(bar) {
+		let target_order = [];
+		for (let panel_id in Interface.Panels) {
+			let panel = Interface.Panels[panel_id];
+			if (panel.slot != bar) continue;
+			if (!Condition(panel)) continue;
+			if (panel.attached_to) continue;
+			target_order.push(panel.id);
 		}
-		return list;
+		target_order.sort((a, b) => {
+			let a_i = Panels[a].position_data.sidebar_index;
+			let b_i = Panels[b].position_data.sidebar_index;
+			return (a_i ?? 0) - (b_i ?? 0);
+		})
+		return target_order;
 	},
 	getUIMode() {
 		let mode_id = Mode.selected && Mode.selected.id;
@@ -180,13 +156,12 @@ const Interface = {
 	},
 	getModeData(ui_mode = Interface.getUIMode()) {
 		if (ui_mode && ui_mode != 'start') {
-			if (!Interface.data.modes[ui_mode]) {Interface.data.modes[ui_mode] = {};}
+			if (!Interface.data.modes[ui_mode]) {
+				Interface.data.modes[ui_mode] = {};
+			}
 			let mode_data = Interface.data.modes[ui_mode];
 			if (mode_data.left_bar_width == undefined) mode_data.left_bar_width = Interface.data.left_bar_width;
 			if (mode_data.right_bar_width == undefined) mode_data.right_bar_width = Interface.data.right_bar_width;
-			if (mode_data.left_bar == undefined) mode_data.left_bar = Interface.data.left_bar.slice();
-			if (mode_data.right_bar == undefined) mode_data.right_bar = Interface.data.right_bar.slice();
-			if (mode_data.panels == undefined) mode_data.panels = JSON.parse(JSON.stringify(Interface.data.panels));
 			return mode_data;
 		} else {
 			return Interface.data;
@@ -198,8 +173,8 @@ const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_left_bar) return false;
 				if (!Mode.selected) return false;
-				for (let p of Interface.getModeData().left_bar) {
-					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'left_bar') {
+				for (let p of Interface.getLeftPanels()) {
+					if (p && BARS.condition(p.condition) && p.slot == 'left_bar') {
 						return true;
 					}
 				}
@@ -234,8 +209,8 @@ const Interface = {
 				if (Blockbench.isMobile) return false;
 				if (!Prop.show_right_bar) return false;
 				if (!Mode.selected) return false;
-				for (let p of Interface.getModeData().right_bar) {
-					if (Panels[p] && BARS.condition(Panels[p].condition) && Panels[p].slot == 'right_bar') {
+				for (let p of Interface.getRightPanels()) {
+					if (p && BARS.condition(p.condition) && p.slot == 'right_bar') {
 						return true;
 					}
 				}
@@ -275,9 +250,9 @@ const Interface = {
 			position() {
 				let p = Interface.preview;
 				if (!p) return;
-				let top = 32;
+				let top = Interface.center_screen.offsetTop;
 				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
-				let left = Interface.left_bar_width + p.clientWidth*Interface.data.quad_view_x/100;
+				let left = Interface.left_bar_width + 3 + p.clientWidth*Interface.data.quad_view_x/100;
 				if (Preview.split_screen.mode == 'triple_top') {
 					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
 				} else if (Preview.split_screen.mode == 'triple_bottom') {
@@ -301,7 +276,7 @@ const Interface = {
 				if (!p) return;
 				let left = Interface.left_bar_width+2;
 				let right = Interface.right_bar_width+2;
-				let top = Interface.preview.offsetTop + 30 + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
+				let top = Interface.center_screen.offsetTop + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
 				if (Preview.split_screen.mode == 'triple_left') {
 					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
 				} else if (Preview.split_screen.mode == 'triple_right') {
@@ -315,7 +290,7 @@ const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
 			get() {
 				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getTopPanel();
@@ -327,7 +302,7 @@ const Interface = {
 			position() {this.setPosition({
 				left: Interface.left_bar_width+2,
 				right: Interface.right_bar_width+2,
-				top: this.get() + Interface.work_screen.offsetTop - document.getElementById('page_wrapper').offsetTop
+				top: this.get() + Interface.center_screen.offsetTop + 4
 			})}
 		}),
 		bottom: new ResizeLine('bottom', {
@@ -335,7 +310,7 @@ const Interface = {
 			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
 			get() {
 				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.handle.clientHeight : panel.height;
+				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
 			},
 			set(o, diff) {
 				let panel = Interface.getBottomPanel();
@@ -405,12 +380,8 @@ const Interface = {
 		Prop[`show_${side}_bar`] = !!status;
 		resizeWindow();
 	}
-}
-const Panels = Interface.Panels;
-Interface.panel_definers = []
-Interface.definePanels = function(callback) {
-	Interface.panel_definers.push(callback);
 };
+
 
 (function() {
 	Interface.data = $.extend(true, {}, Interface.default_data)
@@ -418,29 +389,6 @@ Interface.definePanels = function(callback) {
 	if (!interface_data) return;
 	try {
 		interface_data = JSON.parse(interface_data)
-		let original_left_bar, original_right_bar;
-		if (interface_data.left_bar) {
-			original_left_bar = Interface.data.left_bar;
-			Interface.data.left_bar = interface_data.left_bar;
-		}
-		if (interface_data.right_bar) {
-			original_right_bar = Interface.data.right_bar;
-			Interface.data.right_bar = interface_data.right_bar;
-		}
-		if (original_left_bar) {
-			original_left_bar.forEach((panel, i) => {
-				if (Interface.data.left_bar.includes(panel)) return;
-				if (Interface.data.right_bar.includes(panel)) return;
-				Interface.data.left_bar.splice(i, 0, panel);
-			})
-		}
-		if (original_right_bar) {
-			original_right_bar.forEach((panel, i) => {
-				if (Interface.data.right_bar.includes(panel)) return;
-				if (Interface.data.left_bar.includes(panel)) return;
-				Interface.data.right_bar.splice(i, 0, panel);
-			})
-		}
 		$.extend(true, Interface.data, interface_data)
 	} catch (err) {
 		console.error(err);
@@ -448,7 +396,7 @@ Interface.definePanels = function(callback) {
 })()
 
 //Misc
-function unselectInterface(event) {
+export function unselectInterface(event) {
 	if (
 		open_menu &&
 		!event.target.classList.contains('contextMenu') && $('.contextMenu').find(event.target).length === 0 &&
@@ -464,7 +412,7 @@ function unselectInterface(event) {
 		}
 		document.addEventListener('click', mouseUp);
 	}
-	if (Dialog.open instanceof ToolConfig && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
+	if (Dialog.open instanceof ConfigDialog && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
 		Dialog.open.close();
 	}
 	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
@@ -483,7 +431,7 @@ function unselectInterface(event) {
 	}
 	Blockbench.dispatchEvent('unselect_interface', {event});
 }
-function setupInterface() {
+export function setupInterface() {
 
 	translateUI()
 
@@ -550,6 +498,11 @@ function setupInterface() {
 		}
 	})
 
+	// Background color
+	if (StateMemory.get('viewport_background_color')) {
+		document.body.style.setProperty('--custom-preview-background', StateMemory.get('viewport_background_color'));
+	}
+
 
 
 
@@ -557,6 +510,7 @@ function setupInterface() {
 	Interface.preview.addEventListener('click', e => setActivePanel(Format.image_editor ? 'uv' : 'preview'));
 	
 	Interface.work_screen.addEventListener('dblclick', event => {
+		if (settings.double_click_select_reference.value == false) return;
 		let reference = ReferenceImage.active.find(reference => reference.projectMouseCursor(event.clientX, event.clientY));
 		if (!reference) return;
 		if (document.querySelector('.preview > canvas:hover')) {
@@ -620,8 +574,8 @@ function setupInterface() {
 		}
 
 		obj.val(val)
-		eval(obj.attr('oninput'))
-		eval(obj.attr('onmouseup'))
+		// eval(obj.attr('oninput'))
+		// eval(obj.attr('onmouseup'))
 	})
 
 	//Mousemove
@@ -637,15 +591,16 @@ function setupInterface() {
 	updateInterface()
 }
 
-function updateInterface() {
+export function updateInterface() {
 	BARS.updateConditions()
 	MenuBar.update()
 	updatePanelSelector();
 	resizeWindow()
 	localStorage.setItem('interface_data', JSON.stringify(Interface.data))
+	delete TickUpdates.interface;
 }
 
-function resizeWindow(event) {
+export function resizeWindow(event) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
@@ -683,18 +638,20 @@ function resizeWindow(event) {
 	Blockbench.dispatchEvent('resize_window', event);
 }
 
-function setProjectTitle(title) {
+export function setProjectTitle(title) {
 	let window_title = 'Blockbench';
 	if (title == undefined && Project.name) {
 		title = Project.name
 	}
 	if (title) {
-		Prop.file_name = Prop.file_name_alt = title
-		if (!Project.name) {
-			Project.name = title
-		}
-		if (Format.bone_rig) {
-			title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+		if (Project) {
+			Prop.file_name = Prop.file_name_alt = title
+			if (!Project.name) {
+				Project.name = title
+			}
+			if (Format.bone_rig) {
+				title = title.replace(/^geometry\./,'').replace(/:[a-z0-9.]+/, '')
+			}
 		}
 		window_title = title+' - Blockbench';
 	} else {
@@ -707,7 +664,7 @@ function setProjectTitle(title) {
 	}
 }
 //Zoom
-function setZoomLevel(mode) {
+export function setZoomLevel(mode) {
 	if (Prop.active_panel === 'uv') {
 		var zoom = UVEditor.zoom
 		switch (mode) {
@@ -748,7 +705,7 @@ function setZoomLevel(mode) {
 }
 
 //UI Edit
-function setProgressBar(id, val, time) {
+export function setProgressBar(id, val, time) {
 	if (!id || id === 'main') {
 		Prop.progress = val
 	} else {
@@ -760,7 +717,7 @@ function setProgressBar(id, val, time) {
 }
 
 //Tooltip
-function showShiftTooltip() {
+export function showShiftTooltip() {
 	$(':hover').find('.tooltip_shift').css('display', 'inline')
 }
 $(document).keyup(function(event) {
@@ -782,7 +739,7 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	}
 	let options = typeof data.options == 'function' ? data.options() : data.options;
 	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
-	let select = Interface.createElement('bb-select', {id, class: 'half', value: value}, getNameFor(options[value]));
+	let select = Interface.createElement('div', {id, class: 'bb-select half', value: value}, getNameFor(options[value]));
 	function setKey(key, options, input_event) {
 		if (!options) {
 			options = typeof data.options == 'function' ? data.options() : data.options;
@@ -804,6 +761,10 @@ Interface.CustomElements.SelectInput = function(id, data) {
 		for (let key in options) {
 			let val = options[key];
 			if (!val) continue;
+			if (val instanceof MenuSeparator) {
+				items.push(val);
+				continue;
+			}
 			items.push({
 				name: getNameFor(options[key]),
 				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
@@ -865,7 +826,7 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	})
 }
 
-function openTouchKeyboardModifierMenu(node) {
+export function openTouchKeyboardModifierMenu(node) {
 	if (Menu.closed_in_this_click == 'mobile_keyboard') return;
 
 	let modifiers = ['ctrl', 'shift', 'alt'];
@@ -893,6 +854,27 @@ function openTouchKeyboardModifierMenu(node) {
 	])
 	menu.open(node);
 }
+
+
+Blockbench.setCursorTooltip = function(text) {
+	if (!Interface.cursor_tooltip) {
+		Interface.cursor_tooltip = Interface.createElement('div', {id: 'cursor_tooltip'});
+	}
+	if (text) {
+		Interface.cursor_tooltip.textContent = text;
+		if (!Interface.cursor_tooltip.parentNode) {
+			document.body.append(Interface.cursor_tooltip);
+			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+		}
+	} else {
+		Interface.cursor_tooltip.textContent = '';
+		Interface.cursor_tooltip.remove();
+	}
+};
+Blockbench.setProgress = function(progress, time = 0, bar) {
+	setProgressBar(bar, progress ?? 0, time);
+};
 
 onVueSetup(function() {
 	Interface.status_bar.vue = new Vue({
@@ -923,6 +905,7 @@ onVueSetup(function() {
 			},
 			updateSelectionInfo() {
 				let selection_mode = BarItems.selection_mode.value;
+				let spline_selection_mode = BarItems.spline_selection_mode.value;
 				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
 					if (selection_mode == 'face') {
 						let total = 0, selected = 0;
@@ -955,6 +938,16 @@ onVueSetup(function() {
 						Mesh.selected.forEach(mesh => total += Object.keys(mesh.vertices).length);
 						Mesh.selected.forEach(mesh => selected += mesh.getSelectedVertices().length);
 						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+				} else if (Modes.edit && SplineMesh.selected.length && spline_selection_mode !== 'object') {
+					if (spline_selection_mode == 'handles') {
+						let total = 0, selected = 0;
+						SplineMesh.selected.forEach(spline => total += Object.keys(spline.vertices).length);
+						SplineMesh.selected.forEach(spline => selected += spline.getSelectedVertices().length);
+						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
+					}
+					if (spline_selection_mode == "tilt") {
+						this.selection_info = '';
 					}
 				} else {
 					this.selection_info = '';
@@ -1059,10 +1052,26 @@ BARS.defineActions(function() {
 			Prop.show_left_bar = true;
 			Prop.show_right_bar = true;
 
+			updateInterfacePanels();
+
 			Blockbench.dispatchEvent('reset_layout', {});
 
-			updateSidebarOrder();
 			resizeWindow();
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ResizeLine,
+	Interface,
+	unselectInterface,
+	setupInterface,
+	updateInterface,
+	resizeWindow,
+	setProjectTitle,
+	setZoomLevel,
+	setProgressBar,
+	showShiftTooltip,
+	openTouchKeyboardModifierMenu,
+});

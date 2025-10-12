@@ -1,4 +1,4 @@
-class TextureMesh extends OutlinerElement {
+export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 		
@@ -67,14 +67,16 @@ class TextureMesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		scalable: true,
+		rotatable: true,
+	}
 }
 	TextureMesh.prototype.title = tl('data.texture_mesh');
 	TextureMesh.prototype.type = 'texture_mesh';
 	TextureMesh.prototype.icon = 'fa-puzzle-piece';
-	TextureMesh.prototype.movable = true;
-	TextureMesh.prototype.scalable = true;
-	TextureMesh.prototype.rotatable = true;
-	TextureMesh.prototype.needsUniqueName = false;
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
@@ -109,6 +111,15 @@ new Property(TextureMesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 
+function getShapeTexture() {
+	let tex = Texture.getDefault();
+	if (tex.pbr_channel != 'color' && tex.getGroup()) {
+		let group = tex.getGroup();
+		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
+	}
+	return tex;
+}
+
 new NodePreviewController(TextureMesh, {
 	setup(element) {
 
@@ -117,7 +128,7 @@ new NodePreviewController(TextureMesh, {
 		mesh.name = element.uuid;
 		mesh.type = element.type;
 		mesh.isElement = true;
-		mesh.rotation.order = 'ZYX';
+		mesh.rotation.order = Format.euler_order;
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(4), 1));
 
@@ -139,7 +150,7 @@ new NodePreviewController(TextureMesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element, texture = Texture.getDefault()) {
+	updateGeometry(element, texture = getShapeTexture()) {
 		
 		let {mesh} = element;
 		let position_array = [];
@@ -362,3 +373,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureMesh
+});

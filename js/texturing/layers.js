@@ -1,4 +1,4 @@
-class TextureLayer {
+export class TextureLayer {
 	constructor(data, texture = Texture.selected, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
@@ -364,7 +364,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
-new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'screen', 'overlay', 'difference']});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'darken', 'lighten', 'screen', 'overlay', 'difference']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
@@ -449,6 +449,61 @@ BARS.defineActions(() => {
 			layer.addForEditing();
 			Undo.finishEdit('Create empty layer');
 			BARS.updateConditions();
+		}
+	})
+	new Action('import_layer', {
+		icon: 'add_photo_alternate',
+		category: 'layers',
+		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled,
+		click() {
+			let start_path;
+			if (!isApp) {} else
+			if (Texture.all.length > 0) {
+				let arr = Texture.all[0].path.split(osfs)
+				arr.splice(-1)
+				start_path = arr.join(osfs)
+			} else if (Project.export_path) {
+				let arr = Project.export_path.split(osfs)
+				arr.splice(-3)
+				arr.push('textures')
+				start_path = arr.join(osfs)
+			}
+			Blockbench.import({
+				resource_id: 'texture',
+				readtype: 'image',
+				type: 'PNG Texture',
+				extensions: ['png'],
+				multiple: true,
+				startpath: start_path
+			}, async (files) => {
+				let texture = Texture.selected;
+				Undo.initEdit({textures: [texture], bitmap: true});
+
+				for (let file of files) {
+					let img = new Image();
+					await new Promise((resolve, reject) => {
+						img.src = isApp ? file.path : file.content;
+						img.onload = resolve;
+						img.onerror = reject;
+					})
+					let frame = new CanvasFrame(img);
+					let layer = new TextureLayer({name: file.name, offset: [0, 0]}, texture);
+					let image_data = frame.ctx.getImageData(0, 0, frame.width, frame.height);
+					layer.setSize(frame.width, frame.height);
+					layer.ctx.putImageData(image_data, 0, 0);
+					texture.layers.push(layer);
+					layer.center();
+					if (file == files.last()) {
+						layer.select();
+						layer.setLimbo();
+					}
+				}
+				texture.updateLayerChanges(true);
+				Undo.finishEdit('Add image as layer');
+				updateInterfacePanels();
+				BARS.updateConditions();
+				BarItems.move_layer_tool.select();
+			})
 		}
 	})
 	new Action('enable_texture_layers', {
@@ -614,12 +669,20 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 300],
-			height: 300
+			height: 300,
+			sidebar_index: 5,
+		},
+		mode_positions: {
+			paint_2d: {
+				slot: 'right_bar',
+				sidebar_index: 7,
+			}
 		},
 		toolbars: [
 			new Toolbar('layers', {
 				children: [
 					'create_empty_layer',
+					'import_layer',
 					'enable_texture_layers',
 					'layer_opacity',
 					'layer_blend_mode'
@@ -710,7 +773,7 @@ Interface.definePanels(function() {
 						if (active && !open_menu) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							[target_layer] = eventTargetToLayer(target, texture);
+							let [target_layer] = eventTargetToLayer(target, texture);
 							if (!target_layer || target_layer == layer ) return;
 
 							let index = texture.layers.indexOf(target_layer);
@@ -775,6 +838,11 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			'create_empty_layer',
+			'import_layer',
 		])
 	})
 })
+
+Object.assign(window, {
+	TextureLayer
+});

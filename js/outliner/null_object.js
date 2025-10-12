@@ -1,5 +1,5 @@
 
-class NullObject extends OutlinerElement {
+export class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid);
 
@@ -20,31 +20,7 @@ class NullObject extends OutlinerElement {
 			NullObject.properties[key].merge(this, object)
 		}
 		this.sanitizeName();
-		//Merge.boolean(this, object, 'export');
-		return this;
-	}
-	getUndoCopy() {
-		var copy = new NullObject(this)
-		copy.uuid = this.uuid
-		copy.type = this.type;
-		delete copy.parent;
-		return copy;
-	}
-	getSaveCopy() {
-		let save = {};
-		for (var key in NullObject.properties) {
-			NullObject.properties[key].copy(this, save)
-		}
-		//save.export = this.export ? undefined : false;
-		save.uuid = this.uuid;
-		save.type = 'null_object';
-		return save;
-	}
-	init() {
-		if (this.parent instanceof Group == false) {
-			this.addTo(Group.first_selected)
-		}
-		super.init();
+		Merge.boolean(this, object, 'export');
 		return this;
 	}
 	select(event, isOutlinerClick) {
@@ -94,19 +70,21 @@ class NullObject extends OutlinerElement {
 
 		return pos;
 	}
+	static behavior = {
+		movable: true,
+		hide_in_screenshot: true,
+	}
 }
 	NullObject.prototype.title = tl('data.null_object');
 	NullObject.prototype.type = 'null_object';
 	NullObject.prototype.icon = 'far.fa-circle';
 	//NullObject.prototype.name_regex = 'a-z0-9_'
-	NullObject.prototype.movable = true;
 	NullObject.prototype.visibility = true;
 	NullObject.prototype.buttons = [
 		//Outliner.buttons.export,
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
-	NullObject.prototype.needsUniqueName = true;
 	NullObject.prototype.menu = new Menu([
 			new MenuSeparator('ik'),
 			'set_ik_target',
@@ -142,56 +120,54 @@ class NullObject extends OutlinerElement {
 	
 	OutlinerElement.registerType(NullObject, 'null_object');
 
-(function() {
 
 	const map = new THREE.TextureLoader().load( 'assets/null_object.png' );
 	map.magFilter = map.minFilter = THREE.NearestFilter;
 	
-	new NodePreviewController(NullObject, {
-		setup(element) {
-			let material = new THREE.SpriteMaterial({
-				map,
-				alphaTest: 0.1,
-				sizeAttenuation: false
-			});
-			var mesh = new THREE.Sprite(material);
-			Project.nodes_3d[element.uuid] = mesh;
-			mesh.name = element.uuid;
-			mesh.type = element.type;
-			mesh.isElement = true;
-			mesh.visible = element.visibility;
-			mesh.rotation.order = 'ZYX';
-			element.mesh.fix_position = new THREE.Vector3();
-			this.updateTransform(element);
-	
-			this.dispatchEvent('setup', {element});
-			this.dispatchEvent('update_selection', {element});
-		},
-		updateTransform(element) {
-			NodePreviewController.prototype.updateTransform.call(this, element);
+new NodePreviewController(NullObject, {
+	setup(element) {
+		let material = new THREE.SpriteMaterial({
+			map,
+			alphaTest: 0.1,
+			sizeAttenuation: false
+		});
+		var mesh = new THREE.Sprite(material);
+		Project.nodes_3d[element.uuid] = mesh;
+		mesh.name = element.uuid;
+		mesh.type = element.type;
+		mesh.isElement = true;
+		mesh.visible = element.visibility;
+		mesh.rotation.order = Format.euler_order;
+		element.mesh.fix_position = new THREE.Vector3();
+		this.updateTransform(element);
 
-			element.mesh.fix_position.copy(element.mesh.position);
+		this.dispatchEvent('setup', {element});
+		this.dispatchEvent('update_selection', {element});
+	},
+	updateTransform(element) {
+		NodePreviewController.prototype.updateTransform.call(this, element);
 
-			this.updateWindowSize(element);
+		element.mesh.fix_position.copy(element.mesh.position);
 
-			this.dispatchEvent('update_transform', {element});
-		},
-		updateSelection(element) {
-			let {mesh} = element;
-	
-			mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
-			mesh.material.depthTest = !element.selected;
-			mesh.renderOrder = element.selected ? 100 : 0;
-	
-			this.dispatchEvent('update_selection', {element});
-		},
-		updateWindowSize(element) {
-			let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
-			element.mesh.scale.set(size, size, size);
-		}
-	})
-	
-})()
+		this.updateWindowSize(element);
+
+		this.dispatchEvent('update_transform', {element});
+	},
+	updateSelection(element) {
+		let {mesh} = element;
+
+		mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
+		mesh.material.depthTest = !element.selected;
+		mesh.renderOrder = element.selected ? 100 : 0;
+
+		this.dispatchEvent('update_selection', {element});
+	},
+	updateWindowSize(element) {
+		let size = 0.38 * Preview.selected.camera.fov / Preview.selected.height;
+		element.mesh.scale.set(size, size, size);
+	}
+})
+
 
 BARS.defineActions(function() {
 	new Action('add_null_object', {
@@ -227,19 +203,18 @@ BARS.defineActions(function() {
 
 			function iterate(arr, level) {
 				arr.forEach(node => {
-					if (node instanceof Group) {
+					if (node.constructor.animator) {
 						if (level) nodes.push(node);
-						iterate(node.children, level+1);
 					}
-					if (node instanceof Locator) {
-						if (level) nodes.push(node);
+					if (node.children) {
+						iterate(node.children, level+1);
 					}
 				})
 			}
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
-					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					icon: node.icon,
 					marked: node.uuid == NullObject.selected[0].ik_target,
 					color: markerColors[node.color % markerColors.length]?.standard,
 					click() {
@@ -271,8 +246,10 @@ BARS.defineActions(function() {
 
 			function iterate(arr) {
 				arr.forEach(node => {
-					if (node instanceof Group) {
-						nodes.push(node);
+					if (node.children) {
+						if (node.constructor.animator) {
+							nodes.push(node);
+						}
 						iterate(node.children)
 					}
 				})
@@ -299,3 +276,7 @@ BARS.defineActions(function() {
 
 	})
 })
+
+Object.assign(window, {
+	NullObject
+});

@@ -1,4 +1,7 @@
-class ModelProject {
+import { setProjectTitle } from "../interface/interface";
+import { currentwindow, ipcRenderer, shell } from "../native_apis";
+
+export class ModelProject {
 	constructor(options = {}, uuid) {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].reset(this, true);
@@ -57,6 +60,7 @@ class ModelProject {
 		this.selected_elements = [];
 		this.selected_groups = [];
 		this.mesh_selection = {};
+		this.spline_selection = {};
 		this.textures = [];
 		this.selected_texture = null;
 		this.texture_groups = [];
@@ -180,8 +184,7 @@ class ModelProject {
 		return this;
 	}
 	loadEditorState() {
-		Project = this;
-		Undo = this.undo;
+		Blockbench.Project = this;
 		this.selected = true;
 		this.format.select();
 		BarItems.view_mode.set(this.view_mode);
@@ -325,11 +328,13 @@ class ModelProject {
 		scene.remove(this.model_3d);
 		OutlinerNode.uuids = {};
 		MirrorModeling.cached_elements = {};
-		Format = 0;
-		Project = 0;
-		Undo = 0;
+		Blockbench.Format = 0;
+		Blockbench.Project = 0;
 		if (Modes.selected) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
+		
+		// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
+		SplineGizmos.clear();
 
 		OutlinerNode.uuids = {};
 		Outliner.root = [];
@@ -424,7 +429,7 @@ class ModelProject {
 			let index = ModelProject.all.indexOf(this);
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
-			Project = 0;
+			Blockbench.Project = 0;
 			
 			await AutoBackup.removeBackup(this.uuid);
 
@@ -545,7 +550,11 @@ new Property(ModelProject, 'object', 'unhandled_root_fields', {
 
 ModelProject.all = [];
 
-let Project = 0;
+Object.defineProperty(window, 'Project', {
+	get() {
+		return Blockbench.Project;
+	}
+})
 
 let ProjectData = {};
 
@@ -568,17 +577,17 @@ ModelProject.prototype.menu = new Menu([
 ])
 
 // Setup ModelProject for loaded project
-function setupProject(format, uuid) {
+export function setupProject(format, uuid) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	if (uuid && ModelProject.all.find(project => project.uuid == uuid)) uuid = null;
 	new ModelProject({format}, uuid).select();
 
 	if (format.edit_mode) {
-		Modes.options.edit.select();
+		if (Mode.selected != Modes.options.edit) Modes.options.edit.select();
 	} else if (format.paint_mode) {
-		Modes.options.paint.select();
+		if (Mode.selected != Modes.options.paint) Modes.options.paint.select();
 	} else if (format.animation_mode) {
-		Modes.options.animate.select();
+		if (Mode.selected != Modes.options.animate) Modes.options.animate.select();
 	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, false)
@@ -587,14 +596,14 @@ function setupProject(format, uuid) {
 	return true;
 }
 // Setup brand new project
-function newProject(format) {
+export function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
 
 	if (format.edit_mode) {
-		Modes.options.edit.select();
+		if (Mode.selected != Modes.options.edit) Modes.options.edit.select();
 	} else if (format.paint_mode) {
-		Modes.options.paint.select();
+		if (Mode.selected != Modes.options.paint) Modes.options.paint.select();
 	}
 	if (typeof Format.onSetup == 'function') {
 		Format.onSetup(Project, true)
@@ -602,11 +611,10 @@ function newProject(format) {
 	Blockbench.dispatchEvent('new_project');
 	return true;
 }
-function selectNoProject() {
+export function selectNoProject() {
 	setStartScreen(true);
 	
-	Project = 0;
-	Undo = null;
+	Blockbench.Project = 0;
 
 	// Setup Data
 	OutlinerNode.uuids = {};
@@ -634,14 +642,14 @@ function selectNoProject() {
 
 	Blockbench.dispatchEvent('select_no_project', {});
 }
-function updateTabBarVisibility() {
+export function updateTabBarVisibility() {
 	let hidden = Settings.get('hide_tab_bar') && Interface.tab_bar.tabs.length < 2;
 	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
 	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
 
 // Resolution
-function setProjectResolution(width, height, modify_uv) {
+export function setProjectResolution(width, height, modify_uv) {
 	if (Project.texture_width / width != Project.texture_width / height) {
 		modify_uv = false;
 	}
@@ -703,7 +711,7 @@ function setProjectResolution(width, height, modify_uv) {
 		UVEditor.loadData()
 	}
 }
-function updateProjectResolution() {
+export function updateProjectResolution() {
 	if (!Format.per_texture_uv_size) {
 		if (Interface.Panels.uv) {
 			UVEditor.vue.uv_resolution.replace([Project.texture_width, Project.texture_height]);
@@ -719,7 +727,7 @@ function updateProjectResolution() {
 	Blockbench.dispatchEvent('update_project_resolution', {project: Project});
 }
 
-function setStartScreen(state) {
+export function setStartScreen(state) {
 	document.getElementById('start_screen').style.display = state ? 'block' : 'none';
 	Interface.work_screen.style.display = state ? 'none' : 'grid';
 }
@@ -747,7 +755,7 @@ onVueSetup(() => {
 			if (Project) {
 				Project.unselect()
 			}
-			Project = 0;
+			Blockbench.Project = 0;
 			Interface.tab_bar.new_tab.selected = true;
 			setProjectTitle(ModelProject.all.length ? tl('projects.new_tab') : null);
 			updateInterface();
@@ -1037,7 +1045,8 @@ BARS.defineActions(function() {
 				width: 500,
 				form,
 				onConfirm: function(formResult) {
-					var save;
+					let save;
+					let was_changed = false;
 					let box_uv = formResult.uv_mode == 'box_uv';
 					let texture_width = Math.clamp(formResult.texture_size[0], 1, Infinity);
 					let texture_height = Math.clamp(formResult.texture_size[1], 1, Infinity);
@@ -1046,12 +1055,15 @@ BARS.defineActions(function() {
 						Project.texture_width != texture_width ||
 						Project.texture_height != texture_height
 					) {
+						was_changed = true;
+						/*
 						// Adjust UV Mapping if resolution changed
 						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
 							(Project.texture_width != texture_width || Project.texture_height != texture_height)
 						) {
 							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
 							Cube.all.forEach(cube => {
+								if (cube.box_uv) return;
 								for (var key in cube.faces) {
 									var uv = cube.faces[key].uv;
 									uv[0] *= texture_width / Project.texture_width;
@@ -1069,7 +1081,7 @@ BARS.defineActions(function() {
 									}
 								}
 							})
-						}
+						}*/
 						// Convert UV mode per element
 						if (Project.box_uv != box_uv &&
 							((box_uv && !Cube.all.find(cube => cube.box_uv)) ||
@@ -1094,6 +1106,9 @@ BARS.defineActions(function() {
 					}
 					
 					for (var key in ModelProject.properties) {
+						if (formResult[key] != undefined && Project[key] != formResult[key] && typeof Project[key] != 'object') {
+							was_changed = true;
+						}
 						ModelProject.properties[key].merge(Project, formResult);
 					}
 					Project.name = Project.name.trim();
@@ -1101,6 +1116,9 @@ BARS.defineActions(function() {
 
 					if (save) {
 						Undo.finishEdit('Change project UV settings')
+					}
+					if (was_changed) {
+						Project.saved = false;
 					}
 
 					Blockbench.dispatchEvent('update_project_settings', formResult);
@@ -1282,3 +1300,16 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+
+Object.assign(window, {
+	ModelProject,
+	ProjectData,
+	setupProject,
+	newProject,
+	selectNoProject,
+	updateTabBarVisibility,
+	setProjectResolution,
+	updateProjectResolution,
+	setStartScreen,
+});

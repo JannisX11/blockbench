@@ -1,11 +1,12 @@
-var open_menu = null;
-class MenuSeparator {
+window.open_menu = null;
+
+export class MenuSeparator {
 	constructor(id, label) {
 		this.id = id || '';
 		this.menu_node = Interface.createElement('li', {class: 'menu_separator', menu_separator_id: id});
 		if (label) {
-			label = tl(label);
-			this.menu_node.append(Interface.createElement('label', {}, label));
+			this.label = tl(label);
+			this.menu_node.append(Interface.createElement('label', {}, this.label));
 			this.menu_node.classList.add('has_label');
 		}
 	}
@@ -50,7 +51,8 @@ function handleMenuOverflow(node) {
 		offset(-e.deltaY);
 	})
 }
-class Menu {
+// FIXME - This should be changed to `Menu implements Deletable` when this is converted to TypeScript
+export class Menu {
 	constructor(id, structure, options) {
 		if (typeof id !== 'string') {
 			options = structure;
@@ -73,7 +75,13 @@ class Menu {
 		}
 	}
 	hover(node, event, expand) {
-		if (node.classList.contains('focused') && !expand) return;
+		if (node.classList.contains('focused') && !expand) {
+			if (node.classList.contains('hybrid_parent')) {
+				node.classList.remove('opened');
+			} else {
+				return;
+			}
+		}
 		if (event) event.stopPropagation()
 		$(open_menu.node).find('li.focused').removeClass('focused')
 		$(open_menu.node).find('li.opened').removeClass('opened')
@@ -546,8 +554,9 @@ class Menu {
 			} else if (position && position.parentElement.classList.contains('tool')) {
 				position = position.parentElement;
 			}
-			var offset_left = $(position).offset().left;
-			var offset_top  = $(position).offset().top + position.offsetHeight;
+			let offset = $(position).offset();
+			var offset_left = offset.left;
+			var offset_top  = offset.top + position.offsetHeight;
 		}
 
 		if (offset_left > window.innerWidth - el_width) {
@@ -596,7 +605,7 @@ class Menu {
 			MenuBar.open = scope
 			scope.label.classList.add('opened');
 		}
-		open_menu = scope;
+		window.open_menu = scope;
 		Menu.open = this;
 		return scope;
 	}
@@ -607,7 +616,7 @@ class Menu {
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
 		this.node.remove()
-		open_menu = null;
+		window.open_menu = null;
 		Menu.open = null;
 		return this;
 	}
@@ -718,11 +727,17 @@ class Menu {
 		traverse(this.structure, 0)
 		rm_item.menus.remove(scope)
 	}
+	delete() {
+		this.node.remove()
+	}
+	static open = null;
 }
 
-function preventContextMenu() {
+export function preventContextMenu() {
 	Blockbench.addFlag('no_context_menu');
 	setTimeout(() => {
 		Blockbench.removeFlag('no_context_menu');
 	}, 20);
 }
+
+Object.assign(window, {MenuSeparator, Menu, preventContextMenu});

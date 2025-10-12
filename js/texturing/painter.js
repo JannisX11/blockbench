@@ -1,5 +1,8 @@
+import { clipboard, nativeImage } from "../native_apis";
+
 StateMemory.init('brush_presets', 'array')
-const Painter = {
+
+export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
 	current: {/*texture, image*/},
@@ -508,7 +511,7 @@ const Painter = {
 		}
 
 		function paintElement(element) {
-			if (element instanceof Cube) {
+			if (element.getTypeBehavior('cube_faces')) {
 				texture.selection.maskCanvas(ctx, offset);
 				ctx.beginPath();
 				for (var fkey in element.faces) {
@@ -555,7 +558,7 @@ const Painter = {
 			}
 		}
 
-		if ((element instanceof Cube || element instanceof Mesh) && (fill_mode === 'element' || fill_mode === 'face')) {
+		if ((element?.getTypeBehavior('cube_faces') || element instanceof Mesh || element instanceof SplineMesh) && (fill_mode === 'element' || fill_mode === 'face')) {
 			paintElement(element);
 
 		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {
@@ -979,6 +982,7 @@ const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
+								let result_color;
 								if (blend_mode == 'default') {
 									result_color = Painter.combineColors(pxcolor, color, b_opacity);
 								} else {
@@ -1271,6 +1275,14 @@ const Painter = {
 				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'darken':
+				mix[ch] = (Math.min(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'lighten':
+				mix[ch] = (Math.max(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
 				case 'screen':
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
 				break;
@@ -1366,6 +1378,8 @@ const Painter = {
 			//case 'divide': return 'color-burn';
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
+			case 'darken': return 'darken';
+			case 'lighten': return 'lighten';
 			case 'screen': return 'screen';
 			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
@@ -1690,7 +1704,7 @@ const Painter = {
 			},
 			form: {
 				name: {label: 'generic.name', type: 'text'},
-				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', description: 'action.brush_shape.desc', type: 'select', options: {
+				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', type: 'select', options: {
 					unset: 'generic.unset',
 					square: 'action.brush_shape.square',
 					circle: 'action.brush_shape.circle'
@@ -1705,12 +1719,14 @@ const Painter = {
 					//divide: 'action.blend_mode.divide',
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
+					lighten: 'action.blend_mode.lighten',
+					darken: 'action.blend_mode.darken',
 					screen: 'action.blend_mode.screen',
 					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
 				}},
 				size: {
-					label: 'action.slider_brush_size', nocolon: true,
+					label: 'action.slider_brush_size',
 					description: 'action.slider_brush_size.desc',
 					type: 'number',
 					value: 1, min: 1, max: 100,
@@ -1718,14 +1734,14 @@ const Painter = {
 					toggle_default: true
 				},
 				opacity: {
-					label: 'action.slider_brush_opacity', nocolon: true,
+					label: 'action.slider_brush_opacity',
 					description: 'action.slider_brush_opacity.desc', type: 'number',
 					value: 255, min: 0, max: 255,
 					toggle_enabled: true,
 					toggle_default: true
 				},
 				softness: {
-					label: 'action.slider_brush_softness', nocolon: true,
+					label: 'action.slider_brush_softness',
 					description: 'action.slider_brush_softness.desc', type: 'number',
 					value: 0, min: 0, max: 100,
 					toggle_enabled: true,
@@ -1736,7 +1752,7 @@ const Painter = {
 					type: 'checkbox',
 				},
 				color: {
-					label: 'data.color', nocolon: true,
+					label: 'data.color',
 					description: 'action.brush_shape.desc', type: 'color',
 					toggle_enabled: true,
 					toggle_default: true
@@ -1854,7 +1870,7 @@ const Painter = {
 	]
 }
 
-class IntMatrix {
+export class IntMatrix {
 	constructor(width = 16, height = 16) {
 		this.width = width;
 		this.height = height;
@@ -2244,6 +2260,54 @@ SharedActions.add('delete', {
 })
 
 BARS.defineActions(function() {
+	new Mode('paint', {
+		icon: 'fa-paint-brush',
+		default_tool: 'brush_tool',
+		category: 'navigate',
+		condition: () => Format && Format.paint_mode,
+		onSelect: () => {
+			if (Modes.previous_id == 'animate') {
+				Animator.preview();
+			}
+			Outliner.elements.forEach(element => {
+				if (element.preview_controller.updatePixelGrid) element.preview_controller.updatePixelGrid(element);
+			})
+			$('#main_colorpicker').spectrum('set', ColorPanel.panel.vue._data.main_color);
+			if (StateMemory.color_picker_rgb) {
+				BarItems.slider_color_red.update();
+				BarItems.slider_color_green.update();
+				BarItems.slider_color_blue.update();
+			} else {
+				BarItems.slider_color_h.update();
+				BarItems.slider_color_s.update();
+				BarItems.slider_color_v.update();
+			}
+
+			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+
+			let fill_mode = BarItems.fill_mode.value;
+			if (!Condition(BarItems.fill_mode.options[fill_mode].condition)) {
+				for (let key in BarItems.fill_mode.options) {
+					if (Condition(BarItems.fill_mode.options[key].condition)) {
+						BarItems.fill_mode.set(key);
+						break;
+					}
+				}
+			}
+
+			UVEditor.vue.setMode('paint');
+			three_grid.visible = false;
+		},
+		onUnselect: () => {
+			Canvas.updateAllBones()
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
+			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			UVEditor.vue.setMode('uv');
+			three_grid.visible = true;
+		},
+	})
 
 	new KeybindItem('paint_secondary_color', {
 		category: 'paint',
@@ -2265,7 +2329,6 @@ BARS.defineActions(function() {
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
 	const BlendModes = {
-		set_opacity: 'set_opacity',
 		set_opacity: 'set_opacity',
 		difference: 'difference',
 		default: 'default',
@@ -2835,6 +2898,8 @@ BARS.defineActions(function() {
 			//divide: true,
 			add: true,
 			//subtract: true,
+			lighten: true,
+			darken: true,
 			screen: true,
 			overlay: true,
 			difference: true,
@@ -3026,9 +3091,6 @@ BARS.defineActions(function() {
 				if (!result.axis.x && !result.axis.z) {
 					this.setFormValues({axis: {x: true, z: false}});
 				}
-				if (!result.global && !result.local) {
-					this.setFormValues({global: true});
-				}
 			}
 		})
 	})
@@ -3198,3 +3260,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Painter,
+	IntMatrix,
+});

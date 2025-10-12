@@ -7,7 +7,9 @@
  * @author WestLangley / http://github.com/WestLangley
  * @author erich666 / http://erichaines.com
  */
-THREE.OrbitControls = function ( object, preview ) {
+class OrbitControls extends THREE.EventDispatcher {
+constructor ( object, preview ) {
+	super();
 
 	this.object = object;
 	this.preview = preview
@@ -75,7 +77,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	this.updateSceneScale = function() {
 		ReferenceImage.active.forEach(ref => {
-			if (ref.layer == 'blueprint' && ref.attached_side == scope.preview.angle) {
+			if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
 				ref.updateTransform()
 			}
 		})
@@ -408,12 +410,13 @@ THREE.OrbitControls = function ( object, preview ) {
 		rotateDelta.subVectors( rotateEnd, rotateStart );
 
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+		let clamped_viewport_size = Math.clamp(Math.min(element.clientWidth + element.clientHeight), 600, 1200);
 
 		// rotating across whole screen goes 360 degrees around
-		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / clamped_viewport_size * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / clamped_viewport_size * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
@@ -800,8 +803,10 @@ THREE.OrbitControls = function ( object, preview ) {
 	window.addEventListener( 'keydown', onKeyDown, false );
 
 	this.update();
-
+}
 };
 
-THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls;
+// OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+// OrbitControls.prototype.constructor = OrbitControls;
+
+export default OrbitControls;

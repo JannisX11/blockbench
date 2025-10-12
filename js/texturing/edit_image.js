@@ -654,9 +654,10 @@ BARS.defineActions(function() {
 			Undo.initEdit({textures: [texture], bitmap: true});
 
 			texture.layers_enabled = true;
+			texture.layers.empty();
 			let i = 0;
 			for (let color of ['red', 'green', 'blue']) {
-				data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+				let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
 				for (let j = 0; j < data_copy.data.length; j += 4) {
 					if (i != 0) data_copy.data[j+0] = 0;
 					if (i != 1) data_copy.data[j+1] = 0;
@@ -711,7 +712,7 @@ BARS.defineActions(function() {
 										}
 									}
 								}
-							} else if (el instanceof Cube) {
+							} else if (el.getTypeBehavior('cube_faces')) {
 								let factor_x = texture.width  / Project.texture_width;
 								let factor_y = texture.display_height / Project.texture_height;
 								for (var fkey in el.faces) {
@@ -922,7 +923,7 @@ BARS.defineActions(function() {
 					uv_adjust_y = rect.height / old_height;
 				}
 				elements_to_change.forEach(element => {
-					if (element instanceof Cube) {
+					if (element.getTypeBehavior('cube_faces')) {
 						for (let key in element.faces) {
 							if (element.faces[key].getTexture() != texture) continue;
 							if (element.box_uv) {

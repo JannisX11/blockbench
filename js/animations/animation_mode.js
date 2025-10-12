@@ -1,4 +1,11 @@
-const Animator = {
+import MolangParser from "molangjs";
+import Wintersky from 'wintersky';
+import { Mode } from "../modes";
+import { invertMolang } from "../util/molang";
+import { fs } from "../native_apis";
+import { openMolangEditor } from "./molang_editor";
+
+export const Animator = {
 	get possible_channels() {
 		let obj = {};
 		Object.assign(obj, BoneAnimator.prototype.channels, EffectAnimator.prototype.channels);
@@ -7,7 +14,7 @@ const Animator = {
 	open: false,
 	get animations() {return Animation.all},
 	get selected() {return Animation.selected},
-	MolangParser: new Molang(),
+	MolangParser: new MolangParser(),
 	motion_trail: new THREE.Object3D(),
 	onion_skin_object: new THREE.Object3D(),
 	motion_trail_lock: false,
@@ -35,6 +42,9 @@ const Animator = {
 
 		Animator.open = true;
 		Canvas.updateAllBones();
+		for (let mesh of Mesh.all) {
+			mesh.sortAllFaceVertices();
+		}
 		Animator.MolangParser.resetVariables();
 		processVariablePlaceholderText(Project.variable_placeholders);
 
@@ -45,10 +55,6 @@ const Animator = {
 
 		if (!Animator.timeline_node) {
 			Animator.timeline_node = Panels.timeline.node;
-		}
-		updateInterface()
-		if (Panels.element) {
-			Toolbars.element_origin.toPlace('bone_origin')
 		}
 		if (!Timeline.is_setup) {
 			Timeline.setup()
@@ -66,6 +72,9 @@ const Animator = {
 			Group.first_selected.select();
 		}
 		BarItems.slider_animation_length.update();
+		if (Panels.transform) {
+			Toolbars.element_origin.toPlace('bone_origin')
+		}
 		Animator.preview();
 	},
 	leave() {
@@ -82,12 +91,12 @@ const Animator = {
 		Animator.showDefaultPose();
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 
-		if (Panels.element) {
-			let anchor = Panels.element.node.querySelector('#element_origin_toolbar_anchor');
+		if (Panels.transform) {
+			let anchor = Panels.transform.node.querySelector('#element_origin_toolbar_anchor');
 			if (anchor) anchor.before(Toolbars.element_origin.node);
 		}
 	},
-	showDefaultPose(no_matrix_update) {
+	showDefaultPose(reduced_updates) {
 		[...Group.all, ...Outliner.elements].forEach(node => {
 			if (!node.constructor.animator) return;
 			var mesh = node.mesh;
@@ -97,7 +106,13 @@ const Animator = {
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 			}
 		})
-		if (!no_matrix_update) scene.updateMatrixWorld()
+		for (let mesh of Mesh.all) {
+			let armature = mesh.getArmature();
+			if (armature && !reduced_updates) {
+				Mesh.preview_controller.updateGeometry(mesh);
+			}
+		}
+		if (!reduced_updates) scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
 		for (var path in Animator.particle_effects) {
@@ -133,7 +148,7 @@ const Animator = {
 		let bone_stack = [];
 		let iterate = g => {
 			bone_stack.push(g);
-			if (g.parent instanceof Group) iterate(g.parent);
+			if (g.parent instanceof OutlinerElement && g.parent.constructor.animator) iterate(g.parent);
 		}
 		iterate(target)
 		
@@ -175,7 +190,7 @@ const Animator = {
 		let i = 0;
 		for (var time = start_time; time <= max_time; time += step) {
 			displayTime(time);
-			let position = target instanceof Group
+			let position = (target instanceof OutlinerNode && target.children)
 						 ? THREE.fastWorldPosition(target.mesh, new THREE.Vector3())
 						 : target.getWorldCenter(true);
 			position = position.toArray();
@@ -279,6 +294,15 @@ const Animator = {
 
 		scene.add(Animator.onion_skin_object);
 	},
+	displayMeshDeformation() {
+		for (let mesh of Mesh.all) {
+			let armature = mesh.getArmature();
+			if (armature) {
+				let vertex_offsets = armature.calculateVertexDeformation(mesh);
+				Mesh.preview_controller.displayDeformation(mesh, vertex_offsets);
+			}
+		}
+	},
 	stackAnimations(animations, in_loop, controller_blend_values = 0) {
 		if (animations.length > 1 && Animation.selected && animations.includes(Animation.selected)) {
 			// Ensure selected animation is applied last so that transform gizmo gets correct pre rotation
@@ -304,8 +328,11 @@ const Animator = {
 			})
 		})
 
-		Animator.resetLastValues();
 		scene.updateMatrixWorld();
+
+		Animator.displayMeshDeformation();
+
+		Animator.resetLastValues();
 
 		// Effects
 		Animator.resetParticles(true);
@@ -415,7 +442,7 @@ const Animator = {
 	},
 	particle_effects: {},
 	loadParticleEmitter(path, content) {
-		let json_content = autoParseJSON(content);
+		let json_content = autoParseJSON(content, {file_path: path});
 		if (!json_content || !json_content.particle_effect) return;
 
 		if (Animator.particle_effects[path]) {
@@ -449,7 +476,7 @@ const Animator = {
 		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
-		var json = file.json || autoParseJSON(file.content);
+		var json = file.json || autoParseJSON(file.content, {file_path: file.path});
 		let path = file.path;
 		let new_animations = [];
 		function multilinify(string) {
@@ -511,14 +538,22 @@ const Animator = {
 							}
 						})
 					}
-					function getKeyframeDataPoints(source) {
+					function getKeyframeDataPoints(source, channel) {
 						if (source instanceof Array) {
 							source.forEach(processPlaceholderVariables);
-							return [{
+							let vec = {
 								x: source[0],
 								y: source[1],
 								z: source[2],
-							}]
+							}
+							if (channel == 'position') {
+								vec.x = invertMolang(vec.x);
+							}
+							if (channel == 'rotation') {
+								vec.x = invertMolang(vec.x);
+								vec.y = invertMolang(vec.y);
+							}
+							return [vec];
 						} else if (['number', 'string'].includes(typeof source)) {
 							processPlaceholderVariables(source);
 							return [{
@@ -527,10 +562,10 @@ const Animator = {
 						} else if (typeof source == 'object') {
 							let points = [];
 							if (source.pre) {
-								points.push(getKeyframeDataPoints(source.pre)[0])
+								points.push(getKeyframeDataPoints(source.pre, channel)[0]);
 							}
 							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
-								points.push(getKeyframeDataPoints(source.post)[0])
+								points.push(getKeyframeDataPoints(source.post, channel)[0]);
 							}
 							return points;
 						}
@@ -551,7 +586,7 @@ const Animator = {
 									time: 0,
 									channel,
 									uniform: !(b[channel] instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								})
 							} else if (typeof b[channel] === 'object' && b[channel].post) {
 								ba.addKeyframe({
@@ -559,7 +594,7 @@ const Animator = {
 									channel,
 									interpolation: b[channel].lerp_mode,
 									uniform: !(b[channel].post instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel]),
+									data_points: getKeyframeDataPoints(b[channel], channel),
 								});
 							} else if (typeof b[channel] === 'object') {
 								for (var timestamp in b[channel]) {
@@ -568,7 +603,7 @@ const Animator = {
 										channel,
 										interpolation: b[channel][timestamp].lerp_mode,
 										uniform: !(b[channel][timestamp] instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel][timestamp]),
+										data_points: getKeyframeDataPoints(b[channel][timestamp], channel),
 									});
 								}
 							}
@@ -704,7 +739,7 @@ const Animator = {
 		if (auto_loaded && file.path) {
 			form['_path'] = {type: 'info', text: file.path};
 		}
-		let json = autoParseJSON(file.content)
+		let json = autoParseJSON(file.content, {file_path: file.path})
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
 		let entries = json.animations || json.animation_controllers;
@@ -720,7 +755,7 @@ const Animator = {
 				}
 				if (is_already_loaded) continue;
 			}
-			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true, nocolon: true};
+			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true};
 			keys.push(key);
 		}
 		file.json = json;
@@ -781,7 +816,7 @@ const Animator = {
 			});
 		}
 	},
-	exportAnimationFile(path) {
+	exportAnimationFile(path, save_as) {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
@@ -794,7 +829,7 @@ const Animator = {
 			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
 		}
 
-		if (isApp && path && fs.existsSync(path)) {
+		if (!save_as && isApp && path && fs.existsSync(path)) {
 			Animator.animations.forEach(function(a) {
 				if (a.path == filter_path && !a.saved) {
 					a.save();
@@ -832,7 +867,7 @@ const Animator = {
 			})
 		}
 	},
-	exportAnimationControllerFile(path) {
+	exportAnimationControllerFile(path, save_as) {
 		let filter_path = path || '';
 
 		if (isApp && !path) {
@@ -845,7 +880,7 @@ const Animator = {
 			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
 		}
 
-		if (isApp && path && fs.existsSync(path)) {
+		if (!save_as && isApp && path && fs.existsSync(path)) {
 			AnimationController.all.forEach(function(a) {
 				if (a.path == filter_path && !a.saved) {
 					a.save();
@@ -886,7 +921,7 @@ const Animator = {
 }
 Canvas.gizmos.push(Animator.motion_trail, Animator.onion_skin_object);
 
-const WinterskyScene = new Wintersky.Scene({
+export const WinterskyScene = new Wintersky.Scene({
 	fetchTexture: function(config) {
 		if (config.preview_texture) {
 			return config.preview_texture;
@@ -1265,6 +1300,19 @@ Animator.animation_presets = {
 
 
 BARS.defineActions(function() {
+	new Mode('animate', {
+		icon: 'movie',
+		default_tool: 'move_tool',
+		category: 'navigate',
+		hidden_node_types: ['cube', 'mesh', 'texture_mesh'],
+		condition: () => Format.animation_mode,
+		onSelect: () => {
+			Animator.join()
+		},
+		onUnselect: () => {
+			Animator.leave()
+		}
+	})
 	// Motion Trail
 	new Toggle('lock_motion_trail', {
 		icon: 'lock_open',
@@ -1280,7 +1328,7 @@ BARS.defineActions(function() {
 		}
 	})
 	// Onion Skin
-	new Toggle('animation_onion_skin', {
+	let onion_skin_toggle = new Toggle('animation_onion_skin', {
 		category: 'view',
 		condition: {modes: ['animate']},
 		tool_config: new ToolConfig('animation_onion_skin', {
@@ -1297,9 +1345,6 @@ BARS.defineActions(function() {
 				interval: {type: 'number', label: 'menu.animation_onion_skin.interval', value: 1, condition: form => form.frames != 'select'},
 				selective: {type: 'checkbox', label: 'menu.animation_onion_skin_selective', value: true},
 			},
-			onOpen() {
-				this.setFormValues({enabled: BarItems.animation_onion_skin.value}, false);
-			},
 			onFormChange(formResult) {
 				if (BarItems.animation_onion_skin.value != formResult.enabled) {
 					BarItems.animation_onion_skin.trigger();
@@ -1311,6 +1356,7 @@ BARS.defineActions(function() {
 		}),
 		onChange() {
 			Timeline.vue.onion_skin_selectable = this.value && this.tool_config.options.frames == 'select';
+			onion_skin_toggle.tool_config.options.enabled = this.value;
 			Animator.updateOnionSkin();
 		}
 	})
@@ -1328,7 +1374,8 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 10,
 		},
 		component: {
 			name: 'panel-placeholders',
@@ -1453,9 +1500,23 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'mouseup touchend', off);
 					addEventListeners(document, 'mousemove touchmove', move);
 				},
+				openMolangContextMenu(event) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click: () => {
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.AnimationContext,
+									text: this.text
+								}, result => this.text = result)
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
-					let test = MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
-					return test;
+					if (Settings.get('autocomplete_code') == false) return [];
+					return MolangAutocomplete.VariablePlaceholdersContext.autocomplete(text, position);
 				}
 			},
 			watch: {
@@ -1488,6 +1549,7 @@ Interface.definePanels(function() {
 						class="molang_input tab_target capture_tab_key"
 						v-model="text"
 						language="molang"
+						@contextmenu="openMolangContextMenu($event)"
 						:autocomplete="autocomplete"
 						:line-numbers="false"
 						style="flex-grow: 1;"
@@ -1515,3 +1577,9 @@ function processVariablePlaceholderText(text) {
 		Animator.global_variable_lines[key] = val.trim()
 	}
 }
+
+Object.assign(window, {
+	Animator,
+	Wintersky,
+	WinterskyScene
+});

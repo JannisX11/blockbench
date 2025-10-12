@@ -1,5 +1,7 @@
+import { Filesystem } from "../file_system";
+import { fs } from "../native_apis";
 
-class TextureGroup {
+export class TextureGroup {
 	constructor(data, uuid) {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
@@ -278,7 +280,7 @@ Blockbench.on('edit_texture', ({texture}) => {
 	}
 })
 
-class TextureGroupMaterialConfig {
+export class TextureGroupMaterialConfig {
 	constructor(texture_group, data) {
 		this.texture_group = texture_group;
 		this.saved = true;
@@ -368,6 +370,10 @@ class TextureGroupMaterialConfig {
 		let path = this.getFilePath();
 		if (!path) return;
 		if (isApp) {
+			if (fs.existsSync(PathModule.dirname(path)) == false) {
+				Blockbench.showQuickMessage('message.invalid_texture_group_material_config_path')
+				return;
+			}
 			fs.writeFileSync(path, file, {encoding: 'utf-8'});
 			this.saved = true;
 		} else {
@@ -537,7 +543,7 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 				Blockbench.showQuickMessage('texture.error.file')
 				return;
 			}
-			showItemInFolder(path);
+			Filesystem.showFileInFolder(path);
 		}
 	},
 	{
@@ -564,7 +570,7 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 	}
 })
 
-function importTextureSet(file) {
+export function importTextureSet(file) {
 	let new_textures = [], new_texture_groups = [];
 	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
 	if (file.name.endsWith('texture_set.json')) {
@@ -572,7 +578,7 @@ function importTextureSet(file) {
 		texture_group.name = file.name.replace('.texture_set.json', '.png material');
 
 		let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
-		let content_json = autoParseJSON(content);
+		let content_json = autoParseJSON(content, {file_path: file.path});
 
 		if (content_json && content_json['minecraft:texture_set']) {
 			let channels = {
@@ -585,16 +591,23 @@ function importTextureSet(file) {
 			for (let key in channels) {
 				let source = content_json['minecraft:texture_set'][key];
 				if (typeof source == 'string' && !source.startsWith('#')) {
-					let path = PathModule.resolve(file.path, '../' + source + '.png');
-					Blockbench.read([path], {
+					let paths = [
+						PathModule.resolve(file.path, '../' + source + '.png'),
+						PathModule.resolve(file.path, '../' + source + '.tga'),
+					]
+					Blockbench.read(paths, {
 						readtype: 'image',
-					}, ([file2]) => {
-						let t = new Texture({
-							name: file2.name,
-							pbr_channel: channels[key]
-						}).fromFile(file2).add(false, true).fillParticle();
-						new_textures.push(t);
-						t.group = texture_group.uuid;
+					}, files => {
+						for (let file2 of files) {
+							if (!fs.existsSync(file2.path)) continue;
+							let t = new Texture({
+								name: file2.name,
+								pbr_channel: channels[key]
+							}).fromFile(file2).add(false, true).fillParticle();
+							new_textures.push(t);
+							t.group = texture_group.uuid;
+							break;
+						}
 					})
 					if (key == 'metalness_emissive_roughness_subsurface') {
 						texture_group.material_config.subsurface_value = 1;
@@ -671,6 +684,7 @@ BARS.defineActions(function() {
 		click() {
 			let texture = Texture.selected;
 			let texture_group = new TextureGroup({is_material: true});
+			texture_group.material_config.saved = false;
 			texture_group.name = (texture?.name || 'New') + ' material';
 			let textures_to_add = Texture.all.filter(tex => tex.selected || tex.multi_selected);
 			Undo.initEdit({texture_groups: [], textures: textures_to_add});
@@ -926,4 +940,11 @@ BARS.defineActions(function() {
 			}).show();
 		}
 	})
+});
+
+Object.assign(window, {
+	TextureGroup,
+	TextureGroupMaterialConfig,
+	importTextureSet,
+	loadAdjacentTextureSet
 });

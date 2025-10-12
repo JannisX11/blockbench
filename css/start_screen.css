@@ -1,3 +1,5 @@
+@layer base {
+
 /*Start Screen*/
 	#mode_screen_start {
 		flex-grow: 1;
@@ -8,12 +10,16 @@
 		width: 100%;
 		padding: 36px 0;
 		overflow-y: auto;
+		background: linear-gradient(180deg, var(--color-ui) 5%, transparent 60%);
 	}
 	body.is_mobile #start_screen {
 		padding: 0;
 	}
 	#start_screen h3 {
 		margin: 0;
+	}
+	#start_screen .start_screen_features h3 {
+		font-weight: 800;
 	}
 	#start_screen .bar.next_to_title {
 		position: absolute;
@@ -26,6 +32,7 @@
 	#start_screen .recent_project {
 		margin: 2px 0;
 		display: flex;
+		align-items: center;
 		cursor: pointer;
 	}
 	#start_screen .recent_project:hover {
@@ -54,7 +61,6 @@
 		width: 16px;
 		height: 26px;
 		margin-left: -20px;
-		background: linear-gradient(90deg, transparent, var(--color-ui));
 	}
 	#start_screen .recent_favorite_button {
 		color: var(--color-subtle_text);
@@ -67,10 +73,10 @@
 		visibility: visible;
 	}
 	#start_screen .recent_project.thumbnail .recent_favorite_button {
-		color: var(--color-accent_text);
+		color: var(--color-text);
 		position: absolute;
-		top: 0;
-		right: 0;
+		top: 4px;
+		right: 4px;
 		padding: 2px 4px;
 	}
 	#start_screen .recent_project .recent_favorite_button:hover {
@@ -104,7 +110,9 @@
 		margin: 0;
 		height: 130px;
 		position: relative;
-		background-color: var(--color-back);
+		background-color: var(--color-elevated);
+		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+		border-radius: 5px;
 		cursor: pointer;
 	}
 	#start_screen .recent_project.thumbnail .thumbnail_image {
@@ -115,7 +123,7 @@
 		pointer-events: none;
 	}
 	#start_screen .recent_project.thumbnail:hover {
-		background-color: var(--color-accent);
+		background-color: var(--color-selected);
 	}
 	#start_screen .recent_project.thumbnail .recent_project_name {
 		font-size: 1em;
@@ -135,13 +143,12 @@
 		display: none;
 		pointer-events: none;
 		padding: 2px;
-		color: var(--color-accent_text);
-		background-color: var(--color-accent);
-		top: -1px;
+		color: var(--color-text);
+		top: 4px;
+		left: 5px;
 	}
 	#start_screen .recent_project.thumbnail:hover .recent_project_name {
-		color: var(--color-accent_text);
-		background-color: transparent;
+		color: var(--color-light);
 	}
 	#start_files ul.redact li.recent_project.thumbnail .thumbnail_image {
 		background: transparent !important;
@@ -162,10 +169,11 @@
 		height: auto;
 		margin-left: auto;
 		margin-right: auto;
-		background-color: var(--color-ui);
+		background: linear-gradient(180deg, var(--color-ui) 160px, var(--color-back) 1000px);
 		box-shadow: 0 0 50px #00000060;
 		overflow-x: hidden;
 		image-rendering: auto;
+		border-radius: 6px;
 	}
 	#start_screen > content > section {
 		width: 100%;
@@ -193,6 +201,8 @@
 	div.start_screen_right > ul.recent_list_grid {
 		display: grid;
 		margin-left: 0;
+		padding: 4px;
+		gap: 8px;
 	}
 	#start_screen div.start_screen_left {
 		max-width: 100%;
@@ -249,32 +259,33 @@
 	}
 	#start_screen .start_screen_features {
 		display: flex;
-		flex-wrap: wrap-reverse;
+		flex-wrap: wrap;
 		box-sizing: border-box;
 		padding: 12px;
 	}
 	#start_screen .start_screen_features > li {
-		width: 30%;
-		flex-grow: 1;
-		min-width: 250px;
+		width: 100%;
 		box-sizing: border-box;
-		justify-content: space-between;
-		text-align: center;
 		margin: 7px;
 		padding: 7px;
+		display: flex;
+		gap: 20px;
 	}
-	#start_screen .start_screen_features > li:nth-child(1),
-	#start_screen .start_screen_features > li:nth-child(2) {
-		order: 1;
+	#start_screen .start_screen_features > li:nth-child(odd) {
+		flex-direction: row-reverse;
+		text-align: right;
 	}
 	#start_screen .start_screen_features > li > * {
 		max-width: 100%;
 		font-weight: 300;
 		display: block;
 		margin: auto;
+		width: 50%;
 	}
 	#start_screen .start_screen_features > li > img {
-		border-radius: 5px;
+		max-height: 230px;
+		width: 58%;
+		border-radius: 11px;
 		-webkit-user-drag: none;
 	}
 	#start_screen .start_screen_features > li > h3 {
@@ -305,6 +316,13 @@
 		#start_screen > content > section > div.start_screen_left {
 			width: 100% !important;
 			float: none;
+		}
+		#start_screen .start_screen_features > li {
+			flex-direction: column !important;
+			text-align: center !important;
+		}
+		#start_screen .start_screen_features > li > * {
+			width: 100% !important;
 		}
 	}
 
@@ -381,7 +399,6 @@
 		position: relative;
 		display: flex;
 		flex-direction: column;
-		background-color: var(--color-back);
 	}
 	#start_files div.start_screen_right {
 		position: relative;
@@ -404,6 +421,8 @@
 	
 	#start_files li.format_category {
 		margin-top: 16px;
+		padding-left: 6px;
+		padding-right: 6px;
 	}
 	#start_files li.format_category > label {
 		color: var(--color-subtle_text);
@@ -414,7 +433,8 @@
 		padding: 4px 0;
 		cursor: pointer;
 		font-size: 18px;
-		padding-left: 24px;
+		padding-left: 18px;
+		border-radius: 6px;
 	}
 	#start_files li.format_entry span.icon_wrapper {
 		height: 30px;
@@ -466,13 +486,15 @@
 	.format_target {
 		padding: 10px 0;
 		margin-bottom: 22px;
-		line-height: 26px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px;
 	}
 	.format_target span {
-		padding: 2px 4px;
-		margin: 0 2px;
+		padding: 2px 10px;
 		background-color: var(--color-accent);
-		border-radius: 5px;
+		border-radius: 16px;
 		color: var(--color-accent_text);
 	}
 	#start_files .button_bar {
@@ -553,7 +575,7 @@
 		min-width: 120px;
 		display: inline-block;
 	}
-	section#quick_setup > div bb-select {
+	section#quick_setup > div .bb-select {
 		flex-grow: 1;
 	}
 	section#quick_setup > div > p {
@@ -587,3 +609,4 @@
 	.quick_setup_theme.selected > div {
 		border-color: var(--color-accent);
 	}
+}

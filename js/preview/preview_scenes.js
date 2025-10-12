@@ -1,4 +1,6 @@
-class PreviewScene {
+import { toSnakeCase } from "../util/util";
+
+export class PreviewScene {
 	constructor(id, data = 0) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
@@ -28,9 +30,7 @@ class PreviewScene {
 		if (data.description) {
 			this.description = tl(data.description);
 		} else {
-			var key = `action.${this.id}.desc`;
-			this.description = tl('action.'+this.id+'.desc')
-			if (this.description == key) this.description = '';
+			this.description = tl('action.'+this.id+'.desc', [], '');
 		}
 		if (data.light_color) this.light_color = data.light_color;
 		if (data.light_side) this.light_side = data.light_side;
@@ -111,7 +111,7 @@ class PreviewScene {
 		Canvas.scene.background = this.cubemap;
 		Canvas.scene.fog = this.fog;
 
-		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
+		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
 		// Update independent models
@@ -134,7 +134,7 @@ class PreviewScene {
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
-		if (this.fov && !(Modes.display && display_slot.startsWith('firstperson'))) {
+		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
@@ -165,7 +165,7 @@ PreviewScene.menu_categories = {
 	},
 };
 
-class PreviewModel {
+export class PreviewModel {
 	constructor(id, data) {
 		PreviewModel.models[id] = this;
 		this.id = id;
@@ -465,7 +465,7 @@ new PreviewScene('minecraft_end', {
 });
 
 
-let player_preview_model = new PreviewModel('minecraft_player', {
+export const player_preview_model = new PreviewModel('minecraft_player', {
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
 	position: [30, 0, 8],
@@ -727,7 +727,7 @@ player_preview_model.updateArmVariant = function(slim) {
 }
 
 StateMemory.init('minecraft_eula_accepted', 'object');
-const MinecraftEULA = {
+export const MinecraftEULA = {
 	isAccepted(key) {
 		return StateMemory.minecraft_eula_accepted[key];
 	},
@@ -770,7 +770,7 @@ BARS.defineActions(function() {
 			for (let category in PreviewScene.menu_categories) {
 				let options = PreviewScene.menu_categories[category];
 				if (options._label) {
-					list.push(new MenuSeparator('options', options._label));
+					list.push(new MenuSeparator('options_'+toSnakeCase(options._label), options._label));
 				}
 				for (let key in options) {
 					if (key.startsWith('_')) continue;
@@ -801,11 +801,15 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			if (!BarItems.toggle_all_grids.menu_node.isConnected) {
-				list.push(BarItems.toggle_all_grids);
-			}
 			return list;
 
 		}
 	})
+})
+
+Object.assign(window, {
+	PreviewScene,
+	PreviewModel,
+	MinecraftEULA,
+	player_preview_model
 })

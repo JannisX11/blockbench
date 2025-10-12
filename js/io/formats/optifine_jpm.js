@@ -1,4 +1,3 @@
-(function() {
 
 var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',
@@ -97,13 +96,10 @@ BARS.defineActions(function() {
 				multiple: true,
 			}, function(files) {
 				files.forEach(file => {
-					var model = autoParseJSON(file.content)
-					part_codec.parse(model, file.path, true)
+					var model = autoParseJSON(file.content, {file_path: file.path})
+					part_codec.parse(model, file.path)
 				})
 			})
 		}
 	})
 })
-
-
-})()

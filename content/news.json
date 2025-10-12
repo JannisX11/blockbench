@@ -1,38 +1,40 @@
 {
 	"new_version": {
-		"color": "var(--color-dark)",
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-accent_text)",
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.12", "type": "h3"},
-			{"text": "The Collection & Selection Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.12.0)!"}
+			{"text": "Welcome to the new Blockbench!", "type": "h3"},
+			{"text": "Blockbench 5.0 - The Element Update!", "type": "h1"},
+			{"text": "Get ready for brand new elements, a new design, and over 100 new features and changes!"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.0.0)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/pbr.png",
-				"title": "PBR Editing + Preview",
-				"text": "Create, edit, and view physically based materials"
+				"image": "https://web.blockbench.net/content/armatures.png",
+				"title": "Armatures",
+				"text": "Animate your models with armatures!\n\nInstead of rigid object hierarchy rigs you can now create skeletal rigs that can bend your model and use weight painting to fine-tune how it moves!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/collections.png",
-				"title": "Collections",
-				"text": "A new way to organize your model!"
+				"image": "https://web.blockbench.net/content/splines_and_billboards.png",
+				"title": "Splines & Billboards",
+				"text": "Two brand new types of elements:\n\nSplines make it easy to create shapes that follow a path such as tubes or cables.\n\nBillboards let you add sprites into your scene that always face the camera!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/lasso.png",
-				"title": "Lasso Selection Tool",
-				"text": "Select free-form shapes in the 2D Editor"
+				"image": "https://web.blockbench.net/content/redesign.png",
+				"title": "New Design",
+				"text": "Blockbench's design has been refreshed with new colors, rounded corners, shadows, and a new font."
 			},
 			{
-				"image": "https://web.blockbench.net/content/group_multi_select.png",
-				"title": "Group Multi Selection",
-				"text": "You can finally select multiple groups at once!"
+				"image": "https://web.blockbench.net/content/element_panel.png",
+				"title": "Element Panel",
+				"text": "The Element Panel lets you see and edit element properties in one place!\n\nAlso, this update introduces panel tabs!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/rotation_snap.png",
-				"title": "Rotation Snap",
-				"text": "It's vertex snap, but for rotations!"
+				"image": "https://web.blockbench.net/content/expression_editor.png",
+				"title": "Expression Editor",
+				"text": "The expression editor offers more space and tools to edit complex Molang expressions for your animations!"
 			}
 		]
 	}

@@ -1,4 +1,6 @@
-class MeshFace extends Face {
+import { Property } from "../util/property";
+
+export class MeshFace extends Face {
 	constructor(mesh, data) {
 		super(data);
 		this.mesh = mesh;
@@ -30,6 +32,11 @@ class MeshFace extends Face {
 			}
 		}
 		return this;
+	}
+	getSaveCopy(project) {
+		let copy = super.getSaveCopy(project);
+		copy.vertices = this.getSortedVertices();
+		return copy;
 	}
 	getNormal(normalize, alt_tri) {
 		let vertices = this.getSortedVertices();
@@ -249,7 +256,7 @@ class MeshFace extends Face {
 	getEdges() {
 		let vertices = this.getSortedVertices();
 		if (vertices.length == 2) {
-			return vertices;
+			return [vertices];
 		} else if (vertices.length > 2) {
 			return vertices.map((vkey1, i) => {
 				let vkey2 = vertices[i+1] || vertices[0];
@@ -399,7 +406,7 @@ class MeshFace extends Face {
 new Property(MeshFace, 'array', 'vertices');
 
 
-class Mesh extends OutlinerElement {
+export class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
@@ -562,6 +569,9 @@ class Mesh extends OutlinerElement {
 		this.sanitizeName();
 		return this;
 	}
+	getArmature() {
+		return this.parent instanceof Armature ? this.parent : undefined;
+	}
 	getUndoCopy(aspects = {}) {
 		let el = {};
 
@@ -699,12 +709,54 @@ class Mesh extends OutlinerElement {
 			return range[1] - range[0];
 		}
 	}
+	calculateNormals() {
+		let vertex_normals = {};
+		if (this.shading == 'smooth') {
+			// Calculate smooth normals
+			let face_normals = {};
+			let used_vertices = new Set();
+			for (let key in this.faces) {
+				let face = this.faces[key];
+				if (face.vertices.length <= 2) continue;
+				face_normals[key] = face.getNormal(true);
+				face.vertices.forEach(vkey => used_vertices.add(vkey));
+			}
+			for (let vkey in this.vertices) {
+				if (used_vertices.has(vkey) == false) continue;
+
+				let average_normal = Reusable.vec8.set(0, 0, 0);
+				let normal_count = 0;
+				for (let fkey in this.faces) {
+					let face = this.faces[fkey];
+					if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
+						let face_normal = face_normals[fkey];
+						if (!face_normals[fkey]) face_normals[fkey] = face_normal;
+						// if (face.getAngleTo(face) > 50) continue;
+						average_normal.x += face_normal[0];
+						average_normal.y += face_normal[1];
+						average_normal.z += face_normal[2];
+						normal_count++;
+					}
+				}
+				average_normal.divideScalar(normal_count);
+
+				vertex_normals[vkey] = [average_normal.x, average_normal.y, average_normal.z];
+			}
+		}
+		return vertex_normals;
+	}
+	sortAllFaceVertices() {
+		for (let fkey in this.faces) {
+			this.faces[fkey].vertices.replace(this.faces[fkey].getSortedVertices());
+		}
+		this.preview_controller.updateUV(this);
+	}
 	forAllFaces(cb) {
 		for (let fkey in this.faces) {
 			cb(this.faces[fkey], fkey);
 		}
 	}
-	transferOrigin(origin, update = true) {
+	transferOrigin(origin) {
 		if (!this.mesh) return;
 		var q = new THREE.Quaternion().copy(this.mesh.quaternion);
 		var shift = new THREE.Vector3(
@@ -897,14 +949,18 @@ class Mesh extends OutlinerElement {
 		this.preview_controller.updateFaces(this);
 		this.preview_controller.updateUV(this);
 	}
+	static behavior = {
+		unique_name: false,
+		movable: true,
+		resizable: true,
+		rotatable: true,
+		has_pivot: true,
+		marker_color: true,
+	}
 }
 	Mesh.prototype.title = tl('data.mesh');
 	Mesh.prototype.type = 'mesh';
 	Mesh.prototype.icon = 'far.fa-gem';
-	Mesh.prototype.movable = true;
-	Mesh.prototype.resizable = true;
-	Mesh.prototype.rotatable = true;
-	Mesh.prototype.needsUniqueName = false;
 	Mesh.prototype.menu = new Menu([
 		new MenuSeparator('mesh_edit'),
 		'extrude_mesh_selection',
@@ -915,25 +971,16 @@ class Mesh extends OutlinerElement {
 		'switch_face_crease',
 		'merge_vertices',
 		'dissolve_edges',
-		'apply_mesh_rotation',
+		'set_vertex_weights',
+		'calculate_vertex_weights',
 		new MenuSeparator('mesh_combination'),
+		'apply_mesh_rotation',
 		'split_mesh',
 		'merge_meshes',
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		'allow_element_mirror_modeling',
-		{name: 'menu.cube.color', icon: 'color_lens', children() {
-			return markerColors.map((color, i) => {return {
-				icon: 'bubble_chart',
-				color: color.standard,
-				name: color.name || 'cube.color.'+color.id,
-				click(cube) {
-					cube.forSelected(function(obj){
-						obj.setColor(i)
-					}, 'change color')
-				}
-			}})
-		}},
+		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => !Format.single_texture, children() {
 			var arr = [
@@ -974,7 +1021,6 @@ class Mesh extends OutlinerElement {
 			})
 			return arr;
 		}},
-		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
@@ -990,16 +1036,51 @@ new Property(Mesh, 'string', 'name', {default: 'mesh'})
 new Property(Mesh, 'number', 'color');
 new Property(Mesh, 'vector', 'origin');
 new Property(Mesh, 'vector', 'rotation');
+new Property(Mesh, 'enum', 'shading', {
+	default: 'flat',
+	values: ['flat', 'smooth'],
+	inputs: {
+		element_panel: {
+			input: {label: 'mesh.shading', type: 'inline_select', options: {
+				flat: 'mesh.shading.flat',
+				smooth: 'mesh.shading.smooth',
+			}},
+			onChange() {
+				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true}});
+			}
+		}
+	}
+});
 new Property(Mesh, 'boolean', 'export', {default: true});
 new Property(Mesh, 'boolean', 'visibility', {default: true});
 new Property(Mesh, 'boolean', 'locked');
-new Property(Mesh, 'enum', 'render_order', {default: 'default', values: ['default', 'behind', 'in_front']});
+new Property(Mesh, 'enum', 'render_order', {
+	default: 'default',
+	values: ['default', 'behind', 'in_front'],
+	inputs: {
+		element_panel: {
+			input: {label: 'action.element_render_order.short', description: 'action.element_render_order.desc', type: 'select', options: {
+				default: 'action.element_render_order.default',
+				behind: 'action.element_render_order.behind',
+				in_front: 'action.element_render_order.in_front'
+			}},
+			onChange() {
+				Mesh.selected.forEach(element => {
+					element.preview_controller.updateRenderOrder(element);
+				});
+			}
+		}
+	}
+});
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
 new NodePreviewController(Mesh, {
 	setup(element) {
-		var mesh = new THREE.Mesh(new THREE.BufferGeometry(1, 1, 1), Canvas.emptyMaterials[0]);
+		let mesh = element.mesh;
+		if (mesh && mesh.parent) mesh.parent.remove(mesh);
+		let geometry = element.mesh?.geometry ?? new THREE.BufferGeometry(1, 1, 1);
+		mesh = new THREE.Mesh(geometry, Canvas.emptyMaterials[0]);
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
 		mesh.type = element.type;
@@ -1024,7 +1105,7 @@ new NodePreviewController(Mesh, {
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
-		outline.add(points);
+		mesh.add(points);
 
 		// Update
 		this.updateTransform(element);
@@ -1036,40 +1117,223 @@ new NodePreviewController(Mesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element) {
+	displayDeformation(element, vertex_offsets) {
+		let position_array = [];
+		let outline_positions = [];
+		let {vertices, faces} = element;
+		
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
+		if (Modes.animate && vertex_offsets) {
+			for (let key in faces) {
+				let face = faces[key];
+				if (face.vertices.length <= 2) continue;
+				face.vertices.forEach((vkey, i) => {
+					position_array.push(...vertices[vkey]);
+				})
+			}
+			element.mesh.outline.vertex_order.forEach(key => {
+				outline_positions.push(...vertices[key]);
+			})
+			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+			return;
+		}
+	},
+	updateGeometry(element, vertex_offsets) {
 		
 		let {mesh} = element;
 		let point_position_array = [];
 		let position_array = [];
+		let color_array = [];
 		let normal_array = [];
 		let indices = [];
 		let outline_positions = [];
 		mesh.outline.vertex_order.empty();
 		let {vertices, faces} = element;
+		
+		let armature_bone;
+		let all_armature_bones = [];
+		let bone_marker_colors;
+		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0] && element.getArmature()) {
+			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
+			all_armature_bones = element.getArmature().getAllBones();
+			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+		}
 
-		for (let key in vertices) {
-			let vector = vertices[key];
-			point_position_array.push(...vector);
+		function addVertexPosition(vkey, normal) {
+			position_array.push(...vertices[vkey]);
+			normal_array.push(...normal);
+			if (armature_bone) {
+				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				let weight_sum = 0;
+				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
+
+
+				if (Project.view_mode === 'weighted_bone_colors') {
+					let color = [0, 0, 0];
+					for (let bone of all_armature_bones) {
+						let bone_weight = bone.vertex_weights[vkey];
+						let bone_color = bone_marker_colors[bone.color%markerColors.length];
+						if (bone_weight > 0.02) {
+							let amount = bone_weight / weight_sum;
+							color[0] += bone_color.r * amount;
+							color[1] += bone_color.g * amount;
+							color[2] += bone_color.b * amount;
+						}
+					}
+					color_array.push(...color);
+				} else {
+					if (weight_sum > weight) weight = weight / weight_sum;
+					if (weight < 0.25) {
+						color_array.push(0, 0, weight * 4);
+					} else if (weight < 0.5) {
+						let fade = (weight-0.25) * 4;
+						color_array.push(0, fade, 1-fade);
+					} else if (weight < 0.75) {
+						let fade = (weight-0.5) * 4;
+						color_array.push(fade, 1, 0);
+					} else {
+						let fade = (weight-0.75) * 4;
+						color_array.push(1, 1-fade, 0);
+					}
+				}
+			} else {
+				color_array.push(0, 0, 0);
+			}
+		}
+
+		if (vertex_offsets) {
+			vertices = {};
+			for (let vkey in element.vertices) {
+				vertices[vkey] = element.vertices[vkey].slice();
+				if (vertex_offsets[vkey] instanceof Array) {
+					vertices[vkey].V3_add(vertex_offsets[vkey])
+				}
+			}
+		}
+
+		// Mesh geometry
+		let vertex_normals = element.shading == 'smooth' && element.calculateNormals();
+
+		// Split Normals
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+
+			let normal;
+
+			if (element.shading == 'flat') {
+				normal = face.getNormal(true);
+			}
+
+			if (face.vertices.length == 3) {
+				// Tri
+				face.vertices.forEach((vkey, i) => {
+					indices.push(position_array.length / 3);
+					addVertexPosition(vkey, element.shading == 'smooth' ? vertex_normals[vkey] : normal);
+				})
+
+			} else if (face.vertices.length == 4) {
+				// Quad
+				let index_offset = position_array.length / 3;
+				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
+				let face_indices = {};
+				face.vertices.forEach((vkey, i) => {
+					if (!vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					addVertexPosition(vkey, element.shading == 'smooth' ? vertex_normals[vkey] : normal);
+					face_indices[vkey] = index_offset + i;
+				})
+
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[1]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[3]]);
+			}
+		}
+		/*
+		// Indexed geometry
+		let face_normals = {};
+		let used_vertices = new Set();
+		let vertex_indices = {};
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+			face_normals[key] = face.getNormal(true);
+			face.vertices.forEach(vkey => used_vertices.add(vkey));
+		}
+		for (let vkey in element.vertices) {
+			if (used_vertices.has(vkey) == false) continue;
+
+			let average_normal = Reusable.vec2.set(0, 0, 0);
+			let normal_count = 0;
+			for (let fkey in faces) {
+				let face = faces[fkey];
+				if (face.vertices.length > 2 && face.vertices.includes(vkey)) {
+					let face_normal = face_normals[fkey];
+					if (!face_normals[fkey]) face_normals[fkey] = face_normal;
+					// if (face.getAngleTo(face) > 50) continue;
+					average_normal.x += face_normal[0];
+					average_normal.y += face_normal[1];
+					average_normal.z += face_normal[2];
+					normal_count++;
+				}
+			}
+			average_normal.divideScalar(normal_count);
+
+			vertex_indices[vkey] = position_array.length / 3;
+			addVertexPosition(vkey, [average_normal.x, average_normal.y, average_normal.z]);
+			console.log('adding', vkey, 'as', vertex_indices[vkey]);
 		}
 
 		for (let key in faces) {
 			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
 
+			if (face.vertices.length == 3) {
+				// Tri
+				face.vertices.forEach((key, i) => {
+					indices.push(vertex_indices[key]);
+				})
+
+			} else if (face.vertices.length == 4) {
+				let sorted_vertices = face.getSortedVertices();
+				let face_indices = {};
+				face.vertices.forEach((vkey, i) => {
+					if (!vertices[vkey]) {
+						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
+					}
+					face_indices[vkey] = vertex_indices[vkey];
+				})
+
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[1]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[0]]);
+				indices.push(face_indices[sorted_vertices[2]]);
+				indices.push(face_indices[sorted_vertices[3]]);
+			}
+		}*/
+		
+		// Outline
+		for (let key in faces) {
+			let face = faces[key];
 			if (face.vertices.length == 2) {
-				// Outline
 				mesh.outline.vertex_order.push(face.vertices[0]);
 				mesh.outline.vertex_order.push(face.vertices[1]);
 
 			} else if (face.vertices.length == 3) {
-				// Tri
-				face.vertices.forEach((key, i) => {
-					indices.push(position_array.length / 3);
-					position_array.push(...vertices[key])
-				})
-				let normal = face.getNormal();
-				normal_array.push(...normal, ...normal, ...normal);
-
-				// Outline
 				face.vertices.forEach((key, i) => {
 
 					mesh.outline.vertex_order.push(key);
@@ -1080,31 +1344,7 @@ new NodePreviewController(Mesh, {
 				mesh.outline.vertex_order.push(face.vertices[0]);
 
 			} else if (face.vertices.length == 4) {
-
-				let index_offset = position_array.length / 3;
-				let face_indices = {};
-				face.vertices.forEach((vkey, i) => {
-					if (!vertices[vkey]) {
-						throw new Error(`Face "${key}" in mesh "${element.name}" contains an invalid vertex key "${vkey}"`, face)
-					}
-					position_array.push(...vertices[vkey])
-					face_indices[vkey] = index_offset + i;
-				})
-
-				let normal = face.getNormal(true);
-				normal_array.push(...normal, ...normal, ...normal, ...normal);
-
-				let sorted_vertices = face.getSortedVertices();
-
-				indices.push(face_indices[sorted_vertices[0]]);
-				indices.push(face_indices[sorted_vertices[1]]);
-				indices.push(face_indices[sorted_vertices[2]]);
-				indices.push(face_indices[sorted_vertices[0]]);
-				indices.push(face_indices[sorted_vertices[2]]);
-				indices.push(face_indices[sorted_vertices[3]]);
-				
-
-				// Outline
+				let sorted_vertices = Modes.animate ? face.vertices : face.getSortedVertices();
 				sorted_vertices.forEach((key, i) => {
 					mesh.outline.vertex_order.push(key);
 					if (i != 0) mesh.outline.vertex_order.push(key);
@@ -1113,27 +1353,34 @@ new NodePreviewController(Mesh, {
 			}
 		}
 
+		for (let key in vertices) {
+			let vector = vertices[key];
+			point_position_array.push(...vector);
+		}
 		mesh.outline.vertex_order.forEach(key => {
 			outline_positions.push(...vertices[key]);
 		})
 
-		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 		
+		// Update geometry
 		mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 		mesh.geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+		mesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(color_array), 3));
 		mesh.geometry.setIndex(indices);
 
+		// Update selection
 		mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+		mesh.vertex_points.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(point_position_array), 3));
 
 		mesh.geometry.setAttribute('highlight', new THREE.BufferAttribute(new Uint8Array(outline_positions.length/3).fill(mesh.geometry.attributes.highlight.array[0]), 1));
 
+		// Compute bounding boxes
 		mesh.geometry.computeBoundingBox();
 		mesh.geometry.computeBoundingSphere();
-
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
-		Mesh.preview_controller.updateHighlight(element);
 
+		Mesh.preview_controller.updateHighlight(element);
 		Mesh.preview_controller.updatePixelGrid(element);
 
 		if (Project.view_mode == 'wireframe' && this.fixWireframe) {
@@ -1145,8 +1392,11 @@ new NodePreviewController(Mesh, {
 	updateFaces(element) {
 		let {mesh} = element;
 
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
+		if (Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') {
+			mesh.material = Canvas.vertexWeightHelperMaterial
+
+		} else if (Project.view_mode === 'solid') {
+				mesh.material = Canvas.monochromaticSolidMaterial
 		
 		} else if (Project.view_mode === 'colored_solid') {
 			mesh.material = Canvas.getSolidColorMaterial(element.color);
@@ -1269,7 +1519,7 @@ new NodePreviewController(Mesh, {
 	},
 	updateSelection(element) {
 		NodePreviewController.prototype.updateSelection.call(this, element);
-	
+
 		let mesh = element.mesh;
 		let white = new THREE.Color(0xffffff);
 		let join = new THREE.Color(0x16d606);
@@ -1339,7 +1589,8 @@ new NodePreviewController(Mesh, {
 		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
 		mesh.outline.geometry.needsUpdate = true;
 		
-		mesh.vertex_points.visible = (Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool';
+		mesh.vertex_points.visible = ((Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool') && element.selected;
+		if (Toolbox.selected.id == 'weight_brush') mesh.vertex_points.visible = true;
 
 		this.dispatchEvent('update_selection', {element});
 	},
@@ -1458,6 +1709,101 @@ new NodePreviewController(Mesh, {
 		let geometry_clone = element.mesh.geometry.clone();
 		element.mesh.geometry = geometry_clone;
 		geometry_orig.dispose();
+	},
+	viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview}) {
+		let selection_mode = BarItems.selection_mode.value;
+		if (!(selection_mode == 'object' || preview.selection.old_selected.includes(element))) return;
+
+		let mesh_selection;
+		let mesh = element.mesh;
+		let isSelected = false;
+		let vector = Reusable.vec6;
+		if (selection_mode != 'object') {
+			isSelected = true;
+			if (!Project.mesh_selection[element.uuid]) {
+				mesh_selection = Project.mesh_selection[element.uuid] = {vertices: [], edges: [], faces: []};
+			} else {
+				mesh_selection = Project.mesh_selection[element.uuid];
+			}
+			if (!extend_selection) mesh_selection.vertices.empty();
+		}
+
+		let vertex_points = {};
+		let is_on_screen = false;
+		for (let vkey in element.vertices) {
+			let point = projectPoint( mesh.localToWorld(vector.fromArray(element.vertices[vkey])) );
+			vertex_points[vkey] = point;
+			if (point[0] >= 0 && point[0] <= preview.width && point[1] >= 0 && point[1] <= preview.height) {
+				is_on_screen = true;
+			}
+		}
+		if (extend_selection && preview.selection.old_mesh_selection[element.uuid]) {
+			mesh_selection.vertices.safePush(...preview.selection.old_mesh_selection[element.uuid].vertices);
+			mesh_selection.edges.safePush(...preview.selection.old_mesh_selection[element.uuid].edges);
+			mesh_selection.faces.safePush(...preview.selection.old_mesh_selection[element.uuid].faces);
+		}
+		if (!is_on_screen) {
+			return isSelected;
+		}
+		if (selection_mode == 'vertex') {
+			for (let vkey in element.vertices) {
+				let point = vertex_points[vkey];
+				if (!mesh_selection.vertices.includes(vkey) && pointInRectangle(point, rect_start, rect_end)) {
+					mesh_selection.vertices.push(vkey);
+				}
+			}
+
+		} else if (selection_mode == 'edge') {
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						mesh_selection.vertices.safePush(vkey, vkey2);
+						let edge = [vkey, vkey2];
+						if (!mesh_selection.edges.find(edge2 => sameMeshEdge(edge, edge2))) {
+							mesh_selection.edges.push(edge);
+						}
+					}
+				}
+			}
+
+		} else {
+			if (selection_mode != 'object' && !extend_selection) {
+				mesh_selection.faces.empty();
+			}
+			for (let fkey in element.faces) {
+				let face = element.faces[fkey];
+				let vertices = face.getSortedVertices();
+				let face_intersects;
+				for (let i = 0; i < vertices.length; i++) {
+					let vkey = vertices[i];
+					let vkey2 = vertices[i+1]||vertices[0];
+					let p1 = vertex_points[vkey];
+					let p2 = vertex_points[vkey2];
+					if (lineIntersectsReactangle(p1, p2, rect_start, rect_end)) {
+						face_intersects = true;
+						break;
+					}
+				}
+				if (selection_mode == 'object') {
+					if (face_intersects) {
+						isSelected = true;
+						break;
+					}
+				} else {
+					if (face_intersects) {
+						mesh_selection.vertices.safePush(...face.vertices);
+						mesh_selection.faces.safePush(fkey);
+					}
+				}
+			}
+		}
+		return isSelected;
 	}
 })
 
@@ -1467,4 +1813,9 @@ Blockbench.dispatchEvent('change_view_mode', ({view_mode}) => {
 			Mesh.preview_controller.fixWireframe(mesh);
 		}
 	}
+});
+
+Object.assign(window, {
+	MeshFace,
+	Mesh
 });

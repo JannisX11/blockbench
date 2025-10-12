@@ -1,4 +1,6 @@
-class BarMenu extends Menu {
+import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
+
+export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
 		MenuBar.menus[id] = this
@@ -45,12 +47,18 @@ class BarMenu extends Menu {
 		this.highlight_action = action;
 		this.label.classList.add('highlighted');
 	}
+	delete() {
+		super.delete();
+		this.label.remove();
+		delete MenuBar.menus[this.id];
+	}
 }
 
-const MenuBar = {
+export const MenuBar = {
 	menus: {},
 	open: undefined,
 	last_opened: null,
+	mode_switcher_button: null,
 	setup() {
 		MenuBar.menues = MenuBar.menus;
 		new BarMenu('file', [
@@ -63,7 +71,7 @@ const MenuBar = {
 					let redact = settings.streamer_mode.value;
 					for (let key in Formats) {
 						let format = Formats[key];
-						if (!format.show_in_new_list) continue;
+						if (format.show_in_new_list === false) continue;
 						arr.push({
 							id: format.id,
 							name: (redact && format.confidential) ? `[${tl('generic.redacted')}]` : format.name,
@@ -188,7 +196,9 @@ const MenuBar = {
 				'export_gltf',
 				'export_obj',
 				'export_fbx',
+				'export_stl',
 				'export_collada',
+				'export_legacy_project',
 				'export_modded_animations',
 				'upload_sketchfab',
 				'share_model',
@@ -240,12 +250,8 @@ const MenuBar = {
 			'redo',
 			'edit_history',
 			new MenuSeparator('add_element'),
-			'add_cube',
-			'add_mesh',
+			'add_element',
 			'add_group',
-			'add_locator',
-			'add_null_object',
-			'add_texture_mesh',
 			new MenuSeparator('modify_elements'),
 			'duplicate',
 			'rename',
@@ -308,11 +314,22 @@ const MenuBar = {
 			'merge_vertices',
 			'dissolve_edges',
 			'solidify_mesh_selection',
+			'set_vertex_weights',
 			new MenuSeparator('element'),
 			'apply_mesh_rotation',
 			'split_mesh',
 			'merge_meshes',
 		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
+
+		new BarMenu('skin', [
+			new MenuSeparator('view'),
+			'custom_skin_poses',
+			'add_custom_skin_pose',
+			new MenuSeparator('edit'),
+			'toggle_skin_layer',
+			'explode_skin_model',
+			'convert_minecraft_skin_variant',
+		], {icon: 'icon-player', condition: {formats: ['skin']}})
 
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
@@ -459,31 +476,20 @@ const MenuBar = {
 				icon: 'web_asset',
 				children() {
 					let entries = [];
+					let available_panels = [];
 					for (let id in Panels) {
 						let panel = Panels[id];
 						if (!Condition(panel.condition)) continue;
+						available_panels.push(panel);
+					}
+
+					for (let panel of available_panels) {
 						let menu_entry = {
-							id,
+							id: panel.id,
 							name: panel.name,
 							icon: panel.icon,
-							children: [
-								{
-									id: 'move_to',
-									name: panel.slot == 'hidden' ? 'menu.panel.enable' : 'menu.panel.move_to',
-									icon: 'drag_handle',
-									context: panel,
-									children: panel.snap_menu.structure
-								},
-								{
-									id: 'fold',
-									name: 'menu.panel.fold',
-									icon: panel.folded == true,
-									condition: panel.slot != 'hidden',
-									click() {
-										panel.fold();
-									}
-								}
-							]
+							context: panel,
+							children: panel.snap_menu.structure
 						}
 						entries.push(menu_entry);
 					}
@@ -550,6 +556,11 @@ const MenuBar = {
 						lines,
 						singleButton: true
 					}).show();
+				}},
+				{name: 'Expose Native Modules', icon: 'terminal', condition: isApp && (() => {
+					return currentwindow.webContents.isDevToolsOpened();
+				}), click: () => {
+					exposeNativeApisInDevTools();
 				}},
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
@@ -732,3 +743,9 @@ const MenuBar = {
 		}
 	}
 }
+
+
+Object.assign(window, {
+	BarMenu,
+	MenuBar,
+});
