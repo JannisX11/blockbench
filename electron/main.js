@@ -266,7 +266,20 @@ ipcMain.on('open-in-default-app', async (event, path) => {
 
 app.on('ready', () => {
 
-	createWindow()
+	const dev_mode = process.execPath && process.execPath.match(/node_modules[\\\/]electron/);
+
+	if (dev_mode) {
+
+		// Timeout to avoid race condition of Blockbench opening before esbuild finishes. Needs proper solution long-term
+		setTimeout(() => {
+			createWindow()
+		}, 1000);
+
+	} else {
+
+		createWindow()
+		
+	}
 
 	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {
@@ -282,7 +295,7 @@ app.on('ready', () => {
 		}
 
 		app_was_loaded = true;
-		if (process.execPath && process.execPath.match(/node_modules[\\\/]electron/)) {
+		if (dev_mode) {
 
 			console.log('[Blockbench] App launched in development mode')
 	
