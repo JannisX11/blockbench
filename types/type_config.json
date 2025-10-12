@@ -2,13 +2,14 @@
 	"exclude": [
 		"interface/action_control",
 		"interface/actions",
-		"animation/animation_controllers",
-		"animation/animation",
-		"animation/keyframe",
-		"animation/molang",
-		"animation/timeline",
+		"animations/animation_controllers",
+		"animations/animation",
+		"animations/keyframe",
+		"animations/molang",
+		"animations/timeline",
 		"interface/menu",
 		"interface/shared_actions",
+		"interface/setup_settings",
 		"desktop",
 		"util/math_util",
 		"display_mode",
@@ -37,7 +38,10 @@
 		"native_apis",
 		"util/util",
 		"lib/fik",
+		"lib/gif",
+		"lib/fik",
 		"lib/lzutf8",
-		"lib/VuePrismEditor"
+		"lib/VuePrismEditor",
+		"lib/VuePrismEditor.min"
 	]
 }

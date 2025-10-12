@@ -1,0 +1,14 @@
+{
+	"entryPointStrategy": "expand",
+	"entryPoints": [
+		"types/custom",
+		"types/generated",
+	],
+	"readme": "types/documentation.md",
+	"excludeExternals": true,
+	"name": "Blockbench Reference Docs",
+	"defaultCategory": "custom",
+	"tsconfig": "types/tsconfig.json",
+	"favicon": "./favicon.png",
+	"customCss": "typedoc.css"
+}

@@ -18,7 +18,7 @@ import { Panel } from "../interface/panels";
 import { Codecs } from "../io/codec";
 import { FormElementOptions } from "../interface/form";
 
-interface CollectionOptions {
+export interface CollectionOptions {
 	children?: string[]
 	name?: string
 	export_codec?: string

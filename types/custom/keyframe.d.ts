@@ -1,5 +1,10 @@
 /// <reference types="./blockbench"/>
 
+/**
+ * Keyframes are used in animations to specify transformation or other data at specific points in the timeline
+ * @module
+ */
+
 interface KeyframeDataPointData {
 	[key: string]: any
 }

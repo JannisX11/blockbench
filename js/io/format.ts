@@ -10,7 +10,7 @@ import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
 import { SplineMesh } from "../outliner/spline_mesh";
 
-interface FormatPage {
+export interface FormatPage {
 	component?: Vue.Component
 	content?: (
 		| {
@@ -24,7 +24,7 @@ interface FormatPage {
 	)[]
 	button_text?: string
 }
-interface CubeSizeLimiter {
+export interface CubeSizeLimiter {
 	/**
 	 * Test whether the cube with the optionally provided values violates the size restrictions
 	 */
@@ -69,7 +69,7 @@ Object.defineProperty(window, 'Format', {
 })
 
 //Formats
-interface FormatFeatures {
+export interface FormatFeatures {
 	/**
 	 * Enables Box UV on cubes by default
 	 */
@@ -272,7 +272,7 @@ interface FormatFeatures {
 	 */
 	cube_size_limiter?: CubeSizeLimiter
 }
-type FormatOptions = FormatFeatures & {
+export type FormatOptions = FormatFeatures & {
 	id: string
 	icon: string
 	name?: string

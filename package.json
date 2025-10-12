@@ -132,13 +132,12 @@
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
 		"publish-mac": "npm run build-electron && electron-builder --publish=always",
 		"pwa": "node ./scripts/generate_pwa.js",
-		"prepublish": "npm run build-web && npm run pwa",
-		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa",
+		"prepublish": "npm run build-web && npm run pwa && npm run generate-docs",
+		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa && npm run generate-docs",
 		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master",
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
-		"generate-docs": "node ./scripts/generate_docs.js",
-		"generate-wiki": "node ./scripts/generate_docs.js --out \"../../blockbench.net/content/api/\""
+		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
 	},
 	"overrides": {
 		"three": "$three"
@@ -154,7 +153,7 @@
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
-		"typedoc": "^0.28.2",
+		"typedoc": "^0.28.14",
 		"typescript": "^5.8.3",
 		"workbox-build": "^6.5.3"
 	},
