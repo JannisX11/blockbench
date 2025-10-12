@@ -3,6 +3,8 @@ import { currentwindow } from "./native_apis";
 window.osfs = '/'
 window.open_dialog = false;
 window.open_interface = false;
+window.Format = 0;
+window.Project = 0;
 
 export const Pressing = {
 	shift: false,
