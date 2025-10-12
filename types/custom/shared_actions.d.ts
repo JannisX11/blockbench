@@ -24,7 +24,7 @@
 		}
 	})
 ```
- *
+ * @module
  */
 declare namespace SharedActions {
 	const checks: {

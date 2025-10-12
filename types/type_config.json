@@ -32,6 +32,7 @@
 		"texturing/textures",
 		"texturing/layers",
 		"undo",
+		"web",
 		"texturing/uv",
 		"validator",
 		"native_apis_web",
