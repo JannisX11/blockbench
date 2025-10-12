@@ -2083,7 +2083,13 @@ Interface.definePanels(function() {
 		},
 		menu: new Menu([
 			new MenuSeparator('add_element'),
-			'add_element',
+			{
+				id: 'add_element',
+				name: 'action.add_element',
+				description: 'action.add_element.desc',
+				icon: BarItems.add_element.icon,
+				children: BarItems.add_element.side_menu.structure
+			},
 			'add_group',
 			new MenuSeparator('copypaste'),
 			'paste',
