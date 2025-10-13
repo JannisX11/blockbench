@@ -373,10 +373,8 @@ var codec = new Codec('collada', {
 				vertex_keys.push(vkey);
 			}
 
-			let texture;
-
 			
-			let j = 0;
+			let i = 0;
 			let last_tex;
 			let render_groups = [];
 			let primitive_count = 0;

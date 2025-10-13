@@ -330,7 +330,7 @@ export function moveElementsInSpace(difference, axis) {
 	Outliner.selected.forEach(el => {
 
 		if (el.getTypeBehavior('movable') == false) return;
-		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected && el.parent.getTypeBehavior('movable')) {
+		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected && el.parent.getTypeBehavior('movable') && !el.parent.getTypeBehavior('use_absolute_position')) {
 			return;
 		}
 

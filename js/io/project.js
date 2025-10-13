@@ -371,7 +371,7 @@ export class ModelProject {
 
 		async function saveWarning() {
 			return await new Promise((resolve) => {
-				if (isApp) {
+				if (isApp && Blockbench.platform == 'win32') {
 					shell.beep();
 				}
 				Blockbench.showMessageBox({

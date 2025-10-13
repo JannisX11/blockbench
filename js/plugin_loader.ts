@@ -231,6 +231,7 @@ export class Plugin {
 	cache_version: number
 	menu: Menu
 	details: null|PluginDetails
+	uuid: UUID
 
 	onload?: () => void
 	onunload?: () => void
@@ -238,6 +239,7 @@ export class Plugin {
 	onuninstall?: () => void
 
 	constructor(id: string = 'unknown', data?: PluginOptions | PluginSetupOptions) {
+		this.uuid = guid();
 		this.id = id;
 		this.installed = false;
 		this.path = '';

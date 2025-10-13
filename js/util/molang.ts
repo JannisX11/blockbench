@@ -23,10 +23,13 @@ export function invertMolang(molang: number|string): number|string {
 	for (let char of molang) {
 		if (!bracket_depth) {
 			let operator: undefined | string;
+			let had_input = true;
 			if (char == '-' && last_operator != '*' && last_operator != '/') {
 				if (!invert && !last_operator) result += '+';
 				invert = false;
 				continue;
+			} else if (char == ' ' || char == '\n') {
+				had_input = false;
 			} else if (char == '+' && last_operator != '*' && last_operator != '/') {
 				result += '-';
 				invert = false;
@@ -34,13 +37,15 @@ export function invertMolang(molang: number|string): number|string {
 			} else if ('?:'.includes(char)) {
 				invert = true;
 				operator = char;
-			} else if (invert && char != ' ') {
+			} else if (invert) {
 				result += '-';
 				invert = false;
 			} else if ('+-*/&|'.includes(char)) {
 				operator = char;
 			}
-			if (operator) last_operator = operator;
+			if (had_input) {
+				last_operator = operator;
+			}
 		}
 		if (BRACKET_OPEN.includes(char)) {
 			bracket_depth++;

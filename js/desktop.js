@@ -653,7 +653,9 @@ window.onbeforeunload = function (event) {
 			}
 		})
 		dialog.show();
-		shell.beep();
+		if (isApp && Blockbench.platform == 'win32') {
+			shell.beep();
+		}
 
 		event.returnValue = true;
 		return true;
