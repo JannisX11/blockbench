@@ -2,7 +2,7 @@ import { Vue } from "./lib/libs"
 import { Blockbench } from "./api"
 import { Interface } from "./interface/interface"
 import { MenuBar } from "./interface/menu_bar"
-import { Panels, updatePanelSelector, updateSidebarOrder } from "./interface/panels"
+import { Panels, updateInterfacePanels, updatePanelSelector, updateSidebarOrder } from "./interface/panels"
 import { Prop } from "./misc"
 import { Outliner } from "./outliner/outliner"
 import { ReferenceImage } from "./preview/reference_images"
@@ -137,6 +137,7 @@ export class Mode extends KeybindItem {
 		updateInterface();
 		updateSelection();
 		Blockbench.dispatchEvent('select_mode', {mode: this})
+		setTimeout(updateInterfacePanels, 1);
 	}
 	/**Unselects the mode */
 	unselect() {
