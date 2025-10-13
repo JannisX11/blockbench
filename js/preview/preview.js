@@ -2299,7 +2299,7 @@ BARS.defineActions(function() {
 			colored_solid: {name: true, icon: 'fas.fa-square-plus', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('colored_solid'))},
 			wireframe: {name: true, icon: 'far.fa-square', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('wireframe'))},
 			uv: {name: true, icon: 'grid_guides', condition: () => (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('uv'))},
-			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')) && Mesh.all.length)},
+			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')))},
 			vertex_weight: {name: true, icon: 'weight', condition: () => ArmatureBone.all.length && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('vertex_weight'))},
 			weighted_bone_colors: {name: true, icon: 'weight', condition: () => ArmatureBone.all.length && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('weighted_bone_colors'))},
 			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.find(tg => tg.is_material))},

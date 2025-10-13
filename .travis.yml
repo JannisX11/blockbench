@@ -12,7 +12,7 @@ jobs:
     - name: "Linux"
       os: linux
       script:
-        - npm run prepublish
+        - npm run build-electron
         - sudo apt-get install rpm
         - electron-builder --publish=onTagOrDraft
 

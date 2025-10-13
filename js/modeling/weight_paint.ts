@@ -116,6 +116,7 @@ new Tool('weight_brush', {
 			if (Math.pow(last_click_pos[0]-click_pos[0], 2) + Math.pow(last_click_pos[1]-click_pos[1], 2) < 30) {
 				return;
 			}
+			if (Preview.selected.controls.hasMoved) return;
 			last_click_pos = click_pos;
 
 			data = data ?? preview.raycast(event);

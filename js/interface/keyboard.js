@@ -408,6 +408,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 Keybinds.no_overlap = function(k1, k2) {
 	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
+const overlap_exempt = [1,2,3];
 export function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
 		Keybinds.structure[key].conflict = false;
@@ -427,6 +428,7 @@ export function updateKeybindConflicts() {
 				 && keybind.shift === keybind2.shift
 				 && keybind.alt   === keybind2.alt
 				 && keybind.meta  === keybind2.meta
+				 && overlap_exempt.includes(keybind.key) == false // avoid conflict between click to select, click to drag camera etc.
 				 && !Keybinds.no_overlap(action, Keybinds.actions[i])
 				) {
 					keybind.setConflict();
