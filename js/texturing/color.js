@@ -1,14 +1,8 @@
 import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
+import { colorDistance } from "../util/util";
 import ColorPickerNormal from "./ColorPickerNormal.vue";
 
-function colorDistance(color1, color2) {
-	return Math.sqrt(
-		Math.pow(color2._r - color1._r, 2) +
-		Math.pow(color2._g - color1._g, 2) +
-		Math.pow(color2._b - color1._b, 2)
-	);
-}
 //
 StateMemory.init('color_palettes', 'array')
 
@@ -496,8 +490,9 @@ SharedActions.add('delete', {
 			Blockbench.showQuickMessage('message.palette_locked');
 			return;
 		}
-		if (ColorPanel.panel.vue.palette.includes(ColorPanel.panel.vue.selected_color)) {
-			ColorPanel.panel.vue.palette.remove(ColorPanel.panel.vue.selected_color)
+		if (ColorPanel.palette.includes(ColorPanel.panel.vue.selected_color)) {
+			ColorPanel.palette.remove(ColorPanel.panel.vue.selected_color);
+			ColorPanel.saveLocalStorages();
 		}
 	}
 })
@@ -957,7 +952,7 @@ BARS.defineActions(function() {
 		click: function () {
 			let content = 'GIMP Palette\nName: Blockbench palette\nColumns: 10\n';
 			ColorPanel.palette.forEach(color => {
-				t = new tinycolor(color);
+				let t = new tinycolor(color);
 				content += `${t._r}\t${t._g}\t${t._b}\t${color}\n`;
 			})
 			Blockbench.export({

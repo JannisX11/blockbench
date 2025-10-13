@@ -596,7 +596,15 @@ export function labColorDistance(labA, labB){
 	var deltaCkcsc = deltaC / (sc);
 	var deltaHkhsh = deltaH / (sh);
 	var i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
-	return i < 0 ? 0 : Math.sqrt(i);}
+	return i < 0 ? 0 : Math.sqrt(i);
+}
+export function colorDistance(color1, color2) {
+	return Math.sqrt(
+		Math.pow(color2._r - color1._r, 2) +
+		Math.pow(color2._g - color1._g, 2) +
+		Math.pow(color2._b - color1._b, 2)
+	);
+}
 
 export function stringifyLargeInt(int) {
 	let string = int.toString();
