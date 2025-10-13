@@ -1007,6 +1007,7 @@ export class Cube extends OutlinerElement {
 			return arr;
 		}},
 		'edit_material_instances',
+		'element_render_order',
 		new MenuSeparator('manage'),
 		'rename',
 		'toggle_visibility',
