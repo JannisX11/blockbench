@@ -104,7 +104,7 @@ export const ColorPanel = {
 	},
 	saveLocalStorages() {
 		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.panel.vue._data.palette,
+			palette: ColorPanel.palette,
 			history: ColorPanel.panel.vue._data.history,
 		}))
 	},
@@ -818,6 +818,7 @@ Interface.definePanels(() => {
 				sort(event) {
 					var item = this.palette.splice(event.oldIndex, 1)[0];
 					this.palette.splice(event.newIndex, 0, item);
+					ColorPanel.saveLocalStorages();
 				},
 				drop(event) {
 				},
