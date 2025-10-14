@@ -1179,7 +1179,7 @@ SharedActions.add('delete', {
 		}
 		list.forEach(addChildren);
 
-		let groups = Group.multi_selected.slice();
+		let groups = Group.all.filter(g => g.selected);
 		Undo.initEdit({elements: recursive_list, outliner: true, groups, selection: true})
 		list.forEach(element => {
 			element.remove(false);
