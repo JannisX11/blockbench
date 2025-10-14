@@ -330,7 +330,7 @@ export class Keyframe {
 				let previous = this.getPreviousKeyframe();
 				if (previous && previous.interpolation == 'step') {
 					return new oneLiner({
-						pre:  previous.getArray(1),
+						pre:  flipArray(previous.getArray(1)),
 						post: flipArray(this.getArray()),
 					})
 				} else {

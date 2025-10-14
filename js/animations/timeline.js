@@ -517,9 +517,8 @@ export const Timeline = {
 		})
 
 		let timeline_vue = Panels.timeline.node.querySelector('#timeline_vue');
-		addEventListeners(timeline_vue, 'mousewheel scroll', function(e) {
-			e.preventDefault()
-			let event = e.originalEvent;
+		addEventListeners(timeline_vue, 'mousewheel scroll', function(event) {
+			event.preventDefault()
 			let body = document.getElementById('timeline_body');
 
 			body.scrollLeft += event.deltaX/2;
