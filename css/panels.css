@@ -3126,7 +3126,6 @@ span.controller_state_section_info {
 	#palette_list {
 		padding: 2px;
 		min-height: 160px;
-		max-height: 232px;
 		line-height: 0;
 	}
 	#palette_list .color {
