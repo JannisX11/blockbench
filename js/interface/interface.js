@@ -579,7 +579,7 @@ export function setupInterface() {
 	})
 
 	//Mousemove
-	document.addEventListener('mousemove', event => {
+	document.addEventListener('pointermove', event => {
 		mouse_pos.x = event.clientX;
 		mouse_pos.y = event.clientY;
 
