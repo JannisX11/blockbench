@@ -1705,7 +1705,7 @@ Interface.definePanels(() => {
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
 										<dynamic-icon v-if="animator.node" :icon="animator.node.icon.replace('fa ', '').replace(/ /g, '.')" :color="getNodeColor(animator.node)" />
-										<dynamic-icon v-else-if="animator.particle" :icon="wand_shine" />
+										<dynamic-icon v-else-if="animator.particle" :icon="'wand_shine'" />
 										<dynamic-icon v-else :icon="'help'" style="color: var(--color-error)" />
 										<span class="timeline_animator_name" v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
 											{{animator.name}}

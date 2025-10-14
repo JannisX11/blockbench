@@ -203,7 +203,7 @@ BARS.defineActions(function() {
 
 			function iterate(arr, level) {
 				arr.forEach(node => {
-					if (node.constructor.animator) {
+					if (node.constructor.animator || node instanceof Locator) {
 						if (level) nodes.push(node);
 					}
 					if (node.children) {
