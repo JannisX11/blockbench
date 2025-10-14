@@ -17,6 +17,9 @@ import { tl } from "../languages";
 import { Panel } from "../interface/panels";
 import { Codecs } from "../io/codec";
 import { FormElementOptions } from "../interface/form";
+import { fs } from "../native_apis";
+import { Filesystem } from "../file_system";
+import { loadModelFile } from "../io/io";
 
 export interface CollectionOptions {
 	children?: string[]
@@ -102,7 +105,7 @@ export class Collection {
 		updateSelection();
 		return this;
 	}
-	clickSelect(event) {
+	clickSelect(event: MouseEvent) {
 		Undo.initSelection({collections: true, timeline: Modes.animate});
 		this.select(event);
 		Undo.finishSelection('Select collection');
@@ -389,6 +392,17 @@ export class Collection {
 		'duplicate',
 		'delete',
 		new MenuSeparator('export'),
+		{
+			id: 'open',
+			name: 'menu.collection.open_file',
+			icon: 'file_open',
+			condition: collection => isApp && collection.export_path && fs.existsSync(collection.export_path),
+			click(collection: Collection) {
+				Filesystem.readFile([collection.export_path], {readtype: 'text'}, files => {
+					loadModelFile(files[0]);
+				})
+			}
+		},
 		(collection: Collection) => {
 			let codec = Codecs[collection.codec];
 			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {

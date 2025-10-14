@@ -2328,6 +2328,7 @@
 
 	"menu.texture_group.resolve": "Resolve",
 
+	"menu.collection.open_file": "Open File",
 	"menu.collection.export_project": "Export Project",
 	"menu.collection.export_as": "Export as \"%0\"",
 
