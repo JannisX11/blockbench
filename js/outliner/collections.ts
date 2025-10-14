@@ -396,7 +396,7 @@ export class Collection {
 			id: 'open',
 			name: 'menu.collection.open_file',
 			icon: 'file_open',
-			condition: collection => isApp && collection.export_path && fs.existsSync(collection.export_path),
+			condition: (collection: Collection) => (isApp && collection.export_path && fs.existsSync(collection.export_path)),
 			click(collection: Collection) {
 				Filesystem.readFile([collection.export_path], {readtype: 'text'}, files => {
 					loadModelFile(files[0]);

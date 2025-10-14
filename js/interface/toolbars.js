@@ -760,7 +760,7 @@ export const BARS = {
 		
 		Toolbars.main_tools = new Toolbar({
 			id: 'main_tools',
-			no_wrap: true,
+			no_wrap: Blockbench.isMobile != true,
 			children: [
 				'transform_space',
 				'rotation_space',
