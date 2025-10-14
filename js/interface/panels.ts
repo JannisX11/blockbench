@@ -520,7 +520,7 @@ export class Panel extends EventSystem {
 					if (!started) return;
 					
 					let sign = (Blockbench.isLandscape && settings.mobile_panel_side.value == 'left') ? -1 : 1;
-					this.position_data.height = Math.clamp(height_before + diff * sign, 140, max);
+					this.position_data.height = Math.clamp(height_before + diff * sign, this.min_height, max);
 
 					this.update(true);
 					resizeWindow();

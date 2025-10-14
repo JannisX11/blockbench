@@ -9,6 +9,7 @@ Interface.definePanels(function() {
 		icon: 'arrows_output',
 		condition: {modes: ['edit', 'pose']},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
+		min_height: 90,
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],

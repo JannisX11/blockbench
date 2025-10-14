@@ -1097,6 +1097,8 @@ export const BARS = {
 				Toolbars[key].update()
 			}
 		}
+		// On mobile, the variable height of the top toolbar can shift the UI
+		resizeWindow();
 	}
 }
 
