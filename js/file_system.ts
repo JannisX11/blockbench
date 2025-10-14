@@ -25,7 +25,7 @@ export namespace Filesystem {
 	/**
 	 * The resource identifier group, used to allow the file dialog (open and save) to remember where it was last used
 	 */
-	type ResourceID =
+	export type ResourceID =
 		| string
 		| 'texture'
 		| 'minecraft_skin'
@@ -43,14 +43,14 @@ export namespace Filesystem {
 
 	// MARK: Import
 	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
-	interface ReadOptions {
+	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
 		/** File Extensions
 		 */
 		extensions?: string[]
 	}
-	interface ImportOptions extends ReadOptions {
+	export interface ImportOptions extends ReadOptions {
 		/** Name of the file type
 		 */
 		type: string
@@ -304,7 +304,7 @@ export namespace Filesystem {
 
 	
 	// MARK: Pick Directory
-	interface PickDirOptions {
+	export interface PickDirOptions {
 		/**Location where the file dialog starts off
 		 */
 		startpath?: string
@@ -350,7 +350,7 @@ export namespace Filesystem {
 	}
 
 	// MARK: Export
-	interface ExportOptions extends WriteOptions {
+	export interface ExportOptions extends WriteOptions {
 		/**
 		 * Name of the file type
 		 */
@@ -460,7 +460,7 @@ export namespace Filesystem {
 
 	// MARK: Write
 	type WriteType = 'text' | 'buffer' | 'binary' | 'zip' | 'image'
-	interface WriteOptions {
+	export interface WriteOptions {
 		content?: string | ArrayBuffer | Blob
 		savetype?: WriteType | ((file: string) => WriteType)
 		custom_writer?: (content: string | ArrayBuffer | Blob, file_path: string, callback?: (file_path: string) => void) => void
@@ -525,7 +525,7 @@ export namespace Filesystem {
 
 
 	// MARK: Find
-	interface FindFileOptions {
+	export interface FindFileOptions {
 		recursive: boolean
 		filter_regex: RegExp
 		priority_regex?: RegExp
@@ -599,7 +599,7 @@ export namespace Filesystem {
 
 
 	// MARK: Drag & Drop
-	interface DragHandlerOptions {
+	export interface DragHandlerOptions {
 		/**
 		 * Allowed file extensions
 		 */
