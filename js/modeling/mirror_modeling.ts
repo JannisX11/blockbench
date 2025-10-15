@@ -623,12 +623,14 @@ MirrorModeling.registerElementType(Mesh, {
 				}
 			}
 		}
-		let selected_vertices = mesh.getSelectedVertices(true);
-		selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
-		let selected_edges = mesh.getSelectedEdges(true);
-		selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
-		let selected_faces = mesh.getSelectedFaces(true);
-		selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+		if ((BarItems.selection_mode as BarSelect<string>).value != 'object') {
+			let selected_vertices = mesh.getSelectedVertices(true);
+			selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
+			let selected_edges = mesh.getSelectedEdges(true);
+			selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
+			let selected_faces = mesh.getSelectedFaces(true);
+			selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+		}
 
 		let {preview_controller} = mesh;
 		preview_controller.updateGeometry(mesh);
