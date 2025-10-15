@@ -2,6 +2,7 @@ import { Blockbench } from "../api";
 import { Filesystem } from "../file_system";
 import { openMolangEditor } from "./molang_editor";
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_apis";
+import { invertMolang } from "../util/molang";
 
 export class AnimationItem {
 	constructor() {}
@@ -215,6 +216,8 @@ export class Animation extends AnimationItem {
 								let value = [0, 1, 2].map(axis => {
 									return kf.getBezierLerp(kf, next_keyframe, getAxisLetter(axis), lerp);
 								})
+								if (channel == 'position' || channel == 'rotation') value[0] = -value[0];
+								if (channel == 'rotation') value[1] = -value[1];
 								interpolated_values[itimecode] = value;
 							}
 							// Optimize data
@@ -268,6 +271,8 @@ export class Animation extends AnimationItem {
 				if (!timecode.includes('.')) {
 					timecode += '.0';
 				}
+				rotation.array[0] = invertMolang(rotation.array[0]);
+				rotation.array[1] = invertMolang(rotation.array[1]);
 				bone_tag.rotation[timecode] = rotation.array;
 			})
 		}
