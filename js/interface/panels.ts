@@ -504,7 +504,7 @@ export class Panel extends EventSystem {
 			this.tab_bar.classList.add('single_tab');
 			
 
-			addEventListeners(this.handle.firstElementChild as HTMLElement, 'mousedown touchstart', (e1: MouseEvent) => {
+			addEventListeners(this.handle as HTMLElement, 'mousedown touchstart', (e1: MouseEvent) => {
 				convertTouchEvent(e1);
 				let started = false;
 				let height_before = this.position_data.height;

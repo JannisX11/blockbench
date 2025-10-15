@@ -98,6 +98,9 @@
 		height: calc(100% - 3px);
 		margin-top: 3px;
 	}
+	body.is_mobile .panel_tab_list {
+		flex-grow: 1;
+	}
 	.panel_tab_list > .panel_handle {
 		display: flex;
 		flex: 1 1 auto;
