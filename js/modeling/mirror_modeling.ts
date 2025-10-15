@@ -410,6 +410,7 @@ MirrorModeling.registerElementType(Mesh, {
 	isCentered(element: Mesh, {center}) {
 		if (Math.roundTo(element.origin[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		return true;
 	},
 	getMirroredElement(element: Mesh, {center}) {
@@ -642,6 +643,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	isCentered(element: ArmatureBone, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		return true;
 	},
 	getMirroredElement(element: ArmatureBone, {center}) {
@@ -676,6 +678,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 MirrorModeling.registerElementType(Billboard, {
 	isCentered(element: Billboard, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		//if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
