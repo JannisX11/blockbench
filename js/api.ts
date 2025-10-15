@@ -5,7 +5,7 @@ import { EventSystem } from "./util/event_system";
 import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
-import { currentwindow, shell, SystemInfo } from "./native_apis";
+import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -53,6 +53,7 @@ export const Blockbench = {
 	events: {},
 	openTime: new Date(),
 	setup_successful: null as null | true,
+	argv: isApp ? electron.process?.argv?.slice() : null,
 	/**
 	 * @deprecated Use Undo.initEdit and Undo.finishEdit instead
 	 */
