@@ -1639,6 +1639,10 @@ BARS.defineActions(function() {
 								<i class="material-icons icon">error</i>
 								{{ selected_plugin.isInstallable() }}
 							</div>
+							<div class="tiny plugin_deprecation_note" v-if="selected_plugin.deprecation_note">
+								<i class="material-icons icon">warning</i>
+								{{ selected_plugin.deprecation_note }}
+							</div>
 						</div>
 
 						<ul id="plugin_browser_page_tab_bar">

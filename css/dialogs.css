@@ -1453,7 +1453,11 @@
 	.plugin_compatibility_issue {
 		color: var(--color-error);
 	}
-	.plugin_compatibility_issue > .icon {
+	.plugin_deprecation_note {
+		color: var(--color-warning);
+	}
+	.plugin_compatibility_issue > .icon,
+	.plugin_deprecation_note > .icon {
 		vertical-align: text-bottom;
 	}
 	#plugin_list > li button {
