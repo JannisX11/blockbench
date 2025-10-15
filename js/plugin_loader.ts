@@ -1173,6 +1173,7 @@ BARS.defineActions(function() {
 				settings: settings,
 				isMobile: Blockbench.isMobile,
 				isApp,
+				online: navigator.onLine
 			},
 			computed: {
 				plugin_search() {
@@ -1575,7 +1576,7 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
 						</ul>
 						<ol class="pagination_numbers" v-if="pages.length > 1">
 							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
