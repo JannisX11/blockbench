@@ -210,8 +210,9 @@ BARS.defineActions(function() {
 				Prop.active_panel = 'preview';
 				BarItems.select_all.click();
 			}
+			let scale_groups = ModelScaler.getScaleGroups();
 
-			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig});
+			Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig, groups: scale_groups});
 
 			Outliner.selected.forEach((obj) => {
 				obj.before = {
@@ -226,7 +227,7 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			ModelScaler.getScaleGroups().forEach((g) => {
+			scale_groups.forEach((g) => {
 				g.old_origin = g.origin.slice();
 			}, Group, true)
 			
