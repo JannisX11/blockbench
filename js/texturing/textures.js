@@ -99,11 +99,12 @@ export class Texture {
 				tex.name = this.name;
 				mat.map = tex;
 				mat.uniforms.map.value = tex;
+				if (Canvas.layered_material) Canvas.updateLayeredTextures();
 			}
 			tex.needsUpdate = true;
 
 			scope.width = tex.width = img.naturalWidth;
-			scope.height = tex.width = img.naturalHeight;
+			scope.height = tex.height = img.naturalHeight;
 			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				scope.error = 2;

@@ -865,11 +865,11 @@ export const Canvas = {
 		})
 
 		var material_shh = new THREE.ShaderMaterial({
-		  uniforms: uniforms,
-		  vertexShader: prepareShader(LayeredVertShader),
-		  fragmentShader: prepareShader(LayeredFragShader),
-		  side: Canvas.getRenderSide(),
-		  transparent: true
+			uniforms: uniforms,
+			vertexShader: prepareShader(LayeredVertShader),
+			fragmentShader: prepareShader(LayeredFragShader),
+			side: Canvas.getRenderSide(),
+			transparent: true
 		});
 		Canvas.layered_material = material_shh;
 		return material_shh;
