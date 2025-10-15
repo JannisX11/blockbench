@@ -1106,6 +1106,7 @@ new NodePreviewController(Mesh, {
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
+		points.no_export = true;
 		mesh.add(points);
 
 		// Update
