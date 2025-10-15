@@ -15,6 +15,7 @@ export function getSelectionCenter(all = false) {
 		elements = elements.concat(Group.multi_selected);
 	}
 	elements.forEach(element => {
+		if (element instanceof Group && !Format.bone_rig) return;
 		if (element.getWorldCenter) {
 			var pos = element.getWorldCenter();
 			min[0] = Math.min(pos.x, min[0]);	max[0] = Math.max(pos.x, max[0]);
@@ -272,6 +273,7 @@ export function centerElements(axis, update) {
 	})
 	Group.all.forEach(group => {
 		if (!group.selected) return;
+		if (!Format.bone_rig && Outliner.selected.length) return;
 		group.origin[axis] += difference;
 	})
 	Canvas.updateView({
