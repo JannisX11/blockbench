@@ -305,9 +305,10 @@ export const Blockbench = {
 		})
 	},
 	//CSS
-	addCSS(css: string): Deletable {
+	addCSS(css: string, layer: string = 'plugin'): Deletable {
 		let style_node = document.createElement('style');
-		style_node.type ='text/css';
+		style_node.setAttribute('type', 'text/css');
+		if (layer != '') css = `@layer ${layer} {${css}}`;
 		style_node.appendChild(document.createTextNode(css));
 		document.getElementsByTagName('head')[0].appendChild(style_node);
 		function deletableStyle(node) {
