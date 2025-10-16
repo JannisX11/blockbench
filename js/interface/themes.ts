@@ -173,7 +173,6 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		fs
 		const theme_watchers: Record<string, any> = {};
 		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
