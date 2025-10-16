@@ -417,7 +417,12 @@
 	.toolbar_wrapper.narrow > .toolbar {
 		width: fit-content;
 		display: flex;
+		flex-direction: row-reverse;
+		justify-content: space-between;
 		height: 100%;
+	}
+	body.is_mobile .toolbar_wrapper.narrow > .toolbar:not(.vertical) {
+		width: 100%;
 	}
 	.toolbar_wrapper > .toolbar.no_wrap {
 		width: fit-content;

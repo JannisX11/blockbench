@@ -52,6 +52,7 @@ const REQUESTABLE_APIS = [
 	'util',
 	'os',
 	'v8',
+	'dialog',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',

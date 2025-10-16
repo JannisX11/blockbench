@@ -690,7 +690,7 @@ export class Mesh extends OutlinerElement {
 	getSize(axis, selection_only) {
 		if (selection_only) {
 			let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
-			if (!selected_vertices.length) return 0;
+			if (!selected_vertices.length) selected_vertices = Object.keys(this.vertices);
 			let range = [Infinity, -Infinity];
 			let {vec1, vec2} = Reusable;
 			let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
@@ -1106,6 +1106,7 @@ new NodePreviewController(Mesh, {
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
 		mesh.vertex_points = points;
+		points.no_export = true;
 		mesh.add(points);
 
 		// Update

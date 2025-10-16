@@ -96,6 +96,11 @@ export class ReferenceImage {
 	extend(data) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
+		if (data.layer == 'blueprint') {
+			data.layer = 'background';
+			data.is_blueprint = true;
+		}
+
 		if (data.modes instanceof Array) {
 			this.modes.replace(data.modes);
 		}

@@ -410,6 +410,7 @@ MirrorModeling.registerElementType(Mesh, {
 	isCentered(element: Mesh, {center}) {
 		if (Math.roundTo(element.origin[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		return true;
 	},
 	getMirroredElement(element: Mesh, {center}) {
@@ -623,12 +624,14 @@ MirrorModeling.registerElementType(Mesh, {
 				}
 			}
 		}
-		let selected_vertices = mesh.getSelectedVertices(true);
-		selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
-		let selected_edges = mesh.getSelectedEdges(true);
-		selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
-		let selected_faces = mesh.getSelectedFaces(true);
-		selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+		if ((BarItems.selection_mode as BarSelect<string>).value != 'object') {
+			let selected_vertices = mesh.getSelectedVertices(true);
+			selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
+			let selected_edges = mesh.getSelectedEdges(true);
+			selected_edges.replace(selected_edges.filter(edge => edge.allAre(vkey => mesh.vertices[vkey])));
+			let selected_faces = mesh.getSelectedFaces(true);
+			selected_faces.replace(selected_faces.filter(fkey => mesh.faces[fkey]));
+		}
 
 		let {preview_controller} = mesh;
 		preview_controller.updateGeometry(mesh);
@@ -640,6 +643,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	isCentered(element: ArmatureBone, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
 		if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		return true;
 	},
 	getMirroredElement(element: ArmatureBone, {center}) {
@@ -674,6 +678,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 MirrorModeling.registerElementType(Billboard, {
 	isCentered(element: Billboard, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
+		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		//if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},

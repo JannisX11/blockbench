@@ -527,7 +527,8 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['splines'], method: () => {
 			let spline = SplineMesh.selected[0];
-			let selection = spline.getSelectedHandles(true);
+			let selection = spline?.getSelectedHandles(true);
+			if (!selection) return false;
 			let isFirstSelected = selection.includes(spline.getFirstHandle().key);
 			let isLastSelected = selection.includes(spline.getLastHandle().key);
 			return (spline && selection.length === 1 && !isFirstSelected && !isLastSelected)

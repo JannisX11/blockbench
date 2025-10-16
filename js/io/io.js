@@ -205,7 +205,8 @@ export async function loadImages(files, event) {
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
 			Formats.skin.setup_dialog.setFormValues({
-				texture: files[0]
+				texture_source: 'upload_texture',
+				texture_file: files[0]
 			})
 
 		} else if (method == 'extrude_with_cubes') {

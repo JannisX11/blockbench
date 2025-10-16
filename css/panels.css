@@ -98,6 +98,9 @@
 		height: calc(100% - 3px);
 		margin-top: 3px;
 	}
+	body.is_mobile .panel_tab_list {
+		flex-grow: 1;
+	}
 	.panel_tab_list > .panel_handle {
 		display: flex;
 		flex: 1 1 auto;
@@ -3126,7 +3129,6 @@ span.controller_state_section_info {
 	#palette_list {
 		padding: 2px;
 		min-height: 160px;
-		max-height: 232px;
 		line-height: 0;
 	}
 	#palette_list .color {

@@ -296,7 +296,8 @@ export const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		document.getElementById('timeline_body').addEventListener('mousedown', e => {
+		let timeline_body = Panels.timeline.node.querySelector('#timeline_body');
+		timeline_body.addEventListener('mousedown', e => {
 			if (e.which === 2 || (Keybinds.extra.preview_drag.keybind.isTriggered(e) && e.which !== 1)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
@@ -322,7 +323,8 @@ export const Timeline = {
 			}
 		})
 
-		$('#timeline_time').on('mousedown touchstart', e => {
+		let timeline_time = Panels.timeline.node.querySelector('#timeline_time');
+		addEventListeners(timeline_time, 'mousedown touchstart', e => {
 			if (e.which !== 1 && !event.changedTouches) return;
 			if (e.target.classList.contains('timeline_marker')) return;
 
@@ -377,7 +379,7 @@ export const Timeline = {
 				}
 			}
 		})
-		$(document).on('mousemove touchmove', e => {
+		addEventListeners(document, 'mousemove touchmove', e => {
 			if (Timeline.dragging_playhead) {
 
 				convertTouchEvent(e);
@@ -419,8 +421,8 @@ export const Timeline = {
 					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
 				}
 			}
-		})
-		.on('mouseup touchend', e => {
+		});
+		addEventListeners(document, 'mouseup touchend', e => {
 			if (Timeline.dragging_playhead) {
 				delete Timeline.dragging_playhead;
 				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
@@ -434,10 +436,11 @@ export const Timeline = {
 				delete Timeline.dragging_onion_skin_point
 			}
 			Blockbench.setCursorTooltip();
-		})
+		});
 		
 		//Enter Time
-		$('#timeline_timestamp').click(e => {
+		let timestamp = Panels.timeline.node.querySelector('#timeline_timestamp');
+		addEventListeners(timestamp, 'click', e => {
 			if ($('#timeline_timestamp').attr('contenteditable') == 'true') return;
 
 			$('#timeline_timestamp').attr('contenteditable', true).focus().select()
@@ -464,13 +467,13 @@ export const Timeline = {
 			selection.removeAllRanges();
 			selection.addRange(range);
 		})
-		.on('focusout keydown', e => {
+		addEventListeners(timestamp, 'focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				$('#timeline_timestamp').attr('contenteditable', false)
 				Timeline.setTimecode(Timeline.time)
 			}
 		})
-		.on('keyup', e => {
+		addEventListeners(timestamp, 'keyup', e => {
 			var times = $('#timeline_timestamp').text().split(':')
 			times.forEach((t, i) => {
 				times[i] = parseInt(t)
@@ -492,18 +495,19 @@ export const Timeline = {
 			}
 		})
 		//Enter Frame
-		$('#timeline_framenumber').click(e => {
+		let framenumber = Panels.timeline.node.querySelector('#timeline_framenumber');
+		framenumber.addEventListener('click', e => {
 			if ($('#timeline_framenumber').attr('contenteditable') == 'true') return;
 
 			$('#timeline_framenumber').attr('contenteditable', true).trigger('focus');
 			document.execCommand('selectAll');
 		})
-		.on('focusout keydown', e => {
+		addEventListeners(framenumber, 'focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				$('#timeline_framenumber').attr('contenteditable', false)
 			}
 		})
-		.on('keyup', e => {
+		addEventListeners(framenumber, 'keyup', e => {
 			let frame = parseInt($('#timeline_framenumber').text())
 			let seconds = frame * Timeline.getStep();
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
@@ -512,9 +516,9 @@ export const Timeline = {
 			}
 		})
 
-		$('#timeline_vue').on('mousewheel scroll', function(e) {
-			e.preventDefault()
-			let event = e.originalEvent;
+		let timeline_vue = Panels.timeline.node.querySelector('#timeline_vue');
+		addEventListeners(timeline_vue, 'mousewheel scroll', function(event) {
+			event.preventDefault()
 			let body = document.getElementById('timeline_body');
 
 			body.scrollLeft += event.deltaX/2;
@@ -1705,7 +1709,7 @@ Interface.definePanels(() => {
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
 										<dynamic-icon v-if="animator.node" :icon="animator.node.icon.replace('fa ', '').replace(/ /g, '.')" :color="getNodeColor(animator.node)" />
-										<dynamic-icon v-else-if="animator.particle" :icon="wand_shine" />
+										<dynamic-icon v-else-if="animator.particle" :icon="'wand_shine'" />
 										<dynamic-icon v-else :icon="'help'" style="color: var(--color-error)" />
 										<span class="timeline_animator_name" v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
 											{{animator.name}}

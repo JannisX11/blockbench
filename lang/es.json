@@ -1243,7 +1243,7 @@
 	"dialog.add_primitive.shape.cube": "Cuboide",
 	"dialog.add_primitive.shape.pyramid": "Pirámide",
 	"dialog.add_primitive.diameter": "Diámetro",
-	"dialog.add_primitive.height": "Peso",
+	"dialog.add_primitive.height": "Altura",
 	"dialog.add_primitive.sides": "Lados",
 	"dialog.add_primitive.minor_diameter": "Espesor",
 	"dialog.add_primitive.minor_sides": "Lador Menores",
@@ -2531,5 +2531,6 @@
 	"action.apply_texture_to_elements.desc": "Apply the selected texture to the selected elements",
 	"menu.panel.reset_size": "Reset Size",
 	"action.import_layer": "Import Layer",
-	"action.import_layer.desc": "Import image files as layers"
+	"action.import_layer.desc": "Import image files as layers",
+	"menu.collection.open_file": "Open File"
 }

@@ -766,6 +766,8 @@ Interface.definePanels(() => {
 			attached_index: 1,
 			sidebar_index: 5,
 		},
+		growable: true,
+		resizable: true,
 		toolbars: [
 			new Toolbar('palette', {
 				children: [

@@ -1,4 +1,4 @@
-@layer reset, lib, base, theme, theme-override;
+@layer reset, lib, base, plugin, theme, theme-override;
 @layer reset {
 	* {
 		margin: 0;

@@ -15,6 +15,7 @@ export function getSelectionCenter(all = false) {
 		elements = elements.concat(Group.multi_selected);
 	}
 	elements.forEach(element => {
+		if (element instanceof Group && !Format.bone_rig) return;
 		if (element.getWorldCenter) {
 			var pos = element.getWorldCenter();
 			min[0] = Math.min(pos.x, min[0]);	max[0] = Math.max(pos.x, max[0]);
@@ -272,6 +273,7 @@ export function centerElements(axis, update) {
 	})
 	Group.all.forEach(group => {
 		if (!group.selected) return;
+		if (!Format.bone_rig && Outliner.selected.length) return;
 		group.origin[axis] += difference;
 	})
 	Canvas.updateView({
@@ -519,7 +521,7 @@ export function getRotationInterval(event) {
 	}
 }
 export function getRotationObjects() {
-	if (Format.bone_rig && Group.first_selected) return Group.multi_selected;
+	if (Format.bone_rig && Group.first_selected) return Group.multi_selected.filter(g => !g.parent?.selected);
 	let elements = Outliner.selected.filter(element => {
 		return element.getTypeBehavior('rotatable') && (element instanceof Cube == false || Format.rotate_cubes);
 	})
@@ -960,7 +962,7 @@ BARS.defineActions(function() {
 		description: tl('action.slider_size.desc', ['Z']),
 		color: 'z',
 		category: 'transform',
-		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && Modes.edit),
+		condition: () => (Outliner.selected[0] && (Outliner.selected[0].getTypeBehavior('resizable') || Outliner.selected[0].getTypeBehavior('scalable')) && !(Outliner.selected[0] instanceof Billboard) && Modes.edit),
 		getInterval: getSpatialInterval,
 		get: function() {
 			if (Outliner.selected[0].getTypeBehavior('scalable')) {

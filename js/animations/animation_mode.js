@@ -404,6 +404,10 @@ export const Animator = {
 
 		Animator.updateOnionSkin();
 
+		Billboard.all.forEach(billboard => {
+			Billboard.preview_controller.updateFacingCamera(billboard);
+		})
+
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];

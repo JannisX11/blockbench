@@ -65,6 +65,7 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 			if (vertex_edge_loops[vkey].length >= 4) continue;
 
 			getEdgeLoops(mesh, vkey).forEach(loop => {
+				if (loop.length > 15) return;
 				let coplanar_vertices = [
 					loop[0][0],
 					loop[Math.floor(loop.length * 0.33)][0],
