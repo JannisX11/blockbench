@@ -1945,6 +1945,7 @@
 		width: 340px;
 		margin-left: 45px;
 		box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+		border-radius: 5px;
 	}
 	#action_selector ul {
 		background-color: var(--color-bright_ui);
@@ -1954,6 +1955,7 @@
 		max-height: 400px;
 		overflow-y: auto;
 		overflow-x: hidden;
+		border-radius: 5px;
 	}
 	#action_selector > #action_selector_list > div {
 		background-color: var(--color-ui);

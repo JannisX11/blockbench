@@ -2531,5 +2531,6 @@
 	"action.apply_texture_to_elements.desc": "Die ausgewählte Textur auf die ausgewählten Elemente anwenden",
 	"menu.panel.reset_size": "Größe zurücksetzen",
 	"action.import_layer": "Ebene importieren",
-	"action.import_layer.desc": "Bilddateien als Ebenen importieren"
+	"action.import_layer.desc": "Bilddateien als Ebenen importieren",
+	"menu.collection.open_file": "Datei öffnen"
 }
