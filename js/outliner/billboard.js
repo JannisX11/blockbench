@@ -163,6 +163,7 @@ export class Billboard extends OutlinerElement {
 		return el;
 	}
 	flip(axis) {
+		let center = Format.centered_grid ? 0 : 8;
 		var offset = this.position[axis] - center
 		this.position[axis] = center - offset;
 		// Name
