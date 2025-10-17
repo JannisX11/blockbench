@@ -119,7 +119,7 @@ export class CustomTheme {
 				if (data.colors[key]) {
 					Merge.string(this.colors, data.colors, key);
 				} else {
-					CustomTheme.selected.colors[key] = DEFAULT_COLORS[key];
+					this.colors[key] = DEFAULT_COLORS[key];
 				}
 			}
 		}
