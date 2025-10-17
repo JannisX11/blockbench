@@ -340,10 +340,16 @@ export function buildSkinnedMesh(mesh_obj, armature, scale) {
 			face.vertices.forEach((vkey) => {
 				let influencing_bones = armature_bones.filter(ab => ab.vertex_weights[vkey]);
 				influencing_bones.sort((a, b) => b.vertex_weights[vkey] - a.vertex_weights[vkey]).slice(0, 4);
+				let weight_sum = 0;
+				for (let i = 0; i < 4; i++) {
+					if (influencing_bones[i]) {
+						weight_sum += influencing_bones[i].vertex_weights[vkey];
+					}
+				}
 				for (let i = 0; i < 4; i++) {
 					if (influencing_bones[i]) {
 						skinIndices.push(armature_bones.indexOf(influencing_bones[i]));
-						skinWeights.push(influencing_bones[i].vertex_weights[vkey]);
+						skinWeights.push(influencing_bones[i].vertex_weights[vkey] / weight_sum);
 					} else {
 						skinIndices.push(0);
 						skinWeights.push(0);
