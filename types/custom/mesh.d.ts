@@ -19,8 +19,8 @@ interface MeshOptions {
 }
 
 interface MeshFaceOptions extends FaceOptions {
-	vertices: string[]
-	uv: { [vkey: string]: ArrayVector2 }
+	vertices?: string[]
+	uv?: { [vkey: string]: ArrayVector2 }
 }
 declare class MeshFace extends Face {
 	constructor(mesh: Mesh, data: MeshFaceOptions)

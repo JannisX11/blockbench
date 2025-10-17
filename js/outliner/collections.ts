@@ -41,7 +41,6 @@ export class Collection {
 	 */
 	children: string[]
 	export_path: string
-	codec: string
 	export_codec: string
 	visibility: boolean
 
@@ -404,7 +403,7 @@ export class Collection {
 			}
 		},
 		(collection: Collection) => {
-			let codec = Codecs[collection.codec];
+			let codec = Codecs[collection.export_codec];
 			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
 				let export_action = codec.export_action;
 				return {
@@ -482,7 +481,7 @@ new Property(Collection, 'string', 'model_identifier', {
 });
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path', {
-	condition: (collection: Collection) => (isApp && collection.codec),
+	condition: (collection: Collection) => (isApp && collection.export_codec),
 	inputs: {
 		dialog: {
 			input: {
