@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Ogranicz działanie szczotek aby tylko malować na aktualnej stronie",
 	"settings.autouv": "Automatyczne UV",
 	"settings.autouv.desc": "Domyślnie włącz automatyczne UV",
+	"settings.clampuv": "Ograniczanie UV",
+	"settings.clampuv.desc": "Domyślnie włączaj ograniczanie współrzędnych UV do krawędzi tekstury",
 	"settings.create_rename": "Nazwij nową kostkę",
 	"settings.create_rename.desc": "Wpisz nazwę po stworzeniu nowego elementu lub grupy",
 	"settings.edit_size": "Rozdzielczość siatki",

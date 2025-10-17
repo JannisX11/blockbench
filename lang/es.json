@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Restringir los pinceles para sólo pintar en el lado actual",
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Activar Auto UV por defecto",
+	"settings.clampuv": "Sujetar UV",
+	"settings.clampuv.desc": "Activar la sujeción de coordenadas UV a los bordes de la textura por defecto",
 	"settings.create_rename": "Renombrar Nuevo Elemento",
 	"settings.create_rename.desc": "Campo de nombre de enfoque al crear nuevo elemento o grupo",
 	"settings.edit_size": "Resolución de la Cuadrícula",

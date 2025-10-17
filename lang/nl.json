@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Beperk Kwast om enkel op het huidige vlak te tekenen",
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Pas Auto UV standaard toe",
+	"settings.clampuv": "UV Begrenzen",
+	"settings.clampuv.desc": "UV-coördinaten standaard begrenzen tot de texturegrenzen",
 	"settings.create_rename": "Geef Nieuwe Kubus Een Naam",
 	"settings.create_rename.desc": "Focus naam veld bij het creëren van een nieuw element of groep",
 	"settings.edit_size": "Rooster Resolutie",

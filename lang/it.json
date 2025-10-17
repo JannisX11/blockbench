@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Restringi i pennelli a disegnare solo sul lato corrente",
 	"settings.autouv": "UV Automatico",
 	"settings.autouv.desc": "Attiva UV Automatico come predefinito",
+	"settings.clampuv": "Limitazione UV",
+	"settings.clampuv.desc": "Attiva la limitazione delle coordinate UV ai bordi della texture per impostazione predefinita",
 	"settings.create_rename": "Renomina Nuovo Cubo",
 	"settings.create_rename.desc": "Focalizzare il campo d'inserimento del nome quando si crea un nuovo elemento o un gruppo",
 	"settings.edit_size": "Risoluzione Griglia",

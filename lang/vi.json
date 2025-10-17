@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Giới hạn tính năng cọ vẽ về cạnh hiện tại",
 	"settings.autouv": "UV tự động",
 	"settings.autouv.desc": "Kích hoạt UV tự động theo mặc định",
+	"settings.clampuv": "Giới hạn UV",
+	"settings.clampuv.desc": "Bật giới hạn tọa độ UV theo biên của kết cấu theo mặc định",
 	"settings.create_rename": "Đặt tên cho khối mới",
 	"settings.create_rename.desc": "Đặt tên ngay khi tạo ra một nguyên tố hay nhóm mới",
 	"settings.edit_size": "Độ phân giải của lưới đồ thị",

@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "브러시가 현재 면에만 칠하도록 제한",
 	"settings.autouv": "자동 UV",
 	"settings.autouv.desc": "자동 UV를 기본으로 허용",
+	"settings.clampuv": "클램핑 UV",
+	"settings.clampuv.desc": "기본적으로 UV 좌표를 텍스쳐 경계로 클램핑합니다.",
 	"settings.create_rename": "요소 이름 바꾸기",
 	"settings.create_rename.desc": "요소 또는 그룹을 생성할 때 이름 강조",
 	"settings.edit_size": "격자 크기",

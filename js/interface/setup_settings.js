@@ -242,6 +242,7 @@ function setupSettings() {
 	//Defaults
 	new Setting('default_cube_size',				{category: 'defaults', value: 2, type: 'number', min: 0, max: 32});
 	new Setting('autouv',							{category: 'defaults', value: true});
+	new Setting('clampuv',							{category: 'defaults', value: true});
 	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
 	new Setting('create_rename', 					{category: 'defaults', value: false});
 	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});

@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "限制笔刷仅在当前面进行绘画",
 	"settings.autouv": "自动 UV",
 	"settings.autouv.desc": "默认启用自动 UV",
+	"settings.clampuv": "UV 钳制",
+	"settings.clampuv.desc": "默认启用将 UV 坐标钳制至纹理边界",
 	"settings.create_rename": "重命名新元素",
 	"settings.create_rename.desc": "创建新元素或分组时优先对其命名",
 	"settings.edit_size": "网格分辨率",

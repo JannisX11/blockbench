@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Begränsa penslar till att bara måla på den nuvarande sidan",
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Aktivera Auto UV som standard",
+	"settings.clampuv": "Begränsa UV",
+	"settings.clampuv.desc": "Aktivera begränsning av UV-koordinater till texturgränserna som standard",
 	"settings.create_rename": "Byt namn på ny kub",
 	"settings.create_rename.desc": "Foksuera på namnfältet när du skapar nya element eller grupper",
 	"settings.edit_size": "Rutnäts upplösning",

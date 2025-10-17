@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Beschränkt den Pinsel auf das Verändern der Seite, auf die geklickt wurde",
 	"settings.autouv": "Auto-UV",
 	"settings.autouv.desc": "Auto-UV standardmäßig aktivieren",
+	"settings.clampuv": "UV-Begrenzung",
+	"settings.clampuv.desc": "Begrenzung der UV-Koordinaten auf die Texturgrenzen standardmäßig aktivieren",
 	"settings.create_rename": "Neue Elemente umbenennen",
 	"settings.create_rename.desc": "Beim Erstellen von Elementen oder Gruppen das Namensfeld zum Umbenennen auswählen",
 	"settings.edit_size": "Gitterauflösung",

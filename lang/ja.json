@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "選択されたフェイスのみにペイントします",
 	"settings.autouv": "オート UV",
 	"settings.autouv.desc": "オート UV を有効にします",
+	"settings.clampuv": "UVクランプ",
+	"settings.clampuv.desc": "デフォルトでUV座標をテクスチャの境界にクランプする",
 	"settings.create_rename": "エレメントのリネーム",
 	"settings.create_rename.desc": "新しいエレメントを作成する際に名前フィールドがフォーカスされます",
 	"settings.edit_size": "グリッドステップ",
