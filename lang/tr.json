@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Fırçaları yalnızca mevcut tarafa boyamakla kısıtla",
 	"settings.autouv": "Otomatik UV",
 	"settings.autouv.desc": "Otomatik UV'yi varsayılan olarak etkinleştir",
+	"settings.clampuv": "UV sabitleme",
+	"settings.clampuv.desc": "UV koordinatlarını doku sınırlarına sabitlemeyi varsayılan olarak etkinleştir",
 	"settings.create_rename": "Yeni Öğeyi Yeniden Adlandır",
 	"settings.create_rename.desc": "Yeni öğe veya grup oluştururken isim alanına odaklan",
 	"settings.edit_size": "Izgara Çözünürlüğü",

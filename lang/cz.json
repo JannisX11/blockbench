@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Omezí štětce tak, aby maloval pouze na aktuální straně",
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Povolit Auto UV jako výchozí",
+	"settings.clampuv": "Omezit UV",
+	"settings.clampuv.desc": "Povolit omezování UV souřadnic na hranice textury jako výchozí",
 	"settings.create_rename": "Přejmenovat novou kostku",
 	"settings.create_rename.desc": "Pojmenování podle zaměření při vytváření nového prvku nebo skupiny",
 	"settings.edit_size": "Rozlišení mřížky",

@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Restringir os pincéis para pintar apenas no lado atual",
 	"settings.autouv": "Mapeamento automático",
 	"settings.autouv.desc": "Ativar mapeamento UV automático por padrão",
+	"settings.clampuv": "Limitar UV",
+	"settings.clampuv.desc": "Ativar a limitação das coordenadas UV às bordas da textura por padrão",
 	"settings.create_rename": "Renomear novos cubos",
 	"settings.create_rename.desc": "Selecionar o campo de nome ao criar um novo elemento ou grupo",
 	"settings.edit_size": "Resolução da grade",

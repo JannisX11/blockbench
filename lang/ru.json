@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Ограничить кисть до окраски текущей грани",
 	"settings.autouv": "Авто-UV",
 	"settings.autouv.desc": "Применять Авто-UV по умолчанию",
+	"settings.clampuv": "Ограничение UV",
+	"settings.clampuv.desc": "Включить ограничение UV-координат границами текстуры",
 	"settings.create_rename": "Переименовывание новых элементов",
 	"settings.create_rename.desc": "При создании элемента или группы переименовывать их",
 	"settings.edit_size": "Разрешение сетки",

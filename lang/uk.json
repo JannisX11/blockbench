@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Обмежити пензлі для фарбування лише поточної сторони",
 	"settings.autouv": "Авто. UV",
 	"settings.autouv.desc": "Увімкнути автоматичний UV за стандартом",
+	"settings.clampuv": "Обрізати UV",
+	"settings.clampuv.desc": "Увімкнути обрізання UV-координат за межами текстури за замовчуванням",
 	"settings.create_rename": "Перейменовувати новий елемент",
 	"settings.create_rename.desc": "Сфокусувати на поле назви при створенні нового елемента або групи",
 	"settings.edit_size": "Роздільність сітки",

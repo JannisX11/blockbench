@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "限制筆刷只能在目前的表面塗畫。",
 	"settings.autouv": "自動 UV",
 	"settings.autouv.desc": "預設啟用自動 UV",
+	"settings.clampuv": "UV 箝制",
+	"settings.clampuv.desc": "預設啟用將 UV 座標箝制至紋理邊界",
 	"settings.create_rename": "重新命名新元素",
 	"settings.create_rename.desc": "新建元素或群組時自動切換到命名欄位。",
 	"settings.edit_size": "網格解析度",

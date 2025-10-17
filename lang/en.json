@@ -1116,6 +1116,8 @@
 
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Enable Auto UV by default",
+	"settings.clampuv": "Clamp UV",
+	"settings.clampuv.desc": "Enable clamping of UV coordinates to texture bounds by default",
 	"settings.default_cube_size": "Cube Size",
 	"settings.default_cube_size.desc": "Set the default cube size when creating a new cube",
 	"settings.inherit_parent_color": "Inherit Parent Color",

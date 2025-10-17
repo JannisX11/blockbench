@@ -206,6 +206,8 @@
 	"settings.paint_side_restrict.desc": "Restreint le pinceau pour ne peindre que du côté en cours",
 	"settings.autouv": "UV automatiques",
 	"settings.autouv.desc": "Active l'UV automatique par défaut",
+	"settings.clampuv": "Limitation UV",
+	"settings.clampuv.desc": "Activer la limitation des UV aux bords de la texture par défaut",
 	"settings.create_rename": "Renommer le nouvel élément",
 	"settings.create_rename.desc": "Entrer dans le champ de saisie du nom à la création d'un élément ou d'un groupe",
 	"settings.edit_size": "Résolution de la grille",
