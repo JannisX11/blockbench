@@ -246,6 +246,10 @@ function setupSettings() {
 	new Setting('create_rename', 					{category: 'defaults', value: false});
 	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
 	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+	new Setting('default_bedrock_format',			{category: 'defaults', type: 'select', value: 'entity', options: {
+		entity: 'format.bedrock',
+		block: 'format.bedrock_block',
+	}});
 	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
 	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
 		linear: 'action.keyframe_interpolation.linear',

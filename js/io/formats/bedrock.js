@@ -469,8 +469,12 @@ window.BedrockBlockManager = class BedrockBlockManager {
 		var root_index = path.indexOf(rp_dir);
 		
 		let rp_manifest_path = [...path.slice(0, root_index+2), 'manifest.json'].join(osfs);
-		let rp_manifest_content = autoParseJSON(fs.readFileSync(rp_manifest_path, 'utf-8'), false);
-		let rp_uuid = rp_manifest_content.header.uuid;
+		let rp_uuid;
+		try {
+			let rp_manifest_content = autoParseJSON(fs.readFileSync(rp_manifest_path, 'utf-8'), false);
+			rp_uuid = rp_manifest_content.header.uuid;
+		} catch (err) {}
+		if (!rp_uuid) return;
 
 		path.splice(root_index);
 		path.push(rp_dir.match(/development/) ? 'development_behavior_packs' : 'behavior_packs');
@@ -1166,8 +1170,20 @@ var codec = new Codec('bedrock', {
 		}
 	},
 	load(model, file, args = {}) {
-		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
-		if (isApp && BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
+		let is_block = Settings.get('default_bedrock_format') == 'block';
+		if (file.path) {
+			if (file.path.match(/[\\/]models[\\/]blocks[\\/]/)) {
+				is_block = true;
+			} else if (file.path.match(/[\\/]models[\\/]entity[\\/]/)) {
+				is_block = false;
+			}
+		}
+		if (model['minecraft:geometry']?.[0]?.item_display_transforms) {
+			is_block = true;
+		}
+		if (isApp && BedrockEntityManager.CurrentContext?.type == 'entity') {
+			is_block = false;
+		}
 		
 		const import_to_current_project = typeof args === "boolean" ? args : args.import_to_current_project;
 
