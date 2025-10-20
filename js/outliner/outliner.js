@@ -1075,6 +1075,9 @@ export function renameOutliner(element) {
 	} else if (Outliner.selected.length === 1 && !Project.EditSession) {
 		Outliner.selected[0].rename()
 
+	} else if (element instanceof OutlinerNode && element.getTypeBehavior('select_children') == 'self_first') {
+		element.rename();
+
 	} else {
 
 		if (Group.first_selected && !element) {
@@ -1622,7 +1625,7 @@ Interface.definePanels(function() {
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
 				:title="node.title"
-				@dblclick.stop.self="!node.locked && renameOutliner()"
+				@dblclick.stop.self="!node.locked && renameOutliner(node)"
 			>` +
 				//Opener
 				
