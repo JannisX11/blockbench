@@ -259,7 +259,8 @@ export class Action extends BarItem {
 		if (!this.click && data.click) {
 			this.onClick = data.click;
 			this.click = (...args) => {
-				this.dispatchEvent('use');
+				let result = this.dispatchEvent('use');
+				if (result == false) return;
 				this.onClick(...args);
 				this.dispatchEvent('used');
 			};
