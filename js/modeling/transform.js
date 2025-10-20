@@ -1046,7 +1046,7 @@ BARS.defineActions(function() {
 		settings: {default: 1},
 		category: 'transform',
 		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
-		getInterval: getSpatialInterval,
+		getInterval: event => getSpatialInterval(event) / 8,
 		get: function() {
 			return Cube.selected[0].stretch[0]
 		},
@@ -1080,7 +1080,7 @@ BARS.defineActions(function() {
 		settings: {default: 1},
 		category: 'transform',
 		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
-		getInterval: getSpatialInterval,
+		getInterval: event => getSpatialInterval(event) / 8,
 		get: function() {
 			return Cube.selected[0].stretch[1]
 		},
@@ -1114,7 +1114,7 @@ BARS.defineActions(function() {
 		settings: {default: 1},
 		category: 'transform',
 		condition: function() {return Format.stretch_cubes && Cube.selected.length && Modes.edit},
-		getInterval: getSpatialInterval,
+		getInterval: event => getSpatialInterval(event) / 8,
 		get: function() {
 			return Cube.selected[0].stretch[2]
 		},
