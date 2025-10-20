@@ -141,7 +141,7 @@ Interface.definePanels(function() {
 			for (let prop_id in Group.properties) {
 				let property = Group.properties[prop_id];
 				if (property?.inputs?.element_panel) {
-					let input_id = 'group_' + prop_id;
+					let input_id = 'group__' + prop_id;
 					values[input_id] = Group.first_selected[prop_id];
 				}
 			}
