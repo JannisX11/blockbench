@@ -2378,15 +2378,10 @@ BARS.defineActions(function() {
 							a = 0;
 						}
 					} else if (opacity < 1 || blend_mode != BlendModes.default) {
-						let before = Painter.getAlphaMatrix(texture, px, py);
-						let new_val = (before||0);
-						if (a > before) {
-							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
-						} else if (before) {
-							a = 0;
-						}
-						new_val = new_val + (1-new_val) * a;
-						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
+						let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
+						let target = Math.lerp(before, opacity??1, a);
+						if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
+						a = Math.clamp(Math.getLerp(before, 1, target), 0, 1);
 					}
 					let result_color;
 					if (blend_mode == BlendModes.default) {
