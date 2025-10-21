@@ -2272,7 +2272,7 @@ BARS.defineActions(function() {
 			Outliner.elements.forEach(element => {
 				if (element.preview_controller.updatePixelGrid) element.preview_controller.updatePixelGrid(element);
 			})
-			$('#main_colorpicker').spectrum('set', ColorPanel.panel.vue._data.main_color);
+			Panels.color.picker.spectrum('set', ColorPanel.panel.vue._data.main_color);
 			if (StateMemory.color_picker_rgb) {
 				BarItems.slider_color_red.update();
 				BarItems.slider_color_green.update();
