@@ -36,6 +36,10 @@ declare class OutlinerNode {
 	addTo(target?: OutlinerNode | 'root'): this
 	sortInBefore(target?: OutlinerNode, index_modifier?: number): this
 	select(event?: any, isOutlinerClick?: boolean): this
+	/**
+	 * Mark the element as selected
+	 */
+	markAsSelected(descendants?: boolean): void
 	getParentArray(): OutlinerNode[]
 	/**
 	 * Unfolds the outliner and scrolls up or down if necessary to show the group or element.

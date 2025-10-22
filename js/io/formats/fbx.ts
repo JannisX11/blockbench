@@ -635,10 +635,10 @@ var codec = new Codec('fbx', {
 					let bone_name = getUniqueName('bone', bone.uuid, bone.name);
 					let indices = [];
 					let weights = [];
-					for (let vkey in bone.vertex_weights) {
-						if (bone.vertex_weights[vkey] > 0.001) {
+					for (let vkey of vertex_keys) {
+						if (bone.getVertexWeight(mesh, vkey) > 0.001) {
 							indices.push(vertex_keys.indexOf(vkey));
-							weights.push(Math.clamp(bone.vertex_weights[vkey], 0, 1));
+							weights.push(Math.clamp(bone.getVertexWeight(mesh, vkey), 0, 1));
 						}
 					}
 					let bind_matrix = bind_matrix_list[bone_list.indexOf(bone)];

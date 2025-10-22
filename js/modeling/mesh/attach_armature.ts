@@ -131,7 +131,7 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 				let closest_bone = full_match_bones.findHighest(bone => -bone._distance);
 				vertex_main_bone[vkey] = closest_bone;
 				
-				closest_bone.bone.vertex_weights[vkey] = 1;
+				closest_bone.bone.setVertexWeight(mesh, vkey, 1);
 			} else {
 				bone_matches.sort((a, b) => a._distance - b._distance);
 				bone_matches = bone_matches.slice(0, 3);
@@ -142,7 +142,7 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 					amount_sum += match._amount;
 				}
 				for (let match of bone_matches) {
-					match.bone.vertex_weights[vkey] = match._amount / amount_sum;
+					match.bone.setVertexWeight(mesh, vkey, match._amount / amount_sum);
 				}
 			}
 		}
@@ -164,7 +164,7 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 					}
 				}
 				if (bones.length == 1) {
-					bones[0].bone.vertex_weights[vkey] = 1;
+					bones[0].bone.setVertexWeight(mesh, vkey, 1);
 					vertex_main_bone[vkey] = bones[0];
 					continue;
 				}
@@ -182,7 +182,7 @@ function calculateWeights(mesh: Mesh, armature: Armature) {
 					weighted.bone._weight += weighted.weight;
 				}
 				for (let bone of bones) {
-					bone.bone.vertex_weights[vkey] = 1;
+					bone.bone.setVertexWeight(mesh, vkey, 1);
 				}
 			}
 		}

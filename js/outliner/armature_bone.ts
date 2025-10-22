@@ -81,6 +81,19 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		return parent as Armature;
 	}
+	getVertexWeight(mesh: Mesh, vkey: string): number {
+		let weightkey = mesh.uuid.substring(0, 6) + ':' + vkey;
+		return this.vertex_weights[weightkey] ?? this.vertex_weights[vkey] ?? 0;
+	}
+	setVertexWeight(mesh: Mesh, vkey: string, weight?: number) {
+		let weightkey = mesh.uuid.substring(0, 6) + ':' + vkey;
+		if (this.vertex_weights[vkey]) delete this.vertex_weights[vkey];
+		if (!weight || weight < 0) {
+			delete this.vertex_weights[weightkey];
+		} else {
+			this.vertex_weights[weightkey] = weight;
+		}
+	}
 	init(): this {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {
