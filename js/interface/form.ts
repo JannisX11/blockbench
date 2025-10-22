@@ -418,6 +418,7 @@ FormElement.types.range = class FormElementRange extends FormElement {
 	}
 	setValue(value: number): void {
 		this.input.value = value.toString();
+		if (this.numeric_input) this.numeric_input.value = value;
 	}
 	getDefault(): number {
 		return Math.clamp(0, this.options.min, this.options.max);
