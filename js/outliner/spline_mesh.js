@@ -488,7 +488,7 @@ export class SplineMesh extends OutlinerElement {
         // console.log(this, copy);
         return copy;
     }
-    getSaveCopy(project) {
+    getSaveCopy() {
         var copy = {}
         for (var key in SplineMesh.properties) {
             SplineMesh.properties[key].copy(this, copy)

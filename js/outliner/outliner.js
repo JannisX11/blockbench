@@ -2165,7 +2165,7 @@ export class Face {
 		this.texture = false;
 		return this;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		let copy = {
 			uv: this.uv,
 		}
@@ -2175,8 +2175,8 @@ export class Face {
 		let tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (tex instanceof Texture && project) {
-			copy.texture = Texture.all.indexOf(tex)
+		} else if (tex instanceof Texture && Blockbench.hasFlag('compiling_bbmodel')) {
+			copy.texture = Texture.all.indexOf(tex);
 		} else if (tex instanceof Texture) {
 			copy.texture = tex.uuid;
 		}

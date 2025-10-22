@@ -354,7 +354,7 @@ export class Cube extends OutlinerElement {
 		copy.type = this.type;
 		return copy;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		var el = {}
 		
 		for (var key in Cube.properties) {
@@ -377,7 +377,7 @@ export class Cube extends OutlinerElement {
 		if (!this.uv_offset.allEqual(0)) el.uv_offset = this.uv_offset;
 		el.faces = {}
 		for (var face in this.faces) {
-			el.faces[face] = this.faces[face].getSaveCopy(project)
+			el.faces[face] = this.faces[face].getSaveCopy()
 		}
 		el.type = this.type;
 		el.uuid = this.uuid;

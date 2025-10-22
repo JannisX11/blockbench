@@ -33,8 +33,8 @@ export class MeshFace extends Face {
 		}
 		return this;
 	}
-	getSaveCopy(project) {
-		let copy = super.getSaveCopy(project);
+	getSaveCopy(nested) {
+		let copy = super.getSaveCopy(nested);
 		copy.vertices = this.getSortedVertices();
 		return copy;
 	}
@@ -601,7 +601,7 @@ export class Mesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		var el = {}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
@@ -620,7 +620,7 @@ export class Mesh extends OutlinerElement {
 
 		el.faces = {};
 		for (let key in this.faces) {
-			el.faces[key] = this.faces[key].getSaveCopy(project);
+			el.faces[key] = this.faces[key].getSaveCopy();
 		}
 
 		el.type = 'mesh';

@@ -224,7 +224,7 @@ export class ArmatureBone extends OutlinerElement {
 		});
 		return this;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		let copy = {
 			isOpen: this.isOpen,
 			uuid: this.uuid,
