@@ -458,7 +458,7 @@ export class CustomTheme {
 
 							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.version')}</label>
-								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version">
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version" placeholder="1.0.0">
 							</div>
 
 							<hr />

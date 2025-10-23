@@ -935,6 +935,7 @@
 	"layout.color.checkerboard.desc": "Background of canvas and UV editor",
 	"layout.name": "Name",
 	"layout.author": "Author",
+	"layout.version": "Version",
 	"layout.font.main": "Main Font",
 	"layout.font.headline": "Headline Font",
 	"layout.font.code": "Code Font",
