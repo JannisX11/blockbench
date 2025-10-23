@@ -7,7 +7,10 @@ import { Property } from "../util/property";
 Interface.definePanels(function() {
 	new Panel('transform', {
 		icon: 'arrows_output',
-		condition: {modes: ['edit', 'pose']},
+		condition: {
+			modes: ['edit', 'pose'],
+			method: () => !(Blockbench.isMobile && Settings.get('status_bar_transform_sliders'))
+		},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		min_height: 90,
 		default_position: {
