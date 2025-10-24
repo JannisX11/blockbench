@@ -672,7 +672,7 @@
 		padding-left: 5px;
 		pointer-events: none;
 		color: inherit;
-		-webkit-text-fill-color: var(--color-text);
+		-webkit-text-fill-color: unset;
 		opacity: 1; /* required on iOS */
 	}
 	input.cube_name.renaming {
