@@ -12,7 +12,7 @@ workbox.generateSW({
 		'./lib/*',
 		'./css/**/*',
 		'./assets/**/*',
-		'./font/*',
+		'./font/**/*',
 	],
 	swDest: './service_worker.js',
 	maximumFileSizeToCacheInBytes: 32_096_000,
