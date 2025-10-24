@@ -1169,6 +1169,8 @@
 	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
 	"settings.paint_with_stylus_only": "Paint with Stylus Only",
 	"settings.paint_with_stylus_only.desc": "Only use the stylus for painting, reserve mouse or touch input for navigation.",
+	"settings.limit_brush_opacity_per_stroke": "Limit Brush Opacity per Stroke",
+	"settings.limit_brush_opacity_per_stroke.desc": "Limit the opacity that a brush can apply to the value of the opacity slider during each brush stroke. With a smooth brush this behavior can potentially lead to slight unwanted noise.",
 	"settings.image_editor": "Image Editor",
 	"settings.image_editor.desc": "Default image editor to edit textures with",
 
