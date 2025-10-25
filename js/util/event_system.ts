@@ -8,12 +8,14 @@ export class EventSystem {
 	constructor() {
 		this.events = {};
 	}
-	dispatchEvent(event_name: string, data: any) {
+	dispatchEvent(event_name: string, data: any): any {
 		var list = this.events[event_name];
 		if (!list) return;
-		for (var i = 0; i < list.length; i++) {
-			list[i](data);
+		let return_value: any;
+		for (let callback of list) {
+			return_value = callback(data) ?? return_value;
 		}
+		return return_value;
 	}
 	on(event_name: string, cb: EventListener): Deletable {
 		if (typeof cb !== 'function') {

@@ -762,6 +762,7 @@ BARS.defineActions(function() {
 			let dialog = new Dialog({
 				id: 'edit_bedrock_binding',
 				title: 'action.edit_bedrock_binding',
+				resizable: 'x',
 				component: {
 					components: {VuePrismEditor},
 					data: {

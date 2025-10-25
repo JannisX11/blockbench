@@ -2,6 +2,7 @@ import Wintersky from 'wintersky';
 import { openMolangEditor } from './molang_editor';
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from '../native_apis';
 import { Filesystem } from '../file_system';
+import { Easings } from '../lib/easing';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {

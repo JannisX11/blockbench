@@ -108,6 +108,8 @@ declare namespace Canvas {
 	const ground_plane: THREE.Mesh
 	const brush_outline: THREE.Mesh
 
+	const show_gizmos: boolean
+
 	const global_light_color: THREE.Color
 	const global_light_side: number
 

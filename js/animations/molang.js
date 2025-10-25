@@ -1708,6 +1708,143 @@ export function sortAutocompleteResults(results, incomplete) {
 					id: 'hermite_blend',
 					arguments: ['0_to_1'],
 				})
+				.addQuery({
+					id: 'min_angle',
+					arguments: ['angle'],
+				})
+				.addQuery({
+					id: 'sign',
+					arguments: ['vaule'],
+				})
+				.addQuery({
+					id: 'copy_sign',
+					arguments: ['value', 'sign'],
+				})
+				.addQuery({
+					id: 'inverse_lerp',
+					arguments: ['start', 'end', 'value'],
+				})
+				.addQuery({
+					id: 'ease_in_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+
 		)
 		.addNamespace(
 			new MolangAutocomplete.Namespace({

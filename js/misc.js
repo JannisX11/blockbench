@@ -461,17 +461,6 @@ export const TickUpdates = {
 	}
 }
 
-export function factoryResetAndReload() {
-	let lang_key = 'menu.help.developer.reset_storage.confirm';
-	let result = window.confirm((window.tl && tl(lang_key) != lang_key) ? tl(lang_key) : 'Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.');
-	if (result) {
-		localStorage.clear();
-		Blockbench.addFlag('no_localstorage_saving');
-		console.log('Cleared Local Storage');
-		window.location.reload(true);
-	}
-}
-
 export function benchmarkCode(id, iterations, code) {
 	if (!iterations) iterations = 1000;
 	console.time(id);
@@ -501,6 +490,5 @@ Object.assign(window, {
 	unselectAll,
 	AutoBackup,
 	TickUpdates,
-	factoryResetAndReload,
 	benchmarkCode
 })

@@ -730,13 +730,13 @@ export function symmetrizeArmature(armature: Armature, mesh: Mesh, affected_vkey
 		let opposite = getOppositeMeshVertex(mesh, vkey);
 		if (!opposite) continue;
 		for (let bone of bones) {
-			//if (!bone.vertex_weights[vkey]) continue;
+			//if (!bone.getVertexWeight(mesh, vkey)) continue;
 			if (MirrorModeling.element_types.armature_bone.isCentered(bone, {center: 0})) {
-				bone.vertex_weights[opposite] = bone.vertex_weights[vkey];
+				bone.setVertexWeight(mesh, opposite, bone.getVertexWeight(mesh, vkey));
 			} else {
 				let target_bone = MirrorModeling.element_types.armature_bone.getMirroredElement(bone, {center: 0}) as ArmatureBone;
 				if (target_bone) {
-					target_bone.vertex_weights[opposite] = bone.vertex_weights[vkey];
+					target_bone.setVertexWeight(mesh, opposite, bone.getVertexWeight(mesh, vkey));
 				}
 			}
 		}

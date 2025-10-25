@@ -8,14 +8,14 @@ workbox.generateSW({
 		'./favicon.png',
 		'./icon_maskable.png',
 
-		'./dist/**/*',
+		'./dist/bundle.js',
 		'./lib/*',
 		'./css/**/*',
 		'./assets/**/*',
-		'./font/*',
+		'./font/**/*',
 	],
 	swDest: './service_worker.js',
-	maximumFileSizeToCacheInBytes: 4_096_000,
+	maximumFileSizeToCacheInBytes: 32_096_000,
 	sourcemap: false
 }).then(({count, size}) => {
 	console.log(`Generated service-worker, which will precache ${count} files, totaling ${(size/1e6).toFixed(2)} MB.`);

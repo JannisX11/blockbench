@@ -1,5 +1,5 @@
 // Based on https://gist.github.com/gre/1650294
-class Easings {
+export class Easings {
 // No easing, no acceleration
 static linear( t ) {
 	return t;
@@ -305,3 +305,4 @@ static easeInOutBounce( t ) {
 
 }
 }
+window.Easings = Easings;

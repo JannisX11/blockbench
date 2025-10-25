@@ -113,7 +113,7 @@ OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 
 function getShapeTexture() {
 	let tex = Texture.getDefault();
-	if (tex.pbr_channel != 'color' && tex.getGroup()) {
+	if (tex && tex.pbr_channel != 'color' && tex.getGroup()) {
 		let group = tex.getGroup();
 		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
 	}

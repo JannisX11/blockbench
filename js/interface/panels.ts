@@ -14,6 +14,7 @@ interface PanelPositionData {
 	folded: boolean
 	attached_to?: string
 	attached_index?: number
+	open_tab?: string
 	fixed_height: boolean
 	sidebar_index: number
 }
@@ -75,6 +76,7 @@ const DEFAULT_POSITION_DATA: PanelPositionData = {
 	fixed_height: false,
 	attached_to: '',
 	attached_index: undefined,
+	open_tab: undefined,
 	sidebar_index: 0,
 }
 
@@ -97,8 +99,6 @@ export class Panel extends EventSystem {
 	previous_slot: PanelSlot
 	width: number
 	height: number
-
-	open_attached_panel: Panel
 
 	node: HTMLElement
 	container: HTMLElement
@@ -146,7 +146,6 @@ export class Panel extends EventSystem {
 		this.onFold = data.onFold;
 		this.events = {};
 		this.toolbars = [];
-		this.open_attached_panel = this;
 
 		this.default_configuration = {default_position: data.default_position, mode_positions: data.mode_positions};
 		this.mode_position_data = {};
@@ -608,6 +607,12 @@ export class Panel extends EventSystem {
 	set attached_index(id: number) {
 		this.position_data.attached_index = id;
 	}
+	get open_attached_panel(): Panel {
+		return Panels[this.position_data.open_tab] ?? this;
+	}
+	set open_attached_panel(panel: Panel | undefined) {
+		this.position_data.open_tab = (panel && panel != this) ? panel.id : undefined;
+	}
 	dispatchEvent(event_name: PanelEvent, data: any): void {
 		super.dispatchEvent(event_name, data);
 	}
@@ -653,7 +658,7 @@ export class Panel extends EventSystem {
 			this.attachPanel(panel, index);
 		}
 	}
-	selectTab(panel: Panel = this): this{
+	selectTab(panel: Panel = this): this {
 		if (this.open_attached_panel != panel) {
 			this.open_attached_panel = panel;
 			this.update();

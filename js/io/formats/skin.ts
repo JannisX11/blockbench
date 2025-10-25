@@ -27,6 +27,7 @@ export const skin_presets: Record<string, SkinPreset> = {};
 type SkinPoseData = Record<string, ArrayVector3 | {rotation: ArrayVector3, offset: ArrayVector3}>
 const DefaultPoses: Record<string, SkinPoseData> = {
 	none: {
+		Waist: [0, 0, 0],
 		Head: [0, 0, 0],
 		Body: [0, 0, 0],
 		RightArm: [0, 0, 0],
@@ -35,6 +36,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: [0, 0, 0],
 	},
 	natural: {
+		Waist: [0, 0, 0],
 		Head: [6, -5, 0],
 		Body: [0, 0, 0],
 		RightArm: [10, 0, 0],
@@ -43,6 +45,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: [10, 0, -2],
 	},
 	walking: {
+		Waist: [0, 0, 0],
 		Head: [-2, 0, 0],
 		Body: [0, 0, 0],
 		RightArm: [-35, 0, 0],
@@ -51,6 +54,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: [-42, 0, -2]
 	},
 	crouching: {
+		Waist: [0, 0, 0],
 		Head: {rotation: [-5, 0, 0], offset: [0, -1, 0]},
 		Body: {rotation: [-28, 0, 0], offset: [0, 0, -1]},
 		RightArm: [-15, 0, 0],
@@ -59,6 +63,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: {rotation: [14, 0, 0], offset: [0, 3, 4]}
 	},
 	sitting: {
+		Waist: [0, 0, 0],
 		Head: [5.5, 0, 0],
 		Body: [0, 0, 0],
 		RightArm: [36, 0, 0],
@@ -67,6 +72,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: [72, 18, 0]
 	},
 	jumping: {
+		Waist: [0, 0, 0],
 		Head: [20, 0, 0],
 		Body: [0, 0, 0],
 		RightArm: {rotation: [-175, 0, -20], offset: [0, 2, 0]},
@@ -75,6 +81,7 @@ const DefaultPoses: Record<string, SkinPoseData> = {
 		LeftLeg: {rotation: [2.5, 0, -10], offset: [0, 6, -3.75]}
 	},
 	aiming: {
+		Waist: [0, 0, 0],
 		Head: [8, -35, 0],
 		Body: [-2, 0, 0],
 		RightArm: {rotation: [97, -17, -2], offset: [-1, 1, -1]},
