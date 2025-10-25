@@ -184,14 +184,14 @@ var codec = new Codec('java_block', {
 				}
 			})
 		}
-		if (options.prevent_dialog !== true && clear_elements.length && item_parents.includes(Project.parent)) {
+		/*if (options.prevent_dialog !== true && clear_elements.length && item_parents.includes(Project.parent)) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_builtin_parent',
 				icon: 'info',
 				message: tl('message.invalid_builtin_parent.message', [Project.parent])
 			})
 			Project.parent = '';
-		}
+		}*/
 
 		var blockmodel = {
 			format_version: Project.java_block_version

@@ -8,11 +8,11 @@ workbox.generateSW({
 		'./favicon.png',
 		'./icon_maskable.png',
 
-		'./dist/**/*',
+		'./dist/bundle.js',
 		'./lib/*',
 		'./css/**/*',
 		'./assets/**/*',
-		'./font/*',
+		'./font/**/*',
 	],
 	swDest: './service_worker.js',
 	maximumFileSizeToCacheInBytes: 32_096_000,

@@ -2369,19 +2369,21 @@ BARS.defineActions(function() {
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					if (blend_mode == BlendModes.difference) {
-						let before = Painter.getAlphaMatrix(texture, px, py)
-						Painter.setAlphaMatrix(texture, px, py, a);
-						if (a > before) {
-							a = (a - before) / (1 - before);
-						} else if (before) {
-							a = 0;
+					if (settings.limit_brush_opacity_per_stroke.value) {
+						if (blend_mode == BlendModes.difference) {
+							let before = Painter.getAlphaMatrix(texture, px, py)
+							Painter.setAlphaMatrix(texture, px, py, a);
+							if (a > before) {
+								a = (a - before) / (1 - before);
+							} else if (before) {
+								a = 0;
+							}
+						} else if (opacity < 1 || blend_mode != BlendModes.default) {
+							let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
+							let target = Math.lerp(before, opacity??1, a);
+							if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
+							a = Math.clamp(Math.getLerp(before, 1, target), 0, 1);
 						}
-					} else if (opacity < 1 || blend_mode != BlendModes.default) {
-						let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
-						let target = Math.lerp(before, opacity??1, a);
-						if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
-						a = Math.clamp(Math.getLerp(before, 1, target), 0, 1);
 					}
 					let result_color;
 					if (blend_mode == BlendModes.default) {
@@ -2531,12 +2533,14 @@ BARS.defineActions(function() {
 					a: copy_source.data[source_index + 3] / 255
 				}
 
-				let before = Painter.getAlphaMatrix(texture, px, py)
-				Painter.setAlphaMatrix(texture, px, py, a * color.a);
-				if (a > before) {
-					a = (a - before) / (1 - before);
-				} else if (before) {
-					a = 0;
+				if (settings.limit_brush_opacity_per_stroke.value) {
+					let before = Painter.getAlphaMatrix(texture, px, py)
+					Painter.setAlphaMatrix(texture, px, py, a * color.a);
+					if (a > before) {
+						a = (a - before) / (1 - before);
+					} else if (before) {
+						a = 0;
+					}
 				}
 
 				let result_color = Painter.combineColors(pxcolor, color, a);
@@ -2610,7 +2614,7 @@ BARS.defineActions(function() {
 
 				var a = opacity * local_opacity;
 
-				if (opacity < 1) {
+				if (opacity < 1 && settings.limit_brush_opacity_per_stroke.value) {
 					let before = Painter.getAlphaMatrix(texture, px, py);
 					let new_val = (before||0);
 					if (before) {

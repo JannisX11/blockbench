@@ -817,12 +817,11 @@ export class NumSlider extends Widget {
 					id: 'paste',
 					name: 'action.paste',
 					icon: 'fa-paste',
-					click: () => {
+					click: async () => {
 						this.startInput()
-						document.execCommand('paste');
-						setTimeout(() => {
-							this.stopInput();
-						}, 20);
+						let text = await navigator.clipboard.readText();
+						this.jq_inner.text(text);
+						this.stopInput();
 					}
 				},
 				new MenuSeparator('edit'),

@@ -287,7 +287,7 @@ export class Preview {
 			});
 		} catch (err) {
 			let error_element = document.querySelector('#loading_error_detail')
-			error_element.innerHTML = `Error creating WebGL context. Try to update your graphics drivers.`
+			error_element.innerHTML = `Error creating WebGL context. Try to update your ${isApp ? 'graphics drivers' : 'web browser'}.`
 
 			if (isApp) {
 				window.restartWithoutHardwareAcceleration = function() {

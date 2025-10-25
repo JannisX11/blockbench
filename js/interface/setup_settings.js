@@ -179,18 +179,19 @@ function setupSettings() {
 			Interface.Panels.color.vue.picker_type = value;
 		}
 	});
-	new Setting('brush_cursor_2d',			{category: 'paint', value: true});
-	new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
+	new Setting('brush_cursor_2d',					{category: 'paint', value: true});
+	new Setting('brush_cursor_3d',					{category: 'paint', value: true, onChange(value) {
 		if (!value) scene.remove(Canvas.brush_outline);
 	}});
-	new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
-	new Setting('move_with_selection_tool',		{category: 'paint', value: true});
-	new Setting('pick_color_opacity',			{category: 'paint', value: false});
-	new Setting('pick_combined_color',			{category: 'paint', value: false});
-	new Setting('paint_through_transparency',	{category: 'paint', value: true});
-	new Setting('paint_side_restrict',			{category: 'paint', value: true});
-	new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
-	new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
+	new Setting('outlines_in_paint_mode',			{category: 'paint', value: true});
+	new Setting('move_with_selection_tool',			{category: 'paint', value: true});
+	new Setting('pick_color_opacity',				{category: 'paint', value: false});
+	new Setting('pick_combined_color',				{category: 'paint', value: false});
+	new Setting('paint_through_transparency',		{category: 'paint', value: true});
+	new Setting('paint_side_restrict',				{category: 'paint', value: true});
+	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
+	new Setting('paint_with_stylus_only',			{category: 'paint', value: false});
+	new Setting('brush_opacity_modifier',			{category: 'paint', value: 'none', type: 'select', options: {
 		'pressure': tl('settings.brush_modifier.pressure'),
 		'tilt': tl('settings.brush_modifier.tilt'),
 		'none': tl('settings.brush_modifier.none'),

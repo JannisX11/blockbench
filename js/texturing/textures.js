@@ -1916,6 +1916,7 @@ export class Texture {
 						Undo.initEdit({textures: [texture]});
 						if (is_animated) {
 							texture.uv_height = texture.height * (texture.uv_width / texture.width);
+							texture.currentFrame = 0;
 						} else {
 							texture.uv_height = texture.uv_width;
 						}
@@ -1925,6 +1926,7 @@ export class Texture {
 						Undo.initEdit({uv_mode: true});
 						if (is_animated) {
 							Project.texture_height = Project.texture_width * (texture.height / texture.width);
+							texture.currentFrame = 0;
 						} else {
 							Project.texture_height = Project.texture_width;
 						}
