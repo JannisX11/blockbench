@@ -584,11 +584,17 @@ export function setupInterface() {
 		mouse_pos.y = event.clientY;
 
 		if (Interface.cursor_tooltip?.textContent) {
-			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
-			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+			updateCursorTooltip(event);
 		}
 	})
 	updateInterface()
+}
+
+function updateCursorTooltip(event) {
+	let is_touch = event ? event.pointerType == 'touch' : Blockbench.isTouch;
+	let offset_y = is_touch ? -72 : 0;
+	Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
+	Interface.cursor_tooltip.style.top = (mouse_pos.y + offset_y) + 'px';
 }
 
 export function updateInterface() {
@@ -864,8 +870,7 @@ Blockbench.setCursorTooltip = function(text) {
 		Interface.cursor_tooltip.textContent = text;
 		if (!Interface.cursor_tooltip.parentNode) {
 			document.body.append(Interface.cursor_tooltip);
-			Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
-			Interface.cursor_tooltip.style.top = mouse_pos.y + 'px';
+			updateCursorTooltip();
 		}
 	} else {
 		Interface.cursor_tooltip.textContent = '';
@@ -1010,11 +1015,13 @@ onVueSetup(function() {
 					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
 				</div>
 
+				<div id="status_bar_tool_controls" v-if="isMobile"></div>
+
 				<div v-if="keyboard_menu_in_status_bar" id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 					<i class="material-icons">keyboard</i>
 				</div>
 
-				<div class="f_right">
+				<div class="f_right fps_counter_display" v-if="!isMobile">
 					{{ Prop.fps }} FPS
 				</div>
 

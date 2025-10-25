@@ -542,7 +542,7 @@ Interface.definePanels(() => {
 				}
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
-					$('#main_colorpicker').spectrum('reflow');
+					Panels.color.picker.spectrum('reflow');
 				})
 			})
 		},
@@ -652,7 +652,7 @@ Interface.definePanels(() => {
 						this.second_color_selected = !!secondary;
 						Object.assign(this.hsv, ColorPanel.hexToHsv(this.selected_color));
 						this.updateSliders();
-						$('#main_colorpicker').spectrum('set', this.selected_color);
+						Panels.color.picker.spectrum('set', this.selected_color);
 						this.text_input = this.selected_color;
 					}
 				},
@@ -677,7 +677,7 @@ Interface.definePanels(() => {
 							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
 						}
 						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
+						Panels.color.picker.spectrum('set', value);
 						this.text_input = value;
 						this.editing_hsv = false;
 					}
@@ -690,7 +690,7 @@ Interface.definePanels(() => {
 							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
 						}
 						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
+						Panels.color.picker.spectrum('set', value);
 						this.text_input = value;
 						this.editing_hsv = false;
 					}

@@ -44,6 +44,7 @@
 		background-size: 128px;
 		background-position: center;
 		--menu-bar-height: 30px;
+		--status-bar-height: 26px;
 	}
 	#work_screen {
 		--toolbar-height: 40px;
@@ -51,7 +52,7 @@
 		display: grid;
 		overflow: hidden;
 		grid-template-columns: 332px auto 314px;
-		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) 26px;
+		grid-template-rows: var(--toolbar-height) minmax(200px, 5000px) var(--status-bar-height);
 		grid-template-areas: 
 			"left_bar toolbar toolbar"
 			"left_bar center right_bar"
@@ -424,13 +425,14 @@
 /*Mobile*/
 	body.is_mobile {
 		--menu-bar-height: 38px;
+		--status-bar-height: 31px;
 	}
 	body.is_mobile #page_wrapper {
 		border: none;
 	}
 	body.is_mobile #work_screen {
 		display: grid;
-		grid-template-rows: auto minmax(200px, 5000px) 26px 38px !important;
+		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height) 38px !important;
 		grid-template-areas: 
 			"toolbar"
 			"center"
@@ -441,7 +443,7 @@
 	}
 	body.is_mobile.is_landscape #work_screen {
 		grid-template-columns: auto 48px !important;
-		grid-template-rows: auto minmax(200px, 5000px) 26px !important;
+		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height) !important;
 		grid-template-areas: 
 			"toolbar panel_selector"
 			"center panel_selector"
@@ -882,6 +884,7 @@
 	#status_bar {
 		position: relative;
 		display: flex;
+		align-items: center;
 		background: var(--color-ui);
 		overflow: hidden;
 	}

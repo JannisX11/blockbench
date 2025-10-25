@@ -2531,5 +2531,13 @@
 	"action.apply_texture_to_elements.desc": "Apply the selected texture to the selected elements",
 	"menu.panel.reset_size": "Reset Size",
 	"action.import_layer": "Import Layer",
-	"action.import_layer.desc": "Import image files as layers"
+	"action.import_layer.desc": "Import image files as layers",
+	"menu.collection.open_file": "Open File",
+	"layout.version": "Version",
+	"settings.status_bar_transform_sliders": "Transform Sliders in Status Bar",
+	"settings.status_bar_transform_sliders.desc": "Display the transform sliders toolbar of the selected tool in the status bar instead of using the Transform panel",
+	"settings.default_bedrock_format": "Default Bedrock Format",
+	"settings.default_bedrock_format.desc": "Select the default format to load Minecraft Bedrock models in, when no specific format can be detected from context.",
+	"settings.limit_brush_opacity_per_stroke": "Limit Brush Opacity per Stroke",
+	"settings.limit_brush_opacity_per_stroke.desc": "Limit the opacity that a brush can apply to the value of the opacity slider during each brush stroke. With a smooth brush this behavior can potentially lead to slight unwanted noise."
 }

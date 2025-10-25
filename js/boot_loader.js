@@ -170,6 +170,12 @@ localStorage.setItem('last_version', Blockbench.version);
 
 setStartScreen(true);
 
+if (Blockbench.isMobile) {
+	// Reselect tool to update transform toolbar in status bar on mobile
+	Toolbox.selected = null;
+	BarItems.move_tool.select();
+}
+
 document.getElementById('page_wrapper').classList.remove('invisible');
 
 Blockbench.setup_successful = true;

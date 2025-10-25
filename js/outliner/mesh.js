@@ -33,8 +33,8 @@ export class MeshFace extends Face {
 		}
 		return this;
 	}
-	getSaveCopy(project) {
-		let copy = super.getSaveCopy(project);
+	getSaveCopy(nested) {
+		let copy = super.getSaveCopy(nested);
 		copy.vertices = this.getSortedVertices();
 		return copy;
 	}
@@ -601,7 +601,7 @@ export class Mesh extends OutlinerElement {
 		el.uuid = this.uuid
 		return el;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		var el = {}
 		for (var key in Mesh.properties) {
 			Mesh.properties[key].copy(this, el)
@@ -620,7 +620,7 @@ export class Mesh extends OutlinerElement {
 
 		el.faces = {};
 		for (let key in this.faces) {
-			el.faces[key] = this.faces[key].getSaveCopy(project);
+			el.faces[key] = this.faces[key].getSaveCopy();
 		}
 
 		el.type = 'mesh';
@@ -1174,15 +1174,15 @@ new NodePreviewController(Mesh, {
 			position_array.push(...vertices[vkey]);
 			normal_array.push(...normal);
 			if (armature_bone) {
-				let weight = armature_bone.vertex_weights[vkey] ?? 0;
+				let weight = armature_bone.getVertexWeight(element, vkey) ?? 0;
 				let weight_sum = 0;
-				all_armature_bones.forEach((bone) => weight_sum += (bone.vertex_weights[vkey] ?? 0));
+				all_armature_bones.forEach((bone) => weight_sum += (bone.getVertexWeight(element, vkey) ?? 0));
 
 
 				if (Project.view_mode === 'weighted_bone_colors') {
 					let color = [0, 0, 0];
 					for (let bone of all_armature_bones) {
-						let bone_weight = bone.vertex_weights[vkey];
+						let bone_weight = bone.getVertexWeight(element, vkey);
 						let bone_color = bone_marker_colors[bone.color%markerColors.length];
 						if (bone_weight > 0.02) {
 							let amount = bone_weight / weight_sum;

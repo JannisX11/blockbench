@@ -155,6 +155,7 @@ interface PluginOptions {
 	contributes?: {
 		formats: string[]
 	}
+	creation_date?: string
 	has_changelog?: boolean
 	/**
 	 * In combination with a "Deprecated" tag, this can be used to provide context on why a plugin is deprecated

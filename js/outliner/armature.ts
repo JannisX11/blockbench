@@ -10,7 +10,7 @@ interface ArmatureOptions {
 }
 
 export class Armature extends OutlinerElement {
-	children: ArmatureBone[]
+	children: (ArmatureBone|Mesh|NullObject)[]
 	isOpen: boolean
 	visibility: boolean
 	origin: ArrayVector3
@@ -142,8 +142,8 @@ export class Armature extends OutlinerElement {
 				// @ts-ignore
 				cb(this.children[i])
 			}
-			if (this.children[i].forEachChild) {
-				this.children[i].forEachChild(cb, type)
+			if ('forEachChild' in this.children[i]) {
+				(this.children[i] as ArmatureBone).forEachChild(cb, type)
 			}
 			i++;
 		}
@@ -157,7 +157,7 @@ export class Armature extends OutlinerElement {
 				addBones(item.children);
 			}
 		}
-		addBones(this.children);
+		addBones(this.children.filter(c => c instanceof ArmatureBone));
 		return bones;
 	}
 	calculateVertexDeformation(mesh: Mesh): Record<string, ArrayVector3> {
@@ -180,15 +180,15 @@ export class Armature extends OutlinerElement {
 	
 			target.set(0, 0, 0);
 
-			let affecting_bones = bones.filter(bone => bone.vertex_weights[vkey]);
+			let affecting_bones = bones.filter(bone => bone.getVertexWeight(mesh, vkey));
 			if (affecting_bones.length > 4) {
-				affecting_bones.sort((a, b) => a.vertex_weights[vkey] - b.vertex_weights[vkey]).slice(0, 4);
+				affecting_bones.sort((a, b) => a.getVertexWeight(mesh, vkey) - b.getVertexWeight(mesh, vkey)).slice(0, 4);
 			}
 			// Normalize weights
 			// The sum of all weights shold be 1, otherwise vertices are not influenced by bones equally and start drifting towards the mesh origin
 			let weights = [];
 			for ( let i = 0; i < 4; i ++ ) {
-				const weight = affecting_bones[i]?.vertex_weights[vkey] ?? 0;
+				const weight = affecting_bones[i]?.getVertexWeight(mesh, vkey) ?? 0;
 				weights.push(weight);
 			}
 			let weight_vector = new THREE.Vector4().fromArray(weights);
@@ -275,16 +275,6 @@ new NodePreviewController(Armature, {
 		mesh.updateMatrixWorld();
 
 		this.dispatchEvent('update_transform', {element});
-	}
-})
-
-// Don't allow multiple meshes per armature for now
-Blockbench.on('update_selection', arg => {
-	for (let armature of Armature.all) {
-		while (armature.children.filter(c => c instanceof Mesh).length > 1) {
-			let mesh = armature.children.findLast(c => c instanceof Mesh);
-			mesh.addTo(armature.parent);
-		}
 	}
 })
 

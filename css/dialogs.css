@@ -201,7 +201,7 @@
 		flex-wrap: wrap;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar > label {
-		width: 100% !important;
+		min-width: 95%;
 	}
 	.dialog_bar.form_bar .half {
 		flex-grow: 1;

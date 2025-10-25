@@ -62,9 +62,10 @@ function updateScreenSpaceVertexPositions(mesh: Mesh) {
 	return screen_space_vertex_positions;
 }
 Blockbench.on('update_camera_position', () => {
-	screen_space_vertex_positions = null
+	screen_space_vertex_positions = null;
 })
 
+let previous_element: Mesh | undefined;
 new Tool('weight_brush', {
 	icon: 'stylus_highlighter',
 	category: 'tools',
@@ -92,8 +93,8 @@ new Tool('weight_brush', {
 		let all_bones = armature.getAllBones() as ArmatureBone[];
 		let other_bones = all_bones.slice();
 		other_bones.remove(armature_bone);
-		if (!element) {
-			element = armature.children.find(el => el instanceof Mesh);
+		if (!element && previous_element instanceof Mesh && armature.children.includes(previous_element)) {
+			element = previous_element;
 		}
 		if (element instanceof Mesh == false) {
 			return;
@@ -101,6 +102,10 @@ new Tool('weight_brush', {
 		if (!element.getArmature()) {
 			return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 		}
+		if (element != previous_element) {
+			screen_space_vertex_positions = null;
+		}
+		previous_element = element;
 
 		let undo_tracked = all_bones;
 		Undo.initEdit({elements: undo_tracked, mirror_modeling: false});
@@ -136,7 +141,7 @@ new Tool('weight_brush', {
 				let distance = vec.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
 				let falloff = (1-(distance / radius)) * (1 + base_radius);
 				let influence = Math.hermiteBlend(Math.clamp(falloff, 0, 1));
-				let value = armature_bone.vertex_weights[vkey] ?? 0;
+				let value = armature_bone.getVertexWeight(mesh, vkey) ?? 0;
 				if (influence <= 0) continue;
 				
 				if (event.shiftKey || Pressing.overrides.shift) {
@@ -151,17 +156,18 @@ new Tool('weight_brush', {
 				// Reduce weight on other bones
 				if (blend_mode_select.value == 'set') {
 					for (let bone of other_bones) {
-						if (bone.vertex_weights[vkey] && !subtract) {
-							let lower_limit = Math.min(Math.max(0, 1-limit), bone.vertex_weights[vkey]);
-							bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, lower_limit, 1);
+						if (bone.getVertexWeight(mesh, vkey) && !subtract) {
+							let lower_limit = Math.min(Math.max(0, 1-limit), bone.getVertexWeight(mesh, vkey));
+							let value = Math.clamp(bone.getVertexWeight(mesh, vkey) - influence, lower_limit, 1);
+							bone.setVertexWeight(mesh, vkey, value);
 						}
 					}
 				}
 
 				if (value < 0.04) {
-					delete armature_bone.vertex_weights[vkey];
+					armature_bone.setVertexWeight(mesh, vkey);
 				} else {
-					armature_bone.vertex_weights[vkey] = value
+					armature_bone.setVertexWeight(mesh, vkey, value);
 				}
 				target_average_x += mesh.vertices[vkey][0];
 				affected_vkeys.add(vkey);

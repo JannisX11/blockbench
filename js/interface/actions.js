@@ -259,7 +259,8 @@ export class Action extends BarItem {
 		if (!this.click && data.click) {
 			this.onClick = data.click;
 			this.click = (...args) => {
-				this.dispatchEvent('use');
+				let result = this.dispatchEvent('use');
+				if (result == false) return;
 				this.onClick(...args);
 				this.dispatchEvent('used');
 			};
@@ -422,6 +423,7 @@ export class Tool extends Action {
 		var scope = this;
 		this.type = 'tool'
 		this.toolbar = data.toolbar;
+		this.transform_toolbar = data.transform_toolbar;
 		this.alt_tool = data.alt_tool;
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
@@ -486,6 +488,17 @@ export class Tool extends Action {
 		}
 		else {
 			$('.toolbar_wrapper.tool_options > .toolbar').detach();
+		}
+		if (Blockbench.isMobile && Settings.get('status_bar_transform_sliders')) {
+			let wrapper = document.getElementById('status_bar_tool_controls');
+			if (wrapper) {
+				while (wrapper.firstElementChild) {
+					wrapper.firstElementChild.remove();
+				}
+				if (Toolbars[this.transform_toolbar]) {
+					wrapper.append(Toolbars[this.transform_toolbar].node);
+				}
+			}
 		}
 
 		if (typeof this.onSelect == 'function') {
@@ -804,12 +817,11 @@ export class NumSlider extends Widget {
 					id: 'paste',
 					name: 'action.paste',
 					icon: 'fa-paste',
-					click: () => {
+					click: async () => {
 						this.startInput()
-						document.execCommand('paste');
-						setTimeout(() => {
-							this.stopInput();
-						}, 20);
+						let text = await navigator.clipboard.readText();
+						this.jq_inner.text(text);
+						this.stopInput();
 					}
 				},
 				new MenuSeparator('edit'),
@@ -905,7 +917,10 @@ export class NumSlider extends Widget {
 
 		this.change(n => n + difference);
 		this.update();
-		Blockbench.setStatusBarText(trimFloatNumber(this.value - this.last_value));
+		let display_offset = trimFloatNumber(this.value - this.last_value);
+		if (!Blockbench.isMobile) {
+			Blockbench.setStatusBarText(display_offset);
+		}
 	}
 	input() {
 		this.last_value = this.value;

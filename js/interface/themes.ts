@@ -119,7 +119,7 @@ export class CustomTheme {
 				if (data.colors[key]) {
 					Merge.string(this.colors, data.colors, key);
 				} else {
-					CustomTheme.selected.colors[key] = DEFAULT_COLORS[key];
+					this.colors[key] = DEFAULT_COLORS[key];
 				}
 			}
 		}
@@ -458,7 +458,7 @@ export class CustomTheme {
 
 							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.version')}</label>
-								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version">
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version" placeholder="1.0.0">
 							</div>
 
 							<hr />
@@ -632,7 +632,17 @@ export class CustomTheme {
 			variable_section += `\n\t${key}: ${variables[key]};`
 		}
 		variable_section += '\n}\n';
-		document.getElementById('theme_css').textContent = `@layer theme {${variable_section}${theme.css}};`
+
+		let css = theme.css || '';
+		// Move import statements ouf of the later as they do not function inside
+		let import_section = css.length > 10 && css.match(/^[\S\s]*@import .+/);
+		if (css && import_section) {
+			let remaining_css = css.substring(import_section.length);
+			css = `${import_section[0]}\n@layer theme {${variable_section}${remaining_css}};`
+		} else {
+			css = `@layer theme {${variable_section}${css}};`;
+		}
+		document.getElementById('theme_css').textContent = css;
 		document.body.classList.toggle('theme_borders', !!theme.borders);
 		// Options
 		for (let attribute of document.body.attributes) {

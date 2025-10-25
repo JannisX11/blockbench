@@ -7,7 +7,10 @@ import { Property } from "../util/property";
 Interface.definePanels(function() {
 	new Panel('transform', {
 		icon: 'arrows_output',
-		condition: {modes: ['edit', 'pose']},
+		condition: {
+			modes: ['edit', 'pose'],
+			method: () => !(Blockbench.isMobile && Settings.get('status_bar_transform_sliders'))
+		},
 		display_condition: () => Outliner.selected.length || Group.first_selected,
 		min_height: 90,
 		default_position: {
@@ -141,7 +144,7 @@ Interface.definePanels(function() {
 			for (let prop_id in Group.properties) {
 				let property = Group.properties[prop_id];
 				if (property?.inputs?.element_panel) {
-					let input_id = 'group_' + prop_id;
+					let input_id = 'group__' + prop_id;
 					values[input_id] = Group.first_selected[prop_id];
 				}
 			}

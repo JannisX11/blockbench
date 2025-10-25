@@ -263,7 +263,15 @@ export function openFileInEditor(file_path: string, editor: string) {
 	}
 }
 
+/**
+ * @internal
+ */
+export function openDevTools() {
+	currentwindow.webContents.openDevTools();
+}
+
 Object.assign(window, {
+	openDevTools,
 	SystemInfo,
 	Buffer,
 });

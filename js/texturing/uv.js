@@ -2752,7 +2752,8 @@ Interface.definePanels(function() {
 						return false;
 
 					} else if (this.mode == 'paint' && Toolbox.selected.paintTool && (event.which === 1 || Keybinds.extra.paint_secondary_color.keybind.isTriggered(event) || (event.touches && event.touches.length == 1))) {
-						if (event.target.id != 'uv_viewport') {
+						let is_scrollbar_click = event.target.id == 'uv_viewport' && (event.offsetX > event.target.clientWidth || event.offsetY > event.target.heightWidth);
+						if (!is_scrollbar_click) {
 							// Paint
 							UVEditor.startPaintTool(event);
 						}

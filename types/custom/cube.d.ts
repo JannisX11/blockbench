@@ -83,7 +83,7 @@ declare class Cube extends OutlinerElement {
 	size(axis: number, floored?: boolean): number
 	rotationAxis(): string
 	getUndoCopy(aspects?: any): void
-	getSaveCopy(project?: boolean): Cube
+	getSaveCopy(): Cube
 	/**
 	 * Rotate the cube around axis in 90 degree steps
 	 * @param axis Axis index
@@ -135,9 +135,9 @@ declare class Face {
 	getBoundingRect(): any
 	reset(): void
 	/**
-	 * Returns a save copy of the face, ready for serialization. Set project to true to save for a bbmodel project file
+	 * Returns a save copy of the face, ready for serialization
 	 */
-	getSaveCopy(project?: boolean): any
+	getSaveCopy(): any
 	/**
 	 * Get a copy for undo tracking
 	 */

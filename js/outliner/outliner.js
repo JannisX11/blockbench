@@ -937,7 +937,7 @@ export function compileGroups(...args) {
 	return Outliner.toJSON(...args);
 };
 export function parseGroups(...args) {
-	console.warn('compileGroups is no longer supported. Use Outliner.toJSON instead');
+	console.warn('parseGroups is no longer supported. Use Outliner.loadJSON instead');
 	return Outliner.loadJSON(...args);
 };
 
@@ -1049,8 +1049,6 @@ export function canAddOutlinerNodesTo(selection, target) {
 	if (child_types) {
 		if (selection.find(el => child_types.includes(el.type) == false)) return false;
 	}
-	// Don't allow multiple meshes per armature for now
-	if (target instanceof Armature && selection.find(el => el instanceof Mesh) && target.children.find(el => el instanceof Mesh)) return false;
 
 	for (let node of selection) {
 		let parent_types = node.getTypeBehavior('parent_types');
@@ -1074,6 +1072,9 @@ export function renameOutliner(element) {
 
 	} else if (Outliner.selected.length === 1 && !Project.EditSession) {
 		Outliner.selected[0].rename()
+
+	} else if (element instanceof OutlinerNode && element.getTypeBehavior('select_children') == 'self_first') {
+		element.rename();
 
 	} else {
 
@@ -1622,7 +1623,7 @@ Interface.definePanels(function() {
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
 				:title="node.title"
-				@dblclick.stop.self="!node.locked && renameOutliner()"
+				@dblclick.stop.self="!node.locked && renameOutliner(node)"
 			>` +
 				//Opener
 				
@@ -2164,7 +2165,7 @@ export class Face {
 		this.texture = false;
 		return this;
 	}
-	getSaveCopy(project) {
+	getSaveCopy() {
 		let copy = {
 			uv: this.uv,
 		}
@@ -2174,8 +2175,8 @@ export class Face {
 		let tex = this.getTexture()
 		if (tex === null) {
 			copy.texture = null;
-		} else if (tex instanceof Texture && project) {
-			copy.texture = Texture.all.indexOf(tex)
+		} else if (tex instanceof Texture && Blockbench.hasFlag('compiling_bbmodel')) {
+			copy.texture = Texture.all.indexOf(tex);
 		} else if (tex instanceof Texture) {
 			copy.texture = tex.uuid;
 		}
