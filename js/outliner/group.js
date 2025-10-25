@@ -117,7 +117,7 @@ export class Group extends OutlinerNode {
 				selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
-				s.markAsSelected()
+				s.markAsSelected(true)
 			})
 		}
 		if (Animator.open && Animation.selected) {
