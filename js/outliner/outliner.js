@@ -937,7 +937,7 @@ export function compileGroups(...args) {
 	return Outliner.toJSON(...args);
 };
 export function parseGroups(...args) {
-	console.warn('compileGroups is no longer supported. Use Outliner.toJSON instead');
+	console.warn('parseGroups is no longer supported. Use Outliner.loadJSON instead');
 	return Outliner.loadJSON(...args);
 };
 

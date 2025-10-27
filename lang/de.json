@@ -2532,5 +2532,12 @@
 	"menu.panel.reset_size": "Größe zurücksetzen",
 	"action.import_layer": "Ebene importieren",
 	"action.import_layer.desc": "Bilddateien als Ebenen importieren",
-	"menu.collection.open_file": "Datei öffnen"
+	"menu.collection.open_file": "Datei öffnen",
+	"layout.version": "Version",
+	"settings.status_bar_transform_sliders": "Transformationsinputs in Statusleiste anzeigen",
+	"settings.status_bar_transform_sliders.desc": "Zeigt die Transform Input Werkzeugleiste des ausgewählten Werkzeuges in der Statusleiste statt in Transformierpanel an",
+	"settings.default_bedrock_format": "Standard-Bedrockformat",
+	"settings.default_bedrock_format.desc": "Das Standardformat, das verwendet wird, um Bedrock Modelle zu laden, wenn durch den Kontext kein bestimmtes Format ersichtlich ist.",
+	"settings.limit_brush_opacity_per_stroke": "Pinseldeckkraft pro Pinsenstrich begrenzen",
+	"settings.limit_brush_opacity_per_stroke.desc": "Begrenze die Deckkraft innerhalb eines einzelnen Pinsenstriches auf den Wert des Deckkraftreglers. Bei Verwendung eines weichen Pinsels kann hierbei ungewolltes Bildrauschen entstehen."
 }
