@@ -1067,7 +1067,7 @@ export function renameOutliner(element) {
 
 	stopRenameOutliner()
 
-	if (Group.first_selected && !element && !Project.EditSession) {
+	if (Group.selected.length == 1 && !Project.EditSession) {
 		Group.first_selected.rename()
 
 	} else if (Outliner.selected.length === 1 && !Project.EditSession) {
