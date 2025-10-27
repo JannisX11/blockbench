@@ -1,0 +1,39 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Electron Dev",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"dev"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Local Server",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"run",
+				"serve"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			]
+		},
+		{
+			"name": "Debug Renderer",
+			"type": "chrome",
+			"request": "attach",
+			"port": 9223,
+			"webRoot": "${workspaceFolder}",
+			"timeout": 30000
+		}
+	]
+}

@@ -1,0 +1,217 @@
+import stripJsonComments from 'strip-json-comments';
+import LZUTF8 from '../lib/lzutf8';
+import { shell } from '../native_apis';
+
+export class oneLiner {
+	constructor(data: any) {
+		if (data !== undefined) {
+			for (var key in data) {
+				if (data.hasOwnProperty(key)) {
+					this[key] = data[key]
+				}
+			}
+		}
+	}
+}
+
+interface JSONCompileOptions {
+	/**
+	 * Indentation string. If omitted, will default to the indentation from Blockbench's settings
+	 */
+	indentation?: string
+	/**
+	 * If true, minify everything into one line
+	 */
+	small?: boolean
+	/**
+	 * Whether to add a newline character at the end of the file. If omitted, use value from Blockbench settings
+	 */
+	final_newline?: boolean
+}
+/**
+ * Compile an Object into a JSON string
+ * @param object JSON Object to compile
+ * @param options Compile options
+ * @returns JSON string
+ */
+export function compileJSON(object: any, options: JSONCompileOptions = {}): string {
+	let indentation = options.indentation;
+	if (typeof indentation !== 'string') {
+		switch (settings.json_indentation.value) {
+			case 'spaces_4': indentation = '    '; break;
+			case 'spaces_2': indentation = '  '; break;
+			case 'tabs': default: indentation = '\t'; break;
+		}
+	}
+	function newLine(tabs) {
+		if (options.small === true) {return '';}
+		let s = '\n';
+		for (let i = 0; i < tabs; i++) {
+			s += indentation;
+		}
+		return s;
+	}
+	function escape(string) {
+		if (string.includes('\\')) {
+			string = string.replace(/\\/g, '\\\\');
+		}
+		if (string.includes('"')) {
+			string = string.replace(/"/g, '\\"');
+		}
+		if (string.includes('\n')) {
+			string = string.replace(/\n|\r\n/g, '\\n');
+		}
+		if (string.includes('\t')) {
+			string = string.replace(/\t/g, '\\t');
+		}
+		return string;
+	}
+	function handleVar(o, tabs, breaks = true) {
+		var out = ''
+		let type = typeof o;
+		if (type === 'string') {
+			//String
+			out += '"' + escape(o) + '"'
+		} else if (type === 'boolean') {
+			//Boolean
+			out += (o ? 'true' : 'false')
+		} else if (o === null || o === Infinity || o === -Infinity) {
+			//Null
+			out += 'null'
+		} else if (type === 'number') {
+			//Number
+			o = (Math.round(o*100000)/100000).toString()
+			if (o == 'NaN') o = null
+			out += o
+		} else if (o instanceof Array) {
+			//Array
+			let has_content = false
+			let multiline = !!o.find(item => typeof item === 'object');
+			if (!multiline) {
+				let length = 0;
+				o.forEach(item => {
+					length += typeof item === 'string' ? (item.length+4) : 3;
+				});
+				if (length > 140) multiline = true;
+			}
+			out += '['
+			for (var i = 0; i < o.length; i++) {
+				var compiled = handleVar(o[i], tabs+1)
+				if (compiled) {
+					if (has_content) {out += ',' + ((options.small || multiline) ? '' : ' ')}
+					if (multiline) {out += newLine(tabs)}
+					out += compiled
+					has_content = true
+				}
+			}
+			if (multiline) {out += newLine(tabs-1)}
+			out += ']'
+		} else if (type === 'object') {
+			//Object
+			breaks = breaks && !(o instanceof oneLiner);
+			var has_content = false
+			out += '{'
+			for (var key in o) {
+				if (o.hasOwnProperty(key)) {
+					var compiled = handleVar(o[key], tabs+1, breaks)
+					if (compiled) {
+						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
+						if (breaks) {out += newLine(tabs)}
+						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ')
+						out += compiled
+						has_content = true
+					}
+				}
+			}
+			if (breaks && has_content) {out += newLine(tabs-1)}
+			out += '}'
+		}
+		return out;
+	}
+	let file = handleVar(object, 1);
+	if ((settings.final_newline.value && options.final_newline != false) || options.final_newline == true) {
+		file += '\n';
+	}
+	return file;
+}
+
+interface FeedbackOptions {
+	file_path?: string
+}
+/**
+ * Parse JSON file, while stripping away comments, and optionally showing potential syntax errors to the user in a popup
+ * @param data Input string
+ * @param feedback Whether to notify the user of syntax errors. Default is true
+ * @returns Parsed data
+ */
+export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions = true): any {
+	if (data.substr(0, 4) === '<lz>') {
+		data = LZUTF8.decompress(data.substr(4), {inputEncoding: 'StorageBinaryString'})
+	}
+	if (data.charCodeAt(0) === 0xFEFF) {
+		data = data.substr(1)
+	}
+	try {
+		data = JSON.parse(data)
+	} catch (err1) {
+		data = stripJsonComments(data);
+		try {
+			data = JSON.parse(data)
+		} catch (err) {
+			if (feedback === false) return;
+			if (data.match(/\n\r?[><]{7}/)) {
+				// @ts-ignore
+				Blockbench.showMessageBox({
+					title: 'message.invalid_file.title',
+					icon: 'fab.fa-git-alt',
+					message: 'message.invalid_file.merge_conflict'
+				})
+				return;
+			}
+			let error_part = '';
+			function logErrantPart(whole, start, length) {
+				var line = whole.substr(0, start).match(/\n/gm)
+				line = line ? line.length+1 : 1
+				var result = '';
+				var lines = whole.substr(start, length).split(/\n/gm)
+				lines.forEach((s, i) => {
+					result += `#${line+i} ${s}\n`
+				})
+				error_part = result.substr(0, result.length-1) + ' <-- HERE';
+				console.log(error_part);
+			}
+			console.error(err)
+			var length = err.toString().split('at position ')[1]
+			if (length) {
+				length = parseInt(length)
+				var start = limitNumber(length-32, 0, Infinity)
+
+				logErrantPart(data, start, 1+length-start)
+			} else if (err.toString().includes('Unexpected end of JSON input')) {
+
+				logErrantPart(data, data.length-16, 10)
+			}
+			// @ts-ignore
+			Blockbench.showMessageBox({
+				translateKey: 'invalid_file',
+				icon: 'error',
+				message: tl('message.invalid_file.message', [err]) + (error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : ''),
+				commands: {
+					open_file: (isApp && typeof feedback == 'object' && feedback.file_path) ? 'Open File' : undefined
+				}
+			}, (result) => {
+				if (result == 'open_file' && typeof feedback == 'object') {
+					shell.openPath(feedback.file_path);
+				}
+			})
+			return;
+		}
+	}
+	return data;
+}
+
+Object.assign(window, {
+	oneLiner,
+	compileJSON,
+	autoParseJSON,
+})

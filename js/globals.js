@@ -1,3 +1,5 @@
+import { Blockbench } from "./api";
+
 Blockbench.Outliner = Outliner;
 Blockbench.OutlinerNode = OutlinerNode;
 Blockbench.OutlinerElement = OutlinerElement;
@@ -7,10 +9,14 @@ Blockbench.Mesh = Mesh;
 Blockbench.Locator = Locator;
 Blockbench.NullObject = NullObject;
 Blockbench.TextureMesh = TextureMesh;
+Blockbench.SplineMesh = SplineMesh;
 
 Blockbench.Face = Face;
 Blockbench.CubeFace = CubeFace;
 Blockbench.MeshFace = MeshFace;
+Blockbench.BillboardFace = BillboardFace;
+Blockbench.SplineHandle = SplineHandle;
+Blockbench.SplineCurve = SplineCurve;
 Blockbench.NodePreviewController = NodePreviewController;
 
 Blockbench.Animator = Animator;
@@ -30,6 +36,8 @@ Blockbench.Panel = Panel;
 Blockbench.Mode = Mode;
 Blockbench.Dialog = Dialog;
 Blockbench.ShapelessDialog = ShapelessDialog;
+Blockbench.ToolConfig = ToolConfig;
+Blockbench.InputForm = InputForm;
 Blockbench.Setting = Setting;
 Blockbench.Plugin = Plugin;
 Blockbench.Preview = Preview;

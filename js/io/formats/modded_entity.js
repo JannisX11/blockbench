@@ -1,4 +1,4 @@
-(function() {
+import { fs } from "../../native_apis";
 
 function F(num) {
 	var s = trimFloatNumber(num) + '';
@@ -10,7 +10,7 @@ function F(num) {
 function I(num) {
 	return Math.floor(num)
 }
-const Templates = {
+export const Templates = {
 	'1.12': {
 		name: 'Forge 1.7 - 1.13',
 		remember: true,
@@ -338,7 +338,7 @@ const Templates = {
 		return new RegExp(`%\\(${name}\\)`, 'g');
 	}
 }
-const AnimationTemplates = {
+export const AnimationTemplates = {
 	'mojang': {
 		name: 'Mojmaps',
 		file:
@@ -423,6 +423,7 @@ var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'text',
 		extensions: ['java']
@@ -435,6 +436,7 @@ var codec = new Codec('modded_entity', {
 		let all_groups = getAllGroups();
 		let loose_cubes = [];
 		Cube.all.forEach(cube => {
+			if (cube.export == false) return;
 			if (cube.parent == 'root') loose_cubes.push(cube)
 		})
 		if (loose_cubes.length) {
@@ -448,6 +450,7 @@ var codec = new Codec('modded_entity', {
 		}
 
 		all_groups.slice().forEach(group => {
+			if (group.export == false) return;
 			let subgroups = [];
 			let group_i = all_groups.indexOf(group);
 			group.children.forEachReverse(cube => {
@@ -1018,6 +1021,13 @@ codec.compileAnimations = function(animations = Animation.all) {
 				let keyframes = animator[channel_id].slice().sort((a, b) => a.time - b.time);
 				let keyframe_strings = [];
 				function addKeyframe(time, x, y, z, interpolation) {
+					if (channel_id == 'position') {
+						x *= -1;
+					}
+					if (channel_id == 'rotation') {
+						x *= -1;
+						y *= -1;
+					}
 					let kf_string = AnimationTemplates.get('keyframe_'+channel_id);
 					kf_string = kf_string.replace(R('time'), F(time));
 					kf_string = kf_string.replace(R('x'), F(x));
@@ -1068,6 +1078,7 @@ var format = new ModelFormat({
 		]
 	},
 	codec,
+	node_name_regex: '\\w',
 	box_uv: true,
 	box_uv_float_size: true,
 	single_texture: true,
@@ -1076,6 +1087,7 @@ var format = new ModelFormat({
 	rotate_cubes: true,
 	integer_size: true,
 	animation_mode: true,
+	pbr: true,
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size') || settings.modded_entity_integer_size.value});
 codec.format = format;
@@ -1136,5 +1148,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

@@ -1,25 +1,19 @@
+import SolidMaterialVertShader from './../shaders/solid.vert.glsl'
+import SolidMaterialFragShader from './../shaders/solid.frag.glsl'
+import MarkerVertShader from './../shaders/marker.vert.glsl'
+import MarkerFragShader from './../shaders/marker.frag.glsl'
+import LayeredVertShader from './../shaders/layered.vert.glsl'
+import LayeredFragShader from './../shaders/layered.frag.glsl'
+import DirectionHelperVertShader from './../shaders/direction_helper.vert.glsl'
+import DirectionHelperFragShader from './../shaders/direction_helper.frag.glsl'
+import UVHelperVertShader from './../shaders/uv_helper.vert.glsl'
+import UVHelperFragShader from './../shaders/uv_helper.frag.glsl'
+import BrushOutlineVertShader from './../shaders/brush_outline.vert.glsl'
+import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
+import { prepareShader } from '../shaders/shader';
+import { gizmo_colors } from './preview'
 
-function getRescalingFactor(angle) {
-	switch (Math.abs(angle)) {
-		case 0:
-			return 1.4142
-			break;
-		case 22.5:
-			return 1.0824
-			break;
-		case 67.5:
-			return 1.0824
-			break;
-		case 45:
-			return 1.4142
-			break;
-		default:
-			return 1;
-			break;
-	}
-}
-
-const Reusable = {
+export const Reusable = {
 	vec1: new THREE.Vector3(),
 	vec2: new THREE.Vector3(),
 	vec3: new THREE.Vector3(),
@@ -31,98 +25,48 @@ const Reusable = {
 
 	quat1: new THREE.Quaternion(),
 	quat2: new THREE.Quaternion(),
+	quat3: new THREE.Quaternion(),
 
 	euler1: new THREE.Euler(),
 	euler2: new THREE.Euler(),
+	euler3: new THREE.Euler(),
 }
 
-// Aza note:
-// ---------------------------------------
-// Not sure about the pertinence of doing this, but my reasoning is that it saves us 
-// from copying the exact same shaders twice for both solid view mode variants (monochromatic & colored).
-const SolidMaterialShaders = {
-	vertShader: `
-		attribute float highlight;
 
-		uniform bool SHADE;
-
-		varying float light;
-		varying float lift;
-
-		float AMBIENT = 0.1;
-		float XFAC = -0.05;
-		float ZFAC = 0.05;
-
-		void main()
-		{
-
-			if (SHADE) {
-
-				vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
-
-				light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
-
-			} else {
-
-				light = 1.0;
-
-			}
-
-			if (highlight == 2.0) {
-				lift = 0.3;
-			} else if (highlight == 1.0) {
-				lift = 0.12;
-			} else {
-				lift = 0.0;
-			}
-			
-			vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-			gl_Position = projectionMatrix * mvPosition;
-		}`,
-	fragShader: `
-		#ifdef GL_ES
-		precision ${isApp ? 'highp' : 'mediump'} float;
-		#endif
-
-		uniform bool SHADE;
-		uniform float BRIGHTNESS;
-		uniform vec3 base;
-
-		varying float light;
-		varying float lift;
-
-		void main(void)
-		{
-
-			gl_FragColor = vec4(lift + base * light * BRIGHTNESS, 1.0);
-
-			if (lift > 0.1) {
-				gl_FragColor.b = gl_FragColor.b * 1.16;
-				gl_FragColor.g = gl_FragColor.g * 1.04;
-			}
-			if (lift > 0.2) {
-				gl_FragColor.r = gl_FragColor.r * 0.6;
-				gl_FragColor.g = gl_FragColor.g * 0.7;
-			}
-
-		}`
-}
-
-const Canvas = {
+export const Canvas = {
 	// Stores various colors for the 3D scene
 	gizmo_colors,
 	// Main Blockbench 3D scene
 	scene,
 	// Pivot marker
-	pivot_marker: rot_origin,
-	gizmos: [rot_origin],
+	pivot_marker: new THREE.Object3D(),
+	gizmos: [],
+	show_gizmos: true,
+	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
+		depthTest: settings.seethrough_outline.value == false,
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
+	splinePathLineMaterial: new THREE.LineBasicMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true,
+	}),
+	splinePathDashedLineMaterial: new THREE.LineDashedMaterial({
+		linewidth: 4,
+		vertexColors: true, 
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true, 
+		dashSize: 0.75, 
+		gapSize: 0.5
+	}),
 	meshOutlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
+		depthTest: settings.seethrough_outline.value == false,
+		transparent: true,
 		//color: gizmo_colors.outline,
 		vertexColors: true
 	}),
@@ -137,91 +81,26 @@ const Canvas = {
 				BRIGHTNESS: {type: 'bool', value: settings.brightness.value / 50},
 				base: {value: gizmo_colors.solid}
 			},
-			vertexShader: SolidMaterialShaders.vertShader,
-			fragmentShader: SolidMaterialShaders.fragShader,
+			vertexShader: prepareShader(SolidMaterialVertShader),
+			fragmentShader: prepareShader(SolidMaterialFragShader),
 			side: THREE.DoubleSide
 		});
 	})(),
 	normalHelperMaterial: (function() {
-		var vertShader = `
-			attribute float highlight;
-
-			uniform bool SHADE;
-
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.1;
-			float XFAC = -0.05;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
-					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-				}
-				
-
-				if (highlight == 2.0) {
-					lift = 0.3;
-				} else if (highlight == 1.0) {
-					lift = 0.12;
-				} else {
-					lift = 0.0;
-				}
-				
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-				if (gl_FrontFacing) {
-					gl_FragColor = vec4(vec3(0.20, 0.68, 0.32) * light, 1.0);
-				} else {
-					gl_FragColor = vec4(vec3(0.76, 0.21, 0.20) * light, 1.0);
-				}
-
-				if (lift > 0.1) {
-					gl_FragColor.r = gl_FragColor.r * 1.16;
-					gl_FragColor.g = gl_FragColor.g * 1.16;
-					gl_FragColor.b = gl_FragColor.b * 1.16;
-				}
-				if (lift > 0.2) {
-					if (gl_FrontFacing) {
-						gl_FragColor.r = gl_FragColor.r * 0.8;
-						gl_FragColor.g = gl_FragColor.g * 0.9;
-						gl_FragColor.b = gl_FragColor.g * 1.5;
-					} else {
-						gl_FragColor.r = gl_FragColor.r * 0.9;
-						gl_FragColor.g = gl_FragColor.g * 2.0;
-						gl_FragColor.b = gl_FragColor.g * 3.0;
-					}
-				}
-
-			}`
-
 		return new THREE.ShaderMaterial({
 			uniforms: {
 				SHADE: {type: 'bool', value: settings.shading.value}
 			},
-			vertexShader: vertShader,
-			fragmentShader: fragShader,
+			vertexShader: prepareShader(DirectionHelperVertShader),
+			fragmentShader: prepareShader(DirectionHelperFragShader),
 			side: THREE.DoubleSide
+		});
+	})(),
+	vertexWeightHelperMaterial: (function() {
+		return new THREE.MeshLambertMaterial({
+			color: 0xffffff,
+			side: 2,
+			vertexColors: true
 		});
 	})(),
 	uvHelperMaterial: (function() {
@@ -235,78 +114,6 @@ const Canvas = {
 		img.onload = function() {
 			this.tex.needsUpdate = true;
 		}
-		var vertShader = `
-			attribute float highlight;
-
-			uniform bool SHADE;
-			uniform float DENSITY;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.1;
-			float XFAC = -0.05;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelViewMatrix * vec4(normal, 0.0) ) );
-
-					light = (0.2 + abs(N.z) * 0.8) * (1.0-AMBIENT) + N.x*N.x * XFAC + N.y*N.y * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-
-				}
-
-				if (highlight == 2.0) {
-					lift = 0.3;
-				} else if (highlight == 1.0) {
-					lift = 0.12;
-				} else {
-					lift = 0.0;
-				}
-				
-				vUv = uv;
-				vUv.x = vUv.x * DENSITY;
-				vUv.y = vUv.y * DENSITY;
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-
-			uniform sampler2D map;
-
-			uniform bool SHADE;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-
-				vec4 color = texture2D(map, vUv);
-				
-				if (color.a < 0.01) discard;
-
-				gl_FragColor = vec4(lift + color.rgb * light, color.a);
-
-
-				if (lift > 0.2) {
-					gl_FragColor.r = gl_FragColor.r * 0.6;
-					gl_FragColor.g = gl_FragColor.g * 0.7;
-				}
-
-			}`
 
 		return new THREE.ShaderMaterial({
 			uniforms: {
@@ -314,13 +121,19 @@ const Canvas = {
 				SHADE: {type: 'bool', value: settings.shading.value},
 				DENSITY: {type: 'float', value: 4}
 			},
-			vertexShader: vertShader,
-			fragmentShader: fragShader,
+			vertexShader: prepareShader(UVHelperVertShader),
+			fragmentShader: prepareShader(UVHelperFragShader),
 			side: THREE.DoubleSide,
 		})
 	})(),
 	emptyMaterials: [],
-	coloredSolidMaterials:[],
+	coloredSolidMaterials: [],
+	getEmptyMaterial(index) {
+		return Canvas.emptyMaterials[index % Canvas.emptyMaterials.length];
+	},
+	getSolidColorMaterial(index) {
+		return Canvas.coloredSolidMaterials[index % Canvas.coloredSolidMaterials.length];
+	},
 	updateMarkerColorMaterials() {
 		var img = new Image()
 		img.src = 'assets/missing.png'
@@ -332,76 +145,7 @@ const Canvas = {
 		img.onload = function() {
 			this.tex.needsUpdate = true;
 		}
-		var vertShader = `
-			attribute float highlight;
 
-			uniform bool SHADE;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.5;
-			float XFAC = -0.15;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
-
-					float yLight = (1.0+N.y) * 0.5;
-					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-
-				}
-
-				if (highlight == 2.0) {
-					lift = 0.22;
-				} else if (highlight == 1.0) {
-					lift = 0.1;
-				} else {
-					lift = 0.0;
-				}
-				
-				vUv = uv;
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-			
-			uniform sampler2D map;
-
-			uniform bool SHADE;
-			uniform float BRIGHTNESS;
-			uniform vec3 base;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-				vec4 color = texture2D(map, vUv);
-
-				gl_FragColor = vec4(lift + color.rgb * base * light * BRIGHTNESS, 1.0);
-
-				if (lift > 0.2) {
-					gl_FragColor.r = gl_FragColor.r * 0.6;
-					gl_FragColor.g = gl_FragColor.g * 0.7;
-				}
-
-			}`
-
-		
 		markerColors.forEach(function(color, i) {
 			if (Canvas.emptyMaterials[i]) return;
 
@@ -418,16 +162,16 @@ const Canvas = {
 					map: {type: 't', value: tex},
 					...commonUniforms
 				},
-				vertexShader: vertShader,
-				fragmentShader: fragShader,
+				vertexShader: prepareShader(MarkerVertShader),
+				fragmentShader: prepareShader(MarkerFragShader),
 				side: THREE.DoubleSide,
 			})
 
 			// Colored solid materials
 			Canvas.coloredSolidMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: commonUniforms,
-				vertexShader: SolidMaterialShaders.vertShader,
-				fragmentShader: SolidMaterialShaders.fragShader,
+				vertexShader: prepareShader(SolidMaterialVertShader),
+				fragmentShader: prepareShader(SolidMaterialFragShader),
 				side: THREE.DoubleSide
 			});
 		})
@@ -465,6 +209,8 @@ const Canvas = {
 		three_grid.name = 'grid_group'
 		gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
 
+		const block_size = Format.block_size ?? 16;
+
 		Canvas.northMarkMaterial.color = gizmo_colors.grid
 
 		function setupAxisLine(origin, length, axis) {
@@ -489,8 +235,8 @@ const Canvas = {
 		//Axis Lines
 		if (settings.base_grid.value) {
 			var length = Format.centered_grid
-				? (settings.full_grid.value ? 24 : 8)
-				: 16
+				? (settings.full_grid.value ? block_size*1.5 : block_size/2)
+				: block_size
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
@@ -500,7 +246,7 @@ const Canvas = {
 
 		if (settings.full_grid.value === true) {
 			//Grid
-			let size = settings.large_grid_size.value*16;
+			let size = settings.large_grid_size.value*block_size;
 			var grid = new THREE.GridHelper(size, size/canvasGridSize(), Canvas.gridMaterial);
 			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
@@ -512,7 +258,8 @@ const Canvas = {
 			side_grid.add(grid.clone())
 
 			//North
-			geometry = new THREE.PlaneGeometry(5, 5)
+			let north_size = 5 * (block_size/16);
+			let geometry = new THREE.PlaneGeometry(north_size, north_size);
 			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 			if (Format.centered_grid) {
 				north_mark.position.set(0,0, -3 - size/2)
@@ -526,7 +273,7 @@ const Canvas = {
 			if (settings.large_grid.value === true) {
 				//Grid
 				let size = settings.large_grid_size.value
-				var grid = new THREE.GridHelper(size*16, size, Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(size*block_size, size, Canvas.gridMaterial);
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
 				} else { 
@@ -539,7 +286,7 @@ const Canvas = {
 
 			if (settings.base_grid.value === true) {
 				//Grid
-				var grid = new THREE.GridHelper(16, 16/canvasGridSize(), Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(block_size, block_size/canvasGridSize(), Canvas.gridMaterial);
 
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
@@ -551,12 +298,13 @@ const Canvas = {
 				side_grid.add(grid.clone())
 
 				//North
-				geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				let north_size = 2.4 * (block_size/16);
+				let geometry = new THREE.PlaneGeometry(north_size, north_size);
 				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 				if (Format.centered_grid) {
-					north_mark.position.set(0,0,-9.5)
+					north_mark.position.set(0,0,-0.6*north_size - block_size/2);
 				} else {
-					north_mark.position.set(8,0,-1.5)
+					north_mark.position.set(8,0,-0.6*north_size);
 				}
 				north_mark.rotation.x = Math.PI / -2
 				three_grid.add(north_mark)
@@ -564,7 +312,7 @@ const Canvas = {
 		}
 		if (settings.large_box.value === true) {
 			let size = Format.cube_size_limiter?.box_marker_size || [48, 48, 48];
-			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxBufferGeometry(...size));
+			var geometry_box = new THREE.EdgesGeometry(new THREE.BoxGeometry(...size));
 
 			var line_material = new THREE.LineBasicMaterial({color: gizmo_colors.grid});
 			var large_box = new THREE.LineSegments( geometry_box, line_material);
@@ -616,7 +364,7 @@ const Canvas = {
 		//Light
 		Sun = new THREE.AmbientLight( 0xffffff );
 		Sun.name = 'sun'
-		scene.add(Sun);
+		Canvas.scene.add(Sun);
 		Sun.intensity = 0.5
 
 		lights = new THREE.Object3D()
@@ -678,21 +426,26 @@ const Canvas = {
 			alphaTest: 0.2
 		})
 
-		let brush_img = new Image();
-		brush_img.src = 'assets/brush_outline.png';
-		brush_img.tex = new THREE.Texture(brush_img);
-		brush_img.tex.magFilter = THREE.NearestFilter;
-		brush_img.tex.minFilter = THREE.NearestFilter;
-		brush_img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
-		let brush_outline_material = new THREE.MeshBasicMaterial({
-			map: brush_img.tex,
+		let brush_outline_material = new THREE.ShaderMaterial({
 			transparent: true,
 			side: THREE.DoubleSide,
-			alphaTest: 0.2
+			alphaTest: 0.01,
+			polygonOffset: true,
+			polygonOffsetUnits: 1,
+			polygonOffsetFactor: -1,
+			extensions: { derivatives: true },
+
+			uniforms: {
+				color: { value: new THREE.Color() },
+				width: { value: 2. },
+				SHAPE: { value: 0 },
+			},
+
+			vertexShader: prepareShader(BrushOutlineVertShader),
+			fragmentShader: prepareShader(BrushOutlineFragShader),
 		})
-		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneBufferGeometry(1, 1), brush_outline_material);
+		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brush_outline_material);
+		Canvas.brush_outline.matrixAutoUpdate = false;
 		Canvas.gizmos.push(Canvas.brush_outline);
 
 		Canvas.gizmos.push(Canvas.hover_helper_line);
@@ -744,8 +497,6 @@ const Canvas = {
 		Canvas.ground_plane.visible = settings.ground_plane.value;
 		scene.add(Canvas.ground_plane);
 		Canvas.gizmos.push(Canvas.ground_plane);
-
-		setupGrid = true;
 	},
 	//Misc
 	raycast(event) {
@@ -774,16 +525,16 @@ const Canvas = {
 				if (element.selected && mesh.outline) edit(mesh.outline);
 				if (mesh.grid_box) edit(mesh.grid_box);
 				if (element instanceof Locator) edit(mesh.children[0]);
-				if (element instanceof NullObject) edit(mesh);
+				if (element.getTypeBehavior('hide_in_screenshot')) edit(mesh);
 			})
 		}
 		editVis(obj => {
 			obj.was_visible = obj.visible
 			obj.visible = false
 		})
-		var ground_anim_before = ground_animation
-		if (Modes.display && ground_animation) {
-			ground_animation = false
+		var ground_anim_before = Canvas.ground_animation
+		if (Modes.display && Canvas.ground_animation) {
+			Canvas.ground_animation = false
 		}
 		updateCubeHighlights(null, true);
 
@@ -798,7 +549,7 @@ const Canvas = {
 			delete obj.was_visible
 		})
 		if (Modes.display && ground_anim_before) {
-			ground_animation = ground_anim_before
+			Canvas.ground_animation = ground_anim_before
 		}
 		updateCubeHighlights();
 	},
@@ -854,6 +605,11 @@ const Canvas = {
 		}
 		Blockbench.dispatchEvent('update_view', options);
 	},
+	updateViewMode() {
+		this.updateAllFaces();
+		this.updateShading();
+		updateSelection();
+	},
 	//Main updaters
 	clear() {
 		var objects = []
@@ -901,7 +657,7 @@ const Canvas = {
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces || obj instanceof TextureMesh) {
+			if (obj.preview_controller.updateFaces) {
 				var used = true;
 				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;
@@ -949,7 +705,7 @@ const Canvas = {
 		let side = Canvas.getRenderSide();
 		ModelProject.all.forEach(project => {
 			project.textures.forEach((tex) => {
-				var mat = project.materials[tex.uuid];
+				var mat = tex.getMaterial();
 				if (!mat) return;
 				mat.side = Canvas.getRenderSide(tex);
 			})
@@ -970,15 +726,8 @@ const Canvas = {
 	updatePositions(leave_selection) {
 		updateNslideValues()
 		var arr = selected.slice()
-		if (Format.bone_rig && Group.selected) {
-			Group.selected.forEachChild(obj => {
-				if (obj instanceof OutlinerElement) {
-					arr.safePush(obj)
-				}
-			})
-			if (arr.length === selected.length) {
-				Canvas.updateAllBones()
-			}
+		if (Format.bone_rig && Group.first_selected) {
+			Canvas.updateAllBones();
 		}
 		Canvas.updateView({elements: arr, element_aspects: {transform: true, geometry: true}})
 		if (leave_selection !== true) {
@@ -1021,46 +770,17 @@ const Canvas = {
 	updateAllBones(bones = Group.all) {
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
-			let bone = obj.mesh
-			if (bone && obj instanceof Group) {
-
-				bone.rotation.order = 'ZYX';
-				bone.rotation.setFromDegreeArray(obj.rotation);
-				bone.position.fromArray(obj.origin);
-				bone.scale.x = bone.scale.y = bone.scale.z = 1;
-
-				if (obj.parent.type === 'group') {
-
-					bone.position.x -=  obj.parent.origin[0];
-					bone.position.y -=  obj.parent.origin[1];
-					bone.position.z -=  obj.parent.origin[2];
-
-					var parent_bone = obj.parent.mesh;
-					parent_bone.add(bone);
-				} else {
-					Project.model_3d.add(bone);
-				}
-
-				bone.fix_position = bone.position.clone();
-				bone.fix_rotation = bone.rotation.clone();
-			}
+			obj.preview_controller.updateTransform(obj);
 		})
-		if (bones == Group.all) {
-			scene.updateMatrixWorld();
-		} else {
-			bones.forEach(bone => {
-				bone.mesh.updateMatrixWorld();
-			})
-		}
 	},
 	updatePivotMarker() {
 		if (Canvas.pivot_marker.parent) {
 			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
-		if (settings.origin_size.value > 0) {
-			if (Group.selected && Format.bone_rig) {
-				if (Group.selected.visibility) {
-					Group.selected.mesh.add(Canvas.pivot_marker)
+		if (settings.origin_size.value > 0 && Canvas.show_gizmos) {
+			if (Group.first_selected && Format.bone_rig) {
+				if (Group.first_selected.visibility) {
+					Group.first_selected.mesh.add(Canvas.pivot_marker)
 				}
 			} else if ((Cube.selected.length && Format.rotate_cubes) || Mesh.selected.length || Locator.selected.length) {
 				let selected_elements = [...Cube.selected, ...Mesh.selected, ...Locator.selected];
@@ -1129,83 +849,6 @@ const Canvas = {
 	getLayeredMaterial(layers) {
 		if (Canvas.layered_material && !layers) return Canvas.layered_material;
 		// https://codepen.io/Fyrestar/pen/YmpXYr
-		var vertShader = `
-			attribute float highlight;
-
-			uniform bool SHADE;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			float AMBIENT = 0.5;
-			float XFAC = -0.15;
-			float ZFAC = 0.05;
-
-			void main()
-			{
-
-				if (SHADE) {
-
-					vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
-
-
-					float yLight = (1.0+N.y) * 0.5;
-					light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
-
-				} else {
-
-					light = 1.0;
-
-				}
-
-				if (highlight == 2.0) {
-					lift = 0.22;
-				} else if (highlight == 1.0) {
-					lift = 0.1;
-				} else {
-					lift = 0.0;
-				}
-				
-				vUv = uv;
-				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-				gl_Position = projectionMatrix * mvPosition;
-			}`
-		var fragShader = `
-			#ifdef GL_ES
-			precision ${isApp ? 'highp' : 'mediump'} float;
-			#endif
-
-			uniform sampler2D t0;
-			uniform sampler2D t1;
-			uniform sampler2D t2;
-
-			uniform bool SHADE;
-
-			varying vec2 vUv;
-			varying float light;
-			varying float lift;
-
-			void main(void)
-			{
-				vec4 Ca = texture2D(t0, vUv);
-				vec4 Cb = texture2D(t1, vUv);
-				vec4 Cc = texture2D(t2, vUv);
-				
-				vec3 ctemp = Ca.rgb * Ca.a + Cb.rgb * Cb.a * (1.0 - Ca.a);
-				vec4 ctemp4 = vec4(ctemp, Ca.a + (1.0 - Ca.a) * Cb.a);
-
-				vec3 c = ctemp4.rgb + Cc.rgb * Cc.a * (1.0 - ctemp4.a);
-				gl_FragColor= vec4(lift + c * light, ctemp4.a + (1.0 - ctemp4.a) * Cc.a);
-
-				if (lift > 0.2) {
-					gl_FragColor.r = gl_FragColor.r * 0.6;
-					gl_FragColor.g = gl_FragColor.g * 0.7;
-				}
-				
-				if (gl_FragColor.a < 0.05) discard;
-			}`
-
 		var uniforms = {
 			SHADE: {type: 'bool', value: settings.shading.value},
 			t0: {type: 't', value: null},
@@ -1216,17 +859,17 @@ const Canvas = {
 		if (layers instanceof Array == false) layers = Texture.all;
 		layers.forEachReverse(texture => {
 			if (texture.visible && i < 3) {
-				uniforms[`t${i}`].value = texture.getMaterial().map;
+				uniforms[`t${i}`].value = texture.getOwnMaterial().map;
 				i++;
 			}
 		})
 
 		var material_shh = new THREE.ShaderMaterial({
-		  uniforms: uniforms,
-		  vertexShader: vertShader,
-		  fragmentShader: fragShader,
-		  side: Canvas.getRenderSide(),
-		  transparent: true
+			uniforms: uniforms,
+			vertexShader: prepareShader(LayeredVertShader),
+			fragmentShader: prepareShader(LayeredFragShader),
+			side: Canvas.getRenderSide(),
+			transparent: true
 		});
 		Canvas.layered_material = material_shh;
 		return material_shh;
@@ -1235,48 +878,6 @@ const Canvas = {
 		delete Canvas.layered_material;
 		if (Format.single_texture && Texture.all.length >= 2) {
 			Canvas.updateAllFaces();
-		}
-	},
-	adaptObjectFaces(cube, mesh) {
-		if (!mesh) mesh = cube.mesh
-		if (!mesh) return;
-
-		Canvas.adaptObjectFaceGeo(cube);
-
-		if (Project.view_mode === 'solid') {
-			mesh.material = Canvas.monochromaticSolidMaterial
-
-		} else if (Project.view_mode === 'colored_solid') {
-			mesh.material = Canvas.coloredSolidMaterials[cube.color]
-
-		} else if (Project.view_mode === 'wireframe') {
-			mesh.material = Canvas.wireframeMaterial
-
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
-			mesh.material = Canvas.getLayeredMaterial();
-
-		} else if (Format.single_texture) {
-			let tex = Texture.getDefault();
-			mesh.material = tex ? tex.getMaterial() : Canvas.emptyMaterials[cube.color];
-
-		} else {
-			var materials = []
-			Canvas.face_order.forEach(function(face) {
-
-				if (cube.faces[face].texture === null) {
-					materials.push(Canvas.transparentMaterial)
-
-				} else {
-					var tex = cube.faces[face].getTexture()
-					if (tex && tex.uuid) {
-						materials.push(Project.materials[tex.uuid])
-					} else {
-						materials.push(Canvas.emptyMaterials[cube.color])
-					}
-				}
-			})
-			if (materials.allEqual(materials[0])) materials = materials[0];
-			mesh.material = materials
 		}
 	},
 	updateUV(cube, animation = true) {
@@ -1320,6 +921,26 @@ const Canvas = {
 		if (height === Infinity) height = 0;
 		
 		return [width, height]
+	},
+	getSelectionBounds() {
+		let pivot_marker_parent = Canvas.pivot_marker.parent;
+		let visible_box = new THREE.Box3();
+		if (pivot_marker_parent) pivot_marker_parent.remove(Canvas.pivot_marker);
+		Canvas.withoutGizmos(() => {
+			Outliner.selected.forEach(element => {
+				if (element.visibility && element.mesh && element.mesh.geometry) {
+					visible_box.expandByObject(element.mesh);
+				}
+			})
+		})
+		if (pivot_marker_parent) pivot_marker_parent.add(Canvas.pivot_marker);
+		return visible_box;
 	}
 }
-var buildGrid = Canvas.buildGrid;
+Canvas.gizmos.push(Canvas.pivot_marker);
+
+Object.assign(window, {
+	Reusable,
+	Canvas,
+	buildGrid: Canvas.buildGrid
+});

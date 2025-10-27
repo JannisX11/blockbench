@@ -1,6 +1,5 @@
-(function() {
 var _obj_export;
-function getMtlFace(obj, index) {
+export function getMtlFace(obj, index) {
 	//if (index % 2 == 1) index--;
 	var key = Canvas.face_order[index];
 	var tex = obj.faces[key].getTexture()
@@ -13,7 +12,7 @@ function getMtlFace(obj, index) {
 		return 'usemtl m_' + tex.uuid;
 	}
 }
-const cube_face_normals = {
+export const cube_face_normals = {
 	north: [0, 0, -1],
 	east: [1, 0, 0],
 	south: [0, 0, 1],
@@ -25,6 +24,7 @@ const cube_face_normals = {
 var codec = new Codec('obj', {
 	name: 'OBJ Wavefront Model',
 	extension: 'obj',
+	support_partial_export: true,
 	compile(options) {
 		if (!options) options = 0;
 
@@ -71,7 +71,7 @@ var codec = new Codec('obj', {
 				output.push(`o ${element.name||'cube'}`)
 
 				element.getGlobalVertexPositions().forEach((coords) => {
-					vertex.set(...coords.V3_subtract(8, 8, 8)).divideScalar(export_scale);
+					vertex.set(...coords).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
 				})
@@ -156,21 +156,28 @@ var codec = new Codec('obj', {
 
 				output.push(`o ${element.name||'mesh'}`)
 
+				let smooth_vertex_normals = element.calculateNormals();
 				let vertex_keys = [];
-				function addVertex(x, y, z) {
+				let vertexnormals = [];
+				function addVertex(vkey, x, y, z) {
 					vertex.set(x, y, z);
 					vertex.applyMatrix4( mesh.matrixWorld ).divideScalar(export_scale);
 					output.push('v ' + vertex.x + ' ' + vertex.y + ' ' + vertex.z);
 					nbVertex++;
+					if (element.shading == 'smooth') {
+						normal.fromArray(smooth_vertex_normals[vkey]);
+						normal.applyMatrix3( normalMatrixWorld ).normalize();
+						vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
+						nbNormals += 1;
+					}
 				}
 				for (let vkey in element.vertices) {
-					addVertex(...element.vertices[vkey]);
+					addVertex(vkey, ...element.vertices[vkey]);
 					vertex_keys.push(vkey);
 				}
 
 				let mtl;
 				let i = 0;
-				let vertexnormals = [];
 				let faces = [];
 				for (let key in element.faces) {
 					if (element.faces[key].texture !== null && element.faces[key].vertices.length >= 3) {
@@ -184,10 +191,12 @@ var codec = new Codec('obj', {
 							nbVertexUvs += 1;
 						})
 
-						normal.fromArray(face.getNormal(true));
-						normal.applyMatrix3( normalMatrixWorld ).normalize();
-						vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
-						nbNormals += 1;
+						if (element.shading == 'flat') {
+							normal.fromArray(face.getNormal(true));
+							normal.applyMatrix3( normalMatrixWorld ).normalize();
+							vertexnormals.push('vn ' + normal.x + ' ' + normal.y + ' ' + normal.z );
+							nbNormals += 1;
+						}
 
 						if (tex && tex.uuid && !materials[tex.uuid]) {
 							materials[tex.uuid] = tex;
@@ -208,7 +217,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + vi + 1 + indexVertexUvs,
-									i+1+indexNormals,
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets_a.push(triplet.join('/'));
 							})
@@ -219,7 +228,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + (vi ? 1 : 0) + vi + 1 + indexVertexUvs,
-									i+1+indexNormals,
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets_b.push(triplet.join('/'));
 							})
@@ -231,7 +240,7 @@ var codec = new Codec('obj', {
 								let triplet = [
 									vertex_keys.indexOf(vkey) + 1 + indexVertex,
 									nbVertexUvs - vertices.length + vertices.indexOf(vkey) + 1 + indexVertexUvs,
-									i+1+indexNormals,
+									element.shading == 'smooth' ? (indexNormals+1+vertex_keys.indexOf(vkey)) : (i+1+indexNormals),
 								]
 								triplets.push(triplet.join('/'));
 							})
@@ -484,5 +493,3 @@ BARS.defineActions(function() {
 		}
 	})
 })
-
-})()

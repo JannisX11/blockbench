@@ -1,18 +1,6 @@
-const electron = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, dialog} = require('electron');
-const app = electron.app;
-const fs = require('fs');
-const NodeBuffer = require('buffer');
-const zlib = require('zlib');
-const exec = require('child_process').exec;
-const originalFs = require('original-fs');
-const https = require('https');
-const PathModule = require('path');
+import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage } from './native_apis';
 
-const currentwindow = electron.getCurrentWindow();
-var dialog_win	 = null,
-	latest_version = false;
-const recent_projects = (function() {
+export const recent_projects = (function() {
 	let array = [];
 	var raw = localStorage.getItem('recent_projects')
 	if (raw) {
@@ -30,7 +18,7 @@ const recent_projects = (function() {
 app.setAppUserModelId('blockbench')
 
 
-function initializeDesktopApp() {
+export function initializeDesktopApp() {
 
 	//Setup
 	$(document.body).on('click auxclick', 'a[href]', (event) => {
@@ -86,7 +74,7 @@ function initializeDesktopApp() {
 	}
 }
 //Load Model
-function loadOpenWithBlockbenchFile() {
+export function loadOpenWithBlockbenchFile() {
 	function load(path) {
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
@@ -123,9 +111,7 @@ function loadOpenWithBlockbenchFile() {
 		load(path);
 	}
 }
-(function() {
-	console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
-})()
+console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 
 window.confirm = function(message, title) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {
@@ -145,7 +131,7 @@ window.alert = function(message, title) {
 }
 
 //Recent Projects
-function updateRecentProjects() {
+export function updateRecentProjects() {
 	recent_projects.splice(Math.clamp(settings.recent_projects.value, 0, 512));
 	let fav_count = 0;
 	recent_projects.forEach((project, i) => {
@@ -158,7 +144,7 @@ function updateRecentProjects() {
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()));
 }
-function addRecentProject(data) {
+export function addRecentProject(data) {
 	var i = recent_projects.length-1;
 	let former_entry;
 	while (i >= 0) {
@@ -183,7 +169,7 @@ function addRecentProject(data) {
 	Settings.updateSettingsInProfiles();
 	updateRecentProjects()
 }
-function updateRecentProjectData() {
+export function updateRecentProjectData() {
 	let project = Project.getProjectMemory();
 	if (!project) return;
 	
@@ -201,27 +187,28 @@ function updateRecentProjectData() {
 	Blockbench.dispatchEvent('update_recent_project_data', {data: project});
 	updateRecentProjects()
 }
-async function updateRecentProjectThumbnail() {
+export async function updateRecentProjectThumbnail() {
 	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	let thumbnail;
+	const resolution = [270, 150];
 
 	if (Format.image_editor && Texture.all.length) {		
 		await new Promise((resolve, reject) => {
 			let tex = Texture.getDefault();
-			let frame = new CanvasFrame(180, 100);
+			let frame = new CanvasFrame(resolution[0], resolution[1]);
 			frame.ctx.imageSmoothingEnabled = false;
 
 			let {width, height} = tex;
-			if (width > 180)   {height /= width / 180;  width = 180;}
-			if (height > 100) {width /= height / 100; height = 100;}
-			if (width < 180 && height < 100) {
-				let factor = Math.min(180 / width, 100 / height);
+			if (width > resolution[0])   {height /= width / resolution[0];  width = resolution[0];}
+			if (height > resolution[1]) {width /= height / resolution[1]; height = resolution[1];}
+			if (width < resolution[0] && height < resolution[1]) {
+				let factor = Math.min(resolution[0] / width, resolution[1] / height);
 				factor *= 0.92;
 				height *= factor; width *= factor;
 			}
-			frame.ctx.drawImage(tex.img, (180 - width)/2, (100 - height)/2, width, height)
+			frame.ctx.drawImage(tex.img, (resolution[0] - width)/2, (resolution[1] - height)/2, width, height)
 
 			let url = frame.canvas.toDataURL();
 
@@ -236,7 +223,7 @@ async function updateRecentProjectThumbnail() {
 	} else {
 		if (Outliner.elements.length == 0) return;
 
-		MediaPreview.resize(180, 100)
+		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
 		let center = getSelectionCenter(true);
@@ -286,8 +273,8 @@ async function updateRecentProjectThumbnail() {
 		})
 	}
 }
-function loadDataFromModelMemory() {
-	let project = Project.getProjectMemory();
+export function loadDataFromModelMemory() {
+	let project = Project && Project.getProjectMemory();
 	if (!project) return;
 
 	if (project.textures) {
@@ -305,10 +292,6 @@ function loadDataFromModelMemory() {
 	Blockbench.dispatchEvent('load_from_recent_project_data', {data: project});
 }
 
-function showItemInFolder(path) {
-	ipcRenderer.send('show-item-in-folder', path);
-}
-
 //Window Controls
 function updateWindowState(e, type) {
 	let maximized = currentwindow.isMaximized();
@@ -322,7 +305,7 @@ currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
 //Image Editor
-function changeImageEditor(texture, not_found) {
+export function changeImageEditor(texture, not_found) {
 	let app_file_extension = {
 		'win32': ['exe'],
 		'linux': [],
@@ -341,10 +324,10 @@ function changeImageEditor(texture, not_found) {
 			}},
 			file: {
 				label: 'message.image_editor.file',
-				nocolon: true,
 				type: 'file',
 				file_type: 'Program',
 				extensions: app_file_extension[Blockbench.platform],
+				readtype: 'none',
 				description: 'message.image_editor.exe',
 				condition: result => result.editor == 'other'
 			}
@@ -374,6 +357,7 @@ function changeImageEditor(texture, not_found) {
 			}
 			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
+				ipcRenderer.send('edit-launch-setting', {key: 'image_editor', value: path});
 				if (texture) {
 					texture.openEditor()
 				}
@@ -384,7 +368,7 @@ function changeImageEditor(texture, not_found) {
 	}).show()
 }
 //Default Pack
-function openDefaultTexturePath() {
+export function openDefaultTexturePath() {
 	let detail = tl('message.default_textures.detail');
 	if (settings.default_path.value) {
 		detail += '\n\n' + tl('message.default_textures.current') + ': ' + settings.default_path.value;
@@ -418,7 +402,7 @@ function openDefaultTexturePath() {
 		Settings.saveLocalStorages();
 	}
 }
-function findExistingFile(paths) {
+export function findExistingFile(paths) {
 	for (var path of paths) {
 		if (fs.existsSync(path)) {
 			return path;
@@ -426,7 +410,7 @@ function findExistingFile(paths) {
 	}
 }
 //Backup
-function createBackup(init) {
+export function createBackup(init) {
 	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
 
 	let duration = parseInt(settings.backup_retain.value)+1
@@ -583,6 +567,17 @@ BARS.defineActions(() => {
 	})
 })
 
+// Windows/Linux window controls
+document.getElementById('window_controls_button_minimize').addEventListener('click', () => {
+	currentwindow.minimize()
+})
+document.getElementById('window_controls_button_maximize').addEventListener('click', () => {
+	currentwindow.isMaximized() ? currentwindow.unmaximize() : currentwindow.maximize()
+})
+document.getElementById('window_controls_button_close').addEventListener('click', () => {
+	currentwindow.close()
+})
+
 //Close
 window.onbeforeunload = function (event) {
 	try {
@@ -658,12 +653,14 @@ window.onbeforeunload = function (event) {
 			}
 		})
 		dialog.show();
-		shell.beep();
+		if (isApp && Blockbench.platform == 'win32') {
+			shell.beep();
+		}
 
 		event.returnValue = true;
 		return true;
 	} else {
-		closeBlockbenchWindow();
+		setTimeout(closeBlockbenchWindow, 1);
 		return false;
 	}
 }
@@ -687,7 +684,7 @@ async function closeBlockbenchWindow() {
 	Blockbench.addFlag('allow_closing');
 	Blockbench.dispatchEvent('before_closing')
 	if (Project.EditSession) Project.EditSession.quit()
-	return currentwindow.close();
+	return window.close();
 };
 
 
@@ -751,3 +748,15 @@ ipcRenderer.on('update-available', (event, arg) => {
 	}
 })
 
+Object.assign(window, {
+	PathModule,
+	recent_projects,
+	nativeImage,
+	updateRecentProjects,
+	addRecentProject,
+	updateRecentProjectData,
+	loadDataFromModelMemory,
+	changeImageEditor,
+	openDefaultTexturePath,
+	updateRecentProjectThumbnail,
+})

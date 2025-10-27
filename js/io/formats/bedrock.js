@@ -1,3 +1,6 @@
+import { findExistingFile } from "../../desktop";
+import { currentwindow, dialog, fs } from "../../native_apis";
+import VersionUtil from '../../util/version_util'
 
 if (isApp) {
 window.BedrockEntityManager = class BedrockEntityManager {
@@ -5,19 +8,19 @@ window.BedrockEntityManager = class BedrockEntityManager {
 		this.project = project || Project;
 		this.root_path = '';
 	}
-	checkEntityFile(path) {
+	checkEntityFile(path, content) {
 		try {
-			var c = fs.readFileSync(path, 'utf-8');
-			if (typeof c === 'string') {
-				c = autoParseJSON(c, false);
-				let main = c && (c['minecraft:client_entity'] || c['minecraft:attachable']);
+			content ??= fs.readFileSync(path, 'utf-8');
+			if (typeof content === 'string') {
+				const data = autoParseJSON(content, false);
+				let main = data && (data['minecraft:client_entity'] || data['minecraft:attachable']);
 				if (main && main.description && typeof main.description.geometry == 'object') {
 					for (var key in main.description.geometry) {
 						var geoname = main.description.geometry[key];
 						if (typeof geoname == 'string') {
 							geoname = geoname.replace(/^geometry\./, '');
 							if (geoname == this.project.geometry_name) {
-								main.type = c['minecraft:attachable'] ? 'attachable' : 'client_entity';
+								main.type = data['minecraft:attachable'] ? 'attachable' : 'client_entity';
 								return main;
 							}
 						}
@@ -25,13 +28,34 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				} 
 			}
 		} catch (err) {
-			console.log(err);
+			console.error(err);
 			return false;
 		}
 	}
-	getEntityFile() {
-		var path = this.project.export_path.split(osfs);
-		var name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
+	getEntityFile(externalDataLoader) {
+		let path = this.project.export_path.split(osfs);
+		const name = path.pop().replace(/\.json$/, '').replace(/\.geo$/, '');
+
+		if (externalDataLoader) {
+			let entity_file = externalDataLoader({
+				dir: "entity",
+				filter: file => file.endsWith(".json") && file.includes(name),
+				find: content => this.checkEntityFile(null, content),
+				return: "find"
+			});
+			if (!entity_file) {
+				entity_file = externalDataLoader({
+					dir: "attachables",
+					filter: file => file.endsWith(".json") && file.includes(name),
+					find: content => this.checkEntityFile(null, content),
+					return: "find"
+				});
+			}
+			if (entity_file) {
+				return entity_file
+			}
+		}
+
 		var root_index = path.indexOf('models');
 		path.splice(root_index);
 		this.root_path = path.slice().join(osfs);
@@ -55,8 +79,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			return this.checkEntityFile(path);
 		});
 	}
-	initEntity() {
-		this.client_entity = this.getEntityFile();
+	initEntity(args) {
+		this.client_entity = this.getEntityFile(args?.externalDataLoader);
 		if (this.client_entity && this.client_entity.description) {
 
 			let render_mode;
@@ -85,18 +109,31 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				var valid_textures_list = [];
 				for (var key in tex_list) {
 					if (typeof tex_list[key] == 'string') {
-						var path = this.root_path + osfs + tex_list[key].replace(/\//g, osfs);
-						path = findExistingFile([
-							path+'.png',
-							path+'.tga'
-						])
-						if (path) {
-							valid_textures_list.safePush(path);
+						let added
+						if (args?.externalDataLoader) {
+							if (args.externalDataLoader(tex_list[key] + ".png")) {
+								added = true
+								valid_textures_list.safePush(tex_list[key] + ".png")
+							} else if (args.externalDataLoader(tex_list[key] + ".tga")) {
+								added = true
+								valid_textures_list.safePush(tex_list[key] + ".tga")
+							}
+						}
+						if (!added) {
+							var path = this.root_path + osfs + tex_list[key].replace(/\//g, osfs);
+							path = findExistingFile([
+								path+'.png',
+								path+'.tga'
+							])
+							if (path) {
+								valid_textures_list.safePush(path);
+							}
 						}
 					}
 				}
 				if (valid_textures_list.length == 1) {
-					new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0]).add()
+					let texture = new Texture({keep_size: true, render_mode}).fromPath(valid_textures_list[0], args?.externalDataLoader).add()
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (render_mode == 'layered') {
 						updateLayeredTextures();
 					}
@@ -117,14 +154,60 @@ window.BedrockEntityManager = class BedrockEntityManager {
 								data() {return {
 									valid_textures_list,
 									selected_textures,
-									search_term: ''
+									search_term: '',
+									backgrounds: {}
 								}},
 								methods: {
 									getName(path) {
 										return pathToName(path, true);
 									},
 									getBackground(path) {
-										return `url("${ path.replace(/\\/g, '/').replace(/#/g, '%23') }?1)`
+										if (this.backgrounds[path]) return
+										if (args?.externalDataLoader) {
+											const external = args.externalDataLoader(path)
+											if (typeof external === "string") {
+												return `url("${external}}")`
+											} else if (external instanceof Uint8Array) {
+												// If the returned data is a Buffer, infer the data type and turn it into a data URL
+												const u8 = new Uint8Array(external)
+												let base64
+												if (typeof Buffer !== "undefined" && external instanceof Buffer) {
+													base64 = external.toString("base64")
+												} else {
+													base64 = btoa(String.fromCharCode(...u8))
+												}
+												if (pathToExtension(path) === 'tga') {
+													const targa_loader = new Targa()
+													targa_loader.open(`data:image/x-tga;base64,${base64}`, () => {
+														this.backgrounds[path] = `url("${targa_loader.getDataURL()}")`
+														this.$forceUpdate()
+													})
+													return
+												}
+												let mime
+												if (u8.slice(0, 4).toString() === [0x89, 0x50, 0x4E, 0x47].toString()) {
+													mime = 'image/png'
+												} else if (u8.slice(0, 3).toString() === [0xFF, 0xD8, 0xFF].toString()) {
+													mime = 'image/jpeg'
+												} else if (u8.slice(0, 4).toString() === [0x52, 0x49, 0x46, 0x46].toString() && u8.slice(8, 12).toString() === [0x57, 0x45, 0x42, 0x50].toString()) {
+													mime = 'image/webp'
+												}
+												if (mime) {
+													this.backgrounds[path] = `url("data:${mime};base64,${base64}")`
+													return this.backgrounds[path]
+												}
+											}
+										}
+										if (pathToExtension(path) === 'tga') {
+											this.backgrounds[path] = true
+											const targa_loader = new Targa()
+											targa_loader.open(path, () => {
+												this.backgrounds[path] = `url("${targa_loader.getDataURL()}")`
+												this.$forceUpdate()
+											})
+											return
+										}
+										return `url("${ path.replace(/\\/g, '/').replace(/#/g, '%23') }?1")`
 									},
 									clickTexture(texture) {
 										if (selected_textures.includes(texture)) {
@@ -153,8 +236,8 @@ window.BedrockEntityManager = class BedrockEntityManager {
 										<ul id="import_texture_list" class="y_scrollable">
 											<li v-for="(texture, index) in textures"
 												:title="getName(texture)" :arr_index="index"
-												:class="{selected: selected_textures.includes(texture)}"
-												:style="{backgroundImage: getBackground(texture)}"
+												:class="{elevated: true, selected: selected_textures.includes(texture)}"
+												:style="{backgroundImage: backgrounds[texture] ?? getBackground(texture)}"
 												@click="clickTexture(texture)"
 												@dblclick="dblclickTexture(texture)"
 											>
@@ -169,27 +252,28 @@ window.BedrockEntityManager = class BedrockEntityManager {
 							cancelIndex: 2,
 							onButton(index) {
 								dialog.hide();
+								let textures_to_import = [];
 								if (index == 1) {
-									valid_textures_list.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = valid_textures_list;
 								} else if (index == 0) {
-									selected_textures.forEach(path => {
-										new Texture({keep_size: true, render_mode}).fromPath(path).add()
-									})
+									textures_to_import = selected_textures;
+								}
+								for (let path of textures_to_import) {
+									let texture = new Texture({keep_size: true, render_mode}).fromPath(path, args?.externalDataLoader).add();
+									if (isApp) loadAdjacentTextureSet(texture);
 								}
 								if (render_mode == 'layered') {
 									updateLayeredTextures();
 								}
 								if (isApp) setTimeout(() => updateRecentProjectThumbnail(), 40);
 							}
-						}).show()
+						}).show();
 					})}, 2)
 				}
 			}
 
 		} else {
-			this.findEntityTexture(this.project.geometry_name)
+			this.findEntityTexture(this.project.geometry_name, null, args?.externalDataLoader);
 		}
 		if (this.client_entity && this.client_entity.type == 'attachable' && Format.id == 'bedrock') {
 			Project.bedrock_animation_mode = 'attachable_first';
@@ -234,11 +318,13 @@ window.BedrockEntityManager = class BedrockEntityManager {
 				try {
 					let content = fs.readFileSync(path, 'utf8');
 					Animator.loadFile({path, content}, animation_names);
-				} catch (err) {}
+				} catch (err) {
+					console.error(err)
+				}
 			})
 		}
 	}
-	findEntityTexture(mob, return_path) {
+	findEntityTexture(mob, return_path, externalDataLoader) {
 		if (!mob) return;
 		var textures = {
 			'llamaspit': 'llama/spit',
@@ -318,9 +404,16 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			} else if (return_path === 'raw') {
 				return ['entity', ...path.split('/')].join(osfs)
 			} else {
-				function tryItWith(extension) {
-					if (fs.existsSync(texture_path+'.'+extension)) {
-						var texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add()
+				function tryItWith(extension, skip_external) {
+					let texture;
+					if (!skip_external && externalDataLoader?.(`textures/entity/${path}.${extension}`)) {
+						texture = new Texture({keep_size: true}).fromPath(`textures/entity/${path}.${extension}`, externalDataLoader).add();
+					}
+					if (!texture && fs.existsSync(texture_path+'.'+extension)) {
+						texture = new Texture({keep_size: true}).fromPath(texture_path+'.'+extension).add();
+					}
+					if (texture) {
+						loadAdjacentTextureSet(texture);
 						return true;
 					}
 				}
@@ -328,7 +421,7 @@ window.BedrockEntityManager = class BedrockEntityManager {
 					if (settings.default_path && settings.default_path.value) {
 						
 						texture_path = settings.default_path.value + osfs + 'entity' + osfs + path.split('/').join(osfs)
-						tryItWith('png') || tryItWith('tga')
+						tryItWith('png', true) || tryItWith('tga', true)
 					}
 				}
 			}
@@ -365,7 +458,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				}
 			}
 		} catch (err) {
-			console.log(err);
+			console.error(err);
 			return false;
 		}
 	}
@@ -376,8 +469,12 @@ window.BedrockBlockManager = class BedrockBlockManager {
 		var root_index = path.indexOf(rp_dir);
 		
 		let rp_manifest_path = [...path.slice(0, root_index+2), 'manifest.json'].join(osfs);
-		let rp_manifest_content = autoParseJSON(fs.readFileSync(rp_manifest_path, 'utf-8'), false);
-		let rp_uuid = rp_manifest_content.header.uuid;
+		let rp_uuid;
+		try {
+			let rp_manifest_content = autoParseJSON(fs.readFileSync(rp_manifest_path, 'utf-8'), false);
+			rp_uuid = rp_manifest_content.header.uuid;
+		} catch (err) {}
+		if (!rp_uuid) return;
 
 		path.splice(root_index);
 		path.push(rp_dir.match(/development/) ? 'development_behavior_packs' : 'behavior_packs');
@@ -452,6 +549,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 				])
 				if (full_texture_path) {
 					let texture = new Texture({keep_size: true}).fromPath(full_texture_path).add();
+					if (isApp) loadAdjacentTextureSet(texture);
 					if (target == '*') {
 						texture.use_as_default = true;
 
@@ -477,7 +575,7 @@ window.BedrockBlockManager = class BedrockBlockManager {
 }
 }
 
-function calculateVisibleBox() {
+export function calculateVisibleBox() {
 	var visible_box = new THREE.Box3()
 	Canvas.withoutGizmos(() => {
 		Cube.all.forEach(cube => {
@@ -517,8 +615,8 @@ function calculateVisibleBox() {
 
 	return Project.visible_box;
 }
+window.calculateVisibleBox = calculateVisibleBox;
 
-(function() {
 
 // Parse
 
@@ -680,7 +778,7 @@ function calculateVisibleBox() {
 		}
 		group.addTo(parent_group)
 	}
-	function parseGeometry(data) {
+	function parseGeometry(data, args) {
 
 		let {description} = data.object;
 		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
@@ -718,6 +816,11 @@ function calculateVisibleBox() {
 
 		if (data.object.item_display_transforms !== undefined) {
 			DisplayMode.loadJSON(data.object.item_display_transforms)
+			if (data.object.item_display_transforms.gui) {
+				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
+					Project.display_settings.gui.fit_to_frame = true;
+				}
+			}
 		}
 
 		var bones = {}
@@ -739,7 +842,7 @@ function calculateVisibleBox() {
 		Canvas.updateAllBones()
 		setProjectTitle()
 		if (isApp && Project.geometry_name) {
-			if (Format.id == 'bedrock') Project.BedrockEntityManager.initEntity();
+			if (Format.id == 'bedrock') Project.BedrockEntityManager.initEntity(args);
 			if (Format.id == 'bedrock_block') Project.BedrockBlockManager.initBlock();
 		}
 		Validator.validate()
@@ -852,11 +955,11 @@ function calculateVisibleBox() {
 					let offset = obj.position.slice();
 					offset[0] *= -1;
 
-					if ((obj.rotatable && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
+					if ((obj.getTypeBehavior('rotatable') && !obj.rotation.allEqual(0)) || obj.ignore_inherited_scale) {
 						locators[key] = {
 							offset
 						};
-						if (obj.rotatable) {
+						if (obj.getTypeBehavior('rotatable')) {
 							locators[key].rotation = [
 								-obj.rotation[0],
 								-obj.rotation[1],
@@ -913,6 +1016,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	name: 'Bedrock Entity',
 	extension: 'json',
 	remember: false,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -986,7 +1090,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 					}
 				}
 			} catch (err) {
-				console.log(err);
+				console.error(err);
 				return false;
 			}
 		}
@@ -1032,7 +1136,6 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 
 function getFormatVersion() {
 	if (Format.display_mode) {
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
 			if (Project.display_settings[key] && Project.display_settings[key].export) {
@@ -1044,6 +1147,7 @@ function getFormatVersion() {
 		}
 	}
 	for (let cube of Cube.all) {
+		if (cube.box_uv) continue;
 		for (let fkey in cube.faces) {
 			if (cube.faces[fkey].rotation) return '1.21.0';
 		}
@@ -1057,27 +1161,43 @@ var codec = new Codec('bedrock', {
 	extension: 'json',
 	remember: true,
 	multiple_per_file: true,
+	support_partial_export: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
 		condition(model) {
-			return model.format_version && !compareVersions('1.12.0', model.format_version)
+			return model.format_version && VersionUtil.compare(model.format_version, '>=', '1.12.0');
 		}
 	},
-	load(model, file, add) {
-		let is_block = file.path && file.path.match(/[\\/]models[\\/]blocks[\\/]/);
-		if (isApp && BedrockEntityManager.CurrentContext?.type == 'entity') is_block = false;
-		if (!add) {
+	load(model, file, args = {}) {
+		let is_block = Settings.get('default_bedrock_format') == 'block';
+		if (file.path) {
+			if (file.path.match(/[\\/]models[\\/]blocks[\\/]/)) {
+				is_block = true;
+			} else if (file.path.match(/[\\/]models[\\/]entity[\\/]/)) {
+				is_block = false;
+			}
+		}
+		if (model['minecraft:geometry']?.[0]?.item_display_transforms) {
+			is_block = true;
+		}
+		if (isApp && BedrockEntityManager.CurrentContext?.type == 'entity') {
+			is_block = false;
+		}
+		
+		const import_to_current_project = typeof args === "boolean" ? args : args.import_to_current_project;
+
+		if (!import_to_current_project) {
 			setupProject(is_block ? block_format : entity_format);
 		}
+
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
-
 		}
 
-		this.parse(model, file.path)
+		this.parse(model, file.path, args)
 
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			if (isApp) {
@@ -1109,7 +1229,7 @@ var codec = new Codec('bedrock', {
 			'minecraft:geometry': [entitymodel]
 		}
 		entitymodel.description = {
-			identifier: 'geometry.' + (Project.geometry_name||'unknown'),
+			identifier: 'geometry.' + (this.context?.model_identifier || Project.geometry_name || 'unknown'),
 			texture_width:  Project.texture_width || 16,
 			texture_height: Project.texture_height || 16,
 		}
@@ -1148,15 +1268,14 @@ var codec = new Codec('bedrock', {
 		}
 
 		let new_display = {};
-		let has_new_displays = false;
 		for (let i in DisplayMode.slots) {
 			let key = DisplayMode.slots[i]
-			if (Project.display_settings[key] && Project.display_settings[key].export) {
-				new_display[key] = Project.display_settings[key].export();
-				if (new_display[key]) has_new_displays = true;
+			if (Project.display_settings[key] && Project.display_settings[key].exportBedrock) {
+				let data = Project.display_settings[key].exportBedrock();
+				if (data) new_display[key] = data;
 			}
 		}
-		if (has_new_displays) {
+		if (Object.keys(new_display).length) {
 			entitymodel.item_display_transforms = new_display
 		}
 
@@ -1170,7 +1289,7 @@ var codec = new Codec('bedrock', {
 	},
 	overwrite(content, path, cb) {
 		var data, index;
-		var model_id = 'geometry.'+Project.geometry_name;
+		var model_id = 'geometry.'+(this.context?.model_identifier || Project.geometry_name || 'unknown');
 		try {
 			data = fs.readFileSync(path, 'utf-8');
 			data = autoParseJSON(data, false);
@@ -1178,7 +1297,7 @@ var codec = new Codec('bedrock', {
 				throw 'Incompatible format';
 			}
 			var i = 0;
-			for (model of data['minecraft:geometry']) {
+			for (let model of data['minecraft:geometry']) {
 				if (model.description && model.description.identifier == model_id) {
 					index = i;
 					break;
@@ -1186,7 +1305,7 @@ var codec = new Codec('bedrock', {
 				i++;
 			}
 		} catch (err) {
-			var answer = electron.dialog.showMessageBox(currentwindow, {
+			var answer = dialog.showMessageBox(currentwindow, {
 				type: 'warning',
 				buttons: [
 					tl('message.bedrock_overwrite_error.overwrite'),
@@ -1203,7 +1322,7 @@ var codec = new Codec('bedrock', {
 		}
 		if (data && index !== undefined) {
 
-			if (!data.format_version || compareVersions(getFormatVersion(), data.format_version)) {
+			if (!data.format_version || VersionUtil.compare(getFormatVersion(), '>', data.format_version)) {
 				data.format_version = getFormatVersion();
 			}
 
@@ -1231,7 +1350,7 @@ var codec = new Codec('bedrock', {
 		}
 		Blockbench.writeFile(path, {content}, cb);
 	},
-	parse(data, path) {
+	parse(data, path, args = {}) {
 		if (Format != Formats.bedrock && Format != Formats.bedrock_block) Formats.bedrock.select()
 
 		let geometries = [];
@@ -1243,9 +1362,9 @@ var codec = new Codec('bedrock', {
 			});
 		}
 		if (geometries.length === 1) {
-			return parseGeometry(geometries[0]);
+			return parseGeometry(geometries[0], args);
 		} else if (isApp && BedrockEntityManager.CurrentContext?.geometry) {
-			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry));
+			return parseGeometry(geometries.find(geo => geo.name == BedrockEntityManager.CurrentContext.geometry), args);
 		}
 
 		geometries.forEach(geo => {
@@ -1287,7 +1406,7 @@ var codec = new Codec('bedrock', {
 					},
 					open(geo) {
 						Dialog.open.hide();
-						parseGeometry(geo);
+						parseGeometry(geo, args);
 					},
 					tl
 				},
@@ -1304,7 +1423,7 @@ var codec = new Codec('bedrock', {
 				`
 			},
 			onConfirm() {
-				parseGeometry(selected);
+				parseGeometry(selected, args);
 			}
 		}).show();
 	},
@@ -1340,6 +1459,7 @@ var entity_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	rotate_cubes: true,
 	box_uv: true,
 	optional_box_uv: true,
@@ -1354,6 +1474,7 @@ var entity_format = new ModelFormat({
 	bone_binding_expression: true,
 	locators: true,
 	texture_meshes: true,
+	pbr: true,
 	codec,
 	onSetup(project) {
 		if (isApp) {
@@ -1378,6 +1499,7 @@ var block_format = new ModelFormat({
 			}
 		]
 	},
+	node_name_regex: '\\w.-',
 	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
 	rotate_cubes: true,
 	box_uv: false,
@@ -1391,6 +1513,7 @@ var block_format = new ModelFormat({
 	animation_mode: false,
 	display_mode: true,
 	texture_meshes: true,
+	pbr: true,
 	cube_size_limiter: {
 		rotation_affected: true,
 		box_marker_size: [30, 30, 30],
@@ -1564,6 +1687,3 @@ new ValidatorCheck('bedrock_binding', {
 		}
 	}
 })
-
-})()
-

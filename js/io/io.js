@@ -1,10 +1,17 @@
 //Import
-function setupDragHandlers() {
+export function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'texture',
 		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
 		function(files, event) {
 			loadImages(files, event)
+		}
+	)
+	Blockbench.addDragHandler(
+		'texture_set',
+		{extensions: ['texture_set.json'], propagate: true, readtype: 'image', condition: () => Format.pbr && !Dialog.open},
+		function(files, event) {
+			importTextureSet(files[0]);
 		}
 	)
 	Blockbench.addDragHandler(
@@ -54,7 +61,7 @@ function setupDragHandlers() {
 	)
 }
 
-function loadModelFile(file) {
+export function loadModelFile(file, args) {
 	
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
@@ -68,7 +75,7 @@ function loadModelFile(file) {
 				if (existing_tab && !codec.multiple_per_file) {
 					existing_tab.select();
 				} else {
-					codec.load(content, file);
+					codec.load(content, file, args);
 				}
 				return true;
 			}
@@ -86,14 +93,14 @@ function loadModelFile(file) {
 		if (success) return;
 	}
 	// JSON
-	let model = autoParseJSON(file.content);
+	let model = autoParseJSON(file.content, {file_path: file.path});
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'json', model);
 		if (success) return;
 	}
 }
 
-async function loadImages(files, event) {
+export async function loadImages(files, event) {
 	let options = {};
 	let texture_li = event && $(event.target).parents('li.texture');
 	let replace_texture;
@@ -102,7 +109,8 @@ async function loadImages(files, event) {
 	await new Promise((resolve, reject) => {
 		img.src = isApp ? files[0].path : files[0].content;
 		img.onload = resolve;
-		img.onerror = reject;
+		// TGA images will fail, should still continue
+		img.onerror = resolve;
 	})
 
 	// Options
@@ -120,8 +128,11 @@ async function loadImages(files, event) {
 		if (!Format.image_editor && Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
-			options.layer = 'data.layer';
+		if (Modes.paint && Texture.selected) {
+			options.layer = 'message.load_images.add_layer';
+		}
+		if (Modes.edit && (!Project.box_uv || Format.optional_box_uv)) {
+			options.extrude_with_cubes = 'dialog.extrude.title';
 		}
 	}
 	options.edit = 'message.load_images.edit_image';
@@ -137,9 +148,6 @@ async function loadImages(files, event) {
 		} else {
 			options.texture = 'action.import_texture';
 		}
-	}
-	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
-		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
 
 	function doLoadImages(method) {
@@ -197,7 +205,8 @@ async function loadImages(files, event) {
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
 			Formats.skin.setup_dialog.setFormValues({
-				texture: files[0]
+				texture_source: 'upload_texture',
+				texture_file: files[0]
 			})
 
 		} else if (method == 'extrude_with_cubes') {
@@ -220,9 +229,30 @@ async function loadImages(files, event) {
 			minecraft_skin: 'icon-player',
 			extrude_with_cubes: 'eject',
 		};
+		let categories = {
+			replace_texture: 'message.load_images.category.add_to_project',
+			texture: 'message.load_images.category.add_to_project',
+			layer: 'message.load_images.category.add_to_project',
+			reference_image: 'message.load_images.category.add_to_project',
+			edit: 'message.load_images.category.new_project',
+			minecraft_skin: 'message.load_images.category.new_project',
+			extrude_with_cubes: 'message.load_images.category.add_to_project',
+		}
 		let commands = {};
 		for (let id in options) {
-			commands[id] = {text: options[id], icon: icons[id]};
+			if (categories[id] == 'message.load_images.category.new_project') continue;
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
+		}
+		for (let id in options) {
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
 		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
@@ -240,7 +270,7 @@ async function loadImages(files, event) {
 }
 
 //Extruder
-const Extruder = {
+export const Extruder = {
 	dialog: new Dialog({
 		id: 'image_extruder',
 		title: 'dialog.extrude.title',
@@ -273,7 +303,7 @@ const Extruder = {
 			}
 		},
 		lines: [
-			`<canvas height="256" width="256" id="extrusion_canvas" class="checkerboard"></canvas>`
+			Interface.createElement('canvas', {height: 256, width: 256, id: 'extrusion_canvas', class: 'checkerboard'})
 		],
 		onConfirm(formResult) {
 			Extruder.startConversion(formResult);
@@ -480,149 +510,6 @@ const Extruder = {
 		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 	}
 }
-//Json
-function compileJSON(object, options = {}) {
-	let indentation = options.indentation;
-	if (typeof indentation !== 'string') {
-		switch (settings.json_indentation.value) {
-			case 'spaces_4': indentation = '    '; break;
-			case 'spaces_2': indentation = '  '; break;
-			case 'tabs': default: indentation = '\t'; break;
-		}
-	}
-	function newLine(tabs) {
-		if (options.small === true) {return '';}
-		let s = '\n';
-		for (let i = 0; i < tabs; i++) {
-			s += indentation;
-		}
-		return s;
-	}
-	function escape(string) {
-		return string.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n|\r\n/g, '\\n').replace(/\t/g, '\\t')
-	}
-	function handleVar(o, tabs, breaks = true) {
-		var out = ''
-		if (typeof o === 'string') {
-			//String
-			out += '"' + escape(o) + '"'
-		} else if (typeof o === 'boolean') {
-			//Boolean
-			out += (o ? 'true' : 'false')
-		} else if (o === null || o === Infinity || o === -Infinity) {
-			//Null
-			out += 'null'
-		} else if (typeof o === 'number') {
-			//Number
-			o = (Math.round(o*100000)/100000).toString()
-			out += o
-		} else if (o instanceof Array) {
-			//Array
-			let has_content = false
-			let multiline = !!o.find(item => typeof item === 'object');
-			if (!multiline) {
-				let length = 0;
-				o.forEach(item => {
-					length += typeof item === 'string' ? (item.length+4) : 3;
-				});
-				if (length > 140) multiline = true;
-			}
-			out += '['
-			for (var i = 0; i < o.length; i++) {
-				var compiled = handleVar(o[i], tabs+1)
-				if (compiled) {
-					if (has_content) {out += ',' + ((options.small || multiline) ? '' : ' ')}
-					if (multiline) {out += newLine(tabs)}
-					out += compiled
-					has_content = true
-				}
-			}
-			if (multiline) {out += newLine(tabs-1)}
-			out += ']'
-		} else if (typeof o === 'object') {
-			//Object
-			breaks = breaks && o.constructor.name !== 'oneLiner';
-			var has_content = false
-			out += '{'
-			for (var key in o) {
-				if (o.hasOwnProperty(key)) {
-					var compiled = handleVar(o[key], tabs+1, breaks)
-					if (compiled) {
-						if (has_content) {out += ',' + (breaks || options.small?'':' ')}
-						if (breaks) {out += newLine(tabs)}
-						out += '"' + escape(key) + '":' + (options.small === true ? '' : ' ')
-						out += compiled
-						has_content = true
-					}
-				}
-			}
-			if (breaks && has_content) {out += newLine(tabs-1)}
-			out += '}'
-		}
-		return out;
-	}
-	let file = handleVar(object, 1);
-	if ((settings.final_newline.value && options.final_newline != false) || options.final_newline == true) {
-		file += '\n';
-	}
-	return file;
-}
-function autoParseJSON(data, feedback) {
-	if (data.substr(0, 4) === '<lz>') {
-		data = LZUTF8.decompress(data.substr(4), {inputEncoding: 'StorageBinaryString'})
-	}
-	if (data.charCodeAt(0) === 0xFEFF) {
-		data = data.substr(1)
-	}
-	try {
-		data = JSON.parse(data)
-	} catch (err1) {
-		data = data.replace(/\/\*[^(\*\/)]*\*\/|\/\/.*/g, '')
-		try {
-			data = JSON.parse(data)
-		} catch (err) {
-			if (feedback === false) return;
-			if (data.match(/\n\r?[><]{7}/)) {
-				Blockbench.showMessageBox({
-					title: 'message.invalid_file.title',
-					icon: 'fab.fa-git-alt',
-					message: 'message.invalid_file.merge_conflict'
-				})
-				return;
-			}
-			let error_part = '';
-			function logErrantPart(whole, start, length) {
-				var line = whole.substr(0, start).match(/\n/gm)
-				line = line ? line.length+1 : 1
-				var result = '';
-				var lines = whole.substr(start, length).split(/\n/gm)
-				lines.forEach((s, i) => {
-					result += `#${line+i} ${s}\n`
-				})
-				error_part = result.substr(0, result.length-1) + ' <-- HERE';
-				console.log(error_part);
-			}
-			console.error(err)
-			var length = err.toString().split('at position ')[1]
-			if (length) {
-				length = parseInt(length)
-				var start = limitNumber(length-32, 0, Infinity)
-
-				logErrantPart(data, start, 1+length-start)
-			} else if (err.toString().includes('Unexpected end of JSON input')) {
-
-				logErrantPart(data, data.length-16, 10)
-			}
-			Blockbench.showMessageBox({
-				translateKey: 'invalid_file',
-				icon: 'error',
-				message: tl('message.invalid_file.message', [err]) + (error_part ? `\n\n\`\`\`\n${error_part}\n\`\`\`` : '')
-			})
-			return;
-		}
-	}
-	return data;
-}
 
 
 BARS.defineActions(function() {
@@ -676,7 +563,7 @@ BARS.defineActions(function() {
 						Blockbench.showQuickMessage('message.invalid_link')
 					})
 				}
-			}, 'https://blckbn.ch/123abc')
+			}, {placeholder: 'https://blckbn.ch/123abc'});
 		}
 	})
 	new Action('extrude_texture', {
@@ -705,14 +592,16 @@ BARS.defineActions(function() {
 		condition: () => Project,
 		click: async function(event) {
 			if (isApp) {
-				saveTextures()
+				await saveTextures()
 				if (Format) {
 					let export_codec = Format.codec;
 					if (Project.save_path) {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
 					if (Project.export_path && export_codec?.compile) {
-						export_codec.write(export_codec.compile(), Project.export_path)
+						if (export_codec.id != 'image') {
+							export_codec.write(export_codec.compile(), Project.export_path)
+						}
 
 					} else if (export_codec?.export && !Project.save_path) {
 						if (export_codec.id === 'project' || settings.dialog_save_codec.value == false) {
@@ -755,7 +644,7 @@ BARS.defineActions(function() {
 					BarItems.save_all_animations.trigger();
 				}
 			} else {
-				saveTextures()
+				await saveTextures()
 				if (Format.codec && Format.codec.export) {
 					Format.codec.export()
 				}
@@ -821,4 +710,13 @@ BARS.defineActions(function() {
 		})
 	}
 
+})
+
+Object.assign(window, {
+	setupDragHandlers,
+	loadModelFile,
+	loadImages,
+	Extruder,
+	compileJSON,
+	autoParseJSON,
 })

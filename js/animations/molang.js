@@ -1,3 +1,5 @@
+import { isStringNumber } from "../util/math_util"
+
 Animator.MolangParser.context = {}
 Animator.MolangParser.global_variables = {
 	true: 1,
@@ -89,40 +91,33 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 }
-Animator.MolangParser.variableHandler = function (variable, variables) {
-	var inputs = Interface.Panels.variable_placeholders.inside_vue.text.split('\n')
-	var i = 0
-	while (i < inputs.length) {
-		let key, val
-		;[key, val] = inputs[i].split(/=\s*(.+)/)
-		key = key.replace(/[\s;]/g, '')
-		key = key
-			.replace(/^v\./, 'variable.')
-			.replace(/^q\./, 'query.')
-			.replace(/^t\./, 'temp.')
-			.replace(/^c\./, 'context.')
+const variable_fallbacks = {
+	'query.model_scale': 1/16,
+};
+Animator.MolangParser.variableHandler = function (variable, variables, args) {
+	let variable_with_args = args?.length && `${variable}(${args.map(arg => isStringNumber(arg) ? arg : "'"+arg+"'").join(',')})`;
 
-		if (key === variable && val !== undefined) {
-			val = val.trim()
+	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
+	if (val === undefined) {
+		if (variable_fallbacks[variable] != undefined) return variable_fallbacks[variable];
+		return;
+	}
 
-			if (val.match(/^(slider|toggle|impulse)\(/)) {
-				let [type, content] = val.substring(0, val.length - 1).split(/\(/)
-				let [id] = content.split(/\(|, */)
-				id = id.replace(/['"]/g, '')
+	if (val.match(/^(slider|toggle|impulse)\(/)) {
+		let [type, content] = val.substring(0, val.length - 1).split(/\(/)
+		let [id] = content.split(/\(|, */)
+		id = id.replace(/['"]/g, '')
 
-				let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
-					(b) => b.id === id && b.type == type
-				)
-				return button ? parseFloat(button.value) : 0
-			} else {
-				return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables)
-			}
-		}
-		i++
+		let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
+			(b) => b.id === id && b.type == type
+		)
+		return button ? parseFloat(button.value) : 0
+	} else {
+		return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables)
 	}
 }
 
-function getAllMolangExpressions() {
+export function getAllMolangExpressions() {
 	let expressions = []
 	Animation.all.forEach((animation) => {
 		for (let key in Animation.properties) {
@@ -250,10 +245,10 @@ new ValidatorCheck('molang_syntax', {
 							.replace(/[^a-z0-9._]/g, '')
 				)
 			}
-			if (clear_string.match(/[^\w\s+\-*/().,;:[\]!?=<>&|]/)) {
+			if (clear_string.match(/[^\w\s+\-*/(){}.,;:[\]!?=<>&|]/)) {
 				issues.push(
 					'Invalid character: ' +
-						clear_string.match(/[^\s\w+\-*/().,;:[\]!?=<>&|]+/g).join(', ')
+						clear_string.match(/[^\s\w+\-*/(){}.,;:[\]!?=<>&|]+/g).join(', ')
 				)
 			}
 			let left = string.match(/\(/g) || 0
@@ -314,14 +309,14 @@ new ValidatorCheck('molang_syntax', {
 /**
  * Global Molang autocomplete object
  */
-const MolangAutocomplete = {}
+export const MolangAutocomplete = {}
 
 /**
  * Gets all the Molang variables used in the project
  * @param {string[]} excluded Variable names to exclude
  * @returns {Set<string>}
  */
-function getProjectMolangVariables(excluded) {
+export function getProjectMolangVariables(excluded) {
 	const variables = new Set()
 	const expressions = getAllMolangExpressions()
 	for (const expression of expressions) {
@@ -342,7 +337,7 @@ function getProjectMolangVariables(excluded) {
  * @param {string[]} excluded Variable names to exclude
  * @returns {Set<string>}
  */
-function getTemporaryMolangVariables(expression, excluded) {
+export function getTemporaryMolangVariables(expression, excluded) {
 	const variables = new Set()
 	const matches = expression.match(/(t|temp)\.(\w+)/gi)
 	if (!matches) return variables
@@ -359,7 +354,7 @@ function getTemporaryMolangVariables(expression, excluded) {
  * @param {string} incomplete
  * @returns {MolangAutocompleteResult[]}
  */
-function sortAutocompleteResults(results, incomplete) {
+export function sortAutocompleteResults(results, incomplete) {
 	return results.sort((a, b) => {
 		if (a.priority && b.priority) return b.priority - a.priority
 		else if (a.priority) return -1
@@ -1713,6 +1708,143 @@ function sortAutocompleteResults(results, incomplete) {
 					id: 'hermite_blend',
 					arguments: ['0_to_1'],
 				})
+				.addQuery({
+					id: 'min_angle',
+					arguments: ['angle'],
+				})
+				.addQuery({
+					id: 'sign',
+					arguments: ['vaule'],
+				})
+				.addQuery({
+					id: 'copy_sign',
+					arguments: ['value', 'sign'],
+				})
+				.addQuery({
+					id: 'inverse_lerp',
+					arguments: ['start', 'end', 'value'],
+				})
+				.addQuery({
+					id: 'ease_in_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+
 		)
 		.addNamespace(
 			new MolangAutocomplete.Namespace({
@@ -1820,3 +1952,11 @@ function sortAutocompleteResults(results, incomplete) {
 		inheritedContext: MolangAutocomplete.DefaultContext,
 	})
 })()
+
+Object.assign(window, {
+	getAllMolangExpressions,
+	MolangAutocomplete,
+	getProjectMolangVariables,
+	getTemporaryMolangVariables,
+	sortAutocompleteResults,
+})

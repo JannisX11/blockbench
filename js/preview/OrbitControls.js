@@ -1,11 +1,15 @@
 /**
+ * Original source: https://github.com/mrdoob/three.js, MIT
+ * Modified for Blockbench
  * @author qiao / https://github.com/qiao
  * @author mrdoob / http://mrdoob.com
  * @author alteredq / http://alteredqualia.com/
  * @author WestLangley / http://github.com/WestLangley
  * @author erich666 / http://erichaines.com
  */
-THREE.OrbitControls = function ( object, preview ) {
+class OrbitControls extends THREE.EventDispatcher {
+constructor ( object, preview ) {
+	super();
 
 	this.object = object;
 	this.preview = preview
@@ -73,7 +77,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	this.updateSceneScale = function() {
 		ReferenceImage.active.forEach(ref => {
-			if (ref.layer == 'blueprint' && ref.attached_side == scope.preview.angle) {
+			if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
 				ref.updateTransform()
 			}
 		})
@@ -298,6 +302,10 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}();
 
+	this.panLeft = panLeft;
+	this.panUp = panUp;
+	
+
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function () {
 
@@ -402,12 +410,13 @@ THREE.OrbitControls = function ( object, preview ) {
 		rotateDelta.subVectors( rotateEnd, rotateStart );
 
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+		let clamped_viewport_size = Math.clamp(Math.min(element.clientWidth + element.clientHeight), 600, 1200);
 
 		// rotating across whole screen goes 360 degrees around
-		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / clamped_viewport_size * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / clamped_viewport_size * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
@@ -448,12 +457,11 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleMouseWheel( event ) {
-
+		let modifier = Math.abs(event.deltaY) >= 50 ? 1 : 0.25;
 		if ( event.deltaY < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(modifier) );
 		} else if ( event.deltaY > 0 ) {
-			dollyIn( getZoomScale() );
-
+			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
 		scope.updateSceneScale();
@@ -795,8 +803,10 @@ THREE.OrbitControls = function ( object, preview ) {
 	window.addEventListener( 'keydown', onKeyDown, false );
 
 	this.update();
-
+}
 };
 
-THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls;
+// OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+// OrbitControls.prototype.constructor = OrbitControls;
+
+export default OrbitControls;

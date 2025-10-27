@@ -1,7 +1,10 @@
 /dist/
-index.php
+/dist-electron/
+/docs/
+/types/generated/
+.env
+.DS_store
 electron-builder.env
 node_modules/
-bundle.js
 workbox-*.js
 service_worker.js

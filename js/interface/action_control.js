@@ -1,4 +1,4 @@
-const ActionControl = {
+export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
@@ -70,7 +70,7 @@ const ActionControl = {
 			}
 
 		} else if (action.type == 'plugin') {
-			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
+			let plugin = Plugins.all.find(plugin => plugin.uuid == action.uuid);
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
@@ -309,7 +309,7 @@ BARS.defineActions(function() {
 							list.push({
 								name: profile.name,
 								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
-								color: markerColors[profile.color].standard,
+								color: markerColors[profile.color % markerColors.length].standard,
 								uuid: profile.uuid,
 								type: 'profile'
 							})
@@ -337,6 +337,7 @@ BARS.defineActions(function() {
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,
+								uuid: plugin.uuid,
 								type: 'plugin'
 							})
 							if (list.length > ActionControl.max_length) break;
@@ -444,3 +445,7 @@ BARS.defineActions(function() {
 		`
 	})
 })
+
+Object.assign(window, {
+	ActionControl
+});

@@ -1,3 +1,5 @@
+import VersionUtil from '../util/version_util'
+
 BARS.defineActions(() => {
 	new Action('about_window', {
 		name: tl('dialog.settings.about') + '...',
@@ -14,14 +16,18 @@ BARS.defineActions(() => {
 				cache: false,
 				type: 'GET',
 				success(release) {
-					let v = release.tag_name.replace(/^v/, '');
-					let version_string = Blockbench.version.replace('-beta.', ' Beta ')
-					if (compareVersions(v, Blockbench.version)) {
-						data.version_label = `${version_string} (${tl('about.version.update_available', [v])})`;
-					} else if (compareVersions(Blockbench.version, v)) {
-						data.version_label = `${version_string} (Pre-release)`;
-					} else {
-						data.version_label = `${version_string} (${tl('about.version.up_to_date')}😄)`;
+					let releaseVersion = release.tag_name.replace(/^v/, '');
+					let display_version = VersionUtil.format(Blockbench.version);
+					switch (VersionUtil.compare(Blockbench.version, releaseVersion)) {
+						case 1:
+							data.version_label = `${display_version} (Pre-release)`;
+							break;
+						case 0:
+							data.version_label = `${display_version} (${tl('about.version.up_to_date')}😄)`;
+							break;
+						case -1:
+							data.version_label = `${display_version} (${tl('about.version.update_available', [releaseVersion])})`;
+							break;
 					}
 				},
 				error(err) {}
@@ -52,16 +58,20 @@ BARS.defineActions(() => {
 									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
 									<label>Website</label>
 								</a>
+								<a class="open-in-browser" href="https://bsky.app/profile/blockbench.net">
+									<i class="icon fab fa-bluesky" style="color: #208bfe;"></i>
+									<label>Bluesky</label>
+								</a>
 								<a class="open-in-browser" href="https://twitter.com/blockbench">
 									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
 									<label>Twitter</label>
 								</a>
 								<a class="open-in-browser" href="http://discord.blockbench.net">
-									<i class="icon fab fa-discord" style="color: #727fff;"></i>
+									<i class="icon fab fa-discord" style="color: #5865F2;"></i>
 									<label>Discord</label>
 								</a>
 								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
-									<i class="icon fab fa-youtube" style="color: #ff4444;"></i>
+									<i class="icon fab fa-youtube"></i>
 									<label>YouTube</label>
 								</a>
 								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
@@ -127,7 +137,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
 							</ul>
 
-							<p style="margin-top: 20px">Published under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
+							<p style="margin-top: 20px">Released under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
 							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
 
 						</div>`

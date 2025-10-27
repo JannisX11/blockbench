@@ -1,4 +1,6 @@
-TextureAnimator = {
+import { clipboard, nativeImage } from "../native_apis";
+
+export const TextureAnimator = {
 	isPlaying: false,
 	interval: false,
 	frame_total: 0,
@@ -96,8 +98,6 @@ TextureAnimator = {
 	editor_dialog: null,
 }
 
-
-
 BARS.defineActions(function() {
 
 	function textureAnimationCondition() {
@@ -157,7 +157,7 @@ BARS.defineActions(function() {
 	new Action('animated_texture_editor', {
 		icon: 'theaters',
 		category: 'textures',
-		condition: Format.animated_textures && Texture.selected,
+		condition: () => Format.animated_textures && Texture.selected?.frameCount > 1,
 		click() {
 			let texture = Texture.selected;
 			let frametime = 1000/settings.texture_fps.value;
@@ -249,9 +249,10 @@ BARS.defineActions(function() {
 				}).show();
 			}
 
-			function splitIntoFrames(stride = texture.display_height) {
+			function splitIntoFrames(stride = texture.display_height, old_frames) {
 				let frames = [];
 				let frame_count = Math.ceil(texture.height / stride);
+				let has_selected = false;
 				for (let i = 0; i < frame_count; i++) {
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
@@ -266,7 +267,14 @@ BARS.defineActions(function() {
 						canvas, ctx,
 						data_url,
 					};
+					if (old_frames && old_frames[i]?.selected) {
+						frame.selected = true;
+						has_selected = true;
+					}
 					frames.push(frame);
+				}
+				if (!has_selected && frames[0]) {
+					frames[0].selected = true;
 				}
 				return frames;
 			}
@@ -391,7 +399,7 @@ BARS.defineActions(function() {
 								},
 								onConfirm(data) {
 									content_vue.stride = Math.clamp(Math.round(data.stride), 1, texture.height);
-									let new_frames = splitIntoFrames(content_vue.stride);
+									let new_frames = splitIntoFrames(content_vue.stride, content_vue.frames);
 									content_vue.frames.replace(new_frames);
 								}
 							}).show();
@@ -704,3 +712,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureAnimator
+});

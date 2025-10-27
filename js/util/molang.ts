@@ -1,0 +1,73 @@
+let string_num_regex = /^-?\d+(\.\d+f?)?$/;
+function isStringNumber(string: string) {
+	return string_num_regex.test(string);
+}
+
+const BRACKET_OPEN = '{([';
+const BRACKET_CLOSE = '})]';
+export function invertMolang(molang: string): string
+export function invertMolang(molang: number): number
+export function invertMolang(molang: number|string): number|string {
+	if (typeof molang == 'number') {
+		return -molang;
+	}
+	if (molang == '' || molang == '0') return molang;
+	if (isStringNumber(molang)) {
+		let val = parseFloat(molang);
+		return (-val).toString();
+	}
+	let invert = true;
+	let bracket_depth = 0;
+	let last_operator: undefined | string;
+	let result = '';
+	for (let char of molang) {
+		if (!bracket_depth) {
+			let operator: undefined | string;
+			let had_input = true;
+			if (char == '-' && last_operator != '*' && last_operator != '/') {
+				if (!invert && !last_operator) result += '+';
+				invert = false;
+				continue;
+			} else if (char == ' ' || char == '\n') {
+				had_input = false;
+			} else if (char == '+' && last_operator != '*' && last_operator != '/') {
+				result += '-';
+				invert = false;
+				continue;
+			} else if ('?:'.includes(char)) {
+				invert = true;
+				operator = char;
+			} else if (invert) {
+				result += '-';
+				invert = false;
+			} else if ('+-*/&|'.includes(char)) {
+				operator = char;
+			}
+			if (had_input) {
+				last_operator = operator;
+			}
+		}
+		if (BRACKET_OPEN.includes(char)) {
+			bracket_depth++;
+		} else if (BRACKET_CLOSE.includes(char)) {
+			bracket_depth--;
+		}
+		result += char;
+	}
+	return result;
+}
+function testInvertMolang(input: string) {
+	let positive_result = Animator.MolangParser.parse(input);
+	let inverted = invertMolang(input);
+	let negative_result = Animator.MolangParser.parse(inverted);
+	if (Math.epsilon(positive_result, -negative_result, 0.00001)) {
+		return inverted
+	} else {
+		console.warn([positive_result, negative_result], inverted);
+	}
+}
+
+Object.assign(window, {
+	invertMolang,
+	testInvertMolang
+})

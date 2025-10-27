@@ -1,0 +1,98 @@
+:root {
+	--dark-color-background: #1e2127;
+    --dark-color-background-secondary: #101316;
+    --dark-color-background-active: #3b3e49;
+    --dark-color-background-warning: #b19e22;
+    --dark-color-warning-text: #222;
+	--dark-color-accent: #3e90ff;
+	--dark-color-text: #e9e9e9;
+    --dark-color-contrast-text: #ffffff;
+    --dark-color-text-aside: #c7c7c7;
+}
+
+
+/*Assistant Font*/
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 200;
+	src: local('Assistant-ExtraLight'),
+		url(../../font/Assistant-ExtraLight.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 300;
+	src: local('Assistant-Light'),
+		url(../../font/Assistant-Light.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 400;
+	src: local('Assistant-Regular'),
+		url(../../font/Assistant-Regular.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 600;
+	src: local('Assistant-SemiBold'),
+		url(../../font/Assistant-SemiBold.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 600;
+	src: local('Assistant-Bold'),
+		url(../../font/Assistant-Bold.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Assistant';
+	font-style: normal;
+	font-weight: 700;
+	src: local('Assistant-ExtraBold'),
+		url(../../font/Assistant-ExtraBold.ttf) format('truetype');
+}
+@font-face {
+	font-family: 'Montserrat';
+	font-style: normal;
+	font-weight: 100 1000;
+	src: local('Montserrat-VariableFont'),
+		url(../../font/Montserrat-VariableFont_wght.ttf) format('truetype'),
+		url(../../font/Montserrat-VariableFont_wght.ttf) format('truetype');
+}
+
+body {
+	font-family: "Assistant", "Segoe UI", helvetica, sans-serif;
+}
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Montserrat";
+}
+.tsd-page-toolbar {
+    border-bottom: none;
+}
+.tsd-toolbar-contents > .title {
+    font-weight: 400;
+    margin-right: auto;
+    font-family: "Montserrat";
+    font-size: 22px;
+    letter-spacing: -1px;
+}
+.tsd-signatures .tsd-index-signature .tsd-signature {
+    border-radius: 5px;
+}
+.tsd-navigation a.current, .tsd-page-navigation a.current {
+    border-radius: 5px;
+}
+.tsd-returns-title {
+	font-family: inherit;
+	font-weight: 600;
+}
+footer {
+    border-top: transparent;
+    background: var(--color-background-secondary);
+}
+.tsd-nested-navigation {
+    margin-left: 2.6rem;
+}
