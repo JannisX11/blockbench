@@ -4,7 +4,6 @@ import url from 'url'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
-import {getColorHexRGB} from 'electron-color-picker'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -246,7 +245,8 @@ ipcMain.on('close-detached-project', async (event, window_id, uuid) => {
 	if (window) window.send('close-detached-project', uuid);
 })
 ipcMain.on('request-color-picker', async (event, arg) => {
-	const color = await getColorHexRGB().catch((error) => {
+	const ColorPicker = await import('electron-color-picker');
+	const color = await ColorPicker.getColorHexRGB().catch((error) => {
 		console.warn('[Error] Failed to pick color', error)
 		return ''
 	})
