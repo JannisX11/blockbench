@@ -2380,7 +2380,7 @@ BARS.defineActions(function() {
 							}
 						} else if (opacity < 1 || blend_mode != BlendModes.default) {
 							let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
-							let target = Math.lerp(before, opacity??1, a);
+							let target = Math.lerp(before, opacity??1, local_opacity);
 							if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
 							a = Math.clamp(Math.getLerp(before, 1, target), 0, 1);
 						}
