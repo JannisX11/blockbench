@@ -225,7 +225,12 @@ export function mirrorSelected(axis) {
 		Animator.preview();
 
 	} else if (Modes.edit && (Outliner.selected.length || Group.first_selected)) {
-		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.first_selected, selection: true})
+		Undo.initEdit({
+			elements: Outliner.selected,
+			groups: Format.bone_rig ? Group.all.filter(g => g.selected) : undefined,
+			outliner: Format.bone_rig || Group.first_selected,
+			selection: true
+		});
 		let center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
 			for (let group of Group.multi_selected) {
@@ -244,7 +249,7 @@ export function mirrorSelected(axis) {
 				group.forEachChild(flipGroup, Group);
 			}
 		}
-		selected.forEach(function(obj) {
+		Outliner.selected.forEach(function(obj) {
 			if (obj instanceof Mesh) {
 				obj.flipSelection(axis, center, false);
 			} else {
