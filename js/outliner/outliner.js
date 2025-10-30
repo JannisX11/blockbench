@@ -1651,7 +1651,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.children && node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.type == 'group' && node.constructor.multi_selected.includes(node)"></div>` +
+				`<div class="outliner_line_guide" v-if="node.children && (node.type == 'group' ? node.constructor.selected.includes(node) : (node.selected && !node.parent.selected))"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
