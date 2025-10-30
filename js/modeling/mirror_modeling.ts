@@ -103,13 +103,17 @@ export const MirrorModeling = {
 							return true;
 						}
 					})
-					if (match) {
-						return match;
-					} else {
+					if (!match) {
 						mirror_group.createUniqueName();
 						mirror_group.addTo(mirror_group_parent).init();
-						return mirror_group;
+						match = mirror_group;
 					}
+					if (match instanceof Group) {
+						MirrorModeling.insertGroupIntoUndo(match, undo_aspects);
+					} else {
+						MirrorModeling.insertElementIntoUndo(match as OutlinerElement, undo_aspects);
+					}
+					return match;
 				}
 			}
 			let add_to = getParentMirror(original);
@@ -211,7 +215,7 @@ export const MirrorModeling = {
 		}
 		return true;
 	},
-	insertElementIntoUndo(element: OutlinerElement, undo_aspects: UndoAspects, element_before_snapshot: any) {
+	insertElementIntoUndo(element: OutlinerElement, undo_aspects: UndoAspects, element_before_snapshot?: any) {
 		// pre
 		if (element_before_snapshot) {
 			if (!Undo.current_save.elements[element.uuid]) Undo.current_save.elements[element.uuid] = element_before_snapshot;
@@ -222,6 +226,22 @@ export const MirrorModeling = {
 		// post
 		if (!element_before_snapshot) undo_aspects.outliner = true;
 		undo_aspects.elements.safePush(element);
+	},
+	insertGroupIntoUndo(group: Group, undo_aspects: UndoAspects, before_snapshop?: any) {
+		// pre
+		if (!Undo.current_save.groups) Undo.current_save.groups = [];
+		if (before_snapshop) {
+			if (Undo.current_save.groups.find((g: any) => g.uuid == before_snapshop.uuid)) {
+				Undo.current_save.groups.push(before_snapshop);
+			}
+		} else {
+			if (!Undo.current_save.outliner) Undo.current_save.outliner = MirrorModeling.outliner_snapshot;
+		}
+
+		// post
+		if (!before_snapshop) undo_aspects.outliner = true;
+		if (!undo_aspects.groups) undo_aspects.groups = [];
+		undo_aspects.groups.safePush(group);
 	},
 	element_types: {} as Record<string, MirrorModelingElementTypeOptions>,
 	registerElementType(type_class: any, options: MirrorModelingElementTypeOptions) {
