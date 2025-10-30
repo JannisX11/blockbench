@@ -397,7 +397,7 @@ export class Preview {
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.visibility === false || element.locked === true) return;
+			if (element.visibility === false || element.locked === true || (element.mesh && element.mesh.visible == false)) return;
 			if (element.mesh && element.mesh.geometry) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
