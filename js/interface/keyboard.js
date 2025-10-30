@@ -499,7 +499,12 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	if (Keybinds.recording || e.which < 4) return;
 	//Shift
 
-	
+	// Normalize Backspace/Delete key (8) to Delete keycode (46) when not in text input
+	// On macOS, the Delete key above Return sends keycode 8
+	if (e.which === 8 && !getFocusedTextInput()) {
+		Object.defineProperty(e, 'which', {value: 46, writable: false, configurable: true});
+	}
+
 	let modifiers_changed = Pressing.shift != e.shiftKey || Pressing.alt != e.altKey || Pressing.ctrl != e.ctrlKey;
 	let before = modifiers_changed && {shift: Pressing.shift, alt: Pressing.alt, ctrl: Pressing.ctrl};
 	Pressing.shift = e.shiftKey;
