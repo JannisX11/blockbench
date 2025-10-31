@@ -55,6 +55,12 @@ export class UndoSystem {
 			}
 		}
 
+		// Just a fail-safe
+		if (entry.before._groups || entry.post._groups) {
+			console.warn('Group undo issue, potentially edited groups without tracking changes correctly in undo. Tracking all selected group changes as a fail-safe.')
+			entry.before.groups = entry.before._groups ?? [];
+			entry.post.groups = entry.post._groups ?? [];
+		}
 
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
@@ -301,6 +307,9 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
+		} else if (aspects.outliner && Group.first_selected) {
+			// Just a fail-safe
+			this._groups = Group.all.filter(g => g.selected).map(group => group.getChildlessCopy(true));
 		}
 
 		if (aspects.collections) {
