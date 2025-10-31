@@ -470,6 +470,7 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.groups) {
+			Group.multi_selected.empty();
 			for (let saved_group of this.groups) {
 				let group = OutlinerNode.uuids[saved_group.uuid];
 				if (group) {
@@ -485,6 +486,9 @@ UndoSystem.save = class {
 					group.preview_controller.updateAll(group);
 				} else {
 					group = new Group(saved_group, saved_group.uuid).init();
+				}
+				if (saved_group.primary_selected) {
+					group.multiSelect();
 				}
 			}
 			for (let group_data of reference.groups) {
@@ -509,7 +513,6 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.outliner) {
-			Group.multi_selected.empty();
 			Outliner.loadJSON(this.outliner)
 			if (is_session) {
 				function iterate(arr) {

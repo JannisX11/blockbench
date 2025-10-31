@@ -394,6 +394,9 @@ export class Group extends OutlinerNode {
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
 		base_group.isOpen = this.isOpen;
+		if (keep_uuid) {
+			base_group.primary_selected = Group.selected.includes(this);
+		}
 		return base_group;
 	}
 	compile(undo) {
