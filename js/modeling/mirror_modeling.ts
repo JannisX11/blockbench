@@ -137,13 +137,14 @@ export const MirrorModeling = {
 		return mirror_element;
 	},
 	updateParentNodeCounterpart(node: OutlinerNode, original: OutlinerNode) {
-		let keep_properties = {
-			name: node.name
-		};
-		node.extend(original);
-		node.extend(keep_properties);
+		node.extend({
+			position: 'position' in original ? original.position : undefined,
+			origin: 'origin' in original ? original.origin : undefined,
+			rotation: 'rotation' in original ? original.rotation : undefined,
+			scale: 'scale' in original ? original.scale : undefined,
+			color: 'color' in original ? original.color : undefined,
+		});
 
-		//flipNameOnAxis(node, 0, name => true, original.name);
 		if ('origin' in node) {
 			node.origin[0] = MirrorModeling.flipCoord(node.origin[0]);
 		}
@@ -563,6 +564,10 @@ MirrorModeling.registerElementType(Mesh, {
 			} else {
 				let position = [MirrorModeling.flipCoord(vertex[0]), vertex[1], vertex[2]] as ArrayVector3;
 				let vkey_new = deleted_vertices_by_position[positionKey(position)];
+				if (!vkey_new) {
+					vkey_new = pre_part_connections?.vertices[vkey];
+					if (mesh.vertices[vkey_new]) vkey_new = undefined;
+				}
 				if (vkey_new) {
 					mesh.vertices[vkey_new] = position;
 				} else {
@@ -698,8 +703,11 @@ MirrorModeling.registerElementType(ArmatureBone, {
 		let edit_side = MirrorModeling.getEditSide();
 		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
 	},
-	updateCounterpart(original, counterpart, context) {
+	updateCounterpart(original: ArmatureBone, counterpart: ArmatureBone, context: any) {
 		// Update vertex weights on off-centered bones
+		counterpart.extend({
+			vertex_weights: context.element_before_snapshot.vertex_weights
+		})
 	}
 })
 MirrorModeling.registerElementType(Billboard, {
