@@ -377,9 +377,9 @@ export class OutlinerNode {
 			let name = this.name.trim();
 			this.name = this.old_name;
 			if (this.type === 'group') {
-				Undo.initEdit({groups: [this]})
+				Undo.initEdit({groups: [this], mirror_modeling: false});
 			} else {
-				Undo.initEdit({elements: [this]})
+				Undo.initEdit({elements: [this], mirror_modeling: false});
 			}
 			if (this.constructor.animator) {
 				Animation.all.forEach(animation => {
@@ -1139,7 +1139,10 @@ export function toggleElementProperty(key) {
 	} else {
 		state = !state
 	}
-	Undo.initEdit({elements: affected})
+	Undo.initEdit({
+		elements: affected,
+		mirror_modeling: false
+	})
 	affected.forEach(element => {
 		if (element[key] != undefined) {
 			element[key] = state;
@@ -1874,7 +1877,11 @@ Interface.definePanels(function() {
 							affected.forEach(node => {
 								node[key] = previous_values[node.uuid];
 							})
-							Undo.initEdit({elements: affected.filter(node => node instanceof OutlinerElement), groups: affected_groups})
+							Undo.initEdit({
+								elements: affected.filter(node => node instanceof OutlinerElement),
+								groups: affected_groups,
+								mirror_modeling: false
+							})
 							affected.forEach(node => {
 								node[key] = value;
 								if (key == 'shade') node.updateElement();

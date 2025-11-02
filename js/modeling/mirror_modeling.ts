@@ -706,7 +706,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	updateCounterpart(original: ArmatureBone, counterpart: ArmatureBone, context: any) {
 		// Update vertex weights on off-centered bones
 		counterpart.extend({
-			vertex_weights: context.element_before_snapshot.vertex_weights
+			vertex_weights: context.element_before_snapshot?.vertex_weights
 		})
 	}
 })
