@@ -307,9 +307,13 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
-		} else if (aspects.outliner && Group.first_selected) {
+		} else if (aspects.outliner && (Undo.current_save ? Undo.current_save._groups : Group.first_selected)) {
 			// Just a fail-safe
-			this._groups = Group.all.filter(g => g.selected).map(group => group.getChildlessCopy(true));
+			let groups = Undo.current_save
+				? Undo.current_save.aspects._groups.filter(g => Group.all.includes(g))
+				: Group.all.filter(g => g.selected);
+			this._groups = groups.map(group => group.getChildlessCopy(true));
+			aspects._groups = groups;
 		}
 
 		if (aspects.collections) {
