@@ -1420,6 +1420,21 @@ export const TextureGenerator = {
 				ctx.clip();
 				ctx.imageSmoothingEnabled = false;
 
+				let source_dimensions = [
+					min[0] / texture.getUVWidth() * texture.img.naturalWidth,
+					min[1] / texture.getUVHeight() * texture.img.naturalHeight,
+					Math.ceil((max[0] - min[0]) / texture.getUVWidth() * texture.img.naturalWidth),
+					Math.ceil((max[1] - min[1]) / texture.getUVHeight() * texture.img.naturalHeight),
+				];
+				let target_pos = [
+					coords.x*R + target_min[0] * R,
+					coords.y*R + target_min[1] * R,
+				];
+				let target_size = [
+					Math.ceil((target_max[0] - target_min[0]) * R),
+					Math.ceil((target_max[1] - target_min[1]) * R),
+				];
+
 				let rotate = Math.round((((rotation_difference + 540) % 360) - 180) / 90) * 90;
 				if (rotate) {
 					let offset = [
@@ -1431,39 +1446,17 @@ export const TextureGenerator = {
 					ctx.translate(-offset[0], -offset[1]);
 					
 					if (Math.abs(rotate) == 90) {
-						let target_size = [
-							Math.ceil((target_max[1] - target_min[1]) * R),
-							Math.ceil((target_max[0] - target_min[0]) * R),
-						]
-						let target_pos = [
-							coords.x*R + target_min[0] * R,
-							coords.y*R + target_min[1] * R,
-						];
+						target_size = target_size.reverse();
 						target_pos[0] = target_pos[0] - target_size[0]/2 + target_size[1]/2;
 						target_pos[1] = target_pos[1] - target_size[1]/2 + target_size[0]/2;
-						ctx.drawImage(
-							texture.img,
-							min[0] / texture.getUVWidth() * texture.img.naturalWidth,
-							min[1] / texture.getUVHeight() * texture.img.naturalHeight,
-							Math.ceil((max[0] - min[0]) / texture.getUVWidth() * texture.img.naturalWidth),
-							Math.ceil((max[1] - min[1]) / texture.getUVHeight() * texture.img.naturalHeight),
-							...target_pos,
-							...target_size
-						)
 					}
-				} else {
-					ctx.drawImage(
-						texture.img,
-						min[0] / texture.getUVWidth() * texture.img.naturalWidth,
-						min[1] / texture.getUVHeight() * texture.img.naturalHeight,
-						Math.ceil((max[0] - min[0]) / texture.getUVWidth() * texture.img.naturalWidth),
-						Math.ceil((max[1] - min[1]) / texture.getUVHeight() * texture.img.naturalHeight),
-						coords.x*R + target_min[0] * R,
-						coords.y*R + target_min[1] * R,
-						Math.ceil((target_max[0] - target_min[0]) * R),
-						Math.ceil((target_max[1] - target_min[1]) * R),
-					)
 				}
+				ctx.drawImage(
+					texture.img,
+					...source_dimensions,
+					...target_pos,
+					...target_size
+				)
 				ctx.restore()
 				i++;
 			}
