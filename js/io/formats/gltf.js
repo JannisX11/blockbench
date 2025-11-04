@@ -453,6 +453,10 @@ var codec = new Codec('gltf', {
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
+		let animated_textures = Texture.all.filter(tex => tex.frameCount > 1);
+		Texture.all.forEach(tex => tex.currentFrame = 0);
+		TextureAnimator.update(animated_textures);
+	
 		Outliner.root.forEach(node => {
 			if (node instanceof Group && options.armature) {
 				let skinned_mesh = buildSkinnedMeshFromGroup(node, options.scale);
