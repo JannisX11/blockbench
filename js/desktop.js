@@ -340,8 +340,8 @@ export function changeImageEditor(texture, not_found) {
 
 			} else if (Blockbench.platform == 'darwin') {
 				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app'; break;
-					case 'gimp':path = '/Applications/Gimp-2.10.app'; break;
+					case 'ps':  path = '/Applications/Adobe Photoshop 2026/Adobe Photoshop 2026.app'; break;
+					case 'gimp':path = '/Applications/Gimp-3.app'; break;
 				}
 			} else if (Blockbench.platform == 'linux') {
 				switch (id) {
@@ -350,14 +350,15 @@ export function changeImageEditor(texture, not_found) {
 				}
 			} else {
 				switch (id) {
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2024\\Photoshop.exe'; break;
-					case 'gimp':path = 'C:\\Program Files\\GIMP 2\\bin\\gimp-2.10.exe'; break;
+					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2026\\Photoshop.exe'; break;
+					case 'gimp':path = 'C:\\Program Files\\GIMP 3\\bin\\gimp-3.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
 				}
 			}
 			if (path && fs.existsSync(path)) {
 				settings.image_editor.value = path
 				ipcRenderer.send('edit-launch-setting', {key: 'image_editor', value: path});
+				Settings.save();
 				if (texture) {
 					texture.openEditor()
 				}
