@@ -1044,7 +1044,6 @@ export function canAddOutlinerNodesTo(selection, target) {
 		return true;
 	}
 	if (!target.getTypeBehavior('parent')) return false;
-	if (target.selected) return false;
 	let child_types = target.getTypeBehavior('child_types');
 	if (child_types) {
 		if (selection.find(el => child_types.includes(el.type) == false)) return false;
@@ -1057,6 +1056,7 @@ export function canAddOutlinerNodesTo(selection, target) {
 	return true;
 }
 export function canAddOutlinerSelectionTo(target) {
+	if (target.selected) return false;
 	let nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
 	return canAddOutlinerNodesTo(nodes_to_move, target);
 }
