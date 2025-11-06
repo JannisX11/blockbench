@@ -1173,26 +1173,38 @@ SharedActions.add('delete', {
 	priority: -1,
 	run() {
 		let list = Outliner.selected.slice();
+		let groups = Group.all.filter(g => g.selected);
+
 		let recursive_list = list.slice();
+		let recursive_groups = groups.slice();
 		const addChildren = element => {
 			if (!element.children) return;
 			for (let child of element.children) {
-				recursive_list.safePush(child);
+				if (child instanceof Group) {
+					recursive_groups.safePush(child);
+				} else {
+					recursive_list.safePush(child);
+				}
 				addChildren(child);
 			}
 		}
 		list.forEach(addChildren);
+		groups.forEach(addChildren);
 
-		let groups = Group.all.filter(g => g.selected);
-		Undo.initEdit({elements: recursive_list, outliner: true, groups, selection: true})
-		list.forEach(element => {
-			element.remove(false);
+		Undo.initEdit({
+			elements: recursive_list,
+			groups: recursive_groups,
+			selection: true,
+			outliner: true,
 		})
+		for (let element of list) {
+			element.remove(false);
+		}
 		for (let group of groups) {
 			group.remove(false);
 		}
 		recursive_list.empty();
-		groups.empty();
+		recursive_groups.empty();
 		TickUpdates.selection = true;
 		Undo.finishEdit('Delete outliner selection')
 	}
