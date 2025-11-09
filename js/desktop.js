@@ -317,6 +317,8 @@ export function changeImageEditor(texture, not_found) {
 		form: {
 			not_found_text: {type: 'info', text: 'message.image_editor.not_found', condition: not_found == true},
 			editor: {type: 'select', full_width: true, options: {
+				aseprite: Blockbench.platform == 'win32' ? 'Aseprite' : undefined,
+				pixieditor: Blockbench.platform == 'win32' ? 'PixiEditor' : undefined,
 				ps: Blockbench.platform == 'win32' ? 'Photoshop' : undefined,
 				gimp: 'GIMP',
 				pdn: Blockbench.platform == 'win32' ? 'Paint.NET' : undefined,
@@ -350,6 +352,8 @@ export function changeImageEditor(texture, not_found) {
 				}
 			} else {
 				switch (id) {
+					case 'aseprite':  path = 'C:\\Program Files\\Aseprite\\Aseprite.exe'; break;
+					case 'pixieditor':  path = 'C:\\Program Files\\PixiEditor\\PixiEditor.exe'; break;
 					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2026\\Photoshop.exe'; break;
 					case 'gimp':path = 'C:\\Program Files\\GIMP 3\\bin\\gimp-3.exe'; break;
 					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
