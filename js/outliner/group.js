@@ -162,6 +162,9 @@ export class Group extends OutlinerNode {
 		}
 		Group.multi_selected.remove(this);
 		this.selected = false;
+		if (this.parent.selected) {
+			this.parent.unselect();
+		}
 		TickUpdates.selection = true;
 		return this;
 	}
