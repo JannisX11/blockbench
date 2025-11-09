@@ -1,4 +1,4 @@
-import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage } from './native_apis';
+import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage, SystemInfo } from './native_apis';
 
 export const recent_projects = (function() {
 	let array = [];
@@ -304,26 +304,79 @@ currentwindow.on('enter-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
 currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
 
+const ImageEditorPresets = {
+	aseprite: {
+		name: 'Aseprite',
+		paths: {
+			win32: 'C:\\Program Files\\Aseprite\\Aseprite.exe'
+		}
+	},
+	pixieditor: {
+		name: 'PixiEditor',
+		paths: {
+			win32: 'C:\\Program Files\\PixiEditor\\PixiEditor.exe'
+		}
+	},
+	ps: {
+		name: 'Photoshop',
+		paths: {
+			win32: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2026\\Photoshop.exe',
+			darwin: '/Applications/Adobe Photoshop 2026/Adobe Photoshop 2026.app',
+			linux: '/usr/share/applications//photoshop.desktop'
+		}
+	},
+	gimp: {
+		name: 'GIMP',
+		paths: {
+			win32: 'C:\\Program Files\\GIMP 3\\bin\\gimp-3.exe',
+			darwin: '/Applications/Gimp-3.app',
+			linux: '/usr/share/applications//gimp.desktop',
+		}
+	},
+	pdn: {
+		name: 'Paint.NET',
+		paths: {
+			win32: 'C:\\Program Files\\paint.net\\PaintDotNet.exe'
+		}
+	},
+	affinity: {
+		name: 'Affinity',
+		paths: {
+			win32: PathModule.join(SystemInfo.appdata_directory, '..\\Local\\Microsoft\\WindowsApps\\Affinity.exe')
+		}
+	}
+};
+
 //Image Editor
+export function isImageEditorValid(path) {
+	if (!path) return false;
+	try {
+		fs.accessSync(path);
+		return true;
+	} catch (err) {
+		return false;
+	}
+}
 export function changeImageEditor(texture, not_found) {
 	let app_file_extension = {
 		'win32': ['exe'],
 		'linux': [],
 		'darwin': ['app'],
 	};
+	let options = {};
+	for (let key in ImageEditorPresets) {
+		let entry = ImageEditorPresets[key];
+		if (!entry.paths[SystemInfo.platform]) continue;
+		options[key] = entry.name;
+	}
+	options.other = 'message.image_editor.file';
+
 	new Dialog({
 		title: tl('message.image_editor.title'),
 		id: 'image_editor',
 		form: {
 			not_found_text: {type: 'info', text: 'message.image_editor.not_found', condition: not_found == true},
-			editor: {type: 'select', full_width: true, options: {
-				aseprite: Blockbench.platform == 'win32' ? 'Aseprite' : undefined,
-				pixieditor: Blockbench.platform == 'win32' ? 'PixiEditor' : undefined,
-				ps: Blockbench.platform == 'win32' ? 'Photoshop' : undefined,
-				gimp: 'GIMP',
-				pdn: Blockbench.platform == 'win32' ? 'Paint.NET' : undefined,
-				other: 'message.image_editor.file'
-			}},
+			editor: {type: 'select', full_width: true, options},
 			file: {
 				label: 'message.image_editor.file',
 				type: 'file',
@@ -339,27 +392,10 @@ export function changeImageEditor(texture, not_found) {
 			let path;
 			if (id == 'other') {
 				path = result.file;
-
-			} else if (Blockbench.platform == 'darwin') {
-				switch (id) {
-					case 'ps':  path = '/Applications/Adobe Photoshop 2026/Adobe Photoshop 2026.app'; break;
-					case 'gimp':path = '/Applications/Gimp-3.app'; break;
-				}
-			} else if (Blockbench.platform == 'linux') {
-				switch (id) {
-					case 'ps':  path = '/usr/share/applications//photoshop.desktop'; break;
-					case 'gimp':path = '/usr/share/applications//gimp.desktop'; break;
-				}
 			} else {
-				switch (id) {
-					case 'aseprite':  path = 'C:\\Program Files\\Aseprite\\Aseprite.exe'; break;
-					case 'pixieditor':  path = 'C:\\Program Files\\PixiEditor\\PixiEditor.exe'; break;
-					case 'ps':  path = 'C:\\Program Files\\Adobe\\Adobe Photoshop 2026\\Photoshop.exe'; break;
-					case 'gimp':path = 'C:\\Program Files\\GIMP 3\\bin\\gimp-3.exe'; break;
-					case 'pdn': path = 'C:\\Program Files\\paint.net\\PaintDotNet.exe'; break;
-				}
+				path = ImageEditorPresets[result.editor].paths[SystemInfo.platform];
 			}
-			if (path && fs.existsSync(path)) {
+			if (isImageEditorValid(path)) {
 				settings.image_editor.value = path
 				ipcRenderer.send('edit-launch-setting', {key: 'image_editor', value: path});
 				Settings.save();

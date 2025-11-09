@@ -4,6 +4,7 @@ import { prepareShader } from '../shaders/shader';
 import { Blockbench } from '../api';
 import { clipboard, fs, ipcRenderer, nativeImage, openFileInEditor } from '../native_apis';
 import { Filesystem } from '../file_system';
+import { isImageEditorValid } from '../desktop';
 
 let tex_version = 1;
 
@@ -1090,7 +1091,7 @@ export class Texture {
 			changeImageEditor(scope)
 
 		} else {
-			if (fs.existsSync(settings.image_editor.value)) {
+			if (isImageEditorValid(settings.image_editor.value)) {
 				ipcRenderer.invoke('get-launch-setting', {key: 'image_editor'}).then(editor => {
 					openFileInEditor(this.path, editor);
 				})
