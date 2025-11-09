@@ -1409,7 +1409,8 @@ BARS.defineActions(function() {
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
 					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
-					splines: {type: 'info', label: tl('dialog.model_stats.splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
+					// Todo: proper localization options for element type plurals, display all element types
+					splines: {type: 'info', label: tl('dialog.model_stats.splines', [], 'Splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
 					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
