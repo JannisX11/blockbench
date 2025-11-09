@@ -889,6 +889,9 @@ export class Preview {
 							node_to_select = node_to_select.parent;
 						}
 					}
+					// Select clicked first so selected face is registered properly
+					data.element.markAsSelected();
+
 					if (multi_select) {
 						node_to_select.multiSelect();
 					} else {
