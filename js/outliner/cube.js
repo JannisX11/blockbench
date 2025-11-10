@@ -706,45 +706,47 @@ export class Cube extends OutlinerElement {
 	mapAutoUV() {
 		if (this.box_uv) return;
 		var scope = this;
-		var pw = Project.texture_width;
-		var ph = Project.texture_height;
 		if (scope.autouv === 2) {
 			//Relative UV
 			var all_faces = ['north', 'south', 'west', 'east', 'up', 'down']
 			let offset = Format.centered_grid ? 8 : 0;
 			all_faces.forEach(function(side) {
 				var uv = scope.faces[side].uv.slice()
+				let texture = scope.faces[side].getTexture();
+				let uv_width = Project.getUVWidth(texture);
+				let uv_height = Project.getUVWidth(texture);
+
 				switch (side) {
 					case 'north':
 					uv = [
-						pw - (scope.to[0]+offset),
-						ph - scope.to[1],
-						pw - (scope.from[0]+offset),
-						ph - scope.from[1],
+						uv_width - (scope.to[0]+offset),
+						uv_height - scope.to[1],
+						uv_width - (scope.from[0]+offset),
+						uv_height - scope.from[1],
 					];
 					break;
 					case 'south':
 					uv = [
 						(scope.from[0]+offset),
-						ph - scope.to[1],
+						uv_height - scope.to[1],
 						(scope.to[0]+offset),
-						ph - scope.from[1],
+						uv_height - scope.from[1],
 					];
 					break;
 					case 'west':
 					uv = [
 						(scope.from[2]+offset),
-						ph - scope.to[1],
+						uv_height - scope.to[1],
 						(scope.to[2]+offset),
-						ph - scope.from[1],
+						uv_height - scope.from[1],
 					];
 					break;
 					case 'east':
 					uv = [
-						pw - (scope.to[2]+offset),
-						ph - scope.to[1],
-						pw - (scope.from[2]+offset),
-						ph - scope.from[1],
+						uv_width - (scope.to[2]+offset),
+						uv_height - scope.to[1],
+						uv_width - (scope.from[2]+offset),
+						uv_height - scope.from[1],
 					];
 					break;
 					case 'up':
@@ -758,32 +760,32 @@ export class Cube extends OutlinerElement {
 					case 'down':
 					uv = [
 						(scope.from[0]+offset),
-						ph - (scope.to[2]+offset),
+						uv_height - (scope.to[2]+offset),
 						(scope.to[0]+offset),
-						ph - (scope.from[2]+offset),
+						uv_height - (scope.from[2]+offset),
 					];
 					break;
 				}
 				// Clamp to UV map boundaries
-				if (Math.max(uv[0], uv[2]) > Project.texture_width) {
-					let offset = Math.max(uv[0], uv[2]) - Project.texture_width;
+				if (Math.max(uv[0], uv[2]) > uv_width) {
+					let offset = Math.max(uv[0], uv[2]) - uv_width;
 					uv[0] -= offset;
 					uv[2] -= offset;
 				}
 				if (Math.min(uv[0], uv[2]) < 0) {
 					let offset = Math.min(uv[0], uv[2]);
-					uv[0] = Math.clamp(uv[0] - offset, 0, Project.texture_width);
-					uv[2] = Math.clamp(uv[2] - offset, 0, Project.texture_width);
+					uv[0] = Math.clamp(uv[0] - offset, 0, uv_width);
+					uv[2] = Math.clamp(uv[2] - offset, 0, uv_width);
 				}
-				if (Math.max(uv[1], uv[3]) > Project.texture_height) {
-					let offset = Math.max(uv[1], uv[3]) - Project.texture_height;
+				if (Math.max(uv[1], uv[3]) > uv_height) {
+					let offset = Math.max(uv[1], uv[3]) - uv_height;
 					uv[1] -= offset;
 					uv[3] -= offset;
 				}
 				if (Math.min(uv[1], uv[3]) < 0) {
 					let offset = Math.min(uv[1], uv[3]);
-					uv[1] = Math.clamp(uv[1] - offset, 0, Project.texture_height);
-					uv[3] = Math.clamp(uv[3] - offset, 0, Project.texture_height);
+					uv[1] = Math.clamp(uv[1] - offset, 0, uv_height);
+					uv[3] = Math.clamp(uv[3] - offset, 0, uv_height);
 				}
 				scope.faces[side].uv = uv;
 			})
@@ -797,25 +799,29 @@ export class Cube extends OutlinerElement {
 				var sy = scope.faces[face].uv[1];
 				var rot = scope.faces[face].rotation;
 
+				let texture = scope.faces[face].getTexture();
+				let uv_width = Project.getUVWidth(texture);
+				let uv_height = Project.getUVWidth(texture);
+
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
 					size.reverse()
 				}
 				//Limit Input to 16
-				size[0] = Math.clamp(size[0], -Project.texture_width, Project.texture_width)
-				size[1] = Math.clamp(size[1], -Project.texture_height, Project.texture_height)
+				size[0] = Math.clamp(size[0], -uv_width, uv_width)
+				size[1] = Math.clamp(size[1], -uv_height, uv_height)
 
 				//Calculate End Points
 				var x = sx + size[0]
 				var y = sy + size[1]
 				//Prevent Over 16
-				if (x > Project.texture_width) {
-					sx = Project.texture_width - (x - sx)
-					x = Project.texture_width
+				if (x > uv_width) {
+					sx = uv_width - (x - sx)
+					x = uv_width
 				}
-				if (y > Project.texture_height) {
-					sy = Project.texture_height - (y - sy)
-					y = Project.texture_height
+				if (y > uv_height) {
+					sy = uv_height - (y - sy)
+					y = uv_height
 				}
 				//Prevent Negative
 				if (sx < 0) sx = 0
