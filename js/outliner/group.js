@@ -153,7 +153,7 @@ export class Group extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
-	unselect() {
+	unselect(unselect_parent) {
 		if (Animator.open && Animation.selected) {
 			var ba = Animation.selected.animators[this.uuid];
 			if (ba) {
@@ -162,8 +162,8 @@ export class Group extends OutlinerNode {
 		}
 		Group.multi_selected.remove(this);
 		this.selected = false;
-		if (this.parent.selected) {
-			this.parent.unselect();
+		if (unselect_parent && this.parent.selected) {
+			this.parent.unselect(unselect_parent);
 		}
 		TickUpdates.selection = true;
 		return this;

@@ -641,7 +641,7 @@ export class OutlinerElement extends OutlinerNode {
 		//Control
 		} else if (event && allow_multi_select && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
 			if (Outliner.selected.includes(this)) {
-				this.unselect();
+				this.unselect(true);
 			} else {
 				let select_children = !(this.getTypeBehavior('select_children') == 'self_first' && !this.selected);
 				this.markAsSelected(select_children)
@@ -679,14 +679,14 @@ export class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
-	unselect() {
+	unselect(unselect_parent) {
 		Project.selected_elements.remove(this);
 		this.selected = false;
 		if (UVEditor.selected_element_faces[this.uuid]) {
 			delete UVEditor.selected_element_faces[this.uuid];
 		}
-		if (this.parent.selected && this.parent.getTypeBehavior('select_children') != 'self_first') {
-			this.parent.unselect();
+		if (unselect_parent && this.parent.selected && this.parent.getTypeBehavior('select_children') != 'self_first') {
+			this.parent.unselect(unselect_parent);
 		}
 		TickUpdates.selection = true;
 		return this;
