@@ -330,8 +330,8 @@ export function moveElementsInSpace(difference, axis) {
 					g.origin[axis] += difference
 				}, Group, true)
 			}
+			Group.preview_controller.updateTransform(group);
 		}
-		Canvas.updateAllBones(Group.multi_selected);
 	}
 
 	Outliner.selected.forEach(el => {
