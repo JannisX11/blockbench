@@ -308,13 +308,17 @@ const ImageEditorPresets = {
 	aseprite: {
 		name: 'Aseprite',
 		paths: {
-			win32: 'C:\\Program Files\\Aseprite\\Aseprite.exe'
+			win32: 'C:\\Program Files\\Aseprite\\Aseprite.exe',
+			darwin: '/Applications/Aseprite.app',
+			linux: '/usr/share/applications//aseprite.desktop',
 		}
 	},
 	pixieditor: {
 		name: 'PixiEditor',
 		paths: {
-			win32: 'C:\\Program Files\\PixiEditor\\PixiEditor.exe'
+			win32: 'C:\\Program Files\\PixiEditor\\PixiEditor.exe',
+			darwin: '/Applications/PixiEditor.app',
+			linux: '/usr/share/applications//pixieditor.desktop',
 		}
 	},
 	ps: {
@@ -342,7 +346,8 @@ const ImageEditorPresets = {
 	affinity: {
 		name: 'Affinity',
 		paths: {
-			win32: PathModule.join(SystemInfo.appdata_directory, '..\\Local\\Microsoft\\WindowsApps\\Affinity.exe')
+			win32: () => PathModule.join(SystemInfo.appdata_directory, '..\\Local\\Microsoft\\WindowsApps\\Affinity.exe'),
+			darwin: '/Applications/Affinity.app'
 		}
 	}
 };
@@ -394,6 +399,7 @@ export function changeImageEditor(texture, not_found) {
 				path = result.file;
 			} else {
 				path = ImageEditorPresets[result.editor].paths[SystemInfo.platform];
+				if (typeof path == 'function') path = path();
 			}
 			if (isImageEditorValid(path)) {
 				settings.image_editor.value = path
