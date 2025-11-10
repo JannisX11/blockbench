@@ -2037,7 +2037,6 @@ window.addEventListener("gamepadconnected", function(event) {
 	let interval = setInterval(() => {
 		let gamepad = navigator.getGamepads()[event.gamepad.index];
 		let preview = Preview.selected;
-		if (settings.gamepad_controls.value == false) return;
 		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
 
 		if (is_space_mouse) {
@@ -2067,6 +2066,8 @@ window.addEventListener("gamepadconnected", function(event) {
 
 			main_preview.controls.updateSceneScale();
 		} else {
+			if (settings.gamepad_controls.value == false) return;
+			
 			let drift_threshold = 0.2;
 			let axes = gamepad.axes.map(v => Math.abs(v) > drift_threshold ? v - drift_threshold * Math.sign(v) : 0);
 			let camera_matrix = preview.camera.matrixWorld;
