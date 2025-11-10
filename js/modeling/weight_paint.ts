@@ -29,6 +29,11 @@ function updateBrushOutline(event: PointerEvent) {
 Blockbench.on('update_pressed_modifier_keys', (arg) => {
 	updateBrushOutline(arg.event);
 });
+document.addEventListener('touchend', () => {
+	if (brush_outline && brush_outline.isConnected) {
+		brush_outline.remove();
+	}
+})
 
 
 let screen_space_vertex_positions: null | Record<string, {x:number, y:number}> = null;

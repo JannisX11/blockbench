@@ -153,7 +153,7 @@ export class Group extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
-	unselect() {
+	unselect(unselect_parent) {
 		if (Animator.open && Animation.selected) {
 			var ba = Animation.selected.animators[this.uuid];
 			if (ba) {
@@ -162,6 +162,9 @@ export class Group extends OutlinerNode {
 		}
 		Group.multi_selected.remove(this);
 		this.selected = false;
+		if (unselect_parent && this.parent.selected) {
+			this.parent.unselect(unselect_parent);
+		}
 		TickUpdates.selection = true;
 		return this;
 	}
@@ -394,6 +397,9 @@ export class Group extends OutlinerNode {
 		base_group.export = this.export;
 		base_group.autouv = this.autouv;
 		base_group.isOpen = this.isOpen;
+		if (keep_uuid) {
+			base_group.primary_selected = Group.selected.includes(this);
+		}
 		return base_group;
 	}
 	compile(undo) {

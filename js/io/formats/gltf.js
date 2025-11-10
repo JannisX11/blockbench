@@ -375,15 +375,20 @@ export function buildSkinnedMesh(armature, scale) {
 		}
 	}
 	
-	merged_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
-	merged_geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
-	merged_geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv_array), 2)), 
-	merged_geometry.setIndex(indices);
-	
-	merged_geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
-	merged_geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
-	
-	materials = optimizeMaterialGroups(materials, merged_geometry, face_vertex_counts);
+	if (merged_geometry) {
+		merged_geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
+		merged_geometry.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normal_array), 3));
+		merged_geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv_array), 2)), 
+		merged_geometry.setIndex(indices);
+		
+		merged_geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
+		merged_geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
+		
+		materials = optimizeMaterialGroups(materials, merged_geometry, face_vertex_counts);
+	} else {
+		merged_geometry = new THREE.BufferGeometry();
+	}
+
 	let skinned_mesh = new THREE.SkinnedMesh(merged_geometry, materials);
 	skinned_mesh.name = armature.name;
 
@@ -448,6 +453,10 @@ var codec = new Codec('gltf', {
 		if (!Modes.edit) {
 			Animator.showDefaultPose();
 		}
+		let animated_textures = Texture.all.filter(tex => tex.frameCount > 1);
+		Texture.all.forEach(tex => tex.currentFrame = 0);
+		TextureAnimator.update(animated_textures);
+	
 		Outliner.root.forEach(node => {
 			if (node instanceof Group && options.armature) {
 				let skinned_mesh = buildSkinnedMeshFromGroup(node, options.scale);

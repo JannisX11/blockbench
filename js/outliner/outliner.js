@@ -377,9 +377,9 @@ export class OutlinerNode {
 			let name = this.name.trim();
 			this.name = this.old_name;
 			if (this.type === 'group') {
-				Undo.initEdit({groups: [this]})
+				Undo.initEdit({groups: [this], mirror_modeling: false});
 			} else {
-				Undo.initEdit({elements: [this]})
+				Undo.initEdit({elements: [this], mirror_modeling: false});
 			}
 			if (this.constructor.animator) {
 				Animation.all.forEach(animation => {
@@ -640,10 +640,8 @@ export class OutlinerElement extends OutlinerNode {
 
 		//Control
 		} else if (event && allow_multi_select && (event.ctrlOrCmd || event.shiftKey || Pressing.overrides.ctrl || Pressing.overrides.shift)) {
-			if (selected.includes(this)) {
-				selected.replace(selected.filter((e) => {
-					return e !== this
-				}))
+			if (Outliner.selected.includes(this)) {
+				this.unselect(true);
 			} else {
 				let select_children = !(this.getTypeBehavior('select_children') == 'self_first' && !this.selected);
 				this.markAsSelected(select_children)
@@ -681,11 +679,14 @@ export class OutlinerElement extends OutlinerNode {
 		TickUpdates.selection = true;
 		return this;
 	}
-	unselect() {
+	unselect(unselect_parent) {
 		Project.selected_elements.remove(this);
 		this.selected = false;
 		if (UVEditor.selected_element_faces[this.uuid]) {
 			delete UVEditor.selected_element_faces[this.uuid];
+		}
+		if (unselect_parent && this.parent.selected && this.parent.getTypeBehavior('select_children') != 'self_first') {
+			this.parent.unselect(unselect_parent);
 		}
 		TickUpdates.selection = true;
 		return this;
@@ -1044,7 +1045,6 @@ export function canAddOutlinerNodesTo(selection, target) {
 		return true;
 	}
 	if (!target.getTypeBehavior('parent')) return false;
-	if (target.selected) return false;
 	let child_types = target.getTypeBehavior('child_types');
 	if (child_types) {
 		if (selection.find(el => child_types.includes(el.type) == false)) return false;
@@ -1057,6 +1057,7 @@ export function canAddOutlinerNodesTo(selection, target) {
 	return true;
 }
 export function canAddOutlinerSelectionTo(target) {
+	if (target.selected) return false;
 	let nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
 	return canAddOutlinerNodesTo(nodes_to_move, target);
 }
@@ -1067,7 +1068,7 @@ export function renameOutliner(element) {
 
 	stopRenameOutliner()
 
-	if (Group.first_selected && !element && !Project.EditSession) {
+	if (Group.selected.length == 1 && !Project.EditSession) {
 		Group.first_selected.rename()
 
 	} else if (Outliner.selected.length === 1 && !Project.EditSession) {
@@ -1139,7 +1140,10 @@ export function toggleElementProperty(key) {
 	} else {
 		state = !state
 	}
-	Undo.initEdit({elements: affected})
+	Undo.initEdit({
+		elements: affected,
+		mirror_modeling: false
+	})
 	affected.forEach(element => {
 		if (element[key] != undefined) {
 			element[key] = state;
@@ -1170,26 +1174,38 @@ SharedActions.add('delete', {
 	priority: -1,
 	run() {
 		let list = Outliner.selected.slice();
+		let groups = Group.all.filter(g => g.selected);
+
 		let recursive_list = list.slice();
+		let recursive_groups = groups.slice();
 		const addChildren = element => {
 			if (!element.children) return;
 			for (let child of element.children) {
-				recursive_list.safePush(child);
+				if (child instanceof Group) {
+					recursive_groups.safePush(child);
+				} else {
+					recursive_list.safePush(child);
+				}
 				addChildren(child);
 			}
 		}
 		list.forEach(addChildren);
+		groups.forEach(addChildren);
 
-		let groups = Group.all.filter(g => g.selected);
-		Undo.initEdit({elements: recursive_list, outliner: true, groups, selection: true})
-		list.forEach(element => {
-			element.remove(false);
+		Undo.initEdit({
+			elements: recursive_list,
+			groups: recursive_groups,
+			selection: true,
+			outliner: true,
 		})
+		for (let element of list) {
+			element.remove(false);
+		}
 		for (let group of groups) {
 			group.remove(false);
 		}
 		recursive_list.empty();
-		groups.empty();
+		recursive_groups.empty();
 		TickUpdates.selection = true;
 		Undo.finishEdit('Delete outliner selection')
 	}
@@ -1394,7 +1410,8 @@ BARS.defineActions(function() {
 				form: {
 					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
 					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
-					splines: {type: 'info', label: tl('dialog.model_stats.splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
+					// Todo: proper localization options for element type plurals, display all element types
+					splines: {type: 'info', label: tl('dialog.model_stats.splines', [], 'Splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
 					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
 					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
 					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
@@ -1651,7 +1668,7 @@ Interface.definePanels(function() {
 			//Other Entries
 			'<ul v-if="node.children && node.isOpen">' +
 				'<vue-tree-item v-for="item in visible_children" :node="item" :depth="depth + 1" :options="options" :key="item.uuid"></vue-tree-item>' +
-				`<div class="outliner_line_guide" v-if="node.type == 'group' && node.constructor.multi_selected.includes(node)"></div>` +
+				`<div class="outliner_line_guide" v-if="node.children && (node.type == 'group' ? node.constructor.selected.includes(node) : (node.selected && !node.parent.selected))"></div>` +
 			'</ul>' +
 		'</li>',
 		props: {
@@ -1874,7 +1891,11 @@ Interface.definePanels(function() {
 							affected.forEach(node => {
 								node[key] = previous_values[node.uuid];
 							})
-							Undo.initEdit({elements: affected.filter(node => node instanceof OutlinerElement), groups: affected_groups})
+							Undo.initEdit({
+								elements: affected.filter(node => node instanceof OutlinerElement),
+								groups: affected_groups,
+								mirror_modeling: false
+							})
 							affected.forEach(node => {
 								node[key] = value;
 								if (key == 'shade') node.updateElement();
