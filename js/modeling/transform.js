@@ -483,7 +483,7 @@ export function moveElementsInSpace(difference, axis) {
 				}
 			}
 		}
-		if (el instanceof Cube) {
+		if (el instanceof Cube && el.autouv == 2) {
 			el.mapAutoUV()
 		}
 		if (el instanceof SplineMesh && BarItems.spline_selection_mode.value == "handles") {
