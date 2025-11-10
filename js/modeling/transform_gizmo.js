@@ -1895,9 +1895,15 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 								origin[axisNumber] += difference;
 							}
 							
+							let elements_to_update = Outliner.selected.slice();
 							if (Format.bone_rig && Group.first_selected) {
 								for (let group of Group.multi_selected) {
 									group.transferOrigin(origin);
+									group.forEachChild(child => {
+										if (child instanceof OutlinerElement) {
+											elements_to_update.safePush(child);
+										}
+									})
 								}
 							} else {
 								selected.forEach(obj => {
@@ -1908,7 +1914,7 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							}
 							displayDistance(point[axis] - originalValue);
 							Canvas.updateView({
-								elements: Outliner.selected,
+								elements: elements_to_update,
 								element_aspects: {geometry: true, transform: true},
 								groups: Group.all,
 								group_aspects: {transform: true},

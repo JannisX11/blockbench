@@ -362,8 +362,12 @@ export const Clipbench = {
 			let elements = [];
 			let new_elements_by_old_id = {};
 			for (let save of Clipbench.elements) {
-				if (!OutlinerElement.isTypePermitted(save.type)) return;
-				let copy = OutlinerElement.fromSave(save).addTo(target).markAsSelected();
+				if (!OutlinerElement.isTypePermitted(save.type)) continue;
+				let copy = new OutlinerElement.types[save.type](save);
+				let target_parent = (target instanceof OutlinerNode && target.children) ? target : target.parent;
+				if (!canAddOutlinerNodesTo([copy], target_parent)) continue;
+				copy.init();
+				copy.addTo(target).markAsSelected();
 				copy.createUniqueName();
 				Property.resetUniqueValues(copy.constructor, copy);
 				if (typeof save.isOpen == 'boolean') copy.isOpen = save.isOpen;
