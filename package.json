@@ -138,7 +138,7 @@
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run build-web && npm run pwa && npm run generate-docs",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa && npm run generate-docs",
-		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master",
+		"webapp": "git checkout gh-pages && git pull && git merge master --no-edit && git push && git checkout master",
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
 		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
