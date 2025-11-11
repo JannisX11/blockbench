@@ -709,6 +709,12 @@ Object.defineProperty(format, 'rotation_snap', {
 	}
 })
 
+Object.defineProperty(format, 'rotation_limit', {
+	get() {
+		return Project.java_block_version != '1.22'
+	}
+})
+
 
 BARS.defineActions(function() {
 	codec.export_action = new Action({
