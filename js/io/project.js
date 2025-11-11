@@ -483,7 +483,7 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 });
 new Property(ModelProject, 'string', 'java_block_version', {
 	label: 'dialog.project.java_block_version',
-	default: '1.21.6',
+	default: '1.22',
 	condition: {formats: ['java_block']},
 	options: {
 		'1.9.0': '1.9 - 1.21.5',
