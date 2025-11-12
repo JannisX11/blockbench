@@ -217,24 +217,7 @@ export class Cube extends OutlinerElement {
 			Merge.number(this.stretch, object.stretch, 1)
 			Merge.number(this.stretch, object.stretch, 2)
 		}
-		if (typeof object.rotation === 'object' && object.rotation.constructor.name === 'Object') {
-			if (object.rotation.angle && object.rotation.axis) {
-				var axis = getAxisNumber(object.rotation.axis)
-				if (axis >= 0) {
-					this.rotation.V3_set(0)
-					this.rotation[axis] = object.rotation.angle
-				}
-			}
-			if (object.rotation.origin) {
-				Merge.number(this.origin, object.rotation.origin, 0)
-				Merge.number(this.origin, object.rotation.origin, 1)
-				Merge.number(this.origin, object.rotation.origin, 2)
-			}
-			Merge.boolean(this, object.rotation, 'rescale')
-			if (typeof object.rotation.axis === 'string') {
-				this.rotation_axis = object.rotation.axis
-			}
-		} else if (object.rotation) {
+		if (object.rotation instanceof Array) {
 			Merge.number(this.rotation, object.rotation, 0)
 			Merge.number(this.rotation, object.rotation, 1)
 			Merge.number(this.rotation, object.rotation, 2)
