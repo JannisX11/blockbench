@@ -1430,6 +1430,7 @@ BARS.defineActions(function() {
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
 					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
+					on_shelf: {type: 'checkbox', label: 'display.slot.on_shelf', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
 				},
 				onConfirm(form_data) {
