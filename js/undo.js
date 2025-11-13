@@ -36,7 +36,7 @@ export class UndoSystem {
 		if (!this.current_save) return;
 		aspects = aspects || this.current_save.aspects
 		//After
-		Blockbench.dispatchEvent('finish_edit', {aspects})
+		Blockbench.dispatchEvent('finish_edit', {aspects, message});
 		var entry = {
 			before: this.current_save,
 			post: new UndoSystem.save(aspects),
@@ -76,7 +76,7 @@ export class UndoSystem {
 		if (!aspects || !aspects.keep_saved) {
 			Project.saved = false;
 		}
-		Blockbench.dispatchEvent('finished_edit', {aspects})
+		Blockbench.dispatchEvent('finished_edit', {aspects, message})
 		if (Project.EditSession && Project.EditSession.active) {
 			Project.EditSession.sendEdit(entry)
 		}

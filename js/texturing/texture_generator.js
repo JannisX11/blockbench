@@ -1611,7 +1611,14 @@ export const TextureGenerator = {
 		}
 
 
-		updateSelection()
+		updateSelection();
+		Blockbench.dispatchEvent('generate_texture_template', {
+			options,
+			elements: element_list,
+			texture,
+			resolution_multiplier: res_multiple,
+			data: {face_list, box_uv_templates}
+		})
 		setTimeout(Canvas.updatePixelGrid, 1);
 		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
 			textures: [texture],

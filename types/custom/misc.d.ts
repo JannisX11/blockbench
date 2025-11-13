@@ -63,6 +63,7 @@ type EventName =
 	| 'canvas_click'
 	| 'change_texture_path'
 	| 'add_texture'
+	| 'generate_texture_template'
 	| 'update_texture_selection'
 	| 'init_edit'
 	| 'finish_edit'
