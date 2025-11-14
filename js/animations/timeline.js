@@ -1342,7 +1342,7 @@ Interface.definePanels(() => {
 							Blockbench.setStatusBarText(text);
 						}
 						BarItems.slider_keyframe_time.update()
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}
@@ -1480,7 +1480,7 @@ Interface.definePanels(() => {
 
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 					}
 					function off() {
@@ -1554,7 +1554,7 @@ Interface.definePanels(() => {
 						}
 						let text = Math.round(value * 100) + '%';
 						Blockbench.setStatusBarText(text);
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}

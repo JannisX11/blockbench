@@ -768,7 +768,6 @@ export class Texture {
 		this.load();
 		this.updateMaterial()
 		TickUpdates.UVEditor = true;
-		TickUpdates.texture_list = true;
 	}
 	reloadTexture() {
 		this.refresh(true)

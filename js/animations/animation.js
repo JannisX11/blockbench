@@ -1449,7 +1449,6 @@ BARS.defineActions(function() {
 						}
 					})
 					animation.setLength(initial_length / speed);
-					TickUpdates.keyframes = true;
 					Animator.preview();
 				},
 				onConfirm(result) {
