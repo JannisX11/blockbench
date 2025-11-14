@@ -145,10 +145,10 @@ export class Group extends OutlinerNode {
 	selectChildren(event) {
 		console.warn('Group#selectChildren is deprecated');
 	}
-	markAsSelected() {
+	markAsSelected(descendants) {
 		this.selected = true
 		this.children.forEach(function(s) {
-			s.markAsSelected()
+			s.markAsSelected(descendants)
 		})
 		TickUpdates.selection = true;
 		return this;
