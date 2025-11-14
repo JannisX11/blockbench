@@ -528,7 +528,10 @@ export function getRotationInterval(event) {
 export function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected.filter(g => !g.parent?.selected);
 	let elements = Outliner.selected.filter(element => {
-		return element.getTypeBehavior('rotatable') && (element instanceof Cube == false || Format.rotate_cubes);
+		if (!element.getTypeBehavior('rotatable')) return false;
+		if (!(element instanceof Cube == false || Format.rotate_cubes)) return false;
+		if (element.parent instanceof OutlinerElement && element.parent.selected) return false;
+		return true;
 	})
 	if (elements.length) return elements;
 }
