@@ -24,6 +24,7 @@ declare const VuePrismEditor: Vue.Component
 type EventName =
 	| 'remove_animation'
 	| 'display_animation_frame'
+	| 'interpolate_keyframes'
 	| 'before_closing'
 	| 'create_session'
 	| 'join_session'
