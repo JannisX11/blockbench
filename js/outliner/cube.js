@@ -775,14 +775,16 @@ export class Cube extends OutlinerElement {
 			scope.preview_controller.updateUV(scope)
 		} else if (scope.autouv === 1) {
 
-			function calcAutoUV(face, size) {
+			function calcAutoUV(fkey, size) {
+				let face = scope.faces[fkey];
 				size[0] = Math.abs(size[0]);
 				size[1] = Math.abs(size[1]);
-				var sx = scope.faces[face].uv[0];
-				var sy = scope.faces[face].uv[1];
-				var rot = scope.faces[face].rotation;
+				let sx = face.uv[0];
+				let sy = face.uv[1];
+				let previous_size = face.uv_size;
+				let rot = face.rotation;
 
-				let texture = scope.faces[face].getTexture();
+				let texture = face.getTexture();
 				let uv_width = Project.getUVWidth(texture);
 				let uv_height = Project.getUVWidth(texture);
 
@@ -791,29 +793,26 @@ export class Cube extends OutlinerElement {
 					size.reverse()
 				}
 				//Limit Input to 16
-				size[0] = Math.clamp(size[0], -uv_width, uv_width)
-				size[1] = Math.clamp(size[1], -uv_height, uv_height)
+				size[0] = Math.clamp(size[0], -uv_width, uv_width) * (Math.sign(previous_size[0]) || 1);
+				size[1] = Math.clamp(size[1], -uv_height, uv_height) * (Math.sign(previous_size[1]) || 1);
 
 				//Calculate End Points
-				var x = sx + size[0]
-				var y = sy + size[1]
-				//Prevent Over 16
-				if (x > uv_width) {
-					sx = uv_width - (x - sx)
-					x = uv_width
+				let endx = sx + size[0]
+				let endy = sy + size[1]
+				//Prevent overflow
+				if (endx > uv_width) {
+					sx = uv_width - (endx - sx)
+					endx = uv_width
 				}
-				if (y > uv_height) {
-					sy = uv_height - (y - sy)
-					y = uv_height
+				if (endy > uv_height) {
+					sy = uv_height - (endy - sy)
+					endy = uv_height
 				}
 				//Prevent Negative
 				if (sx < 0) sx = 0
 				if (sy < 0) sy = 0
-				//Prevent Mirroring
-				if (x < sx) x = sx
-				if (y < sy) y = sy
 				//Return
-				return [sx, sy, x, y]
+				return [sx, sy, endx, endy]
 			}
 			scope.faces.north.uv = calcAutoUV('north', [scope.size(0), scope.size(1)])
 			scope.faces.east.uv =  calcAutoUV('east',  [scope.size(2), scope.size(1)])
