@@ -225,7 +225,12 @@ export function mirrorSelected(axis) {
 		Animator.preview();
 
 	} else if (Modes.edit && (Outliner.selected.length || Group.first_selected)) {
-		Undo.initEdit({elements: selected, outliner: Format.bone_rig || Group.first_selected, selection: true})
+		Undo.initEdit({
+			elements: Outliner.selected,
+			groups: Format.bone_rig ? Group.all.filter(g => g.selected) : undefined,
+			outliner: Format.bone_rig || Group.first_selected,
+			selection: true
+		});
 		let center = Format.centered_grid ? 0 : 8;
 		if (Format.bone_rig) {
 			for (let group of Group.multi_selected) {
@@ -244,7 +249,7 @@ export function mirrorSelected(axis) {
 				group.forEachChild(flipGroup, Group);
 			}
 		}
-		selected.forEach(function(obj) {
+		Outliner.selected.forEach(function(obj) {
 			if (obj instanceof Mesh) {
 				obj.flipSelection(axis, center, false);
 			} else {
@@ -325,8 +330,8 @@ export function moveElementsInSpace(difference, axis) {
 					g.origin[axis] += difference
 				}, Group, true)
 			}
+			Group.preview_controller.updateTransform(group);
 		}
-		Canvas.updateAllBones(Group.multi_selected);
 	}
 
 	Outliner.selected.forEach(el => {
@@ -478,7 +483,7 @@ export function moveElementsInSpace(difference, axis) {
 				}
 			}
 		}
-		if (el instanceof Cube) {
+		if (el instanceof Cube && el.autouv == 2) {
 			el.mapAutoUV()
 		}
 		if (el instanceof SplineMesh && BarItems.spline_selection_mode.value == "handles") {
@@ -523,7 +528,10 @@ export function getRotationInterval(event) {
 export function getRotationObjects() {
 	if (Format.bone_rig && Group.first_selected) return Group.multi_selected.filter(g => !g.parent?.selected);
 	let elements = Outliner.selected.filter(element => {
-		return element.getTypeBehavior('rotatable') && (element instanceof Cube == false || Format.rotate_cubes);
+		if (!element.getTypeBehavior('rotatable')) return false;
+		if (!(element instanceof Cube == false || Format.rotate_cubes)) return false;
+		if (element.parent instanceof OutlinerElement && element.parent.selected) return false;
+		return true;
 	})
 	if (elements.length) return elements;
 }
@@ -724,7 +732,7 @@ BARS.defineActions(function() {
 		condition: {
 			modes: ['edit', 'animate'],
 			tools: ['move_tool', 'resize_tool'],
-			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && (Mesh.all.length === 0 || SplineMesh.all.length === 0))
+			method: () => !(Toolbox && Toolbox.selected.id === 'resize_tool' && (Mesh.all.length === 0 && SplineMesh.all.length === 0))
 		},
 		category: 'transform',
 		value: 'parent',

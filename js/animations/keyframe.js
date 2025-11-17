@@ -1281,7 +1281,7 @@ BARS.defineActions(function() {
 							opposite_animator.addToTimeline();
 						}
 					})
-					TickUpdates.keyframes = true;
+					updateKeyframeSelection();
 					Animator.preview();
 
 					Undo.finishEdit('Copy and flip keyframes');

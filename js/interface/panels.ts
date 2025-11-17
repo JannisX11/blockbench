@@ -922,8 +922,7 @@ export class Panel extends EventSystem {
 			// Hide panel if its in host panel
 			if (this.getHostPanel() && Condition(this.getHostPanel().condition)) show = false;
 		}
-		let work_screen = document.querySelector('div#work_screen');
-		let center_screen = document.querySelector('div#center');
+		let {work_screen, center_screen} = Interface;
 		let slot = this.slot;
 		let is_sidebar = slot == 'left_bar' || slot == 'right_bar';
 		if (show) {
@@ -986,11 +985,11 @@ export class Panel extends EventSystem {
 			if (this.sidebar_resize_handle) {
 				this.sidebar_resize_handle.style.display = (is_sidebar) ? 'block' : 'none';
 			}
-			if ((slot == 'right_bar' && Interface.getRightPanels().last() == this) || (slot == 'left_bar' && Interface.getLeftPanels().last() == this)) {
+			if ((slot == 'right_bar' && Interface.getRightPanels(true).last() == this) || (slot == 'left_bar' && Interface.getLeftPanels().last() == this)) {
 				this.node.parentElement?.childNodes.forEach((n: HTMLElement) => n.classList.remove('bottommost_panel'));
 				this.container.classList.add('bottommost_panel');
 			}
-			if ((slot == 'right_bar' && Interface.getRightPanels()[0] == this) || (slot == 'left_bar' && Interface.getLeftPanels()[0] == this)) {
+			if ((slot == 'right_bar' && Interface.getRightPanels(true)[0] == this) || (slot == 'left_bar' && Interface.getLeftPanels()[0] == this)) {
 				this.node.parentElement?.childNodes.forEach((n: HTMLElement) => n.classList.remove('topmost_panel'));
 				this.container.classList.add('topmost_panel');
 			}
@@ -998,19 +997,27 @@ export class Panel extends EventSystem {
 			if (this.node.clientHeight) {
 				this.container.style.setProperty('--main-panel-height', this.node.clientHeight + 'px');
 			}
+
+			// Update child panels
+			for (let panel of this.getAttachedPanels()) {
+				panel.width = this.width;
+				panel.height = this.height;
+				if (panel.onResize) panel.onResize();
+			}
+
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
 			this.container.classList.add('hidden');
 		}
 
-		if (!this.attached_to && !Blockbench.isMobile) {
+		if (show && !this.attached_to && !Blockbench.isMobile) {
 			// This is a host panel. Update the tabs and attached panels
 			if (this.open_attached_panel && this.getAttachedPanels().includes(this.open_attached_panel) == false) {
 				this.open_attached_panel = this;
 			}
 			let tabs: Panel[] = [this]
 			tabs.safePush(...this.getAttachedPanels());
-			$(this.tab_bar.firstElementChild).empty();
+			this.tab_bar.firstElementChild.textContent = '';
 			let tab_amount = 0;
 			for (let panel of tabs) {
 				this.tab_bar.firstElementChild.append(panel.handle);
@@ -1029,7 +1036,9 @@ export class Panel extends EventSystem {
 					panel_node.remove();
 				}
 			}
-			if (!panel_is_appended) this.container.append(this.open_attached_panel.node);
+			if (!panel_is_appended) {
+				this.container.append(this.open_attached_panel.node);
+			}
 			this.open_attached_panel.node.classList.add('attached');
 			this.tab_bar.classList.toggle('single_tab', tab_amount <= 1);
 		}

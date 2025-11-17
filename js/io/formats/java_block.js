@@ -50,13 +50,20 @@ var codec = new Codec('java_block', {
 				element.light_emission = s.light_emission;
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
-				var axis = s.rotationAxis()||'y';
-				let angle = s.rotation[getAxisNumber(axis)];
-				element.rotation = new oneLiner({
-					angle: Format.rotation_snap ? Math.round(angle / 22.5) * 22.5 : angle,
-					axis,
-					origin: s.origin
-				})
+				element.rotation = new oneLiner({});
+				if (!Format.rotation_limit && (s.rotation.positiveItems() >= 2 || s.rotation.filter(v => Math.abs(v) > 45))) {
+					// New format
+					element.rotation.x = s.rotation[0];
+					element.rotation.y = s.rotation[1];
+					element.rotation.z = s.rotation[2];
+				} else {
+					// Restricted
+					let axis = s.rotationAxis()||'y';
+					let angle = s.rotation[getAxisNumber(axis)];
+					element.rotation.angle = Format.rotation_snap ? Math.round(angle / 22.5) * 22.5 : angle;
+					element.rotation.axis = axis;
+				}
+				element.rotation.origin = s.origin.slice();
 			}
 			if (s.rescale) {
 				if (element.rotation) {
@@ -71,7 +78,7 @@ var codec = new Codec('java_block', {
 				}
 
 			}
-			if (s.rotation.positiveItems() >= 2) {
+			if (Format.rotation_limit && s.rotation.positiveItems() >= 2) {
 				element.rotated = s.rotation
 			}
 			var element_has_texture
@@ -296,6 +303,8 @@ var codec = new Codec('java_block', {
 		// Backwards compatibility with the old "add" third argument
 		const import_to_current_project = typeof args === "boolean" ? args : args.import_to_current_project
 
+		let uses_new_rotations = false;
+
 		var previous_texture_length = import_to_current_project ? Texture.all.length : 0
 		var new_cubes = [];
 		var new_textures = [];
@@ -379,6 +388,39 @@ var codec = new Codec('java_block', {
 			model.elements.forEach(function(obj) {
 				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
+				if (typeof obj.rotation == 'object') {
+					if (obj.rotation.origin) {
+						base_cube.extend({origin: obj.rotation.origin});
+					}
+					if (obj.rotation.axis) {
+						if (obj.rotation.angle && obj.rotation.axis) {
+							let axis = getAxisNumber(obj.rotation.axis)
+							if (axis >= 0) {
+								base_cube.rotation.V3_set(0)
+								base_cube.rotation[axis] = obj.rotation.angle
+							}
+						}
+						if (obj.rotation.origin) {
+							Merge.number(base_cube.origin, obj.rotation.origin, 0)
+							Merge.number(base_cube.origin, obj.rotation.origin, 1)
+							Merge.number(base_cube.origin, obj.rotation.origin, 2)
+						}
+						Merge.boolean(base_cube, obj.rotation, 'rescale')
+						if (typeof obj.rotation.axis === 'string') {
+							base_cube.rotation_axis = obj.rotation.axis
+						}
+
+					} else if (obj.rotation.x || obj.rotation.y || obj.rotation.z) {
+						base_cube.extend({
+							rotation: [
+								obj.rotation.x || 0,
+								obj.rotation.y || 0,
+								obj.rotation.z || 0
+							]
+						});
+						uses_new_rotations = true;
+					}
+				}
 				//Faces
 				var faces_without_uv = false;
 				for (var key in base_cube.faces) {
@@ -586,6 +628,9 @@ var codec = new Codec('java_block', {
 		}
 		updateSelection()
 
+		if (uses_new_rotations && VersionUtil.compare(Project.java_block_version, '<', '1.21.11')) {
+			Project.java_block_version = '1.21.11';
+		}
 		//Set Parent
 		if (model.parent !== undefined) {
 			Project.parent = model.parent;
@@ -632,7 +677,7 @@ var format = new ModelFormat({
 	parent_model_id: true,
 	vertex_color_ambient_occlusion: true,
 	rotate_cubes: true,
-	rotation_limit: true,
+	rotation_limit: false,
 	rotation_snap: false,
 	optional_box_uv: true,
 	uv_rotation: true,
@@ -706,6 +751,15 @@ codec.format = format;
 Object.defineProperty(format, 'rotation_snap', {
 	get() {
 		return Project.java_block_version == '1.9.0'
+	}
+})
+Object.defineProperty(format, 'rotation_limit', {
+	get() {
+		try {
+			return !VersionUtil.compare(Project.java_block_version, '>=', '1.21.11');
+		} catch (err) {
+			return true;
+		}
 	}
 })
 

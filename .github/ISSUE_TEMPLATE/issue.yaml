@@ -53,6 +53,7 @@ body:
   id: os
   attributes:
     label: Operating System
+    description: Your system, such as Windows or MacOS. When using Linux, please also specify the distro and installation method.
   validations:
     required: true
 - type: input

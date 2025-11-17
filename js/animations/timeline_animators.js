@@ -475,9 +475,28 @@ export class BoneAnimator extends GeneralAnimator {
 			let alpha = Math.getLerp(before_time, after_time, time)
 			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
 
+			let event_result = Blockbench.dispatchEvent('interpolate_keyframes', {
+				animator: this,
+				t: alpha,
+				time,
+				use_quaternions,
+				keyframe_before: before,
+				keyframe_after: after
+			});
+			let result_args = event_result?.length ? event_result.find(a => typeof a == 'object') : null;
+			if (result_args) {
+				if (result_args.value instanceof Array) return result_args.value;
+
+				if (typeof result_args.t == 'number') alpha = result_args.t;
+				if (typeof result_args.use_quaternions == 'boolean') use_quaternions = result_args.use_quaternions;
+				if (result_args.keyframe_before) before = result_args.keyframe_before;
+				if (result_args.keyframe_after) after = result_args.keyframe_after;
+			}
+
 			if (use_quaternions) {
 				let quat_before = before.getFixed(1, true);
 				let quat_after = after.getFixed(0, true);
+
 				let slerp = quat_before.slerp(quat_after, alpha);
 				Reusable.euler2.order = this.group.scene_object.rotation.order;
 				let euler = Reusable.euler2.setFromQuaternion(slerp);

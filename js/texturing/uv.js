@@ -779,6 +779,7 @@ export const UVEditor = {
 	},
 	getUVNavigatorStyle() {
 		let vue = UVEditor.vue;
+		if (UVEditor.zoom < 1.3) return;
 		let mappable_element = vue.mappable_elements.find(el => (el.box_uv || (UVEditor.getSelectedFaces(el)?.length)));
 		if (!mappable_element) return;
 		let box = vue.getSelectedUVBoundingBox();
@@ -2523,7 +2524,7 @@ Interface.definePanels(function() {
 					if (Format.image_editor) {
 						this.height = Interface.preview.clientHeight - 38;
 
-					} else if (Panels.uv.slot.includes('_bar') && !UVEditor.panel.fixed_height) {
+					} else if (Panels.uv.getContainerPanel().slot.includes('_bar') && !UVEditor.panel.fixed_height) {
 						this.height = size;
 
 					} else {

@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "5.0.2",
+	"version": "5.0.4",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -82,7 +82,9 @@
 			]
 		},
 		"win": {
-			"certificateSubjectName": "Jannis Tobias Petersen",
+			"signtoolOptions": {
+				"certificateSubjectName": "Jannis Tobias Petersen"
+			},
 			"artifactName": "${productName}_${arch}_${version}.${ext}",
 			"target": {
 				"target": "nsis",
@@ -131,12 +133,12 @@
 		"build-electron": "node ./build.js --target=electron",
 		"build-test-portable": "npm run build-electron && electron-builder --windows portable",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"publish-mac": "npm run build-electron && electron-builder --publish=always",
-		"publish-linux": "electron-builder --linux --publish=always",
+		"publish-mac": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --publish=always",
+		"publish-linux": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --linux --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish": "npm run build-web && npm run pwa && npm run generate-docs",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa && npm run generate-docs",
-		"webapp": "git checkout gh-pages && git pull && git merge master && git push && git checkout master",
+		"webapp": "git checkout gh-pages && git pull && git merge master --no-edit && git push && git checkout master",
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
 		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
@@ -150,8 +152,8 @@
 		"command-line-args": "^6.0.1",
 		"concurrently": "^9.1.2",
 		"dotenv": "^16.5.0",
-		"electron": "^38.4.0",
-		"electron-builder": "^24.13.3",
+		"electron": "^38.1.0",
+		"electron-builder": "^26.0.12",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
@@ -167,7 +169,7 @@
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.2.5",
 		"electron-color-picker": "^0.2.0",
-		"electron-updater": "^6.3.4",
+		"electron-updater": "^6.6.2",
 		"file-saver": "^2.0.5",
 		"gifenc": "^1.0.3",
 		"jquery": "^3.7.1",

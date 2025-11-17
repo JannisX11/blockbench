@@ -36,7 +36,7 @@ export class UndoSystem {
 		if (!this.current_save) return;
 		aspects = aspects || this.current_save.aspects
 		//After
-		Blockbench.dispatchEvent('finish_edit', {aspects})
+		Blockbench.dispatchEvent('finish_edit', {aspects, message});
 		var entry = {
 			before: this.current_save,
 			post: new UndoSystem.save(aspects),
@@ -55,6 +55,12 @@ export class UndoSystem {
 			}
 		}
 
+		// Just a fail-safe
+		if (entry.before._groups || entry.post._groups) {
+			console.warn('Group undo issue, potentially edited groups without tracking changes correctly in undo. Tracking all selected group changes as a fail-safe.')
+			entry.before.groups = entry.before._groups ?? [];
+			entry.post.groups = entry.post._groups ?? [];
+		}
 
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
@@ -70,7 +76,7 @@ export class UndoSystem {
 		if (!aspects || !aspects.keep_saved) {
 			Project.saved = false;
 		}
-		Blockbench.dispatchEvent('finished_edit', {aspects})
+		Blockbench.dispatchEvent('finished_edit', {aspects, message})
 		if (Project.EditSession && Project.EditSession.active) {
 			Project.EditSession.sendEdit(entry)
 		}
@@ -301,6 +307,13 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
+		} else if (aspects.outliner && (Undo.current_save ? Undo.current_save._groups : Group.first_selected)) {
+			// Just a fail-safe
+			let groups = Undo.current_save
+				? Undo.current_save.aspects._groups.filter(g => Group.all.includes(g))
+				: Group.all.filter(g => g.selected);
+			this._groups = groups.map(group => group.getChildlessCopy(true));
+			aspects._groups = groups;
 		}
 
 		if (aspects.collections) {
@@ -461,6 +474,7 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.groups) {
+			Group.multi_selected.empty();
 			for (let saved_group of this.groups) {
 				let group = OutlinerNode.uuids[saved_group.uuid];
 				if (group) {
@@ -476,6 +490,9 @@ UndoSystem.save = class {
 					group.preview_controller.updateAll(group);
 				} else {
 					group = new Group(saved_group, saved_group.uuid).init();
+				}
+				if (saved_group.primary_selected) {
+					group.multiSelect();
 				}
 			}
 			for (let group_data of reference.groups) {
@@ -500,7 +517,6 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.outliner) {
-			Group.multi_selected.empty();
 			Outliner.loadJSON(this.outliner)
 			if (is_session) {
 				function iterate(arr) {

@@ -242,6 +242,7 @@
 		position: relative;
 		margin: 0;
 		margin-right: auto;
+		padding-top: 2px;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
 		display: none !important;

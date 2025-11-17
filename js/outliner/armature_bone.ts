@@ -522,12 +522,23 @@ new NodePreviewController(ArmatureBone, {
 
 		this.dispatchEvent('update_transform', {element});
 	},
+	updateVisibility(element: ArmatureBone) {
+		element.mesh.visible = Modes.paint ? false : element.visibility;
+
+		this.dispatchEvent('update_visibility', {element});
+	},
 	updateSelection(element: ArmatureBone) {
 		let material = element.selected ? this.material_selected : this.material;
 		let preview_mesh = element.scene_object.children[0] as THREE.Mesh;
 		preview_mesh.material = material;
 		let outline = preview_mesh.children[0] as THREE.Line;
 		(outline.material as THREE.LineBasicMaterial).color.set(element.selected ? 0xffffff : 0x111111);
+	}
+})
+
+Blockbench.on('select_mode', (args) => {
+	for (let bone of ArmatureBone.all) {
+		ArmatureBone.preview_controller.updateVisibility(bone);
 	}
 })
 

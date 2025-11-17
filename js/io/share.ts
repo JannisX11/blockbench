@@ -108,7 +108,7 @@ BARS.defineActions(function() {
 	
 					$.ajax({
 						url: 'https://api.sketchfab.com/v3/models',
-						data: data,
+						data,
 						cache: false,
 						contentType: false,
 						processData: false,
@@ -118,6 +118,7 @@ BARS.defineActions(function() {
 							new Dialog('sketchfab_link', {
 								title: tl('message.sketchfab.success'),
 								icon: 'icon-sketchfab',
+								singleButton: true,
 								form: {
 									message: {type: 'info', text: `[${formResult.name} on Sketchfab](${url})`},
 									link: {type: 'text', value: url, readonly: true, share_text: true}

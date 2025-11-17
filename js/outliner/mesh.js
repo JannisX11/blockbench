@@ -1170,6 +1170,8 @@ new NodePreviewController(Mesh, {
 			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
 		}
 
+		const PLAIN_VERTEX_COLOR = [0, 0.03, 0.08];
+
 		function addVertexPosition(vkey, normal) {
 			position_array.push(...vertices[vkey]);
 			normal_array.push(...normal);
@@ -1194,7 +1196,9 @@ new NodePreviewController(Mesh, {
 					color_array.push(...color);
 				} else {
 					if (weight_sum > weight) weight = weight / weight_sum;
-					if (weight < 0.25) {
+					if (!weight) {
+						color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
+					} else if (weight < 0.25) {
 						color_array.push(0, 0, weight * 4);
 					} else if (weight < 0.5) {
 						let fade = (weight-0.25) * 4;
@@ -1208,7 +1212,7 @@ new NodePreviewController(Mesh, {
 					}
 				}
 			} else {
-				color_array.push(0, 0, 0);
+				color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
 			}
 		}
 

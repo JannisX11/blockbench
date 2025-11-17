@@ -1227,7 +1227,7 @@ let clip_planes = [
 ];
 function updateGUISlotCrop() {
 	if (!display_preview?.canvas) return;
-	if (DisplayMode.display_slot == 'gui' && Format.id == 'java_block' && Project.java_block_version == '1.21.6') {
+	if (DisplayMode.display_slot == 'gui' && Format.id == 'java_block' && VersionUtil.compare(Project.java_block_version, '>=', '1.21.6')) {
 		for (let texture of Texture.all) {
 			texture.material.clippingPlanes = clip_planes;
 		}
@@ -1430,6 +1430,7 @@ BARS.defineActions(function() {
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
 					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
+					on_shelf: {type: 'checkbox', label: 'display.slot.on_shelf', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
 				},
 				onConfirm(form_data) {

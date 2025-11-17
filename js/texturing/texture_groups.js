@@ -124,6 +124,7 @@ export class TextureGroup {
 			material.color.set({r: c[0] / 255, g: c[1] / 255, b: c[2] / 255});
 			material.opacity = c[4] / 255;
 		}
+		material.side = Canvas.getRenderSide(color_tex);
 
 		// Height
 		if (normal_tex) {
