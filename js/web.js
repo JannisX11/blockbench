@@ -171,6 +171,7 @@ export {
 	NULL as updateRecentProjectThumbnail,
 	NULL as loadDataFromModelMemory,
 	NULL as changeImageEditor,
+	NULL as isImageEditorValid,
 	NULL as openDefaultTexturePath,
 	NULL as findExistingFile,
 	NULL as createBackup,

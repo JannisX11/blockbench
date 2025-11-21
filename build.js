@@ -24,7 +24,11 @@ function conditionalImportPlugin(name, config) {
          */
         setup(build) {
             build.onResolve({ filter: config.filter }, args => {
-                return { path: path.join(args.resolveDir, path.dirname(args.path), config.file) };
+                if (config.library) {
+                    return { path: path.join( import.meta.dirname, 'node_modules', path.dirname(args.path), config.file) };
+                } else {
+                    return { path: path.join(args.resolveDir, path.dirname(args.path), config.file) };
+                }
             });
         }
     };
@@ -62,7 +66,7 @@ const dev_mode = options.watch || options.serve;
 const minify = !dev_mode;
 
 /**
- * @typedef {esbuild.BuildOptions} BuildOptions
+ * @type {esbuild.BuildOptions} BuildOptions
  */
 const config = {
     entryPoints: ['./js/main.js'],
@@ -87,6 +91,11 @@ const config = {
         conditionalImportPlugin(2, {
             filter: /native_apis/,
             file: isApp ? 'native_apis.ts' : 'native_apis_web.ts'
+        }),
+        conditionalImportPlugin(3, {
+            filter: /vue.js/,
+            file: dev_mode ? 'vue.js' : 'vue.min.js',
+            library: true,
         }),
         conditionalImportPlugin(1, {
             filter: /desktop/,

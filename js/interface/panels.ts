@@ -998,6 +998,14 @@ export class Panel extends EventSystem {
 			if (this.node.clientHeight) {
 				this.container.style.setProperty('--main-panel-height', this.node.clientHeight + 'px');
 			}
+
+			// Update child panels
+			for (let panel of this.getAttachedPanels()) {
+				panel.width = this.width;
+				panel.height = this.height;
+				if (panel.onResize) panel.onResize();
+			}
+
 			if (Panels[this.id] && this.onResize) this.onResize()
 		} else {
 			this.container.classList.add('hidden');

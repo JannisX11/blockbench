@@ -397,7 +397,7 @@ export class Preview {
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.visibility === false || element.locked === true) return;
+			if (element.visibility === false || element.locked === true || (element.mesh && element.mesh.visible == false)) return;
 			if (element.mesh && element.mesh.geometry) {
 				objects.push(element.mesh);
 				if (Modes.edit && element.selected) {
@@ -889,6 +889,9 @@ export class Preview {
 							node_to_select = node_to_select.parent;
 						}
 					}
+					// Select clicked first so selected face is registered properly
+					data.element.markAsSelected();
+
 					if (multi_select) {
 						node_to_select.multiSelect();
 					} else {
@@ -2034,7 +2037,6 @@ window.addEventListener("gamepadconnected", function(event) {
 	let interval = setInterval(() => {
 		let gamepad = navigator.getGamepads()[event.gamepad.index];
 		let preview = Preview.selected;
-		if (settings.gamepad_controls.value == false) return;
 		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
 
 		if (is_space_mouse) {
@@ -2064,6 +2066,8 @@ window.addEventListener("gamepadconnected", function(event) {
 
 			main_preview.controls.updateSceneScale();
 		} else {
+			if (settings.gamepad_controls.value == false) return;
+			
 			let drift_threshold = 0.2;
 			let axes = gamepad.axes.map(v => Math.abs(v) > drift_threshold ? v - drift_threshold * Math.sign(v) : 0);
 			let camera_matrix = preview.camera.matrixWorld;

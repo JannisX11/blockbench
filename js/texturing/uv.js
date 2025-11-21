@@ -2523,7 +2523,7 @@ Interface.definePanels(function() {
 					if (Format.image_editor) {
 						this.height = Interface.preview.clientHeight - 38;
 
-					} else if (Panels.uv.slot.includes('_bar') && !UVEditor.panel.fixed_height) {
+					} else if (Panels.uv.getContainerPanel().slot.includes('_bar') && !UVEditor.panel.fixed_height) {
 						this.height = size;
 
 					} else {

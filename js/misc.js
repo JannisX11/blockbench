@@ -235,7 +235,7 @@ export function updateSelection(options = {}) {
 	Blockbench.dispatchEvent('update_selection');
 }
 export function unselectAllElements(exceptions) {
-	Project.selected_elements.forEachReverse(obj => {
+	Project.selected_elements.slice().forEach(obj => {
 		if (exceptions instanceof Array && exceptions.includes(obj)) return;
 		obj.unselect()
 	})

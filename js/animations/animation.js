@@ -1666,10 +1666,11 @@ BARS.defineActions(function() {
 						if (!animator[channel]?.length) continue;
 						if (!animator.channels[channel].transform) continue;
 						let first = animator[channel][0];
+						let expected = +(channel === "scale");
 						// todo: add data points
 						if (animator[channel].length == 1 && first.data_points.length == 1 && (response.selection != 'selected_keyframes' || first.selected)) {
 							let value = first.getArray();
-							if (!value[0] && !value[1] && !value[2]) {
+							if (value.allAre(v => v === expected)) {
 								first.remove();
 								continue;
 							}
@@ -1733,7 +1734,7 @@ BARS.defineActions(function() {
 									}
 								}
 							} else if (!prev && !next) {
-								if (d_kf.allAre(val => !val)) {
+								if (d_kf.allAre(val => val === expected)) {
 									remove = true;
 								} else {
 									kf.time = 0;
