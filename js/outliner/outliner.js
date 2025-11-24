@@ -1056,9 +1056,14 @@ export function canAddOutlinerNodesTo(selection, target) {
 	}
 	return true;
 }
-export function canAddOutlinerSelectionTo(target) {
-	if (target.selected) return false;
-	let nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
+export function canAddOutlinerSelectionTo(target, clicked_on) {
+	let nodes_to_move;
+	if (clicked_on instanceof OutlinerElement && !clicked_on.selected) {
+		nodes_to_move = [clicked_on];
+	} else {
+		if (target.selected) return false;
+		nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
+	}
 	return canAddOutlinerNodesTo(nodes_to_move, target);
 }
 
@@ -2011,7 +2016,7 @@ Interface.definePanels(function() {
 								order = getOrder(location, drop_target);
 
 								let parent_target = order ? drop_target.parent : drop_target;
-								if (canAddOutlinerSelectionTo(parent_target)) {
+								if (canAddOutlinerSelectionTo(parent_target, item)) {
 									drop_target_node.setAttribute('order', order)
 									drop_target_node.classList.add('drag_hover');
 									let parent_node = drop_target_node.parentElement.parentElement;
@@ -2020,7 +2025,7 @@ Interface.definePanels(function() {
 									}
 								}
 
-							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root', item)) {
 								$('#cubes_list').addClass('drag_hover');
 							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
 								for (let node of document.querySelectorAll('.collection')) {
@@ -2049,10 +2054,10 @@ Interface.definePanels(function() {
 							[drop_target] = eventTargetToNode(target);
 							if (drop_target) {
 								let parent_target = order ? drop_target.parent : drop_target;
-								if (canAddOutlinerSelectionTo(parent_target)) {
+								if (canAddOutlinerSelectionTo(parent_target, item)) {
 									moveOutlinerSelectionTo(item, drop_target, e2, order);
 								}
-							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root', item)) {
 								moveOutlinerSelectionTo(item, undefined, e2);
 							} else if (document.querySelector('.collection:hover')) {
 								let collection_node = document.querySelector('.collection:hover');
