@@ -18,8 +18,8 @@ export class ModelProject {
 		})
 
 		this.box_uv = options.format ? options.format.box_uv : false;
-		this._texture_width = 16;
-		this._texture_height = 16;
+		this._texture_width = options.format?.block_size || 16;
+		this._texture_height = options.format?.block_size || 16;
 
 		this._name = '';
 		this._saved = true;
