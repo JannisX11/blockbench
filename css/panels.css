@@ -1797,6 +1797,7 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
+		white-space: nowrap;
 	}
 	.channel_head span.timeline_animator_name {
 		padding-left: 5px;
@@ -1863,9 +1864,9 @@
 		fill: none;
 	}
 	#timeline_graph_editor svg text {
-		stroke: var(--color-subtle_text);
-		font-weight: 200;
+		fill: var(--color-subtle_text);
 		opacity: 0.8;
+		font-size: 0.9em;
 	}
 	#timeline_graph_editor svg .main_graph:not(.selected) {
 		opacity: 0.35;
