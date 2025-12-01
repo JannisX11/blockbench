@@ -11,6 +11,7 @@ interface KeyframeDataPointData {
 declare class KeyframeDataPoint extends Object {
 	static properties: Record<string, Property<any>>
 	constructor(keyframe: _Keyframe)
+	readonly keyframe: Keyframe
 	extend(data: KeyframeDataPointData): void
 	getUndoCopy(): {
 		[key: string]: any

@@ -189,7 +189,8 @@ GeneralAnimator.addChannel = function(channel, options) {
 		name: options.name || channel,
 		transform: options.transform || false,
 		mutable: typeof options.mutable === 'boolean' ? options.mutable : true,
-		max_data_points: options.max_data_points || 0
+		max_data_points: options.max_data_points || 0,
+		displayFrame: options.displayFrame
 	}
 	ModelProject.all.forEach(project => {
 		if (!project.animations)
@@ -560,6 +561,13 @@ export class BoneAnimator extends GeneralAnimator {
 		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
+
+		for (let channel in this.channels) {
+			let channel_config = this.channels[channel];
+			if (channel_config.displayFrame) {
+				channel_config.displayFrame(this, multiplier);
+			}
+		}
 	}
 	applyAnimationPreset(preset) {
 		let keyframes = [];

@@ -1330,8 +1330,14 @@ Interface.definePanels(function() {
 				updateInput(axis, value, data_point) {
 					updateKeyframeValue(axis, value, data_point);
 				},
+				updateToggleInput(axis, value, data_point) {
+					Undo.initEdit({keyframes: Timeline.selected})
+					updateKeyframeValue(axis, value, data_point);
+					Undo.finishEdit('Edit keyframe');
+				},
 				getKeyframeInfos() {
-					let list =  [tl('timeline.'+this.channel)];
+					let channel_name = this.firstKeyframe?.animator.channels[this.channel]?.name;
+					let list =  [channel_name ?? ''];
 					if (this.keyframes.length > 1) list.push(this.keyframes.length);
 					return list.join(', ')
 				},
@@ -1631,6 +1637,13 @@ Interface.definePanels(function() {
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
+										/>
+										<input
+											type="checkbox"
+											v-else-if="property.type == 'boolean'"
+											class="keyframe_input tab_target"
+											@input="updateToggleInput(key, $event.target.checked, data_point_i)"
+											:checked="data_point[key]"
 										/>
 										<input
 											v-else

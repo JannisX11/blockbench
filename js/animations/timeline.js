@@ -1770,7 +1770,7 @@ Interface.definePanels(() => {
 											v-bind:id="keyframe.uuid"
 											v-on:click.stop="keyframe.clickSelect($event)"
 											v-on:dblclick="keyframe.callPlayhead()"
-											:title="tl('timeline.'+keyframe.channel)"
+											:title="animator.channels[channel].name"
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 											@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 										>
