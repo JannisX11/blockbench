@@ -520,7 +520,7 @@
 
 	"message.image_editor_missing.title": "Editor de imagem padrão",
 	"message.image_editor_missing.message": "Seleciona o arquivo executável em seu editor de imagem",
-	"message.image_editor_missing.detail": "O Blockbench não encontrou um editor de imagens em seu computador. Selecione o arquivo executável em um editor de imagens de sua preferência.”,
+	"message.image_editor_missing.detail": "O Blockbench não encontrou um editor de imagens em seu computador. Selecione o arquivo executável em um editor de imagens de sua preferência.",
 
 	"action.update_autouv": "Atualizar UV auto.",
 "action.update_autouv.desc": "Atualiza o UV automático mapeando os cubos selecionados",
@@ -800,7 +800,7 @@
 	"action.close_project": "Fechar projeto",
 	"action.close_project.desc": "Fecha o projeto aberto.",
 	"action.export_bedrock": "Exportar geometria Bedrock",
-	"action.export_bedrock.desc": "Exporte o modelo como um arquivo de geometria da Bedrock Edition.”,
+	"action.export_bedrock.desc": "Exporte o modelo como um arquivo de geometria da Bedrock Edition.",
 	"action.save_project": "Salvar projeto",
 	"action.save_project.desc": "Salva o modelo atual como um arquivo de projeto.",
 	"action.save_project_as": "Salvar projeto como...",
@@ -1045,7 +1045,7 @@
 	"action.draw_shape_tool": "Desenhar forma",
 	"action.draw_shape_tool.desc": "Desenha formas simples em texturas",
 	"action.export_gltf": "Exportar como modelo glTF",
-	"action.export_gltf.desc": "Exporta modelo e animações como arquivo glTF para usar em outros aplicativos 3D.",*
+	"action.export_gltf.desc": "Exporta modelo e animações como arquivo glTF para usar em outros aplicativos 3D.",
 	"action.transform_space": "Transformar espaço",
 	"action.transform_space.desc": "Espaço de transformação padrão para elementos e ossos",
 	"action.transform_space.global": "Global",
@@ -1055,7 +1055,7 @@
 	"action.load_camera_angle": "Ângulo de câmera: %0",
 	"action.load_camera_angle.desc": "Carrega o ângulo '%0' da câmera ",
 	"action.slider_face_tint": "Índice de matiz",
-	"action.slider_face_tint.desc": "Defina o índice de matiz da face atual. O valor “-1” significa indefinido.",
+	"action.slider_face_tint.desc": "Defina o índice de matiz da face atual. O valor '-1' significa indefinido.",
 	
 	"menu.help.quickstart": "Guia rápido para iniciantes",
 	"menu.help.developer": "Desenvolvedor",
@@ -1303,7 +1303,7 @@
 	"dialog.create_gif.color": "Cor de fundo",
 	"dialog.save_angle.zoom": "Zoom",
 	"dialog.skin.variant": "Variante",
-	"dialog.flip_animation.info": "Ossos opostos têm identificadores escritos como “esquerdo” e “direito” em seu nome.",
+	"dialog.flip_animation.info": "Ossos opostos têm identificadores escritos como 'esquerdo' e 'direito' em seu nome.",
 	"dialog.flip_animation.offset": "Deslocar o tamanho da animação pela metade",
 	"dialog.export_private_settings.title": "Opções privadas",
 	"dialog.export_private_settings.message": "Seu arquivo tem as seguintes informações privadas: **%0**. Remova esses valores se planeja compartilhar o arquivo com outra pessoa.",
@@ -1687,7 +1687,7 @@
 	"action.resize_texture": "Redimensionar textura...",
 	"action.view_mode.uv": "Pré-visualização UV",
 	"action.append_to_template": "Adicionar elementos ao modelo...",
-	"action.append_to_template.desc": “Adiciona ao modelo de textura os elementos que estão selecionados",
+	"action.append_to_template.desc": "Adiciona ao modelo de textura os elementos que estão selecionados",
 	"action.move_texture_with_uv": "Mover textura com UV",
 	"action.move_texture_with_uv.desc": "Mova a textura da face ao arrastar faces UV",
 	"action.timeline_setups": "Configurações da linha do tempo",
@@ -1784,7 +1784,7 @@
 	"settings.uniform_keyframe": "Quadros-chave de escala uniforme",
 	"settings.uniform_keyframe.desc": "Define os quadros-chave de escala para escala uniforme por padrão.",
 	"settings.nearest_rectangle_select": "Seleção retangular: aresta mais próxima",
-	"settings.nearest_rectangle_select.desc": "Ajusta as seleções retangulares para a aresta de píxel mais próxima, como no GIMP, em vez de píxeis inteiros.", "settings.pick_color_opacity": "Pegar opacidade da cor",
+	"settings.nearest_rectangle_select.desc": "Ajusta as seleções retangulares para a aresta de píxel mais próxima, como no GIMP, em vez de píxeis inteiros.", 
 	"settings.pick_color_opacity": "Pegar opacidade da cor",
 	"settings.pick_color_opacity.desc": "Pega a opacidade da cor com o seletor de cores e a define como opacidade do pincel",
 	"settings.paint_with_stylus_only": "Pintar apenas com caneta",
@@ -1908,14 +1908,14 @@
 	"uv_editor.face_properties": "Propriedades da face",
 	"uv_editor.face_properties.material_instance": "Instância de material",
 	"uv_editor.tint.info": "A opção de matiz pode ser ativada em uma face para instruir o Minecraft a colorir essa face. No Minecraft vanilla, o matiz só pode ser usada por blocos específicos, como folhas e pó de redstone, e só pode ter o valor 0.",
-	"uv_editor.cullface.info": "Ativar a “face oculta” instrui uma face em um bloco a não ser renderizada se outro bloco completo seja colocado adjacente a ela na direção especificada no seu mundo do Minecraft. Isso pode ser usado para otimizar o desempenho.",
+	"uv_editor.cullface.info": "Ativar a 'face oculta' instrui uma face em um bloco a não ser renderizada se outro bloco completo seja colocado adjacente a ela na direção especificada no seu mundo do Minecraft. Isso pode ser usado para otimizar o desempenho.",
 	"uv_editor.material_instance.info": "As instâncias de material podem ser definidas com um nome colocado pelo usuário. Esse nome pode ser usado no arquivo JSON do bloco, no pacote de comportamento, para atribuir uma textura e um material específico à face.",
 	
 	"display.reference.frame_invisible": "Moldura (invisível)",
 	
 	"data.settings_profile": "Perfil",
 	
-	"message.display_skin.invalid_name": "Não foi possível encontrar a conta do Minecraft com o nome "%0".",
+	"message.display_skin.invalid_name": "Não foi possível encontrar a conta do Minecraft com o nome '%0'",
 	
 	"dialog.load_plugins_from_query.title": "Carregar plugins",
 	"dialog.load_plugins_from_query.text": "Você usou um link que requer a instalação de plugins. Deseja instalá-los?",
@@ -1932,7 +1932,7 @@
 	"settings.interface_mode.desktop": "Área de trabalho",
 	"settings.interface_mode.mobile": "Celular",
 	"settings.paint_through_transparency": "Pintar por transparência",
-	"settings.paint_through_transparency.desc": "Pinte por píxeis transparentes quando o “canal alfa bloqueado” estiver ativado",
+	"settings.paint_through_transparency.desc": "Pinte por píxeis transparentes quando o 'canal alfa bloqueado' estiver ativado",
 	
 	"action.tab_overview": "Visão geral da aba",
 	"action.tab_overview.desc": "Veja todas as abas abertas em uma grade e acesse uma delas.",
@@ -2154,7 +2154,7 @@
 	"settings.double_click_switch_tools.desc": "Clique duas vezes na área de visualização para alternar entre as ferramentas.",
 	"settings.outlines_in_paint_mode": "Contornos de seleção no modo de pintura",
 	"settings.outlines_in_paint_mode.desc": "Mostra contornos de seleção de elementos no modo de pintura.",
-	"settings.json_indentation": “Indentação JSON",
+	"settings.json_indentation": "Indentação JSON",
 	"settings.json_indentation.desc": "Estilo de recuo para arquivos JSON exportados.",
 	"settings.json_indentation.tabs": "Abas",
 	"settings.json_indentation.spaces_4": "Espaços: 4",
@@ -2275,7 +2275,7 @@
 	"action.selection_tool.ellipse": "Elipse",
 	"action.selection_tool.lasso": "Laço seletor",
 	"action.selection_tool.wand": "Varinha mágica",
-	"action.selection_tool.color": “Seletor de cor",
+	"action.selection_tool.color": "Seletor de cor",
 	"action.move_layer_tool": "Mover camada",
 	"action.move_layer_tool.desc": "Mover a camada ou seleção atual",
 	"action.export_modded_animations": "Exportar animações de entidades modificadas",
@@ -2384,7 +2384,7 @@
 	"settings.image_editor_grid_size": "Tamanho da grade do editor de imagens",
 	"settings.image_editor_grid_size.desc": "Tamanho da grade maior no editor de imagens 2D",
 	"settings.ground_plane_double_side": "Plano de chão em dupla face",
-	"settings.ground_plane_double_side.desc": “Torna o plano do chão visível",
+	"settings.ground_plane_double_side.desc": "Torna o plano do chão visível",
 	"settings.optifine_save_default_texture": "OptiFine JEM: Exportar textura selecionada",
 	"settings.optifine_save_default_texture.desc": "Exporta a textura selecionada como a textura padrão do modelo.",
 	
@@ -2714,7 +2714,7 @@
 	"dialog.preview_options.background.checkerboard": "Quadriculado",
 	"dialog.preview_options.background.solid": "Sólido",
 	"dialog.preview_options.background.custom_color": "Cor personalizada",
-	"dialog.preview_options.show_gizmos": “Mostrar gizmos",
+	"dialog.preview_options.show_gizmos": "Mostrar gizmos",
 	"dialog.skin.texture_source": "Textura de origem",
 	"dialog.skin.texture_source.template": "Generate Template",
 	"dialog.skin.texture_source.load_texture": "Load from Minecraft",
@@ -2798,7 +2798,7 @@
 	"action.spline_ring_segments": "Segmentos de anel",
 	"action.spline_ring_segments.desc": "Quantas subdivisões essa ranhura tem por anel tubular?",
 	"action.spline_tube_segments": "Segmentos de tubo",
-	"action.spline_tube_segments.desc": "Quantas subdivisões essa ranhura tem ao longo do seu percurso?
+	"action.spline_tube_segments.desc": "Quantas subdivisões essa ranhura tem ao longo do seu percurso?"
 	"action.spline_tube_radius": "Raio do tubo",
 	"action.spline_tube_radius.desc": "Define o raio do tubo da ranhura",
 	"action.spline_display_space": "Espaço para exibição",
@@ -2898,7 +2898,7 @@
 	"dialog.set_vertex_weights.overwrite": "Sobrescrever outros ossos",
 
 	"action.element_render_order.short": "Renderizar ordem",
-	"action.element_render_order.desc": "Ordem de renderização dos elementos. Isso pode ajudar a corrigir elementos que estão ocultos atrás de outros elementos com texturas transparentes. Deixe em “automático” para elementos opacos.",
+	"action.element_render_order.desc": "Ordem de renderização dos elementos. Isso pode ajudar a corrigir elementos que estão ocultos atrás de outros elementos com texturas transparentes. Deixe em "automático" para elementos opacos.",
 	
 	"spline.shading.flat": "Plano",
 	"spline.shading.smooth": "Suave",
