@@ -2898,7 +2898,7 @@
 	"dialog.set_vertex_weights.overwrite": "Sobrescrever outros ossos",
 
 	"action.element_render_order.short": "Renderizar ordem",
-	"action.element_render_order.desc": "Ordem de renderização dos elementos. Isso pode ajudar a corrigir elementos que estão ocultos atrás de outros elementos com texturas transparentes. Deixe em "automático" para elementos opacos.",
+	"action.element_render_order.desc": "Ordem de renderização dos elementos. Isso pode ajudar a corrigir elementos que estão ocultos atrás de outros elementos com texturas transparentes. Deixe em 'automático' para elementos opacos.",
 	
 	"spline.shading.flat": "Plano",
 	"spline.shading.smooth": "Suave",
