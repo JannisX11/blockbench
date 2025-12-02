@@ -53,6 +53,7 @@ const REQUESTABLE_APIS = [
 	'os',
 	'v8',
 	'dialog',
+	'clipboard',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',
@@ -62,6 +63,7 @@ const API_DESCRIPTIONS = {
 	os: 'see information about your computer',
 	https: 'create servers and talk to other servers',
 	dialog: 'open native dialogs',
+	clipboard: 'read and write to the clipboard',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -180,6 +182,8 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 		return createScopedFS(options2.scope);
 	} else if (no_namespace_name == 'process') {
 		return process;
+	} else if (no_namespace_name == 'clipboard') {
+		return clipboard;
 	} else if (no_namespace_name == 'dialog') {
 		let api = {};
 		for (let key in dialog) {
