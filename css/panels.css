@@ -1553,7 +1553,7 @@
 	#timeline_body .animator_head_bar .keyframe i {
 		transform: none;
 		font-size: 6pt;
-		color: var(--color-grid);
+		color: #495061;
 	}
 	#panel_timeline .keyframe.selected i {
 		color: var(--color-accent) !important;
@@ -1857,6 +1857,7 @@
 		height: 100%;
 		margin-left: 9px;
 		pointer-events: none;
+		--color-loop_graph: #495061;
 	}
 	#timeline_graph_editor svg path {
 		stroke: #f72858;

@@ -1802,7 +1802,7 @@ Interface.definePanels(() => {
 										:d="loop_graph"
 										class="loop_graph"
 										:class="{selected: loop_graphs.length == 0 || i == graph_editor_axis_number}"
-										style="stroke: var(--color-grid);"
+										style="stroke: var(--color-loop_graph);"
 									></path>
 									<path v-if="graphs.length == 3"
 										:d="graphs[(graph_editor_axis_number+1) % 3]"
