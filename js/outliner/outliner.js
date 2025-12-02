@@ -1315,7 +1315,7 @@ SharedActions.add('select_all', {
 })
 SharedActions.add('unselect_all', {
 	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
+	condition: {modes: ['edit', 'paint', 'animate']},
 	priority: -2,
 	run() {
 		Undo.initSelection();
@@ -1325,7 +1325,7 @@ SharedActions.add('unselect_all', {
 })
 SharedActions.add('invert_selection', {
 	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
+	condition: {modes: ['edit', 'paint']},
 	priority: -2,
 	run() {
 		Outliner.elements.forEach(element => {

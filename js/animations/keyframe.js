@@ -671,7 +671,7 @@ export function unselectAllKeyframes() {
 	updateKeyframeSelection()
 }
 SharedActions.add('delete', {
-	condition: () => Animator.open && Keyframe.selected.length,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Keyframe.selected.length,
 	priority: -1,
 	run() {
 		Undo.initEdit({keyframes: Timeline.selected})
@@ -689,21 +689,21 @@ SharedActions.add('delete', {
 	}
 })
 SharedActions.add('select_all', {
-	condition: () => Animator.open && Animation.selected,
-	priority: -2,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
+	priority: -1,
 	run() {
 		selectAllKeyframes()
 	}
 })
 SharedActions.add('unselect_all', {
-	condition: () => Animator.open && Animation.selected,
-	priority: -2,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
+	priority: -1,
 	run() {
 		unselectAllKeyframes()
 	}
 })
 SharedActions.add('invert_selection', {
-	condition: () => Animator.open && Animation.selected,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
 	priority: -1,
 	run() {
 		Timeline.keyframes.forEach((kf) => {
