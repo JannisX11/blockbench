@@ -153,6 +153,10 @@ declare global {
 		 * Set a function that will run once the next time the texture is loaded
 		 */
 		load_callback?: null | ((texture: Texture) => void)
+		/**
+		 * Custom texture flags
+		 */
+		flags: Set
 
 		/**
 		 * Texture selection in paint mode
@@ -177,6 +181,7 @@ declare global {
 		 * Texture image element
 		 */
 		img: HTMLImageElement
+		readonly offset: ArrayVector2
 
 		relative_path?: string
 		get material(): THREE.ShaderMaterial
@@ -425,7 +430,7 @@ declare global {
 		 * Return the smallest possible rectangle that contains all of the selection
 		 * @param respect_empty If true, if there is no selection, the bounding box will still cover the entire area
 		 */
-		getBoundingRect(respect_empty: boolean): Rectangle
+		getBoundingRect(respect_empty: boolean = false): Rectangle
 		/**
 		 * Checks whether a selection is present and contains selected pixels
 		 */
