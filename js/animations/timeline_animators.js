@@ -187,6 +187,7 @@ export class GeneralAnimator {
 GeneralAnimator.addChannel = function(channel, options) {
 	this.prototype.channels[channel] = {
 		name: options.name || channel,
+		condition: options.condition,
 		transform: options.transform || false,
 		mutable: typeof options.mutable === 'boolean' ? options.mutable : true,
 		max_data_points: options.max_data_points || 0,

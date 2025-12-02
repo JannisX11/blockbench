@@ -1638,6 +1638,7 @@ Interface.definePanels(() => {
 					return '';
 				},
 				clamp: Math.clamp,
+				Condition,
 				trimFloatNumber,
 				getAxisLetter
 			},
@@ -1734,7 +1735,7 @@ Interface.definePanels(() => {
 								<div class="animator_channel_bar"
 									v-bind:style="{width: (size*length + head_width)+'px'}"
 									v-for="(channel_options, channel) in animator.channels"
-									v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
+									v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition) && (!channels.hide_empty || animator[channel].length)"
 								>
 									<div class="channel_head"
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
