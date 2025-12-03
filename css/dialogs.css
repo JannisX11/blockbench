@@ -1555,6 +1555,10 @@
 		background-color: #73e473;
 		color: #111625;
 	}
+	.plugin_tag_list li.plugin_tag_hytale {
+		background-color: #4a4297;
+		color: white;
+	}
 	.plugin_tag_list li.plugin_tag_deprecated {
 		background-color: #ff3467;
 		color: #000000;

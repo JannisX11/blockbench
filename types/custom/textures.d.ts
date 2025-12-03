@@ -109,6 +109,7 @@ declare global {
 		render_mode: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides: 'auto' | 'front' | 'double' | string
 		pbr_channel: 'color' | 'normal' | 'height' | 'mer'
+		use_as_default: boolean
 
 		/** Texture animation frame time */
 		frame_time: number

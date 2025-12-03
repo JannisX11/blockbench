@@ -773,9 +773,10 @@
 		gap: 4px;
 		align-items: center;
 		border-radius: 10px;
-    	background-color: var(--color-ui);
+		background-color: var(--color-ui);
 		height: 22px;
 		padding: 0 7px;
+		white-space: nowrap;
 	}
 	.collection_content_list > li > i {
 		scale: 0.9;
