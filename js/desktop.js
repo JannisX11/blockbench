@@ -232,7 +232,8 @@ export async function updateRecentProjectThumbnail() {
 
 		let box = Canvas.getModelSize();
 		let size = Math.max(box[0], box[1]*2)
-		MediaPreview.camera.position.multiplyScalar(size/50)
+		let camera_dist = MediaPreview.camera.position.length();
+		MediaPreview.camera.position.multiplyScalar(size / camera_dist * 1.2);
 		
 		await new Promise((resolve, reject) => {
 			MediaPreview.screenshot({crop: false}, url => {

@@ -60,7 +60,7 @@ export interface CubeSizeLimiter {
  */
 declare const Format: ModelFormat
 
-export const Formats = {};
+export const Formats: Record<string, ModelFormat> = {};
 
 Object.defineProperty(window, 'Format', {
 	get() {
@@ -130,6 +130,10 @@ export interface FormatFeatures {
 	 * Specify how large in pixels a block is. Defaults to 16.
 	 */
 	block_size: number
+	/**
+	 * Which direction of the model is facing forward
+	 */
+	forward_direction: '-z' | '+z' | '-x' | '+x'
 	/**
 	 * Add the ability to rotate cubes
 	 */
@@ -622,6 +626,7 @@ new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
 new Property(ModelFormat, 'number', 'block_size', {default: 16});
+new Property(ModelFormat, 'enum', 'forward_direction', {default: '-z', values: ['-z', '+z', '-x', '+x']});
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
