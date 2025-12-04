@@ -104,7 +104,7 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 	let has_permission = false;
 	if (permission === true) {
 		has_permission = true;
-	} else if (no_namespace_name == 'fs' && permission?.directories) {
+	} else if (no_namespace_name == 'fs' && permission?.directories && options2.scope) {
 		for (let directory of permission?.directories) {
 			if (options2.scope.startsWith(directory)) {
 				has_permission = true;
