@@ -1268,7 +1268,9 @@ export function updateSidebarOrder() {
 			panel.container.classList.remove('topmost_panel');
 			if (!panel.attached_to && Condition(panel.condition)) {
 				if (current_panels[panel_count] != panel_id) {
+					if (panel.id == 'uv' && !Blockbench.isMobile) UVEditor.saveViewportOffset()
 					bar_node.append(panel.container);
+					if (panel.id == 'uv' && !Blockbench.isMobile) UVEditor.loadViewportOffset()
 				}
 				if (panel_count == 0) {
 					panel.container.classList.add('topmost_panel');
