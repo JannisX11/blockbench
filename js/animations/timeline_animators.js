@@ -142,7 +142,9 @@ export class GeneralAnimator {
 				has_before = true;
 			}
 		}
-		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
+		let value = null;
+		if (Timeline.time > Animation.selected.length && Animation.selected.loop == 'once') value = {};
+		result = before ? before : this.createKeyframe(value, Timeline.time, channel, false, false);
 		let new_keyframe;
 		if (settings.auto_keyframe.value && Timeline.snapTime(Timeline.time) != 0 && !before && !has_before) {
 			new_keyframe = this.createKeyframe({}, 0, channel, false, false);
