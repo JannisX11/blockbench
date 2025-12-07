@@ -903,16 +903,20 @@ export class Animation extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => (Format.animation_files && isApp && animation.saved),
+			condition: (animation) => (Format.animation_files && Format.id.includes('bedrock') && isApp && animation.saved),
 			click(animation) {
 				Blockbench.read([animation.path], {}, ([file]) => {
 					Undo.initEdit({animations: [animation]})
 					let anim_index = Animation.all.indexOf(animation);
 					animation.remove(false, false);
 					let [new_animation] = Animator.loadFile(file, [animation.name]);
-					Animation.all.remove(new_animation);
-					Animation.all.splice(anim_index, 0, new_animation);
-					Undo.finishEdit('Reload animation', {animations: [new_animation]})
+					if (new_animation) {
+						Animation.all.remove(new_animation);
+						Animation.all.splice(anim_index, 0, new_animation);
+						Undo.finishEdit('Reload animation', {animations: [new_animation]})
+					} else {
+						Undo.cancelEdit();
+					}
 				})
 			}
 		},
@@ -1006,7 +1010,7 @@ export class Animation extends AnimationItem {
 	])
 	new Property(Animation, 'boolean', 'saved', {default: true, condition: () => Format.animation_files})
 	new Property(Animation, 'string', 'path', {condition: () => isApp && Format.animation_files})
-	new Property(Animation, 'string', 'group_name', {condition: () => !Format.animation_files})
+	new Property(Animation, 'string', 'group_name', {condition: () => Format.animation_grouping == 'custom'})
 	new Property(Animation, 'molang', 'anim_time_update', {default: ''});
 	new Property(Animation, 'molang', 'blend_weight', {default: ''});
 	new Property(Animation, 'molang', 'start_delay', {default: ''});
@@ -1184,7 +1188,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			new Animation({
-				name: Format.animation_files ? 'animation.' + (Project.geometry_name||'model') + '.new' : 'animation',
+				name: Format.id.includes('bedrock') ? 'animation.' + (Project.geometry_name||'model') + '.new' : 'animation',
 				saved: false
 			}).add(true).propertiesDialog()
 
@@ -1952,6 +1956,7 @@ Interface.definePanels(function() {
 				animations: Animation.all,
 				animation_controllers: AnimationController.all,
 				files_folded: {},
+				animation_files: true,
 				group_animations_by_file: true,
 				search_enabled: false,
 				search_term: '',
@@ -2279,7 +2284,7 @@ Interface.definePanels(function() {
 									{{ common_controller_namespace ? animation.name.split(common_controller_namespace).join('') : animation.name }}
 									<span v-if="common_controller_namespace"> - {{ animation.name }}</span>
 								</label>
-								<div v-if="group_animations_by_file" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
+								<div v-if="animation_files" class="in_list_button" v-bind:class="{unclickable: animation.saved}" @click.stop="animation.save()" title="${tl('menu.animation.save')}">
 									<i v-if="animation.saved" class="material-icons">check_circle</i>
 									<i v-else class="material-icons">save</i>
 								</div>
