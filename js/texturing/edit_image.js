@@ -714,8 +714,8 @@ BARS.defineActions(function() {
 									}
 								}
 							} else if (el.getTypeBehavior('cube_faces')) {
-								let factor_x = texture.width  / Project.texture_width;
-								let factor_y = texture.display_height / Project.texture_height;
+								let factor_x = texture.width  / texture.getUVWidth();
+								let factor_y = texture.display_height / texture.getUVHeight();
 								for (var fkey in el.faces) {
 									var face = el.faces[fkey];
 									if (face.getTexture() !== texture) continue;
