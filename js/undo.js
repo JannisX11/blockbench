@@ -454,7 +454,8 @@ UndoSystem.save = class {
 				if (reference.elements.hasOwnProperty(uuid) && !this.elements.hasOwnProperty(uuid)) {
 					let obj = OutlinerNode.uuids[uuid]
 					if (obj) {
-						obj.remove()
+						if (obj.children instanceof Array) obj.children.empty();
+						obj.remove();
 					}
 				}
 			}
