@@ -88,6 +88,7 @@ type EventName =
 	| 'setup_project'
 	| 'update_project_resolution'
 	| 'merge_project'
+	| 'display_model_stats'
 	| 'update_view'
 	| 'update_camera_position'
 	| 'render_frame'

@@ -1407,21 +1407,34 @@ BARS.defineActions(function() {
 					vertex_count += Object.keys(element.vertices).length;
 				}
 			})
-			var dialog = new Dialog({
+
+			// Todo: proper localization options for element type plurals, display all element types
+			const stats = [
+				{ label: tl('dialog.model_stats.cubes'), value: Cube.all.length },
+				Format.meshes && { label: tl('dialog.model_stats.meshes'), value: Mesh.all.length },
+				Format.splines && { label: tl('dialog.model_stats.splines', [], 'Splines'), value: SplineMesh.all.length },
+				Format.locators && { label: tl('dialog.model_stats.locators'), value: Locator.all.length },
+				{ label: tl('dialog.model_stats.groups'), value: Group.all.length },
+				{ label: tl('dialog.model_stats.vertices'), value: vertex_count },
+				{ label: tl('dialog.model_stats.faces'), value: face_count },
+			].filter(e => e);
+
+			Blockbench.dispatchEvent('display_model_stats', {stats});
+
+			const form = {};
+			let i = 0;
+			for (let entry of stats) {
+				if (!entry) continue;
+				let text = typeof entry.value == 'number' ? stringifyLargeInt(entry.value) : entry.value;
+				form[i] = { type: 'info', label: entry.label, text };
+				i++
+			};
+			let dialog = new Dialog({
 				id: 'model_stats',
 				title: 'dialog.model_stats.title',
 				width: 300,
 				singleButton: true,
-				form: {
-					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
-					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
-					// Todo: proper localization options for element type plurals, display all element types
-					splines: {type: 'info', label: tl('dialog.model_stats.splines', [], 'Splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
-					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
-					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
-					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
-					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: stringifyLargeInt(face_count) },
-				}
+				form
 			})
 			dialog.show()
 
