@@ -601,6 +601,7 @@ export function setupProject(format, uuid) {
 export function newProject(format) {
 	if (typeof format == 'string' && Formats[format]) format = Formats[format];
 	new ModelProject({format}).select();
+	Preview.selected.loadAnglePreset(DefaultCameraPresets[0]);
 
 	if (format.edit_mode) {
 		if (Mode.selected != Modes.options.edit) Modes.options.edit.select();
