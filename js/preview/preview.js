@@ -39,8 +39,21 @@ export const DefaultCameraPresets = [
 		name: 'menu.preview.angle.initial',
 		id: 'initial',
 		projection: 'perspective',
-		position: [-40, 32, -40],
-		target: [0, 8, 0],
+		get position() {
+			let base;
+			switch (Format.forward_direction) {
+				case '+x': base = [40, 32, -40]; break;
+				case '-x': base = [-40, 32, 40]; break;
+				case '+z': base = [40, 32, 40]; break;
+				case '-z': default: base = [-40, 32, -40]; break;
+			}
+			if (!Format) return base;
+			return base.map(v => v * (Format.block_size / 16));
+		},
+		get target() {
+			let block_size = Format.block_size ?? 16;
+			return [0, block_size * 0.75, 0]
+		},
 		default: true
 	},
 	{

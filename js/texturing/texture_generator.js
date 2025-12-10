@@ -24,13 +24,16 @@ export const TextureGenerator = {
 		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Texture.getDefault().getUVWidth())*16 : 16;
 
 		let resolution_presets = {
-			16: '16x',
-			32: '32x',
-			64: '64x',
-			128: '128x',
-			256: '256x',
-			512: '512x',
+			16: null,
+			32: null,
+			64: null,
+			128: null,
+			256: null,
+			512: null,
 		};
+		for (let key in resolution_presets) {
+			resolution_presets[key] = (Format.block_size * (key / 16)) + 'x';
+		}
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
@@ -1611,7 +1614,14 @@ export const TextureGenerator = {
 		}
 
 
-		updateSelection()
+		updateSelection();
+		Blockbench.dispatchEvent('generate_texture_template', {
+			options,
+			elements: element_list,
+			texture,
+			resolution_multiplier: res_multiple,
+			data: {face_list, box_uv_templates}
+		})
 		setTimeout(Canvas.updatePixelGrid, 1);
 		Undo.finishEdit(makeTexture instanceof Texture ? 'Append to template' : 'Create template', {
 			textures: [texture],

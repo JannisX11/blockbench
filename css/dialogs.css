@@ -242,7 +242,6 @@
 		position: relative;
 		margin: 0;
 		margin-right: auto;
-		padding-top: 2px;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
 		display: none !important;
@@ -733,10 +732,10 @@
 	.settings_list li:hover .setting_icon i {
 		color: var(--color-light);
 	}
-	.password_toggle {
+	.bar div.password_toggle {
 		display: inline-block;
 		margin-left: 4px;
-		margin-top: 4px;
+		padding-top: 2px;
 		width: 24px;
 		text-align: center;
 		vertical-align: text-bottom;
@@ -1555,6 +1554,10 @@
 	.plugin_tag_list li.plugin_tag_mc {
 		background-color: #73e473;
 		color: #111625;
+	}
+	.plugin_tag_list li.plugin_tag_hytale {
+		background-color: #4a4297;
+		color: white;
 	}
 	.plugin_tag_list li.plugin_tag_deprecated {
 		background-color: #ff3467;

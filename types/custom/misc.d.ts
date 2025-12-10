@@ -24,6 +24,7 @@ declare const VuePrismEditor: Vue.Component
 type EventName =
 	| 'remove_animation'
 	| 'display_animation_frame'
+	| 'interpolate_keyframes'
 	| 'before_closing'
 	| 'create_session'
 	| 'join_session'
@@ -63,6 +64,7 @@ type EventName =
 	| 'canvas_click'
 	| 'change_texture_path'
 	| 'add_texture'
+	| 'generate_texture_template'
 	| 'update_texture_selection'
 	| 'init_edit'
 	| 'finish_edit'
@@ -86,6 +88,7 @@ type EventName =
 	| 'setup_project'
 	| 'update_project_resolution'
 	| 'merge_project'
+	| 'display_model_stats'
 	| 'update_view'
 	| 'update_camera_position'
 	| 'render_frame'

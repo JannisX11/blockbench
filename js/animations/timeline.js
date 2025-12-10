@@ -1342,7 +1342,7 @@ Interface.definePanels(() => {
 							Blockbench.setStatusBarText(text);
 						}
 						BarItems.slider_keyframe_time.update()
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}
@@ -1480,7 +1480,7 @@ Interface.definePanels(() => {
 
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 					}
 					function off() {
@@ -1554,7 +1554,7 @@ Interface.definePanels(() => {
 						}
 						let text = Math.round(value * 100) + '%';
 						Blockbench.setStatusBarText(text);
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}
@@ -1638,6 +1638,7 @@ Interface.definePanels(() => {
 					return '';
 				},
 				clamp: Math.clamp,
+				Condition,
 				trimFloatNumber,
 				getAxisLetter
 			},
@@ -1734,7 +1735,7 @@ Interface.definePanels(() => {
 								<div class="animator_channel_bar"
 									v-bind:style="{width: (size*length + head_width)+'px'}"
 									v-for="(channel_options, channel) in animator.channels"
-									v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
+									v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition) && (!channels.hide_empty || animator[channel].length)"
 								>
 									<div class="channel_head"
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
@@ -1770,7 +1771,7 @@ Interface.definePanels(() => {
 											v-bind:id="keyframe.uuid"
 											v-on:click.stop="keyframe.clickSelect($event)"
 											v-on:dblclick="keyframe.callPlayhead()"
-											:title="tl('timeline.'+keyframe.channel)"
+											:title="animator.channels[channel].name"
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 											@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 										>
@@ -1801,7 +1802,7 @@ Interface.definePanels(() => {
 										:d="loop_graph"
 										class="loop_graph"
 										:class="{selected: loop_graphs.length == 0 || i == graph_editor_axis_number}"
-										style="stroke: var(--color-grid);"
+										style="stroke: var(--color-loop_graph);"
 									></path>
 									<path v-if="graphs.length == 3"
 										:d="graphs[(graph_editor_axis_number+1) % 3]"

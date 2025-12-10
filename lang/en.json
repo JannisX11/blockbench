@@ -1804,6 +1804,8 @@
 	"action.merge_vertices.merge_by_distance_in_center": "Merge by Distance in Center",
 	"action.merge_meshes": "Merge Meshes",
 	"action.merge_meshes.desc": "Merge multiple meshes into one",
+	"action.merge_splines": "Merge Splines",
+	"action.merge_splines.desc": "Merge multiple splines into one",
 	"action.proportional_editing": "Proportional Editing",
 	"action.proportional_editing.desc": "Proportionally affect surrounding vertices when editing parts of a mesh",
 	"action.proportional_editing_range": "Proportional Editing Range",

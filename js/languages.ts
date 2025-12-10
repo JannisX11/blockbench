@@ -9,6 +9,7 @@ import ko from '../lang/ko.json';
 import nl from '../lang/nl.json';
 import pl from '../lang/pl.json';
 import pt from '../lang/pt.json';
+import pt_br from '../lang/pt_br.json';
 import ru from '../lang/ru.json';
 import sv from '../lang/sv.json';
 import tr from '../lang/tr.json';
@@ -30,6 +31,7 @@ export const data: Record<string, Language> = {
 	nl: nl,
 	pl: pl,
 	pt: pt,
+	pt_br: pt_br,
 	ru: ru,
 	sv: sv,
 	tr: tr,
@@ -95,6 +97,7 @@ export const Language = {
 		nl: 'Nederlands (Dutch)',
 		pl: 'Polski (Polish)',
 		pt: 'Portugu\u00EAs (Portuguese)',
+		pt_br: 'Português (Brasil) (Portuguese, Brazil)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
 		sv: 'Svenska (Swedish)',
 		tr: 'Türkçe (Turkish)',

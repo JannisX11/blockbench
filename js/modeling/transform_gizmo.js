@@ -2036,7 +2036,11 @@ import { getPivotObjects, getRotationObjects, getSelectedMovingElements, moveEle
 							}
 							scope.keyframes[0].offset(axis, difference);
 						}
-						scope.keyframes[0].select();
+						if (Keyframe.selected[0] != scope.keyframes[0] || Keyframe.selected.length > 1) {
+							scope.keyframes[0].select();
+						} else {
+							Animator.showMotionTrail(null, true);
+						}
 							
 						displayDistance(value - originalValue);
 

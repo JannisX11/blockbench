@@ -2137,7 +2137,7 @@ SharedActions.add('copy', {
 		}
 
 		if (cut) {
-			SharedActions.runSpecific('delete', 'image_content', {message: 'Cut texture selection'});
+			SharedActions.runSpecific('delete', 'image_content', event, {message: 'Cut texture selection'});
 		}
 	}
 })

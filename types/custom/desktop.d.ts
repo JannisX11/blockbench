@@ -70,3 +70,4 @@ declare function requireNativeModule(module: 'tls', options?: RequireDialogOptio
 declare function requireNativeModule(module: 'util', options?: RequireDialogOptions): (typeof import("node:util")) | undefined;
 declare function requireNativeModule(module: 'os', options?: RequireDialogOptions): (typeof import("node:os")) | undefined;
 declare function requireNativeModule(module: 'v8', options?: RequireDialogOptions): (typeof import("node:v8")) | undefined;
+declare function requireNativeModule(module: 'clipboard', options?: RequireDialogOptions): (import('electron').Clipboard) | undefined;

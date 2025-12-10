@@ -285,9 +285,9 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit && Project.format?.armature_rig,
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
-			let add_to_node = Outliner.selected[0] || Group.first_selected;
-			if (!add_to_node && selected.length) {
-				add_to_node = selected.last();
+			let add_to_node: OutlinerNode | typeof Outliner.ROOT = Outliner.selected.last() || Group.first_selected;
+			if (add_to_node && add_to_node.getTypeBehavior('child_types')?.indexOf('armature') == -1) {
+				add_to_node = Outliner.ROOT;
 			}
 			let armature = new Armature();
 			armature.addTo(add_to_node);

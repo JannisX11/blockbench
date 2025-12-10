@@ -365,7 +365,7 @@ export const Clipbench = {
 				if (!OutlinerElement.isTypePermitted(save.type)) continue;
 				let copy = new OutlinerElement.types[save.type](save);
 				let target_parent = (target instanceof OutlinerNode && target.children) ? target : target.parent;
-				if (!canAddOutlinerNodesTo([copy], target_parent)) continue;
+				if (!canAddOutlinerNodesTo([copy], target_parent ?? Outliner.ROOT)) continue;
 				copy.init();
 				copy.addTo(target).markAsSelected();
 				copy.createUniqueName();

@@ -53,7 +53,7 @@ const DEFAULT_COLORS = {
 	accent_text: '#000006',
 	bright_ui_text: '#000006',
 	subtle_text: '#848891',
-	grid: '#495061',
+	grid: '#30333d',
 	wireframe: '#576f82',
 	checkerboard: '#14171b',
 }

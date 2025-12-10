@@ -583,6 +583,7 @@ export class Texture {
 					}
 					this.extend({
 						frame_time: mcmeta.animation.frametime,
+						frame_interpolate: mcmeta.animation.interpolate,
 						frame_order_type,
 						frame_order: frame_string
 					})
@@ -768,7 +769,6 @@ export class Texture {
 		this.load();
 		this.updateMaterial()
 		TickUpdates.UVEditor = true;
-		TickUpdates.texture_list = true;
 	}
 	reloadTexture() {
 		this.refresh(true)

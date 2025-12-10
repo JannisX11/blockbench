@@ -1,6 +1,6 @@
 {
 	"name": "blockbench-types",
-	"version": "5.0.1",
+	"version": "5.0.5",
 	"description": "Blockbench typescript types",
 	"main": "",
 	"types": "./index.d.ts",

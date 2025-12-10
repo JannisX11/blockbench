@@ -5444,6 +5444,88 @@ skin_presets.minecart = {
 		]
 	}`
 };
+skin_presets.nautilus = {
+	display_name: 'Nautilus',
+	model: `{
+		"name": "nautilus",
+		"external_textures": ["entity/nautilus/nautilus.png"],
+		"texturewidth": 128,
+		"textureheight": 128,
+		"eyes": [
+			[7, 70, 2, 1],
+			[29, 70, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "nautilus",
+				"pivot": [0, -5, -6]
+			},
+			{
+				"name": "head",
+				"parent": "nautilus",
+				"pivot": [0, 8, -1],
+				"cubes": [
+					{"origin": [-7, 8, -8], "size": [14, 10, 16], "uv": [0, 0]},
+					{"name": "head_bottom", "origin": [-7, 0, -8], "size": [14, 8, 20], "uv": [0, 26]},
+					{"name": "head_back", "origin": [-7, 0, 5], "size": [14, 8, 0], "uv": [48, 26]}
+				]
+			},
+			{
+				"name": "body",
+				"parent": "nautilus",
+				"pivot": [0, 3.5, 6.3],
+				"cubes": [
+					{"origin": [-5, 0.01, 3.3], "size": [10, 8, 14], "uv": [0, 54]},
+					{"name": "body_back", "origin": [-5, 0.01, 13.3], "size": [10, 8, 0], "uv": [0, 76]},
+					{"name": "mouth_top", "origin": [-5, 4.01, 13.3], "size": [10, 4, 4], "inflate": -0.002, "uv": [54, 54]},
+					{"name": "inner_mouth", "origin": [-3, 2.01, 13.3], "size": [6, 4, 4], "uv": [54, 70]},
+					{"name": "mouth_bottom", "origin": [-5, -0.01, 13.3], "size": [10, 4, 4], "inflate": -0.002, "uv": [54, 62]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.nautilus_baby = {
+	display_name: 'Nautilus Baby',
+	model: `{
+		"name": "nautilus_baby",
+		"external_textures": ["entity/nautilus/nautilus_baby.png"],
+		"texturewidth": 64,
+		"textureheight": 64,
+		"eyes": [
+			[3, 32, 1, 1],
+			[15, 32, 1, 1]
+		],
+		"bones": [
+			{
+				"name": "nautilus_baby",
+				"pivot": [0, -4, 0]
+			},
+			{
+				"name": "head",
+				"parent": "nautilus_baby",
+				"pivot": [-2.5, 4, -2.5],
+				"cubes": [
+					{"origin": [-3.5, 4, -3.5], "size": [7, 4, 7], "uv": [0, 0]},
+					{"name": "head_bottom", "origin": [-3.5, 0, -3.5], "size": [7, 4, 9], "uv": [0, 11]},
+					{"name": "head_back", "origin": [-3.5, 0, 2.5], "size": [7, 4, 0], "uv": [23, 11]}
+				]
+			},
+			{
+				"name": "body",
+				"parent": "nautilus_baby",
+				"pivot": [0, 1, 2.5],
+				"cubes": [
+					{"origin": [-2.5, 0.01, 1.5], "size": [5, 4, 7], "uv": [0, 24]},
+					{"name": "body_back", "origin": [-2.5, 0.01, 6.6], "size": [5, 4, 0], "uv": [0, 35]},
+					{"name": "mouth_top", "origin": [-2.5, 2.01, 6.4], "size": [5, 2, 2], "inflate": -0.002, "uv": [24, 24]},
+					{"name": "inner_mouth", "origin": [-1.5, 1.01, 6.4], "size": [3, 2, 2], "uv": [24, 32]},
+					{"name": "mouth_bottom", "origin": [-2.5, 0.01, 6.4], "size": [5, 2, 2], "inflate": -0.002, "uv": [24, 28]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.panda = {
 	display_name: 'Panda',
 	model: `{

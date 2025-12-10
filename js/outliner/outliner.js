@@ -1056,9 +1056,14 @@ export function canAddOutlinerNodesTo(selection, target) {
 	}
 	return true;
 }
-export function canAddOutlinerSelectionTo(target) {
-	if (target.selected) return false;
-	let nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
+export function canAddOutlinerSelectionTo(target, clicked_on) {
+	let nodes_to_move;
+	if (clicked_on instanceof OutlinerElement && !clicked_on.selected) {
+		nodes_to_move = [clicked_on];
+	} else {
+		if (target.selected) return false;
+		nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
+	}
 	return canAddOutlinerNodesTo(nodes_to_move, target);
 }
 
@@ -1310,7 +1315,7 @@ SharedActions.add('select_all', {
 })
 SharedActions.add('unselect_all', {
 	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
+	condition: {modes: ['edit', 'paint', 'animate']},
 	priority: -2,
 	run() {
 		Undo.initSelection();
@@ -1320,7 +1325,7 @@ SharedActions.add('unselect_all', {
 })
 SharedActions.add('invert_selection', {
 	subject: 'outliner',
-	condition: () => Modes.edit || Modes.paint,
+	condition: {modes: ['edit', 'paint']},
 	priority: -2,
 	run() {
 		Outliner.elements.forEach(element => {
@@ -1402,21 +1407,34 @@ BARS.defineActions(function() {
 					vertex_count += Object.keys(element.vertices).length;
 				}
 			})
-			var dialog = new Dialog({
+
+			// Todo: proper localization options for element type plurals, display all element types
+			const stats = [
+				{ label: tl('dialog.model_stats.cubes'), value: Cube.all.length },
+				Format.meshes && { label: tl('dialog.model_stats.meshes'), value: Mesh.all.length },
+				Format.splines && { label: tl('dialog.model_stats.splines', [], 'Splines'), value: SplineMesh.all.length },
+				Format.locators && { label: tl('dialog.model_stats.locators'), value: Locator.all.length },
+				{ label: tl('dialog.model_stats.groups'), value: Group.all.length },
+				{ label: tl('dialog.model_stats.vertices'), value: vertex_count },
+				{ label: tl('dialog.model_stats.faces'), value: face_count },
+			].filter(e => e);
+
+			Blockbench.dispatchEvent('display_model_stats', {stats});
+
+			const form = {};
+			let i = 0;
+			for (let entry of stats) {
+				if (!entry) continue;
+				let text = typeof entry.value == 'number' ? stringifyLargeInt(entry.value) : entry.value;
+				form[i] = { type: 'info', label: entry.label, text };
+				i++
+			};
+			let dialog = new Dialog({
 				id: 'model_stats',
 				title: 'dialog.model_stats.title',
 				width: 300,
 				singleButton: true,
-				form: {
-					cubes: {type: 'info', label: tl('dialog.model_stats.cubes'), text: stringifyLargeInt(Cube.all.length) },
-					meshes: {type: 'info', label: tl('dialog.model_stats.meshes'), text: stringifyLargeInt(Mesh.all.length), condition: Format.meshes },
-					// Todo: proper localization options for element type plurals, display all element types
-					splines: {type: 'info', label: tl('dialog.model_stats.splines', [], 'Splines'), text: stringifyLargeInt(SplineMesh.all.length), condition: Format.splines },
-					locators: {type: 'info', label: tl('dialog.model_stats.locators'), text: stringifyLargeInt(Locator.all.length), condition: Format.locators },
-					groups: {type: 'info', label: tl('dialog.model_stats.groups'), text: stringifyLargeInt(Group.all.length) },
-					vertices: {type: 'info', label: tl('dialog.model_stats.vertices'), text: stringifyLargeInt(vertex_count) },
-					faces: {type: 'info', label: tl('dialog.model_stats.faces'), text: stringifyLargeInt(face_count) },
-				}
+				form
 			})
 			dialog.show()
 
@@ -2011,7 +2029,7 @@ Interface.definePanels(function() {
 								order = getOrder(location, drop_target);
 
 								let parent_target = order ? drop_target.parent : drop_target;
-								if (canAddOutlinerSelectionTo(parent_target)) {
+								if (canAddOutlinerSelectionTo(parent_target, item)) {
 									drop_target_node.setAttribute('order', order)
 									drop_target_node.classList.add('drag_hover');
 									let parent_node = drop_target_node.parentElement.parentElement;
@@ -2020,7 +2038,7 @@ Interface.definePanels(function() {
 									}
 								}
 
-							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root', item)) {
 								$('#cubes_list').addClass('drag_hover');
 							} else if (Panels.collections.node.isConnected && Panels.collections.node.contains(target)) {
 								for (let node of document.querySelectorAll('.collection')) {
@@ -2049,10 +2067,10 @@ Interface.definePanels(function() {
 							[drop_target] = eventTargetToNode(target);
 							if (drop_target) {
 								let parent_target = order ? drop_target.parent : drop_target;
-								if (canAddOutlinerSelectionTo(parent_target)) {
+								if (canAddOutlinerSelectionTo(parent_target, item)) {
 									moveOutlinerSelectionTo(item, drop_target, e2, order);
 								}
-							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root')) {
+							} else if ($('#cubes_list').is(':hover') && canAddOutlinerSelectionTo('root', item)) {
 								moveOutlinerSelectionTo(item, undefined, e2);
 							} else if (document.querySelector('.collection:hover')) {
 								let collection_node = document.querySelector('.collection:hover');

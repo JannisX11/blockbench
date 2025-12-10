@@ -162,6 +162,8 @@ interface AddChannelOptions {
 	transform?: boolean
 	mutable?: boolean
 	max_data_points?: number
+	condition?: ConditionResolvable
+	displayFrame?: (animator: GeneralAnimator, multiplier: number) => void
 }
 interface Channel {
 	name: string

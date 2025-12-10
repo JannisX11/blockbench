@@ -126,7 +126,7 @@ export const Animator = {
 			}
 		}
 	},
-	showMotionTrail(target) {
+	showMotionTrail(target, fast = false) {
 		if (!target) {
 			target = Project.motion_trail_lock && OutlinerNode.uuids[Project.motion_trail_lock];
 			if (!target) {
@@ -208,7 +208,9 @@ export const Animator = {
 		geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(line_positions), 3));
 		
 		Timeline.time = currentTime;
-		Animator.preview();
+		if (!fast) {
+			Animator.preview();
+		}
 
 		var line = new THREE.Line(geometry, Canvas.outlineMaterial);
 		line.no_export = true;
@@ -241,7 +243,7 @@ export const Animator = {
 		});
 		Animator.onion_skin_object.children.empty();
 
-		if (!enabled) return;
+		if (!enabled) return false;
 
 		let times = [];
 
@@ -267,6 +269,7 @@ export const Animator = {
 			Timeline.time = time;
 			Animator.showDefaultPose(true);
 			Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
+			Animator.displayMeshDeformation();
 
 			elements.forEach(obj => {
 				if (!obj.visibility) return;
@@ -293,6 +296,8 @@ export const Animator = {
 		Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
 
 		scene.add(Animator.onion_skin_object);
+
+		return true;
 	},
 	displayMeshDeformation() {
 		for (let mesh of Mesh.all) {
@@ -329,8 +334,6 @@ export const Animator = {
 		})
 
 		scene.updateMatrixWorld();
-
-		Animator.displayMeshDeformation();
 
 		Animator.resetLastValues();
 
@@ -403,6 +406,8 @@ export const Animator = {
 		}
 
 		Animator.updateOnionSkin();
+
+		Animator.displayMeshDeformation();
 
 		Billboard.all.forEach(billboard => {
 			Billboard.preview_controller.updateFacingCamera(billboard);

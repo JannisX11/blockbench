@@ -1301,6 +1301,8 @@ BARS.defineActions(function() {
 						return 'plugin_tag_source'
 					} else if (tag.match(/^minecraft/i)) {
 						return 'plugin_tag_mc'
+					} else if (tag.match(/^hytale/i)) {
+						return 'plugin_tag_hytale'
 					} else if (tag.match(/^deprecated/i)) {
 						return 'plugin_tag_deprecated'
 					}

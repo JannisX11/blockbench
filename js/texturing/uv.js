@@ -779,6 +779,7 @@ export const UVEditor = {
 	},
 	getUVNavigatorStyle() {
 		let vue = UVEditor.vue;
+		if (UVEditor.zoom < 1.3) return;
 		let mappable_element = vue.mappable_elements.find(el => (el.box_uv || (UVEditor.getSelectedFaces(el)?.length)));
 		if (!mappable_element) return;
 		let box = vue.getSelectedUVBoundingBox();
