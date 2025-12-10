@@ -690,9 +690,9 @@ BARS.defineActions(function() {
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
-				texture.edit((canvas) => {
+				let editCanvas = (canvas, ctx, offset) => {
 					let frame_count = texture.frameCount || 1;
-					let ctx = canvas.getContext('2d');
+					let copy = Painter.copyCanvas(canvas);
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.beginPath();
 
@@ -709,7 +709,12 @@ BARS.defineActions(function() {
 										for (let y in matrix[x]) {
 											if (!matrix[x][y]) continue;
 											x = parseInt(x); y = parseInt(y);
-											ctx.rect(x, y + y_offset, 1, 1);
+											ctx.rect(
+												-offset[0] + x,
+												-offset[1] + y + y_offset,
+												1,
+												1
+											);
 										}
 									}
 								}
@@ -722,8 +727,8 @@ BARS.defineActions(function() {
 									
 									let rect = face.getBoundingRect();
 									let canvasRect = [
-										Math.floor(rect.ax * factor_x),
-										Math.floor(rect.ay * factor_y) + y_offset,
+										-offset[0] + Math.floor(rect.ax * factor_x),
+										-offset[1] + Math.floor(rect.ay * factor_y) + y_offset,
 										Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
 										Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
 									]
@@ -734,7 +739,17 @@ BARS.defineActions(function() {
 					}
 
 					ctx.clip();
-					ctx.drawImage(texture.img, 0, 0);
+					ctx.drawImage(copy, 0, 0);
+				};
+			
+				texture.edit((canvas) => {
+					if (texture.layers_enabled) {
+						for (let layer of texture.layers) {
+							editCanvas(layer.canvas, layer.ctx, layer.offset);
+						}
+					} else {
+						editCanvas(canvas, texture.ctx, texture.offset);
+					}
 				}, {no_undo: true});
 			})
 			Undo.finishEdit('Clear unused texture space')
