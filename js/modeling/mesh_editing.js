@@ -1435,6 +1435,7 @@ BARS.defineActions(function() {
 					}
 				}
 				if (result.shape == 'cuboid') {
+					mesh.name = 'mesh';
 					let r = result.diameter/2;
 					let h = result.height;
 					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
