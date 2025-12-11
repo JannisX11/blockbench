@@ -1197,7 +1197,7 @@ BARS.defineActions(function() {
 	new Action('create_animation_group', {
 		icon: 'create_new_folder',
 		category: 'animation',
-		condition: {modes: ['animate'], selected: {animation: true}},
+		condition: {modes: ['animate'], selected: {animation: true}, method: () => Format.animation_grouping == 'custom'},
 		click: async function () {
 			let name = await Blockbench.textPrompt('Group Name', 'Animation Group');
 			if (!name) return;

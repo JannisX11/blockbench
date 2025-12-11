@@ -376,7 +376,7 @@ export class ModelFormat implements FormatOptions {
 			ModelFormat.properties[id].merge(this, data);
 		}
 		if (!data.animation_files && !data.animation_grouping) {
-			data.animation_grouping = 'custom';
+			this.animation_grouping = 'custom';
 		}
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
