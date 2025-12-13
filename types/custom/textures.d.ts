@@ -110,6 +110,8 @@ declare global {
 		render_sides: 'auto' | 'front' | 'double' | string
 		pbr_channel: 'color' | 'normal' | 'height' | 'mer'
 		use_as_default: boolean
+		/** UUID of the TextureGroup that this texture is in, if set */
+		group: string
 
 		/** Texture animation frame time */
 		frame_time: number
@@ -280,6 +282,10 @@ declare global {
 		 */
 		fillParticle(): this
 		/**
+		 * Select this as the default texture in supported formats
+		 */
+		setAsDefaultTexture()
+		/**
 		 * Applies the texture to the selected elements
 		 * @param all If true, the texture is applied to all faces of the elements. If 'blank', the texture is only applied to blank faces
 		 */
@@ -368,6 +374,10 @@ declare global {
 		syncToOtherProject(): this
 
 		getUndoCopy(): Texture
+		/**
+		 * Return the texture group that the texture is attached to
+		 */
+		getGroup(): TextureGroup | undefined
 
 		static all: Texture[]
 		static getDefault(): Texture

@@ -929,7 +929,7 @@ export class Texture {
 		}
 		Panels.layers.inside_vue.layers = this.layers;
 		updateInterfacePanels();
-		Blockbench.dispatchEvent('select_texture', {texture: this});
+		Blockbench.dispatchEvent('select_texture', {texture: this, event});
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
