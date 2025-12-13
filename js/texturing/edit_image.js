@@ -91,10 +91,12 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.brightness')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.contrast')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
@@ -186,10 +188,12 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<label class="form_label_compact">${tl('dialog.adjust_saturation_hue.saturation')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
 							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_saturation_hue.hue')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />

@@ -554,6 +554,11 @@
 	"dialog.expand_texture_selection.corner.square": "Square",
 	"dialog.expand_texture_selection.corner.manhattan": "Manhattan",
 
+	"dialog.adjust_brightness_contrast.brightness": "Brightness",
+	"dialog.adjust_brightness_contrast.contrast": "Contrast",
+	"dialog.adjust_saturation_hue.saturation": "Saturation",
+	"dialog.adjust_saturation_hue.hue": "Hue",
+
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",

@@ -2338,6 +2338,11 @@
 	dialog .slider_input_combo {
 		clear: both;
 	}
+	.form_label_compact {
+		display: block;
+		margin-bottom: -3px;
+		font-size: 0.94em;
+	}
 	.bar.button_bar_checkbox {
 		position: absolute;
 		bottom: 14px;
