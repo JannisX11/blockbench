@@ -66,11 +66,11 @@ Animator.MolangParser.global_variables = {
 		return val
 	},
 	get 'query.distance_from_camera'() {
-		return Preview.selected.camera.position.length() / 16
+		return Preview.selected.camera.position.length() / Format.block_size
 	},
 	'query.lod_index'(indices) {
 		indices.sort((a, b) => a - b)
-		let distance = Preview.selected.camera.position.length() / 16
+		let distance = Preview.selected.camera.position.length() / Format.block_size
 		let index = indices.length
 		indices.forEachReverse((val, i) => {
 			if (distance < val) index = i
@@ -78,7 +78,7 @@ Animator.MolangParser.global_variables = {
 		return index
 	},
 	'query.camera_distance_range_lerp'(a, b) {
-		let distance = Preview.selected.camera.position.length() / 16
+		let distance = Preview.selected.camera.position.length() / Format.block_size
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1)
 	},
 	get 'query.is_first_person'() {
