@@ -80,7 +80,7 @@ declare class OutlinerNode {
 
 	getTypeBehavior(flag: string): boolean | string | any
 
-	static addBehaviorOverride(override_options: {condition: ConditionResolvable, behavior: Record<string, any>}): Deletable
+	static addBehaviorOverride(override_options: {condition: ConditionResolvable, priority?: number, behavior: Record<string, any>}): Deletable
 	static behavior_overrides = [];
 
 	static uuids: {

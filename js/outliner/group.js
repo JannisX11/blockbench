@@ -358,10 +358,10 @@ export class Group extends OutlinerNode {
 	duplicate() {
 		var copy = this.getChildlessCopy(false)
 		delete copy.parent;
-		if (Format.bone_rig) copy._original_name = this.name;
+		if (this.getTypeBehavior('unique_name')) copy._original_name = this.name;
 		Property.resetUniqueValues(Group, copy);
 		copy.sortInBefore(this, 1).init()
-		if (Format.bone_rig) {
+		if (this.getTypeBehavior('unique_name')) {
 			copy.createUniqueName()
 		}
 		for (var child of this.children) {
@@ -673,7 +673,7 @@ BARS.defineActions(function() {
 				origin: add_group ? add_group.origin : undefined
 			})
 			base_group.isOpen = true
-			if (Format.bone_rig) {
+			if (base_group.getTypeBehavior('unique_name')) {
 				base_group.createUniqueName()
 			}
 			if (add_group?.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
@@ -719,7 +719,7 @@ BARS.defineActions(function() {
 			base_group.isOpen = true
 			base_group.init();
 		
-			if (Format.bone_rig) {
+			if (this.getTypeBehavior('unique_name')) {
 				base_group.createUniqueName()
 			}
 			Outliner.selected.concat(Group.multi_selected).forEach((s) => {

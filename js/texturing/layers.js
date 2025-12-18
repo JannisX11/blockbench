@@ -223,8 +223,8 @@ export class TextureLayer {
 		let max = this.offset.slice().V2_add(this.width, this.height);
 		points.forEach(point => {
 			point = [
-				Math.clamp(point[0], 0, this.texture.width),
-				Math.clamp(point[1], 0, this.texture.height),
+				Math.clamp(Math.round(point[0]), 0, this.texture.width),
+				Math.clamp(Math.round(point[1]), 0, this.texture.height),
 			]
 			min[0] = Math.min(min[0], point[0]);
 			min[1] = Math.min(min[1], point[1]);

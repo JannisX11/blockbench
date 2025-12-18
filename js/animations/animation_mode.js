@@ -112,6 +112,7 @@ export const Animator = {
 				Mesh.preview_controller.updateGeometry(mesh);
 			}
 		}
+		Blockbench.dispatchEvent('display_default_pose', {reduced_updates});
 		if (!reduced_updates) scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
@@ -416,7 +417,7 @@ export const Animator = {
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture\s*=/mi)) {
 			let tex_index = Animator.MolangParser.variableHandler('preview.texture');
 			let texture = Texture.all[tex_index % Texture.all.length];
-			if (texture) texture.select();
+			if (texture && texture != Texture.selected) texture.select();
 		}
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.texture_frame\s*=/mi)) {
 			let frame = Animator.MolangParser.variableHandler('preview.texture_frame');

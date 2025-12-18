@@ -54,7 +54,7 @@ export class DisplaySlot {
 					build.scale[i] *= this.mirror[i] ? -1 : 1;
 				}
 			}
-			if (Format.id != 'bedrock_block') {
+			if (Format.id == 'bedrock_block') {
 				build.scale = build.scale.map(Math.abs);
 			}
 		}

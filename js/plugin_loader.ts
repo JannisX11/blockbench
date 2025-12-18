@@ -1069,14 +1069,17 @@ export async function loadInstalledPlugins() {
 		}
 		for (let installation of Plugins.installed.slice()) {
 			if (installation.dependencies?.length) {
-				resolveDependencies(installation, 0);
+				try {
+					resolveDependencies(installation, 0);
+				} catch (err) {
+					console.error('Error resolving plugin dependencies', installation.id, err);
+				}
 			}
 		}
 
 		// Install plugins
 		var load_counter = 0;
-		Plugins.installed.slice().forEach(function loadPlugin(installation) {
-
+		function loadPlugin(installation: PluginInstallation) {
 			if (installation.source == 'file') {
 				// Dev Plugins
 				if (isApp && fs.existsSync(installation.path)) {
@@ -1108,7 +1111,7 @@ export async function loadInstalledPlugins() {
 					
 					if (isApp && (
 						(installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version)) ||
-						Blockbench.isOlderThan(plugin.min_version)
+						(plugin.min_version && Blockbench.isOlderThan(plugin.min_version))
 					)) {
 						// Get from file
 						let promise = plugin.load(false);
@@ -1135,7 +1138,15 @@ export async function loadInstalledPlugins() {
 			} else {
 				Plugins.installed.remove(installation);
 			}
-		})
+		}
+
+		for (let installation of Plugins.installed.slice()) {
+			try {
+				loadPlugin(installation);
+			} catch (err) {
+				console.error('Error loading installed plugin', installation.id, err);
+			}
+		}
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')

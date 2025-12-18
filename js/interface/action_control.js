@@ -386,7 +386,7 @@ BARS.defineActions(function() {
 							return action.value;
 						}
 					} else {
-						action.keybind.label;
+						return action.keybind?.label ?? '';
 					}
 				} else {
 					return action.description;

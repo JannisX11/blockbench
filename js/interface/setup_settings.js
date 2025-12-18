@@ -254,6 +254,11 @@ function setupSettings() {
 		entity: 'format.bedrock',
 		block: 'format.bedrock_block',
 	}});
+	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
+		latest: 'Latest',
+		'1.21.6': '1.21.6 - 1.21.10',
+		'1.9.0': '1.9 - 1.21.5',
+	}});
 	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
 	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
 		linear: 'action.keyframe_interpolation.linear',

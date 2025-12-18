@@ -202,7 +202,7 @@ onVueSetup(async function() {
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 3rd Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
+					description: "Splash Art 4th Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),

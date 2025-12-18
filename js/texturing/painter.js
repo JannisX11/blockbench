@@ -1,4 +1,5 @@
 import { clipboard, nativeImage } from "../native_apis";
+import { Dynamic2DMap } from "../util/dynamic_2d_map";
 
 StateMemory.init('brush_presets', 'array')
 
@@ -2369,6 +2370,7 @@ BARS.defineActions(function() {
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
+					// Limit opacity per brush stroke
 					if (settings.limit_brush_opacity_per_stroke.value) {
 						if (blend_mode == BlendModes.difference) {
 							let before = Painter.getAlphaMatrix(texture, px, py)
@@ -2380,9 +2382,20 @@ BARS.defineActions(function() {
 							}
 						} else if (opacity < 1 || blend_mode != BlendModes.default) {
 							let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
+							if (!before) {
+								if (!Painter.current.original_color_maps) Painter.current.original_color_maps = {};
+								if (!Painter.current.original_color_maps[texture.uuid]) {
+									Painter.current.original_color_maps[texture.uuid] = new Dynamic2DMap();
+								}
+								Painter.current.original_color_maps[texture.uuid].set(px, py, pxcolor);
+							} else {
+								let color = Painter.current.original_color_maps[texture.uuid].get(px, py);
+								if (color) pxcolor = color;
+							}
+
 							let target = Math.lerp(before, opacity??1, local_opacity);
 							if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
-							a = Math.clamp(Math.getLerp(before, 1, target), 0, 1);
+							a = target;
 						}
 					}
 					let result_color;

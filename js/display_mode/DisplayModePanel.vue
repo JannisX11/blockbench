@@ -21,9 +21,11 @@
 
 			<input class="hidden" type="radio" name="display" id="fixed">
 			<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip">{{ tl('display.slot.frame') }}</div><i class="material-icons">filter_frames</i></label>
-					
-			<input class="hidden" type="radio" name="display" id="on_shelf">
-			<label class="tool" for="on_shelf" onclick="DisplayMode.loadShelf()"><div class="tooltip">{{ tl('display.slot.on_shelf') }}</div><i class="material-icons">table_view</i></label>
+			
+			<template v-if="!isBedrockStyle()">
+				<input class="hidden" type="radio" name="display" id="on_shelf">
+				<label class="tool" for="on_shelf" onclick="DisplayMode.loadShelf()"><div class="tooltip">{{ tl('display.slot.on_shelf') }}</div><i class="material-icons">table_view</i></label>
+			</template>
 
 			<input class="hidden" type="radio" name="display" id="gui">
 			<label class="tool" for="gui" onclick="DisplayMode.loadGUI()"><div class="tooltip">{{ tl('display.slot.gui') }}</div><i class="material-icons">border_style</i></label>

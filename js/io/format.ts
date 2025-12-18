@@ -376,7 +376,7 @@ export class ModelFormat implements FormatOptions {
 			ModelFormat.properties[id].merge(this, data);
 		}
 		if (!data.animation_files && !data.animation_grouping) {
-			data.animation_grouping = 'custom';
+			this.animation_grouping = 'custom';
 		}
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
@@ -392,11 +392,14 @@ export class ModelFormat implements FormatOptions {
 		Canvas.buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
-			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = Format.block_size/2;
 		} else {
-			scene.position.set(-8, 0, -8);
+			scene.position.set(-Format.block_size/2, 0, -Format.block_size/2);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
+		let ground_plane_scale = Format.block_size / 16;
+		Canvas.ground_plane.scale.set(ground_plane_scale, ground_plane_scale, ground_plane_scale);
+
 		PreviewModel.getActiveModels().forEach(model => {
 			model.update();
 		})

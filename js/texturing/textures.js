@@ -929,7 +929,7 @@ export class Texture {
 		}
 		Panels.layers.inside_vue.layers = this.layers;
 		updateInterfacePanels();
-		Blockbench.dispatchEvent('select_texture', {texture: this});
+		Blockbench.dispatchEvent('select_texture', {texture: this, event});
 		Blockbench.dispatchEvent('update_texture_selection');
 		return this;
 	}
@@ -2444,7 +2444,7 @@ Interface.definePanels(function() {
 				} else {
 					let message = texture.width + ' x ' + texture.height + 'px';
 					if (!Format.image_editor) {
-						let uv_size = texture.width / texture.getUVWidth() * 16;
+						let uv_size = texture.width / texture.getUVWidth() * Format.block_size;
 						message += ` (${trimFloatNumber(uv_size, 2)}x)`;
 					}
 					if (texture.frameCount > 1) {

@@ -224,6 +224,7 @@ declare class NullObjectAnimator extends GeneralAnimator {
 	displayFrame(): void
 }
 declare class EffectAnimator extends GeneralAnimator {
+	constructor(animation: _Animation)
 	name: string
 	uuid: string
 	rotations: _Keyframe[]

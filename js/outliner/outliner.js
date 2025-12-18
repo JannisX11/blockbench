@@ -478,6 +478,7 @@ export class OutlinerNode {
 		let constructor = this;
 		let override = {
 			condition: override_options.condition,
+			priority: override_options.priority ?? 0,
 			behavior: override_options.behavior,
 			delete() {
 				constructor.behavior_overrides.remove(override);
@@ -485,6 +486,10 @@ export class OutlinerNode {
 		}
 		if (constructor.behavior_overrides == OutlinerNode.behavior_overrides) constructor.behavior_overrides = [];
 		constructor.behavior_overrides.push(override);
+		if (override_options.priority != undefined)  {
+			constructor.behavior_overrides.sort((a, b) => b.priority - a.priority);
+		}
+		return override;
 	}
 	static behavior_overrides = [];
 	static uuids = {}

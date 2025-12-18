@@ -34,6 +34,7 @@
 		"texturing/layers",
 		"undo",
 		"web",
+		"copy_paste",
 		"texturing/uv",
 		"validator",
 		"native_apis_web",

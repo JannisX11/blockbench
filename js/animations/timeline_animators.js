@@ -240,13 +240,14 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 		if (this.group.locked) return;
 
-		var duplicates;
 		for (var key in this.animation.animators) {
 			this.animation.animators[key].selected = false;
 		}
 		if (group_is_selected !== true && this.group) {
 			this.group.select();
 		}
+		/*
+		var duplicates;
 		Group.all.forEach(group => {
 			if (group.name == Group.first_selected.name && group != Group.first_selected) {
 				duplicates = true;
@@ -269,7 +270,7 @@ export class BoneAnimator extends GeneralAnimator {
 				translateKey: 'duplicate_groups',
 				icon: 'folder',
 			});
-		}
+		}*/
 		super.select();
 		
 		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this) && !Blockbench.hasFlag('loading_selection_save')) {

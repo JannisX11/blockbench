@@ -604,7 +604,7 @@ export class KnifeToolCubeContext {
 			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - modified_from[off_axes[0]]) / snap) * snap + modified_from[off_axes[0]];
 			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - modified_from[off_axes[1]]) / snap) * snap + modified_from[off_axes[1]];
 
-		} else {
+		} else if (this.cube) {
 			this.mesh_3d.add(this.preview_mesh);
 			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
 			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
@@ -1435,6 +1435,7 @@ BARS.defineActions(function() {
 					}
 				}
 				if (result.shape == 'cuboid') {
+					mesh.name = 'mesh';
 					let r = result.diameter/2;
 					let h = result.height;
 					mesh.addVertices([r, h, r], [r, h, -r], [r, 0, r], [r, 0, -r], [-r, h, r], [-r, h, -r], [-r, 0, r], [-r, 0, -r]);
@@ -1758,7 +1759,16 @@ BARS.defineActions(function() {
 			}
 		},
 		onCanvasClick(data) {
-			if (!data) return;
+			if (!data || !data.type) return;
+			if (data.event instanceof TouchEvent) {
+				// Stop controls on mobile
+				Transformer.dragging = true;
+				function onTouchEnd() {
+					Transformer.dragging = false;
+					document.removeEventListener('touchend', onTouchEnd);
+				}
+				document.addEventListener('touchend', onTouchEnd);
+			}
 			if (!KnifeToolContext.current) {
 				if (data.element instanceof Mesh) {
 					if (!KnifeToolContext.current && Mesh.selected.length == 1) {
@@ -1772,9 +1782,12 @@ BARS.defineActions(function() {
 						KnifeToolContext.current = new KnifeToolCubeContext(data.element);
 					}
 				}
+				if (data.event instanceof TouchEvent) return;
 			}
 			let context = KnifeToolContext.current;
-			context.addPoint(data);
+			if (context) {
+				context.addPoint(data);
+			}
 		},
 		onSelect() {
 			Interface.addSuggestedModifierKey('shift', 'modifier_actions.snap_to_center');

@@ -349,7 +349,7 @@ export class Preview {
 				this.static_rclick = false;
 			}
 		}, false)
-		addEventListeners(this.canvas, 'mousemove', 			event => { this.mousemove(event)}, false)
+		addEventListeners(this.canvas, 'mousemove touchmove',	event => { this.mousemove(event)}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
 		addEventListeners(this.canvas, 'dblclick', 				event => { if (settings.double_click_switch_tools.value) Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
@@ -1172,18 +1172,19 @@ export class Preview {
 			updateCubeHighlights(data && data.element);
 		}
 
+		brush_cursor:
 		if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
 			if (!data) {
 				scene.remove(Canvas.brush_outline);
-				return;
+				break brush_cursor;
 			}
-			if (!data.element.faces) return;
-			if (data.element instanceof SplineMesh && data.element.render_mode !== "mesh") return;
+			if (!data.element.faces) break brush_cursor;
+			if (data.element instanceof SplineMesh && data.element.render_mode !== "mesh") break brush_cursor;
 			let face = data.element.faces[data.face];
 			let texture = face.getTexture();
 			if (!texture) {
 				scene.remove(Canvas.brush_outline);
-				return;
+				break brush_cursor;
 			}
 			scene.add(Canvas.brush_outline);
 
@@ -1321,6 +1322,9 @@ export class Preview {
 			unselectAllElements();
 		}
 		delete this.selection.click_target;
+		if (event instanceof TouchEvent) {
+			Canvas.scene.remove(Canvas.brush_outline);
+		}
 		return this;
 	}
 	raycastMouseCoords(x,y) {

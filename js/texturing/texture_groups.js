@@ -810,10 +810,10 @@ BARS.defineActions(function() {
 							break;
 						}
 						case 'normal': {
-							let top = getPixelOutput(x, y-1);
-							let bottom = getPixelOutput(x, y+1);
-							let left = getPixelOutput(x-1, y);
-							let right = getPixelOutput(x+1, y);
+							let top = y > 0 ? getPixelOutput(x, y-1) : output;
+							let bottom = y < original_data.height-1 ? getPixelOutput(x, y+1) : output;
+							let left = x > 0 ? getPixelOutput(x-1, y) : output;
+							let right = x < original_data.width-1 ? getPixelOutput(x+1, y) : output;
 							new_data.data[i+0] = Math.clamp(127 - (right-left), 0, 255);
 							new_data.data[i+1] = Math.clamp(127 - (top-bottom), 0, 255);
 							new_data.data[i+2] = 255;
