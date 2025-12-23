@@ -719,7 +719,7 @@ BARS.defineActions(function() {
 			base_group.isOpen = true
 			base_group.init();
 		
-			if (this.getTypeBehavior('unique_name')) {
+			if (base_group.getTypeBehavior('unique_name')) {
 				base_group.createUniqueName()
 			}
 			Outliner.selected.concat(Group.multi_selected).forEach((s) => {

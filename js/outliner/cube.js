@@ -697,7 +697,7 @@ export class Cube extends OutlinerElement {
 				var uv = scope.faces[side].uv.slice()
 				let texture = scope.faces[side].getTexture();
 				let uv_width = Project.getUVWidth(texture);
-				let uv_height = Project.getUVWidth(texture);
+				let uv_height = Project.getUVHeight(texture);
 
 				switch (side) {
 					case 'north':
@@ -787,7 +787,7 @@ export class Cube extends OutlinerElement {
 
 				let texture = face.getTexture();
 				let uv_width = Project.getUVWidth(texture);
-				let uv_height = Project.getUVWidth(texture);
+				let uv_height = Project.getUVHeight(texture);
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {

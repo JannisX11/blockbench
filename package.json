@@ -1,7 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "5.0.6",
+	"version": "5.0.7",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -153,7 +153,7 @@
 		"concurrently": "^9.1.2",
 		"dotenv": "^16.5.0",
 		"electron": "^38.1.0",
-		"electron-builder": "^26.0.12",
+		"electron-builder": "^26.0.16",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
@@ -169,7 +169,7 @@
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.2.5",
 		"electron-color-picker": "^0.2.0",
-		"electron-updater": "^6.6.2",
+		"electron-updater": "^6.7.3",
 		"file-saver": "^2.0.5",
 		"gifenc": "^1.0.3",
 		"jquery": "^3.7.1",

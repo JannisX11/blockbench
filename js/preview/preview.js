@@ -959,7 +959,7 @@ export class Preview {
 							processed_faces.forEach(face => {
 								selected_vertices.safePush(...face.vertices);
 								let fkey = face.getFaceKey();
-								selected_faces.push(fkey);
+								selected_faces.safePush(fkey);
 							});
 						} else {
 							let face_vkeys = data.element.faces[data.face].vertices;
@@ -1012,8 +1012,9 @@ export class Preview {
 							selected_faces.push(fkey);
 							selected_vertices.safePush(...face.vertices);
 
-							for (let fkey2 in mesh.faces) {
-								let face2 = mesh.faces[fkey2];
+							let faces = mesh.faces;
+							for (let fkey2 in faces) {
+								let face2 = faces[fkey2];
 								if (face.vertices.find(vkey => face2.vertices.includes(vkey))) {
 									selectFace(face2, fkey2);
 								}

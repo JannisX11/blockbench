@@ -1,4 +1,5 @@
 import './molang'
+import './state_memory'
 
 //Blockbench
 

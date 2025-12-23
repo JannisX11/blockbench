@@ -663,6 +663,7 @@ export class ReferenceImage {
 		return this;
 	}
 	enableBlueprintMode() {
+		if (this.is_blueprint) return;
 		if (Preview.selected?.angle) {
 			this.is_blueprint = true;
 			if (this.layer == 'float') this.changeLayer('viewport');

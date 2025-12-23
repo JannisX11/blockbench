@@ -135,8 +135,14 @@ export const Painter = {
 			let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
 
 			let interval = Toolbox.selected.brush?.interval || 1;
-			if (Math.sqrt(Math.pow(x - Painter.current.x, 2) + Math.pow(y - Painter.current.y, 2)) < interval) {
+			let delta = [x - Painter.current.x, y - Painter.current.y];
+			let distance = Math.sqrt(Math.pow(delta[0], 2) + Math.pow(delta[1], 2));
+			if (distance < interval) {
 				return;
+			} else if (distance > interval && !(!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates))) {
+				let rounded_distance = Math.floor(distance/interval)*interval;
+				x = Painter.current.x + (delta[0] / distance) * rounded_distance;
+				y = Painter.current.y + (delta[1] / distance) * rounded_distance;
 			}
 
 			if (
@@ -907,7 +913,7 @@ export const Painter = {
 			}
 		}
 
-		while (i <= length) {
+		while (i <= length+0.001) {
 			x = length ? (start_x + diff_x / length * i) : end_x;
 			y = length ? (start_y + diff_y / length * i) : end_y;
 			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {

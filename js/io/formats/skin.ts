@@ -527,9 +527,9 @@ export const skin_dialog = new Dialog({
 						if (!model.external_textures) return;
 						for (let path of model.external_textures) {
 							let frame = new CanvasFrame();
-							let resource_path = `https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/textures/${path}?raw=true`;
+							let resource_path = `https://raw.githubusercontent.com/Mojang/bedrock-samples/main/resource_pack/textures/${path}?raw=true`;
 							frame.loadFromURL(resource_path).then(() => {
-								let dataUrl = (frame.canvas as HTMLCanvasElement).toDataURL();
+								let dataUrl = frame.canvas.toDataURL();
 								let texture = new Texture({
 									internal: true,
 									name: pathToName(path, true)

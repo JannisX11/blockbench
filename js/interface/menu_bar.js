@@ -547,14 +547,24 @@ export const MenuBar = {
 				}},
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
-					let lines = window.ErrorLog.slice(0, 64).map((error) => {
-						return Interface.createElement('p', {style: 'word-break: break-word;'}, `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`);
+					let error_messages = window.ErrorLog.map((error) => {
+						return `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`;
+					})
+					let lines = error_messages.slice(0, 64).map((message) => {
+						return Interface.createElement('p', {style: 'word-break: break-word;'}, message);
 					})
 					new Dialog({
 						id: 'error_log',
 						title: 'Error Log',
 						lines,
-						singleButton: true
+						buttons: ['action.copy', 'dialog.close'],
+						confirmIndex: 1,
+						cancelIndex: 1,
+						onButton(index) {
+							if (index == 0) {
+								Clipbench.setText(error_messages.slice(0, 256).join('\n'));
+							}
+						}
 					}).show();
 				}},
 				{name: 'Expose Native Modules', icon: 'terminal', condition: isApp && (() => {
@@ -568,6 +578,15 @@ export const MenuBar = {
 				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
 					ModelProject.all.forEach(project => project.locked = false);
 				}},
+				{
+					name: 'Uncorrupt Mesh',
+					id: 'uncorrupt_mesh',
+					icon: 'build',
+					condition: () => Mesh.hasSelected(),
+					click() {
+						uncorruptMesh();
+					}
+				},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					if('caches' in window){
 						caches.keys().then((names) => {

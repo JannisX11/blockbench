@@ -72,6 +72,7 @@ Interface.definePanels(function() {
 				registerInput('group', prop_id, Group.properties[prop_id]);
 			}
 		}
+		element_properties_panel.form.events?.input?.empty();
 		element_properties_panel.form.on('input', ({result, changed_keys}) => {
 			// Only one key should be changed at a time
 			if (changed_keys[0]?.startsWith('group_')) {

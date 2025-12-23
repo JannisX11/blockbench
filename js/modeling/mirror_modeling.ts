@@ -39,6 +39,7 @@ export const MirrorModeling = {
 		let element_before_snapshot;
 
 		if (mirror_element == original) return;
+		if (mirror_element && !Outliner.elements.includes(mirror_element)) return;
 
 		if (mirror_element) {
 			element_before_snapshot = mirror_element.getUndoCopy(undo_aspects);
@@ -345,7 +346,7 @@ Blockbench.on('finish_edit', ({aspects}) => {
 				}
 				if (is_centered) {
 					let mirror_element = cached_data?.counterpart;
-					if (mirror_element && mirror_element.uuid != element.uuid) {
+					if (mirror_element && Outliner.elements.includes(mirror_element) && mirror_element.uuid != element.uuid) {
 						MirrorModeling.insertElementIntoUndo(mirror_element, Undo.current_save.aspects, mirror_element.getUndoCopy());
 						mirror_element.remove();
 						aspects.elements.remove(mirror_element);
@@ -364,7 +365,7 @@ Blockbench.on('finish_edit', ({aspects}) => {
 
 		selected_groups.forEach(group => {
 			let mirror_group = MirrorModeling.cached_elements[group.uuid]?.counterpart;
-			if (mirror_group) {
+			if (mirror_group && Group.all.includes(mirror_group)) {
 				MirrorModeling.updateParentNodeCounterpart(mirror_group, group);
 			}
 		})
