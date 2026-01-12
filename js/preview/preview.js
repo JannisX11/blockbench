@@ -5,6 +5,7 @@ import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
 import { Pressing } from '../misc';
+import { CSS3DRenderer } from '../lib/CSS3DRenderer';
 
 window.scene = null;
 window.main_preview = null;
@@ -333,6 +334,13 @@ export class Preview {
 		this.renderer.setSize(500, 400);
 		this.updateToneMapping();
 
+		if (options.id == 'main') {
+			this.css_renderer = new CSS3DRenderer({domElement: this.node});
+			this.css_renderer.setSize(500, 400);
+			this.node.append(this.css_renderer.domElement);
+			this.css_renderer.domElement.classList.add('preview_css_renderer_canvas')
+		}
+
 		this.selection = {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
@@ -380,6 +388,7 @@ export class Preview {
 			this.camOrtho.updateProjectionMatrix();
 		}
 		this.renderer.setSize(this.width, this.height);
+		if (this.css_renderer) this.css_renderer.setSize(this.width, this.height);
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -576,11 +585,9 @@ export class Preview {
 		}
 	}
 	render() {
-		this.controls.update()
-		this.renderer.render(
-			scene,
-			this.camera
-		)
+		this.controls.update();
+		this.renderer.render(scene, this.camera);
+		if (this.css_renderer) this.css_renderer.render(scene, this.camera);
 	}
 	//Camera
 	get camera() {

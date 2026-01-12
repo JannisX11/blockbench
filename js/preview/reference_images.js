@@ -1,3 +1,4 @@
+import { CSS3DObject } from "../lib/CSS3DRenderer";
 import { clipboard } from "../native_apis";
 import { Preview } from "./preview";
 
@@ -7,6 +8,7 @@ export class ReferenceImage {
 		this.name = '';
 		this.layer = '';
 		this.scope = '';
+		this.view_mode = 'flat_image';
 		this.is_blueprint = false;
 		this.position = [0, 0];
 		this.size = [0, 0];
@@ -62,6 +64,7 @@ export class ReferenceImage {
 		} else {
 			this.node.append(this.img);
 		}
+		this.scene_object = new CSS3DObject(this.node);
 
 
 		(this.is_video ? this.video : this.img).onload = () => {
@@ -214,21 +217,32 @@ export class ReferenceImage {
 		if (!Interface.preview || this.removed) return this;
 		let shown = this.resolveCondition();
 		if (!shown) {
-			this.node.remove();
+			if (this.node) this.node.remove();
+			if (this.scene_object) Canvas.scene.remove(this.scene_object);
 			return this;
 		}
 
 		this.node.setAttribute('reference_layer', this.layer);
-		switch (this.layer) {
-			case 'background':
-			case 'viewport': {
-				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
-				break;
+		if (this.view_mode == 'flat_image') {
+			Canvas.scene.remove(this.scene_object);
+			this.node.classList.remove('in_scene');
+			this.node.style.zIndex = '';
+
+			switch (this.layer) {
+				case 'background':
+				case 'viewport': {
+					Interface.preview.querySelector('.clamped_reference_images').append(this.node);
+					break;
+				}
+				case 'float': default: {
+					Interface.work_screen.append(this.node);
+					break;
+				}
 			}
-			case 'float': default: {
-				Interface.work_screen.append(this.node);
-				break;
-			}
+		} else {
+			Canvas.scene.add(this.scene_object);
+			this.node.classList.add('in_scene');
+			this.node.style.zIndex = this.layer == 'background' ? -1 : undefined;
 		}
 		
 		this.updateTransform();
@@ -292,7 +306,7 @@ export class ReferenceImage {
 		return preview ? preview.camOrtho.zoom * 2 : 1;
 	}
 	updateTransform() {
-		if (!this.node.isConnected) return this;
+		if (!(this.node.isConnected || this.view_mode == 'billboard')) return;
 		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
@@ -329,9 +343,12 @@ export class ReferenceImage {
 		} else {
 			this.node.style.width = this.size[0] + 'px';
 			this.node.style.height = this.size[1] + 'px';
-			this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
-			this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
 			this.node.style.clipPath = '';
+
+			if (this.view_mode == 'flat_image') {
+				this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
+				this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+			}
 		}
 		return this;
 	}
@@ -381,7 +398,7 @@ export class ReferenceImage {
 					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
-					if (!this.is_blueprint) {
+					if (!this.is_blueprint && this.view_mode == 'flat_image') {
 						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
 						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
 					}
@@ -473,8 +490,10 @@ export class ReferenceImage {
 				background: 'reference_image.layer.background',
 				viewport: 'reference_image.layer.viewport',
 				float: 'reference_image.layer.float',
+				scene: 'reference_image.layer.scene',
 			}
 			let options = Object.keys(layers).map(key => {
+				if (key == 'scene' && Format.image_editor) return;
 				return {
 					name: layers[key],
 					icon: this.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
@@ -540,7 +559,7 @@ export class ReferenceImage {
 					this.position[0] = original_position[0] + offset[0] / zoom;
 					this.position[1] = original_position[1] + offset[1] / zoom;
 
-					if (!this.is_blueprint) {
+					if (!this.is_blueprint && this.view_mode == 'flat_image') {
 						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
 						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
 					}
@@ -680,10 +699,15 @@ export class ReferenceImage {
 					value: this.source,
 					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
 				},
+				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, options: {
+					flat_image: 'reference_image.view_mode.flat_image',
+					billboard: 'reference_image.view_mode.billboard',
+				}},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
 					float: 'reference_image.layer.float',
+					scene: 'reference_image.layer.scene',
 				}},
 				scope: {type: 'select', label: 'reference_image.scope', value: this.scope, options: {
 					project: 'reference_image.scope.project',
@@ -695,7 +719,7 @@ export class ReferenceImage {
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
-				is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
+				//is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -703,7 +727,8 @@ export class ReferenceImage {
 				let clear_mode_before = this.clear_mode;
 				this.extend({
 					source: result.source,
-					is_blueprint: result.is_blueprint,
+					//is_blueprint: result.is_blueprint,
+					view_mode: result.view_mode,
 					position: result.position,
 					size: result.size,
 					rotation: result.rotation,
@@ -756,14 +781,14 @@ ReferenceImage.prototype.menu = new Menu([
 	{
 		id: 'sync_to_timeline',
 		name: 'reference_image.sync_to_timeline',
-		condition: () => Format.animation_mode,
+		condition: (ref) => ref.is_video && Format.animation_mode,
 		icon: (ref) => ref.sync_to_timeline,
 		click(ref) {
 			ref.sync_to_timeline = !ref.sync_to_timeline;
 			ref.update().save();
 		}
 	},
-	{
+	/*{
 		id: 'blueprint',
 		name: 'reference_image.blueprint',
 		icon: (ref) => ref.is_blueprint,
@@ -775,7 +800,7 @@ ReferenceImage.prototype.menu = new Menu([
 			}
 			ref.update().save();
 		}
-	},
+	},*/
 	{
 		id: 'clear_mode',
 		name: 'reference_image.clear_mode',
@@ -791,6 +816,29 @@ ReferenceImage.prototype.menu = new Menu([
 				ref.unselect();
 				setTimeout(() => ref.select(), 400);
 			}
+		}
+	},
+	{
+		name: 'reference_image.view_mode',
+		icon: 'pin_end',
+		children: (reference) => {
+			let view_mode = {
+				flat_image: 'reference_image.view_mode.flat_image',
+				billboard: 'reference_image.view_mode.billboard',
+			}
+			let children = [];
+			for (let key in view_mode) {
+				children.push({
+					id: key,
+					name: view_mode[key],
+					icon: reference.view_mode == key ? 'far.fa-dot-circle' : 'far.fa-circle',
+					click() {
+						reference.view_mode = key;
+						reference.update().save();
+					}
+				})
+			}
+			return children;
 		}
 	},
 	{
@@ -871,6 +919,7 @@ new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
 new Property(ReferenceImage, 'string', 'layer', {default: 'background'});
 new Property(ReferenceImage, 'string', 'scope', {default: 'global'});
 new Property(ReferenceImage, 'boolean', 'is_blueprint');
+new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'boolean', 'flip_x');
@@ -976,28 +1025,51 @@ export const ReferenceImageMode = {
 		BARS.updateConditions();
 	},
 	async importReferences(files) {
-		let save_mode = await new Promise(resolve => {
+		let options = await new Promise(resolve => {
 			let icon = new Image();
 			icon.src = files[0].content;
-			Blockbench.showMessageBox({
+			icon.classList.add('reference_image_import_preview')
+
+			new Dialog({
+				id: 'add_reference_image',
 				title: 'action.add_reference_image',
-				message: 'message.add_reference_image.message',
-				icon,
-				commands: {
-					project: 'message.add_reference_image.project',
-					app: 'message.add_reference_image.app',
+				lines: [icon],
+				form: {
+					view_mode: {
+						type: 'inline_select',
+						options: {
+							flat_image: 'reference_image.view_mode.flat_image',
+							billboard: 'reference_image.view_mode.billboard',
+						}
+					},
+					global: {
+						type: 'checkbox',
+						label: 'message.add_reference_image.globally',
+						value: false
+					},
+				},
+				onFormChange(result) {
+					icon.classList.toggle('billboard', result.view_mode == 'billboard');
+				},
+				singleButton: true,
+				onConfirm(result) {
+					resolve(result);
 				}
-			}, resolve)
+			}).show();
 		})
 		files.forEach(file => {
-			let ref = new ReferenceImage({source: file.content, name: file.name});
+			let ref = new ReferenceImage({
+				source: file.content,
+				name: file.name,
+				view_mode: options.view_mode
+			});
 			if (Format.image_editor) {
 				ref.layer = 'viewport';
 			}
-			if (save_mode == 'project') {
-				ref.addAsReference(true);
-			} else {
+			if (options.global) {
 				ref.addAsGlobalReference(true);
+			} else {
+				ref.addAsReference(true);
 			}
 			ref.select();
 		})

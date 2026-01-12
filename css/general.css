@@ -145,6 +145,12 @@
 	.preview > canvas {
 		background-repeat: no-repeat;
 	}
+	.preview > .preview_css_renderer_canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+	}
 	.preview .preview_menu {
 		position: absolute;
 		right: 3px;

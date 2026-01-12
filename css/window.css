@@ -1057,12 +1057,16 @@
 		top: 0;
 		left: 0;
 		pointer-events: none;
+		border-radius: 7px;
 	}
 	.reference_image[reference_layer=viewport] {
 		z-index: 2;
 	}
 	.reference_image[reference_layer=float] {
 		z-index: 8;
+	}
+	.reference_image:not(.in_scene) {
+		transform: unset !important;
 	}
 	.reference_image.selected[reference_layer=float] > .image_content {
 		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
@@ -1090,6 +1094,7 @@
 		width: 100%;
 		height: 100%;
 		pointer-events: none;
+		border-radius: 7px;
 	}
 	.reference_image.flip_x > .image_content {
 		transform: scaleX(-1);
@@ -1107,6 +1112,7 @@
 		height: 10px;
 		background-color: var(--color-text);
 		border: 1px solid var(--color-border);
+		border-radius: 3px;
 	}
 	.reference_image_resize_corner:hover {
 		background-color: var(--color-light);
@@ -1159,7 +1165,23 @@
 		width: fit-content;
 		padding: 4px;
 		border-radius: 6px;
-		margin-bottom: -5px;
+		margin-bottom: -14px;
+	}
+
+	.reference_image_import_preview {
+		max-width: 100%;
+		max-height: 227px;
+		border-radius: 12px;
+		margin: auto;
+		display: block;
+		margin-bottom: 20px;
+		min-height: 114px;
+		background-color: var(--color-elevated);
+		width: 50%;
+		box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.3);
+	}
+	.reference_image_import_preview.billboard {
+		transform: rotate3d(-1, 0.4, -0.12, 36deg);
 	}
 
 	.toolbar[toolbar_id=reference_images] {
