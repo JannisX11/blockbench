@@ -40,7 +40,7 @@ class CSS3DObject extends Object3D {
 		/**
 		 * The DOM element which defines the appearance of this 3D object.
 		 *
-		 * @type {DOMElement}
+		 * @type {HTMLElement}
 		 * @readonly
 		 * @default true
 		 */
@@ -48,6 +48,14 @@ class CSS3DObject extends Object3D {
 		this.element.style.position = 'absolute';
 
 		this.element.setAttribute( 'draggable', false );
+
+		/**
+		 * Copies of the dom element for rendering with multiple viewports in parallel
+		 *
+		 * @type {HTMLElement[]}
+		 * @readonly
+		 */
+		this.copy_elements = [];
 
 		this.addEventListener( 'removed', function () {
 
@@ -66,6 +74,22 @@ class CSS3DObject extends Object3D {
 
 		} );
 
+	}
+
+	getCopyElement() {
+		let match = this.copy_elements.find(element => element.isConnected);
+		if (!match) {
+			match = this.element.cloneNode(true);
+			this.copy_elements.push(match);
+		}
+		return match;
+	}
+
+	discardCopyElements() {
+		for (let element of this.copy_elements) {
+			element.remove();
+		}
+		this.copy_elements.empty();
 	}
 
 	copy( source, recursive ) {
@@ -164,6 +188,7 @@ class CSS3DRenderer {
 
 		let _width, _height;
 		let _widthHalf, _heightHalf;
+		let _is_main = false;
 
 		const cache = {
 			camera: { style: '' },
@@ -212,9 +237,10 @@ class CSS3DRenderer {
 		 * @param {Object3D} scene - A scene or any other type of 3D object.
 		 * @param {Camera} camera - The camera.
 		 */
-		this.render = function ( scene, camera ) {
+		this.render = function ( scene, camera, is_main ) {
 
 			const fov = camera.projectionMatrix.elements[ 5 ] * _heightHalf;
+			_is_main = is_main;
 
 			if ( camera.view && camera.view.enabled ) {
 
@@ -370,7 +396,12 @@ class CSS3DRenderer {
 
 				const visible = ( object.layers.test( camera.layers ) === true );
 
-				const element = object.element;
+				let element = object.element;
+
+				if (!_is_main) {
+					element = object.getCopyElement();
+				}
+
 				element.style.display = visible === true ? '' : 'none';
 
 				if ( visible === true ) {

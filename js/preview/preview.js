@@ -334,7 +334,7 @@ export class Preview {
 		this.renderer.setSize(500, 400);
 		this.updateToneMapping();
 
-		if (options.id == 'main') {
+		if (!options.offscreen) {
 			this.css_renderer = new CSS3DRenderer({domElement: this.node});
 			this.css_renderer.setSize(500, 400);
 			this.node.append(this.css_renderer.domElement);
@@ -587,7 +587,9 @@ export class Preview {
 	render() {
 		this.controls.update();
 		this.renderer.render(scene, this.camera);
-		if (this.css_renderer) this.css_renderer.render(scene, this.camera);
+		if (this.css_renderer) {
+			this.css_renderer.render(scene, this.camera, this == Preview.selected);
+		}
 	}
 	//Camera
 	get camera() {

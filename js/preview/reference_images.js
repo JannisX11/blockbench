@@ -328,7 +328,7 @@ export class ReferenceImage {
 				
 			pos_x += (this.position[0] * zoom) - (this.size[0] * zoom) / 2;
 			pos_y += (this.position[1] * zoom) - (this.size[1] * zoom) / 2;
-	
+
 			this.node.style.width = (this.size[0] * zoom) + 'px';
 			this.node.style.height = (this.size[1] * zoom) + 'px';
 			this.node.style.left = pos_x + 'px';
@@ -348,6 +348,9 @@ export class ReferenceImage {
 			if (this.view_mode == 'flat_image') {
 				this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
 				this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+
+			} else if (this.view_mode == 'billboard') {
+				this.scene_object.discardCopyElements();
 			}
 		}
 		return this;
