@@ -6,6 +6,7 @@ import { loadInstalledPlugins } from "./plugin_loader";
 import { animate } from "./preview/preview";
 import { ipcRenderer, process, SystemInfo } from "./native_apis";
 import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
+import { initReferenceImages } from "./preview/reference_images";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
@@ -56,6 +57,7 @@ BARS.setupVue()
 MenuBar.setup()
 translateUI()
 loadThemes()
+initReferenceImages()
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + Blockbench.version + (isApp
