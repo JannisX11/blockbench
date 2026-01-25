@@ -1455,7 +1455,7 @@ export class Preview {
 		let rect_start = [c.ax, c.ay];
 		let rect_end = [c.bx, c.by];
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
-				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
+				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl && !Keybinds.extra.preview_area_select.keybind.meta)
 		let selection_mode = BarItems.selection_mode.value;
 		let spline_selection_mode = BarItems.spline_selection_mode.value;
 
