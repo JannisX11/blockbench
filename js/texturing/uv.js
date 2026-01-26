@@ -4117,6 +4117,8 @@ Interface.definePanels(function() {
 							return [x * dir_x, y * dir_y];
 						},
 						onEnd: () => {
+							this.texture.updateLayerChanges(true);
+							this.texture.saved = false;
 							Undo.finishEdit('Resize layer');
 							Blockbench.setCursorTooltip();
 							if (dir_x && dir_y) Interface.removeSuggestedModifierKey('alt', 'modifier_actions.no_uniform_scaling');
