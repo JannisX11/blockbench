@@ -115,6 +115,7 @@ export const Painter = {
 			return;
 		}
 		let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
+		UVEditor.vue.texture = texture;
 
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
