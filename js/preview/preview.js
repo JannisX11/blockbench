@@ -338,6 +338,8 @@ export class Preview {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
 		}
+		this.label = Interface.createElement('label', {class: 'preview_perspective_label'});
+		this.node.append(this.label);
 
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
@@ -691,6 +693,7 @@ export class Preview {
 			if (this.camOrtho.axis != 'z') {
 				this.controls.target.z = this.camOrtho.position.z = this.side_view_target.z;
 			}
+			this.label.textContent = tl(`direction.${angle}`);
 
 		} else {
 
@@ -702,6 +705,7 @@ export class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
+			this.label.textContent = '';
 		}
 
 		Transformer.update();

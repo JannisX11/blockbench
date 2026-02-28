@@ -157,6 +157,17 @@
 		border-radius: 7px;
 		border: 2px solid var(--color-grid);
 	}
+	.preview > .preview_perspective_label {
+		position: absolute;
+		width: fit-content;
+		margin: auto;
+		bottom: 4px;
+		right: 0;
+		left: 0;
+		pointer-events: none;
+		opacity: 0.5;
+		text-transform: uppercase;
+	}
 	.preview .preview_menu {
 		position: absolute;
 		right: 3px;

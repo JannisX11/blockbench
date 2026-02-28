@@ -41,6 +41,7 @@ declare class Preview extends Deletable {
 	width: number
 	aspect_ratio?: number
 	node: HTMLElement
+	label: HTMLLabelElement
 	/**
 	 * True if the preview is in orthographic camera mode
 	 */
