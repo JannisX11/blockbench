@@ -91,8 +91,8 @@ interface BlockbenchEventMap {
 	convert_format: {format: ModelFormat, old_format: ModelFormat}
 	construct_format: {format: ModelFormat}
 	delete_format: {format: ModelFormat}
-	select_project: { project: Project }
-	unselect_project: { project: Project }
+	select_project: { project: ModelProject }
+	unselect_project: { project: ModelProject }
 	setup_project: any
 	update_project_resolution: any
 	merge_project: any
