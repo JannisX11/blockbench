@@ -121,10 +121,10 @@ onVueSetup(function() {
 					always: tl('modifier_actions.always'),
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
-					alt: tl('keys.alt'),
+					alt: tl(isMac ? 'keys.option' : 'keys.alt'),
 					unless_ctrl: tl('modifier_actions.unless', tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')),
 					unless_shift: tl('modifier_actions.unless', tl('keys.shift')),
-					unless_alt: tl('modifier_actions.unless', tl('keys.alt')),
+					unless_alt: tl('modifier_actions.unless', tl(isMac ? 'keys.option' : 'keys.alt')),
 				} 
 			}},
 			methods: {
