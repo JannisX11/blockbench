@@ -248,7 +248,8 @@ BARS.defineActions(function() {
 					name: project_parsed.name || 'Attachable',
 					scope: 2,
 					export_codec: 'bedrock',
-					export_path: attachable_path
+					export_path: attachable_path,
+					model_identifier: project_parsed.model_identifier,
 				}).add();
 				for (let animation of Animation.all) {
 					animation.setScopeFromAnimators();
@@ -288,7 +289,7 @@ BARS.defineActions(function() {
 						export_codec: 'bedrock',
 						export_path: file.path,
 					}).add();
-					Codecs.bedrock.load(json, file, {import_to_current_project: true});
+					Codecs.bedrock.load(json, file, {import_to_current_project: true, collection});
 					let content = finder.find();
 					let scope = finder.findEmptyScope();
 					content.nodes.forEach(node => node.scope = scope);

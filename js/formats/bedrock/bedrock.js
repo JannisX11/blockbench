@@ -821,9 +821,13 @@ window.calculateVisibleBox = calculateVisibleBox;
 
 		codec.dispatchEvent('parse', {model: data.object});
 
-		Project.geometry_name = geometry_name;
-		Project.texture_width = 16;
-		Project.texture_height = 16;
+		if (!args.import_to_current_project) {
+			Project.model_identifier = geometry_name;
+			Project.texture_width = 16;
+			Project.texture_height = 16;
+		} else if (args.collection) {
+			args.collection.model_identifier = geometry_name;
+		}
 
 		if (typeof description.visible_bounds_width == 'number' && typeof description.visible_bounds_height == 'number') {
 			Project.visible_box[0] = Math.max(Project.visible_box[0], description.visible_bounds_width || 0);

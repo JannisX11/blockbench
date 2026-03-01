@@ -651,7 +651,13 @@ new NodePreviewController(Group, {
 
 				if (target_group) {
 					bone.position.set(group.origin[0], group.origin[1], group.origin[2])
-					if (group.parent == Outliner.ROOT) bone.position.y -= 24;
+					if (group.parent instanceof Group) {
+						bone.position.x -= group.parent.origin[0];
+						bone.position.y -= group.parent.origin[1];
+						bone.position.z -= group.parent.origin[2];
+					} else {
+						bone.position.y -= 24;
+					}
 					target_group.mesh.add(bone);
 					bone.updateMatrixWorld();
 				}

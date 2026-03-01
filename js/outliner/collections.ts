@@ -27,6 +27,7 @@ export interface CollectionOptions {
 	name?: string
 	export_codec?: string
 	export_path?: string
+	model_identifier?: string
 	visibility?: boolean
 	scope?: number
 }
@@ -381,6 +382,7 @@ export class Collection {
 
 					this.extend(form_data);
 					this.children.replace(vue_data.content.map(node => node.uuid));
+					this.saved = false;
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
 
