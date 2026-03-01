@@ -202,7 +202,6 @@ BARS.defineActions(function() {
 				id: 'generate_bedrock_block_box',
 				title: 'action.generate_bedrock_block_box',
 				form: {
-					// Todo: translations
 					type: {label: 'dialog.bedrock_bounding_box.type', type: 'inline_select', options: {
 						collision_box: 'dialog.bedrock_bounding_box.type.collision_box',
 						selection_box: 'dialog.bedrock_bounding_box.type.selection_box'
