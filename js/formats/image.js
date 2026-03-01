@@ -262,7 +262,9 @@ let format = new ModelFormat('image', {
 		Interface.preview.classList.remove('image_mode');
 		Panels.uv.node.append(uv_editor_node);
 		Panels.textures.handle.firstChild.textContent = tl('panel.textures');
-		setTimeout(Panels.uv.update, 0);
+		setTimeout(() => {
+			if (Condition(Panels.uv.condition)) Panels.uv.update()
+		}, 0);
 	},
 	codec
 })
