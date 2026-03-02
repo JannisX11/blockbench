@@ -1048,6 +1048,7 @@ let entity_file_codec = new Codec('bedrock_entity_file', {
 	extension: 'json',
 	remember: false,
 	support_partial_export: true,
+	support_offset: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1187,12 +1188,33 @@ function getFormatVersion() {
 	return '1.12.0';
 }
 
+function applyOffset(bones, offset) {
+	for (let bone of bones) {
+		if (bone.pivot) bone.pivot.V3_add(offset);
+		for (let cube of (bone.cubes ?? [])) {
+			cube.origin.V3_add(offset);
+			cube.pivot?.V3_add(offset);
+		}
+		if (typeof bone.locators == 'object') {
+			for (let id in bone.locators) {
+				let locator = bone.locators[id];
+				if (locator instanceof Array) {
+					locator.V3_add(offset);
+				} else if (locator.offset) {
+					locator.offset.V3_add(offset);
+				}
+			}
+		}
+	}
+}
+
 var codec = new Codec('bedrock', {
 	name: 'Bedrock Model',
 	extension: 'json',
 	remember: true,
 	multiple_per_file: true,
 	support_partial_export: true,
+	support_offset: true,
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
@@ -1283,9 +1305,9 @@ var codec = new Codec('bedrock', {
 			group.createUniqueName();
 			groups.splice(0, 0, group);
 		}
-		groups.forEach(function(g) {
-			let bone = compileGroup(g);
-			bones.push(bone)
+		groups.forEach((group) => {
+			let bone = compileGroup(group);
+			if (bone) bones.push(bone)
 		})
 
 		if (bones.length && options.visible_box !== false) {
@@ -1297,6 +1319,10 @@ var codec = new Codec('bedrock', {
 		}
 		if (bones.length) {
 			entitymodel.bones = bones
+		}
+		let offset = options.offset || this.context?.offset;
+		if (offset instanceof Array && offset.allEqual(0) == false) {
+			applyOffset(bones, offset.slice().V3_multiply(1, -1, -1));
 		}
 
 		let new_display = {};

@@ -511,6 +511,18 @@ new Property(Collection, 'string', 'export_path', {
 		}
 	}
 });
+new Property(Collection, 'vector', 'offset', {
+	condition: (collection: Collection) => collection.export_codec && Codecs[collection.export_codec]?.support_offset,
+	inputs: {
+		dialog: {
+			input: {
+				label: 'dialog.collection.offset',
+				type: 'vector',
+				dimensions: 3
+			}
+		}
+	}
+});
 new Property(Collection, 'array', 'children');
 new Property(Collection, 'boolean', 'visibility', {default: false});
 

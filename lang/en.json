@@ -499,6 +499,7 @@
 	"dialog.unsaved_work.save_all": "Save All",
 
 	"dialog.collection.export_path": "Export Path",
+	"dialog.collection.offset": "Offset",
 	"dialog.collection.select_all": "Select All",
 	"dialog.collection.select_none": "Select None",
 	"dialog.collection.add_with_filter": "Add with Filter",

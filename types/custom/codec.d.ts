@@ -34,6 +34,7 @@ interface CodecOptions {
 	 * Whether the codec can be used to export a part of the model via a collection
 	 */
 	support_partial_export?: boolean
+	support_offset?: boolean
 	load_filter?: {
 		extensions: string[]
 		type: 'json' | 'text'
@@ -150,6 +151,7 @@ declare class Codec extends Deletable {
 	 * Whether the codec can be used to export a part of the model via a collection
 	 */
 	support_partial_export: boolean
+	support_offset: boolean
 	/**
 	 * If available, the action that is used to export files using this codec
 	 */
