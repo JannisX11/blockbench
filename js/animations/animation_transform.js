@@ -91,9 +91,22 @@ new TransformerModule('animation', {
 
 		let {mesh} = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
 
+		let updateRotationKeyframeFromMesh = () => {
+			let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
+			let rotation = mesh.rotation;
+			if (transform_keyframes[0].animator.quaternion_interpolation && Format.id.includes('hytale')) {
+				let q = Reusable.quat1.setFromEuler(old_rotation);
+				mesh.quaternion.premultiply(q.invert());
+			} else {
+				rotation.x -= old_rotation.x; rotation.y -= old_rotation.y; rotation.z -= old_rotation.z;
+			}
+			transform_keyframes[0].offset('x', Math.roundTo( Math.trimDeg( Math.radToDeg(rotation.x) - transform_keyframes[0].calc('x') ), 4));
+			transform_keyframes[0].offset('y', Math.roundTo( Math.trimDeg( Math.radToDeg(rotation.y) - transform_keyframes[0].calc('y') ), 4));
+			transform_keyframes[0].offset('z', Math.roundTo( Math.trimDeg( Math.radToDeg(rotation.z) - transform_keyframes[0].calc('z') ), 4));
+		}
+
 		if (tool_id === 'rotate_tool' && (BarItems.rotation_space.value === 'global' || Transformer.axis == 'E' || (Timeline.selected_animator?.rotation_global && getEditTransformSpace() == 2))) {
 
-			let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 			let normal = Transformer.axis == 'E'
 				? context.rotate_normal
 				: axis_number == 0 ? THREE.NormalX : (axis_number == 1 ? THREE.NormalY : THREE.NormalZ);
@@ -106,26 +119,20 @@ new TransformerModule('animation', {
 				rotWorldMatrix.premultiply(inverse)
 			}
 
-			mesh.matrix.copy(rotWorldMatrix)
-			mesh.setRotationFromMatrix(rotWorldMatrix)
-			let e = mesh.rotation;
+			mesh.matrix.copy(rotWorldMatrix);
+			mesh.setRotationFromMatrix(rotWorldMatrix);
 
-			transform_keyframes[0].offset('x', Math.trimDeg( ( Math.radToDeg(e.x - old_rotation.x)) - transform_keyframes[0].calc('x') ));
-			transform_keyframes[0].offset('y', Math.trimDeg( ( Math.radToDeg(e.y - old_rotation.y)) - transform_keyframes[0].calc('y') ));
-			transform_keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(e.z - old_rotation.z)) - transform_keyframes[0].calc('z') ));
+			updateRotationKeyframeFromMesh();
 		
 		} else if (tool_id === 'rotate_tool' && getEditTransformSpace() == 2 && [0, 1, 2].find(axis => axis !== axis_number && transform_keyframes[0].get(getAxisLetter(axis))) !== undefined) {
 
-			let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 			let old_order = mesh.rotation.order;
 			mesh.rotation.reorder(axis_number == 0 ? 'ZYX' : (axis_number == 1 ? 'ZXY' : 'XYZ'))
 			var obj_val = Math.trimDeg(Math.radToDeg(mesh.rotation[axis]) + difference);
 			mesh.rotation[axis] = Math.degToRad(obj_val);
 			mesh.rotation.reorder(old_order);
 
-			transform_keyframes[0].offset('x', Math.trimDeg( ( Math.radToDeg(mesh.rotation.x - old_rotation.x)) - transform_keyframes[0].calc('x') ));
-			transform_keyframes[0].offset('y', Math.trimDeg( ( Math.radToDeg(mesh.rotation.y - old_rotation.y)) - transform_keyframes[0].calc('y') ));
-			transform_keyframes[0].offset('z', Math.trimDeg( ( Math.radToDeg(mesh.rotation.z - old_rotation.z)) - transform_keyframes[0].calc('z') ));
+			updateRotationKeyframeFromMesh();
 
 		} else if (tool_id === 'move_tool' && BarItems.transform_space.value === 'global') {
 
