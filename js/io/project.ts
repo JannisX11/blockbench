@@ -143,7 +143,7 @@ export class ModelProject {
 		this.mode = 'edit';
 		this.tool = '';
 		this.view_mode = 'textured';
-		this.display_uv = settings.show_only_selected_uv.value ? 'selected_faces' :'selected_elements';
+		this.display_uv = settings.display_uv.value as string;
 		this.multi_file_ruleset = '';
 		this.exploded_view = false;
 		this.mirror_modeling_enabled = false;
@@ -333,7 +333,7 @@ export class ModelProject {
 		Panels.textures.inside_vue.textures = Texture.all;
 		Panels.textures.inside_vue.texture_groups = TextureGroup.all;
 		Panels.layers.inside_vue.layers = Texture.selected ? Texture.selected.layers : [];
-		scene.add(this.model_3d);
+		Canvas.scene.add(this.model_3d);
 
 		Panels.animations.inside_vue.animations = this.animations;
 		Panels.animations.inside_vue.animation_controllers = this.animation_controllers;

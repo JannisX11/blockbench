@@ -1777,18 +1777,16 @@ export const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		{name: 'menu.uv.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
+		{name: 'settings.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
 			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,
-				name: `menu.uv.display_uv.${option}`,
+				name: `settings.display_uv.${option}`,
 				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle',
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
 					Project.display_uv = UVEditor.vue.display_uv = option;
-					if (option == 'selected_faces') settings.show_only_selected_uv.set(true);
-					if (option == 'selected_elements') settings.show_only_selected_uv.set(false);
-					Settings.saveLocalStorages();
+					settings.display_uv.set(option);
 				}
 			}})
 		}},
@@ -1949,6 +1947,7 @@ SharedActions.add('select_all', {
 	run() {
 		Undo.initSelection();
 		UVEditor.selectAll()
+		UVEditor.vue.$forceUpdate();
 		Undo.finishSelection('Select all UV');
 	}
 })
@@ -1970,6 +1969,7 @@ SharedActions.add('unselect_all', {
 			UVEditor.getSelectedFaces(element, true).empty();
 		})
 		UVEditor.displayTools();
+		UVEditor.vue.$forceUpdate();
 		Undo.finishSelection('Unselect all UV');
 	}
 })
@@ -2638,17 +2638,10 @@ BARS.defineActions(function() {
 		icon: 'stack',
 		category: 'uv',
 		condition: {modes: ['edit']},
-		onChange(value) {
-			if (value) {
-				Project.display_uv = UVEditor.vue.display_uv = 'all_elements';
-				settings.show_only_selected_uv.set(true);
-			} else {
-				if (settings.show_only_selected_uv.value) {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_faces';
-				} else {
-					Project.display_uv = UVEditor.vue.display_uv = 'selected_elements';
-				}
-			}
+		onChange(toggle_value) {
+			let value = toggle_value ? 'all_elements' : 'selected_elements';
+			Project.display_uv = UVEditor.vue.display_uv = value;
+			settings.display_uv.set(value);
 		}
 	})
 	new Toggle('paint_mode_uv_overlay', {
@@ -3222,18 +3215,6 @@ Interface.definePanels(function() {
 							selection_rect.width = rect.x;
 							selection_rect.height = rect.y;
 							
-							if (!e1.shiftKey && !Mesh.selected.length) {
-								for (let element of UVEditor.getMappableElements()) {
-									UVEditor.getSelectedFaces(element, true).empty();
-								}
-								if (old_elements) Outliner.selected.empty();
-							} else {
-								for (let element of UVEditor.getMappableElements()) {
-									UVEditor.getSelectedFaces(element, true).replace(old_faces[element.uuid]);
-								}
-								if (old_elements) Outliner.selected.replace(old_elements);
-							}
-
 							let elements;
 							if (is_box_uv) {
 								elements = Cube.all.filter(cube => !cube.locked);
@@ -3241,19 +3222,40 @@ Interface.definePanels(function() {
 							} else {
 								elements = UVEditor.getMappableElements();
 							}
+							if (UVEditor.vue.display_uv == 'all_elements') {
+								elements = Outliner.elements.filter(el => el.faces && !el.locked);
+							}
+							if (!e1.shiftKey && !Mesh.selected.length) {
+								for (let element of elements) {
+									UVEditor.getSelectedFaces(element, true).empty();
+								}
+								if (old_elements) Outliner.selected.empty();
+							} else {
+								for (let element of elements) {
+									UVEditor.getSelectedFaces(element, true).replace(old_faces[element.uuid]);
+								}
+								if (old_elements) Outliner.selected.replace(old_elements);
+							}
+
 							
 							elements.forEach(element => {
+								let select = false;
 								if (element.getTypeBehavior('cube_faces') && !element.box_uv) {
 									for (let fkey in element.faces) {
-										let face_rect = getRectangle(...element.faces[fkey].uv);
+										let face = element.faces[fkey];
+										if (UVEditor.texture && face.getTexture() != UVEditor.texture) continue;
+										let face_rect = getRectangle(...face.uv);
 										if (doRectanglesOverlap(rect, face_rect)) {
 											UVEditor.getSelectedFaces(element, true).safePush(fkey);
+											select = true;
 										}
 									}
 								} else if (element.getTypeBehavior('cube_faces')) {
 									let overlaps = false;
 									for (let fkey in element.faces) {
-										let face_rect = getRectangle(...element.faces[fkey].uv);
+										let face = element.faces[fkey];
+										if (UVEditor.texture && face.getTexture() != UVEditor.texture) continue;
+										let face_rect = getRectangle(...face.uv);
 										if (doRectanglesOverlap(rect, face_rect)) {
 											overlaps = true;
 											break;
@@ -3261,6 +3263,7 @@ Interface.definePanels(function() {
 									}
 									if (overlaps) {
 										Outliner.selected.safePush(element);
+										select = true;
 									}
 								} else if (element instanceof Mesh) {
 									let selected_vertices = element.getSelectedVertices(true);
@@ -3272,6 +3275,7 @@ Interface.definePanels(function() {
 									}
 									for (let fkey in element.faces) {
 										let face = element.faces[fkey];
+										if (UVEditor.texture && face.getTexture() != UVEditor.texture) continue;
 										let vertices = face.getSortedVertices();
 										if (vertices.length >= 3) {
 											let i = 0;
@@ -3280,6 +3284,7 @@ Interface.definePanels(function() {
 												let vkey2 = vertices[i] || vertices[0];
 												if (lineIntersectsReactangle(face.uv[vkey], face.uv[vkey2], [rect.ax, rect.ay], [rect.bx, rect.by])) {
 													selected_faces.safePush(fkey);
+													select = true;
 												}
 												if (pointInRectangle(face.uv[vkey], [rect.ax, rect.ay], [rect.bx, rect.by])) {
 													selected_vertices.safePush(vkey);
@@ -3287,6 +3292,9 @@ Interface.definePanels(function() {
 											}
 										}
 									}
+								}
+								if (select && !element.selected) {
+									element.markAsSelected();
 								}
 							})
 							updateSelection();
@@ -3296,10 +3304,11 @@ Interface.definePanels(function() {
 							removeEventListeners(document, 'pointerup', stop);
 
 							if (Math.pow(event.clientX - e2.clientX, 2) + Math.pow(event.clientY - e2.clientY, 2) < 10) {
-								for (let element of UVEditor.getMappableElements()) {
+								for (let element of elements) {
 									UVEditor.getSelectedFaces(element, true).empty();
 								}
 								if (old_elements) Outliner.selected.empty();
+								UVEditor.vue.$forceUpdate();
 							}
 							setTimeout(() => {
 								selection_rect.active = false;

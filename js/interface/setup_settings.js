@@ -70,6 +70,11 @@ function setupSettings() {
 	new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
 		UVEditor.vue.checkerboard = val;
 	}});
+	new Setting('display_uv', 			{category: 'interface', value: 'selected_elements', type: 'select', options: {
+		selected_faces: 'settings.display_uv.selected_faces',
+		selected_elements: 'settings.display_uv.selected_elements',
+		all_elements: 'settings.display_uv.all_elements',
+	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 		Timeline.vue.updateTimecodes();
 	}});
@@ -249,7 +254,6 @@ function setupSettings() {
 	new Setting('autouv',							{category: 'defaults', value: true});
 	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
 	new Setting('create_rename', 					{category: 'defaults', value: false});
-	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
 	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
 	new Setting('default_bedrock_format',			{category: 'defaults', type: 'select', value: 'entity', options: {
 		entity: 'format.bedrock',
