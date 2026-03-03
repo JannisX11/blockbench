@@ -899,7 +899,7 @@ export interface ToggleOptions extends Omit<ActionOptions, 'click'> {
 	 * Method that gets called when the user changes the value of the toggle
 	 */
 	onChange?(value: boolean): void
-	icon: IconString | (() => IconString)
+	icon?: IconString | (() => IconString)
 }
 /**
  * A toggle is a type of action that can be on or off. The state is not persistent between restarts by default.
