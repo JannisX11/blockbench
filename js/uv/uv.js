@@ -3115,7 +3115,7 @@ Interface.definePanels(function() {
 					if (Menu.open) Menu.open.hide();
 					UVEditor.total_zoom_offset = [6, 6];
 					if (event.which === 2 ||
-						(Keybinds.extra.preview_drag.keybind.isTriggered(event) && !event.which == 1)
+						(Keybinds.extra.preview_drag.keybind.isTriggered(event) && event.which != 1)
 					) {
 						// Drag (Mouse and pen only)
 						let {viewport} = this.$refs;
