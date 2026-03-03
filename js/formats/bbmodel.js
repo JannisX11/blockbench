@@ -223,7 +223,6 @@ var codec = new Codec('project', {
 				added_models: Project.added_models,
 				mode: Project.mode,
 				tool: Project.tool,
-				display_uv: Project.display_uv,
 				exploded_view: Project.exploded_view,
 				uv_viewport: Project.uv_viewport,
 				previews: JSON.parse(JSON.stringify(Project.previews)),
@@ -589,7 +588,6 @@ var codec = new Codec('project', {
 			Merge.number(Project, state, 'added_models')
 			Merge.string(Project, state, 'mode')
 			Merge.string(Project, state, 'tool')
-			Merge.string(Project, state, 'display_uv')
 			Merge.boolean(Project, state, 'exploded_view')
 			if (state.uv_viewport) {
 				Merge.number(Project.uv_viewport, state.uv_viewport, 'zoom')

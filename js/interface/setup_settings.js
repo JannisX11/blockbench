@@ -74,6 +74,9 @@ function setupSettings() {
 		selected_faces: 'settings.display_uv.selected_faces',
 		selected_elements: 'settings.display_uv.selected_elements',
 		all_elements: 'settings.display_uv.all_elements',
+	}, onChange(value) {
+		BarItems.edit_mode_uv_overlay.value = value == 'all_elements';
+		BarItems.edit_mode_uv_overlay.updateEnabledState();
 	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 		Timeline.vue.updateTimecodes();

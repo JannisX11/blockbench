@@ -1777,7 +1777,7 @@ export const UVEditor = {
 			'zoom_out',
 			'zoom_reset'
 		]},
-		{name: 'settings.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (!Format.image_editor), children: () => {
+		{name: 'settings.display_uv', id: 'display_uv', icon: 'visibility', condition: () => (Modes.edit && !Format.image_editor), children: () => {
 			let options = ['selected_faces', 'selected_elements', 'all_elements'];
 			return options.map(option => {return {
 				id: option,
@@ -1785,7 +1785,7 @@ export const UVEditor = {
 				icon: UVEditor.vue.display_uv == option ? 'far.fa-dot-circle' : 'far.fa-circle',
 				condition: !(option == 'selected_faces' && UVEditor.isBoxUV() && !Mesh.selected.length),
 				click() {
-					Project.display_uv = UVEditor.vue.display_uv = option;
+					UVEditor.vue.display_uv = option;
 					settings.display_uv.set(option);
 				}
 			}})
@@ -2633,14 +2633,13 @@ BARS.defineActions(function() {
 		}
 	})
 	new Toggle('edit_mode_uv_overlay', {
-		name: 'action.paint_mode_uv_overlay',
-		description: 'action.edit_mode_uv_overlay.desc',
 		icon: 'stack',
 		category: 'uv',
 		condition: {modes: ['edit']},
+		default: settings.display_uv.value == 'all_elements',
 		onChange(toggle_value) {
 			let value = toggle_value ? 'all_elements' : 'selected_elements';
-			Project.display_uv = UVEditor.vue.display_uv = value;
+			UVEditor.vue.display_uv = value;
 			settings.display_uv.set(value);
 		}
 	})
@@ -2648,6 +2647,7 @@ BARS.defineActions(function() {
 		icon: 'stack',
 		category: 'uv',
 		condition: {modes: ['paint'], method: () => !Format.image_editor},
+		save_on_restart: true,
 		onChange(value) {
 			UVEditor.vue.uv_overlay = value;
 		}
@@ -2717,7 +2717,7 @@ Interface.definePanels(function() {
 				centered_view: true,
 				checkerboard: settings.uv_checkerboard.value,
 				pixel_grid: settings.painting_grid.value,
-				uv_overlay: false,
+				uv_overlay: BarItems.paint_mode_uv_overlay.value,
 				texture: 0,
 				layer: null,
 				mouse_coords: {x: -1, y: -1, active: false, line_preview: false},
@@ -2747,7 +2747,7 @@ Interface.definePanels(function() {
 				uv_resolution: [16, 16],
 				elements: [],
 				all_elements: [],
-				display_uv: 'selected_elements',
+				display_uv: settings.display_uv.value,
 				selection_outline: '',
 
 				face_names: {
@@ -4642,6 +4642,7 @@ Interface.definePanels(function() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
 				},
 				isFaceSelected(element, fkey) {
+					if (this.mode != 'uv') return false;
 					if (!element) element = this.mappable_elements[0];
 					if (element.getTypeBehavior('select_faces') == false) return true;
 					return UVEditor.getSelectedFaces(element).indexOf(fkey) != -1;
@@ -4889,7 +4890,7 @@ Interface.definePanels(function() {
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
 									<div class="cube_uv_face uv_face"
 										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
+										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || mode == 'paint' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
 										:title="face_names[key]"
 										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
@@ -4941,7 +4942,7 @@ Interface.definePanels(function() {
 								<template v-if="element.type == 'mesh'">
 									<div class="mesh_uv_face uv_face"
 										v-for="(face, key) in filterMeshFaces(element)" :key="element.uuid + ':' + key"
-										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || isFaceSelected(element, key)) && face.getTexture() == texture"
+										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || mode == 'paint' || isFaceSelected(element, key)) && face.getTexture() == texture"
 										:class="{selected: isFaceSelected(element, key)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
 										@touchstart.prevent="dragFace(element, key, $event)"

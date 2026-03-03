@@ -45,7 +45,6 @@ export class ModelProject {
 	format: ModelFormat
 	mode: string
 	view_mode: string
-	display_uv: string
 	multi_file_ruleset: string
 	previews: {
 		[key: string]: any
@@ -143,7 +142,6 @@ export class ModelProject {
 		this.mode = 'edit';
 		this.tool = '';
 		this.view_mode = 'textured';
-		this.display_uv = settings.display_uv.value as string;
 		this.multi_file_ruleset = '';
 		this.exploded_view = false;
 		this.mirror_modeling_enabled = false;
@@ -326,9 +324,6 @@ export class ModelProject {
 		UVEditor.vue.elements = this.selected_elements;
 		UVEditor.vue.all_elements = this.elements;
 		UVEditor.vue.box_uv = this.box_uv;
-		UVEditor.vue.display_uv = this.display_uv;
-		(BarItems.edit_mode_uv_overlay as Toggle).value = this.display_uv == 'all_elements';
-		(BarItems.edit_mode_uv_overlay as Toggle).updateEnabledState();
 
 		Panels.textures.inside_vue.textures = Texture.all;
 		Panels.textures.inside_vue.texture_groups = TextureGroup.all;

@@ -888,6 +888,10 @@ export interface ToggleOptions extends Omit<ActionOptions, 'click'> {
 	 */
 	default?: boolean
 	/**
+	 * If true, remember the value between restarts
+	 */
+	save_on_restart?: boolean
+	/**
 	 * ID of a setting that the toggle is linked to
 	 */
 	linked_setting?: string
@@ -919,6 +923,9 @@ export class Toggle extends Action {
 			if (settings[this.linked_setting]) {
 				this.value = !!settings[this.linked_setting].value;
 			}
+		} else if (data.save_on_restart) {
+			let value = localStorage.getItem(`bar_item_value.${this.id}`);
+			if (value) this.value = value == 'true';
 		}
 		this.onChange = data.onChange;
 
@@ -935,6 +942,10 @@ export class Toggle extends Action {
 			}
 			if (this.onChange) this.onChange(this.value);
 			this.dispatchEvent('change', {state: this.value});
+
+			if (data.save_on_restart) {
+				localStorage.setItem(`bar_item_value.${this.id}`, this.value.toString());
+			}
 
 			this.updateEnabledState();
 		}
