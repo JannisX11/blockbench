@@ -1,6 +1,6 @@
 import chokidar from 'chokidar'
 import { spawn } from 'child_process'
-import { readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
+import { readdir, readFile, rm, stat, unlink, writeFile } from 'fs/promises'
 import config from '../types/type_config.json' with { type: 'json' }
 import chalk from 'chalk'
 import { join } from 'path'
@@ -180,6 +180,10 @@ const onUpdate = async (path: string) => {
 }
 
 async function main() {
+	// Cleanup old generated types before starting
+	console.log(chalk.blue('🧹 Cleaning up old generated types...'))
+	await rm(GENERATED_TYPES_DIR, { recursive: true, force: true })
+	// Generate types for the first time
 	await convertTypes()
 
 	if (process.argv.includes('--watch')) {
