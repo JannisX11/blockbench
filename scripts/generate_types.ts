@@ -3,7 +3,7 @@ import { spawn } from 'child_process'
 import { readdir, readFile, stat, unlink, writeFile } from 'fs/promises'
 import config from '../types/type_config.json' with { type: 'json' }
 import chalk from 'chalk'
-import { join, relative } from 'path'
+import { join } from 'path'
 
 const TYPE_EXCLUSION_PATTERNS = config.exclude.map(expression => new RegExp(expression))
 const GENERATED_TYPES_DIR = './types/generated'
@@ -111,24 +111,26 @@ function transformFileContents(content: string, path: string) {
 	return result
 }
 
-function isEmptyFile(content: string) {
-	return content.replace('export {};', '').trim().length == 0
-}
-
 function normalizePath(path: string) {
-	return path.replace(/[\\\/]/g, '/')
+	return path.replaceAll('\\', '/')
 }
 
 function isExcluded(path: string) {
-	const relativePath = normalizePath(relative(GENERATED_TYPES_DIR, path))
-	return TYPE_EXCLUSION_PATTERNS.some(pattern => !!relativePath.match(pattern))
+	const base = path.replace(/(.d)?.ts$/, '')
+	return config.exclude.some(excluded => normalizePath(base).endsWith(excluded))
 }
 
 async function processFile(path: string) {
+	if (isExcluded(path)) {
+		await unlink(path)
+		deletedFileCount++
+		return
+	}
+
 	const fileContent = await readFile(path, { encoding: 'utf-8' })
 	const processedContent = transformFileContents(fileContent, path)
 
-	if (!processedContent || isEmptyFile(processedContent) || isExcluded(path)) {
+	if (fileContent == undefined || fileContent.replace('export {};', '').length < 5) {
 		await unlink(path)
 		deletedFileCount++
 		return
