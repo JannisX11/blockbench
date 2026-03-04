@@ -13,6 +13,8 @@ All type definitions in the /custom/ folder are manually written and are intende
 ## Generating types
 Run `npm run generate-types` from the main repo. Ensure typescript throws no errors, otherwise files won't export correctly.
 
+Use `npm run generate-types -- --watch` to automatically regenerate types on source file changes.
+
 ## Locally testing and using types
 To use these types in other projects on your local PC before they are published, run this command in your other project:
 
