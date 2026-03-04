@@ -36,7 +36,7 @@ addEventListener('load', function() {
 	window.history.pushState({}, '')
 })
 addEventListener('popstate', e => {
-	if (ModelProject.all.length == 0) {
+	if (Blockbench.ModelProject.all.length == 0) {
 		return;
 	}
 
@@ -150,7 +150,7 @@ export async function loadInfoFromURL() {
 
 //Misc
 window.onbeforeunload = function() {
-	let unsaved_projects = ModelProject.all.find(project => !project.saved);
+	let unsaved_projects = Blockbench.ModelProject.all.find(project => !project.saved);
 	if (unsaved_projects) {
 		return 'Unsaved Changes';
 	} else {

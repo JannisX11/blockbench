@@ -1408,8 +1408,6 @@ const global = {
 	setStartScreen,
 };
 declare global {
-	type ModelProject = import('./project').ModelProject
-	const ModelProject: typeof global.ModelProject
 	const ProjectData: typeof global.ProjectData
 	const setupProject: typeof global.setupProject
 	const newProject: typeof global.newProject

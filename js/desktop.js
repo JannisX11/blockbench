@@ -115,7 +115,7 @@ export function loadOpenWithBlockbenchFile() {
 		Interface.page_wrapper.classList.toggle('accept_detached_tab', value);
 	})
 	ipcRenderer.on('close-detached-project', (event, uuid) => {
-		let tab = ModelProject.all.find(project => project.uuid == uuid && project.detached);
+		let tab = Blockbench.ModelProject.all.find(project => project.uuid == uuid && project.detached);
 		if (tab) tab.close(true);
 	})
 	if (electron.process.argv.length >= 2) {
@@ -652,7 +652,7 @@ window.onbeforeunload = function (event) {
 			}
 		} catch (err) {}
 
-	} else if (ModelProject.all.find(project => !project.saved)) {
+	} else if (Blockbench.ModelProject.all.find(project => !project.saved)) {
 		let ul = Interface.createElement('ul', {class: 'list unsaved_models_list'});
 		let dialog;
 
@@ -667,7 +667,7 @@ window.onbeforeunload = function (event) {
 			}
 		}
 
-		ModelProject.all.forEach(project => {
+		Blockbench.ModelProject.all.forEach(project => {
 			if (project.saved) return;
 			let li = Interface.createElement('li', {class: 'unsaved_model'}, [
 				Blockbench.getIconNode(project.format?.icon),
@@ -700,7 +700,7 @@ window.onbeforeunload = function (event) {
 			cancel_on_click_outside: false,
 			onButton: async (button) => {
 				if (button == 0) {
-					for (let project of ModelProject.all.slice()) {
+					for (let project of Blockbench.ModelProject.all.slice()) {
 						await saveProject(project);
 						if (!project.saved) return;
 					}
@@ -726,7 +726,7 @@ window.onbeforeunload = function (event) {
 }
 
 async function closeBlockbenchWindow() {
-	for (let project of ModelProject.all.slice()) {
+	for (let project of Blockbench.ModelProject.all.slice()) {
 		project.closeOnQuit();
 	}
 	AutoBackup.removeAllBackups();

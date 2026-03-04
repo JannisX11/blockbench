@@ -5,6 +5,7 @@ import VersionUtil from '../../util/version_util'
 import {animation_codec} from "./bedrock_animation"
 import "./animation_controller_codec"
 import { loadBedrockCollisionFromJSON } from "./bedrock_voxel_shape";
+import { ModelProject } from '../../io/project';
 
 if (isApp) {
 window.BedrockEntityManager = class BedrockEntityManager {

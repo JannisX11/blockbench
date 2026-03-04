@@ -9,6 +9,7 @@ import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
 import { SplineMesh } from "../outliner/types/spline_mesh";
+import type { ModelProject } from "./project";
 
 export interface FormatPage {
 	component?: Vue.Component

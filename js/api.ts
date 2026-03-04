@@ -1,5 +1,5 @@
 import { FormElementOptions } from "./interface/form";
-import { ModelFormat } from "./io/format";
+import type { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
 import VersionUtil from './util/version_util';
@@ -9,7 +9,7 @@ import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
 import type { SplineCurve, SplineHandle, SplineMesh } from "./outliner/types/spline_mesh";
 import type { BillboardFace } from "./outliner/types/billboard";
 import type { Keyframe } from "./animations/keyframe";
-import { Animation } from "./animations/animation";
+import type { ModelProject } from "./io/project";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -376,7 +376,7 @@ class Blockbench {
 	static Format: (ModelFormat | number) = 0
 	static Project: (ModelProject | number) = 0
 	static get Undo() {
-		return Blockbench.Project instanceof ModelProject ? Blockbench.Project.undo : undefined;
+		return Blockbench.Project instanceof Blockbench.ModelProject ? Blockbench.Project.undo : undefined;
 	}
 	// File System
 	static import = Filesystem.importFile

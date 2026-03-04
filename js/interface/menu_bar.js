@@ -158,10 +158,10 @@ export const MenuBar = {
 					id: 'import_open_project',
 					name: 'menu.file.import.import_open_project',
 					icon: 'input',
-					condition: () => Project && ModelProject.all.length > 1,
+					condition: () => Project && Blockbench.ModelProject.all.length > 1,
 					children() {
 						let projects = [];
-						ModelProject.all.forEach(project => {
+						Blockbench.ModelProject.all.forEach(project => {
 							if (project == Project) return;
 							projects.push({
 								name: project.getDisplayName(true),
@@ -584,8 +584,8 @@ export const MenuBar = {
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},
-				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
-					ModelProject.all.forEach(project => project.locked = false);
+				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => Blockbench.ModelProject.all.find(project => project.locked), click() {
+					Blockbench.ModelProject.all.forEach(project => project.locked = false);
 				}},
 				{
 					name: 'Uncorrupt Mesh',

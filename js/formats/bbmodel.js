@@ -2,6 +2,7 @@ import { invertMolang } from '../util/molang';
 import LZUTF8 from '../lib/lzutf8'
 import { fs } from '../native_apis';
 import VersionUtil from '../util/version_util';
+import { ModelProject } from '../io/project';
 
 const FORMATV = '5.0';
 

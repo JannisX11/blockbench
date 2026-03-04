@@ -70,7 +70,7 @@ export function setupDragHandlers() {
 
 export function loadModelFile(file, args) {
 	
-	let existing_tab = isApp && ModelProject.all.find(project => (
+	let existing_tab = isApp && Blockbench.ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
 	))
 

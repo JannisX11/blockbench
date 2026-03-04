@@ -137,7 +137,7 @@ export class EditSession {
 		} else {
 			this.host.close()
 		}
-		ModelProject.all.forEach(project => {
+		Blockbench.ModelProject.all.forEach(project => {
 			if (project.EditSession == this) {
 				delete project.EditSession;
 			}

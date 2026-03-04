@@ -1,6 +1,7 @@
 import { Animation } from './animations/animation'
 import { Keyframe } from './animations/keyframe'
 import { Blockbench } from './api'
+import { ModelProject } from './io/project'
 import { BillboardFace } from './outliner/types/billboard'
 import { SplineCurve, SplineHandle, SplineMesh } from './outliner/types/spline_mesh'
 
