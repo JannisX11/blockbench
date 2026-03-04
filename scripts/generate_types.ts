@@ -1,11 +1,10 @@
-import chokidar from 'chokidar'
-import { spawn } from 'child_process'
-import { readdir, readFile, rm, stat, unlink, writeFile } from 'fs/promises'
-import config from '../types/type_config.json' with { type: 'json' }
 import chalk from 'chalk'
+import { spawn } from 'child_process'
+import chokidar from 'chokidar'
+import { readdir, readFile, rm, stat, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
+import config from '../types/type_config.json' with { type: 'json' }
 
-const TYPE_EXCLUSION_PATTERNS = config.exclude.map(expression => new RegExp(expression))
 const GENERATED_TYPES_DIR = './types/generated'
 
 /**
