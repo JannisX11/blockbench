@@ -574,6 +574,7 @@ export class Keyframe {
 		'resolve_keyframe_expressions',
 		'reset_keyframe_handles',
 		'reset_keyframe',
+		'round_keyframe_values',
 		new MenuSeparator('copypaste'),
 		'copy',
 		'save_animation_preset',
@@ -1086,6 +1087,32 @@ BARS.defineActions(function() {
 			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 			Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 			Undo.finishEdit('Reset keyframe handles')
+			updateKeyframeSelection()
+			Animator.preview()
+		}
+	})
+	new Action('round_keyframe_values', {
+		icon: 'percent',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length,
+		click: function () {
+			let round = (input) => {
+				if (typeof input == 'number') return Math.round(input);
+				return input.replace(/\d+.\d+/g, (number) => {
+					return Math.round(parseFloat(number));
+				})
+			}
+			let keyframes = Timeline.selected.filter(kf => kf.transform);
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				for (let dp of kf.data_points) {
+					for (let axis of 'xyz') {
+						if (!Condition(KeyframeDataPoint.properties[axis].condition, dp)) continue;
+						dp[axis] = round(dp[axis]);
+					}
+				}
+			})
+			Undo.finishEdit('Round keyframe values')
 			updateKeyframeSelection()
 			Animator.preview()
 		}

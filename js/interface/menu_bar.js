@@ -408,6 +408,7 @@ export const MenuBar = {
 			]},
 			'keyframe_uniform',
 			'reset_keyframe',
+			'round_keyframe_values',
 			'resolve_keyframe_expressions',
 			'delete',
 		], {
