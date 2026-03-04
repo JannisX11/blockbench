@@ -130,7 +130,7 @@ async function processFile(path: string) {
 	const fileContent = await readFile(path, { encoding: 'utf-8' })
 	const processedContent = transformFileContents(fileContent, path)
 
-	if (fileContent == undefined || fileContent.replace('export {};', '').length < 5) {
+	if (processedContent == undefined || processedContent.replace('export {};', '').length < 5) {
 		await unlink(path)
 		deletedFileCount++
 		return
