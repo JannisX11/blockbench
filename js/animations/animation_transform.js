@@ -21,7 +21,11 @@ new TransformerModule('animation', {
 		} else {
 			target_node.scene_object.getWorldPosition(Transformer.position);
 		}
-		if (Project.bedrock_animation_mode == 'attachable_first') {
+		if (
+			Project.bedrock_animation_mode == 'attachable_first' &&
+			Math.epsilon(Preview.selected.camera.position.x, Preview.selected.controls.target.x, 1e-9) &&
+			Preview.selected.camera.position.z == 0
+		) {
 			Transformer.position.set(0, 20, 24)
 		}
 

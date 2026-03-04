@@ -804,19 +804,21 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 		group.addTo(parent_group)
 	}
-	export function parseGeometry(data, args) {
+	export function parseGeometry(data, args = {}) {
 
 		let {description} = data.object;
 		let geometry_name = (description.identifier && description.identifier.replace(/^geometry\./, '')) || '';
 
-		let existing_tab = isApp && ModelProject.all.find(project => (
-			Project !== project && project.export_path == Project.export_path && project.geometry_name == geometry_name
-		))
-		if (existing_tab) {
-			Project.close().then(() =>  {
-				existing_tab.select();
-			});
-			return;
+		if (args.switch_to_existing_tab != false) {
+			let existing_tab = isApp && ModelProject.all.find(project => (
+				Project !== project && project.export_path == Project.export_path && project.geometry_name == geometry_name
+			))
+			if (existing_tab) {
+				Project.close().then(() =>  {
+					existing_tab.select();
+				});
+				return;
+			}
 		}
 
 		codec.dispatchEvent('parse', {model: data.object});

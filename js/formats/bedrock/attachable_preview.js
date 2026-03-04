@@ -268,9 +268,17 @@ BARS.defineActions(function() {
 	};
 	DefaultCameraPresets.push(camera_preset_1st);
 
+	function centerCamera() {
+		Preview.selected.loadAnglePreset(Project.multi_file_ruleset ? camera_preset_1st_mf : camera_preset_1st);
+		Transformer.updateSelection();
+		Blockbench.once('update_camera_position', e => {
+			Transformer.updateSelection()
+		})
+	}
+
 	let center_first_person_button = Interface.createElement('button', {id: 'center_first_person_button'}, tl('preview.center_camera'));
 	center_first_person_button.addEventListener('click', event => {
-		Preview.selected.loadAnglePreset(Project.multi_file_ruleset ? camera_preset_1st_mf : camera_preset_1st);
+		centerCamera();
 	});
 	let crosshair = Interface.createElement('div', {class: 'display_crosshair'});
 
@@ -344,7 +352,7 @@ BARS.defineActions(function() {
 			updateBase(this.value);
 
 			if (this.value == 'attachable_first') {
-				Preview.selected.loadAnglePreset(Project.multi_file_ruleset ? camera_preset_1st_mf : camera_preset_1st);
+				centerCamera();
 			} else {
 				Preview.selected.loadAnglePreset(DefaultCameraPresets[0]);
 			}

@@ -217,7 +217,7 @@ BARS.defineActions(function() {
 				left_arm.cubes[0].size[0] = 3;
 				left_arm.cubes[0].uv[0]++;
 			}
-			parseGeometry({object: geo_copy}, {});
+			parseGeometry({object: geo_copy}, {switch_to_existing_tab: false});
 
 			Project.multi_file_ruleset = attachable_ruleset.id;
 
@@ -228,7 +228,15 @@ BARS.defineActions(function() {
 				node.scope = 1;
 			})
 			new Collection({name: 'Player', scope: 1}).add();
-			
+
+			if (!Project.variable_placeholders.includes('.is_item_equipped')) {
+				let text = `query.is_item_equipped = toggle('Holding Item');`;
+				if (form_config.import_as_attachable) {
+					text += `\nquery.equipped_item_is_attachable = true;`;
+				}
+				Project.variable_placeholders = text + '\n' + Project.variable_placeholders;
+				Panels.variable_placeholders.inside_vue.text = Project.variable_placeholders;
+			}
 
 			if (form_config.import_as_attachable) {
 				let finder = new AddedContentFinder();
@@ -348,7 +356,8 @@ Blockbench.on('display_default_pose', () => {
 		if (Project.bedrock_animation_mode == 'attachable_first') {
 			applyDefaultPose(DEFAULT_POSE_FIRST);
 		} else {
-			applyDefaultPose(DEFAULT_POSE_THIRD);
+			let has_item = Animator.MolangParser.parse('query.is_item_equipped(0)');
+			if (has_item) applyDefaultPose(DEFAULT_POSE_THIRD);
 		}
 	}
 })

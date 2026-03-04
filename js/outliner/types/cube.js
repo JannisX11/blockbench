@@ -1604,6 +1604,7 @@ BARS.defineActions(function() {
 			let group = getCurrentGroup();
 			if (group) {
 				base_cube.addTo(group)
+				base_cube.scope = group.scope;
 				if (settings.inherit_parent_color.value) base_cube.color = group.color;
 			}
 

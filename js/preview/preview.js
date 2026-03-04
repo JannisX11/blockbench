@@ -1405,10 +1405,13 @@ export class Preview {
 	occupyTransformer(event) {
 		if (this.offscreen || Transformer.dragging) return this;
 
+		let update = Transformer.canvas != this.canvas;
 		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
 		Transformer.orbit_controls = this.controls
-		Transformer.setCanvas(this.canvas)
-		main_preview.controls.updateSceneScale()
+		if (update) {
+			Transformer.setCanvas(this.canvas);
+			Preview.selected.controls.updateSceneScale();
+		}
 		if (event && event.type == 'touchstart') {
 			Transformer.simulateMouseDown(event);
 		}

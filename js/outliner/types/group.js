@@ -723,7 +723,8 @@ BARS.defineActions(function() {
 			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
 			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
-				origin: add_group ? add_group.origin : undefined
+				origin: add_group ? add_group.origin : undefined,
+				scope: add_group?.scope
 			})
 			base_group.isOpen = true
 			if (base_group.getTypeBehavior('unique_name')) {
@@ -766,7 +767,8 @@ BARS.defineActions(function() {
 			let new_name = add_group?.name;
 			let base_group = new Group({
 				origin: add_group ? add_group.origin : undefined,
-				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name
+				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name,
+				scope: add_group?.scope
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true

@@ -367,7 +367,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -386,7 +385,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -578,6 +576,7 @@ constructor ( object, preview ) {
 
 
 		scope.update();
+		scope.updateSceneScale();
 		/*
 		var dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
 		var dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
