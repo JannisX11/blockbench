@@ -2,7 +2,6 @@ import { Blockbench } from "../api";
 import { Filesystem } from "../file_system";
 import { openMolangEditor } from "./molang_editor";
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_apis";
-import { invertMolang } from "../util/molang";
 import { ScopeColors } from "../multi_file_editing";
 
 export class AnimationItem {
