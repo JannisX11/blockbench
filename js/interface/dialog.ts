@@ -359,7 +359,7 @@ export class Dialog {
 	id: string
 	title: string
 	object: HTMLElement
-	content_vue: Vue | null
+	content_vue: Vue & Record<string, any> | null
 	progress_bar?: {
 		/**
 		 * The current progress

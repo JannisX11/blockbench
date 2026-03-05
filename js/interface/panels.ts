@@ -106,7 +106,8 @@ export class Panel extends EventSystem {
 	tab_bar: HTMLElement
 	form?: InputForm
 	vue?: Vue
-	inside_vue?: Vue
+	/** Used to access the properties of the Vue component if it exists */
+	inside_vue?: Vue & Record<string, any>
 	toolbars: Toolbar[]
 	sidebar_resize_handle: HTMLElement
 	resize_handles?: HTMLElement
