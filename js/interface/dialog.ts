@@ -78,7 +78,7 @@ function buildLines(dialog: Dialog) {
 function buildComponent(dialog: Dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
 	let mount: HTMLElement;
-	// mount_directly, if enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
+	// @ts-expect-error - Custom property: `mount_directly`. If enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
 	if (dialog.component.mount_directly) {
 		mount = dialog_content;
 	} else {
