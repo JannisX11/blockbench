@@ -1175,7 +1175,7 @@ function getFormatVersion() {
 			if (Project.display_settings[key] && Project.display_settings[key].export) {
 				let data = Project.display_settings[key].export();
 				if (data) {
-					return '1.21.20';
+					return '1.21.110';
 				}
 			}
 		}

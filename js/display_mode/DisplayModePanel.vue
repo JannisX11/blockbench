@@ -22,6 +22,11 @@
 			<input class="hidden" type="radio" name="display" id="fixed">
 			<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip">{{ tl('display.slot.frame') }}</div><i class="material-icons">filter_frames</i></label>
 			
+			<template v-if="isBedrockStyle()">
+				<input class="hidden" type="radio" name="display" id="embedded">
+				<label class="tool" for="embedded" onclick="DisplayMode.loadEmbedded()"><div class="tooltip">{{ tl('display.slot.embedded') }}</div><i class="material-icons">potted_plant</i></label>
+			</template>
+
 			<template v-if="!isBedrockStyle()">
 				<input class="hidden" type="radio" name="display" id="on_shelf">
 				<label class="tool" for="on_shelf" onclick="DisplayMode.loadShelf()"><div class="tooltip">{{ tl('display.slot.on_shelf') }}</div><i class="material-icons">table_view</i></label>

@@ -384,6 +384,11 @@ export class refModel {
 					setDisplayArea(side*9.039, -8.318+24, 20.8, 0, 0, 0, 1,1,1)
 				}
 				break;
+			case 'flower_pot':
+				this.updateBasePosition = function() {
+					setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
+				}
+				break;
 			case 'frame':
 				this.updateBasePosition = function() {
 					setDisplayArea(8, 8, -1, 0, 0, 0, 0.5, 0.5, 0.5)
@@ -700,6 +705,10 @@ export const displayReferenceObjects = {
 			icon: 'filter_frames',
 			models: [DisplayReferences.frame_block, DisplayReferences.frame]
 		}),
+		flower_pot: new refModel('flower_pot', {
+			icon: 'potted_plant',
+			models: [DisplayReferences.flower_pot]
+		}),
 		frame_invisible: new refModel('frame_invisible', {
 			icon: 'visibility_off',
 			models: [DisplayReferences.frame_block]
@@ -792,6 +801,7 @@ export const displayReferenceObjects = {
 		ground: 0,
 		gui: 0,
 		head: 0,
+		embedded: 0,
 		fixed: 0,
 		on_shelf: 0,
 	},
@@ -803,6 +813,7 @@ export const displayReferenceObjects = {
 		'ground',
 		'gui',
 		'head',
+		'embedded',
 		'fixed',
 		'on_shelf',
 	]
@@ -1153,6 +1164,14 @@ DisplayMode.loadFixed = function() {		//Loader
 	})
 	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
 }
+DisplayMode.loadEmbedded = function() {		//Loader
+	loadDisp('embedded')
+	display_preview.loadAnglePreset({
+		position: [-24, 18, -50],
+		target: [0, 4, 0]
+	})
+	displayReferenceObjects.bar(['flower_pot'])
+}
 DisplayMode.loadShelf = function() {		//Loader
 	loadDisp('on_shelf')
 	display_preview.loadAnglePreset({
@@ -1193,6 +1212,9 @@ DisplayMode.load = function(slot) {
 		break;
 		case 'ground':
 		DisplayMode.loadGround()
+		break;
+		case 'embedded':
+		DisplayMode.loadEmbedded()
 		break;
 		case 'fixed':
 		DisplayMode.loadFixed()
@@ -1562,6 +1584,7 @@ BARS.defineActions(function() {
 					firstperson_lefthand: {type: 'checkbox', label: 'display.slot.first_left', value: true},
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
+					embedded: {type: 'checkbox', label: 'display.slot.embedded', value: true},
 					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
 					on_shelf: {type: 'checkbox', label: 'display.slot.on_shelf', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},

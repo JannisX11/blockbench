@@ -2761,6 +2761,7 @@
 	"display.slot.head": "Head",
 	"display.slot.ground": "Ground",
 	"display.slot.frame": "Frame",
+	"display.slot.embedded": "Embedded",
 	"display.slot.on_shelf": "Shelf",
 	"display.slot.gui": "GUI",
 
@@ -2787,6 +2788,7 @@
 	"display.reference.eating": "Eating",
 	"display.reference.tooting": "Horn Tooting",
 	"display.reference.block": "Block",
+	"display.reference.flower_pot": "Flower Pot",
 	"display.reference.frame": "Item Frame",
 	"display.reference.frame_invisible": "Item Frame (Invisible)",
 	"display.reference.frame_top": "Item Frame Top",

@@ -670,6 +670,29 @@ const DisplayReferences = {
 			{"size": [16,16,16], "pos": [8, 8, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]
 	},
+	flower_pot: {
+		texture: 'assets/flower_pot.png',
+		elements: [
+			{
+				"size": [6, 6, 6],
+				"pos": [0, 3, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv":[0, 10, 6, 16]},
+				"east": {"uv":[0, 10, 6, 16]},
+				"south": {"uv":[0, 10, 6, 16]},
+				"west": {"uv":[0, 10, 6, 16]},
+				"up": {"uv":[0, 5, 6, 11]},
+				"down": {"uv":[0, 10, 6, 16]}
+			},
+			{
+				"size": [6, 0, 6],
+				"pos": [0, 4, 0],
+				"origin": [0, 0, 0],
+				"up": {"uv":[10, 0, 16, 6]},
+				"down": {"uv":[0, 0, 1, 1]},
+			}
+		]
+	},
 	frame: {
 		texture: 'assets/item_frame.png',
 		elements: [
