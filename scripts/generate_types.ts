@@ -119,12 +119,18 @@ function isExcluded(path: string) {
 	return config.exclude.some(excluded => normalizePath(base).endsWith(excluded))
 }
 
+function dontTransform(path: string) {
+	const base = path.replace(/(.d)?.ts$/, '')
+	return config.dontTransform.some(excluded => normalizePath(base).endsWith(excluded))
+}
+
 async function processFile(path: string) {
 	if (isExcluded(path)) {
 		await unlink(path)
 		deletedFileCount++
 		return
 	}
+	if (dontTransform(path)) return
 
 	const fileContent = await readFile(path, { encoding: 'utf-8' })
 	const processedContent = transformFileContents(fileContent, path)
