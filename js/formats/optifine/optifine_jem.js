@@ -1,3 +1,5 @@
+import { ModelFormat } from "../../io/format";
+
 var codec = new Codec('optifine_entity', {
 	name: 'OptiFine JEM',
 	extension: 'jem',

@@ -1,9 +1,12 @@
 import { Animation } from './animations/animation'
 import { Keyframe } from './animations/keyframe'
 import { Blockbench } from './api'
+import { ModelFormat } from './io/format'
+import { ModelLoader } from './io/model_loader'
 import { ModelProject } from './io/project'
 import { BillboardFace } from './outliner/types/billboard'
 import { SplineCurve, SplineHandle, SplineMesh } from './outliner/types/spline_mesh'
+import { Plugin } from './plugin_loader'
 
 Blockbench.Outliner = Outliner
 Blockbench.OutlinerNode = OutlinerNode
@@ -74,6 +77,7 @@ Blockbench.ResizeLine = ResizeLine
 
 Blockbench.ModelProject = ModelProject
 Blockbench.ModelFormat = ModelFormat
+Blockbench.ModelLoader = ModelLoader
 Blockbench.Codec = Codec
 Blockbench.DisplaySlot = DisplaySlot
 Blockbench.Reusable = Reusable

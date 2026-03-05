@@ -10,6 +10,8 @@ import type { SplineCurve, SplineHandle, SplineMesh } from "./outliner/types/spl
 import type { BillboardFace } from "./outliner/types/billboard";
 import type { Keyframe } from "./animations/keyframe";
 import type { ModelProject } from "./io/project";
+import type { ModelLoader } from "./io/model_loader";
+import type { Plugin } from "./plugin_loader";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -33,7 +35,7 @@ interface ToastNotificationOptions {
 	 */
 	color?: string
 	/**
-	 * Method to run on click. 
+	 * Method to run on click.
 	 * @returns Return `true` to close toast
 	 */
 	click?: (event: Event) => boolean
@@ -43,7 +45,7 @@ export const LastVersion = localStorage.getItem('last_version') || localStorage.
 // @ts-ignore
 // const previous_data = window.Blockbench as {};
 
-class Blockbench {
+export class Blockbench {
 	//...previous_data,
 	static isWeb = !isApp
 	static isMobile = (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document
@@ -112,7 +114,7 @@ class Blockbench {
 			//Node
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
-			
+
 		} else if (icon.match(/^(fa[.-])|(fa[rsb]\.)/)) {
 			//Font Awesome
 			node = document.createElement('i');
@@ -240,10 +242,10 @@ class Blockbench {
 		return new MessageBox(options, cb).show();
 	}
 	/**
-	 * 
-	 * @param {*} title 
-	 * @param {*} value 
-	 * @param {*} callback 
+	 *
+	 * @param {*} title
+	 * @param {*} value
+	 * @param {*} callback
 	 * @param {object} options Options
 	 * @param {string} options.info Info text
 	 * @param {string} options.description Description for the text input
@@ -460,6 +462,7 @@ class Blockbench {
 
 	static ModelProject: typeof ModelProject
 	static ModelFormat: typeof ModelFormat
+	static ModelLoader: typeof ModelLoader
 	static Codec: typeof Codec
 	static DisplaySlot: typeof DisplaySlot
 	static Reusable: typeof Reusable
@@ -468,8 +471,6 @@ class Blockbench {
 	static TextureLayer: typeof TextureLayer
 	static SharedActions: typeof SharedActions
 }
-
-export { Blockbench }
 
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
@@ -500,9 +501,8 @@ const global = {
 	Blockbench,
 	isApp
 }
-type BBClass = typeof Blockbench
 declare global {
 	const LastVersion: typeof global.LastVersion
-	const Blockbench: BBClass
+	const Blockbench: typeof global.Blockbench
 }
 Object.assign(window, global);

@@ -1,4 +1,5 @@
 import { applyPalette, quantize } from "../util/gif";
+import { ModelFormat } from "../io/format";
 
 let codec = new Codec('image', {
 	name: tl('format.image'),

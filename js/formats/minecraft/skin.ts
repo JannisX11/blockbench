@@ -8,6 +8,7 @@ import { TextureGenerator } from "../../texturing/texture_generator"
 import { Panel, Panels } from "../../interface/panels";
 import { Blockbench } from "../../api";
 import { FormResultValue } from "../../interface/form";
+import { ModelFormat } from "../../io/format";
 
 type SkinPreset = {
 	display_name: string
@@ -193,7 +194,7 @@ export const codec = new Codec('skin_model', {
 				}
 				group.rotation[0] *= -1;
 				group.rotation[1] *= -1;
-				
+
 				group.mirror_uv = b.mirror === true
 				group.reset = b.reset === true
 				group.skin_original_origin = group.origin.slice() as ArrayVector3;
@@ -331,7 +332,7 @@ function loadPose(pose_data: SkinPoseData) {
 		}
 		let offset: ArrayVector3 = group.skin_original_origin.slice().V3_subtract(group.origin);
 		offset.V3_add(bone_data.offset);
-		
+
 		group.extend({rotation: bone_data.rotation});
 		group.origin.V3_add(offset);
 		let child_cubes = group.children.filter(c => c instanceof Cube);
@@ -636,7 +637,7 @@ BARS.defineActions(function() {
 						let textures = Texture.all.filter(tex => tex.selected || tex.multi_selected);
 						if (!textures.length) textures = [Texture.getDefault()]
 						if (!textures[0]) return;
-						
+
 						const arm_uv_positions: [number, number][] = [
 							[40, 16],
 							[40, 32],
@@ -703,7 +704,7 @@ BARS.defineActions(function() {
 			Texture.all[0].save(true);
 		}
 	})
-	
+
 	let explode_skin_model = new Toggle('explode_skin_model', {
 		icon: () => 'open_in_full',
 		category: 'edit',
@@ -733,7 +734,7 @@ BARS.defineActions(function() {
 		explode_skin_model.updateEnabledState();
 	})
 
-	
+
 	new Action('custom_skin_poses', {
 		icon: 'format_list_bulleted',
 		category: 'view',
@@ -765,7 +766,7 @@ BARS.defineActions(function() {
 				}
 				options.push(option);
 			})
-			
+
 			options.push(
 				'_',
 				'add_custom_skin_pose'
@@ -1661,7 +1662,7 @@ skin_presets.banner = {
 skin_presets.bat = {
 	display_name: 'Bat',
 	pose: true,
-	variants: {	
+	variants: {
 		new: {
 			name: 'New',
 			model: `{

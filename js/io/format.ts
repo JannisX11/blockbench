@@ -335,7 +335,7 @@ export class ModelFormat implements FormatOptions {
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(project: ModelProject, newModel?: boolean): void
-	
+
 
 
 	cube_size_limiter?: CubeSizeLimiter
@@ -434,7 +434,7 @@ export class ModelFormat implements FormatOptions {
 		// @ts-ignore
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		
+
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
@@ -706,12 +706,9 @@ new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
 
 const global = {
-	ModelFormat,
 	Formats
 };
 declare global {
-	const ModelFormat: typeof global.ModelFormat
-	type ModelFormat = import('./format').ModelFormat
 	const Format: ModelFormat
 	const Formats: Record<string, ModelFormat>
 }
