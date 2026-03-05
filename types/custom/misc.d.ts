@@ -192,9 +192,6 @@ declare type RecentProjectData = {
 }
 declare const recent_projects: RecentProjectData[]
 
-declare const Prop = {
-	active_panel: string,
-}
 declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number
 
