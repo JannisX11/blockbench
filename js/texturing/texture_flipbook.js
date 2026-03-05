@@ -29,7 +29,7 @@ export const TextureAnimator = {
 	},
 	playAnimationFrame(anim_time) {
 		if (anim_time == undefined) {
-			(anim_time = performance.now() - TextureAnimator.start_timecode) / 1000;
+			anim_time = (performance.now() - TextureAnimator.start_timecode) / 1000;
 		}
 		let animated_textures = [];
 		for (let texture of Texture.all) {
