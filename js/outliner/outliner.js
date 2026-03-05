@@ -1370,7 +1370,6 @@ Interface.definePanels(function() {
 				dragToggle(e1) {
 					let [original] = eventTargetToNode(e1.target);
 					let affected = [];
-					let affected_groups = [];
 					let key = e1.target.getAttribute('toggle');
 					let previous_values = {};
 					let value = original[key];
@@ -1397,7 +1396,6 @@ Interface.definePanels(function() {
 								
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
-								if (node instanceof Group) affected_groups.push(node);
 								if (node.forEachChild) {
 									if (toggle_config.change_children != false) {
 										node.forEachChild(node => {
@@ -1428,7 +1426,7 @@ Interface.definePanels(function() {
 							})
 							Undo.initEdit({
 								elements: affected.filter(node => node instanceof OutlinerElement),
-								groups: affected_groups,
+								groups: affected.filter(node => node instanceof Group),
 								mirror_modeling: false
 							})
 							affected.forEach(node => {
