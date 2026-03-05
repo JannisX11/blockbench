@@ -49,4 +49,17 @@ const global = {
     APNGencoder,
     DOMPurify,
 }
+declare global {
+    const GIFEnc: typeof global.GIFEnc
+    // const THREE: typeof global.THREE
+    // const jQuery: typeof global.jQuery
+    // const $: typeof global.jQuery
+    const FIK: typeof global.FIK
+    // const Vue: typeof global.Vue
+    const JSZip: typeof global.JSZip
+    const Prism: typeof global.Prism
+    // const marked : typeof global.marked
+    const APNGencoder : typeof global.APNGencoder
+    const DOMPurify : typeof global.DOMPurify
+}
 Object.assign(window, global);
