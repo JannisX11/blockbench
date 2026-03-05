@@ -57,6 +57,9 @@ export class TextureLayer {
 		UVEditor.vue.layer = this;
 		BarItems.layer_opacity.update();
 		BarItems.layer_blend_mode.set(this.blend_mode);
+		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
+			BarItems.selection_tool.select();
+		}
 	}
 	clickSelect(event) {
 		Undo.initSelection();
