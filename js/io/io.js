@@ -585,9 +585,14 @@ BARS.defineActions(function() {
 				startpath,
 				multiple: true
 			}, function(files) {
-				files.forEach(file => {
-					loadModelFile(file);
-				})
+				let image_extensions = Texture.getAllExtensions();
+				if (files.allAre(file => image_extensions.includes(pathToExtension(file.name).toLowerCase()))) {
+					loadImages(files);
+				} else {
+					files.forEach(file => {
+						loadModelFile(file);
+					});
+				}
 			})
 		}
 	})
