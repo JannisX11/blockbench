@@ -33,7 +33,7 @@ export abstract class OutlinerNode {
 		this.export = true;
 		this.locked = false;
 		this.scope = 0;
-		
+
 		this._static = Object.freeze({
 			properties: {},
 			temp_data: {},
@@ -74,7 +74,7 @@ export abstract class OutlinerNode {
 				(element.parent instanceof OutlinerNode && types.includes(element.parent.type));
 			if (!is_allowed) return;
 		}
-		
+
 		let arr = element.getParentArray();
 		let index = arr.indexOf(element);
 		if (arr.includes(this) && index > this.getParentArray().indexOf(this)) {
@@ -107,7 +107,7 @@ export abstract class OutlinerNode {
 				}
 			}
 		}
-		
+
 		if (this.getTypeBehavior('parent_types')) {
 			let types = this.getTypeBehavior('parent_types');
 			let is_allowed = (target == 'root' && types.includes('root')) ||
@@ -353,7 +353,7 @@ export abstract class OutlinerNode {
 		}
 		return iterate(this.parent, 0)
 	}
-	
+
 
 	get preview_controller(): NodePreviewController {
 		return (this.constructor as typeof OutlinerNode).preview_controller;

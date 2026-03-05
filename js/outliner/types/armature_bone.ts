@@ -34,7 +34,7 @@ export class ArmatureBone extends OutlinerElement {
 	width: number
 	connected: boolean
 	color: number
-	
+
 
 	static preview_controller: NodePreviewController
 
@@ -296,7 +296,7 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	static all: ArmatureBone[]
 	static selected: ArmatureBone[]
-	
+
 	public title = tl('data.armature_bone');
 	public type = 'armature_bone';
 	public icon = 'humerus';
@@ -514,7 +514,7 @@ new NodePreviewController(ArmatureBone, {
 
 		bone.fix_position.copy(bone.position);
 		bone.fix_rotation.copy(bone.rotation);
-		
+
 		bone.updateMatrixWorld();
 		if (armature?.scene_object) {
 			bone.inverse_bind_matrix.copy(armature.scene_object.matrixWorld).invert();
@@ -580,7 +580,7 @@ BARS.defineActions(function() {
 			})
 			new_instance.addTo(add_to_node)
 			new_instance.isOpen = true
-		
+
 			if (Format.bone_rig) {
 				new_instance.createUniqueName()
 			}

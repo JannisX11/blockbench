@@ -12,7 +12,7 @@ import { SplineMesh } from "../outliner/types/spline_mesh";
 import type { ModelProject } from "./project";
 
 export interface FormatPage {
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	content?: (
 		| {
 				type?: 'image' | 'h2' | 'h3' | 'h4' | 'text' | 'label' | 'image' | ''
