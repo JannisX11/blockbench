@@ -93,24 +93,24 @@ export const Language = {
 	code: 'en',
 	options: {
 		en: 'English',
-		cz: 'Čeština (Czech)',
-		de: 'Deutsch (German)',
-		es: 'Espa\u00F1ol (Spanish)',
-		fr: 'Fran\u00E7ais (French)',
-		it: 'Italiano (Italian)',
-		ja: '\u65E5\u672C\u8A9E (Japanese)',//日本語
-		ko: '\uD55C\uAD6D\uC5B4 (Korean)',//日本語
-		nl: 'Nederlands (Dutch)',
-		pl: 'Polski (Polish)',
-		pt: 'Portugu\u00EAs (Portuguese)',
-		pt_br: 'Português (Brasil) (Portuguese, Brazil)',
-		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
-		sv: 'Svenska (Swedish)',
-		tr: 'Türkçe (Turkish)',
-		uk: 'Українська (Ukrainian)',
-		vi: 'Tiếng việt (Vietnamese)',
-		zh: '\u4e2d\u6587 (Chinese)',//中文
-		zh_tw: '\u4E2D\u6587(\u81FA\u7063) (Traditional Chinese)',//中文(臺灣)
+		cz: 'Čeština - Czech',
+		de: 'Deutsch - German',
+		es: 'Espa\u00F1ol - Spanish',
+		fr: 'Fran\u00E7ais - French',
+		it: 'Italiano - Italian',
+		ja: '\u65E5\u672C\u8A9E - Japanese',
+		ko: '\uD55C\uAD6D\uC5B4 - Korean',
+		nl: 'Nederlands - Dutch',
+		pl: 'Polski - Polish',
+		pt: 'Portugu\u00EAs - Portuguese',
+		pt_br: 'Português (Brasil) - Portuguese (Brazil)',
+		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 - Russian',
+		sv: 'Svenska - Swedish',
+		tr: 'Türkçe - Turkish',
+		uk: 'Українська - Ukrainian',
+		vi: 'Tiếng việt - Vietnamese',
+		zh: '简体中文 - Chinese (simplified)',
+		zh_tw: '繁體中文 - Chinese (traditional, Taiwan)',
 	},
 	/**
 	 * Add translations for custom translation strings
