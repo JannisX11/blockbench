@@ -56,11 +56,6 @@ export interface CubeSizeLimiter {
 	coordinate_limits?: [number, number]
 }
 
-/**
- * The current format
- */
-declare const Format: ModelFormat
-
 export const Formats: Record<string, ModelFormat> = {};
 
 Object.defineProperty(window, 'Format', {
@@ -704,12 +699,14 @@ new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
-
 const global = {
 	Formats
 };
 declare global {
-	const Format: ModelFormat
+	/**
+	 * The format of the currently opened project.
+	 */
+	let Format: ModelFormat
 	const Formats: Record<string, ModelFormat>
 }
 

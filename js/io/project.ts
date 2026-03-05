@@ -1392,11 +1392,6 @@ BARS.defineActions(function() {
 	})
 })
 
-/**
- * Global variable and shortcut to get the currently opened project. If no project is open, or the New Tab is open, this value is falsy.
- */
-declare let Project: ModelProject | null | undefined
-
 const global = {
 	ModelProject,
 	ProjectData,
@@ -1408,6 +1403,10 @@ const global = {
 	setStartScreen,
 };
 declare global {
+	/**
+	 * Global variable and shortcut to get the currently opened project. If no project is open, or the New Tab is open, this value is falsy.
+	 */
+	let Project: ModelProject | null | undefined
 	const ProjectData: typeof global.ProjectData
 	const setupProject: typeof global.setupProject
 	const newProject: typeof global.newProject
