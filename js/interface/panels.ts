@@ -51,7 +51,7 @@ interface PanelOptions {
 		| Toolbar[]
 	default_position?: Partial<PanelPositionData>
 	mode_positions?: Record<string, Partial<PanelPositionData>>
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	form?: InputForm
 	default_side?: 'right' | 'left'
 	/**
@@ -106,7 +106,8 @@ export class Panel extends EventSystem {
 	tab_bar: HTMLElement
 	form?: InputForm
 	vue?: Vue
-	inside_vue?: Vue
+	/** Used to access the properties of the Vue component if it exists */
+	inside_vue?: Vue & Record<string, any>
 	toolbars: Toolbar[]
 	sidebar_resize_handle: HTMLElement
 	resize_handles?: HTMLElement
@@ -169,7 +170,7 @@ export class Panel extends EventSystem {
 			this.container.classList.add('grow');
 			this.node.classList.add('grow');
 		}
-		
+
 		// Toolbars
 		let toolbars = data.toolbars instanceof Array ? data.toolbars : (data.toolbars ? Object.keys(data.toolbars) : []);
 
@@ -193,7 +194,7 @@ export class Panel extends EventSystem {
 		}
 
 		if (data.component) {
-			
+
 			let component_mount = Interface.createElement('div');
 			this.node.append(component_mount);
 			let onmounted = data.component.mounted;
@@ -360,7 +361,7 @@ export class Panel extends EventSystem {
 						Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.move_panel_without_docking');
 					}
 					if (!started) return;
-					
+
 					this.position_data.float_position[0] = position_before[0] + e2.clientX - e1.clientX;
 					this.position_data.float_position[1] = position_before[1] + e2.clientY - e1.clientY;
 
@@ -390,7 +391,7 @@ export class Panel extends EventSystem {
 						}
 
 					} else if (e2.clientX > document.body.clientWidth - Math.max(Interface.right_bar_width, threshold)) {
-						
+
 						target_slot = 'right_bar';
 						for (let child of Interface.right_bar.childNodes) {
 							if (!child.clientHeight) continue;
@@ -428,7 +429,7 @@ export class Panel extends EventSystem {
 					Interface.left_bar.classList.remove('drop_target');
 					Interface.right_bar.classList.remove('drop_target');
 					$(`.panel_container.attach_target`).removeClass('attach_target');
-					
+
 					Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.move_panel_without_docking');
 
 					if (attach_to) {
@@ -448,7 +449,7 @@ export class Panel extends EventSystem {
 					setTimeout(() => {
 						this.update();
 					}, 0);
-					
+
 					removeEventListeners(document, 'mousemove touchmove', drag);
 					removeEventListeners(document, 'mouseup touchend', stop);
 				}
@@ -461,7 +462,7 @@ export class Panel extends EventSystem {
 				dragPanel(e1, true);
 			});
 
-		} else {			
+		} else {
 
 			let close_button = Interface.createElement('div', {class: 'tool panel_control'}, Blockbench.getIconNode('clear'))
 			this.tab_bar.append(close_button);
@@ -469,7 +470,7 @@ export class Panel extends EventSystem {
 				Interface.PanelSelectorVue.select(null);
 			})
 			this.tab_bar.classList.add('single_tab');
-			
+
 
 			addEventListeners(this.handle as HTMLElement, 'mousedown touchstart', (e1: MouseEvent) => {
 				convertTouchEvent(e1);
@@ -485,7 +486,7 @@ export class Panel extends EventSystem {
 						if (this.folded) this.fold();
 					}
 					if (!started) return;
-					
+
 					let sign = (Blockbench.isLandscape && settings.mobile_panel_side.value == 'left') ? -1 : 1;
 					this.position_data.height = Math.clamp(height_before + diff * sign, this.min_height, max);
 
@@ -497,7 +498,7 @@ export class Panel extends EventSystem {
 					convertTouchEvent(e2);
 
 					this.update();
-					
+
 					removeEventListeners(document, 'mousemove touchmove', drag);
 					removeEventListeners(document, 'mouseup touchend', stop);
 				}
@@ -516,7 +517,7 @@ export class Panel extends EventSystem {
 			setActivePanel(this.id);
 			this.moveToFront();
 		})
-		
+
 		// Add to slot
 		if (!Blockbench.isMobile && !this.attached_to) {
 			let reference_panel = Panels[data.insert_before || data.insert_after];
@@ -720,7 +721,7 @@ export class Panel extends EventSystem {
 		}
 		let stop = e2 => {
 			convertTouchEvent(e2);
-			
+
 			removeEventListeners(document, 'mousemove touchmove', drag);
 			removeEventListeners(document, 'mouseup touchend', stop);
 			this.sidebar_resize_handle?.classList.remove('dragging');
@@ -771,7 +772,7 @@ export class Panel extends EventSystem {
 			}
 			let stop = e2 => {
 				convertTouchEvent(e2);
-				
+
 				removeEventListeners(document, 'mousemove touchmove', drag);
 				removeEventListeners(document, 'mouseup touchend', stop);
 			}
@@ -877,7 +878,7 @@ export class Panel extends EventSystem {
 		if (this.position_data && (this.previous_slot == 'right_bar' || this.previous_slot == 'left_bar')) {
 			makeSidebarFilled(this.previous_slot, this);
 		}
-		
+
 		this.updateSlot();
 		if (Panels[this.id]) {
 			this.dispatchEvent('moved_to', {slot, ref_panel, before, previous_slot: this.previous_slot});
@@ -923,7 +924,7 @@ export class Panel extends EventSystem {
 				this.onFold();
 			}
 		}
-		
+
 		this.customizePosition();
 		this.update();
 
@@ -1048,7 +1049,7 @@ export class Panel extends EventSystem {
 				panel.handle.classList.toggle('selected', this.open_attached_panel == panel);
 				tab_amount++;
 			}
-			
+
 			if (this.id == 'uv') {
 				this.id = 'uv'
 			}

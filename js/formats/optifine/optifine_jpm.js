@@ -1,3 +1,4 @@
+import { ModelFormat } from "../../io/format";
 
 var part_codec = new Codec('optifine_part', {
 	name: 'OptiFine Part',

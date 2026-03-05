@@ -12,6 +12,7 @@ import BrushOutlineVertShader from './../shaders/brush_outline.vert.glsl'
 import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
 import { prepareShader } from '../shaders/shader';
 import { gizmo_colors } from './preview'
+import { ModelProject } from '../io/project'
 
 export const Reusable = {
 	vec1: new THREE.Vector3(),

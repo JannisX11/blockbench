@@ -1,3 +1,5 @@
+import { ModelFormat } from "../io/format";
+
 new ModelFormat('free', {
 	icon: 'icon-format_free',
 	category: 'general',

@@ -1,4 +1,5 @@
 import { fs } from "../../native_apis";
+import { ModelFormat } from "../../io/format";
 
 function F(num) {
 	var s = trimFloatNumber(num) + '';

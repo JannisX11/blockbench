@@ -1,3 +1,5 @@
+import { ModelFormat } from "../../io/format";
+
 let item_parents = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',

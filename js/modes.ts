@@ -22,7 +22,7 @@ interface ModeOptions {
 	hide_sidebars?: boolean
 	hide_status_bar?: boolean
 	condition?: ConditionResolvable
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	onSelect?(): void
 	onUnselect?(): void
 }
@@ -109,7 +109,7 @@ export class Mode extends KeybindItem {
 		if (Interface.Panels[Prop.active_panel] && !Condition(Interface.Panels[Prop.active_panel].condition)) {
 			Prop.active_panel = 'preview';
 		}
-		
+
 		UVEditor.beforeMoving();
 		if (!Blockbench.isMobile) {
 			for (let id in Panels) {

@@ -9,9 +9,10 @@ import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
 import { SplineMesh } from "../outliner/types/spline_mesh";
+import type { ModelProject } from "./project";
 
 export interface FormatPage {
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	content?: (
 		| {
 				type?: 'image' | 'h2' | 'h3' | 'h4' | 'text' | 'label' | 'image' | ''
@@ -54,11 +55,6 @@ export interface CubeSizeLimiter {
 	 */
 	coordinate_limits?: [number, number]
 }
-
-/**
- * The current format
- */
-declare const Format: ModelFormat
 
 export const Formats: Record<string, ModelFormat> = {};
 
@@ -334,7 +330,7 @@ export class ModelFormat implements FormatOptions {
 	onFormatPage?(): void
 	onStart?(): void
 	onSetup?(project: ModelProject, newModel?: boolean): void
-	
+
 
 
 	cube_size_limiter?: CubeSizeLimiter
@@ -433,7 +429,7 @@ export class ModelFormat implements FormatOptions {
 		// @ts-ignore
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
-		
+
 		if (typeof this.onActivation == 'function') {
 			Format.onActivation()
 		}
@@ -703,15 +699,14 @@ new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
-
 const global = {
-	ModelFormat,
 	Formats
 };
 declare global {
-	const ModelFormat: typeof global.ModelFormat
-	type ModelFormat = import('./format').ModelFormat
-	const Format: ModelFormat
+	/**
+	 * The format of the currently opened project.
+	 */
+	let Format: ModelFormat
 	const Formats: Record<string, ModelFormat>
 }
 

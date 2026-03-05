@@ -78,7 +78,7 @@ function buildLines(dialog: Dialog) {
 function buildComponent(dialog: Dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content').get(0);
 	let mount: HTMLElement;
-	// mount_directly, if enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
+	// @ts-expect-error - Custom property: `mount_directly`. If enabled, skips one layer of wrapper. Class "dialog_content" must be added the the root element of the vue component.
 	if (dialog.component.mount_directly) {
 		mount = dialog_content;
 	} else {
@@ -300,7 +300,7 @@ export interface DialogOptions {
 	/**
 	 * Vue component
 	 */
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	/**
 	 * Order that the different interface types appear in the dialog. Default is 'form', 'lines', 'component'.
 	 */
@@ -359,7 +359,7 @@ export class Dialog {
 	id: string
 	title: string
 	object: HTMLElement
-	content_vue: Vue | null
+	content_vue: Vue & Record<string, any> | null
 	progress_bar?: {
 		/**
 		 * The current progress
@@ -379,10 +379,10 @@ export class Dialog {
 	confirmIndex: number
 	cancelIndex: number
 
-	
+
 	lines?: DialogLineOptions[]
 	form?: InputForm
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	part_order?: string[]
 	form_first?: boolean
 	sidebar?: DialogSidebar
@@ -424,7 +424,7 @@ export class Dialog {
 		}
 		this.id = id;
 		this.title = options.title;
-		
+
 		this.lines = options.lines;
 		this.toolbars = options.toolbars
 		this.form_config = options.form
@@ -458,7 +458,7 @@ export class Dialog {
 		this.confirmIndex = options.confirmIndex||0;
 		this.cancelIndex = options.cancelIndex !== undefined ? options.cancelIndex : this.buttons.length-1;
 		this.keyboard_actions = options.keyboard_actions || {};
-	
+
 		this.onConfirm = options.onConfirm;
 		this.onCancel = options.onCancel;
 		this.onButton = options.onButton || options.onClose;
@@ -466,7 +466,7 @@ export class Dialog {
 		this.onOpen = options.onOpen;
 		this.onBuild = options.onBuild;
 		this.onResize = options.onResize;
-	
+
 		this.object;
 	}
 	/**
@@ -528,7 +528,7 @@ export class Dialog {
 		let handle = document.createElement('div');
 		handle.className = 'dialog_handle';
 		this.object.append(handle);
-		
+
 		if (this.title_menu) {
 			let menu_button = document.createElement('div');
 			menu_button.className = 'dialog_menu_button';
@@ -554,7 +554,7 @@ export class Dialog {
 		let content = document.createElement('content');
 		content.className = 'dialog_content';
 		this.object.append(wrapper);
-		
+
 
 		if (this.sidebar) {
 			if (window.innerWidth < 920) {
@@ -650,7 +650,7 @@ export class Dialog {
 
 				let move = (e2: PointerEvent) => {
 					convertTouchEvent(e2);
-					
+
 					if (this.resizable && this.resizable.includes('x')) {
 						let x_offset = (e2.clientX - start_position[0]);
 						this.width = original_width + x_offset * 2;
@@ -711,7 +711,7 @@ export class Dialog {
 		let jq_dialog = $(this.object);
 
 		document.getElementById('dialog_wrapper').append(this.object);
-		
+
 		if (this instanceof ShapelessDialog === false) {
 			this.object.style.display = 'flex';
 			this.object.style.top = limitNumber(window.innerHeight/2-this.object.clientHeight/2, 0, 100)+'px';
@@ -770,7 +770,7 @@ export class Dialog {
 		Dialog.stack.remove(this);
 		Prop.active_panel = Prop._previous_active_panel;
 		$(this.object).detach();
-		
+
 		if (Dialog.stack.length) {
 			Dialog.stack.last().focus();
 		}
@@ -824,7 +824,7 @@ interface ShapelessDialogOptions {
 	/**
 	 * Vue component
 	 */
-	component?: Vue.Component
+	component?: Vue.ComponentOptions<any>
 	/**
 	 * Unless set to false, clicking on the darkened area outside of the dialog will cancel the dialog.
 	 */
@@ -1077,7 +1077,7 @@ export class ConfigDialog extends Dialog {
 	show(anchor: HTMLElement) {
 		super.show()
 		$('#blackout').hide();
-		
+
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
 			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
@@ -1105,7 +1105,7 @@ export class ConfigDialog extends Dialog {
 		let content = document.createElement('content');
 		content.className = 'dialog_content';
 		this.object.append(wrapper);
-		
+
 		wrapper.append(content);
 
 		this.form = new InputForm(this.form_config);

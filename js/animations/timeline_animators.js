@@ -195,7 +195,7 @@ GeneralAnimator.addChannel = function(channel, options) {
 		max_data_points: options.max_data_points || 0,
 		displayFrame: options.displayFrame
 	}
-	ModelProject.all.forEach(project => {
+	Blockbench.ModelProject.all.forEach(project => {
 		if (!project.animations)
 		project.animations.forEach(animation => {
 			animation.animators.forEach(animator => {

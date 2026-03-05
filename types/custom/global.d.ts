@@ -1,7 +1,6 @@
 /// <reference types="./blockbench"/>
 
 declare global {
-	// const Prism: typeof import('prismjs')
 	/**
 	 * @deprecated Use {@link Canvas.scene} instead
 	 */

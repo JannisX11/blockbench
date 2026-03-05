@@ -1,4 +1,6 @@
 import { currentwindow, dialog, electron, fs } from "../../native_apis";
+import { ModelProject } from '../../io/project';
+import { ModelFormat } from "../../io/format";
 
 export function parseGeometry(data, args) {
 	let geometry_name = data.name.replace(/^geometry\./, '');

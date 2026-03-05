@@ -335,7 +335,7 @@ export class SettingsProfile {
 		SettingsProfile.all.forEach(p => p.selected = false);
 		this.selected = true;
 		SettingsProfile.selected = this;
-		
+
 		if (update) {
 			Settings.updateSettingsInProfiles();
 			Settings.saveLocalStorages();

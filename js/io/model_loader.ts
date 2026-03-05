@@ -1,5 +1,5 @@
 import { Vue } from "../lib/libs";
-import { FormatPage } from "./format";
+import type { FormatPage } from "./format";
 
 export interface ModelLoaderOptions {
 	icon: string
@@ -65,12 +65,3 @@ export class ModelLoader implements Deletable {
 	}
 	static loaders: Record<string, ModelLoader> = {}
 }
-
-const global = {
-	ModelLoader
-};
-declare global {
-	type ModelLoader = import('./model_loader').ModelLoader
-	const ModelLoader: typeof global.ModelLoader
-}
-Object.assign(window, global);

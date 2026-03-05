@@ -12,7 +12,7 @@ declare class EditSession {
 	client_count: number
 	data_queue: []
 	chat_history: []
-	Project: ModelProject | null
+	Project: Blockbench.ModelProject | null
 
 	updateClientCound(): void
 	start(username?: string): void

@@ -159,7 +159,7 @@ export class BoundingBox extends OutlinerElement {
 	}
 	getSaveCopy() {
 		let el: any = {};
-		
+
 		for (let key in BoundingBox.properties) {
 			BoundingBox.properties[key].copy(this, el)
 		}
@@ -216,7 +216,7 @@ export class BoundingBox extends OutlinerElement {
 		this.from[axis] = center - (this.to[axis] - center)
 		this.to[axis] = center - (from - center)
 		this.origin[axis] = center - (this.origin[axis] - center)
-		
+
 		flipNameOnAxis(this, axis);
 
 		this.preview_controller.updateTransform(this);
@@ -520,7 +520,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['bounding_boxes']},
 		click: function () {
-			
+
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let base_bounding_box = new BoundingBox().init()
 			let group = getCurrentGroup();

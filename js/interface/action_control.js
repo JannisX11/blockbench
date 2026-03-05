@@ -59,7 +59,7 @@ export const ActionControl = {
 			})
 
 		} else if (action.type == 'project_tab') {
-			ModelProject.all.find(p => p.uuid == action.uuid).select();
+			Blockbench.ModelProject.all.find(p => p.uuid == action.uuid).select();
 
 		} else if (action.type == 'profile') {
 			let profile = SettingsProfile.all.find(p => p.uuid == action.uuid);
@@ -276,7 +276,7 @@ BARS.defineActions(function() {
 					}
 				}
 				if (type == 'tab') {
-					for (let project of ModelProject.all) {
+					for (let project of Blockbench.ModelProject.all) {
 						if (
 							search_input.length == 0 ||
 							project.name.toLowerCase().includes(search_input) ||

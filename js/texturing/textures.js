@@ -9,6 +9,7 @@ import { editUVSizeDialog } from '../uv/uv_size';
 import { decodeTga, encodeTga } from '@lunapaint/tga-codec';
 import { pathToExtension } from '../util/util';
 import { ScopeColors } from '../multi_file_editing';
+import { ModelProject } from '../io/project';
 
 let tex_version = 1;
 

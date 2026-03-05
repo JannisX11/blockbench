@@ -1,4 +1,5 @@
 import { fs } from "../../native_apis"
+import { invertMolang } from '../../util/molang'
 
 export const animation_codec = new AnimationCodec('bedrock', {
 
