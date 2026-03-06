@@ -1242,6 +1242,19 @@ export const Painter = {
 			}
 		}
 		ColorPanel.set(color, event && event.button == 2);
+		// Tool switch based on picked color
+		if (settings.color_picker_tool_switch.value) {
+			let previous_tool = Toolbox.original || Toolbox.selected;
+			if (color.getAlpha() === 0) {
+				// Transparent pixel: switch to eraser
+				BarItems.eraser?.select();
+				delete Toolbox.original;
+			} else if (previous_tool.id === 'eraser') {
+				// Had eraser selected before: switch to brush
+				BarItems.brush_tool?.select();
+				delete Toolbox.original;
+			}
+		}
 	},
 	// Util
 	combineColors(base, added, opacity) {
