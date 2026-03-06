@@ -8,6 +8,9 @@
 		"types/generated/global_types.d.ts",
 		"types/custom/uveditor.d.ts"
 	],
+	"plugin": [
+		"typedoc-plugin-missing-exports"
+	],
 	"readme": "types/documentation.md",
 	"excludeExternals": true,
 	"name": "Blockbench Reference Docs",

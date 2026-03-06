@@ -68,9 +68,9 @@ declare class Codec extends Deletable {
 	 * Load a file into the program
 	 * @param model
 	 * @param file
-	 * @param add
+	 * @param args Load options
 	 */
-	load(model: any, file?: any, args?: LoadOptions): void
+	load(model: any, file?: FileSystem.FileResult, args?: LoadOptions): void
 	/**
 	 * Compiles the file content
 	 * @param options

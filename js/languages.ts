@@ -46,7 +46,7 @@ const prerelease = appVersion.includes('-');
 
 /**
  * Returns a translated string in the current language
- * @param key Translation key
+ * @param string Translation key
  * @param variables Array of variables that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
  * @param default_value String value to default to if the translation is not available
  */
