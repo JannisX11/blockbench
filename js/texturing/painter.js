@@ -1218,6 +1218,17 @@ export const Painter = {
 		}, {no_undo: true, use_cache: true});
 	},
 	colorPicker(texture, x, y, event) {
+		// Tool switch: transparent pixel → eraser, color pixel → brush
+		if (settings.color_picker_tool_switch.value) {
+			let pixel = texture.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+			if (pixel[3] === 0) {
+				BarItems.eraser?.select();
+				delete Toolbox.original;
+				Blockbench.showQuickMessage('Switched to Eraser', 1000);
+				return;
+			}
+		}
+
 		let color;
 		// Pick layer color
 		if (settings.pick_combined_color.value == false && texture.selected_layer) {
@@ -1242,18 +1253,12 @@ export const Painter = {
 			}
 		}
 		ColorPanel.set(color, event && event.button == 2);
-		// Tool switch based on picked color
+
+		// Tool switch: go to brush after picking a color
 		if (settings.color_picker_tool_switch.value) {
-			let previous_tool = Toolbox.original || Toolbox.selected;
-			if (color.getAlpha() === 0) {
-				// Transparent pixel: switch to eraser
-				BarItems.eraser?.select();
-				delete Toolbox.original;
-			} else if (previous_tool.id === 'eraser') {
-				// Had eraser selected before: switch to brush
-				BarItems.brush_tool?.select();
-				delete Toolbox.original;
-			}
+			BarItems.brush_tool?.select();
+			delete Toolbox.original;
+			Blockbench.showQuickMessage('Switched to Brush', 1000);
 		}
 	},
 	// Util
