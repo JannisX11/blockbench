@@ -11,6 +11,9 @@ var ground_timer = 0
 var display_presets;
 var display_preview;
 
+let display_area = null;
+let display_base = null;
+
 export const DisplayMode = {
 	display_slot: 'thirdperson_righthand',
 	animate_preview: true,
@@ -818,6 +821,13 @@ export const displayReferenceObjects = {
 		'on_shelf',
 	]
 }
+
+display_area = new THREE.Object3D();
+display_base = new THREE.Object3D();
+display_area.add(display_base);
+display_base.name = 'display_base';
+display_area.name = 'display_area';
+
 DisplayMode.slots = displayReferenceObjects.slots
 DisplayMode.display_base = display_base;
 DisplayMode.display_area = display_area;
@@ -1440,7 +1450,7 @@ new TransformerModule('display', {
 
 		// todo: Fix positions when both rotation pivot and scale pivot are used
 		if (transformer_mode === 'translate') {
-			Transformer.rotation_ref = DisplayMode.display_area;
+			Transformer.rotation_ref = display_area;
 
 		} else if (transformer_mode === 'scale') {
 			if (DisplayMode.slot.scale_pivot) {

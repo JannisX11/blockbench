@@ -12,8 +12,6 @@ window.main_preview = null;
 window.MediaPreview = null;
 window.Sun = null;
 window.lights = null;
-window.display_area = null;
-window.display_base = null;
 
 var framespersecond = 0;
 const canvas_scenes = {};
@@ -2151,14 +2149,7 @@ export function initCanvas() {
 	
 	//Objects
 	window.scene = Canvas.scene = new THREE.Scene();
-	display_area = new THREE.Object3D();
-	display_base = new THREE.Object3D();
-
-	display_area.add(display_base)
-
 	scene.name = 'scene'
-	display_base.name = 'display_base'
-	display_area.name = 'display_area'
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
@@ -2619,8 +2610,6 @@ BARS.defineActions(function() {
 Object.assign(window, {
 	scene,
 	Sun,
-	display_area,
-	display_base,
 	three_grid,
 	gizmo_colors,
 	DefaultCameraPresets,
