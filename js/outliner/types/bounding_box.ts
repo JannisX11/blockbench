@@ -453,7 +453,7 @@ new NodePreviewController(BoundingBox, {
 	updateSelection(element: BoundingBox) {
 		let mesh = element.mesh as THREE.LineSegments;
 		if (mesh) {
-			if (Modes.paint) {
+			if (Modes.paint || Modes.display) {
 				mesh.visible = false;
 			} else {
 				mesh.visible = element.visibility;
@@ -465,7 +465,7 @@ new NodePreviewController(BoundingBox, {
 		this.dispatchEvent('update_selection', {element});
 	},
 	updateVisibility(element: BoundingBox) {
-		element.mesh.visible = Modes.paint ? false : element.visibility;
+		element.mesh.visible = (Modes.paint || Modes.display) ? false : element.visibility;
 
 		this.dispatchEvent('update_visibility', {element});
 	},

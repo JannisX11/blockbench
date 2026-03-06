@@ -57,20 +57,22 @@ BARS.defineActions(() => {
 				complexity: 40
 			}
 
-			const visible_box = new THREE.Box3()
-			Canvas.withoutGizmos(() => {
-				Cube.all.forEach(cube => {
-					if (cube.export && cube.mesh) {
-						visible_box.expandByObject(cube.mesh);
-					}
-				})
-			})
 
 			function generate(amended: boolean, options: GenerateOptions) {
 				let bounding_boxes: BoundingBox[] = [];
+				let cubes: Cube[] = Cube.all.slice();
 				Undo.initEdit({elements: bounding_boxes}, amended);
 				
-				let cubes: Cube[] = Cube.all.slice();
+				const visible_box = new THREE.Box3();
+				Canvas.withoutGizmos(() => {
+					for (let cube of cubes) {
+						if (options.visible_only && cube.visibility == false) continue;
+						if (cube.export && cube.mesh) {
+							visible_box.expandByObject(cube.mesh);
+						}
+					}
+				})
+				
 				let rotated_cubes: Cube[] = [];
 				let aabbs: THREE.Box3[] = [];
 				for (let cube of cubes) {
