@@ -1061,6 +1061,7 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 
 	if (Project.display_settings[key] == undefined) {
 		Project.display_settings[key] = new DisplaySlot(key)
+		if (key == 'embedded') Project.display_settings[key].scale_pivot[1] = -0.5;
 	}
 	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
