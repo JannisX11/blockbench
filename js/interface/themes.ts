@@ -923,8 +923,6 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	BarItems.import_theme.toElement('#layout_title_bar')
-	BarItems.export_theme.toElement('#layout_title_bar')
 })
 const global = {
 	CustomTheme,

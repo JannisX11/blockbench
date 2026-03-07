@@ -73,9 +73,6 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	let title_bar = document.getElementById('settings_title_bar');
-	BarItems.import_settings.toElement(title_bar);
-	BarItems.export_settings.toElement(title_bar);
 })
 
 onVueSetup(function() {

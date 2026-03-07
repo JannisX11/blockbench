@@ -77,8 +77,6 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	BarItems.load_keymap.toElement('#keybinds_title_bar')
-	BarItems.export_keymap.toElement('#keybinds_title_bar')
 })
 
 onVueSetup(function() {

@@ -2916,7 +2916,6 @@ Interface.definePanels(function() {
 					let maxFrameCount = this.maxFrameCount();
 
 					function slide(e2) {
-						convertTouchEvent(e2);
 						let pos = e2.clientX - timeline_offset;
 
 						let previous_frame = scope.currentFrame;
@@ -2931,11 +2930,11 @@ Interface.definePanels(function() {
 						TextureAnimator.update(textures);
 					}
 					function off(e3) {
-						removeEventListeners(document, 'mousemove touchmove', slide);
-						removeEventListeners(document, 'mouseup touchend', off);
+						removeEventListeners(document, 'pointermove', slide);
+						removeEventListeners(document, 'pointerup', off);
 					}
-					addEventListeners(document, 'mousemove touchmove', slide);
-					addEventListeners(document, 'mouseup touchend', off);
+					addEventListeners(document, 'pointermove', slide);
+					addEventListeners(document, 'pointerup', off);
 					slide(e1);
 				},
 				scrollTimeline(event) {
@@ -3178,19 +3177,19 @@ Interface.definePanels(function() {
 						></Texture>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
-						<div class="tool_wrapper"></div>
-						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer" @wheel="scrollTimeline($event)">
+						<div ref="tool_wrapper"></div>
+						<div id="texture_animation_timeline" ref="timeline" @pointerdown="slideTimelinePointer" @wheel="scrollTimeline($event)">
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
 							<div id="animated_texture_playhead" v-if="maxFrameCount()" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
-						<div class="tool_wrapper_2"></div>
+						<div ref="tool_wrapper_2"></div>
 					</div>
 				</div>
 			`,
 			mounted() {
-				BarItems.animated_textures.toElement('#texture_animation_playback .tool_wrapper')
-				BarItems.animated_texture_frame.setWidth(52).toElement('#texture_animation_playback .tool_wrapper')
-				BarItems.animated_texture_fps.toElement('#texture_animation_playback .tool_wrapper_2')
+				BarItems.animated_textures.toElement(this.$refs.tool_wrapper)
+				BarItems.animated_texture_frame.setWidth(52).toElement(this.$refs.tool_wrapper)
+				BarItems.animated_texture_fps.toElement(this.$refs.tool_wrapper_2)
 			}
 		},
 		menu: new Menu([
