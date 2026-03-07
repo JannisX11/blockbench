@@ -688,7 +688,7 @@ export class Cube extends OutlinerElement {
 				this.faces[side].texture = value;
 			}
 		})
-		if (selected.indexOf(this) === 0) {
+		if (Outliner.selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
 		this.preview_controller.updateFaces(this);
@@ -1635,7 +1635,7 @@ BARS.defineActions(function() {
 			unselectAllElements()
 			base_cube.select()
 			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
-			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add cube', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {

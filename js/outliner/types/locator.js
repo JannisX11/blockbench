@@ -168,7 +168,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var locator = new Locator().addTo(Group.first_selected||selected[0]).init();
+			var locator = new Locator().addTo(Group.first_selected||Outliner.selected[0]).init();
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('Add locator');

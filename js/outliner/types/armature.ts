@@ -76,8 +76,8 @@ export class Armature extends OutlinerElement {
 	matchesSelection() {
 		let scope = this;
 		let match = true;
-		for (let i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 128)) {
+		for (let i = 0; i < Outliner.selected.length; i++) {
+			if (!Outliner.selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}

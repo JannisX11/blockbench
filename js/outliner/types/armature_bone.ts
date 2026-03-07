@@ -124,8 +124,8 @@ export class ArmatureBone extends OutlinerElement {
 	matchesSelection() {
 		let scope = this;
 		let match = true;
-		for (let i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 128)) {
+		for (let i = 0; i < Outliner.selected.length; i++) {
+			if (!Outliner.selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}
@@ -570,8 +570,8 @@ BARS.defineActions(function() {
 		click: function () {
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;
-			if (!add_to_node && selected.length) {
-				add_to_node = selected.last();
+			if (!add_to_node && Outliner.selected.length) {
+				add_to_node = Outliner.selected.last();
 			}
 			let new_instance = new ArmatureBone({
 				origin: add_to_node instanceof ArmatureBone ? [0, add_to_node.length??8, 0] : undefined,

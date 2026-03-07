@@ -515,7 +515,7 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 				} else {
 					var cube = item.duplicate()
 					place(cube)
-					selected.safePush(cube)
+					Outliner.selected.safePush(cube)
 				}
 			} else {
 				place(item)
@@ -527,7 +527,7 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 	}
 	updateSelection();
 	if (duplicate) {
-		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true, groups: Group.selected})
+		Undo.finishEdit('Duplicate selection', {elements: Outliner.selected, outliner: true, selection: true, groups: Group.selected})
 	} else {
 		Undo.finishEdit('Move elements in outliner')
 	}
@@ -653,7 +653,7 @@ export function stopRenameOutliner(save) {
 	}
 }
 export function toggleElementProperty(key) {
-	let affected = selected.filter(element => element[key] != undefined);
+	let affected = Outliner.selected.filter(element => element[key] != undefined);
 	if (!affected.length) return;
 	var state = affected[0][key];
 	if (typeof state === 'number') {
@@ -691,7 +691,7 @@ SharedActions.add('rename', {
 });
 SharedActions.add('delete', {
 	subject: 'outliner',
-	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.first_selected)),
+	condition: () => ((Modes.edit || Modes.paint) && (Outliner.selected.length || Group.first_selected)),
 	priority: -1,
 	run() {
 		let list = Outliner.selected.slice();
@@ -1076,7 +1076,7 @@ BARS.defineActions(function() {
 				},
 				onConfirm(formData) {
 					if (formData.mode == 'new' || formData.mode == 'in_selection') {
-						selected.empty();
+						Outliner.selected.empty();
 					}
 					let selected_groups = Group.multi_selected;
 					if (selected_groups.length) {
@@ -1115,17 +1115,17 @@ BARS.defineActions(function() {
 						}
 						if (Math.random() > formData.random/100) return;
 						if (formData.mode == 'remove') {
-							selected.remove(obj);
+							Outliner.selected.remove(obj);
 						} else {
-							selected.safePush(obj);
+							Outliner.selected.safePush(obj);
 						}
 					})
 					updateSelection()
 					if (options && options.returnResult) {
-						options.returnResult({elements: selected, groups: selected_groups});
+						options.returnResult({elements: Outliner.selected, groups: selected_groups});
 
-					} else if (selected.length) {
-						selected[0].showInOutliner()
+					} else if (Outliner.selected.length) {
+						Outliner.selected[0].showInOutliner()
 					}
 				}
 			}).show()
@@ -1377,7 +1377,7 @@ Interface.definePanels(function() {
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
 					if (!toggle_config) return;
-					if (!Condition(toggle_config.condition, selected[0])) return;
+					if (!Condition(toggle_config.condition, Outliner.selected[0])) return;
 
 					function move(e2) {
 						convertTouchEvent(e2);

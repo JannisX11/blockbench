@@ -67,7 +67,7 @@ export class Group extends OutlinerNode {
 	select(event, is_outliner_click) {
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && Outliner.selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
 		let multi_select = (event.ctrlOrCmd || Pressing.overrides.ctrl) && !Modes.animate;
 		let shift_select = (event.shiftKey || Pressing.overrides.shift) && !Modes.animate;
@@ -114,7 +114,7 @@ export class Group extends OutlinerNode {
 		} else {
 			// Fix for #2401
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
-				selected.safePush(previous_first_selected);
+				Outliner.selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
 				s.markAsSelected(true)
@@ -177,8 +177,8 @@ export class Group extends OutlinerNode {
 		if (Group.multi_selected.length != 1 || this != Group.first_selected) return false;
 		let scope = this;
 		let match = true;
-		for (let i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 128)) {
+		for (let i = 0; i < Outliner.selected.length; i++) {
+			if (!Outliner.selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}
@@ -682,10 +682,10 @@ new NodePreviewController(Group, {
 export function getCurrentGroup() {
 	if (Group.first_selected) {
 		return Group.first_selected
-	} else if (selected.length) {
-		var g1 = selected[0].parent;
+	} else if (Outliner.selected.length) {
+		var g1 = Outliner.selected[0].parent;
 		if (g1 instanceof Group) {
-			for (var obj of selected) {
+			for (var obj of Outliner.selected) {
 				if (obj.parent !== g1) {
 					return;
 				}
@@ -756,7 +756,7 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
+		condition: () => Modes.edit && (Outliner.selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true, groups: []});

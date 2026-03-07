@@ -363,7 +363,7 @@ BARS.defineActions(function() {
 
 			unselectAllElements()
 			base_texture_mesh.select()
-			Undo.finishEdit('Add texture mesh', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add texture mesh', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_texture_mesh', {object: base_texture_mesh} )
 
 			Vue.nextTick(function() {

@@ -205,7 +205,7 @@ export class Billboard extends OutlinerElement {
 			value = texture;
 		}
 		this.faces.front.texture = value;
-		if (selected.indexOf(this) === 0) {
+		if (Outliner.selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
 		this.preview_controller.updateFaces(this);
@@ -763,7 +763,7 @@ BARS.defineActions(function() {
 			unselectAllElements()
 			new_billboard.select()
 			Canvas.updateView({elements: [new_billboard], element_aspects: {transform: true, geometry: true, faces: true}})
-			Undo.finishEdit('Add billboard', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add billboard', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_billboard', {object: new_billboard} )
 
 			Vue.nextTick(function() {

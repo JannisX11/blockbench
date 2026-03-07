@@ -548,7 +548,7 @@ BARS.defineActions(function() {
 			unselectAllElements()
 			base_bounding_box.select()
 			Canvas.updateView({elements: [base_bounding_box], element_aspects: {transform: true, geometry: true}})
-			Undo.finishEdit('Add bounding box', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add bounding box', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_bounding_box', {object: base_bounding_box} )
 
 			Vue.nextTick(function() {

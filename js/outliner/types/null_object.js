@@ -177,7 +177,7 @@ BARS.defineActions(function() {
 		click: function () {
 			var objs = []
 			Undo.initEdit({elements: objs, outliner: true});
-			var null_object = new NullObject().addTo(Group.first_selected||selected[0]).init();
+			var null_object = new NullObject().addTo(Group.first_selected||Outliner.selected[0]).init();
 			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');

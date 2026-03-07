@@ -108,11 +108,11 @@ export abstract class OutlinerElement extends OutlinerNode {
 		//Rest
 		let last_selected = this.getParentArray().findLast(el => el.selected || el == this);
 		copy.sortInBefore(last_selected, 1).init();
-		let index = selected.indexOf(this)
+		let index = Outliner.selected.indexOf(this)
 		if (index >= 0) {
-			selected[index] = copy
+			Outliner.selected[index] = copy
 		} else {
-			selected.push(copy)
+			Outliner.selected.push(copy)
 		}
 		Property.resetUniqueValues(this.constructor, copy);
 		if (Condition(copy.getTypeBehavior('unique_name'))) {
@@ -154,7 +154,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 						starting_point = true
 					}
 					if (s.type !== 'group') {
-						if (!selected.includes(s as OutlinerElement)) {
+						if (!Outliner.selected.includes(s as OutlinerElement)) {
 							s.markAsSelected(true)
 							just_selected.push(s)
 						}
@@ -163,7 +163,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 					}
 				} else if (starting_point) {
 					if (s.type !== 'group') {
-						if (!selected.includes(s as OutlinerElement)) {
+						if (!Outliner.selected.includes(s as OutlinerElement)) {
 							s.markAsSelected(true)
 							just_selected.push(s)
 						}

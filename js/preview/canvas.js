@@ -727,7 +727,7 @@ export const Canvas = {
 	},
 	updatePositions(leave_selection) {
 		updateNslideValues()
-		var arr = selected.slice()
+		var arr = Outliner.selected.slice()
 		if (Format.bone_rig && Group.first_selected) {
 			Canvas.updateAllBones();
 		}
