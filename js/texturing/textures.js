@@ -441,7 +441,7 @@ export class Texture {
 			}
 			let file_format_data = Texture.file_formats[this.file_format];
 
-			if (file.content === 'string') {
+			if (typeof file.content === 'string') {
 				this.fromDataURL(file.content);
 
 			} else if (file.content && file_format_data.decode) {
