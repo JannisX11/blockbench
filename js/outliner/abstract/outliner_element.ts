@@ -99,7 +99,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 		let number: number | undefined;
 		let matches = copy.name.match(/[0-9]+$/);
 		if (matches) {
-			number = parseInt(number[0])
+			number = parseInt(matches[0]);
 			copy.name = copy.name.split((number).toString()).join((number+1).toString())
 		}
 		if (Condition(this.getTypeBehavior('unique_name'))) {
