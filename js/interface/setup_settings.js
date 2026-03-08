@@ -196,6 +196,7 @@ function setupSettings() {
 	new Setting('move_with_selection_tool',			{category: 'paint', value: true});
 	new Setting('pick_color_opacity',				{category: 'paint', value: false});
 	new Setting('pick_combined_color',				{category: 'paint', value: false});
+	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
 	new Setting('paint_through_transparency',		{category: 'paint', value: true});
 	new Setting('paint_side_restrict',				{category: 'paint', value: true});
 	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
