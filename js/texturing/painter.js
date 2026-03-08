@@ -1222,9 +1222,8 @@ export const Painter = {
 		if (settings.color_picker_tool_switch.value) {
 			let pixel = texture.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
 			if (pixel[3] === 0) {
-				BarItems.eraser?.select();
-				delete Toolbox.original;
-				Blockbench.showQuickMessage('Switched to Eraser', 1000);
+				Toolbox.original = BarItems.eraser;
+				// Blockbench.showQuickMessage('Switched to Eraser', 1000);
 				return;
 			}
 		}
@@ -1255,10 +1254,9 @@ export const Painter = {
 		ColorPanel.set(color, event && event.button == 2);
 
 		// Tool switch: go to brush after picking a color
-		if (settings.color_picker_tool_switch.value) {
-			BarItems.brush_tool?.select();
-			delete Toolbox.original;
-			Blockbench.showQuickMessage('Switched to Brush', 1000);
+		if (settings.color_picker_tool_switch.value && Toolbox.original == BarItems.eraser) {
+			Toolbox.original = BarItems.brush_tool
+			// Blockbench.showQuickMessage('Switched to Brush', 1000);
 		}
 	},
 	// Util
