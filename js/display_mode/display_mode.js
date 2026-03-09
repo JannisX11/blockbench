@@ -74,8 +74,7 @@ export class DisplaySlot {
 			|| !this.translation.allEqual(0)
 			|| !this.scale.allEqual(1)
 			|| !this.mirror.allEqual(false)
-			|| !this.rotation_pivot.allEqual(0)
-			|| !this.scale_pivot.allEqual(0);
+			|| (this.fit_to_frame && this.slot_id == 'gui');
 		if (!has_data) return;
 
 		let build = {
