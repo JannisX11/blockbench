@@ -147,6 +147,16 @@ export abstract class OutlinerNode {
 			return this.parent.children;
 		}
 	}
+	getAllAncestors(): OutlinerNode[] {
+		let list: OutlinerNode[] = [];
+		let parent = this.parent;
+		while (parent instanceof OutlinerNode) {
+			if (list.includes(parent)) break;
+			list.push(parent);
+			parent = parent.parent;
+		}
+		return list;
+	}
 	showContextMenu(event) {
 		if (this.locked) return this;
 		if (!this.selected) {

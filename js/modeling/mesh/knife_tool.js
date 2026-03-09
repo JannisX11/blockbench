@@ -672,64 +672,9 @@ export class KnifeToolCubeContext {
 		if (this.cube.box_uv && Format.optional_box_uv) {
 			this.cube.box_uv = false;
 		}
-		let duplicate = this.cube.duplicate();
+		let duplicate = splitCube(this.cube, this.axis, this.offset);
 		Outliner.selected.safePush(duplicate);
 		elements.safePush(duplicate);
-		let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
-		let modified_to = this.cube.to.slice().V3_subtract(this.cube.inflate);
-		let offset = this.offset + this.cube.origin[this.axis];
-		let offset_lerp = Math.getLerp(modified_from[this.axis], modified_to[this.axis], offset);
-
-		this.cube.to[this.axis] = offset - this.cube.inflate;
-		duplicate.from[this.axis] = offset + this.cube.inflate;
-
-		function modifyUV(face, index, inverted) {
-			index = (index - (face.rotation/90) + 8) % 4;
-			let index_opposite = (index+2)%4;
-			if (inverted) {
-				face.uv[index] = Math.lerp(face.uv[index], face.uv[index_opposite], offset_lerp);
-			} else {
-				face.uv[index] = Math.lerp(face.uv[index_opposite], face.uv[index], offset_lerp);
-			}
-		}
-		switch (this.axis) {
-			case 0: {
-				modifyUV(this.cube.faces.north, 0);
-				modifyUV(this.cube.faces.south, 2);
-				modifyUV(this.cube.faces.up, 2);
-				modifyUV(this.cube.faces.down, 2);
-
-				modifyUV(duplicate.faces.north, 2, true);
-				modifyUV(duplicate.faces.south, 0, true);
-				modifyUV(duplicate.faces.up, 0, true);
-				modifyUV(duplicate.faces.down, 0, true);
-				break;
-			}
-			case 1: {
-				modifyUV(this.cube.faces.north, 1);
-				modifyUV(this.cube.faces.south, 1);
-				modifyUV(this.cube.faces.east, 1);
-				modifyUV(this.cube.faces.west, 1);
-
-				modifyUV(duplicate.faces.north, 3, true);
-				modifyUV(duplicate.faces.south, 3, true);
-				modifyUV(duplicate.faces.east, 3, true);
-				modifyUV(duplicate.faces.west, 3, true);
-				break;
-			}
-			case 2: {
-				modifyUV(this.cube.faces.east, 0);
-				modifyUV(this.cube.faces.west, 2);
-				modifyUV(this.cube.faces.up, 3);
-				modifyUV(this.cube.faces.down, 1);
-
-				modifyUV(duplicate.faces.east, 2, true);
-				modifyUV(duplicate.faces.west, 0, true);
-				modifyUV(duplicate.faces.up, 1, true);
-				modifyUV(duplicate.faces.down, 3, true);
-				break;
-			}
-		}
 
 		Canvas.updateView({elements, element_aspects: {geometry: true, uv: true}, selection: true});
 		Undo.finishEdit('Use knife tool');
@@ -835,6 +780,68 @@ BARS.defineActions(() => {
 		}
 	})
 })
+
+export function splitCube(cube, axis, offset_value) {
+	let duplicate = cube.duplicate();
+
+	let modified_from = cube.from.slice().V3_subtract(cube.inflate);
+	let modified_to = cube.to.slice().V3_subtract(cube.inflate);
+	let offset = offset_value + cube.origin[axis];
+	let offset_lerp = Math.getLerp(modified_from[axis], modified_to[axis], offset);
+
+	cube.to[axis] = offset - cube.inflate;
+	duplicate.from[axis] = offset + cube.inflate;
+
+	function modifyUV(face, index, inverted) {
+		index = (index - (face.rotation/90) + 8) % 4;
+		let index_opposite = (index+2)%4;
+		if (inverted) {
+			face.uv[index] = Math.lerp(face.uv[index], face.uv[index_opposite], offset_lerp);
+		} else {
+			face.uv[index] = Math.lerp(face.uv[index_opposite], face.uv[index], offset_lerp);
+		}
+	}
+	switch (axis) {
+		case 0: {
+			modifyUV(cube.faces.north, 0);
+			modifyUV(cube.faces.south, 2);
+			modifyUV(cube.faces.up, 2);
+			modifyUV(cube.faces.down, 2);
+
+			modifyUV(duplicate.faces.north, 2, true);
+			modifyUV(duplicate.faces.south, 0, true);
+			modifyUV(duplicate.faces.up, 0, true);
+			modifyUV(duplicate.faces.down, 0, true);
+			break;
+		}
+		case 1: {
+			modifyUV(cube.faces.north, 1);
+			modifyUV(cube.faces.south, 1);
+			modifyUV(cube.faces.east, 1);
+			modifyUV(cube.faces.west, 1);
+
+			modifyUV(duplicate.faces.north, 3, true);
+			modifyUV(duplicate.faces.south, 3, true);
+			modifyUV(duplicate.faces.east, 3, true);
+			modifyUV(duplicate.faces.west, 3, true);
+			break;
+		}
+		case 2: {
+			modifyUV(cube.faces.east, 0);
+			modifyUV(cube.faces.west, 2);
+			modifyUV(cube.faces.up, 3);
+			modifyUV(cube.faces.down, 1);
+
+			modifyUV(duplicate.faces.east, 2, true);
+			modifyUV(duplicate.faces.west, 0, true);
+			modifyUV(duplicate.faces.up, 1, true);
+			modifyUV(duplicate.faces.down, 3, true);
+			break;
+		}
+	}
+	return duplicate;
+}
+
 const global = {
 	KnifeToolContext,
 	KnifeToolCubeContext,

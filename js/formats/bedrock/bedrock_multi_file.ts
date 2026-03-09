@@ -7,6 +7,7 @@ import { Animation } from "../../animations/animation";
 import { InputFormConfig } from "../../interface/form";
 // @ts-ignore
 import PlayerTexture from './../../../assets/player_skin.png'
+import { splitCube } from "../../modeling/mesh/knife_tool";
 
 const PLAYER_GEO = {
 	"description": {
@@ -309,6 +310,106 @@ BARS.defineActions(function() {
 				}
 				Canvas.updateAllBones();
 			})
+		}
+	})
+	new Action('slice_bedrock_multiblock', {
+		name: 'Slice Bedrock Multiblock',
+		condition: () => Format.id == 'bedrock_block',
+		icon: 'dashboard_customize',
+		click() {
+			let center = getSelectionCenter();
+			let form: InputFormConfig = {
+				split_cubes: {label: 'Split Cubes', value: true, type: 'checkbox'},
+			}
+			if (isApp) {
+				form.export_location = {label: 'Export Directory', type: 'folder', value: PathModule.dirname(Project.export_path)};
+			}
+			new Dialog('slice_bedrock_multiblock', {
+				title: this.name,
+				form,
+				onConfirm(result) {
+
+					let cubes_modified = Cube.all.slice();
+					Undo.initEdit({elements: cubes_modified, collections: []});
+
+					if (result.split_cubes) {
+						for (let axis = 0; axis < 3; axis++) {
+							let original_cubes = Cube.all.slice();
+							let off_axes = [0,1,2].filter(i => i != axis);
+							for (let cube of original_cubes) {
+								let self_and_ancestors = cube.getAllAncestors().concat([cube]);
+								if (self_and_ancestors.allAre((group: Group | Cube) => {
+										return group.rotation[off_axes[0]] == 0 && group.rotation[off_axes[1]] == 0
+									})
+								) {
+									// Simple rotation
+									let offset = axis == 1 ? 0 : 8;
+									let start = Math.min(cube.from[axis], cube.to[axis]);
+									let end = Math.max(cube.from[axis], cube.to[axis]);
+									let pos = Math.ceil((start + offset) /16) * 16 - offset;
+									let cuts: number[] = [];
+									while (pos < end) {
+										if (!Math.epsilon(pos, start, 0.6) && !Math.epsilon(pos, end, 0.6)) {
+											cuts.push(pos);
+										}
+										pos += 16;
+									}
+									for (let cut of cuts) {
+										let new_cube = splitCube(cube, axis, cut);
+										cubes_modified.push(new_cube);
+										cube = new_cube;
+									}
+								}
+							}
+						}
+					}
+
+					function offsetName(block_offset: number, center: string, positive: string, negative: string): string {
+						if (block_offset == 0) {
+							return center;
+						}
+						let absolute = Math.abs(block_offset);
+						return `${Math.sign(block_offset) == 1 ? positive : negative}${absolute >= 2 ? absolute : ''}`;
+					}
+
+					let scope = 0;
+					let collections: Record<string, Collection> = {};
+					for (let cube of Cube.all) {
+						let pos = cube.getWorldCenter();
+						let block_offset = [
+							Math.round(pos.x/16),
+							Math.floor(pos.y/16),
+							Math.round(pos.z/16),
+						];
+						let key = block_offset.join('-');
+						let project_name = Project.geometry_name || Project.getDisplayName(false) || 'model';
+						if (!collections[key]) {
+							scope++;
+							let name = [
+								offsetName(block_offset[0], '', 'right', 'left'),
+								offsetName(block_offset[1], 'bottom', 'top', 'below'),
+								offsetName(block_offset[2], '', 'front', 'back'),
+							].filter(v => v).join('_');
+							collections[key] = new Collection({
+								name,
+								//scope,
+								offset: block_offset.V3_multiply(16, 16, 16),
+								export_codec: 'bedrock',
+								model_identifier: Project.model_identifier + '.' + key,
+							}).add();
+							if (isApp && result.export_location) {
+								collections[key].export_path = PathModule.join(result.export_location as string, project_name + '.' + name) + '.geo.json';
+							}
+						}
+						collections[key].children.push(cube.uuid);
+						//[key].children.safePush(...cube.getAllAncestors().map(node => node.uuid));
+						//cube.scope = collections[key].scope;
+					}
+
+					Canvas.updateView({elements: cubes_modified, element_aspects: {transform: true, geometry: true}});
+					Undo.finishEdit('Slice multi block model', {collections: Object.values(collections), elements: cubes_modified});
+				}
+			}).show();
 		}
 	})
 })

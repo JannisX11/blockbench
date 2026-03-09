@@ -472,6 +472,7 @@ export const MenuBar = {
 			'generate_voxel_shapes',
 			'generate_bedrock_block_box',
 			'generate_bedrock_entity_box',
+			'slice_bedrock_multiblock',
 		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 

@@ -942,7 +942,19 @@ window.calculateVisibleBox = calculateVisibleBox;
 		return template;
 	}
 	function compileGroup(g) {
-		if (g.type !== 'group' || g.export == false) return;
+		if (g.type !== 'group') return;
+		if (g.export == false) {
+			function hasChildrenToExport(node) {
+				for (let child of node.children) {
+					if (child.export == true) return true;
+					if ("children" in child) {
+						let result = hasChildrenToExport(child);
+						if (result) return true;
+					}
+				}
+			}
+			if (!hasChildrenToExport(g)) return false;
+		}
 		if (!settings.export_empty_groups.value && !g.children.find(child => child.export)) return;
 		if (g.children.length && g.children.allAre(c => c instanceof BoundingBox)) return;
 		//Bone

@@ -27,6 +27,7 @@ export interface CollectionOptions {
 	name?: string
 	export_codec?: string
 	export_path?: string
+	offset?: ArrayVector3
 	model_identifier?: string
 	visibility?: boolean
 	scope?: number
@@ -801,7 +802,10 @@ Interface.definePanels(function() {
 				},
 				save(collection: Collection) {
 					let codec = Codecs[collection.export_codec];
-					if (codec && collection.export_path) {
+					if (!codec) {
+						return Blockbench.showQuickMessage(`Cannot export collection: Unknown codec "${collection.export_codec}"`);
+					}
+					if (collection.export_path) {
 						codec.writeCollection(collection);
 					}
 				},

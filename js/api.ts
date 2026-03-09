@@ -362,7 +362,7 @@ export const Blockbench = {
 		return EventSystem.prototype.removeListener.call(this, event_name, cb);
 	},
 	// Update
-	onUpdateTo(version, callback) {
+	onUpdateTo(version: string, callback: (previous_version: string) => void) {
 		if (LastVersion && VersionUtil.compare(version, '>', LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
