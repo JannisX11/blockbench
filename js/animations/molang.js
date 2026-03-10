@@ -112,11 +112,11 @@ Animator.MolangParser.variableHandler = function (variable, variables, args) {
 	}
 
 	if (val.match(/^(slider|toggle|impulse)\(/)) {
-		let [type, content] = val.substring(0, val.length - 1).split(/\(/)
+		let [type, content] = val.substring(0, val.lastIndexOf(')')).split(/\(/)
 		let [id] = content.split(/\(|, */)
 		id = id.replace(/['"]/g, '')
 
-		let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
+		let button = Panels.variable_placeholders.inside_vue.buttons.find(
 			(b) => b.id === id && b.type == type
 		)
 		return button ? parseFloat(button.value) : 0
