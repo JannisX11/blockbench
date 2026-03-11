@@ -1650,7 +1650,7 @@ Interface.definePanels(() => {
 					return state ? state.name : '';
 				},
 				onMouseWheel(event) {
-					if (event.ctrlOrCmd) {
+					if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 						let delta = (event.deltaY < 0) ? 0.1 : -0.1;
 						this.zoom = Math.clamp(this.zoom + delta, 0.3, 1);
 						this.updateConnectionWrapperOffset();

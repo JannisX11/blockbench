@@ -559,7 +559,7 @@ export const Timeline = {
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
-			} else if  (event.ctrlOrCmd) {
+			} else if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 
 				let offset = $('#timeline_body_inner').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
