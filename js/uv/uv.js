@@ -3496,7 +3496,7 @@ Interface.definePanels(function() {
 				dragFace(element, face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
-					let face_selected_before = UVEditor.getSelectedFaces(element)[0];
+					let faces_selected_before = UVEditor.getSelectedFaces(element).slice();
 					if (element && face_key) this.selectFace(element, face_key, event, true);
 					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({
@@ -3681,16 +3681,25 @@ Interface.definePanels(function() {
 							if (do_move_uv) {
 								if (overlay_canvas) overlay_canvas.remove();
 							}
+							// Select UV island
 							if (face_key && Mesh.selected[0]) {
 								let selected_faces = UVEditor.getSelectedFaces(element, true);
 								let selected_before = selected_faces.slice();
 								UVEditor.selectMeshUVIsland(face_key);
 								if (
-									(selected_faces.includes(face_selected_before) && face_selected_before !== face_key) ||
+									(selected_faces.includes(faces_selected_before[0]) && faces_selected_before[0] !== face_key) ||
 									(event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl)
 								) {
 									selected_faces.replace(selected_before);
+								} else {
+									return;
 								}
+							}
+							// Unselect previously selected face when ctrl+clicking
+							if (face_key && (event.ctrlOrCmd || Pressing.overrides.ctrl) && faces_selected_before.includes(face_key)) {
+								let selected_faces = UVEditor.getSelectedFaces(element, true);
+								selected_faces.remove(face_key);
+								UVEditor.vue.$forceUpdate();
 							}
 						}
 					})
@@ -4381,7 +4390,7 @@ Interface.definePanels(function() {
 						
 							calcrect = getRectangle(start_x_here, start_y_here, x, y);
 							if (!calcrect.x && !calcrect.y) return;
-							if (e1.ctrlKey || Pressing.overrides.ctrl) {
+							if (e1.ctrlOrCmd || Pressing.overrides.ctrl) {
 								calcrect.y = calcrect.x = Math.round((calcrect.y + calcrect.x) / 2);
 								calcrect.bx = calcrect.ax + calcrect.x;
 								calcrect.by = calcrect.ay + calcrect.y;
