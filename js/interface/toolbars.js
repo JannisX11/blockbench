@@ -373,6 +373,14 @@ export const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, shift: true})
 			})
+			new KeybindItem('preview_scroll_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1001})
+			})
+			new KeybindItem('uv_editor_scroll_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1001, ctrl: true})
+			})
 			new KeybindItem('preview_area_select', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, ctrl: true, shift: null})

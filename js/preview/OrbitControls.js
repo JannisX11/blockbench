@@ -697,6 +697,9 @@ constructor ( object, preview ) {
 
 		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
 
+		let enabled = Keybinds.extra.preview_scroll_zoom.keybind.isTriggered(event);
+		if (!enabled) return;
+
 		event.preventDefault();
 		event.stopPropagation();
 

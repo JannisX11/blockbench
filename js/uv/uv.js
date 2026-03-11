@@ -589,8 +589,8 @@ export const UVEditor = {
 	setZoom(zoom) {
 		let min_size = UVEditor.isUVClamped() ? 64 : 20;
 		let min_zoom = Math.clamp(min_size / UVEditor.height, 0.05, 0.4);
-		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 32 / UVEditor.width);
-		zoom = Math.clamp(zoom, min_zoom, Math.clamp(max_zoom, 16, 64));
+		let max_zoom = Math.round((this.vue.texture ? this.vue.texture.height : Project.texture_width) * 64 / UVEditor.width);
+		zoom = Math.clamp(zoom, min_zoom, Math.clamp(max_zoom, 16, 128));
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
 		Vue.nextTick(() => {
@@ -2987,7 +2987,7 @@ Interface.definePanels(function() {
 					UVEditor.updateUVNavigator();
 				},
 				onMouseWheel(event) {
-					if (event.ctrlOrCmd) {
+					if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 				
 						event.stopPropagation()
 						event.preventDefault()

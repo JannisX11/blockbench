@@ -545,7 +545,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 Keybinds.no_overlap = function(k1, k2) {
 	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
-const overlap_exempt = [1,2,3];
+const overlap_exempt = [1,2,3,1001];
 export function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
 		Keybinds.structure[key].conflict = false;
