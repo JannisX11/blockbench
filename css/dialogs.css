@@ -2166,6 +2166,7 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		padding-top: 3px;
+		user-select: text;
 	}
 	li.validator_dialog_problem .tool {
 		flex-shrink: 0;
