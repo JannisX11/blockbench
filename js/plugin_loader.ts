@@ -72,6 +72,7 @@ export const Plugins = {
 StateMemory.init('installed_plugins', 'array')
 // @ts-ignore
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
+let session_plugin_installations = 0;
 
 
 type PluginVariant = 'desktop'|'web'|'both';
@@ -341,6 +342,15 @@ export class Plugin {
 				}, resolve)
 			})
 			if (answer == 0) return;
+		}
+		session_plugin_installations++;
+		if (session_plugin_installations >= 12) {
+			await new Promise<any>(resolve => Blockbench.showMessageBox({
+				icon: 'data_check',
+				title: 'data.plugin',
+				message: `You have already installed ${session_plugin_installations} plugins in this session.\n`+
+					`Please remember to check if you actually need a plugin before installing it. Running too many plugins can increase the chance of encountering compatibility issues or bugs.`
+			}, resolve))
 		}
 		return await this.download(true);
 	}
