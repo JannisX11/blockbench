@@ -20,7 +20,7 @@ interface SharedOptions {
 	 */
 	importFile?: (file: FileResult, auto_loaded?: boolean) => void
 	/**
-	 * Load the animations from an animation file into the project.
+	 * Load the animations from an animation file into the project. Not required on generic codecs
 	 * @param file File to load
 	 * @param animation_filter If specified, only animations with an ID in the list get imported
 	 */

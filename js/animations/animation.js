@@ -708,7 +708,7 @@ export class Animation extends AnimationItem {
 			id: 'reload',
 			name: 'menu.animation.reload',
 			icon: 'refresh',
-			condition: (animation) => (Format.animation_files && Format.id.includes('bedrock') && isApp && animation.saved),
+			condition: (animation) => (isApp && AnimationCodec.getCodec(animation)?.reloadAnimation && animation.saved),
 			click(animation) {
 				AnimationCodec.getCodec(animation)?.reloadAnimation(animation);
 			}
@@ -1042,9 +1042,9 @@ BARS.defineActions(function() {
 				paths.forEach(path => {
 					codec?.exportFile(path);
 				})
-			} else {
+			} else if (codec.saveAnimation) {
 				Animation.all.forEach(animation => {
-					codec.exportAnimation();
+					codec.saveAnimation();
 				})
 			}
 
