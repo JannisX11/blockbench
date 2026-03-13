@@ -65,10 +65,20 @@ declare function removeEventListeners(
  * @deprecated Use {@link VersionUtil.compare} instead.
  */
 declare function compareVersions(versionA: any, versionB: any): boolean
+/**
+ * Sets properties such as clientX on a TouchEvent based on touches. The use of the PointerEvent API is recommended instead.
+ * @param event 
+ */
 declare function convertTouchEvent(event: TouchEvent | MouseEvent): MouseEvent
+/**
+ * Generate a new random UUID
+ */
 declare function guid(): string
-declare function isUUID(s: any): any
-declare function bbuid(l: any): string
+/**
+ * Returns true if the passed input is a UUID
+ */
+declare function isUUID(s: string): boolean
+declare function bbuid(length: number): string
 declare function trimFloatNumber(value: number, decimal_places: number = 4): string
 declare function getAxisLetter(axisNumber: number): string
 declare function getAxisNumber(axisLetter: string): number
