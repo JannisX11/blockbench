@@ -321,7 +321,7 @@ export class PreviewModel {
 		delete PreviewModel.models[this.id];
 	}
 
-	static buildModel() {
+	static generateModelFromProject() {
 		let cubes = Cube.all.map(cube => {
 			let from = cube.from.slice();
 			let to = cube.to.slice();

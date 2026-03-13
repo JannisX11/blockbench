@@ -317,12 +317,21 @@ BARS.defineActions(function() {
 		condition: () => Format.id == 'bedrock_block',
 		icon: 'dashboard_customize',
 		click() {
-			let center = getSelectionCenter();
 			let form: InputFormConfig = {
-				split_cubes: {label: 'Split Cubes', value: true, type: 'checkbox'},
+				split_cubes: {
+					label: 'Split Cubes',
+					description: 'If enabled, cubes that span across multiple blocks and align with block edges in terms of rotation will be split between blocks.',
+					type: 'checkbox',
+					value: true,
+				},
 			}
 			if (isApp) {
-				form.export_location = {label: 'Export Directory', type: 'folder', value: PathModule.dirname(Project.export_path)};
+				form.export_location = {
+					label: 'Export Directory',
+					description: 'Select the folder where the individual spliced model files should be saved.',
+					type: 'folder',
+					value: PathModule.dirname(Project.export_path)
+				};
 			}
 			new Dialog('slice_bedrock_multiblock', {
 				title: this.name,
