@@ -922,9 +922,11 @@ ReferenceImage.updateAll = function() {
 }
 
 StateMemory.init('global_reference_images', 'array');
-StateMemory.global_reference_images.forEach(template => {
-	new ReferenceImage(template).addAsGlobalReference();
-});
+export async function initReferenceImages() {
+	StateMemory.global_reference_images.forEach(template => {
+		new ReferenceImage(template).addAsGlobalReference();
+	});
+}
 
 SharedActions.add('delete', {
 	condition: () => ReferenceImageMode.active && ReferenceImage.selected,

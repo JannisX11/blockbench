@@ -55,6 +55,7 @@ const REQUESTABLE_APIS = [
 	'v8',
 	'dialog',
 	'clipboard',
+	'shell',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',
@@ -65,6 +66,7 @@ const API_DESCRIPTIONS = {
 	https: 'create servers and talk to other servers',
 	dialog: 'open native dialogs',
 	clipboard: 'read and write to the clipboard',
+	shell: 'open files, folders, and links, and move objects to trash',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -185,6 +187,8 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 		return process;
 	} else if (no_namespace_name == 'clipboard') {
 		return clipboard;
+	} else if (no_namespace_name == 'shell') {
+		return shell;
 	} else if (no_namespace_name == 'dialog') {
 		let api = {};
 		for (let key in dialog) {
