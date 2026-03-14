@@ -421,6 +421,7 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.markdown img {
+		image-rendering: auto;
 		max-width: 100%;
 	}
 
