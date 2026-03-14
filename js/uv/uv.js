@@ -2987,7 +2987,8 @@ Interface.definePanels(function() {
 					UVEditor.updateUVNavigator();
 				},
 				onMouseWheel(event) {
-					if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
+					let is_zoom_gesture = event.ctrlKey && !Pressing.ctrl;
+					if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 				
 						event.stopPropagation()
 						event.preventDefault()
