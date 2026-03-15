@@ -696,8 +696,20 @@ constructor ( object, preview ) {
 	function onMouseWheel( event ) {
 
 		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
+		let enabled = keybind.isTriggered(event);
 
-		let enabled = Keybinds.extra.preview_scroll_zoom.keybind.isTriggered(event);
+		if (!enabled) {
+			if (event.shiftKey) {
+				pan( -event.deltaY, 0 );
+			} else {
+				pan( -event.deltaX, -event.deltaY );
+			}
+
+			scope.update();
+			scope.updateSceneScale();
+		}
+
 		if (!enabled) return;
 
 		event.preventDefault();

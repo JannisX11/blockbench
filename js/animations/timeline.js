@@ -553,18 +553,19 @@ export const Timeline = {
 		addEventListeners(timeline_vue, 'mousewheel scroll', function(event) {
 			event.preventDefault()
 			let body = document.getElementById('timeline_body');
+			let is_zoom_gesture = event.ctrlKey && !Pressing.ctrl;
 
 			body.scrollLeft += event.deltaX/2;
 
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
-			} else if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
+			} else if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 
 				let offset = $('#timeline_body_inner').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
 				
-				var zoom = 1 - event.deltaY/600
+				var zoom = 1 - event.deltaY / (is_zoom_gesture ? 160 : 600)
 				let original_size = Timeline.vue._data.size
 				let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
 				Timeline.vue._data.size = updated_size;
