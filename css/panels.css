@@ -2958,7 +2958,8 @@ span.controller_state_section_info {
 		color: var(--color-light);
 	}
 	#uv_cube_face_bar li.selected {
-		border-bottom: 3px solid var(--color-accent);
+		border-radius: 3px;
+		background: var(--color-selected);
 	}
 	#uv_cube_face_bar li.disabled {
 		color: var(--color-subtle_text);
