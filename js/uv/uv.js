@@ -3352,7 +3352,17 @@ Interface.definePanels(function() {
 					menu.open(event.target);
 				},
 				selectFace(element, key, event, keep_selection, support_dragging) {
-					let selected_faces = element ? UVEditor.getSelectedFaces(element, true) : [];
+					let selected_faces = UVEditor.getSelectedFaces(element, true);
+					let synced_faces = false;
+					if (!element) {
+						// If the selection is identical on all elements, we can modify the existing selection
+						let elements = UVEditor.getMappableElements();
+						let _selected_faces = UVEditor.getSelectedFaces(elements[0], true);
+						if (elements.length == 1 || elements.allAre(e2 => _selected_faces.equals(UVEditor.getSelectedFaces(e2)))) {
+							selected_faces = _selected_faces;
+							synced_faces = true;
+						}
+					}
 					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
 
@@ -3368,7 +3378,9 @@ Interface.definePanels(function() {
 					if (!element && key) {
 						UVEditor.getMappableElements().forEach(element => {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
-							if (add_to_list) {
+							if (synced_faces) {
+								element_selected_faces.replace(selected_faces);
+							} else if (add_to_list) {
 								if (element.faces[key]) {
 									element_selected_faces.safePush(key);
 								}
