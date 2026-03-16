@@ -3,7 +3,7 @@ import { player_preview_model } from "../../preview/preview_scenes";
 
 BARS.defineActions(function() {
 
-	let player_attachable_reference_model = new PreviewModel('attachable_reference_player', {
+	const player_attachable_reference_model = new PreviewModel('attachable_reference_player', {
 		texture: './assets/player_skin.png',
 		texture_size: [64, 64],
 		cubes: [
@@ -246,7 +246,10 @@ BARS.defineActions(function() {
 	player_attachable_reference_model.updateArmVariant = player_preview_model.updateArmVariant;
 	player_attachable_reference_model.updateArmVariant();
 
-	let camera_preset_1st = {
+	let first_person_view_preview = null;
+	let player_skin_setup = false;
+
+	const camera_preset_1st = {
 		name: tl('action.bedrock_animation_mode.attachable_first'),
 		id: 'attachable_first',
 		condition: () => Format.id == 'bedrock' && Project.bedrock_animation_mode == 'attachable_first',
@@ -256,7 +259,7 @@ BARS.defineActions(function() {
 		focal_length: 18,
 		aspect_ratio: 16/9,
 	};
-	let camera_preset_1st_mf = {
+	const camera_preset_1st_mf = {
 		name: tl('action.bedrock_animation_mode.attachable_first'),
 		id: 'attachable_first',
 		condition: () => Format.id == 'bedrock' && Project.bedrock_animation_mode == 'attachable_first',
@@ -270,19 +273,19 @@ BARS.defineActions(function() {
 
 	function centerCamera() {
 		Preview.selected.loadAnglePreset(Project.multi_file_ruleset ? camera_preset_1st_mf : camera_preset_1st);
+		first_person_view_preview = Preview.selected;
 		Transformer.updateSelection();
 		Blockbench.once('update_camera_position', e => {
 			Transformer.updateSelection()
 		})
 	}
 
-	let center_first_person_button = Interface.createElement('button', {id: 'center_first_person_button'}, tl('preview.center_camera'));
+	const center_first_person_button = Interface.createElement('button', {id: 'center_first_person_button'}, tl('preview.center_camera'));
 	center_first_person_button.addEventListener('click', event => {
 		centerCamera();
 	});
-	let crosshair = Interface.createElement('div', {class: 'display_crosshair'});
+	const crosshair = Interface.createElement('div', {class: 'display_crosshair'});
 
-	let player_skin_setup = false;
 	function updateBase(mode) {
 		let root_has_binding = Outliner.root.find(g => g instanceof Group && g.bedrock_binding)
 		if (mode == 'attachable_first') {
@@ -301,6 +304,7 @@ BARS.defineActions(function() {
 			}
 			Interface.preview.append(center_first_person_button);
 			Preview.selected.node.append(crosshair);
+			
 		} else {
 			center_first_person_button.remove();
 			crosshair.remove();
@@ -353,8 +357,9 @@ BARS.defineActions(function() {
 
 			if (this.value == 'attachable_first') {
 				centerCamera();
-			} else {
-				Preview.selected.loadAnglePreset(DefaultCameraPresets[0]);
+			} else if (first_person_view_preview) {
+				first_person_view_preview.loadAnglePreset(DefaultCameraPresets[0]);
+				first_person_view_preview = null;
 			}
 		}
 	})
@@ -371,6 +376,10 @@ BARS.defineActions(function() {
 			updateBase(Project.bedrock_animation_mode);
 		} else {
 			updateBase();
+			if (first_person_view_preview) {
+				first_person_view_preview.loadAnglePreset(DefaultCameraPresets[0]);
+				first_person_view_preview = null;
+			}
 		}
 	})
 })
