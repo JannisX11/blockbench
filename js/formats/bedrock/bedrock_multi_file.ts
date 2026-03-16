@@ -118,7 +118,7 @@ const PLAYER_GEO = {
 
 
 let attachable_ruleset = new MultiFileRuleset('bedrock_attachable', {
-	scope_limited_animations: true,
+	scope_isolated_animations: true,
 	collections_as_files: true,
 })
 
