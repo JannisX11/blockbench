@@ -419,6 +419,14 @@ export class Collection {
 				})
 			}
 		},
+		{
+			name: 'menu.animation.open_location',
+			icon: 'folder',
+			condition: (collection: Collection) => (isApp && collection.export_path && fs.existsSync(collection.export_path)),
+			click(collection: Collection) {
+				Filesystem.showFileInFolder(collection.export_path);
+			}
+		},
 		(collection: Collection) => {
 			let codec = Codecs[collection.export_codec];
 			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
