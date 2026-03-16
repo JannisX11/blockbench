@@ -364,7 +364,7 @@ BARS.defineActions(function() {
 										pos += 16;
 									}
 									for (let cut of cuts) {
-										let new_cube = splitCube(cube, axis, cut);
+										let new_cube = splitCube(cube, axis, cut - cube.origin[axis]);
 										cubes_modified.push(new_cube);
 										cube = new_cube;
 									}
@@ -404,7 +404,7 @@ BARS.defineActions(function() {
 								//scope,
 								offset: block_offset.V3_multiply(16, 16, 16),
 								export_codec: 'bedrock',
-								model_identifier: Project.model_identifier + '.' + key,
+								model_identifier: Project.model_identifier + '.' + name,
 							}).add();
 							if (isApp && result.export_location) {
 								collections[key].export_path = PathModule.join(result.export_location as string, project_name + '.' + name) + '.geo.json';
@@ -415,7 +415,7 @@ BARS.defineActions(function() {
 						//cube.scope = collections[key].scope;
 					}
 
-					Canvas.updateView({elements: cubes_modified, element_aspects: {transform: true, geometry: true}});
+					Canvas.updateView({elements: cubes_modified, element_aspects: {transform: true, geometry: true, uv: true}});
 					Undo.finishEdit('Slice multi block model', {collections: Object.values(collections), elements: cubes_modified});
 				}
 			}).show();
