@@ -1,5 +1,6 @@
 import { editUVSizeDialog } from "./uv_size";
 import { PointerTarget } from "../interface/pointer_target";
+import { dragHelper } from "../util/drag_helper";
 
 // Image manipulation helpers for UV+texture transforms
 function flipImageDataH(imageData) {
@@ -3366,14 +3367,17 @@ Interface.definePanels(function() {
 					}
 					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
+						console.log(1)
 
 					} else if (add_to_list) {
+						console.log(2)
 						if (selected_faces.includes(key)) {
 							selected_faces.remove(key);
 						} else {
 							selected_faces.push(key);
 						}
 					} else {
+						console.log(3)
 						selected_faces.replace([key]);
 					}
 					if (!element && key) {
@@ -3398,9 +3402,13 @@ Interface.definePanels(function() {
 					UVEditor.updateFaceSelection();
 
 					if (support_dragging) {
-						function drag(e1) {
-							if (e1.target && e1.target.nodeName == 'LI' && e1.target.parentElement.id == 'uv_cube_face_bar') {
-								let fkey = e1.target.attributes.face.value;
+						dragHelper(event, {
+							start_distance: 10,
+							onMove(arg) {
+								let e1 = arg.event;
+								if (!e1.target || e1.target.nodeName != 'LI' || e1.target.parentElement.id != 'uv_cube_face_bar') return;
+								let fkey = e1.target.attributes.face?.value;
+								if (!fkey) return;
 								for (let element of UVEditor.getMappableElements()) {
 									if (element.faces[fkey]) {
 										let selected_faces = UVEditor.getSelectedFaces(element, true);
@@ -3411,13 +3419,7 @@ Interface.definePanels(function() {
 								UVEditor.displayTools();
 								UVEditor.updateFaceSelection();
 							}
-						}
-						function stop() {
-							removeEventListeners(document, 'mousemove touchmove', drag);
-							removeEventListeners(document, 'mouseup touchend', stop);
-						}
-						addEventListeners(document, 'mousemove touchmove', drag);
-						addEventListeners(document, 'mouseup touchend', stop);
+						})
 					}
 				},
 				selectCube(cube, event) {
