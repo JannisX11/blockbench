@@ -170,7 +170,7 @@
 		margin-left: auto;
 		margin-right: auto;
 		background: linear-gradient(180deg, var(--color-ui) 160px, var(--color-back) 1000px);
-		box-shadow: 0 0 50px #00000060;
+		box-shadow: 0 0 18px #00000060;
 		overflow-x: hidden;
 		image-rendering: auto;
 		border-radius: 6px;
