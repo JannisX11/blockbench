@@ -895,7 +895,7 @@ BARS.defineActions(function() {
 			vertices.forEach(vkey => sum += element.vertices[vkey][axis]);
 			value = sum / vertices.length;
 
-		} else if (element.from && settings.transform_cube_from_center.value) {
+		} else if (element.from && element.to && settings.transform_cube_from_center.value) {
 			value = Math.lerp(element.from[axis], element.to[axis], 0.5);
 		} else if (element.from) {
 			value = element.from[axis];
