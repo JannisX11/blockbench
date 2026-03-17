@@ -1111,22 +1111,23 @@ BARS.defineActions(function() {
 				value: Project.box_uv ? 'box_uv' : 'face_uv',
 			};
 
+			let use_uv_size_editor = Texture.all.length > 9 || Outliner.elements.length > 0;
 			form.texture_size = {
 				label: 'dialog.project.uv_size',
 				type: 'vector',
 				dimensions: 2,
 				value: [Project.texture_width, Project.texture_height],
 				min: 1,
-				linked_ratio: undefined,
-				readonly: true,
-				extra_actions: [{
+				linked_ratio: use_uv_size_editor ? undefined : true,
+				readonly: use_uv_size_editor,
+				extra_actions: use_uv_size_editor ? [{
 					icon: 'edit',
 					name: 'Change',
 					click: (event) => {
-						Dialog.open.close();
+						Dialog.open.confirm(event);
 						editUVSizeDialog({project: true});
 					}
-				}]
+				}] : null
 			};
 
 			var dialog = new Dialog({
@@ -1146,32 +1147,6 @@ BARS.defineActions(function() {
 						Project.texture_height != texture_height
 					) {
 						was_changed = true;
-						/*
-						// Adjust UV Mapping if resolution changed
-						if (!Project.box_uv && !box_uv && !Format.per_texture_uv_size &&
-							(Project.texture_width != texture_width || Project.texture_height != texture_height)
-						) {
-							save = Undo.initEdit({elements: [...Cube.all, ...Mesh.all], uv_only: true, uv_mode: true})
-							Cube.all.forEach(cube => {
-								if (cube.box_uv) return;
-								for (var key in cube.faces) {
-									var uv = cube.faces[key].uv;
-									uv[0] *= texture_width / Project.texture_width;
-									uv[2] *= texture_width / Project.texture_width;
-									uv[1] *= texture_height / Project.texture_height;
-									uv[3] *= texture_height / Project.texture_height;
-								}
-							})
-							Mesh.all.forEach(mesh => {
-								for (var key in mesh.faces) {
-									var uv = mesh.faces[key].uv;
-									for (let vkey in uv) {
-										uv[vkey][0] *= texture_width / Project.texture_width;
-										uv[vkey][1] *= texture_height / Project.texture_height;
-									}
-								}
-							})
-						}*/
 						// Convert UV mode per element
 						if (Project.box_uv != box_uv &&
 							((box_uv && !Cube.all.find(cube => cube.box_uv)) ||

@@ -482,6 +482,7 @@
 		width: 16px;
 		margin-left: -5px;
 		font-size: 20px;
+		margin-top: 5px;
 	}
 	.toolbar.vertical > .tool.toolbar_menu > i {
 		width: auto;
@@ -536,7 +537,7 @@
 		padding: 0;
 	}
 	.tool.widget.bar_text {
-		padding: 3px;
+		padding: 2px;
 	}
 	.tool.has_label {
 		width: auto;
