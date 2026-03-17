@@ -1151,6 +1151,7 @@ new NodePreviewController(Mesh, {
 			})
 			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+			element.mesh.frustumCulled = false;
 			return;
 		}
 	},
@@ -1394,6 +1395,7 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.computeBoundingSphere();
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
+		mesh.frustumCulled = true;
 
 		Mesh.preview_controller.updateHighlight(element);
 		Mesh.preview_controller.updatePixelGrid(element);
