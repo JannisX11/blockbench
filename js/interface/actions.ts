@@ -1369,7 +1369,7 @@ export class NumSlider extends Widget {
 
 		this.change(n => n + difference, event);
 		this.update();
-		let display_offset = trimFloatNumber(parseFloat(this.value as string) - parseFloat(this.last_value as string));
+		let display_offset = trimFloatNumber(parseFloat(this.value as string) - parseFloat(this.last_value as string || '0'));
 		if (!Blockbench.isMobile) {
 			Blockbench.setStatusBarText(display_offset);
 		}

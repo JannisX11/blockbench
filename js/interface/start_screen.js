@@ -191,19 +191,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [zl game](https://contests.blockbench.net/artists/810872057172459570) & [fable](https://contests.blockbench.net/artists/885471035258994709)",
+					description: "Splash Art 1st Place by [AnzSama](https://contests.blockbench.net/artists/726636243785613372) & [C-on](https://contests.blockbench.net/artists/768854550744137800)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [Coco](https://contests.blockbench.net/artists/1008248909631598662) & [hqsss](https://contests.blockbench.net/artists/1418120121486016559)",
+					description: "Splash Art 2nd Place by [Wanwin](https://contests.blockbench.net/artists/402502582360080384) & [Flok](https://contests.blockbench.net/artists/445419542664183808)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277) & [Grettzzz](https://contests.blockbench.net/artists/1207006698842095666)",
+					description: "Splash Art 3rd Place by [eag](https://contests.blockbench.net/artists/662458608281190410)",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
+					description: "Splash Art 4th Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),

@@ -1,5 +1,6 @@
 import { editUVSizeDialog } from "./uv_size";
 import { PointerTarget } from "../interface/pointer_target";
+import { dragHelper } from "../util/drag_helper";
 
 // Image manipulation helpers for UV+texture transforms
 function flipImageDataH(imageData) {
@@ -2987,7 +2988,8 @@ Interface.definePanels(function() {
 					UVEditor.updateUVNavigator();
 				},
 				onMouseWheel(event) {
-					if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
+					let is_zoom_gesture = event.ctrlKey && !Pressing.ctrl;
+					if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 				
 						event.stopPropagation()
 						event.preventDefault()
@@ -3352,23 +3354,38 @@ Interface.definePanels(function() {
 					menu.open(event.target);
 				},
 				selectFace(element, key, event, keep_selection, support_dragging) {
-					let selected_faces = element ? UVEditor.getSelectedFaces(element, true) : [];
+					let selected_faces = UVEditor.getSelectedFaces(element, true);
+					let synced_faces = false;
+					if (!element) {
+						// If the selection is identical on all elements, we can modify the existing selection
+						let elements = UVEditor.getMappableElements();
+						let _selected_faces = UVEditor.getSelectedFaces(elements[0], true);
+						if (elements.length == 1 || elements.allAre(e2 => _selected_faces.equals(UVEditor.getSelectedFaces(e2)))) {
+							selected_faces = _selected_faces;
+							synced_faces = true;
+						}
+					}
 					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
+						console.log(1)
 
 					} else if (add_to_list) {
+						console.log(2)
 						if (selected_faces.includes(key)) {
 							selected_faces.remove(key);
 						} else {
 							selected_faces.push(key);
 						}
 					} else {
+						console.log(3)
 						selected_faces.replace([key]);
 					}
 					if (!element && key) {
 						UVEditor.getMappableElements().forEach(element => {
 							let element_selected_faces = UVEditor.getSelectedFaces(element, true);
-							if (add_to_list) {
+							if (synced_faces) {
+								element_selected_faces.replace(selected_faces);
+							} else if (add_to_list) {
 								if (element.faces[key]) {
 									element_selected_faces.safePush(key);
 								}
@@ -3385,9 +3402,13 @@ Interface.definePanels(function() {
 					UVEditor.updateFaceSelection();
 
 					if (support_dragging) {
-						function drag(e1) {
-							if (e1.target && e1.target.nodeName == 'LI' && e1.target.parentElement.id == 'uv_cube_face_bar') {
-								let fkey = e1.target.attributes.face.value;
+						dragHelper(event, {
+							start_distance: 10,
+							onMove(arg) {
+								let e1 = arg.event;
+								if (!e1.target || e1.target.nodeName != 'LI' || e1.target.parentElement.id != 'uv_cube_face_bar') return;
+								let fkey = e1.target.attributes.face?.value;
+								if (!fkey) return;
 								for (let element of UVEditor.getMappableElements()) {
 									if (element.faces[fkey]) {
 										let selected_faces = UVEditor.getSelectedFaces(element, true);
@@ -3398,13 +3419,7 @@ Interface.definePanels(function() {
 								UVEditor.displayTools();
 								UVEditor.updateFaceSelection();
 							}
-						}
-						function stop() {
-							removeEventListeners(document, 'mousemove touchmove', drag);
-							removeEventListeners(document, 'mouseup touchend', stop);
-						}
-						addEventListeners(document, 'mousemove touchmove', drag);
-						addEventListeners(document, 'mouseup touchend', stop);
+						})
 					}
 				},
 				selectCube(cube, event) {

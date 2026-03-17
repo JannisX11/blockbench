@@ -10,7 +10,7 @@
 		width: 100%;
 		padding: 36px 0;
 		overflow-y: auto;
-		background: linear-gradient(180deg, var(--color-ui) 5%, transparent 60%);
+		background: linear-gradient(180deg, var(--color-ui) 5%, var(--color-dark) 60%);
 	}
 	body.is_mobile #start_screen {
 		padding: 0;
@@ -170,7 +170,7 @@
 		margin-left: auto;
 		margin-right: auto;
 		background: linear-gradient(180deg, var(--color-ui) 160px, var(--color-back) 1000px);
-		box-shadow: 0 0 50px #00000060;
+		box-shadow: 0 0 18px #00000060;
 		overflow-x: hidden;
 		image-rendering: auto;
 		border-radius: 6px;

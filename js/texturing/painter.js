@@ -3265,11 +3265,13 @@ BARS.defineActions(function() {
 			min: 1, max: 1024, interval: 1, default: 1,
 		},
 		onChange(value, event) {
-			// Update preview outline
-			if (UVEditor.vue._data.mouse_coords.active) {
-				UVEditor.vue.$forceUpdate();
-			} else {
-				Preview.selected.mousemove(event);
+			if (event instanceof PointerEvent) {
+				// Update preview outline
+				if (UVEditor.vue._data.mouse_coords.active) {
+					UVEditor.vue.$forceUpdate();
+				} else {
+					Preview.selected.mousemove(event);
+				}
 			}
 		}
 	})

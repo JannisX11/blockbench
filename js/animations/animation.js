@@ -358,7 +358,7 @@ export class Animation extends AnimationItem {
 			return;
 		}
 		if (!group.constructor.animator) return;
-		if (group.scope && group.scope != this.scope) return;
+		if (group.scope && group.scope != this.scope && Project.getMultiFileRuleset()?.scope_isolated_animations) return;
 
 		let uuid = group.uuid;
 		if (!this.animators[uuid]) {

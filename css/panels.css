@@ -2751,6 +2751,7 @@ span.controller_state_section_info {
 		background-color: var(--color-uv-background);
 		text-align: center;
 		color: var(--color-subtle_text);
+		font-size: 13px;
 	}
 	.cube_uv_face:hover {
 		border-color: var(--color-uv-hover);
@@ -2958,7 +2959,8 @@ span.controller_state_section_info {
 		color: var(--color-light);
 	}
 	#uv_cube_face_bar li.selected {
-		border-bottom: 3px solid var(--color-accent);
+		border-radius: 3px;
+		background: var(--color-selected);
 	}
 	#uv_cube_face_bar li.disabled {
 		color: var(--color-subtle_text);

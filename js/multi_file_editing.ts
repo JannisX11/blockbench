@@ -10,7 +10,7 @@ export const ScopeColors = [
 ];
 
 interface MultiFileRules {
-	scope_limited_animations: boolean
+	scope_isolated_animations: boolean
 	collections_as_files: boolean
 }
 export interface MultiFileRuleset extends MultiFileRules {}
