@@ -529,7 +529,9 @@ BARS.defineActions(function() {
 					data() {return {
 						show_preview,
 						preview_changes: true,
-						opacity: 100,
+						mode: 'multiply',
+						opacity_percent: 100,
+						opacity_value: 255,
 						textures
 					}},
 					methods: {
@@ -537,21 +539,39 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
-									ctx.save();
-									texture.selection.maskCanvas(ctx, env.offset);
-									ctx.clearRect(0, 0, texture.width, texture.height);
-									if (this.preview_changes) {
-										ctx.filter = `opacity(${this.opacity}%)`;
-										ctx.drawImage(original_canvases[i], 0, 0);
-										if (this.opacity > 100 && this.preview_changes) {
-											ctx.filter = `opacity(${this.opacity-100}%)`;
+
+									if (this.mode == 'multiply') {
+										ctx.save();
+										texture.selection.maskCanvas(ctx, env.offset);
+										ctx.clearRect(0, 0, texture.width, texture.height);
+										if (this.preview_changes) {
+											ctx.filter = `opacity(${this.opacity_percent}%)`;
+											ctx.drawImage(original_canvases[i], 0, 0);
+											if (this.opacity_percent > 100 && this.preview_changes) {
+												ctx.filter = `opacity(${this.opacity_percent-100}%)`;
+												ctx.drawImage(original_canvases[i], 0, 0);
+											}
+										} else {
+											ctx.filter = `opacity(100%)`;
 											ctx.drawImage(original_canvases[i], 0, 0);
 										}
+										ctx.restore();
 									} else {
-										ctx.filter = `opacity(100%)`;
+										let selection = texture.selection;
+										let value = Math.clamp(this.opacity_value, 0, 255);
+
+										ctx.clearRect(0, 0, texture.width, texture.height);
 										ctx.drawImage(original_canvases[i], 0, 0);
+										
+										if (this.preview_changes) {
+											Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
+												if (selection.allow(x, y) && !px.allEqual(0)) {
+													px[3] = value;
+													return px;
+												}
+											})
+										}
 									}
-									ctx.restore();
 
 									setTimeout(() => {
 										let ref_ctx = this.$refs.canvas[i].getContext('2d');
@@ -561,6 +581,10 @@ BARS.defineActions(function() {
 
 								}, {no_undo: true, use_cache: true});
 							})
+						},
+						setMode(mode) {
+							this.mode = mode;
+							this.change();
 						},
 						togglePreview() {
 							this.show_preview = show_preview = !this.show_preview;
@@ -572,9 +596,22 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
-							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
-								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
+
+							<div class="dialog_bar bar form_bar" form_type="inline_select">
+								<label class="name_space_left">${tl('dialog.adjust_opacity.mode')}</label>
+								<ul class="form_inline_select">
+									<li :class="{selected: mode == 'multiply'}" @click="setMode('multiply')" key="multiply">${tl('dialog.adjust_opacity.mode.multiply')}</li>
+									<li :class="{selected: mode == 'set'}" @click="setMode('set')" key="set">${tl('dialog.adjust_opacity.mode.set')}</li>
+								</ul>
+							</div>
+
+							<div class="bar slider_input_combo" v-if="mode == 'multiply'">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity_percent" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity_percent" @input="change()" />
+							</div>
+							<div class="bar slider_input_combo" v-else>
+								<input type="range" class="tool" min="0" max="255" step="1" v-model.number="opacity_value" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="255" :step="1" v-model.number="opacity_value" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">

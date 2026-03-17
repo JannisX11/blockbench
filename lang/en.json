@@ -573,6 +573,9 @@
 	"dialog.adjust_brightness_contrast.contrast": "Contrast",
 	"dialog.adjust_saturation_hue.saturation": "Saturation",
 	"dialog.adjust_saturation_hue.hue": "Hue",
+	"dialog.adjust_opacity.mode": "Mode",
+	"dialog.adjust_opacity.mode.multiply": "Multiply",
+	"dialog.adjust_opacity.mode.set": "Set",
 
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",

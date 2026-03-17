@@ -37,7 +37,7 @@ declare namespace Painter {
 		y: number,
 		w: number,
 		h: number,
-		cb: () => void
+		cb: ((px: number, py: number, color: [r: number, g: number, b: number, a: number]) => [number, number, number, number] | void)
 	): void
 	function getPixelColor(ctx: CanvasRenderingContext2D, x: number, y: number): void
 	function modifyCanvasSection(
