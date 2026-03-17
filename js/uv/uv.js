@@ -3306,11 +3306,11 @@ Interface.definePanels(function() {
 							removeEventListeners(document, 'pointerup', stop);
 
 							if (Math.pow(event.clientX - e2.clientX, 2) + Math.pow(event.clientY - e2.clientY, 2) < 10) {
-								for (let element of elements) {
+								/*for (let element of Outliner.elements) {
 									UVEditor.getSelectedFaces(element, true).empty();
 								}
 								if (old_elements) Outliner.selected.empty();
-								UVEditor.vue.$forceUpdate();
+								UVEditor.vue.$forceUpdate();*/
 							}
 							setTimeout(() => {
 								selection_rect.active = false;
@@ -3367,17 +3367,14 @@ Interface.definePanels(function() {
 					}
 					let add_to_list = event.shiftKey || event.ctrlOrCmd || Pressing.overrides.shift || Pressing.overrides.ctrl;
 					if (keep_selection && selected_faces.includes(key)) {
-						console.log(1)
 
 					} else if (add_to_list) {
-						console.log(2)
 						if (selected_faces.includes(key)) {
 							selected_faces.remove(key);
 						} else {
 							selected_faces.push(key);
 						}
 					} else {
-						console.log(3)
 						selected_faces.replace([key]);
 					}
 					if (!element && key) {
@@ -3438,11 +3435,13 @@ Interface.definePanels(function() {
 					if (!this.dragging_uv && !this.selection_rect.active && event.target.id == 'uv_frame') {
 						let results = UVEditor.reverseSelect(event, local_position)
 						if (!(results && results.length)) {
+							// Clear selection if clicking the background
 							if (UVEditor.isFaceUV()) {
 								for (let element of UVEditor.getMappableElements()) {
 									UVEditor.getSelectedFaces(element, true).empty();
 								}
 							}
+							UVEditor.vue.$forceUpdate();
 						}
 					}
 				},
