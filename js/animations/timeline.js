@@ -347,6 +347,11 @@ export const Timeline = {
 					dragHelper(e, {
 						onMove(arg) {
 							marker.time = Math.max(0, initial_time + arg.delta.x / Timeline.vue.$data.size);
+							if (!arg.event.ctrlKey) marker.time = Timeline.snapTime(marker.time);
+							displayTimeOnCursor(marker.time);
+						},
+						onEnd() {
+							Blockbench.setCursorTooltip();
 						}
 					})
 				}
