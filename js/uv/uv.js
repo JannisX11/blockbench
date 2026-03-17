@@ -2397,8 +2397,8 @@ BARS.defineActions(function() {
 		click(event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			let center = [
-				UVEditor.getFacePosition(0) + UVEditor.getFaceSize(0)/2,
-				UVEditor.getFacePosition(1) + UVEditor.getFaceSize(1)/2,
+				UVEditor.getFacePosition(0) + Math.round(UVEditor.getFaceSize(0)/2),
+				UVEditor.getFacePosition(1) + Math.round(UVEditor.getFaceSize(1)/2),
 			];
 			let cursor_pos = [
 				// Previous mouse coords, convert from pixel space to UV space
