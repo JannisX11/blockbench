@@ -88,6 +88,7 @@ export function initializeDesktopApp() {
 //Load Model
 export function loadOpenWithBlockbenchFile() {
 	function load(path) {
+		if (!path || path.length < 7 || !path.match(/\w\.\w+$/)) return;
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
 			Blockbench.read([path], {readtype: 'image'}, (files) => {
@@ -97,6 +98,8 @@ export function loadOpenWithBlockbenchFile() {
 			Blockbench.read([path], {}, (files) => {
 				loadModelFile(files[0])
 			})
+		} else {
+			unsupportedFileFormatMessage(path);
 		}
 	}
 	ipcRenderer.on('open-model', (event, path) => {
