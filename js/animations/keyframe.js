@@ -270,16 +270,30 @@ export class Keyframe {
 		})
 		return arr;
 	}
-	getFixed(data_point = 0, do_quaternion = true) {
+	getFixed(data_point = 0, return_quaternion = true) {
 		if (this.channel === 'rotation') {
+			
 			let fix = this.animator.group.mesh.fix_rotation;
-			let euler = new THREE.Euler(
-				(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
-				(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
-				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
-				Format.euler_order
-			)
-			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			let use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+			if (use_quaternions) {
+				let euler = new THREE.Euler(
+					Math.degToRad(this.calc('x', data_point)),
+					Math.degToRad(this.calc('y', data_point)),
+					Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				);
+				let quat = new THREE.Quaternion().setFromEuler(fix);
+				quat.multiply(Reusable.quat2.setFromEuler(euler));
+				return return_quaternion ? quat : euler.setFromQuaternion(quat);
+			} else {
+				let euler = new THREE.Euler(
+					(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
+					(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
+					(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				)
+				return return_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			}
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(

@@ -98,7 +98,7 @@ new TransformerModule('animation', {
 		let updateRotationKeyframeFromMesh = () => {
 			let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 			let rotation = mesh.rotation;
-			if (transform_keyframes[0].animator.quaternion_interpolation && Format.id.includes('hytale')) {
+			if (transform_keyframes[0].animator.quaternion_interpolation) {
 				let q = Reusable.quat1.setFromEuler(old_rotation);
 				mesh.quaternion.premultiply(q.invert());
 			} else {
