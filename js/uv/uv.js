@@ -2989,7 +2989,7 @@ Interface.definePanels(function() {
 				},
 				onMouseWheel(event) {
 					let is_zoom_gesture = event.ctrlKey && !Pressing.ctrl;
-					if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
+					if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event) && event.deltaY) {
 				
 						event.stopPropagation()
 						event.preventDefault()
