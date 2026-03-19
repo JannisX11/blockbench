@@ -7,7 +7,7 @@ interface TextureLayerData {
 	scale?: ArrayVector2
 	opacity?: number
 	visible?: boolean
-	blend_mode?: 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'screen' | 'difference'
+	blend_mode?: 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
 	image_data?: ImageData
 	data_url?: string
 }
@@ -35,7 +35,7 @@ declare class TextureLayer {
 	scale: ArrayVector2
 	opacity: number
 	visible: boolean
-	blend_mode: 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'screen' | 'difference'
+	blend_mode: 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
 
 	extend(data: TextureLayerData): void
 	/**

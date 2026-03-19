@@ -1773,6 +1773,18 @@ export class Texture {
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
 			if (layer.visible == false || layer.opacity == 0) continue;
+			if (layer.blend_mode == 'alpha_mask') {
+				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+				Painter.scanCanvas(this.ctx, 0, 0, this.canvas.width, this.canvas.height, (px, py, color) => {
+					let mask_coords = [ px - layer.offset[0], py - layer.offset[1] ];
+					if (mask_coords[0] < 0 || mask_coords[0] >= layer.canvas.width) return;
+					if (mask_coords[1] < 0 || mask_coords[1] >= layer.canvas.height) return;
+					let value = mask.data[(mask_coords[1] * layer.canvas.width + mask_coords[0]) * 4];
+					color[3] *= value / 255;
+					return color;
+				})
+				continue;
+			}
 			this.ctx.filter = `opacity(${layer.opacity / 100})`;
 			this.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(layer.blend_mode);
 			this.ctx.imageSmoothingEnabled = false;
@@ -1861,6 +1873,16 @@ export class Texture {
 			extensions: ['tga'],
 			async encode(texture) {
 				let image_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+
+				let supported_blend_modes = ['add', 'alpha_mask', 'default'];
+				if (
+					texture.layers_enabled &&
+					texture.layers.some(l => l.blend_mode == 'alpha_mask') &&
+					texture.layers.allAre(l => supported_blend_modes.includes(l.blend_mode) && l.scale.allEqual(1))
+				) {
+					image_data = getTextureDataWithAccurateAlpha(texture);
+				}
+
 				let result = await encodeTga({
 					data: image_data.data,
 					width: texture.canvas.width,
@@ -2096,6 +2118,7 @@ export class Texture {
 					new MenuSeparator('filters'),
 					'limit_to_palette',
 					'split_rgb_into_layers',
+					'split_alpha_into_layer',
 					'clear_unused_texture_space',
 					new MenuSeparator('transform'),
 					'flip_texture_x',
@@ -2308,6 +2331,49 @@ export function getTexturesById(id) {
 	if (id === undefined) return;
 	id = id.replace('#', '');
 	return $.grep(Texture.all, function(e) {return e.id == id});
+}
+
+/**
+ * Function to merge layers while preserving accurate alpha channel information. Does not support some blend modes, or layer scaling
+ */
+function getTextureDataWithAccurateAlpha(texture) {
+	let data = texture.ctx.createImageData(texture.canvas.width, texture.canvas.height);
+	for (let layer of texture.layers) {
+		if (layer.visible == false || layer.opacity == 0) continue;
+
+		let layer_data = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+		
+		for (let x = 0; x < texture.canvas.width; x++) {
+			for (let y = 0; y < texture.canvas.height; y++) {
+				let index = data.getIndex(x, y);
+				let layer_index = layer_data.getIndex(x - layer.offset[0], y - layer.offset[1]);
+				let alpha = (layer_data.data[layer_index+3] / 255) * (layer.opacity/100);
+
+				switch (layer.blend_mode) {
+					case 'default': {
+						data.data[index+0] = Math.lerp(data.data[index+0], layer_data.data[layer_index+0], alpha);
+						data.data[index+1] = Math.lerp(data.data[index+1], layer_data.data[layer_index+1], alpha);
+						data.data[index+2] = Math.lerp(data.data[index+2], layer_data.data[layer_index+2], alpha);
+						data.data[index+3] = Math.lerp(data.data[index+3], 255, alpha);
+						break;
+					}
+					case 'add': {
+						data.data[index+0] += layer_data.data[layer_index+0] * alpha;
+						data.data[index+1] += layer_data.data[layer_index+1] * alpha;
+						data.data[index+2] += layer_data.data[layer_index+2] * alpha;
+						data.data[index+3] += layer_data.data[layer_index+3] * alpha;
+						break;
+					}
+					case 'alpha_mask': {
+						let value = layer_data.data[layer_index];
+						data.data[index+3] *= (value / 255) * alpha;
+						break;
+					}
+				}
+			}	
+		}
+	}
+	return data;
 }
 
 SharedActions.add('delete', {

@@ -104,6 +104,10 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 		return this.ctrlKey || this.metaKey;
 	}
 })
+ImageData.prototype.getIndex = function(x, y) {
+	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+    return (x + y * this.height) * 4;
+}
 
 export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {

@@ -1,4 +1,6 @@
+import { decodeTga } from "@lunapaint/tga-codec";
 import { colorDistance } from "../util/util";
+import { fs } from "../native_apis";
 
 BARS.defineActions(function() {
 
@@ -689,21 +691,32 @@ BARS.defineActions(function() {
 		icon: 'stacked_bar_chart',
 		category: 'textures',
 		condition: {modes: ['paint'], selected: {texture: true}},
-		click() {
+		async click() {
 			let texture = Texture.getDefault();
 			let original_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+			if (texture.file_format == 'tga' && isApp) {
+
+				let data = fs.readFileSync(texture.path);
+				if (data instanceof ArrayBuffer) data = new Uint8Array(data);
+				let result = await decodeTga(data);
+				original_data.data.set(result.image.data);
+			}
 
 			Undo.initEdit({textures: [texture], bitmap: true});
 
 			texture.layers_enabled = true;
 			texture.layers.empty();
 			let i = 0;
-			for (let color of ['red', 'green', 'blue']) {
+			for (let color of ['red', 'green', 'blue', 'alpha']) {
 				let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
 				for (let j = 0; j < data_copy.data.length; j += 4) {
 					if (i != 0) data_copy.data[j+0] = 0;
 					if (i != 1) data_copy.data[j+1] = 0;
 					if (i != 2) data_copy.data[j+2] = 0;
+					if (i == 3) {
+						data_copy.data[j+0] = data_copy.data[j+1] = data_copy.data[j+2] = data_copy.data[j+3];
+					}
+					data_copy.data[j+3] = 255;
 				}
 				let layer = new TextureLayer({
 					name: color,
@@ -711,7 +724,12 @@ BARS.defineActions(function() {
 				}, texture);
 				layer.setSize(original_data.width, original_data.height);
 				layer.ctx.putImageData(data_copy, 0, 0);
-				texture.layers.unshift(layer);
+				if (color == 'alpha') {
+					texture.layers.push(layer);
+					layer.blend_mode = 'alpha_mask'
+				} else {
+					texture.layers.unshift(layer);
+				}
 				if (color == 'red') {
 					layer.select();
 				}
@@ -719,6 +737,54 @@ BARS.defineActions(function() {
 			}
 			texture.updateLayerChanges(true);
 			Undo.finishEdit('Split texture into RGB layers');
+			updateInterfacePanels();
+			BARS.updateConditions();
+		}
+	})
+	new Action('split_alpha_into_layer', {
+		icon: 'tab_inactive',
+		category: 'textures',
+		condition: {modes: ['paint'], selected: {texture: true}},
+		async click() {
+			let texture = Texture.getDefault();
+			let original_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+			if (texture.file_format == 'tga' && isApp) {
+
+				let data = fs.readFileSync(texture.path);
+				if (data instanceof ArrayBuffer) data = new Uint8Array(data);
+				let result = await decodeTga(data);
+				original_data.data.set(result.image.data);
+			}
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+
+			texture.layers_enabled = true;
+			texture.layers.empty();
+
+			// Color
+			let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+			for (let j = 0; j < data_copy.data.length; j += 4) {
+				data_copy.data[j+3] = 255;
+			}
+			let layer = new TextureLayer({name: 'color'}, texture);
+			layer.setSize(original_data.width, original_data.height);
+			layer.ctx.putImageData(data_copy, 0, 0);
+			texture.layers.push(layer);
+			layer.select();
+
+			// Alpha
+			let data_alpha = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+			for (let j = 0; j < data_alpha.data.length; j += 4) {
+				data_alpha.data[j+0] = data_alpha.data[j+1] = data_alpha.data[j+2] = data_alpha.data[j+3];
+				data_alpha.data[j+3] = 255;
+			}
+			let alpha_layer = new TextureLayer({name: 'alpha', blend_mode: 'alpha_mask'}, texture);
+			alpha_layer.setSize(original_data.width, original_data.height);
+			alpha_layer.ctx.putImageData(data_alpha, 0, 0);
+			texture.layers.push(alpha_layer);
+
+			texture.updateLayerChanges(true);
+			Undo.finishEdit('Split texture alpha into alpha mask layers');
 			updateInterfacePanels();
 			BARS.updateConditions();
 		}

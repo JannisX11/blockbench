@@ -353,6 +353,7 @@ export const MenuBar = {
 			new MenuSeparator('filters'),
 			'limit_to_palette',
 			'split_rgb_into_layers',
+			'split_alpha_into_layer',
 			'clear_unused_texture_space',
 			new MenuSeparator('transform'),
 			'flip_texture_x',
