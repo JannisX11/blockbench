@@ -102,5 +102,14 @@ export const animation_codec = new AnimationCodec('bedrock_animation_controller'
 				})
 			})
 		}
+	},
+	deleteAnimationFromFile(controller) {
+		let content = fs.readFileSync(controller.path, 'utf-8');
+		let json = autoParseJSON(content, false);
+		if (json && json.animation_controllers && json.animation_controllers[controller.name]) {
+			delete json.animation_controllers[controller.name];
+			Blockbench.writeFile(controller.path, {content: compileJSON(json)});
+			Undo.history.last().before.animation_controllers[controller.uuid].saved = false
+		}
 	}
 })

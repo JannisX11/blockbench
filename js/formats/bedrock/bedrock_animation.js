@@ -672,4 +672,13 @@ export const animation_codec = new AnimationCodec('bedrock', {
 			})
 		}
 	},
+	deleteAnimationFromFile(animation) {
+		let content = fs.readFileSync(animation.path, 'utf-8');
+		let json = autoParseJSON(content, false);
+		if (json && json.animations && json.animations[animation.name]) {
+			delete json.animations[animation.name];
+			Blockbench.writeFile(animation.path, {content: compileJSON(json)});
+			Undo.history.last().before.animations[animation.uuid].saved = false
+		}
+	}
 })

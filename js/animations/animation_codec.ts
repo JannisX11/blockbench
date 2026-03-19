@@ -61,6 +61,10 @@ interface AnimationCodecMultiplePerFileOptions extends SharedOptions {
 	 * @returns 
 	 */
 	exportFile?: (path: string, save_as?: boolean) => void
+	/**
+	 * When deleting an animtion in Blockbench, after being prompted, delete the deleted animation from the file
+	 */
+	deleteAnimationFromFile?: (animation: AnimationItem) => void
 }
 
 export interface AnimationCodec extends SharedOptions {}
@@ -70,6 +74,11 @@ export interface AnimationCodec extends SharedOptions {}
  */
 export class AnimationCodec implements SharedOptions {
 	id: string
+	multiple_per_file: boolean
+	reloadFile?: AnimationCodecMultiplePerFileOptions['reloadFile']
+	compileFile?: AnimationCodecMultiplePerFileOptions['compileFile']
+	exportFile?: AnimationCodecMultiplePerFileOptions['exportFile']
+	deleteAnimationFromFile?: AnimationCodecMultiplePerFileOptions['deleteAnimationFromFile']
 
 	constructor(id: string, options: AnimationCodecSingleFileOptions | AnimationCodecMultiplePerFileOptions) {
 		this.id = id;

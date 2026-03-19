@@ -1168,7 +1168,7 @@ export class AnimationController extends AnimationItem {
 		if (undo) {
 			Undo.finishEdit('Remove animation controller', {animation_controllers: []})
 
-			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
+			if (isApp && remove_from_file && AnimationCodec.getCodec(this)?.deleteAnimationFromFile && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -1177,13 +1177,7 @@ export class AnimationController extends AnimationItem {
 					cancel: 1,
 				}, (result) => {
 					if (result == 0) {
-						let content = fs.readFileSync(this.path, 'utf-8');
-						let json = autoParseJSON(content, false);
-						if (json && json.animation_controllers && json.animation_controllers[this.name]) {
-							delete json.animation_controllers[this.name];
-							Blockbench.writeFile(this.path, {content: compileJSON(json)});
-							Undo.history.last().before.animation_controllers[this.uuid].saved = false
-						}
+						AnimationCodec.getCodec(this).deleteAnimationFromFile(this);
 					}
 				})
 			}
