@@ -804,8 +804,12 @@ export class Cube extends OutlinerElement {
 					dimension_axes.reverse()
 					world_directions.reverse()
 				}
-				if (rot == 180) {
+				if (rot == 180 || rot === 270) {
 					world_directions[0] *= -1;
+					world_directions[1] *= -1;
+				}
+				if (rot === 270) {
+					//world_directions[0] *= -1;
 					world_directions[1] *= -1;
 				}
 				if (clamp) {
@@ -821,6 +825,12 @@ export class Cube extends OutlinerElement {
 					}
 					if (options.axis == dimension_axes[1] && options.direction == world_directions[1]) {
 						sy += previous_size[1] - size[1];
+					}
+					if (options.axis == dimension_axes[0] && options.direction == 0) {
+						sx += (previous_size[0] - size[0]) / 2;
+					}
+					if (options.axis == dimension_axes[1] && options.direction == 0) {
+						sy += (previous_size[1] - size[1]) / 2;
 					}
 				}
 
