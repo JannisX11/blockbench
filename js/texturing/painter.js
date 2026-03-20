@@ -1239,7 +1239,7 @@ export const Painter = {
 			);
 		}
 		// Pick combined color
-		if (!color || color.toHex() == '000000') {
+		if (!color || (color.toHex8() == '00000000')) {
 			color = Painter.getPixelColor(texture.ctx, x, y);
 		}
 		// Set color
