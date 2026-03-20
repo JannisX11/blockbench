@@ -1,6 +1,6 @@
 {
 	"name": "blockbench-types",
-	"version": "5.1.0-beta.3-next.1",
+	"version": "5.1.0-beta.3-next.2",
 	"description": "Blockbench typescript types",
 	"main": "",
 	"types": "./index.d.ts",
@@ -25,7 +25,7 @@
 		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.0.1",
-		"electron": "^33.3.1",
+		"electron": "^40.8.0",
 		"prismjs": "^1.29.0",
 		"tinycolor2": "^1.6.0",
 		"typescript": "^5.8.3",
