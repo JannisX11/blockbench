@@ -510,6 +510,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 					keybind.clear();
 				}
 			}
+			keybind.save(false);
 		}
 		Keybinds.actions.forEach(item => {
 			if (!item.keybind) return;
@@ -524,8 +525,6 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 					);
 				}
 			}
-
-			item.keybind.save(false);
 		})
 	}
 

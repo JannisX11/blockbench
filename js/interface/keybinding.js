@@ -48,6 +48,13 @@ BARS.defineActions(() => {
 					} else {
 						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
 					}
+					if (keybind_item.sub_keybinds) {
+						for (let key in keybind_item.sub_keybinds) {
+							let value = keys[keybind_item.id + '.' + key];
+							if (!value) continue;
+							keybind_item.sub_keybinds[key].keybind.set(value).save(false);
+						}
+					}
 				})
 				Keybinds.save();
 				TickUpdates.keybind_conflicts = true;
@@ -62,11 +69,23 @@ BARS.defineActions(() => {
 			var keys = {}
 
 			Keybinds.actions.forEach(item => {
-				if (!Keybinds.stored[item.id]) return
-				if (Keybinds.stored[item.id].key == -1) {
-					keys[item.id] = null;
-				} else {
-					keys[item.id] = new oneLiner(Keybinds.stored[item.id])
+				if (Keybinds.stored[item.id]) {
+					if (Keybinds.stored[item.id].key == -1) {
+						keys[item.id] = null;
+					} else {
+						keys[item.id] = new oneLiner(Keybinds.stored[item.id])
+					}
+				}
+				if (item.sub_keybinds) {
+					for (let key in item.sub_keybinds) {
+						let full_key = item.id + '.' + key;
+						if (!Keybinds.stored[full_key]) continue;
+						if (Keybinds.stored[full_key].key == -1) {
+							keys[full_key] = null;
+						} else {
+							keys[full_key] = new oneLiner(Keybinds.stored[full_key])
+						}
+					}
 				}
 			})
 			Blockbench.export({
