@@ -163,7 +163,7 @@
 		"concurrently": "^9.1.2",
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
-		"electron": "^40.1.0",
+		"electron": "^40.8.3",
 		"electron-builder": "^26.0.18",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
