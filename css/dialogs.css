@@ -1232,6 +1232,7 @@
 	dialog div.dialog_form_buttons {
 		padding: 4px;
 		display: flex;
+		flex-wrap: wrap;
 		gap: 2px;
 		width: 100%;
 	}
@@ -1241,6 +1242,9 @@
 		width: auto;
 		height: auto;
 		min-width: 52px;
+		height: auto;
+		white-space: nowrap;
+		flex-grow: 1;
 	}
 	/*Scale*/
 	dialog#scale .form_bar_overflow_info {

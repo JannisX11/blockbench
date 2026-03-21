@@ -183,7 +183,7 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 			target: {label: 'Target', type: 'info', text: target_text},
 			adjust: {type: 'select', label: 'Adjust', options: adjust_options},
 			target_size: {type: 'vector', label: 'Target UV Size', dimensions: 2, value: old_size, linked_ratio: true, min: 1, step: 1, force_step: true},
-			preest: {type: 'buttons', label: ' ', buttons: ['Original', 'Match Texture', '2x', '0.5x'], click(button) {
+			preset: {type: 'buttons', label: ' ', buttons: ['Original', 'Match Texture', '2x', '0.5x'], click(button) {
 				if (button == 0) {
 					dialog.form.setValues({target_size: old_size}, true);
 				} else if (button == 1) {

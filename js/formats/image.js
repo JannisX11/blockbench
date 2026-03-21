@@ -209,7 +209,6 @@ let format = new ModelFormat('image', {
 			}, 1);
 		};
 		let size_presets = {
-			'': 'Unset',
 			'16x16': '16 x 16',
 			'32x32': '32 x 32',
 			'64x64': '64 x 64',
@@ -218,7 +217,6 @@ let format = new ModelFormat('image', {
 			'512x512': '512 x 512',
 			'1920x1080': '1920 x 1080',
 		};
-		let previous_size_preset = '';
 		let format_options = {};
 		for (let key in Texture.file_formats) {
 			format_options[key] = Texture.file_formats[key].name;
@@ -233,16 +231,13 @@ let format = new ModelFormat('image', {
 				file_format: {label: 'menu.texture.file_format', type: 'select', value: 'png', options: format_options},
 				section2:    "_",
 
-				size_preset:{label: 'dialog.create_texture.resolution', type: 'select', options: size_presets},
 				resolution: {label: 'dialog.create_texture.resolution', type: 'vector', dimensions: 2, value: [16, 16], min: 1, max: 2048},
-				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
-			},
-			onFormChange(result) {
-				if (result.size_preset && result.size_preset != previous_size_preset) {
-					let size = result.size_preset.split('x').map(v => parseInt(v));
+				size_preset: {type: 'buttons', label: ' ', buttons: Object.values(size_presets), click(button) {
+					let key = Object.keys(size_presets)[button];
+					let size = key.split('x').map(v => parseInt(v));
 					dialog.setFormValues({resolution: size}, false);
-				}
-				previous_size_preset = result.size_preset;
+				}},
+				color: 		{label: 'data.color', type: 'color', colorpicker: TextureGenerator.background_color, toggle_enabled: true, toggle_default: false},
 			},
 			onConfirm: function(results) {
 				results.type = 'blank';
