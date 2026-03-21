@@ -111,6 +111,7 @@ codec.format = Formats.bedrock_block;
 export function loadBedrockCollisionFromJSON(json: any, name: string, undo: boolean = false): BoundingBox[] {
 	if (json instanceof Array == false) json = [json];
 	let bounding_boxes: BoundingBox[] = [];
+	Outliner.selected.empty();
 	for (let box of json) {
 		if (typeof box != 'object' || box.origin instanceof Array == false || box.size instanceof Array == false) return;
 		if (bounding_boxes.length == 0 && undo) {
@@ -125,7 +126,9 @@ export function loadBedrockCollisionFromJSON(json: any, name: string, undo: bool
 		});
 		bb.addTo().init();
 		bounding_boxes.push(bb);
+		bb.markAsSelected();
 	}
+	updateSelection();
 	if (bounding_boxes.length && undo) {
 		Undo.finishEdit('Paste bounding boxes');
 	}
