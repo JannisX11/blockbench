@@ -105,6 +105,7 @@ export const Painter = {
 							tool.tool_settings.brush_opacity = opacity;
 						}
 					}
+					BarItems.slider_brush_opacity.update();
 				}
 				ColorPanel.set(color, e.button == 2);
 			}
@@ -1251,6 +1252,7 @@ export const Painter = {
 					tool.tool_settings.brush_opacity = opacity;
 				}
 			}
+			BarItems.slider_brush_opacity.update();
 		}
 		ColorPanel.set(color, event && event.button == 2);
 
