@@ -2393,7 +2393,8 @@ BARS.defineActions(function() {
 	new Action('move_uv_to_cursor', {
 		icon: 'fas.fa-magnet',
 		category: 'uv',
-		condition: () => UVEditor.hasElements(),
+		keybind: new Keybind({alt: true, key: 'u'}),
+		condition: {modes: ['edit'], method: () => UVEditor.hasElements()},
 		click(event) {
 			Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true})
 			let center = [
