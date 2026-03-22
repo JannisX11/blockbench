@@ -878,7 +878,7 @@ export const Canvas = {
 	},
 	updateLayeredTextures() {
 		delete Canvas.layered_material;
-		if (Format.single_texture && Texture.all.length >= 2) {
+		if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2) {
 			Canvas.updateAllFaces();
 		}
 	},

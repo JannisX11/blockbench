@@ -1252,7 +1252,7 @@ new NodePreviewController(Cube, {
 		} else if (Project.view_mode === 'uv') {
 			mesh.material = Canvas.uvHelperMaterial
 
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
 		} else if (Format.single_texture && !Project.getMultiFileRuleset()) {
