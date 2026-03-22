@@ -106,7 +106,6 @@ var codec = new Codec('bedrock_voxel_shape', {
 		return name;
 	},
 })
-codec.format = Formats.bedrock_block;
 
 export function loadBedrockCollisionFromJSON(json: any, name: string, undo: boolean = false): BoundingBox[] {
 	if (json instanceof Array == false) json = [json];
@@ -136,6 +135,7 @@ export function loadBedrockCollisionFromJSON(json: any, name: string, undo: bool
 }
 
 BARS.defineActions(function() {
+	codec.format = Formats.bedrock_block;
 	codec.export_action = new Action('export_bedrock_voxel_shape', {
 		icon: 'fa-cubes',
 		category: 'file',
