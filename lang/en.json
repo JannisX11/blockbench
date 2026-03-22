@@ -918,7 +918,7 @@
 	"dialog.settings.clear_profile_value": "Clear profile value",
 
 	"keybindings.reset": "Reset",
-	"keybindings.clear": "Empty",
+	"keybindings.clear": "Unset",
 	"keybindings.recording": "Recording Keybinding",
 	"keybindings.press": "Press a key or key combination or click anywhere on the screen to record your keybinding.",
 	"keybindings.variation_conflict": "Variation conflicts with the main keybinding",
@@ -2045,6 +2045,8 @@
 	"action.change_textures_folder.desc": "Change the folder that all textures are saved in",
 	"action.apply_texture_to_elements": "Apply Texture to Elements",
 	"action.apply_texture_to_elements.desc": "Apply the selected texture to the selected elements",
+	"action.refresh_texture": "Refresh Texture",
+	"action.refresh_texture.desc": "Reload the texture from file",
 
 	"action.animated_textures": "Play Animated Textures",
 	"action.animated_textures.desc": "Play and pause the preview of animated textures",

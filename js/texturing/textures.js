@@ -2155,38 +2155,7 @@ export class Texture {
 				click(texture) {texture.exportEmissionMap()}
 			},
 			new MenuSeparator('manage'),
-			{
-				icon: 'refresh',
-				name: 'menu.texture.refresh',
-				condition: function(texture) {return texture.mode == 'link'},
-				click(texture) {
-					if (texture.layers_enabled) {
-						Blockbench.showMessageBox({
-							translateKey: 'texture_refresh_conflict',
-							icon: 'priority_high',
-							commands: {
-								keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
-								keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
-							},
-							buttons: ['dialog.cancel'],
-						}, (choice) => {
-							if (choice == 'keep_theirs') {
-								Undo.initEdit({textures: [texture], bitmap: true});
-								UVEditor.vue.layer = null;
-								texture.layers_enabled = false;
-								texture.selected_layer = null;
-								texture.layers.empty();
-								texture.refresh(true)
-								Undo.finishEdit('Disable layers on texture');
-								updateInterfacePanels();
-								BARS.updateConditions();
-							}
-						})
-					} else {
-						texture.reloadTexture()
-					}
-				}
-			},
+			'refresh_texture',
 			{
 				name: 'menu.texture.discard_changes',
 				description: 'menu.texture.discard_changes.desc',
@@ -2578,6 +2547,38 @@ BARS.defineActions(function() {
 			Texture.selected.apply(true)
 		}
 	})
+	new Action('refresh_texture', {
+		icon: 'refresh',
+		condition: () => Texture.selected?.internal == false,
+		click() {
+			let texture = Texture.selected;
+			if (texture.layers_enabled) {
+				Blockbench.showMessageBox({
+					translateKey: 'texture_refresh_conflict',
+					icon: 'priority_high',
+					commands: {
+						keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
+						keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
+					},
+					buttons: ['dialog.cancel'],
+				}, (choice) => {
+					if (choice == 'keep_theirs') {
+						Undo.initEdit({textures: [texture], bitmap: true});
+						UVEditor.vue.layer = null;
+						texture.layers_enabled = false;
+						texture.selected_layer = null;
+						texture.layers.empty();
+						texture.refresh(true)
+						Undo.finishEdit('Disable layers on texture');
+						updateInterfacePanels();
+						BARS.updateConditions();
+					}
+				})
+			} else {
+				texture.reloadTexture()
+			}
+		}
+	});
 })
 
 Interface.definePanels(function() {
