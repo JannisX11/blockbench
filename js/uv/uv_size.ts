@@ -79,15 +79,15 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 
 	// Form options
 	const adjust_options = {
-		adjust_uv: 'Adjust UV',
-		adjust_scale: 'Adjust UV & Scale',
-		keep: 'Keep UV',
+		adjust_uv: 'dialog.edit_uv_size.adjust.adjust_uv',
+		adjust_scale: 'dialog.edit_uv_size.adjust.adjust_scale',
+		keep: 'dialog.edit_uv_size.adjust.keep',
 	}
-	let target_text = 'Project';
+	let target_text = tl('dialog.project.title');
 	if (textures?.length > 1) {
-		target_text = textures.length + ' Textures';
+		target_text = textures.length + ' ' + tl('dialog.edit_uv_size.result.textures');
 	} else if (options.texture) {
-		target_text = `Texture ${(options.texture.name)}`;
+		target_text = `${tl('data.texture')} ${(options.texture.name)}`;
 	}
 	type Results = {
 		target: any
@@ -177,13 +177,18 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 
 	let dialog = new Dialog({
 		id: 'edit_uv_size',
-		title: 'Edit UV Size',
+		title: 'dialog.edit_uv_size.title',
 		darken: false,
 		form: {
-			target: {label: 'Target', type: 'info', text: target_text},
-			adjust: {type: 'select', label: 'Adjust', options: adjust_options},
+			target: {label: 'dialog.edit_uv_size.target', type: 'info', text: target_text},
+			adjust: {type: 'select', label: 'dialog.edit_uv_size.adjust', options: adjust_options},
 			target_size: {type: 'vector', label: 'Target UV Size', dimensions: 2, value: old_size, linked_ratio: true, min: 1, step: 1, force_step: true},
-			preset: {type: 'buttons', label: ' ', buttons: ['Original', 'Match Texture', '2x', '0.5x'], click(button) {
+			preset: {type: 'buttons', label: ' ', buttons: [
+				'dialog.edit_uv_size.preset.original',
+				'dialog.edit_uv_size.preset.match_texture',
+				'2x',
+				'0.5x'
+			], click(button) {
 				if (button == 0) {
 					dialog.form.setValues({target_size: old_size}, true);
 				} else if (button == 1) {
@@ -194,7 +199,7 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 					dialog.form.setValues({target_size: [current[0]*factor, current[1]*factor]}, true);
 				}
 			}},
-			output: {type: 'info', label: 'Result', text: getOutputText()},
+			output: {type: 'info', label: 'dialog.edit_uv_size.result', text: getOutputText()},
 		},
 		onOpen() {
 			let pos = window.innerHeight-this.object.clientHeight-50;

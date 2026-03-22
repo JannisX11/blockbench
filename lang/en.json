@@ -534,6 +534,18 @@
 	"dialog.resize_texture.fill.repeat": "Repeat",
 	"dialog.resize_texture.offset": "Offset",
 
+	"dialog.edit_uv_size.title": "Edit UV Size",
+	"dialog.edit_uv_size.target": "Target",
+	"dialog.edit_uv_size.adjust": "Adjust",
+	"dialog.edit_uv_size.adjust.adjust_uv": "Counter UV",
+	"dialog.edit_uv_size.adjust.adjust_scale": "Counter UV & Scale",
+	"dialog.edit_uv_size.adjust.keep": "Keep UV",
+	"dialog.edit_uv_size.target_size": "Target UV Size",
+	"dialog.edit_uv_size.preset.original": "Original",
+	"dialog.edit_uv_size.preset.match_texture": "Match Texture",
+	"dialog.edit_uv_size.result": "Result",
+	"dialog.edit_uv_size.result.textures": "Textures",
+
 	"dialog.animated_texture_editor.code_reference": "Code Reference",
 	"dialog.animated_texture_editor.code_reference.about": "This code to implement the texture animation was generated as a reference and does not necessarily work without modification. Check out the documentation to learn more.",
 	"dialog.animated_texture_editor.code_reference.docs": "Documentation",
