@@ -84,11 +84,13 @@ export const animation_codec = new AnimationCodec('bedrock', {
 						resolve();
 					},
 					onCancel(index) {
-						Project.memory_animation_files_to_load.remove(file.path);
+						if (Project.memory_animation_files_to_load) {
+							Project.memory_animation_files_to_load.remove(file.path);
+						}
 						resolve();
 					},
 					onButton(index) {
-						if (auto_loaded && index == 2) {
+						if (auto_loaded && index == 2 && Project.memory_animation_files_to_load) {
 							Project.memory_animation_files_to_load.empty();
 						}
 						resolve();
