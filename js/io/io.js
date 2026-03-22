@@ -288,7 +288,7 @@ export function unsupportedFileFormatMessage(file_path) {
 	let commands = {};
 	for (let plugin of supported_plugins) {
 		commands[plugin.id] = {
-			icon: plugin.icon,
+			icon: (!plugin.icon || plugin.icon.match(/\.(svg|png)/)) ? 'extension' : plugin.icon,
 			text: tl('message.invalid_format.install_plugin', [plugin.title])
 		}
 	}
