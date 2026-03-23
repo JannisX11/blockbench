@@ -1178,8 +1178,6 @@
 
 	"settings.autouv": "Auto UV",
 	"settings.autouv.desc": "Enable Auto UV by default",
-	"settings.clampuv": "Clamp UV",
-	"settings.clampuv.desc": "Enable clamping of UV coordinates to texture bounds by default",
 	"settings.default_cube_size": "Cube Size",
 	"settings.default_cube_size.desc": "Set the default cube size when creating a new cube",
 	"settings.inherit_parent_color": "Inherit Parent Color",
@@ -1604,7 +1602,6 @@
 	"action.copy_installed_plugins.desc": "Generate and copy a list of the currently installed plugins",
 	"action.install_plugins_from_list": "Install Plugins from List",
 	"action.install_plugins_from_list.desc": "Install plugins from a list of plugin IDs",
-	"action.install_plugins_from_list.about": "Install plugins from a list of plugin IDs",
 	"action.reload_plugins": "Reload Plugins",
 	"action.reload_plugins.desc": "Reload all development plugins",
 
@@ -1914,7 +1911,7 @@
 	"action.split_rgb_into_layers": "Split RGBA Channels into Layers",
 	"action.split_rgb_into_layers.desc": "Split the texture into additive layers, one for each RGBA channel",
 	"action.split_alpha_into_layer": "Split Alpha Channel into Layer",
-	"action.split_alpha_into_layer.desc": "Split the alpha channel of the texture into an alpha mask channel",
+	"action.split_alpha_into_layer.desc": "Split the alpha channel of the texture into an alpha mask layer",
 	"action.clear_unused_texture_space": "Clear Unused Texture Space",
 	"action.clear_unused_texture_space.desc": "Clear parts of the texture that are not UV-mapped to any elements",
 	"action.flip_texture_x": "Flip Horizontally",
