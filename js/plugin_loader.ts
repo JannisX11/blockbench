@@ -1969,7 +1969,6 @@ BARS.defineActions(function() {
 			new Dialog({
 				title: 'action.install_plugins_from_list',
 				form: {
-					// TODO: Localize
 					about: {type: 'info', text: 'dialog.install_plugins_from_list.info'},
 					input: {type: 'text', label: 'dialog.install_plugins_from_list.ids'},
 				},

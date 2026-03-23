@@ -363,10 +363,6 @@ BARS.defineActions(function() {
 			}
 		}
 	})
-	/*
-	todo
-	Attach model based on binding return values
-	*/
 
 	Blockbench.on('select_project', ({project}) => {
 		bedrock_animation_mode_select.set(project.bedrock_animation_mode || 'entity');
