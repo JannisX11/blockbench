@@ -859,11 +859,11 @@ export class Preview {
 		unselectInterface(event);
 		convertTouchEvent(event);
 		Preview.selected = this;
-		this.static_rclick = event.which === 3 || event.type == 'touchstart';
+		this.static_rclick = event.which === 3 || event.pointerType == 'touch';
 		if (this.static_rclick) {
 			this.event_start = [event.clientX, event.clientY];
 		}
-		if (event.type == 'touchstart') {
+		if (event.pointerType == 'touch') {
 			this.rclick_cooldown = setTimeout(() => {
 				this.rclick_cooldown = true;
 			}, 420)
@@ -1410,7 +1410,7 @@ export class Preview {
 			Transformer.setCanvas(this.canvas);
 			Preview.selected.controls.updateSceneScale();
 		}
-		if (event && event.type == 'touchstart') {
+		if (event && event.pointerType == 'touch') {
 			Transformer.simulateMouseDown(event);
 		}
 		return this;
@@ -1442,7 +1442,7 @@ export class Preview {
 		this.selection.client_x = event.clientX+0
 		this.selection.client_y = event.clientY+0
 
-		if (Modes.edit && event.type !== 'touchstart') {
+		if (Modes.edit && event.pointerType !== 'touch') {
 			$(this.node).append(this.selection.box)
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
