@@ -1133,6 +1133,7 @@ Interface.definePanels(() => {
 				openContextMenu(event) {
 					if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
 					if (Blockbench.hasFlag('no_context_menu')) return;
+					event.preventDefault();
 					Timeline.menu.open(event, event);
 				},
 				dragAnimator(animator, e1) {
