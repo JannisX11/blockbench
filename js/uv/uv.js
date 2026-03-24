@@ -5048,15 +5048,15 @@ Interface.definePanels(function() {
 									height: toTexturePixels(layer.scaled_height, 3, 0),
 								}"
 							>
-								<div class="uv_resize_corner uv_c_nw" @mousedown="resizeLayer($event, -1, -1)" @touchstart.prevent="resizeLayer($event, -1, -1)" style="left: 0; top: 0;" />
-								<div class="uv_resize_corner uv_c_ne" @mousedown="resizeLayer($event, 1, -1)" @touchstart.prevent="resizeLayer($event, 1, -1)" style="right: 0; top: 0;" />
-								<div class="uv_resize_corner uv_c_sw" @mousedown="resizeLayer($event, -1, 1)" @touchstart.prevent="resizeLayer($event, -1, 1)" style="left: 0; bottom: 0;" />
-								<div class="uv_resize_corner uv_c_se" @mousedown="resizeLayer($event, 1, 1)" @touchstart.prevent="resizeLayer($event, 1, 1)" style="right: 0; bottom: 0;" />
+								<div class="uv_resize_corner uv_c_nw" @pointerdown="resizeLayer($event, -1, -1)" style="left: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_ne" @pointerdown="resizeLayer($event, 1, -1)" style="right: 0; top: 0;" />
+								<div class="uv_resize_corner uv_c_sw" @pointerdown="resizeLayer($event, -1, 1)" style="left: 0; bottom: 0;" />
+								<div class="uv_resize_corner uv_c_se" @pointerdown="resizeLayer($event, 1, 1)" style="right: 0; bottom: 0;" />
 
-								<div class="uv_resize_corner uv_c_n" @mousedown="resizeLayer($event, 0, -1)" @touchstart.prevent="resizeLayer($event, 0, -1)" style="top: 0; left: 50%;" />
-								<div class="uv_resize_corner uv_c_s" @mousedown="resizeLayer($event, 0, 1)" @touchstart.prevent="resizeLayer($event, 0, 1)" style="bottom: 0; left: 50%;" />
-								<div class="uv_resize_corner uv_c_w" @mousedown="resizeLayer($event, -1, 0)" @touchstart.prevent="resizeLayer($event, -1, 0)" style="left: 0; top: 50%;" />
-								<div class="uv_resize_corner uv_c_e" @mousedown="resizeLayer($event, 1, 0)" @touchstart.prevent="resizeLayer($event, 1, 0)" style="right: 0; top: 50%;" />
+								<div class="uv_resize_corner uv_c_n" @pointerdown="resizeLayer($event, 0, -1)" style="top: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_s" @pointerdown="resizeLayer($event, 0, 1)" style="bottom: 0; left: 50%;" />
+								<div class="uv_resize_corner uv_c_w" @pointerdown="resizeLayer($event, -1, 0)" style="left: 0; top: 50%;" />
+								<div class="uv_resize_corner uv_c_e" @pointerdown="resizeLayer($event, 1, 0)" style="right: 0; top: 50%;" />
 							</div>
 
 							<div id="texture_selection_rect"
