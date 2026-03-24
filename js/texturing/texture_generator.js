@@ -507,8 +507,10 @@ export const TextureGenerator = {
 			uv_mode: true
 		})
 
+		// MARK: Compute UV requirements from elements
 		element_list.forEach(element => {
 			let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
+			if (options.disable_mirror_uv == true || BarItems.mirror_modeling.tool_config.options.mirror_uv == false) mirror_modeling_duplicate = false;
 			if (mirror_modeling_duplicate) return;
 			if (element.getTypeBehavior('cube_faces')) {
 				if ((element.box_uv || options.box_uv) && element.getTypeBehavior('support_box_uv')) {
@@ -518,8 +520,6 @@ export const TextureGenerator = {
 					}
 					
 					let template = new TextureGenerator.boxUVCubeTemplate(element, element.box_uv ? 0 : 1);
-					let mirror_modeling_duplicate = BarItems.mirror_modeling.value && MirrorModeling.cached_elements[element.uuid] && MirrorModeling.cached_elements[element.uuid].is_copy;
-					if (mirror_modeling_duplicate) return;
 	
 					if (options.double_use && Texture.all.length) {
 						let double_key = [...element.uv_offset, ...element.size(undefined, true), ].join('_')
@@ -954,6 +954,7 @@ export const TextureGenerator = {
 			return b.template_size - a.template_size;
 		})
 
+		// MARK: Rearrange UVs into template
 		if (options.rearrange_uv) {
 
 			let extend_x = 0;
@@ -1172,6 +1173,7 @@ export const TextureGenerator = {
 
 		await setProgress(1);
 
+		// MARK: Create Texture
 		if (background_color) {
 			background_color = background_color.toRgbString()
 		}
@@ -1192,6 +1194,8 @@ export const TextureGenerator = {
 
 		TextureGenerator.old_project_resolution = [Project.texture_width, Project.texture_height]
 
+		
+		// MARK: Draw Utility
 		function getPolygonOccupationMatrix(vertex_uv_faces, width, height) {
 			let matrix = {};
 			function vSub(a, b) {
@@ -1253,7 +1257,6 @@ export const TextureGenerator = {
 			}
 			return matrix;
 		}
-
 
 		function drawTemplateRectangle(border_color, color, coords) {
 			if (typeof background_color === 'string') {
@@ -1466,7 +1469,7 @@ export const TextureGenerator = {
 			return true;
 		}
 
-		//Drawing
+		// MARK: Place UVs and fill texture
 		face_list.forEach(function(ftemp) {
 			var pos = {
 				x: ftemp.posx,

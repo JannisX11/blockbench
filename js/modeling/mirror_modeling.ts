@@ -354,7 +354,11 @@ Blockbench.on('finish_edit', ({aspects}) => {
 						aspects.elements.remove(mirror_element);
 					}
 				} else {
-					// Construct clone at other side of model
+					if (cached_data?.counterpart?.selected && cached_data.is_copy) {
+						// When both sides are selected, and this one is the copy, don't update
+						return;
+					}
+					// Construct or update clone at other side of model
 					MirrorModeling.createClone(element, aspects);
 				}
 			}
