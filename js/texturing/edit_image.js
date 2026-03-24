@@ -154,6 +154,7 @@ BARS.defineActions(function() {
 						preview_changes: true,
 						saturation: 100,
 						hue: 0,
+						brightness: 100,
 						textures
 					}},
 					methods: {
@@ -164,7 +165,7 @@ BARS.defineActions(function() {
 									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
-										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
+										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg) brightness(${this.brightness / 100})`;
 									} else {
 										ctx.filter = `brightness(1.0)`;
 									}
@@ -199,6 +200,11 @@ BARS.defineActions(function() {
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
+							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.brightness')}</label>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
