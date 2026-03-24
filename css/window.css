@@ -950,7 +950,8 @@
 	}
 	#status_bar .sidebar_toggle_button {
 		cursor: pointer;
-		padding: 2px;
+		height: 100%;
+		padding-top: 2px;
 		padding-right: 0;
 		padding-left: 0;
 	}
