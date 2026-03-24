@@ -850,7 +850,7 @@ BARS.defineActions(function() {
 
 				let vertices = obj.getSelectedVertices();
 				vertices.forEach(vkey => {
-					let before = main_pos[axis];
+					let before = obj.vertices[vkey][axis];
 					obj.vertices[vkey][axis] = modifyInSpace(before);
 				
 					if (obj instanceof SplineMesh) {
