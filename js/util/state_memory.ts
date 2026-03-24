@@ -41,6 +41,10 @@ const StateMemory = {
 }
 export default StateMemory;
 
-Object.assign(window, {
-	StateMemory,
-});
+const global = {
+	StateMemory
+};
+declare global {
+	const StateMemory: typeof global.StateMemory
+}
+Object.assign(window, global);

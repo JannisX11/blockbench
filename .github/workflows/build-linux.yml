@@ -1,0 +1,33 @@
+name: Build Linux installers
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build-linux:
+    if: contains(github.event.head_commit.message, 'ci-build')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Publish Linux build
+        run: npm run publish-linux
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

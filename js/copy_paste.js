@@ -110,7 +110,7 @@ export const Clipbench = {
 						}
 					})).show('mouse');
 				})
-			} else {
+			} else if (options[0]) {
 				return options[0]
 			}
 		}
@@ -125,6 +125,9 @@ export const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (isApp && clipboard.readText()) {
+			return Clipbench.types.text;
 		}
 	},
 	copy(event, cut) {
@@ -191,7 +194,8 @@ export const Clipbench = {
 
 		switch (await Clipbench.getPasteType()) {
 			case 'text':
-				Clipbench.setText(window.getSelection()+'');
+				let text = isApp ? clipboard.readText() : await navigator.clipboard.readText();
+				Blockbench.dispatchEvent('paste_text', {text});
 				break;
 			case 'texture_selection':
 				UVEditor.addPastingOverlay();
@@ -335,7 +339,7 @@ export const Clipbench = {
 				if (obj.children) {
 					let copy = new Group(obj).addTo(parent).init();
 					new_groups.push(copy);
-					copy._original_name = copy.name;
+					copy.temp_data.old_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
 

@@ -104,6 +104,10 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 		return this.ctrlKey || this.metaKey;
 	}
 })
+ImageData.prototype.getIndex = function(x, y) {
+	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+    return (x + y * this.height) * 4;
+}
 
 export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
@@ -686,7 +690,16 @@ export function cameraRotationToTarget(position, rotation) {
 	return vec.toArray().V3_add(position);
 }
 
-export function getDateDisplay(input_date) {
+const date_formatter = new Intl.DateTimeFormat();
+const date_time_formatter = new Intl.DateTimeFormat(undefined, {
+	year: 'numeric',
+	month: 'numeric',
+	day: 'numeric',
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit"
+});
+export function getDateDisplay(input_date, print_time = true) {
 	let date = new Date(input_date);
 	var diff = Math.floor(Blockbench.openTime / (60_000*60*24)) - Math.floor(date / (60_000*60*24));
 	let label;
@@ -699,11 +712,11 @@ export function getDateDisplay(input_date) {
 	} else if (diff <= 60) {
 		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
 	} else {
-		label = date.toLocaleDateString();
+		label = date_formatter.format(date);
 	}
 	return {
 		short: label,
-		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+		full: print_time ? date_time_formatter.format(date) : date_formatter.format(date)
 	}
 }
 

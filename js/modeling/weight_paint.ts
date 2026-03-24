@@ -1,30 +1,28 @@
 import { Blockbench } from '../api';
 import { THREE } from '../lib/libs';
-import { Armature } from '../outliner/armature';
-import { ArmatureBone } from '../outliner/armature_bone';
+import { Armature } from '../outliner/types/armature';
+import { ArmatureBone } from '../outliner/types/armature_bone';
 import { Preview } from '../preview/preview';
 import { symmetrizeArmature } from './mirror_modeling';
 
-type CanvasClickData = {event: MouseEvent} | {
-	event: MouseEvent
-	element: OutlinerElement
-	face: string
-	intersects: Array<THREE.Intersection>
-}
+type CanvasClickData = RaycastResult
 
 let brush_outline: HTMLElement;
-function updateBrushOutline(event: PointerEvent) {
+function updateBrushOutline(event: PointerEvent | KeyboardEvent) {
 	if (!brush_outline || Toolbox.selected.id != 'weight_brush') return;
 	let preview = Preview.selected as Preview;
-	let preview_offset = $(preview.canvas).offset();
-	let click_pos = [
-		event.clientX - preview_offset.left,
-		event.clientY - preview_offset.top,
-	]
 	preview.node.append(brush_outline);
-	brush_outline.style.left = click_pos[0] + 'px';
-	brush_outline.style.top = click_pos[1] + 'px';
 	brush_outline.style.display = (event.altKey || Pressing.overrides.alt) ? 'none' : 'block'
+
+	if ('clientX' in event) {
+		let preview_offset = $(preview.canvas).offset();
+		let click_pos = [
+			event.clientX - preview_offset.left,
+			event.clientY - preview_offset.top,
+		]
+		brush_outline.style.left = click_pos[0] + 'px';
+		brush_outline.style.top = click_pos[1] + 'px';
+	}
 }
 Blockbench.on('update_pressed_modifier_keys', (arg) => {
 	updateBrushOutline(arg.event);
@@ -80,9 +78,9 @@ new Tool('weight_brush', {
 	transformerMode: 'hidden',
 	selectElements: false,
 	modes: ['edit'],
-	condition: {modes: ['edit'], method: () => Armature.all.length},
+	condition: {modes: ['edit'], method: () => !!Armature.all.length},
 	
-	onCanvasClick(data: CanvasClickData) {
+	onCanvasClick(data) {
 		let element = 'element' in data && data.element;
 		if (element instanceof ArmatureBone) {
 			return element.select(data.event);
@@ -129,7 +127,7 @@ new Tool('weight_brush', {
 			if (Preview.selected.controls.hasMoved) return;
 			last_click_pos = click_pos;
 
-			data = data ?? preview.raycast(event);
+			data = data ?? preview.raycast(event) as any;
 			let mesh = element;
 			if (mesh instanceof Mesh == false) return;
 			let vec = new THREE.Vector2();
@@ -191,7 +189,7 @@ new Tool('weight_brush', {
 		}
 		document.addEventListener('pointermove', draw);
 		document.addEventListener('pointerup', stop);
-		draw(data.event, data);
+		draw(data.event as MouseEvent, data);
 
 	},
 	onSelect() {

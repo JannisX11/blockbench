@@ -1,7 +1,7 @@
 import { Blockbench } from "../api";
-import { Armature } from "../outliner/armature";
-import { ArmatureBone } from "../outliner/armature_bone";
-import { Billboard } from "../outliner/billboard";
+import { Armature } from "../outliner/types/armature";
+import { ArmatureBone } from "../outliner/types/armature_bone";
+import { Billboard } from "../outliner/types/billboard";
 import { flipNameOnAxis } from "./transform";
 
 export const MirrorModeling = {
@@ -61,15 +61,17 @@ export const MirrorModeling = {
 			}
 
 			// Update hierarchy up
-			function updateParent(child, child_b) {
+			function updateParent(child: OutlinerNode, child_b: OutlinerNode) {
 				let parent = child.parent;
 				let parent_b = child_b.parent;
-				if (parent == parent_b) return;
+				if (parent == parent_b || parent == Outliner.ROOT || parent_b == Outliner.ROOT) return;
 				if (parent.type != parent_b.type) return;
 				if (parent instanceof OutlinerNode == false || parent.getTypeBehavior('parent') != true) return;
 				if (parent_b instanceof OutlinerNode == false || parent_b.getTypeBehavior('parent') != true) return;
 
+				let before_snapshot = parent_b instanceof Group ? parent_b.getSaveCopy() : undefined;
 				MirrorModeling.updateParentNodeCounterpart(parent_b, parent);
+				if (parent_b instanceof Group) MirrorModeling.insertGroupIntoUndo(parent_b, undo_aspects, before_snapshot);
 
 				updateParent(parent, parent_b);
 			}
@@ -233,7 +235,7 @@ export const MirrorModeling = {
 		// pre
 		if (!Undo.current_save.groups) Undo.current_save.groups = [];
 		if (before_snapshop) {
-			if (Undo.current_save.groups.find((g: any) => g.uuid == before_snapshop.uuid)) {
+			if (!Undo.current_save.groups.find((g: any) => g.uuid == before_snapshop.uuid)) {
 				Undo.current_save.groups.push(before_snapshop);
 			}
 		} else {
@@ -352,7 +354,11 @@ Blockbench.on('finish_edit', ({aspects}) => {
 						aspects.elements.remove(mirror_element);
 					}
 				} else {
-					// Construct clone at other side of model
+					if (cached_data?.counterpart?.selected && cached_data.is_copy) {
+						// When both sides are selected, and this one is the copy, don't update
+						return;
+					}
+					// Construct or update clone at other side of model
 					MirrorModeling.createClone(element, aspects);
 				}
 			}
@@ -656,7 +662,7 @@ MirrorModeling.registerElementType(Mesh, {
 				}
 			}
 		}
-		if ((BarItems.selection_mode as BarSelect<string>).value != 'object') {
+		if ((BarItems.selection_mode as BarSelect).value != 'object') {
 			let selected_vertices = mesh.getSelectedVertices(true);
 			selected_vertices.replace(selected_vertices.filter(vkey => mesh.vertices[vkey]));
 			let selected_edges = mesh.getSelectedEdges(true);
@@ -838,4 +844,10 @@ BARS.defineActions(() => {
 	})
 })
 
-Object.assign(window, {MirrorModeling});
+const global = {
+	MirrorModeling
+};
+declare global {
+	const MirrorModeling: typeof global.MirrorModeling
+}
+Object.assign(window, global);

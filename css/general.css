@@ -53,6 +53,10 @@
 	}
 	.code {
 		font-size: 16px;
+		tab-size: 4;
+	}
+	textarea.code {
+		padding: 5px;
 	}
 	.small_text {
 		font-size: 0.94em;
@@ -144,6 +148,25 @@
 	}
 	.preview > canvas {
 		background-repeat: no-repeat;
+	}
+	div.preview.fixed_ratio {
+		display: flex;
+	}
+	.preview.fixed_ratio > canvas {
+		margin: auto;
+		border-radius: 7px;
+		border: 2px solid var(--color-grid);
+	}
+	.preview > .preview_perspective_label {
+		position: absolute;
+		width: fit-content;
+		margin: auto;
+		bottom: 4px;
+		right: 0;
+		left: 0;
+		pointer-events: none;
+		opacity: 0.5;
+		text-transform: uppercase;
 	}
 	.preview .preview_menu {
 		position: absolute;
@@ -398,6 +421,7 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.markdown img {
+		image-rendering: auto;
 		max-width: 100%;
 	}
 
@@ -458,6 +482,7 @@
 		width: 16px;
 		margin-left: -5px;
 		font-size: 20px;
+		margin-top: 5px;
 	}
 	.toolbar.vertical > .tool.toolbar_menu > i {
 		width: auto;
@@ -512,7 +537,7 @@
 		padding: 0;
 	}
 	.tool.widget.bar_text {
-		padding: 3px;
+		padding: 2px;
 	}
 	.tool.has_label {
 		width: auto;
@@ -585,11 +610,11 @@
 	}
 	.tooltip {
 		position: absolute;
-		height: 29px;
+		height: 28px;
 		width: fit-content;
 		padding-left: 6px;
 		padding-right: 6px;
-		padding-top: 3px;
+		padding-top: 1px;
 		background: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
 		margin-top: 30px;

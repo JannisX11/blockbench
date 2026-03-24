@@ -41,7 +41,7 @@ declare class PreviewModel extends Deletable {
 	constructor(id: string, options: PreviewModelOptions)
 
 	static models: {
-		(id: string): PreviewModel
+		[id: string]: PreviewModel
 	}
 	static getActiveModels(): PreviewModel[]
 
@@ -72,6 +72,7 @@ declare class PreviewModel extends Deletable {
 interface PreviewSceneOptions {
 	name?: string
 	description?: string
+	category?: string
 	light_color?: string
 	light_side?: number
 	condition?: ConditionResolvable
@@ -102,6 +103,7 @@ declare class PreviewScene extends Deletable {
 	id: string
 	name: string
 	description: string
+	category?: string
 	light_color: string
 	light_side: number
 	condition?: ConditionResolvable

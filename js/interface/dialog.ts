@@ -1,8 +1,9 @@
 import { Blockbench } from "../api"
 import { Prop } from "../misc"
-import { FormElementOptions, FormResultValue, InputForm, InputFormConfig } from "./form"
+import { FormResultValue, InputForm, InputFormConfig } from "./form"
 import { Vue } from './../lib/libs'
 import { getStringWidth } from "../util/util"
+import { dragHelper } from "../util/drag_helper"
 
 interface ActionInterface {
 	name: string
@@ -94,9 +95,37 @@ function buildToolbars(dialog: Dialog) {
 		dialog_content.append(toolbar.node);
 	}
 }
+function makeDraggable(dialog: Dialog | MessageBox, handle: HTMLElement) {
+	dialog.object.classList.add('draggable');
+	dialog.object.style.position = 'absolute';
+
+	let style = dialog.object.style;
+	let wrapper = Interface.page_wrapper;
+	let bounds = [
+		wrapper.offsetLeft+2,
+		wrapper.offsetTop+2,
+		wrapper.clientWidth + wrapper.offsetLeft+2,
+		wrapper.clientHeight + wrapper.offsetTop+2,
+	]
+	handle.addEventListener('pointerdown', (e1) => {
+		let start_x: number, start_y: number;
+		dragHelper(e1, {
+			onStart() {
+				start_x = dialog.object.offsetLeft;
+				start_y = dialog.object.offsetTop;
+			},
+			onMove(context) {
+				let x = Math.clamp(start_x + context.delta.x, bounds[0], bounds[2] - dialog.object.clientWidth);
+				let y = Math.clamp(start_y + context.delta.y, bounds[1], bounds[3] - dialog.object.clientHeight);
+				style.left = x + 'px';
+				style.top = y + 'px';
+			}
+		})
+	});
+}
 
 const toggle_sidebar = window.innerWidth < 640;
-interface DialogSidebarOptions {
+export interface DialogSidebarOptions {
 	pages?: {
 		[key: string]: string | { label: string; icon: IconString; color?: string } | MenuSeparator
 	}
@@ -211,7 +240,7 @@ export class DialogSidebar {
 }
 
 
-interface DialogOptions {
+export interface DialogOptions {
 	title: string
 	id?: string
 	icon?: IconString
@@ -597,13 +626,7 @@ export class Dialog {
 		})
 		//Draggable
 		if (this.draggable !== false) {
-			jq_dialog.addClass('draggable')
-			// @ts-ignore Draggable library doesn't have types
-			jq_dialog.draggable({
-				handle: ".dialog_handle",
-				containment: '#page_wrapper'
-			})
-			jq_dialog.css('position', 'absolute')
+			makeDraggable(this, handle);
 		}
 		if (this.resizable) {
 			this.object.classList.add('resizable')
@@ -675,6 +698,7 @@ export class Dialog {
 		// Hide previous
 		// @ts-ignore Need to replace this variable still
 		if (window.open_interface && open_interface instanceof Dialog == false && typeof open_interface.hide == 'function') {
+			// @ts-ignore Need to replace this variable still
 			open_interface.hide();
 		}
 
@@ -873,6 +897,10 @@ export interface MessageBoxOptions {
 	 */
 	cancel?: number
 	buttons?: string[]
+	/**
+	 * Unless set to false, clicking on the darkened area outside of the dialog will cancel the dialog.
+	 */
+	cancel_on_click_outside?: boolean
 	translateKey?: string
 	title?: string
 	message?: string
@@ -921,9 +949,11 @@ export class MessageBox extends Dialog {
 			if (!options.message) options.message = tl('message.'+options.translateKey+'.message')
 		}
 		let content = Interface.createElement('div', {class: 'dialog_content'});
+		let handle = Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title)));
+		let close_button = Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear'))
 		this.object = Interface.createElement('dialog', {class: 'dialog', style: 'width: auto;', id: 'message_box'}, [
-			Interface.createElement('div', {class: 'dialog_handle'}, Interface.createElement('div', {class: 'dialog_title'}, tl(options.title))),
-			Interface.createElement('div', {class: 'dialog_close_button', onclick: 'Dialog.open.cancel()'}, Blockbench.getIconNode('clear')),
+			handle,
+			close_button,
 			content
 		]);
 		let jq_dialog = $(this.object);
@@ -1017,13 +1047,7 @@ export class MessageBox extends Dialog {
 
 		//Draggable
 		if (this.draggable !== false) {
-			jq_dialog.addClass('draggable')
-			// @ts-ignore
-			jq_dialog.draggable({
-				handle: ".dialog_handle",
-				containment: '#page_wrapper'
-			})
-			this.object.style.position = 'absolute';
+			makeDraggable(this, handle);
 		}
 
 		let x = (window.innerWidth-540)/2
@@ -1156,6 +1180,7 @@ export class ToolConfig extends ConfigDialog {
 	show(anchor?: HTMLElement): this {
 		super.show(anchor);
 		this.setFormValues(this.options, false);
+		this.form.updateValues({cause: 'setup'});
 		this.form.on('input', ({result, cause}) => {
 			this.changeOptions(result)
 		})
@@ -1188,12 +1213,26 @@ export class ToolConfig extends ConfigDialog {
 	}
 }
 
-
-Object.assign(window, {
+const global = {
 	DialogSidebar,
 	Dialog,
 	ShapelessDialog,
 	MessageBox,
 	ConfigDialog,
 	ToolConfig,
-});
+};
+declare global {
+	const Dialog: typeof global.Dialog
+	type Dialog = import('./dialog').Dialog
+	const ConfigDialog: typeof global.ConfigDialog
+	type ConfigDialog = import('./dialog').ConfigDialog
+	const DialogSidebar: typeof global.DialogSidebar
+	type DialogSidebar = import('./dialog').DialogSidebar
+	const MessageBox: typeof global.MessageBox
+	type MessageBox = import('./dialog').MessageBox
+	const ShapelessDialog: typeof global.ShapelessDialog
+	type ShapelessDialog = import('./dialog').ShapelessDialog
+	const ToolConfig: typeof global.ToolConfig
+	type ToolConfig = import('./dialog').ToolConfig
+}
+Object.assign(window, global);

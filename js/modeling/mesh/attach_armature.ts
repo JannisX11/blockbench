@@ -1,5 +1,5 @@
-import { Armature } from "../../outliner/armature";
-import { ArmatureBone } from "../../outliner/armature_bone";
+import { Armature } from "../../outliner/types/armature";
+import { ArmatureBone } from "../../outliner/types/armature_bone";
 import { sameMeshEdge } from "./util";
 import { THREE } from "../../lib/libs";
 import { pointInPolygon } from "../../util/util";
@@ -276,7 +276,7 @@ BARS.defineActions(() => {
 	
 	new Action('calculate_vertex_weights', {
 		icon: 'accessibility',
-		condition: () => Mesh.selected[0]?.getArmature(),
+		condition: () => !!Mesh.selected[0]?.getArmature(),
 		click(e) {
 			let armature_bones: ArmatureBone[] = [];
 			let meshes: Mesh[] = [];

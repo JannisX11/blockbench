@@ -82,7 +82,7 @@ declare class Cube extends OutlinerElement {
 	 */
 	size(axis: number, floored?: boolean): number
 	rotationAxis(): string
-	getUndoCopy(aspects?: any): void
+	getUndoCopy(aspects?: any): any
 	getSaveCopy(): Cube
 	/**
 	 * Rotate the cube around axis in 90 degree steps
@@ -123,25 +123,6 @@ declare class Cube extends OutlinerElement {
 
 interface FaceOptions {
 	texture?: Texture | UUID | false
-}
-declare class Face {
-	constructor()
-	texture: UUID | false | undefined
-
-	getTexture(): Texture | undefined
-	/**
-	 * Returns a 2D rectangle around the UV face
-	 */
-	getBoundingRect(): any
-	reset(): void
-	/**
-	 * Returns a save copy of the face, ready for serialization
-	 */
-	getSaveCopy(): any
-	/**
-	 * Get a copy for undo tracking
-	 */
-	getUndoCopy(): Face
 }
 
 type CubeFaceDirection = 'north' | 'south' | 'east' | 'west' | 'up' | 'down'

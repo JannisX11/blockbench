@@ -88,7 +88,6 @@ function createWindow(second_instance, options = {}) {
 
 	remote.enable(win.webContents)
 
-	var index_path = path.join(__dirname, './../index.html')
 	if (process.platform === 'darwin') {
 
 		let template = [
@@ -163,6 +162,7 @@ function createWindow(second_instance, options = {}) {
 	if (options.maximize !== false) win.maximize()
 	win.show()
 
+	var index_path = path.join(__dirname, './../index.html')
 	win.loadURL(url.format({
 		pathname: index_path,
 		protocol: 'file:',

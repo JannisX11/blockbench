@@ -8,110 +8,23 @@ declare interface OutlinerNodeParentTraits {
 	isOpen: boolean
 }
 
+/**
+ * @deprecated Use {@link Outliner.elements} instead
+ */
 declare const elements: OutlinerNode[]
-/**
- * @private
- */
-declare class OutlinerNode {
-	static properties: Record<string, Property<any>>
-	constructor(uuid: UUID)
-	type: string
-	name: string
-	uuid: UUID
-	export: boolean
-	locked: boolean
-	parent?: (OutlinerNode & OutlinerNodeParentTraits) | 'root'
-	selected: boolean
-	menu?: Menu
 
-	public preview_controller: NodePreviewController
-	static preview_controller: NodePreviewController
-	readonly scene_object: THREE.Object3D
-
-	/**
-	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
-	 */
-	init(): this
-	extend(data: any): void
-	addTo(target?: OutlinerNode | 'root'): this
-	sortInBefore(target?: OutlinerNode, index_modifier?: number): this
-	select(event?: any, isOutlinerClick?: boolean): this
-	/**
-	 * Mark the element as selected
-	 */
-	markAsSelected(descendants?: boolean): void
-	getParentArray(): OutlinerNode[]
-	/**
-	 * Unfolds the outliner and scrolls up or down if necessary to show the group or element.
-	 */
-	showInOutliner(): this
-	/**
-	 * Updates the Vue node of the element. This is only necessary in some rare situations
-	 */
-	updateElement(): this
-	/**
-	 * Removes the element.
-	 */
-	remove(undo?: boolean): void
-	/**
-	 * Marks the name of the group or element in the outliner for renaming.
-	 */
-	rename(): this
-	/**
-	 * Saves the changed name of the element by creating an undo point and making the name unique if necessary.
-	 */
-	saveName(save?: boolean): this
-	/**
-	 * Create a unique name for the group or element by adding a number at the end or increasing it.
-	 */
-	createUniqueName(others?: OutlinerNode[]): this
-	/**
-	 * Checks of the group or element is a child of `group`.
-	 * @param max_levels The maximum number of generations that can be between the element and the group
-	 */
-	isChildOf(node: OutlinerNode, max_levels: number): boolean
-	/**
-	 * Displays the context menu of the element
-	 * @param event Mouse event, determines where the context menu spawns.
-	 */
-	showContexMenu(event: Event | HTMLElement): this
-	getSaveCopy?(...args: any[]): Record<string, any>
-	sanitizeName(): string
-
-	getTypeBehavior(flag: string): boolean | string | any
-
-	static addBehaviorOverride(override_options: {condition: ConditionResolvable, priority?: number, behavior: Record<string, any>}): Deletable
-	static behavior_overrides = [];
-
-	static uuids: {
-		[uuid: UUID]: OutlinerNode
-	}
-}
 
 /**
  * @private
  */
-declare class OutlinerElement extends OutlinerNode {
-	static animator?: BoneAnimator
+type ElementTypeConstructor = {
+	new (...args: any[]): OutlinerElement;
+	init?(): void;
+	behavior: any;
+	properties: Record<string, Property<any>>
+	selected: OutlinerElement[]
+};
 
-	constructor(data: any, uuid: string)
-	selected: boolean
-	allow_mirror_modeling?: boolean
-	mesh: THREE.Object3D | THREE.Mesh
-	static fromSave(data: any, keep_uuid?: boolean): OutlinerElement
-	static isParent: false
-	static types: Record<string, typeof OutlinerElement>
-	static all: OutlinerElement[]
-	static selected: OutlinerElement[]
-	static registerType(constructor: any, id: string): void
-	select(event?: any, isOutlinerClick?: boolean): this
-	unselect(...args: any[]): this
-
-	/**Check if any elements of the type are in the project */
-	static hasAny: () => boolean
-	/**Check if any elements of the type are currently selected */
-	static hasSelected: () => boolean
-}
 
 interface LocatorOptions {
 	name: string
@@ -197,10 +110,11 @@ interface OutlinerToggle {
 }
 
 declare namespace Outliner {
-	const root: OutlinerNode[]
+	let root: OutlinerNode[]
 	const ROOT: 'root'
 	const elements: OutlinerElement[]
 	const selected: OutlinerElement[]
+	const nodes: OutlinerNode[]
 	let control_menu_group: MenuItem[]
 	const buttons: {
 		autouv: OutlinerToggle
@@ -211,16 +125,33 @@ declare namespace Outliner {
 		visibility: OutlinerToggle
 		[id: string]: OutlinerToggle
 	};
+
+	interface OutlinerDisplayRule {
+		/**
+		 * ID of the rule
+		 */
+		id: string
+		/**
+		 * A test function to determine if the node should be hidden by the rule
+		 * @param node Outliner node (or element) to test
+		 */
+		test: (node: OutlinerNode) => boolean
+	}
+	function isNodeDisplayed(node: OutlinerNode): boolean
+	/**
+	 * A list of rules regarding which nodes are displayed in the outliner. If any rule returns false, the node is not displayed
+	 */
+	const node_display_rules: OutlinerDisplayRule[]
+	/**
+	 * Update which nodes are displayed in the outliner
+	 */
+	function updateNodeDisplayRules(): void
+
 	function toJSON(): []
 	function loadJSON(array: [], add_to_project?: boolean): void;
 }
 
-declare const markerColors: {
-	pastel: string
-	standard: string
-	id: string
-	name?: string
-}[]
+
 
 declare function compileGroups(undo: boolean, lut?: { [index: number]: number }): any[]
 

@@ -36,8 +36,11 @@ interface ToastNotificationOptions {
 }
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
+// @ts-ignore
+// const previous_data = window.Blockbench as {};
+
 export const Blockbench = {
-	...window.Blockbench,
+	//...previous_data,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -82,7 +85,7 @@ export const Blockbench = {
 		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
 	},
 	//Interface
-	getIconNode(icon: IconString | boolean | HTMLElement | (() => (IconString | boolean | HTMLElement)), color?: string) {
+	getIconNode(icon: IconString | boolean | HTMLElement | (() => (IconString | boolean | HTMLElement)), color?: string): HTMLElement {
 		let node;
 		if (typeof icon === 'function') {
 			icon = icon()
@@ -329,7 +332,7 @@ export const Blockbench = {
 		return this.flags[flag];
 	},
 	//Events
-	dispatchEvent(event_name: EventName, data: any): any[] {
+	dispatchEvent<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, data: D): any[] {
 		let list = this.events[event_name];
 		let results: any[];
 		if (list) {
@@ -346,20 +349,20 @@ export const Blockbench = {
 		}
 		return results;
 	},
-	on(event_name: EventName, cb) {
+	on<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.on.call(this, event_name, cb);
 	},
-	once(event_name: EventName, cb) {
+	once<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.once.call(this, event_name, cb);
 	},
-	addListener(event_name: EventName, cb) {
+	addListener<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.addListener.call(this, event_name, cb);
 	},
-	removeListener(event_name: EventName, cb) {
+	removeListener<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): void {
 		return EventSystem.prototype.removeListener.call(this, event_name, cb);
 	},
 	// Update
-	onUpdateTo(version, callback) {
+	onUpdateTo(version: string, callback: (previous_version: string) => void) {
 		if (LastVersion && VersionUtil.compare(version, '>', LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
@@ -368,7 +371,7 @@ export const Blockbench = {
 	Format: 0 as (ModelFormat | number),
 	Project: 0 as (ModelProject | number),
 	get Undo() {
-		return Project?.undo;
+		return Blockbench.Project instanceof ModelProject ? Blockbench.Project.undo : undefined;
 	},
 	// File System
 	import: Filesystem.importFile,
@@ -408,8 +411,19 @@ if (isApp) {
 	if (Blockbench.platform.includes('win32') === true) window.osfs = '\\';
 }
 
-Object.assign(window, {
+declare global {
+	interface window {
+		Blockbench: typeof Blockbench
+	}
+}
+
+const global = {
 	LastVersion,
 	Blockbench,
 	isApp
-});
+}
+declare global {
+	const LastVersion: typeof global.LastVersion
+	const Blockbench: typeof global.Blockbench
+}
+Object.assign(window, global);

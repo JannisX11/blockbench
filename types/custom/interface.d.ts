@@ -1,25 +1,5 @@
 /// <reference types="./blockbench"/>
 
-interface ResizeLineOptions {
-	condition?: ConditionResolvable
-	horizontal?: boolean
-	position(): void
-	get(): void
-	set(): void
-}
-declare class ResizeLine {
-	constructor(id: string, options: ResizeLineOptions)
-
-	id: string
-	horizontal: boolean
-	condition?: ConditionResolvable
-	width: number
-	get(): void
-	set(): void
-	node: HTMLElement
-	update(): void
-	setPosition(data: { top?: number; bottom?: number; left?: number; right?: number }): void
-}
 
 declare namespace Interface {
 	function createElement(
@@ -41,10 +21,12 @@ declare namespace Interface {
 	let right_bar_width: number
 	let top_panel_height: number
 	let bottom_panel_height: number
+	let default_data: any
 	function getTopPanel(): Panel
 	function getBottomPanel(): Panel
-	function getLeftPanels(): Panel[]
-	function getRightPanels(): Panel[]
+	function getLeftPanels(in_order: boolean = true): Panel[]
+	function getRightPanels(in_order: boolean = true): Panel[]
+	function getModeData(): any
 	const Resizers: {
 		left: ResizeLine
 		right: ResizeLine
@@ -58,6 +40,7 @@ declare namespace Interface {
 		menu: Menu
 		vue: Vue.Component
 	}
+	let tab_bar: Vue
 	const Panels: {
 		[key: string]: Panel
 	}

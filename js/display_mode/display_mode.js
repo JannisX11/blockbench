@@ -1,6 +1,7 @@
 import DisplayModePanel from "./DisplayModePanel.vue";
 import { THREE } from "../lib/libs";
 import { Mode } from "../modes";
+import { TransformerModule } from "../modeling/transform/transform_modules";
 import DisplayReferences from "./display_references";
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
@@ -10,8 +11,12 @@ var ground_timer = 0
 var display_presets;
 var display_preview;
 
+let display_area = null;
+let display_base = null;
+
 export const DisplayMode = {
-	display_slot: 'thirdperson_righthand'
+	display_slot: 'thirdperson_righthand',
+	animate_preview: true,
 };
 
 
@@ -69,8 +74,7 @@ export class DisplaySlot {
 			|| !this.translation.allEqual(0)
 			|| !this.scale.allEqual(1)
 			|| !this.mirror.allEqual(false)
-			|| !this.rotation_pivot.allEqual(0)
-			|| !this.scale_pivot.allEqual(0);
+			|| (this.fit_to_frame && this.slot_id == 'gui');
 		if (!has_data) return;
 
 		let build = {
@@ -380,6 +384,11 @@ export class refModel {
 				this.updateBasePosition = function() {
 					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
 					setDisplayArea(side*9.039, -8.318+24, 20.8, 0, 0, 0, 1,1,1)
+				}
+				break;
+			case 'flower_pot':
+				this.updateBasePosition = function() {
+					setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
 				}
 				break;
 			case 'frame':
@@ -698,6 +707,10 @@ export const displayReferenceObjects = {
 			icon: 'filter_frames',
 			models: [DisplayReferences.frame_block, DisplayReferences.frame]
 		}),
+		flower_pot: new refModel('flower_pot', {
+			icon: 'potted_plant',
+			models: [DisplayReferences.flower_pot]
+		}),
 		frame_invisible: new refModel('frame_invisible', {
 			icon: 'visibility_off',
 			models: [DisplayReferences.frame_block]
@@ -790,6 +803,7 @@ export const displayReferenceObjects = {
 		ground: 0,
 		gui: 0,
 		head: 0,
+		embedded: 0,
 		fixed: 0,
 		on_shelf: 0,
 	},
@@ -801,11 +815,21 @@ export const displayReferenceObjects = {
 		'ground',
 		'gui',
 		'head',
+		'embedded',
 		'fixed',
 		'on_shelf',
 	]
 }
+
+display_area = new THREE.Object3D();
+display_base = new THREE.Object3D();
+display_area.add(display_base);
+display_base.name = 'display_base';
+display_area.name = 'display_area';
+
 DisplayMode.slots = displayReferenceObjects.slots
+DisplayMode.display_base = display_base;
+DisplayMode.display_area = display_area;
 
 export const display_angle_preset = {
 	projection: 'perspective',
@@ -1040,12 +1064,13 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 	}
 	display_preview.controls.enabled = true;
 	Canvas.ground_animation = false;
-	$('#display_crosshair').detach()
+	$('.display_crosshair').detach()
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.unhide();
 	display_preview.camPers.setFocalLength(45)
 
 	if (Project.display_settings[key] == undefined) {
 		Project.display_settings[key] = new DisplaySlot(key)
+		if (key == 'embedded') Project.display_settings[key].scale_pivot[1] = -0.5;
 	}
 	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
@@ -1093,7 +1118,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
-	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
+	$('.single_canvas_wrapper').append('<div class="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
 	loadDisp('firstperson_lefthand')
@@ -1105,7 +1130,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
 	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
-	$('.single_canvas_wrapper').append('<div id="display_crosshair"></div>')
+	$('.single_canvas_wrapper').append('<div class="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
 	loadDisp('head')
@@ -1149,6 +1174,14 @@ DisplayMode.loadFixed = function() {		//Loader
 	})
 	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
 }
+DisplayMode.loadEmbedded = function() {		//Loader
+	loadDisp('embedded')
+	display_preview.loadAnglePreset({
+		position: [-24, 18, -50],
+		target: [0, 4, 0]
+	})
+	displayReferenceObjects.bar(['flower_pot'])
+}
 DisplayMode.loadShelf = function() {		//Loader
 	loadDisp('on_shelf')
 	display_preview.loadAnglePreset({
@@ -1189,6 +1222,9 @@ DisplayMode.load = function(slot) {
 		break;
 		case 'ground':
 		DisplayMode.loadGround()
+		break;
+		case 'embedded':
+		DisplayMode.loadEmbedded()
 		break;
 		case 'fixed':
 		DisplayMode.loadFixed()
@@ -1394,6 +1430,135 @@ DisplayMode.debugBase = function() {
 	}).show();
 }
 
+
+const display_gui_rotation = new THREE.Object3D();
+display_gui_rotation.rotation.set(0.2, 0.2, 0);
+display_gui_rotation.updateMatrixWorld();
+
+new TransformerModule('display', {
+	priority: 2,
+	condition: () => Modes.display,
+	updateGizmo() {
+
+		let transformer_mode = Toolbox.selected.transformerMode;
+
+		Transformer.attach(display_base)
+
+		display_base.getWorldPosition(Transformer.position);
+		Transformer.position.sub(scene.position);
+
+		// todo: Fix positions when both rotation pivot and scale pivot are used
+		if (transformer_mode === 'translate') {
+			Transformer.rotation_ref = display_area;
+
+		} else if (transformer_mode === 'scale') {
+			if (DisplayMode.slot.scale_pivot) {
+				let pivot_offset = new THREE.Vector3().fromArray(DisplayMode.slot.scale_pivot).multiplyScalar(-16);
+				pivot_offset.x *= DisplayMode.slot.scale[0];
+				pivot_offset.y *= DisplayMode.slot.scale[1];
+				pivot_offset.z *= DisplayMode.slot.scale[2];
+				pivot_offset.applyQuaternion(display_base.getWorldQuaternion(new THREE.Quaternion()));
+				Transformer.position.sub(pivot_offset);
+			}
+
+			Transformer.rotation_ref = display_base;
+
+		} else if (transformer_mode === 'rotate') {
+			if (DisplayMode.slot.rotation_pivot) {
+				let pivot_offset = new THREE.Vector3().fromArray(DisplayMode.slot.rotation_pivot).multiplyScalar(-16);
+				pivot_offset.applyQuaternion(display_base.getWorldQuaternion(new THREE.Quaternion()));
+				Transformer.position.sub(pivot_offset);
+			}
+
+			if (DisplayMode.display_slot == 'gui') {
+				Transformer.rotation_ref = display_gui_rotation;
+			}
+		}
+	},
+	calculateOffset(context) {
+		let {point, axis, axis_number, angle} = context;
+		
+		let {display_slot} = DisplayMode;
+		var rotation = new THREE.Quaternion()
+		Transformer.getWorldQuaternion(rotation)
+		point.applyQuaternion(rotation.invert())
+
+		var channel = Toolbox.selected.animation_channel
+		if (channel === 'position') channel = 'translation';
+		var value = point[axis]
+		if (axis == 'e') value = point.length() * Math.sign(point.y||point.x);
+		var bf = (Project.display_settings[display_slot][channel][axis_number] - (this.previous_value||0)) || 0;
+
+		if (channel === 'rotation') {
+			value = Math.trimDeg(bf + Math.round(angle*4)/4) - bf;
+		} else if (channel === 'translation') {
+			value = limitNumber( bf+Math.round(value*4)/4, -80, 80) - bf;
+		} else /* scale */ {
+			value = limitNumber( bf+Math.round(value*64)/(64*8)*context.direction, 0, 4) - bf;
+		}
+
+		if (display_slot.includes('lefthand')) {
+			if (channel === 'rotation' && axis_number) {
+				value *= -1
+			} else if (channel === 'translation' && !axis_number) {
+				value *= -1
+			}
+		}
+		return value;
+	},
+	onStart() {
+		Undo.initEdit({display_slots: [DisplayMode.display_slot]})
+	},
+	onMove(context) {
+		let {point, axis, axis_number, value} = context;
+		var channel = Toolbox.selected.animation_channel
+		if (channel === 'position') channel = 'translation';
+
+		var difference = value - (this.previous_value||0);
+
+		if (channel === 'rotation') {
+			let normal = Reusable.vec1.copy(Transformer.axis == 'E'
+				? rotate_normal
+				: axis_number == 0 ? THREE.NormalX : (axis_number == 1 ? THREE.NormalY : THREE.NormalZ));
+
+			let quaternion = display_base.getWorldQuaternion(new THREE.Quaternion()).invert()
+			normal.applyQuaternion(quaternion)
+			display_base.rotateOnAxis(normal, Math.degToRad(difference))
+
+			DisplayMode.slot[channel][0] = Math.roundTo(Math.radToDeg(display_base.rotation.x), 2);
+			DisplayMode.slot[channel][1] = Math.roundTo(Math.radToDeg(display_base.rotation.y) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1), 2);
+			DisplayMode.slot[channel][2] = Math.roundTo(Math.radToDeg(display_base.rotation.z) * (DisplayMode.display_slot.includes('lefthand') ? -1 : 1), 2);
+
+		} else if (axis == 'e') {
+			DisplayMode.slot[channel][0] += difference;
+			DisplayMode.slot[channel][1] += difference;
+			DisplayMode.slot[channel][2] += difference;
+
+		} else {
+			DisplayMode.slot[channel][axis_number] += difference;
+		}
+
+		if ((event.shiftKey || Pressing.overrides.shift) && channel === 'scale') {
+			var val = DisplayMode.slot[channel][(axis_number||0)]
+			DisplayMode.slot[channel][((axis_number||0)+1)%3] = val
+			DisplayMode.slot[channel][((axis_number||0)+2)%3] = val
+		}
+		DisplayMode.slot.update()
+
+		Blockbench.setCursorTooltip(trimFloatNumber(value - this.initial_value));
+
+	},
+	onEnd(context) {
+		if (context.keep_changes) {
+			Undo.finishEdit('Edit display slot');
+		}
+	},
+	onCancel() {
+		Undo.cancelEdit(true);
+	},
+});
+
+
 BARS.defineActions(function() {
 	new Mode('display', {
 		icon: 'tune',
@@ -1429,6 +1594,7 @@ BARS.defineActions(function() {
 					firstperson_lefthand: {type: 'checkbox', label: 'display.slot.first_left', value: true},
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
+					embedded: {type: 'checkbox', label: 'display.slot.embedded', value: true},
 					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
 					on_shelf: {type: 'checkbox', label: 'display.slot.on_shelf', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},

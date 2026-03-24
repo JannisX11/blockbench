@@ -6,6 +6,8 @@ interface AnglePreset {
 	projection: 'unset' | 'orthographic' | 'perspective'
 	zoom?: number
 	focal_length?: number
+	fov?: number
+	aspect_ratio?: number
 	lockedAngle?: number
 }
 
@@ -15,8 +17,8 @@ interface PreviewOptions {
 }
 
 type RaycastResult = {
-	type: 'element' | 'keyframe' | 'vertex' | 'cube' | 'line'
-	event: Event
+	type: 'element' | 'keyframe' | 'vertex' | 'cube' | 'line' | 'none'
+	event: PointerEvent | MouseEvent | TouchEvent
 	cube?: Cube
 	intersects?: any[]
 	face?: string
@@ -37,7 +39,9 @@ declare class Preview extends Deletable {
 	canvas: HTMLCanvasElement
 	height: number
 	width: number
+	aspect_ratio?: number
 	node: HTMLElement
+	label: HTMLLabelElement
 	/**
 	 * True if the preview is in orthographic camera mode
 	 */
@@ -46,6 +50,7 @@ declare class Preview extends Deletable {
 	 * Angle, when in a specific side view
 	 */
 	angle: null | number
+	default_angle?: AnglePreset
 	readonly camera: THREE.PerspectiveCamera | THREE.OrthographicCamera
 	camPers: THREE.PerspectiveCamera
 	camOrtho: THREE.OrthographicCamera
@@ -126,5 +131,7 @@ declare class Preview extends Deletable {
 		updateSize()
 	}
 }
+
+declare const DefaultCameraPresets: AnglePreset[]
 
 declare function animate(): void

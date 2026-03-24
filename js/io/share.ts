@@ -4,7 +4,7 @@ import { FormInputType } from "../interface/form";
 import { settings } from "../interface/settings";
 import { BARS } from "../interface/toolbars";
 import { tl } from "../languages";
-import { Mesh } from "../outliner/mesh";
+import { Mesh } from "../outliner/types/mesh";
 import { Outliner } from "../outliner/outliner";
 import { ReferenceImage } from "../preview/reference_images";
 import { capitalizeFirstLetter } from "../util/util";
@@ -64,7 +64,7 @@ BARS.defineActions(function() {
 						dialog.setFormValues({tags});
 					}
 				}},
-				animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
+				animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && !!Animator.animations.length)},
 				draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 				divider: '_',
 				private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
@@ -151,7 +151,7 @@ BARS.defineActions(function() {
 	new Action('upload_sketchfab', {
 		icon: 'icon-sketchfab',
 		category: 'file',
-		condition: () => Project && Outliner.elements.length,
+		condition: () => Project && !!Outliner.elements.length,
 		click() {
 			uploadSketchfabModel()
 		}
@@ -159,7 +159,7 @@ BARS.defineActions(function() {
 
 	new Action('share_model', {
 		icon: 'share',
-		condition: () => Project && Outliner.elements.length,
+		condition: () => Project && !!Outliner.elements.length,
 		async click() {
 			let thumbnail = await new Promise(resolve => {
 				// @ts-ignore

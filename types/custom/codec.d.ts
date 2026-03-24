@@ -1,4 +1,5 @@
 /// <reference types="./blockbench"/>
+
 interface LoadOptions {
 	import_to_current_project?: boolean
 	externalDataLoader?: (path: string) => any
@@ -33,6 +34,7 @@ interface CodecOptions {
 	 * Whether the codec can be used to export a part of the model via a collection
 	 */
 	support_partial_export?: boolean
+	support_offset?: boolean
 	load_filter?: {
 		extensions: string[]
 		type: 'json' | 'text'
@@ -42,7 +44,7 @@ interface CodecOptions {
 	 * List of export option inputs, based on the Dialog form API
 	 */
 	export_options?: {
-		[key: string]: FormElement
+		[key: string]: FormElementOptions
 	}
 	/**
 	 * Default action that is used to export to the codec
@@ -66,9 +68,9 @@ declare class Codec extends Deletable {
 	 * Load a file into the program
 	 * @param model
 	 * @param file
-	 * @param add
+	 * @param args Load options
 	 */
-	load(model: any, file?: any, args?: LoadOptions): void
+	load(model: any, file?: FileSystem.FileResult, args?: LoadOptions): void
 	/**
 	 * Compiles the file content
 	 * @param options
@@ -149,6 +151,7 @@ declare class Codec extends Deletable {
 	 * Whether the codec can be used to export a part of the model via a collection
 	 */
 	support_partial_export: boolean
+	support_offset: boolean
 	/**
 	 * If available, the action that is used to export files using this codec
 	 */

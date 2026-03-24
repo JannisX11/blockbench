@@ -1,7 +1,8 @@
-declare class Molang {
-	parse(expression: string | number, variables?: Record<string, number>): number
-	global_variables: Record<string, string | number | ((...args: number[]) => number)>
-	variableHandler: (variable: string, variables?: Record<string, number>) => number
+import MolangParser from "molangjs"
+
+type MolangParserClass = typeof MolangParser
+declare global {
+	const MolangParser: MolangParserClass
 }
 
 declare interface MolangExpression {

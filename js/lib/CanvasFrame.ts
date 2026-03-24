@@ -1,3 +1,5 @@
+import { decodeTga } from "@lunapaint/tga-codec";
+
 /*
 	Utility to modify images with a canvas
 */
@@ -54,6 +56,14 @@ export class CanvasFrame {
 			this.canvas.height = img.naturalHeight;
 		}
 		this.ctx.drawImage(img, 0, 0)
+	}
+	async loadFromTGA(data: Uint8Array<ArrayBufferLike>) {
+		let result = await decodeTga(data);
+		this.canvas.width = result.image.width;
+		this.canvas.height = result.image.height;
+		let imagedata = new ImageData(result.image.width, result.image.height);
+		imagedata.data.set(result.image.data);
+		this.ctx.putImageData(imagedata, 0, 0);
 	}
 	loadFromCanvas(canvas: HTMLCanvasElement) {
 		this.canvas.width = canvas.width;
@@ -123,4 +133,11 @@ export class CanvasFrame {
 	}
 }
 
-Object.assign(window, {CanvasFrame});
+const global = {
+	CanvasFrame
+};
+declare global {
+	const CanvasFrame: typeof global.CanvasFrame
+	type CanvasFrame = import('./CanvasFrame').CanvasFrame
+}
+Object.assign(window, global);

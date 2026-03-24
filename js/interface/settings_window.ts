@@ -1,4 +1,5 @@
 import { Blockbench } from "../api";
+import { markerColors } from "../marker_colors";
 import { ipcRenderer } from "../native_apis";
 import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
@@ -72,9 +73,6 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	let title_bar = document.getElementById('settings_title_bar');
-	BarItems.import_settings.toElement(title_bar);
-	BarItems.export_settings.toElement(title_bar);
 })
 
 onVueSetup(function() {

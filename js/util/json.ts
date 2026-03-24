@@ -210,8 +210,23 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 	return data;
 }
 
-Object.assign(window, {
+const global = {
 	oneLiner,
 	compileJSON,
 	autoParseJSON,
-})
+};
+declare global {
+	/**
+	 * Wrapper for anys that tells the custom JSON exporter to write in one line
+	 */
+	const oneLiner: new <T>(data?: T) => T
+	/**
+	 * Compile text into JSON based on the minification settings
+	 */
+	const autoStringify: (data: any) => string
+
+	const compileJSON: typeof global.compileJSON
+	const autoParseJSON: typeof global.autoParseJSON
+
+}
+Object.assign(window, global);

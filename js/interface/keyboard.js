@@ -1,13 +1,17 @@
 import blender from '../../keymaps/blender.bbkeymap';
 import cinema4d from '../../keymaps/cinema4d.bbkeymap';
 import maya from '../../keymaps/maya.bbkeymap';
+import { dragHelper } from '../util/drag_helper';
+import { preventContextMenu } from './menu';
+import { PointerTarget } from './pointer_target';
 import { BARS } from './toolbars';
 
-window.KeymapPresets = {
+const KeymapPresets = {
 	blender,
 	cinema4d,
 	maya,
 }
+export const isMac = window.SystemInfo?.platform == 'darwin' || navigator.userAgent.includes('Mac OS');
 
 export const Keybinds = {
 	actions: [],
@@ -20,8 +24,10 @@ export const Keybinds = {
 }
 if (localStorage.getItem('keybindings')) {
 	try {
-		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'))
-	} catch (err) {}
+		Keybinds.stored = JSON.parse(localStorage.getItem('keybindings'));
+	} catch (err) {
+		console.error(err);
+	}
 }
 
 export class Keybind {
@@ -43,9 +49,14 @@ export class Keybind {
 		this.label = '';
 		this.conflict = false;
 		if (keys) {
-			if (isApp && Blockbench.platform == 'darwin' && keys.ctrl && !keys.meta) {
-				keys.meta = true;
-				keys.ctrl = undefined;
+			if (isMac) {
+				if (keys.ctrl && !keys.meta) {
+					keys.meta = true;
+					keys.ctrl = undefined;
+				}
+				if (keys.key == 46) {
+					keys.key = 8;
+				}
 			}
 			if (typeof keys.key == 'string') {
 				keys.key = keys.key.toUpperCase().charCodeAt(0)
@@ -152,8 +163,8 @@ export class Keybind {
 		if (this.ctrl === null) 	modifiers.push(`[${tl('keys.ctrl')}]`)
 		if (this.shift) modifiers.push(tl('keys.shift'))	
 		if (this.shift === null) modifiers.push(`[${tl('keys.shift')}]`)
-		if (this.alt) 	modifiers.push(tl('keys.alt'))	
-		if (this.alt === null) 	modifiers.push(`[${tl('keys.alt')}]`)
+		if (this.alt) 	modifiers.push(tl(isMac ? 'keys.option' : 'keys.alt'))	
+		if (this.alt === null) 	modifiers.push(`[${tl(isMac ? 'keys.option' : 'keys.alt')}]`)
 		if (this.meta) 	modifiers.push(tl('keys.meta'))	
 		if (this.meta === null) 	modifiers.push(`[${tl('keys.meta')}]`)
 
@@ -210,7 +221,12 @@ export class Keybind {
 			case  36: return 'pos1';
 			case  44: return 'printscreen';
 			case  19: return 'pause';
+			case  91: return 'meta';
 			case 1001: return 'mousewheel';
+			case 1010: return 'slide_lmb_horizontal';
+			case 1011: return 'slide_lmb_vertical';
+			case 1012: return 'slide_rmb_horizontal';
+			case 1013: return 'slide_rmb_vertical';
 
 			case 106: return tl('keys.numpad', ['*']);
 			case 107: return tl('keys.numpad', ['+']);
@@ -251,20 +267,25 @@ export class Keybind {
 		}
 		return this;
 	}
-	isTriggered(event) {
+	isTriggered(event, input_type) {
 		let modifiers_used = new Set();
 		if (this.variations) {
 			for (let option in this.variations) {
 				modifiers_used.add(this.variations[option].replace('unless_', ''));
 			}
 		}
-		return (
-			(this.key 	=== event.which	|| (this.key == 1001 && event instanceof MouseEvent)) &&
-			(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null	|| modifiers_used.has('ctrl') 	) &&
-			(this.shift === (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	|| modifiers_used.has('shift')	) &&
-			(this.alt 	=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null	|| modifiers_used.has('alt') 	) &&
-			(this.meta 	=== event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	)
-		)
+		if ( !(this.ctrl 	=== (event.ctrlKey 	|| Pressing.overrides.ctrl) || this.ctrl === null	|| modifiers_used.has('ctrl') 	) ) return false;
+		if ( !(this.shift	=== (event.shiftKey || Pressing.overrides.shift)|| this.shift === null	|| modifiers_used.has('shift')	) ) return false;
+		if ( !(this.alt		=== (event.altKey 	|| Pressing.overrides.alt) 	|| this.alt === null	|| modifiers_used.has('alt') 	) ) return false;
+		if ( !(this.meta	===  event.metaKey								|| this.meta === null	|| modifiers_used.has('ctrl') 	) ) return false;
+
+		if (this.key == event.which) return true;
+		if (this.key == 1001 && event instanceof MouseEvent) return true;
+		if (this.key >= 1010 && this.key < 1018 && input_type == 'pointer_slide') {
+			if ((this.key == 1010 || this.key == 1011) && event.which == 1) return true;
+			if ((this.key == 1012 || this.key == 1013) && event.which == 3) return true;
+		}
+		return false;
 	}
 	additionalModifierTriggered(event, variation) {
 		if (!this.variations) return;
@@ -286,21 +307,122 @@ export class Keybind {
 		}
 	}
 	record() {
-		var scope = this;
+		let scope = this;
 		Keybinds.recording = this;
-		var overlay = $('#overlay_message_box').show()
+
+		let button_cancel = Interface.createElement('button', { '@click'() {
+			scope.stopRecording();
+		}}, tl('dialog.cancel'));
+		let button_empty = Interface.createElement('button', {'@click'() {
+			scope.clear().stopRecording();
+		}}, tl('keybindings.clear'));
+
+		let key_list = Interface.createElement('div', {id: 'keybind_record_key_list', class: 'keybindslot'});
+		key_list.innerHTML = this.getText(true);
+
+		let ui = Interface.createElement('div', {id: 'overlay_message_box'}, [
+			Interface.createElement('div', {}, [
+				Interface.createElement('h3', {}, [
+					Blockbench.getIconNode('keyboard'), tl('keybindings.recording')
+				]),
+				Interface.createElement('p', {}, tl('keybindings.press')),
+				key_list,
+				button_cancel, ' ', button_empty,
+			])
+		]);
+
+		if (BarItems[this.action] instanceof NumSlider) {
+			let slide_options = {
+				'slide_lmb_horizontal': 1010,
+				'slide_lmb_vertical': 1011,
+				'slide_rmb_horizontal': 1012,
+				'slide_rmb_vertical': 1013,
+			};
+			function setGesture(event, key) {
+				clearListeners();
+
+				scope.key = slide_options[key];
+				scope.ctrl 	= event.ctrlKey;
+				scope.shift = event.shiftKey;
+				scope.alt 	= event.altKey;
+				scope.meta 	= event.metaKey;
+
+				scope.label = scope.getText();
+				scope.save(true);
+				Blockbench.showQuickMessage(scope.label);
+
+				scope.stopRecording();
+			}
+			let list = Interface.createElement('div', {
+				class: 'mouse_gesture_keybind_menu'
+			}, [
+				Interface.createElement('h3', {}, 'Mouse Gesture'),
+				Interface.createElement('div', {}, [
+					Interface.createElement('label', {}, 'Left click'),
+					Interface.createElement('div',
+						{
+							title: tl('keys.slide_lmb_horizontal'),
+							class: 'mouse_gesture_option',
+							'@click': (event) => setGesture(event, 'slide_lmb_horizontal')
+						},
+						Blockbench.getIconNode('arrow_range')
+					),
+					Interface.createElement('div',
+						{
+							title: tl('keys.slide_lmb_vertical'),
+							class: 'mouse_gesture_option',
+							'@click': (event) => setGesture(event, 'slide_lmb_vertical')
+						},
+						Blockbench.getIconNode('height')
+					),
+				]),
+				Interface.createElement('div', {}, [
+					Interface.createElement('label', {}, 'Right click'),
+					Interface.createElement('div',
+						{
+							title: tl('keys.slide_rmb_horizontal'),
+							class: 'mouse_gesture_option',
+							'@click': (event) => setGesture(event, 'slide_rmb_horizontal')
+						},
+						Blockbench.getIconNode('arrow_range')
+					),
+					Interface.createElement('div',
+						{
+							title: tl('keys.slide_rmb_vertical'),
+							class: 'mouse_gesture_option',
+							'@click': (event) => setGesture(event, 'slide_rmb_vertical')
+						},
+						Blockbench.getIconNode('height')
+					),
+				]),
+			]);
+			button_cancel.parentElement.append(list);
+
+		}
+
+		document.getElementById('dialog_wrapper').append(ui);
+		var overlay = $(ui);
 		var top = limitNumber(window.innerHeight/2 - 200, 30, 800)
-		overlay.find('> div').css('margin-top', top+'px')
+		overlay.find('> div').css('margin-top', top+'px');
 
-		function onActivate(event) {
-			if (event.originalEvent) event = event.originalEvent;
-
+		function clearListeners() {
+			
 			document.removeEventListener('keyup', onActivate)
 			document.removeEventListener('keydown', onActivateDown)
 			overlay.off('mousedown', onActivate)
 			overlay.off('wheel', onActivate)
 			overlay.off('keydown keypress keyup click click dblclick mouseup mousewheel', preventDefault)
-			if (event instanceof KeyboardEvent == false && event.target && event.target.tagName === 'BUTTON') return;
+			removeEventListeners(document, 'keydown mousedown', onUpdate);
+		}
+
+		function onActivate(event) {
+			if (event.originalEvent) event = event.originalEvent;
+
+			clearListeners();
+
+			if (event instanceof KeyboardEvent == false && event.target) {
+				if (event.target.tagName === 'BUTTON' || event.target.classList.contains('mouse_gesture_option')) return;
+			}
 
 			if (event instanceof WheelEvent) {
 				scope.key = 1001
@@ -326,6 +448,22 @@ export class Keybind {
 		function preventDefault(event) {
 			event.preventDefault();
 		}
+		function onUpdate(event) {
+			let modifiers = [];
+			if (event.ctrlKey) 	modifiers.push(tl('keys.ctrl'))	
+			if (event.shiftKey)	modifiers.push(tl('keys.shift'))	
+			if (event.altKey) 	modifiers.push(tl(isMac ? 'keys.option' : 'keys.alt'))	
+			if (event.metaKey) 	modifiers.push(tl('keys.meta'))	
+
+			modifiers.forEach((text, i) => {
+				let type = i !== modifiers.length-1
+						? text.match(/\[\w+\]/) ? 'optional' : 'modifier'
+						: 'key'
+				modifiers[i] = `<span class="${type}">${text}</span>`;
+			})
+			key_list.innerHTML = modifiers.join(`<span class="punctuation"> + </span>`);
+		}
+		addEventListeners(document, 'keydown mousedown', onUpdate);
 
 		document.addEventListener('keyup', onActivate)
 		document.addEventListener('keydown', onActivateDown)
@@ -336,9 +474,8 @@ export class Keybind {
 		return this;
 	}
 	stopRecording() {
-		Keybinds.recording = false
-		$('#overlay_message_box').hide().off('mousedown mousewheel')
-		$('#keybind_input_box').off('keyup keydown')
+		Keybinds.recording = false;
+		document.getElementById('overlay_message_box')?.remove();
 		return this;
 	}
 	toString() {
@@ -373,6 +510,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 					keybind.clear();
 				}
 			}
+			keybind.save(false);
 		}
 		Keybinds.actions.forEach(item => {
 			if (!item.keybind) return;
@@ -387,8 +525,6 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 					);
 				}
 			}
-
-			item.keybind.save(false);
 		})
 	}
 
@@ -408,7 +544,7 @@ Keybinds.loadKeymap = function(id, from_start_screen = false) {
 Keybinds.no_overlap = function(k1, k2) {
 	return Condition.mutuallyExclusive(k1.condition, k2.condition);
 }
-const overlap_exempt = [1,2,3];
+const overlap_exempt = [1,2,3,1001];
 export function updateKeybindConflicts() {
 	for (var key in Keybinds.structure) {
 		Keybinds.structure[key].conflict = false;
@@ -448,9 +584,30 @@ export function updateKeybindConflicts() {
 	}
 }
 
+function isSwapToolsEnabled(event) {
+	let keybind = BarItems.swap_tools.sub_keybinds.hold.keybind;
+	if (keybind.key == 18 || keybind.alt) {
+		return event ? event.altKey : Pressing.alt;
+	} else if (keybind.key == 17 || keybind.ctrl) {
+		return event ? event.ctrlKey : Pressing.ctrl;
+	} else if (keybind.key == 16 || keybind.shift) {
+		return event ? event.shiftKey : Pressing.shift;
+	}
+}
+function isSwapToolsHoldKey(key) {
+	let keybind = BarItems.swap_tools.sub_keybinds.hold.keybind;
+	if (key == keybind.key) return true;
+	if (keybind.alt) {
+		return key == 18;
+	} else if (keybind.ctrl) {
+		return key == 17;
+	} else if (keybind.shift) {
+		return key == 16;
+	}
+}
 
 window.addEventListener('blur', event => {
-	if (Pressing.alt) {
+	if (isSwapToolsEnabled()) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()
 			delete Toolbox.original;
@@ -468,7 +625,7 @@ window.addEventListener('blur', event => {
 
 window.addEventListener('focus', event => {
 	function click_func(event) {
-		if (event.altKey && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+		if (isSwapToolsEnabled(event) && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 			var orig = Toolbox.selected;
 			var alt = BarItems[Toolbox.selected.alt_tool];
 			if (alt && Condition(alt) && (Modes.paint || BarItems.swap_tools.keybind.key == 18)) {
@@ -534,18 +691,20 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 					all_visible_inputs.push(input);
 				}
 			})
-			var index = all_visible_inputs.indexOf(input_focus)+1;
+			var index = all_visible_inputs.indexOf(input_focus) + (e.shiftKey ? -1 : 1);
 			if (index >= all_visible_inputs.length) index = 0;
+			if (index < 0) index = all_visible_inputs.length-1;
 			var next = $(all_visible_inputs[index])
 
 			if (next.length) {
+				stopRenameOutliner();
+
 				if (next.hasClass('cube_name')) {
 					let uuid = next.parent().parent().attr('id');
 					var target = OutlinerNode.uuids[uuid];
 					if (target) {
-						stopRenameOutliner();
 						setTimeout(() => {
-							target.select(e, true).rename();
+							target.select({}, true).rename();
 						}, 50)
 					}
 
@@ -601,7 +760,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 	}
 
 	//Hardcoded Keys
-	if (e.which === 18 && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
+	if (isSwapToolsHoldKey(e.which) && Toolbox.selected.alt_tool && !Toolbox.original && !open_interface) {
 		//Alt Tool
 		var orig = Toolbox.selected;
 		var alt = BarItems[Toolbox.selected.alt_tool]
@@ -610,7 +769,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			alt.select()
 			Toolbox.original = orig
 		}
-	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && (Transformer.dragging)) {
+	} else if (Keybinds.extra.cancel.keybind.isTriggered(e) && PointerTarget.active == PointerTarget.types.gizmo_transform) {
 		Transformer.cancelMovement(e, false);
 		updateSelection();
 	} else if (KnifeToolContext.current) {
@@ -752,7 +911,7 @@ $(document).keyup(function(e) {
 	if(e.which == 18) {
 		e.preventDefault();
 	}
-	if (e.which === 18 && Toolbox.original && Toolbox.original.alt_tool) {
+	if (isSwapToolsHoldKey(e.which) && Toolbox.original && Toolbox.original.alt_tool) {
 		Toolbox.original.select()
 		delete Toolbox.original;
 	}
@@ -766,9 +925,53 @@ $(document).keyup(function(e) {
 	}
 })
 
+document.addEventListener('pointerdown', (e1) => {
+
+	let sliders = Keybinds.actions.filter(slider => {
+		if (slider instanceof NumSlider == false) return false;
+		if (!Condition(slider.condition)) return false;
+		return slider.keybind.isTriggered(e1, 'pointer_slide');
+	});
+	if (sliders.length) {
+		let success = PointerTarget.requestTarget(PointerTarget.types.global_drag_slider);
+		if (!success) return;
+		dragHelper(e1, {
+			onStart(context) {
+				for (let slider of sliders) {
+					if (typeof slider.onBefore === 'function') {
+						slider.onBefore();
+					}
+					slider.sliding = true;
+					slider.pre = 0;
+					slider.sliding_start_pos = 0;
+				}
+			},
+			onMove(context) {
+				for (let slider of sliders) {
+					let orientation = slider.keybind.key == 1010 || slider.keybind.key ==  1012;
+					let distance = orientation ? context.delta.x : context.delta.y;
+					let factor = (orientation ? 2.4 : 2.6) * (slider.settings?.gesture_speed ?? 1);
+					slider.slide(distance * factor, e1);
+				}
+			},
+			onEnd(context) {
+				Blockbench.setStatusBarText();
+				if (context.distance > 1) preventContextMenu();
+				for (let slider of sliders) {
+					delete slider.sliding;
+					if (typeof slider.onAfter === 'function') {
+						slider.onAfter(slider.value - slider.last_value)
+					}
+				}
+			}
+		})
+	}
+}, {capture: true})
+
 
 Object.assign(window, {
 	Keybind,
+	KeymapPresets,
 	updateKeybindConflicts,
 	getFocusedTextInput
 });

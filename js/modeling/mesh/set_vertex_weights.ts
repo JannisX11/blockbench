@@ -1,10 +1,10 @@
-import { Armature } from "../../outliner/armature";
-import { ArmatureBone } from "../../outliner/armature_bone";
+import { Armature } from "../../outliner/types/armature";
+import { ArmatureBone } from "../../outliner/types/armature_bone";
 
 
 new Action('set_vertex_weights', {
 	icon: 'weight',
-	condition: {modes: ['edit'], method: () => (Mesh.selected[0]?.getArmature() && Mesh.selected[0].getSelectedVertices().length)},
+	condition: {modes: ['edit'], method: () => !!(Mesh.selected[0]?.getArmature() && Mesh.selected[0].getSelectedVertices().length)},
 	click() {
 		let mesh = Mesh.selected[0];
 		let selected_vertices = mesh.getSelectedVertices();
@@ -18,7 +18,7 @@ new Action('set_vertex_weights', {
 			return selected_vertices.find(vkey => bone.getVertexWeight(mesh, vkey));
 		});
 
-		// Todo: translations. Add way to configure multiple bones
+		// Todo: Add way to configure multiple bones
 		new Dialog('set_vertex_weights', {
 			title: 'action.set_vertex_weights',
 			form: {

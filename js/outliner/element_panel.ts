@@ -11,7 +11,7 @@ Interface.definePanels(function() {
 			modes: ['edit', 'pose'],
 			method: () => !(Blockbench.isMobile && Settings.get('status_bar_transform_sliders'))
 		},
-		display_condition: () => Outliner.selected.length || Group.first_selected,
+		display_condition: () => !!(Outliner.selected.length || Group.first_selected),
 		min_height: 90,
 		default_position: {
 			slot: 'right_bar',
@@ -31,7 +31,7 @@ Interface.definePanels(function() {
 	let element_properties_panel = new Panel('element', {
 		icon: 'fas.fa-cube',
 		condition: {modes: ['edit']},
-		display_condition: () => Outliner.selected.length || Group.first_selected,
+		display_condition: () => !!(Outliner.selected.length || Group.first_selected),
 		default_position: {
 			slot: 'right_bar',
 			float_position: [0, 0],
@@ -95,9 +95,11 @@ Interface.definePanels(function() {
 				for (let key of changed_keys) {
 					for (let element of elements) {
 						let property_id = key.replace(element.type+'__', '');
-						// @ts-ignore
-						if (element.constructor.properties?.[property_id]) {
-							element[property_id] = result[key];
+						let property: Property<any>;
+						// @ts-expect-error
+						property = element.constructor.properties?.[property_id];
+						if (property) {
+							property.merge(element, {[property_id]: result[key]});
 						}
 					}
 					if (onchanges[key]) onchanges[key](result[key], elements)
@@ -131,10 +133,11 @@ Interface.definePanels(function() {
 					let property = type.properties[prop_id];
 					if (property?.inputs?.element_panel) {
 						let input_id = type_id + '__' + prop_id;
-						if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
+						if (first_element[prop_id] instanceof Array) {
+							values[input_id] = first_element[prop_id].slice();
+						} else if (typeof first_element[prop_id] === "object") { // Prevent object properties from using the same objects across elements.
 							values[input_id] = {...first_element[prop_id]};
-						}
-						else {
+						} else {
 							values[input_id] = first_element[prop_id];
 						}
 					}

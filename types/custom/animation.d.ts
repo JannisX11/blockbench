@@ -58,19 +58,23 @@ declare class _Animation extends AnimationItem {
 	getUndoCopy(options?: {}, save?: any): AnimationUndoCopy
 	/**
 	 * Compiles the JSON tree of the animation for the Minecraft Bedrock Edition animation format.
+	 * @deprecated
 	 */
 	compileBedrockAnimation(): any
 	save(): this | undefined
 	select(): this | undefined
 	setLength(length?: number): void
 	createUniqueName(references: _Animation[]): any
+	setScopeFromAnimators(): number | undefined
 	rename(): this
 	togglePlayingState(state: any): any
 	showContextMenu(event: any): this
 	/**
 	 * Returns (if necessary creates) the animator of a specific outliner node of this animation
+	 * May returns null if the node may not be animated due to being in a different scope
 	 */
-	getBoneAnimator(node?: OutlinerNode): BoneAnimator
+	getBoneAnimator(node?: OutlinerNode): BoneAnimator | null
+	removeAnimator(id: string): void
 	/**
 	 * Adds the animation to the current project and to the interface
 	 * @param undo If true, the addition of the animation will be registered as an edit
@@ -145,10 +149,20 @@ declare namespace Animator {
 	 * Import a Bedrock animation file
 	 * @param file File any
 	 * @param animation_filter List of names of animations to import
+	 * @deprecated AnimationCodec should be used instead
 	 */
 	function loadFile(file: any, animation_filter?: string[]): void
+	/**
+	 * @deprecated AnimationCodec should be used instead
+	 */
 	function exportAnimationFile(path: string, save_as?: boolean): void
+	/**
+	 * @deprecated AnimationCodec should be used instead
+	 */
 	function exportAnimationControllerFile(path: string, save_as?: boolean): void
+	/**
+	 * @deprecated AnimationCodec should be used instead
+	 */
 	function resetLastValues(): void
 	function autocompleteMolang(
 		text: string,
@@ -162,7 +176,7 @@ interface AddChannelOptions {
 	transform?: boolean
 	mutable?: boolean
 	max_data_points?: number
-	condition?: ConditionResolvable
+	condition?: ConditionResolvable<GeneralAnimator>
 	displayFrame?: (animator: GeneralAnimator, multiplier: number) => void
 }
 interface Channel {
@@ -170,6 +184,7 @@ interface Channel {
 	transform: boolean
 	mutable: boolean
 	max_data_points: number
+	condition?: ConditionResolvable<GeneralAnimator>
 }
 declare class GeneralAnimator {
 	constructor(uuid: string | null, animation: _Animation, name: string)

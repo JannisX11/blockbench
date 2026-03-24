@@ -72,10 +72,23 @@ export function initializeDesktopApp() {
 			console.error('Attempted and failed to clear GPU cache', err);
 		}
 	}
+
+	if (location.href.endsWith('/blockbench/index.html')) {
+		let action = new Action('dev_mode_reload', {
+			name: 'Reload',
+			icon: 'refresh',
+			color: '#76f39b',
+			click() {
+				Blockbench.reload();
+			}
+		})
+		action.toElement('#update_menu');
+	}
 }
 //Load Model
 export function loadOpenWithBlockbenchFile() {
 	function load(path) {
+		if (!path || path.length < 7 || !path.match(/\w\.\w+$/)) return;
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
 			Blockbench.read([path], {readtype: 'image'}, (files) => {
@@ -85,6 +98,8 @@ export function loadOpenWithBlockbenchFile() {
 			Blockbench.read([path], {}, (files) => {
 				loadModelFile(files[0])
 			})
+		} else {
+			unsupportedFileFormatMessage(path);
 		}
 	}
 	ipcRenderer.on('open-model', (event, path) => {
@@ -659,7 +674,7 @@ window.onbeforeunload = function (event) {
 			if (project.saved) return;
 			let li = Interface.createElement('li', {class: 'unsaved_model'}, [
 				Blockbench.getIconNode(project.format?.icon),
-				Interface.createElement('span', {}, project.getDisplayName()),
+				Interface.createElement('span', {}, project.getDisplayName(true)),
 				Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('save')),
 			]);
 			li.addEventListener('click', event => {

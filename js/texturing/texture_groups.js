@@ -6,16 +6,17 @@ export class TextureGroup {
 		this.uuid = uuid ?? guid();
 		this.folded = false;
 		this.material_config = new TextureGroupMaterialConfig(this);
+		this._static = Object.freeze({
+			properties: {},
+		});
 
 		for (let key in TextureGroup.properties) {
 			TextureGroup.properties[key].reset(this);
 		}
 		if (data) this.extend(data);
 
-		this._static = Object.freeze({
-			properties: {
-				material: null
-			}
+		Object.assign(this._static.properties, {
+			material: null
 		})
 	}
 	get material() {
@@ -571,81 +572,81 @@ TextureGroupMaterialConfig.prototype.menu = new Menu('texture_group_material_con
 	}
 })
 
-export function importTextureSet(file) {
+export function importTextureSet(file, undo = true) {
+	if (file.name.endsWith('texture_set.json') == false) return
+
 	let new_textures = [], new_texture_groups = [];
-	Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
-	if (file.name.endsWith('texture_set.json')) {
-		let texture_group = new TextureGroup({is_material: true});
-		texture_group.name = file.name.replace('.texture_set.json', '.png material');
+	if (undo) Undo.initEdit({textures: new_textures, texture_groups: new_texture_groups});
+	let texture_group = new TextureGroup({is_material: true});
+	texture_group.name = file.name.replace('.texture_set.json', '.png material');
 
-		let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
-		let content_json = autoParseJSON(content, {file_path: file.path});
+	let content = fs.readFileSync(file.path, {encoding: 'utf-8'});
+	let content_json = autoParseJSON(content, {file_path: file.path});
 
-		if (content_json && content_json['minecraft:texture_set']) {
-			let channels = {
-				color: 'color',
-				normal: 'normal',
-				heightmap: 'height',
-				metalness_emissive_roughness: 'mer',
-				metalness_emissive_roughness_subsurface: 'mer',
-			};
-			for (let key in channels) {
-				let source = content_json['minecraft:texture_set'][key];
-				if (typeof source == 'string' && !source.startsWith('#')) {
-					let paths = [
-						PathModule.resolve(file.path, '../' + source + '.png'),
-						PathModule.resolve(file.path, '../' + source + '.tga'),
-					]
-					Blockbench.read(paths, {
-						readtype: 'image',
-					}, files => {
-						for (let file2 of files) {
-							if (!fs.existsSync(file2.path)) continue;
-							let t = new Texture({
-								name: file2.name,
-								pbr_channel: channels[key]
-							}).fromFile(file2).add(false, true).fillParticle();
-							new_textures.push(t);
-							t.group = texture_group.uuid;
-							break;
-						}
-					})
-					if (key == 'metalness_emissive_roughness_subsurface') {
-						texture_group.material_config.subsurface_value = 1;
+	if (content_json && content_json['minecraft:texture_set']) {
+		let channels = {
+			color: 'color',
+			normal: 'normal',
+			heightmap: 'height',
+			metalness_emissive_roughness: 'mer',
+			metalness_emissive_roughness_subsurface: 'mer',
+		};
+		for (let key in channels) {
+			let source = content_json['minecraft:texture_set'][key];
+			if (typeof source == 'string' && !source.startsWith('#')) {
+				let paths = [
+					PathModule.resolve(file.path, '../' + source + '.png'),
+					PathModule.resolve(file.path, '../' + source + '.tga'),
+				]
+				Blockbench.read(paths, {
+					readtype: 'image',
+				}, files => {
+					for (let file2 of files) {
+						if (!fs.existsSync(file2.path)) continue;
+						let t = new Texture({
+							name: file2.name,
+							pbr_channel: channels[key]
+						}).fromFile(file2).add(false, true).fillParticle();
+						new_textures.push(t);
+						t.group = texture_group.uuid;
+						break;
 					}
-				} else {
-					let color_array = source;
-					if (typeof source == 'string') {
-						let color = tinycolor(source);
-						color_array = [color._r, color._g, color._b, color._a * 255];
-					}
-					if (color_array instanceof Array) {
-						if (key == 'color') {
-							texture_group.material_config.color_value.replace(color_array);
-							while (texture_group.material_config.color_value.length < 4) {
-								texture_group.material_config.color_value.push(255);
-							}
-						} else if (key == 'metalness_emissive_roughness') {
-							texture_group.material_config.mer_value.V3_set(color_array);
-						} else if (key == 'metalness_emissive_roughness_subsurface') {
-							texture_group.material_config.mer_value.V3_set(color_array);
-							texture_group.material_config.subsurface_value = Math.clamp(color_array[3] ?? 0, 0, 255);
+				})
+				if (key == 'metalness_emissive_roughness_subsurface') {
+					texture_group.material_config.subsurface_value = 1;
+				}
+			} else {
+				let color_array = source;
+				if (typeof source == 'string') {
+					let color = tinycolor(source);
+					color_array = [color._r, color._g, color._b, color._a * 255];
+				}
+				if (color_array instanceof Array) {
+					if (key == 'color') {
+						texture_group.material_config.color_value.replace(color_array);
+						while (texture_group.material_config.color_value.length < 4) {
+							texture_group.material_config.color_value.push(255);
 						}
+					} else if (key == 'metalness_emissive_roughness') {
+						texture_group.material_config.mer_value.V3_set(color_array);
+					} else if (key == 'metalness_emissive_roughness_subsurface') {
+						texture_group.material_config.mer_value.V3_set(color_array);
+						texture_group.material_config.subsurface_value = Math.clamp(color_array[3] ?? 0, 0, 255);
 					}
 				}
 			}
 		}
-		if (isApp) texture_group.material_config.saved = true;
-		new_texture_groups.push(texture_group);
-		texture_group.add(false);
 	}
-	Undo.finishEdit('Import texture set');
+	if (isApp) texture_group.material_config.saved = true;
+	new_texture_groups.push(texture_group);
+	texture_group.add(false);
+	if (undo) Undo.finishEdit('Import texture set');
 }
 function loadAdjacentTextureSet(texture) {
 	let path = texture.path.replace(/\.png$/i, '.texture_set.json');
 	if (fs.existsSync(path)) {
 		Blockbench.read([path], {}, (files) => {
-			importTextureSet(files[0])
+			importTextureSet(files[0], false)
 		})
 	}
 }

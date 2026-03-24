@@ -1,3 +1,5 @@
+import { PointerTarget } from "../interface/pointer_target";
+
 /**
  * Original source: https://github.com/mrdoob/three.js, MIT
  * Modified for Blockbench
@@ -365,7 +367,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -384,7 +385,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -576,6 +576,7 @@ constructor ( object, preview ) {
 
 
 		scope.update();
+		scope.updateSceneScale();
 		/*
 		var dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
 		var dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
@@ -606,7 +607,7 @@ constructor ( object, preview ) {
 
 	function onMouseDown( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 
 		event.preventDefault();
 		scope.hasMoved = false
@@ -652,7 +653,7 @@ constructor ( object, preview ) {
 
 	function onMouseMove( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 		event.preventDefault();
 		scope.hasMoved = true
 
@@ -678,6 +679,8 @@ constructor ( object, preview ) {
 
 		if ( scope.isEnabled() === false ) return;
 
+		PointerTarget.endTarget(PointerTarget.types.navigate);
+
 		handleMouseUp( event );
 
 		document.removeEventListener( 'mousemove', onMouseMove, false );
@@ -693,6 +696,21 @@ constructor ( object, preview ) {
 	function onMouseWheel( event ) {
 
 		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
+		let enabled = keybind.isTriggered(event);
+
+		if (!enabled) {
+			if (event.shiftKey) {
+				pan( -event.deltaY, 0 );
+			} else {
+				pan( -event.deltaX, -event.deltaY );
+			}
+
+			scope.update();
+			scope.updateSceneScale();
+		}
+
+		if (!enabled) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -754,7 +772,7 @@ constructor ( object, preview ) {
 	function onTouchMove( event ) {
 
 		if ( scope.isEnabled() === false ) return;
-		if ( Transformer.dragging || Painter.painting ) return;
+		if ( !PointerTarget.requestTarget(PointerTarget.types.navigate) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();

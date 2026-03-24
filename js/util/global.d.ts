@@ -123,6 +123,7 @@ declare global {
 		V3_divide(x: number, y: number, z: number): ArrayVector3
 		V3_divide(values: ArrayVector3): ArrayVector3
 		V3_divide(value: THREE.Vector3): ArrayVector3
+		V3_divide(scalar: number): ArrayVector3
 		V3_toThree(): THREE.Vector3
 		V3_toEuler(): THREE.Euler
 	}

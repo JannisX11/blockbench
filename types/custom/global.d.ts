@@ -2,16 +2,28 @@
 
 declare global {
 	// const Prism: typeof import('prismjs')
+	/**
+	 * @deprecated Use {@link Canvas.scene} instead
+	 */
 	const scene: THREE.Scene
 	const Transformer: any
 
+	/**
+	 * @deprecated
+	 */
 	const main_preview: Preview
-	let open_interface: Dialog | undefined
+	/**
+	 * @deprecated
+	 */
+	let open_interface: Dialog | any | undefined
 
 	function confirm(message: string, title: string): boolean
 
 	const PathModule: typeof import('path')
 
+	/**
+	 * @deprecated Use {@link Outliner.selected} instead
+	 */
 	let selected: OutlinerElement[]
 	const Toolbars: Record<string, Toolbar>
 

@@ -34,4 +34,5 @@ export function getPCUsername() {
 	return '';
 }
 
-
+// @ts-ignore
+window.SystemInfo = null;

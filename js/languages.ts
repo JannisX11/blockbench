@@ -41,15 +41,21 @@ export const data: Record<string, Language> = {
 	zh_tw: zh_tw,
 };
 
+// @ts-ignore
+const prerelease = appVersion.includes('-');
+
 /**
  * Returns a translated string in the current language
- * @param key Translation key
+ * @param string Translation key
  * @param variables Array of variables that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
  * @param default_value String value to default to if the translation is not available
  */
 export const tl = function(string: string, variables?: string | number | (string|number)[], default_value?: string): string {
 	if (string && string.length > 100) return string;
-	var result = Language.data[string]
+	var result = Language.data[string];
+	if (prerelease && !result) {
+		result = data.en[string];
+	}
 	if (result && result.length > 0) {
 		if (variables) {
 			if (variables instanceof Array == false) {
@@ -87,24 +93,24 @@ export const Language = {
 	code: 'en',
 	options: {
 		en: 'English',
-		cz: 'Čeština (Czech)',
-		de: 'Deutsch (German)',
-		es: 'Espa\u00F1ol (Spanish)',
-		fr: 'Fran\u00E7ais (French)',
-		it: 'Italiano (Italian)',
-		ja: '\u65E5\u672C\u8A9E (Japanese)',//日本語
-		ko: '\uD55C\uAD6D\uC5B4 (Korean)',//日本語
-		nl: 'Nederlands (Dutch)',
-		pl: 'Polski (Polish)',
-		pt: 'Portugu\u00EAs (Portuguese)',
-		pt_br: 'Português (Brasil) (Portuguese, Brazil)',
-		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 (Russian)',
-		sv: 'Svenska (Swedish)',
-		tr: 'Türkçe (Turkish)',
-		uk: 'Українська (Ukrainian)',
-		vi: 'Tiếng việt (Vietnamese)',
-		zh: '\u4e2d\u6587 (Chinese)',//中文
-		zh_tw: '\u4E2D\u6587(\u81FA\u7063) (Traditional Chinese)',//中文(臺灣)
+		cz: 'Čeština - Czech',
+		de: 'Deutsch - German',
+		es: 'Espa\u00F1ol - Spanish',
+		fr: 'Fran\u00E7ais - French',
+		it: 'Italiano - Italian',
+		ja: '\u65E5\u672C\u8A9E - Japanese',
+		ko: '\uD55C\uAD6D\uC5B4 - Korean',
+		nl: 'Nederlands - Dutch',
+		pl: 'Polski - Polish',
+		pt: 'Portugu\u00EAs - Portuguese',
+		pt_br: 'Português (Brasil) - Portuguese (Brazil)',
+		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 - Russian',
+		sv: 'Svenska - Swedish',
+		tr: 'Türkçe - Turkish',
+		uk: 'Українська - Ukrainian',
+		vi: 'Tiếng việt - Vietnamese',
+		zh: '简体中文 - Chinese (simplified)',
+		zh_tw: '繁體中文 - Chinese (traditional, Taiwan)',
 	},
 	/**
 	 * Add translations for custom translation strings
@@ -139,7 +145,12 @@ if (code && Language.options[code]) {
 
 Language.data = data[Language.code];
 
-Object.assign(window, {
+const global = {
 	tl,
 	Language
-})
+};
+declare global {
+	const Language: typeof global.Language
+	const tl: typeof global.tl
+}
+Object.assign(window, global);

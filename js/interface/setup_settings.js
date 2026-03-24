@@ -1,3 +1,4 @@
+import { AutoBackup } from "../auto_backup";
 import { changeImageEditor } from "../desktop";
 import { currentwindow } from "../native_apis";
 import { Setting, Settings, SettingsProfile } from "./settings";
@@ -69,6 +70,14 @@ function setupSettings() {
 	new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
 		UVEditor.vue.checkerboard = val;
 	}});
+	new Setting('display_uv', 			{category: 'interface', value: 'selected_elements', type: 'select', options: {
+		selected_faces: 'settings.display_uv.selected_faces',
+		selected_elements: 'settings.display_uv.selected_elements',
+		all_elements: 'settings.display_uv.all_elements',
+	}, onChange(value) {
+		BarItems.edit_mode_uv_overlay.value = value == 'all_elements';
+		BarItems.edit_mode_uv_overlay.updateEnabledState();
+	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 		Timeline.vue.updateTimecodes();
 	}});
@@ -119,18 +128,16 @@ function setupSettings() {
 			model.material.needsUpdate = true;
 		}
 	}});
-	new Setting('fps_limit',				{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
-	new Setting('background_rendering', 	{category: 'preview', value: true});
-	new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
-		TextureAnimator.updateSpeed()
-	}});
-	new Setting('particle_tick_rate',		{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
+	new Setting('fps_limit',						{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
+	new Setting('background_rendering', 			{category: 'preview', value: true});
+	new Setting('flipbook_textures_in_animation',	{category: 'preview', value: true});
+	new Setting('particle_tick_rate',				{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
 		WinterskyScene.global_options.tick_rate = this.value;
 	}});
-	new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
-	new Setting('audio_scrubbing',			{category: 'preview', value: true});
-	new Setting('save_view_per_tab',		{category: 'preview', value: true});
-	new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
+	new Setting('volume', 							{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+	new Setting('audio_scrubbing',					{category: 'preview', value: true});
+	new Setting('save_view_per_tab',				{category: 'preview', value: true});
+	new Setting('display_skin',						{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 
 	new Setting('viewport_rotate_speed',	{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
 		Preview.all.forEach(viewport => viewport.controls.rotateSpeed = value / 100)
@@ -155,6 +162,8 @@ function setupSettings() {
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 		DisplayMode.vue.allow_mirroring = value;
 	}})
+	new Setting('local_position_values',	{category: 'edit', value: false});
+	new Setting('transform_cube_from_center',{category: 'edit', value: false});
 	new Setting('deactivate_size_limit',	{category: 'edit', value: false});
 	new Setting('modded_entity_integer_size',{category:'edit', value: true});
 	new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
@@ -187,6 +196,7 @@ function setupSettings() {
 	new Setting('move_with_selection_tool',			{category: 'paint', value: true});
 	new Setting('pick_color_opacity',				{category: 'paint', value: false});
 	new Setting('pick_combined_color',				{category: 'paint', value: false});
+	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
 	new Setting('paint_through_transparency',		{category: 'paint', value: true});
 	new Setting('paint_side_restrict',				{category: 'paint', value: true});
 	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
@@ -248,7 +258,6 @@ function setupSettings() {
 	new Setting('autouv',							{category: 'defaults', value: true});
 	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
 	new Setting('create_rename', 					{category: 'defaults', value: false});
-	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
 	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
 	new Setting('default_bedrock_format',			{category: 'defaults', type: 'select', value: 'entity', options: {
 		entity: 'format.bedrock',

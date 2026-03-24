@@ -9,6 +9,7 @@ declare namespace Timeline {
 	 */
 	let time: number
 	let playing: boolean
+	let vue: Vue
 
 	/**
 	 * Set the timeline to a specific time

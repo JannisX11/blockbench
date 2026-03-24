@@ -72,7 +72,23 @@ export class UndoSystem {
 		if (this.history.length > settings.undo_limit.value) {
 			this.history.shift()
 		}
-		this.index = this.history.length
+		this.index = this.history.length;
+
+		if (Collection.all.length) {
+			let nodes = [];
+			if (aspects.elements) nodes.push(...aspects.elements);
+			if (aspects.groups) nodes.push(...aspects.groups);
+			let a2 = entry.before.aspects;
+			if (a2 && a2 != aspects) {
+				if (a2.elements) nodes.push(...a2.elements);
+				if (a2.groups) nodes.push(...a2.groups);
+			}
+			for (let collection of Collection.all) {
+				if (nodes.some(node => node.scope == collection.scope)) {
+					collection.saved = false;
+				}
+			}
+		}
 		if (!aspects || !aspects.keep_saved) {
 			Project.saved = false;
 		}
@@ -307,7 +323,7 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
-		} else if (aspects.outliner && (Undo.current_save ? Undo.current_save._groups : Group.first_selected)) {
+		} else if (aspects.outliner && aspects.groups != null && (Undo.current_save ? Undo.current_save._groups : Group.first_selected)) {
 			// Just a fail-safe
 			let groups = Undo.current_save
 				? Undo.current_save.aspects._groups.filter(g => Group.all.includes(g))

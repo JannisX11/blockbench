@@ -5,13 +5,17 @@ import { Blockbench } from '../api';
 import { clipboard, fs, ipcRenderer, nativeImage, openFileInEditor } from '../native_apis';
 import { Filesystem } from '../file_system';
 import { isImageEditorValid } from '../desktop';
+import { editUVSizeDialog } from '../uv/uv_size';
+import { decodeTga, encodeTga } from '@lunapaint/tga-codec';
+import { pathToExtension } from '../util/util';
+import { ScopeColors } from '../multi_file_editing';
 
 let tex_version = 1;
 
 //Textures
 export class Texture {
 	constructor(data, uuid) {
-		let scope = this;
+		let self = this;
 		//Info
 		for (let key in Texture.properties) {
 			Texture.properties[key].reset(this);
@@ -93,7 +97,7 @@ export class Texture {
 
 		this.img.onload = () => {
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
-			if (scope.width && dimensions_changed) {
+			if (self.width && dimensions_changed) {
 				tex = new THREE.Texture(this.canvas);
 				tex.magFilter = THREE.NearestFilter;
 				tex.minFilter = THREE.NearestFilter;
@@ -104,47 +108,47 @@ export class Texture {
 			}
 			tex.needsUpdate = true;
 
-			scope.width = tex.width = img.naturalWidth;
-			scope.height = tex.height = img.naturalHeight;
-			if (scope.selection) scope.selection.changeSize(scope.width, scope.height);
+			self.width = tex.width = img.naturalWidth;
+			self.height = tex.height = img.naturalHeight;
+			if (self.selection) self.selection.changeSize(self.width, self.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
-				scope.error = 2;
+				self.error = 2;
 			}
-			scope.currentFrame = Math.min(scope.currentFrame, (scope.frameCount||1)-1)
+			self.currentFrame = Math.min(self.currentFrame, (self.frameCount||1)-1)
 
 			if (img.update_from_canvas) {
 				delete img.update_from_canvas;
-			} else if (!scope.layers_enabled) {
-				scope.canvas.width = scope.width;
-				scope.canvas.height = scope.height;
-				scope.ctx.drawImage(img, 0, 0);
+			} else if (!self.layers_enabled) {
+				self.canvas.width = self.width;
+				self.canvas.height = self.height;
+				self.ctx.drawImage(img, 0, 0);
 				if (UVEditor.vue.texture == this) UVEditor.updateOverlayCanvas();
 			}
 
 			if (this.flags.has('update_uv_size_from_resolution')) {
 				this.flags.delete('update_uv_size_from_resolution');
-				let size = [scope.width, scope.display_height];
-				let frames = scope.frameCount;
+				let size = [self.width, self.display_height];
+				let frames = self.frameCount;
 				if (settings.detect_flipbook_textures.value == false || frames <= 2 || (frames%1)) {
-					size[1] = scope.height;
+					size[1] = self.height;
 				}
 				this.uv_width = size[0];
 				this.uv_height = size[1];
 			}
 
-			if (scope.isDefault) {
-				console.log('Successfully loaded '+scope.name+' from default pack')
+			if (self.isDefault) {
+				console.log('Successfully loaded '+self.name+' from default pack')
 			}
 
-			let project = Texture.all.includes(scope) ? Project : ModelProject.all.find(project => project.textures.includes(scope));
+			let project = Texture.all.includes(self) ? Project : ModelProject.all.find(project => project.textures.includes(self));
 			if(!project) return;
 			project.whenNextOpen(() => {
 
-				if (Project.box_uv && Format.single_texture && !scope.error) {
+				if (Project.box_uv && Format.single_texture && !self.error) {
 
-					if (!scope.keep_size) {
-						let pw = scope.getUVWidth();
-						let ph = scope.getUVHeight();
+					if (!self.keep_size) {
+						let pw = self.getUVWidth();
+						let ph = self.getUVHeight();
 						let nw = img.naturalWidth;
 						let nh = img.naturalHeight;
 
@@ -175,7 +179,7 @@ export class Texture {
 							})
 						}
 					}
-					delete scope.keep_size;
+					delete self.keep_size;
 					size_control.old_width = img.naturalWidth
 					size_control.old_height = img.naturalHeight
 				}
@@ -183,23 +187,23 @@ export class Texture {
 				if (dimensions_changed) {
 					TextureAnimator.updateButton()
 					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
-					Canvas.updateAllFaces(scope)
+					Canvas.updateAllFaces(self)
 				}
-				if (typeof scope.load_callback === 'function') {
-					scope.load_callback(scope);
-					delete scope.load_callback;
+				if (typeof self.load_callback === 'function') {
+					self.load_callback(self);
+					delete self.load_callback;
 				}
 			})
 		}
 		this.img.onerror = (error) => {
 			if (isApp &&
-				!scope.isDefault &&
-				scope.mode !== 'bitmap' &&
-				scope.fromDefaultPack()
+				!self.isDefault &&
+				self.mode !== 'bitmap' &&
+				self.fromDefaultPack()
 			) {
 				return true;
 			} else {
-				scope.loadEmpty()
+				self.loadEmpty()
 			}
 		}
 
@@ -360,10 +364,14 @@ export class Texture {
 			delete this.selected_layer;
 		}
 
+		if (data.path) {
+			this.file_format = pathToExtension(this.path);
+		}
+
 		if (this.mode === 'bitmap' || !isApp) {
 			Merge.string(this, data, 'source')
 		} else if (data.path) {
-			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+			this.setSourceFromLocalFile();
 		}
 		return this;
 	}
@@ -372,7 +380,7 @@ export class Texture {
 		this.error = 0;
 		this.show_icon = true;
 		this.img.src = this.source;
-		this.load_callback = cb;
+		if (cb) this.load_callback = cb;
 		return this;
 	}
 	fromJavaLink(link, path_array, externalDataLoader) {
@@ -415,6 +423,7 @@ export class Texture {
 			this.folder = link.replace(/\\/g, '/').split('/')
 			this.folder = this.folder.splice(0, this.folder.length-1).join('/')
 			this.name = pathToName(path, true)
+			this.file_format = pathToExtension(this.path);
 			this.mode = 'link'
 			this.saved = true
 			this.load()
@@ -424,14 +433,19 @@ export class Texture {
 	fromFile(file, externalDataLoader) {
 		if (!file) return this;
 		if (file.name) this.name = file.name
-		if (typeof file.content === 'string' && file.content.substr(0, 4) === 'data') {
-			this.fromDataURL(file.content)
+		if ((typeof file.content === 'string' && file.content.substr(0, 4) === 'data') || !isApp) {
 
-			if (!file.path) {
-			} else if (pathToExtension(file.path) === 'png') {
-				this.path = file.path
-			} else if (pathToExtension(file.path) === 'tga') {
-				this.path = ''
+			if (file.path) {
+				this.path = file.path;
+				this.file_format = pathToExtension(this.path);
+			}
+			let file_format_data = Texture.file_formats[this.file_format];
+
+			if (typeof file.content === 'string') {
+				this.fromDataURL(file.content);
+
+			} else if (file.content && file_format_data.decode) {
+				file_format_data.decode(file.content, this);
 			}
 
 		} else if (isApp) {
@@ -441,36 +455,6 @@ export class Texture {
 		return this;
 	}
 	fromPath(path, externalDataLoader) {
-		var scope = this;
-		if (path && pathToExtension(path) === 'tga') {
-			let load_path = path
-			const targa_loader = new Targa()
-			if (externalDataLoader) {
-				const external = externalDataLoader(path.replaceAll("\\", "/"))
-				if (external) {
-					if (typeof external === "string") {
-						load_path = external
-					} else if (external instanceof Uint8Array) {
-						const u8 = new Uint8Array(external)
-						let base64
-						if (typeof Buffer !== "undefined" && external instanceof Buffer) {
-							base64 = external.toString("base64")
-						} else {
-							base64 = btoa(String.fromCharCode(...u8))
-						}
-						load_path = `data:image/x-tga;base64,${base64}`
-					}
-				}
-			}
-			targa_loader.open(load_path, function() {
-				scope.fromFile({
-					name: pathToName(path, true),
-					path: path,
-					content: targa_loader.getDataURL()
-				})
-			})
-			return this;
-		}
 		this.path = path
 		this.name = pathToName(path, true)
 		this.mode = 'link'
@@ -507,7 +491,9 @@ export class Texture {
 					}
 				}
 			}
-			this.source = this.source || path.replace(/#/g, '%23') + '?' + tex_version;
+			let extension = pathToExtension(this.path);
+			this.file_format = Object.keys(Texture.file_formats).find(key => Texture.file_formats[key].extensions.includes(extension)) ?? 'png';
+			if (!this.source) this.setSourceFromLocalFile();
 		}
 		if (Format.texture_folder) {
 			this.generateFolder(path);
@@ -613,7 +599,7 @@ export class Texture {
 					})
 				}
 			}
-			duplicate.remove(false);
+			duplicate.remove(true);
 		}
 
 		this.startWatcher()
@@ -622,7 +608,7 @@ export class Texture {
 		if (Project.EditSession) {
 			this.load(() => {
 				var before = {textures: {}}
-				before.textures[scope.uuid] = true;
+				before.textures[this.uuid] = true;
 				this.edit()
 				var post = new Undo.save({textures: [this]})
 				Project.EditSession.sendEdit({
@@ -645,7 +631,7 @@ export class Texture {
 		if (path.includes('data:image')) {
 			this.source = path
 		} else {
-			this.source = path.replace(/#/g, '%23') + '?' + tex_version
+			this.setSourceFromLocalFile();
 		}
 		this.startWatcher()
 		this.load()
@@ -695,6 +681,21 @@ export class Texture {
 		this.show_icon = false;
 		return this;
 	}
+	setSourceFromLocalFile() {
+		let file_format_data = Texture.file_formats[this.file_format];
+		if (!file_format_data.decode) {
+			this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+
+		} else if (isApp && this.path) {
+			let data = fs.readFileSync(this.path);
+			
+			let file_format_data = Texture.file_formats[this.file_format];
+			if (file_format_data.decode) {
+				file_format_data.decode(data, this);
+			}
+
+		}
+	}
 	updateSource(dataUrl) {
 		// Update the source, only used when source is secure + base64 
 		if (!dataUrl) dataUrl = this.source;
@@ -711,6 +712,8 @@ export class Texture {
 		mat.uniforms.EMISSIVE.value = this.render_mode == 'emissive';
 		mat.blending = this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending;
 		mat.side = this.render_sides == 'auto' ? Canvas.getRenderSide() : (this.render_sides == 'front' ? THREE.FrontSide : THREE.DoubleSide);
+		let wrap = this.wrap_mode == 'repeat' ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+		mat.map.wrapS = mat.map.wrapT = wrap;
 
 		// Map
 		mat.map.needsUpdate = true;
@@ -730,8 +733,8 @@ export class Texture {
 		function _replace() {
 			Blockbench.import({
 				resource_id: 'texture',
-				extensions: ['png', 'tga'],
-				type: 'PNG Texture',
+				extensions: Texture.getAllExtensions(),
+				type: 'Texture',
 				readtype: 'image',
 				startpath: scope.path
 			}, function(files) {
@@ -765,7 +768,7 @@ export class Texture {
 		if (single) {
 			tex_version++;
 		}
-		this.source = this.source.replace(/\?\d+$/, '?' + tex_version)
+		this.setSourceFromLocalFile();
 		this.load();
 		this.updateMaterial()
 		TickUpdates.UVEditor = true;
@@ -1114,7 +1117,7 @@ export class Texture {
 		Prop.active_panel = 'textures'
 		this.menu.open(event, this)
 	}
-	openMenu() {
+	propertiesDialog() {
 		this.select();
 
 		let title = `${this.name} (${this.width} x ${this.height})`;
@@ -1134,14 +1137,18 @@ export class Texture {
 			variable: 	{label: 'dialog.texture.variable', value: this.id, condition: {features: ['texture_folder']}},
 			folder: 	{label: 'dialog.texture.folder', value: this.folder, condition: () => Format.texture_folder},
 			namespace: 	{label: 'dialog.texture.namespace', value: this.namespace, condition: {features: ['texture_folder']}},
+			file_format: {label: 'menu.texture.file_format', type: 'select', value: this.file_format, options: {}},
 			'render_options': '_',
 			render_mode: {label: 'menu.texture.render_mode', type: 'select', value: this.render_mode, options: {
 				default: 'menu.texture.render_mode.default',
 				emissive: 'menu.texture.render_mode.emissive',
 				additive: 'menu.texture.render_mode.additive',
-				layered: Format.single_texture && 'menu.texture.render_mode.layered',
+				layered: (Format.single_texture || Format.single_texture_default) && 'menu.texture.render_mode.layered',
 			}},
 		};
+		for (let key in Texture.file_formats) {
+			form.file_format.options[key] = Texture.file_formats[key].name;
+		}
 		if (Format.id == 'free') {
 			Object.assign(form, {
 				render_sides: {label: 'settings.render_sides', type: 'select', value: this.render_sides, options: {
@@ -1151,8 +1158,31 @@ export class Texture {
 				}},
 			});
 		}
+		if (Format.per_texture_wrap_mode) {
+			Object.assign(form, {
+				wrap_mode: {label: 'menu.texture.wrap_mode', type: 'select', value: this.wrap_mode, options: {
+					limited: 'menu.texture.wrap_mode.limited',
+					repeat: 'menu.texture.wrap_mode.repeat',
+					clamp: 'menu.texture.wrap_mode.clamp',
+				}},
+			});
+		}
 		if (Format.per_texture_uv_size) {
-			form.uv_size = {type: 'vector', label: 'dialog.texture.uv_size', value: [this.uv_width, this.uv_height], dimensions: 2, step: 1, min: 1, linked_ratio: false};
+			form.uv_size = {
+				type: 'vector',
+				label: 'dialog.texture.uv_size',
+				value: [this.uv_width, this.uv_height],
+				dimensions: 2,
+				readonly: true,
+				extra_actions: [{
+					icon: 'edit',
+					name: 'Change',
+					click: (event) => {
+						Dialog.open.close();
+						editUVSizeDialog({texture: this});
+					}
+				}]
+			};
 		}
 		if (Format.texture_mcmeta) {
 			Object.assign(form, {
@@ -1167,6 +1197,11 @@ export class Texture {
 				}},
 				frame_order: {label: 'dialog.texture.frame_order', type: 'text', value: this.frame_order, condition: form => form.frame_order_type == 'custom', placeholder: '0 3 1 2', description: 'dialog.texture.frame_order.desc'},
 			});
+		} else if (this.frameCount > 1) {
+			Object.assign(form, {
+				'texture_mcmeta': '_',
+				fps: {label: 'dialog.texture.fps', type: 'number', value: this.fps, min: 1, step: 1, description: 'dialog.texture.fps.desc'},
+			});
 		}
 		let preview_img = new Image();
 		preview_img.src = this.img.src;
@@ -1180,15 +1215,7 @@ export class Texture {
 			lines: [header],
 			form,
 			onConfirm: results => {
-
-				dialog.hide();
-				if (['name', 'variable', 'folder', 'namespace', 'frame_time', 'frame_interpolate', 'frame_order_type', 'frame_order'].find(key => {
-					return results[key] !== undefined && results[key] !== this[key];
-				}) == undefined) {
-					return;
-				}
-
-				Undo.initEdit({textures: [this], selected_texture: true})
+				Undo.initEdit({textures: [this], selected_texture: true});
 
 				let old_render_mode = this.render_mode;
 
@@ -1198,6 +1225,19 @@ export class Texture {
 				if (results.namespace !== undefined) this.namespace = results.namespace;
 				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
+				if (results.wrap_mode !== undefined) this.wrap_mode = results.wrap_mode;
+				if (results.fps !== undefined) this.fps = results.fps;
+
+				if (results.file_format && results.file_format != this.file_format) {
+					let old_extensions = Texture.file_formats[this.file_format]?.extensions;
+					let new_extensions = Texture.file_formats[results.file_format]?.extensions;
+					if (old_extensions && new_extensions) {
+						let regex = new RegExp(`\\.(${old_extensions.join('|')})$`);
+						this.name = this.name.replace(regex, '.'+new_extensions[0]);
+						this.path = this.path.replace(regex, '.'+new_extensions[0]);
+					}
+					this.file_format = results.file_format;
+				}
 				
 				if (Format.per_texture_uv_size) {
 					let changed = this.uv_width != results.uv_size[0] || this.uv_height != results.uv_size[1];
@@ -1498,7 +1538,7 @@ export class Texture {
 	}
 	//Export
 	javaTextureLink() {
-		var link = this.name.replace(/\.png$/, '')
+		var link = this.name.replace(/\.\w{2,8}$/, '')
 		if (this.folder) {
 			link = this.folder + '/' + link
 		}
@@ -1551,25 +1591,28 @@ export class Texture {
 			});
 		}
 	}
-	save(as) {
+	async save(as) {
 		var scope = this;
 		if (scope.saved && !as) {
 			return this;
 		}
 
-		if (isApp) {
-			//overwrite path
-			let image;
-			if (scope.mode === 'link') {
-				image = nativeImage.createFromPath(scope.path).toPNG()
-			} else {
-				image = nativeImage.createFromDataURL(scope.source).toPNG()
-			}
-			tex_version++;
+		let file_format_options = Texture.file_formats[this.file_format] ?? Texture.file_formats.png;
+		let export_data;
+		if (file_format_options.encode) {
+			export_data = await file_format_options.encode(this);
+		} else {
+			let encoding = 'image/'+(this.file_format??'png');
+			export_data = this.canvas.toDataURL(encoding);
+		}
+		tex_version++;
 
-			function postSave(path) {
-				if (Format.texture_mcmeta && scope.frameCount > 1) {
-					let mcmeta_content = scope.getMCMetaContent();
+
+		if (isApp) {
+
+			let postSave = (path) => {
+				if (Format.texture_mcmeta && this.frameCount > 1) {
+					let mcmeta_content = this.getMCMetaContent();
 					Blockbench.writeFile(path + '.mcmeta', {content: compileJSON(mcmeta_content)})
 				}
 			}
@@ -1577,11 +1620,11 @@ export class Texture {
 			if (!as && this.path && fs.existsSync(this.path)) {
 				this.flags.add('file_just_changed');
 				setTimeout(() => {this.flags.delete('file_just_changed')}, 100);
-				fs.writeFileSync(this.path, image);
+				Filesystem.writeFile(this.path, {content: export_data, savetype: 'image'});
 				postSave(this.path);
 				this.mode = 'link';
 				this.saved = true;
-				this.source = this.path.replace(/#/g, '%23') + '?' + tex_version;
+				this.setSourceFromLocalFile();
 				this.source_overwritten = true;
 
 			} else {
@@ -1597,33 +1640,33 @@ export class Texture {
 					var arr = Project.export_path.split(osfs);
 					var index = arr.lastIndexOf('models');
 					if (index > 1) arr.splice(index, 256, 'textures')
-					if (scope.folder) arr = arr.concat(scope.folder.split('/'));
-					arr.push(scope.name)
+					if (this.folder) arr = arr.concat(this.folder.split('/'));
+					arr.push(this.name)
 					find_path = arr.join(osfs)
 				}
 				Blockbench.export({
 					resource_id: 'texture',
-					type: 'PNG Texture',
-					extensions: ['png'],
-					name: scope.name,
-					content: image,
+					type: file_format_options.name + ' Texture',
+					extensions: file_format_options.extensions,
+					name: this.name,
+					content: export_data,
 					startpath: find_path,
 					savetype: 'image'
-				}, function(path) {
+				}, (path) => {
 					postSave(path);
-					scope.fromPath(path)
+					this.fromPath(path)
 				})
 			}
 		} else {
 			//Download
 			Blockbench.export({
-				type: 'PNG Texture',
-				extensions: ['png'],
-				name: scope.name,
-				content: scope.source,
+				type: file_format_options.name + ' Texture',
+				extensions: file_format_options.extensions,
+				name: this.name,
+				content: export_data,
 				savetype: 'image'
-			}, function() {
-				scope.saved = true;
+			}, () => {
+				this.saved = true;
 			})
 		}
 		if (Format.image_editor && !Texture.all.find(t => !t.saved)) {
@@ -1730,6 +1773,18 @@ export class Texture {
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
 			if (layer.visible == false || layer.opacity == 0) continue;
+			if (layer.blend_mode == 'alpha_mask') {
+				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+				Painter.scanCanvas(this.ctx, 0, 0, this.canvas.width, this.canvas.height, (px, py, color) => {
+					let mask_coords = [ px - layer.offset[0], py - layer.offset[1] ];
+					if (mask_coords[0] < 0 || mask_coords[0] >= layer.canvas.width) return;
+					if (mask_coords[1] < 0 || mask_coords[1] >= layer.canvas.height) return;
+					let value = mask.data[(mask_coords[1] * layer.canvas.width + mask_coords[0]) * 4];
+					color[3] *= value / 255;
+					return color;
+				})
+				continue;
+			}
 			this.ctx.filter = `opacity(${layer.opacity / 100})`;
 			this.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(layer.blend_mode);
 			this.ctx.imageSmoothingEnabled = false;
@@ -1798,6 +1853,62 @@ export class Texture {
 			this.convertToInternal();
 		}
 		this.saved = false;
+	}
+
+	static file_formats = {
+		png: {
+			name: 'PNG',
+			extensions: ['png']
+		},
+		jpeg: {
+			name: 'JPEG',
+			extensions: ['jpeg', 'jpg']
+		},
+		webp: {
+			name: 'WebP',
+			extensions: ['webp']
+		},
+		tga: {
+			name: 'TGA',
+			extensions: ['tga'],
+			async encode(texture) {
+				let image_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+
+				let supported_blend_modes = ['add', 'alpha_mask', 'default'];
+				if (
+					texture.layers_enabled &&
+					texture.layers.some(l => l.blend_mode == 'alpha_mask') &&
+					texture.layers.allAre(l => supported_blend_modes.includes(l.blend_mode) && l.scale.allEqual(1))
+				) {
+					image_data = getTextureDataWithAccurateAlpha(texture);
+				}
+
+				let result = await encodeTga({
+					data: image_data.data,
+					width: texture.canvas.width,
+					height: texture.canvas.height
+				});
+				return result.data;
+			},
+			async decode(data, texture) {
+				if (data instanceof ArrayBuffer) data = new Uint8Array(data);
+				let result = await decodeTga(data);
+				texture.canvas.width = result.image.width;
+				texture.canvas.height = result.image.height;
+				let imagedata = new ImageData(result.image.width, result.image.height);
+				imagedata.data.set(result.image.data);
+				texture.ctx.putImageData(imagedata, 0, 0);
+				texture.source = texture.canvas.toDataURL('image/png', 1);
+				texture.load();
+			}
+		}
+	}
+	static getAllExtensions() {
+		let array = [];
+		for (let key in Texture.file_formats) {
+			array.safePush(...Texture.file_formats[key].extensions);
+		}
+		return array;
 	}
 }
 	Texture.prototype.menu = new Menu([
@@ -1898,7 +2009,7 @@ export class Texture {
 						{name: 'menu.texture.render_mode.default', icon: texture.render_mode == 'default' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('default')}},
 						{name: 'menu.texture.render_mode.emissive', icon: texture.render_mode == 'emissive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('emissive')}},
 						{name: 'menu.texture.render_mode.additive', icon: texture.render_mode == 'additive' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('additive')}},
-						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('layered')}, condition: () => Format.single_texture},
+						{name: 'menu.texture.render_mode.layered', icon: texture.render_mode == 'layered' ? 'far.fa-dot-circle' : 'far.fa-circle', click() {setViewMode('layered')}, condition: () => (Format.single_texture || Format.single_texture_default)},
 					]
 				}
 			},
@@ -2007,6 +2118,7 @@ export class Texture {
 					new MenuSeparator('filters'),
 					'limit_to_palette',
 					'split_rgb_into_layers',
+					'split_alpha_into_layer',
 					'clear_unused_texture_space',
 					new MenuSeparator('transform'),
 					'flip_texture_x',
@@ -2043,38 +2155,7 @@ export class Texture {
 				click(texture) {texture.exportEmissionMap()}
 			},
 			new MenuSeparator('manage'),
-			{
-				icon: 'refresh',
-				name: 'menu.texture.refresh',
-				condition: function(texture) {return texture.mode == 'link'},
-				click(texture) {
-					if (texture.layers_enabled) {
-						Blockbench.showMessageBox({
-							translateKey: 'texture_refresh_conflict',
-							icon: 'priority_high',
-							commands: {
-								keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
-								keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
-							},
-							buttons: ['dialog.cancel'],
-						}, (choice) => {
-							if (choice == 'keep_theirs') {
-								Undo.initEdit({textures: [texture], bitmap: true});
-								UVEditor.vue.layer = null;
-								texture.layers_enabled = false;
-								texture.selected_layer = null;
-								texture.layers.empty();
-								texture.refresh(true)
-								Undo.finishEdit('Disable layers on texture');
-								updateInterfacePanels();
-								BARS.updateConditions();
-							}
-						})
-					} else {
-						texture.reloadTexture()
-					}
-				}
-			},
+			'refresh_texture',
 			{
 				name: 'menu.texture.discard_changes',
 				description: 'menu.texture.discard_changes.desc',
@@ -2088,7 +2169,7 @@ export class Texture {
 					texture.layers.empty();
 					texture.internal = false;
 					texture.saved = true;
-					texture.source = texture.path.replace(/#/g, '%23') + '?' + tex_version;
+					texture.setSourceFromLocalFile();
 					Texture.selected.reloadTexture();
 					Undo.finishEdit('Discard texture changes');
 					updateInterfacePanels();
@@ -2105,7 +2186,7 @@ export class Texture {
 			{
 				icon: 'list',
 				name: 'menu.texture.properties',
-				click(texture) { texture.openMenu()}
+				click(texture) { texture.propertiesDialog()}
 			}
 	])
 	Texture.prototype.offset = [0, 0];
@@ -2134,6 +2215,7 @@ export class Texture {
 	new Property(Texture, 'string', 'namespace')
 	new Property(Texture, 'string', 'id')
 	new Property(Texture, 'string', 'group')
+	new Property(Texture, 'number', 'scope')
 	new Property(Texture, 'number', 'width')
 	new Property(Texture, 'number', 'height')
 	new Property(Texture, 'number', 'uv_width')
@@ -2142,9 +2224,12 @@ export class Texture {
 	new Property(Texture, 'boolean', 'use_as_default')
 	new Property(Texture, 'boolean', 'layers_enabled')
 	new Property(Texture, 'string', 'sync_to_project')
+	new Property(Texture, 'enum', 'file_format', {default: 'png'})
 	new Property(Texture, 'enum', 'render_mode', {default: 'default'})
 	new Property(Texture, 'enum', 'render_sides', {default: 'auto'})
+	new Property(Texture, 'enum', 'wrap_mode', {default: () => Format.texture_wrap_default ?? 'limited'})
 	new Property(Texture, 'enum', 'pbr_channel', {default: 'color'})
+	new Property(Texture, 'number', 'fps', {default: 7})
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
@@ -2217,6 +2302,49 @@ export function getTexturesById(id) {
 	return $.grep(Texture.all, function(e) {return e.id == id});
 }
 
+/**
+ * Function to merge layers while preserving accurate alpha channel information. Does not support some blend modes, or layer scaling
+ */
+function getTextureDataWithAccurateAlpha(texture) {
+	let data = texture.ctx.createImageData(texture.canvas.width, texture.canvas.height);
+	for (let layer of texture.layers) {
+		if (layer.visible == false || layer.opacity == 0) continue;
+
+		let layer_data = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
+		
+		for (let x = 0; x < texture.canvas.width; x++) {
+			for (let y = 0; y < texture.canvas.height; y++) {
+				let index = data.getIndex(x, y);
+				let layer_index = layer_data.getIndex(x - layer.offset[0], y - layer.offset[1]);
+				let alpha = (layer_data.data[layer_index+3] / 255) * (layer.opacity/100);
+
+				switch (layer.blend_mode) {
+					case 'default': {
+						data.data[index+0] = Math.lerp(data.data[index+0], layer_data.data[layer_index+0], alpha);
+						data.data[index+1] = Math.lerp(data.data[index+1], layer_data.data[layer_index+1], alpha);
+						data.data[index+2] = Math.lerp(data.data[index+2], layer_data.data[layer_index+2], alpha);
+						data.data[index+3] = Math.lerp(data.data[index+3], 255, alpha);
+						break;
+					}
+					case 'add': {
+						data.data[index+0] += layer_data.data[layer_index+0] * alpha;
+						data.data[index+1] += layer_data.data[layer_index+1] * alpha;
+						data.data[index+2] += layer_data.data[layer_index+2] * alpha;
+						data.data[index+3] += layer_data.data[layer_index+3] * alpha;
+						break;
+					}
+					case 'alpha_mask': {
+						let value = layer_data.data[layer_index];
+						data.data[index+3] *= (value / 255) * alpha;
+						break;
+					}
+				}
+			}	
+		}
+	}
+	return data;
+}
+
 SharedActions.add('delete', {
 	condition: () => Prop.active_panel == 'textures' && Texture.selected,
 	run() {
@@ -2269,14 +2397,14 @@ Clipbench.pasteTextures = function() {
 		var texture = new Texture({name: 'pasted', folder: 'block' }).fillParticle().convertToInternal(dataUrl)
 		texture.load().add(true);
 		setTimeout(function() {
-			texture.openMenu();
+			texture.propertiesDialog();
 		}, 40)
 	}
 
 	if (Clipbench.texture) {
 		var texture = new Texture(Clipbench.texture).convertToInternal(Clipbench.texture.source).fillParticle().load().add(true);
 		setTimeout(function() {
-			texture.openMenu();
+			texture.propertiesDialog();
 		}, 40)
 		Clipbench.texture = null;
 
@@ -2313,14 +2441,14 @@ BARS.defineActions(function() {
 				arr.push('textures')
 				start_path = arr.join(osfs)
 			}
-			let extensions = ['png', 'tga'];
+			let extensions = Texture.getAllExtensions();
 			if (isApp) {
 				extensions.push('texture_set.json');
 			}
 			Blockbench.import({
 				resource_id: 'texture',
 				readtype: 'image',
-				type: 'PNG Texture',
+				type: 'Texture',
 				extensions,
 				multiple: true,
 				startpath: start_path
@@ -2419,6 +2547,38 @@ BARS.defineActions(function() {
 			Texture.selected.apply(true)
 		}
 	})
+	new Action('refresh_texture', {
+		icon: 'refresh',
+		condition: () => Texture.selected?.internal == false,
+		click() {
+			let texture = Texture.selected;
+			if (texture.layers_enabled) {
+				Blockbench.showMessageBox({
+					translateKey: 'texture_refresh_conflict',
+					icon: 'priority_high',
+					commands: {
+						keep_ours: tl('message.texture_refresh_conflict.keep_ours'),
+						keep_theirs: tl('message.texture_refresh_conflict.keep_theirs')
+					},
+					buttons: ['dialog.cancel'],
+				}, (choice) => {
+					if (choice == 'keep_theirs') {
+						Undo.initEdit({textures: [texture], bitmap: true});
+						UVEditor.vue.layer = null;
+						texture.layers_enabled = false;
+						texture.selected_layer = null;
+						texture.layers.empty();
+						texture.refresh(true)
+						Undo.finishEdit('Disable layers on texture');
+						updateInterfacePanels();
+						BARS.updateConditions();
+					}
+				})
+			} else {
+				texture.reloadTexture()
+			}
+		}
+	});
 })
 
 Interface.definePanels(function() {
@@ -2457,6 +2617,10 @@ Interface.definePanels(function() {
 				if (!texture.currentFrame) return;
 				let val = texture.currentFrame * -48 * (texture.display_height / texture.width);
 				return `${val}px`;
+			},
+			getScopeColor(texture) {
+				if (!texture.scope) return '';
+				return ScopeColors[(texture.scope-1) % ScopeColors.length];
 			},
 			highlightTexture(event) {
 				if (!Format.single_texture && this.texture.error) {
@@ -2597,10 +2761,9 @@ Interface.definePanels(function() {
 
 					if (!active || Menu.open) return;
 
-					//await new Promise(r => setTimeout(r, 10));
-
-					Blockbench.removeFlag('dragging_textures');
-
+					setTimeout(() => {
+						Blockbench.removeFlag('dragging_textures');
+					}, 10);
 
 					if (isNodeUnderCursor(Interface.preview, e2)) {
 						let data = Canvas.raycast(e2)
@@ -2630,6 +2793,8 @@ Interface.definePanels(function() {
 						}
 					} else if (isNodeUnderCursor(document.getElementById('texture_list'), e2)) {
 
+						let selected_textures = Texture.all.filter(t => t.selected || t.multi_selected);
+
 						let index = Texture.all.length-1;
 						let texture_node = findNodeUnderCursor('#texture_list li.texture', e2);
 						let target_group_head = findNodeUnderCursor('#texture_list .texture_group_head', e2);
@@ -2640,17 +2805,21 @@ Interface.definePanels(function() {
 						} else if (texture_node) {
 							let target_tex = Texture.all.findInArray('uuid', texture_node.getAttribute('texid'));
 							index = Texture.all.indexOf(target_tex);
-							let own_index = Texture.all.indexOf(texture)
-							if (own_index == index) return;
+							let own_index = Texture.all.indexOf(selected_textures[0])
+							if (own_index == index && selected_textures.length == 1) return;
 							let offset = e2.clientY - $(texture_node).offset().top;
-							if (own_index < index) index--;
 							if (offset > 24) index++;
 							new_group = target_tex.group;
 						}
-						Undo.initEdit({texture_order: true, textures: texture.group != new_group ? [texture] : null});
-						Texture.all.remove(texture);
-						Texture.all.splice(index, 0, texture);
-						texture.group = new_group;
+						let track_group_changes = selected_textures.some(t => t.group != new_group);
+						Undo.initEdit({texture_order: true, textures: track_group_changes ? selected_textures : null});
+						let item_at_index = Texture.all[index];
+						selected_textures.forEach(t => Texture.all.remove(t));
+						index = item_at_index ? Texture.all.indexOf(item_at_index) : index;
+						selected_textures.forEach((texture, i) => {
+							Texture.all.splice(index+i, 0, texture);
+							texture.group = new_group;
+						});
 						Canvas.updateLayeredTextures();
 						Undo.finishEdit('Rearrange textures');
 
@@ -2711,10 +2880,11 @@ Interface.definePanels(function() {
 				v-bind:class="{ selected: texture.selected, multi_selected: texture.multi_selected, particle: texture.particle, use_as_default: texture.use_as_default}"
 				v-bind:texid="texture.uuid"
 				class="texture"
+				:style="{'--color-scope': getScopeColor(texture)}"
 				@click.stop="closeContextMenu();texture.select($event)"
 				@mousedown="highlightTexture($event)"
 				@mouseup="unhighlightTexture($event)"
-				@dblclick="texture.openMenu($event)"
+				@dblclick="texture.propertiesDialog($event)"
 				@mousedown.stop="dragTexture($event)" @touchstart.stop="dragTexture($event)"
 				@contextmenu.prevent.stop="texture.showContextMenu($event)"
 			>
@@ -2813,7 +2983,6 @@ Interface.definePanels(function() {
 					let maxFrameCount = this.maxFrameCount();
 
 					function slide(e2) {
-						convertTouchEvent(e2);
 						let pos = e2.clientX - timeline_offset;
 
 						let previous_frame = scope.currentFrame;
@@ -2828,11 +2997,11 @@ Interface.definePanels(function() {
 						TextureAnimator.update(textures);
 					}
 					function off(e3) {
-						removeEventListeners(document, 'mousemove touchmove', slide);
-						removeEventListeners(document, 'mouseup touchend', off);
+						removeEventListeners(document, 'pointermove', slide);
+						removeEventListeners(document, 'pointerup', off);
 					}
-					addEventListeners(document, 'mousemove touchmove', slide);
-					addEventListeners(document, 'mouseup touchend', off);
+					addEventListeners(document, 'pointermove', slide);
+					addEventListeners(document, 'pointerup', off);
 					slide(e1);
 				},
 				scrollTimeline(event) {
@@ -3075,19 +3244,19 @@ Interface.definePanels(function() {
 						></Texture>
 					</ul>
 					<div id="texture_animation_playback" class="bar" v-show="maxFrameCount()">
-						<div class="tool_wrapper"></div>
-						<div id="texture_animation_timeline" ref="timeline" @mousedown="slideTimelinePointer" @wheel="scrollTimeline($event)">
+						<div ref="tool_wrapper"></div>
+						<div id="texture_animation_timeline" ref="timeline" @pointerdown="slideTimelinePointer" @wheel="scrollTimeline($event)">
 							<div class="texture_animation_frame" v-for="i in maxFrameCount()"></div>
-							<div id="animated_texture_playhead" :style="{left: getPlayheadPos() + 'px'}"></div>
+							<div id="animated_texture_playhead" v-if="maxFrameCount()" :style="{left: getPlayheadPos() + 'px'}"></div>
 						</div>
-						<div class="tool_wrapper_2"></div>
+						<div ref="tool_wrapper_2"></div>
 					</div>
 				</div>
 			`,
 			mounted() {
-				BarItems.animated_textures.toElement('#texture_animation_playback .tool_wrapper')
-				BarItems.animated_texture_frame.setWidth(52).toElement('#texture_animation_playback .tool_wrapper')
-				BarItems.animated_texture_fps.toElement('#texture_animation_playback .tool_wrapper_2')
+				BarItems.animated_textures.toElement(this.$refs.tool_wrapper)
+				BarItems.animated_texture_frame.setWidth(52).toElement(this.$refs.tool_wrapper)
+				BarItems.animated_texture_fps.toElement(this.$refs.tool_wrapper_2)
 			}
 		},
 		menu: new Menu([

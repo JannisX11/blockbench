@@ -87,6 +87,14 @@ Animator.MolangParser.global_variables = {
 	get 'context.is_first_person'() {
 		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0
 	},
+	'query.get_default_bone_pivot'(bone_name, axis) {
+		let group = Group.all.find(g => g.name.toLowerCase() == bone_name);
+		if (group && axis >= 0 && axis < 3) {
+			let value = group.origin[axis] ?? 0;
+			if (axis == 0) value *= -1;
+			return value;
+		}
+	},
 	get time() {
 		return Timeline.time
 	},
@@ -104,11 +112,11 @@ Animator.MolangParser.variableHandler = function (variable, variables, args) {
 	}
 
 	if (val.match(/^(slider|toggle|impulse)\(/)) {
-		let [type, content] = val.substring(0, val.length - 1).split(/\(/)
+		let [type, content] = val.substring(0, val.lastIndexOf(')')).split(/\(/)
 		let [id] = content.split(/\(|, */)
 		id = id.replace(/['"]/g, '')
 
-		let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
+		let button = Panels.variable_placeholders.inside_vue.buttons.find(
 			(b) => b.id === id && b.type == type
 		)
 		return button ? parseFloat(button.value) : 0

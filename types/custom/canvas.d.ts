@@ -81,7 +81,7 @@ declare namespace Canvas {
 	/**
 	 * List of the gizmos (control and UI elements) in the 3D scene
 	 */
-	const gizmos: []
+	const gizmos: THREE.Object3D[]
 	/**
 	 * The material used for all selection outlines
 	 */

@@ -47,6 +47,7 @@ body:
   id: version
   attributes:
     label: Blockbench version
+    description: Write the version number, not just "Latest". You can find it in Help > About.
   validations:
     required: true
 - type: input

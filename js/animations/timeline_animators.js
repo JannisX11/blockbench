@@ -375,6 +375,9 @@ export class BoneAnimator extends GeneralAnimator {
 		var bone = this.group.mesh
 
 		if (arr) {
+			if (this.animation.override) {
+				if (bone.fix_rotation) bone.rotation.copy(bone.fix_rotation);
+			}
 			if (arr.length === 4) {
 				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), Format.euler_order)
 				bone.rotation.x += added_rotation.x * multiplier
@@ -397,6 +400,9 @@ export class BoneAnimator extends GeneralAnimator {
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.group.mesh
 		if (arr) {
+			if (this.animation.override) {
+				if (bone.fix_position) bone.position.copy(bone.fix_position);
+			}
 			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
@@ -406,6 +412,9 @@ export class BoneAnimator extends GeneralAnimator {
 	displayScale(arr, multiplier = 1) {
 		if (!arr) return this;
 		var bone = this.group.mesh;
+		if (this.animation.override && this.channels?.scale) {
+			mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
+		}
 		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
 		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
 		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
@@ -553,7 +562,27 @@ export class BoneAnimator extends GeneralAnimator {
 			let method = allow_expression ? 'get' : 'calc'
 			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length-1;
 
-			return mapAxes(axis => keyframe[method](axis, dp_index));
+			if (use_quaternions) {
+				let quat = keyframe.getFixed(dp_index, true);
+				let fix = this.group.scene_object.fix_rotation;
+				let euler = Reusable.euler2.setFromQuaternion(quat, fix.order);
+				euler.x -= fix.x;
+				euler.y -= fix.y;
+				euler.z -= fix.z;
+				
+				if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
+				if (axis) {
+					let value = Math.radToDeg(euler[axis]);
+					Animator._last_values[channel][getAxisNumber(axis)] = value;
+					return value;
+				} else {
+					let array = euler.toArray().slice(0, 3).map(Math.radToDeg);
+					Animator._last_values[channel] = array;
+					return array;
+				}
+			} else {
+				return mapAxes(axis => keyframe[method](axis, dp_index));
+			}
 		}
 		return false;
 	}

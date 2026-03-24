@@ -1,4 +1,5 @@
 import { Filesystem } from "../file_system";
+import { ModelLoader } from "../io/model_loader";
 import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
 import { pureMarked } from "../util/util";
@@ -25,7 +26,7 @@ export const StartScreen = {
  * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
  * @param {string} [data.graphic.description] Markdown string
  * @param {string} [data.graphic.text_color]
- * @param {Array.<{text: String, type: String, [list]: Array.String, [click]: Function}>} data.text
+ * @param {Array.<{text: String, {type}: [String], [list]: Array.String, {click}: [Function]}>} data.text
  * @param {'vertical'|'horizontal'} data.layout
  * @param {Array} data.features
  * @param {boolean} data.closable
@@ -190,19 +191,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [zl game](https://contests.blockbench.net/artists/810872057172459570) & [fable](https://contests.blockbench.net/artists/885471035258994709)",
+					description: "Splash Art 1st Place by [AnzSama](https://contests.blockbench.net/artists/726636243785613372) & [C-on](https://contests.blockbench.net/artists/768854550744137800)",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [Coco](https://contests.blockbench.net/artists/1008248909631598662) & [hqsss](https://contests.blockbench.net/artists/1418120121486016559)",
+					description: "Splash Art 2nd Place by [Wanwin](https://contests.blockbench.net/artists/402502582360080384) & [Flok](https://contests.blockbench.net/artists/445419542664183808)",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277) & [Grettzzz](https://contests.blockbench.net/artists/1207006698842095666)",
+					description: "Splash Art 3rd Place by [eag](https://contests.blockbench.net/artists/662458608281190410)",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [Kang_cn](https://contests.blockbench.net/artists/1284502809248796766)",
+					description: "Splash Art 4th Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277)",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -530,39 +531,6 @@ onVueSetup(async function() {
 });
 
 
-export class ModelLoader {
-	constructor(id, options) {
-		this.id = id;
-		this.name = tl(options.name);
-		this.description = options.description ? tl(options.description) : '';
-		this.icon = options.icon || 'arrow_forward';
-		this.category = options.category || 'loaders';
-		this.target = options.target || '';
-		this.show_on_start_screen = true;
-		this.confidential = options.confidential || false;
-		this.condition = options.condition;
-		this.plugin = options.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
-
-		this.format_page = options.format_page;
-		this.onFormatPage = options.onFormatPage;
-		this.onStart = options.onStart;
-
-		Vue.set(ModelLoader.loaders, id, this);
-		if (this.format_page && this.format_page.component) {
-			Vue.component(`format_page_${this.id}`, this.format_page.component)
-		}
-		Blockbench.dispatchEvent('construct_model_loader', {loader: this});
-	}
-	new() {
-		this.onStart();
-	}
-	delete() {
-		Vue.delete(ModelLoader.loaders, this.id);
-		Blockbench.dispatchEvent('delete_model_loader', {loader: this});
-	}
-}
-ModelLoader.loaders = {};
-
 
 (function() {
 	/*$.getJSON('./content/news.json').then(data => {
@@ -747,5 +715,4 @@ ModelLoader.loaders = {};
 Object.assign(window, {
 	StartScreen,
 	addStartScreenSection,
-	ModelLoader,
 });

@@ -1,3 +1,4 @@
+import { ModelLoader } from "../io/model_loader";
 import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
 
 export class BarMenu extends Menu {
@@ -82,7 +83,7 @@ export const MenuBar = {
 							}
 						})
 					}
-					arr.push(new MenuSeparator('loaders'));
+					arr.push(new MenuSeparator('loaders', 'format_category.loaders'));
 					for (let key in ModelLoader.loaders) {
 						let loader = ModelLoader.loaders[key];
 						arr.push({
@@ -163,7 +164,7 @@ export const MenuBar = {
 						ModelProject.all.forEach(project => {
 							if (project == Project) return;
 							projects.push({
-								name: project.getDisplayName(),
+								name: project.getDisplayName(true),
 								icon: project.format.icon,
 								description: project.path,
 								click() {
@@ -181,6 +182,8 @@ export const MenuBar = {
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_bedrock_attachable',
+				'import_bedrock_voxel_shape',
 				'import_obj',
 				'extrude_texture'
 			]},
@@ -188,6 +191,7 @@ export const MenuBar = {
 				'export_blockmodel',
 				'export_bedrock',
 				'export_entity',
+				'export_bedrock_voxel_shape',
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
@@ -349,6 +353,7 @@ export const MenuBar = {
 			new MenuSeparator('filters'),
 			'limit_to_palette',
 			'split_rgb_into_layers',
+			'split_alpha_into_layer',
 			'clear_unused_texture_space',
 			new MenuSeparator('transform'),
 			'flip_texture_x',
@@ -371,6 +376,7 @@ export const MenuBar = {
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
+			'copy_animation_pose',
 			'flip_animation',
 			'optimize_animation',
 			'retarget_animators',
@@ -403,6 +409,7 @@ export const MenuBar = {
 			]},
 			'keyframe_uniform',
 			'reset_keyframe',
+			'round_keyframe_values',
 			'resolve_keyframe_expressions',
 			'delete',
 		], {
@@ -463,6 +470,10 @@ export const MenuBar = {
 			'convert_to_mesh',
 			'auto_set_cullfaces',
 			'remove_blank_faces',
+			'generate_voxel_shapes',
+			'generate_bedrock_block_box',
+			'generate_bedrock_entity_box',
+			'slice_bedrock_multiblock',
 		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
@@ -728,10 +739,24 @@ export const MenuBar = {
 		}
 		return bar;
 	},
+	addMenu(menu, position) {
+		MenuBar.menus[menu.id] = menu;
+		if (position) {
+			let order = Object.keys(MenuBar.menus);
+			order.remove(menu.id);
+			let index = typeof position == 'number' ? position : order.indexOf(position)+1;
+			order.splice(index, 0, menu.id);
+
+			let menus = Object.assign({}, MenuBar.menus);
+			order.forEach(id => delete MenuBar.menus[id]);
+			order.forEach(id => MenuBar.menus[id] = menus[id]);
+		}
+		MenuBar.update();
+	},
 	update() {
 		if (!Blockbench.isMobile) {
-			let bar = $(document.getElementById('menu_bar'));
-			bar.children().detach();
+			let bar = document.getElementById('menu_bar');
+			bar.replaceChildren();
 			this.keys = [];
 			for (var menu in MenuBar.menus) {
 				if (MenuBar.menus.hasOwnProperty(menu)) {

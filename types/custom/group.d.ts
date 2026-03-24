@@ -66,7 +66,7 @@ declare class Group extends OutlinerNode {
 	cem_attach?: boolean
 	cem_model?: string
 	cem_scale?: number
-	mesh: THREE.Mesh
+	mesh: THREE.Object3D
 
 	[key: string]: any
 

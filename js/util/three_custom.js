@@ -238,7 +238,7 @@ THREE.NormalX = new THREE.Vector3(1, 0, 0);
 THREE.NormalY = new THREE.Vector3(0, 1, 0);
 THREE.NormalZ = new THREE.Vector3(0, 0, 1);
 
-THREE.fastWorldPosition = (object, vec) => {
+export function fastWorldPosition(object, vec) {
 	if (!vec) {
 		vec = new THREE.Vector3();
 	} else {
@@ -247,3 +247,5 @@ THREE.fastWorldPosition = (object, vec) => {
 	object.localToWorld(vec);
 	return vec;
 }
+THREE.fastWorldPosition = fastWorldPosition;
+

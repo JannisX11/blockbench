@@ -19,6 +19,7 @@
 		position: relative;
 		cursor: pointer;
 		overflow: hidden;
+		touch-action: none;
 		padding-left: 8px;
 		padding-top: 2px;
 		background: var(--color-elevated);
@@ -246,6 +247,14 @@
 	.dialog_bar.form_bar .tool > .tooltip {
 		display: none !important;
 	}
+	.dialog_bar .form_overlay_tools {
+		position: absolute;
+		top: 2px;
+		right: 10px;
+		background-color: color-mix(in srgb, var(--color-back) 60%, transparent);
+		border-radius: 5px;
+		padding: 0 5px;
+	}
 	.dialog_bar.small_text li {
 		list-style: auto;
 		margin-left: 20px;
@@ -405,6 +414,27 @@
 		color: var(--color-accent_text);
 		cursor: default;
 		border-radius: inherit;
+	}
+	ul.form_multi_select {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	ul.form_multi_select > li {
+		background-color: var(--color-button);
+		padding: 0px 8px;
+		border-radius: 5px;
+		display: flex;
+		padding-top: 2px;
+		margin-top: 2px;
+		gap: 2px;
+		padding-bottom: 0;
+		height: 28px;
+	}
+	ul.form_multi_select > li > .icon {
+		cursor: pointer;
+		font-size: 19px;
+		padding-top: 3px;
 	}
 	.form_bar_radio {
 		display: flex;
@@ -1199,14 +1229,22 @@
 		width: 73px;
 		border: none;
 	}
-	dialog div.dialog_form_buttons a {
-		display: inline-block;
-		text-decoration: underline;
-		cursor: pointer;
-		margin-right: 8px;
+	dialog div.dialog_form_buttons {
+		padding: 4px;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px;
+		width: 100%;
 	}
-	dialog div.dialog_form_buttons a:hover {
-		color: var(--color-accent);
+	dialog div.dialog_form_buttons button {
+		padding: 2px 10px;
+		border-radius: 13px;
+		width: auto;
+		height: auto;
+		min-width: 52px;
+		height: auto;
+		white-space: nowrap;
+		flex-grow: 1;
 	}
 	/*Scale*/
 	dialog#scale .form_bar_overflow_info {
@@ -1311,7 +1349,7 @@
 	}
 	#overlay_message_box > div {
 		margin-top: 64px;
-		width: 400px;
+		width: 460px;
 		margin-left: auto;
 		margin-right: auto;
 	}
@@ -1319,9 +1357,72 @@
 		margin-bottom: 20px;
 	}
 	#overlay_message_box h3 i {
-		vertical-align: sub;
-		margin: 8px;
+		vertical-align: bottom;
+		margin: 3px 10px;
 		font-size: 1.2em;
+	}
+	#keybind_record_key_list {
+		width: 100%;
+		padding: 6px;
+		height: 38px;
+		background-color: var(--color-back);
+		border: 1px solid var(--color-border);
+		overflow: hidden;
+		white-space: nowrap;
+		pointer-events: none;
+		border-radius: 6px;
+		margin-bottom: 12px;
+	}
+
+	.mouse_gesture_keybind_menu {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		border: 2px solid var(--color-border);
+		width: 220px;
+		padding: 12px;
+		border-radius: 6px;
+		position: relative;
+		left: -240px;
+		bottom: 130px;
+	}
+	.mouse_gesture_keybind_menu:hover {
+		background-color: var(--color-back);
+		border-color: transparent;
+	}
+	.mouse_gesture_keybind_menu > h3 {
+		flex-basis: 100%;
+		margin: 4px 0 6px 0;
+	}
+	.mouse_gesture_keybind_menu > div {
+		flex-basis: 80px;
+		flex-grow: 1;
+		display: none;
+	}
+	.mouse_gesture_keybind_menu:hover > div {
+		display: block;
+	}
+	.mouse_gesture_keybind_menu label {
+		margin-bottom: 4px;
+		display: block;
+		color: var(--color-subtle_text);
+	}
+	.mouse_gesture_option {
+		cursor: pointer;
+		border-radius: 5px;
+		width: 64px;
+		height: 58px;
+		margin: auto;
+		padding-top: 14px;
+	}
+	.mouse_gesture_option:hover {
+		background-color: var(--color-accent);
+		color: var(--color-accent_text);
+	}
+	.mouse_gesture_option > .icon {
+		font-size: 30px;
+		max-width: unset;
+		pointer-events: none;
 	}
 
 /*Plugin Menu*/
@@ -1698,6 +1799,7 @@
 	}
 	#plugin_browser_changelog > li {
 		padding: 7px 8px;
+		user-select: text;
 	}
 	#plugin_browser_changelog h3 {
 		margin-bottom: 2px;
@@ -2013,6 +2115,8 @@
 		opacity: 0.32;
 		top: 4px;
 		left: 49px;
+		padding-left: 8px;
+		padding-top: 6px;
 	}
 
 /* Quit */
@@ -2066,6 +2170,7 @@
 		flex-grow: 1;
 		flex-shrink: 1;
 		padding-top: 3px;
+		user-select: text;
 	}
 	li.validator_dialog_problem .tool {
 		flex-shrink: 0;
@@ -2339,6 +2444,11 @@
 	dialog .slider_input_combo {
 		clear: both;
 	}
+	.form_label_compact {
+		display: block;
+		margin-bottom: -3px;
+		font-size: 0.94em;
+	}
 	.bar.button_bar_checkbox {
 		position: absolute;
 		bottom: 14px;
@@ -2572,6 +2682,10 @@
 		padding-top: 2px;
 		color: var(--color-subtle_text);
 		user-select: text;
+	}
+/* Export Collision */
+	dialog#generate_bedrock_collision_box textarea.code {
+		color: #a2ebff;
 	}
 
 /* Predicate Overrides */

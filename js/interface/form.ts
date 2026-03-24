@@ -28,6 +28,7 @@ export enum FormInputType {
 	Folder = 'folder',
 	Save = 'save',
 	InlineSelect = 'inline_select',
+	MultiSelect = 'multi_select',
 	InlineMultiSelect = 'inline_multi_select',
 	Info = 'info',
 	NumSlider = 'num_slider',
@@ -45,9 +46,9 @@ export interface FormElementOptions {
 	 */
 	type?: FormInputType | `${FormInputType}`
 	/**
-	 * Visual style of the input. Checkbox inputs support 'checkbox' or 'toggle_switch'
+	 * Visual style of the input. Checkbox inputs support 'checkbox' or 'toggle_switch'. Textarea supports 'code'
 	 */
-	style?: 'checkbox' | 'toggle_switch'
+	style?: 'checkbox' | 'toggle_switch' | 'code'
 	/**
 	 * Stretch the input field across the whole width of the form
 	 */
@@ -134,6 +135,12 @@ export interface FormElementOptions {
 	 * Lock the ratio of a vector
 	 */
 	linked_ratio?: boolean
+	/**
+	 * Extra actions that display as icon buttons next to the input
+	 */
+	extra_actions?: {
+		icon: string, name: string, click: (event: Event) => void
+	}[]
 	/**
 	 * Set the return type of files on file inputs
 	 */
@@ -309,6 +316,7 @@ export class FormElement extends EventSystem {
 		if (this.options.full_width) {
 			bar.classList.add('full_width_dialog_bar');
 		}
+		bar.setAttribute('form_type', this.options.type);
 		if (this.options.description) {
 			bar.setAttribute('title', tl(this.options.description));
 		}
@@ -354,6 +362,51 @@ export class FormElement extends EventSystem {
 				this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
 			});
 			this.input_toggle = toggle;
+		}
+	}
+	addShareButtons(bar: HTMLElement) {
+		let text = this.options.value?.toString() ?? '';
+		let is_url = text.startsWith('https://');
+		// @ts-ignore
+		let input: HTMLElement = this.input ?? this.textarea;
+
+		let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
+		copy_button.addEventListener('click', e => {
+			let text = this.getValue();
+			let is_url = text.startsWith('https://');
+			if (isApp || navigator.clipboard) {
+				Clipbench.setText(text);
+				Blockbench.showQuickMessage('dialog.copied_to_clipboard');
+				input.focus();
+				document.execCommand('selectAll');
+
+			} else if (is_url) {
+				Blockbench.showMessageBox({
+					title: 'dialog.share_model.title',
+					message: `[${text}](${text})`,
+				})
+			}
+		});
+		bar.append(copy_button);
+
+		if (is_url) {
+			let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
+			open_button.addEventListener('click', e => {
+				let text = this.getValue();
+				Blockbench.openLink(text);
+			});
+			bar.append(open_button);
+		}
+		if (navigator.share) {
+			let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
+			share_button.addEventListener('click', e => {
+				let text = this.getValue();
+				navigator.share({
+					title: this.options.label ? tl(this.options.label) : 'Share',
+					[is_url ? 'url' : 'text']: text
+				});
+			});
+			bar.append(share_button);
 		}
 	}
 
@@ -494,44 +547,8 @@ FormElement.types.text = class FormElementText extends FormElement {
 				password_toggle.firstElementChild.className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 			})
 		}
-		if (this.options.share_text && this.options.value) {
-			let text = this.options.value.toString();
-			let is_url = text.startsWith('https://');
-
-			let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
-			copy_button.addEventListener('click', e => {
-				if (isApp || navigator.clipboard) {
-					Clipbench.setText(text);
-					Blockbench.showQuickMessage('dialog.copied_to_clipboard');
-					input_element.focus();
-					document.execCommand('selectAll');
-
-				} else if (is_url) {
-					Blockbench.showMessageBox({
-						title: 'dialog.share_model.title',
-						message: `[${text}](${text})`,
-					})
-				}
-			});
-			bar.append(copy_button);
-
-			if (is_url) {
-				let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
-				open_button.addEventListener('click', e => {
-					Blockbench.openLink(text);
-				});
-				bar.append(open_button);
-			}
-			if (navigator.share) {
-				let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
-				share_button.addEventListener('click', e => {
-					navigator.share({
-						title: this.options.label ? tl(this.options.label) : 'Share',
-						[is_url ? 'url' : 'text']: text
-					});
-				});
-				bar.append(share_button);
-			}
+		if (this.options.share_text) {
+			this.addShareButtons(bar);
 		}
 	}
 	getValue(): string {
@@ -559,7 +576,13 @@ FormElement.types.textarea = class FormElementTextarea extends FormElement {
 			}
 		});
 		this.textarea.style.height = (this.options.height || 150) + 'px';
+		if (this.options.style == 'code') this.textarea.classList.add('code');
 		bar.append(this.textarea);
+		if (this.options.share_text) {
+			let form_overlay_tools = Interface.createElement('div', {class: 'form_overlay_tools'});
+			bar.append(form_overlay_tools);
+			this.addShareButtons(form_overlay_tools);
+		}
 	}
 	getValue() {
 		return this.textarea.value;
@@ -657,6 +680,72 @@ FormElement.types.inline_select = class FormElementInlineSelect extends FormElem
 		return Object.keys(this.options.options)[0] ?? '';
 	}
 };
+FormElement.types.multi_select = class FormElementMultiSelect extends FormElement {
+	value: string[]
+	ul: HTMLUListElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let val = this.options.value || this.options.default;
+		this.value = [];
+		if (val instanceof Array) {
+			this.value.push(...val);
+		}
+		this.ul = Interface.createElement('ul', {class: 'form_multi_select'});
+		bar.append(this.ul)
+		this.ul.addEventListener('click', event => {
+			let options = [];
+			for (let key in this.options.options) {
+				let text = this.options.options[key];
+				if (typeof text != 'string') text = text.name;
+				let value = this.value.includes(key);
+				options.push({
+					id: key,
+					name: text,
+					icon: () => value,
+					click: () => {
+						value = !value;
+						value ? this.value.safePush(key) : this.value.remove(key);
+						this.updateUI();
+						this.change();
+					}
+				})
+			}
+			new Menu('multi_select', options, {keep_open: true}).open(this.ul);
+		})
+		this.updateUI();
+	}
+	updateUI() {
+		this.ul.innerHTML = '';
+		for (let key in this.options.options) {
+			if (this.value.includes(key) == false) continue;
+			let text = this.options.options[key];
+			if (typeof text != 'string') text = text.name;
+			let remove_button = Blockbench.getIconNode('clear');
+			this.ul.append(Interface.createElement('li', {}, [
+				text,
+				remove_button
+			]));
+			remove_button.addEventListener('click', event => {
+				event.stopPropagation();
+				this.value.remove(key);
+				this.updateUI();
+				this.change();
+			})
+		}
+		let add = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('add'));
+		this.ul.append(add);
+	}
+	getValue(): string[] {
+		return this.value;
+	}
+	setValue(value: string[]) {
+		this.value.replace(value);
+		this.updateUI();
+	}
+	getDefault(): string[] {
+		return [];
+	}
+};
 FormElement.types.inline_multi_select = class FormElementInlineMultiSelect extends FormElement {
 	value: Record<string, boolean>
 	build(bar: HTMLDivElement) {
@@ -736,11 +825,12 @@ FormElement.types.buttons = class FormElementButtons extends FormElement {
 		return true;
 	}
 	build(bar: HTMLDivElement) {
+		super.build(bar);
 		this.bar = bar;
 		let list = document.createElement('div');
 		list.className = 'dialog_form_buttons';
 		this.options.buttons.forEach((button_text, index) => {
-			let button = document.createElement('a');
+			let button = document.createElement('button');
 			button.innerText = tl(button_text);
 			button.addEventListener('click', e => {
 				this.options.click(index);
@@ -817,6 +907,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			let numeric_input = new Interface.CustomElements.NumericInput(this.id + '_' + i, {
 				value: this.options.value ? this.options.value[i] : 0,
 				min: this.options.min, max: this.options.max, step: this.options.step,
+				readonly: this.options.readonly,
 				onChange() {
 					if (scope.linked_ratio) {
 						updateInputs(numeric_input);
@@ -846,6 +937,16 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			})
 			updateState();
 			group.append(linked_ratio_toggle)
+		}
+		for (let action of this.options.extra_actions ?? []) {
+			let icon = Blockbench.getIconNode(action.icon);
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
+			extra_action.addEventListener('click', event => {
+				if (action.click) {
+					action.click(event);
+				}
+			})
+			group.append(extra_action);
 		}
 	}
 	getValue(): number[] {
@@ -1032,5 +1133,12 @@ FormElement.types.file = FormElementFile;
 FormElement.types.folder = FormElementFile;
 FormElement.types.save = FormElementFile;
 
-
-Object.assign(window, {InputForm, FormElement});
+const global = {InputForm, FormElement};
+declare global {
+	const InputForm: typeof global.InputForm
+	type InputForm = import('./form').InputForm
+	const FormElement: typeof global.FormElement
+	type FormElement = import('./form').FormElement
+	type FormElementOptions = import('./form').FormElementOptions
+}
+Object.assign(window, global);

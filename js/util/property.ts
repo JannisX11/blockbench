@@ -245,4 +245,11 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 	}
 }
 
-Object.assign(window, {Property});
+const global = {
+	Property
+}
+declare global {
+	const Property: typeof global.Property
+	type Property = import('./property').Property<any>
+}
+Object.assign(window, global);

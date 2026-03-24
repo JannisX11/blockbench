@@ -1,6 +1,6 @@
 {
 	"name": "blockbench-types",
-	"version": "5.0.5",
+	"version": "5.1.0",
 	"description": "Blockbench typescript types",
 	"main": "",
 	"types": "./index.d.ts",
@@ -12,6 +12,10 @@
 	"bugs": {
 		"url": "https://github.com/JannisX11/blockbench/issues"
 	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/JannisX11/blockbench"
+	},
 	"homepage": "https://blockbench.net",
 	"dependencies": {
 		"@babel/types": "^7.20.7",
@@ -21,7 +25,7 @@
 		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.0.1",
-		"electron": "^33.3.1",
+		"electron": "^40.8.0",
 		"prismjs": "^1.29.0",
 		"tinycolor2": "^1.6.0",
 		"typescript": "^5.8.3",

@@ -5,36 +5,30 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to the new Blockbench!", "type": "h3"},
-			{"text": "Blockbench 5.0 - The Element Update!", "type": "h1"},
-			{"text": "Get ready for brand new elements, a new design, and over 100 new features and changes!"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.0.0)!"}
+			{"text": "Blockbench 5.1 - The Workflow Update!", "type": "h1"},
+			{"text": "Take your workflow to the next level."},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.1.0) - or watch the [update video](https://youtu.be/OH82WjNwriE)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/armatures.png",
-				"title": "Armatures",
-				"text": "Animate your models with armatures!\n\nInstead of rigid object hierarchy rigs you can now create skeletal rigs that can bend your model and use weight painting to fine-tune how it moves!"
+				"image": "https://web.blockbench.net/content/mirror_animating.png",
+				"title": "Mirror Animating",
+				"text": "With this new feature, you can just animate one side of your model, and all changes will be mirrored to the other side - in real time and with phase offset support!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/splines_and_billboards.png",
-				"title": "Splines & Billboards",
-				"text": "Two brand new types of elements:\n\nSplines make it easy to create shapes that follow a path such as tubes or cables.\n\nBillboards let you add sprites into your scene that always face the camera!"
+				"image": "https://web.blockbench.net/content/bounding_boxes.png",
+				"title": "Bounding Boxes",
+				"text": "Bounding Boxes make it easier than ever to configure hitboxes and collisions for your model!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/redesign.png",
-				"title": "New Design",
-				"text": "Blockbench's design has been refreshed with new colors, rounded corners, shadows, and a new font."
+				"image": "https://web.blockbench.net/content/pen_tablet.png",
+				"title": "Improved Pen Tablet Support",
+				"text": "Take your texturing to the next level with your pen tablet, pressure and tilt sensitivity included!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/element_panel.png",
-				"title": "Element Panel",
-				"text": "The Element Panel lets you see and edit element properties in one place!\n\nAlso, this update introduces panel tabs!"
-			},
-			{
-				"image": "https://web.blockbench.net/content/expression_editor.png",
-				"title": "Expression Editor",
-				"text": "The expression editor offers more space and tools to edit complex Molang expressions for your animations!"
+				"image": "https://web.blockbench.net/content/image_formats.png",
+				"title": "Image Formats",
+				"text": "In addition to PNG, JPEG, TGA, and WebP are now natively supported as texture formats!"
 			}
 		]
 	}

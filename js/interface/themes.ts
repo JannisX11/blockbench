@@ -923,10 +923,12 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	BarItems.import_theme.toElement('#layout_title_bar')
-	BarItems.export_theme.toElement('#layout_title_bar')
 })
-
-Object.assign(window, {
+const global = {
 	CustomTheme,
-});
+};
+declare global {
+	const CustomTheme: typeof global.CustomTheme
+	type CustomTheme = import('./themes').CustomTheme
+}
+Object.assign(window, global);

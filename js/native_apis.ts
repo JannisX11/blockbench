@@ -2,7 +2,7 @@ import { BBPlugin } from "./plugin_loader";
 import { createScopedFS } from "./util/scoped_fs";
 
 const electron: typeof import("@electron/remote") = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
+const {shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
 const app = electron.app;
 const fs: typeof import("node:fs") = require('node:fs');
 const NodeBuffer: typeof import("node:buffer") = require('buffer');
@@ -13,6 +13,7 @@ const PathModule: typeof import("node:path") = require('path');
 const os: typeof import("node:os") = require('os');
 const currentwindow = electron.getCurrentWindow();
 const dialog = electron.dialog;
+const clipboard = electron.clipboard;
 
 /** @internal */
 export {
@@ -54,6 +55,7 @@ const REQUESTABLE_APIS = [
 	'v8',
 	'dialog',
 	'clipboard',
+	'shell',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',
@@ -64,6 +66,7 @@ const API_DESCRIPTIONS = {
 	https: 'create servers and talk to other servers',
 	dialog: 'open native dialogs',
 	clipboard: 'read and write to the clipboard',
+	shell: 'open files, folders, and links, and move objects to trash',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -184,6 +187,8 @@ function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTo
 		return process;
 	} else if (no_namespace_name == 'clipboard') {
 		return clipboard;
+	} else if (no_namespace_name == 'shell') {
+		return shell;
 	} else if (no_namespace_name == 'dialog') {
 		let api = {};
 		for (let key in dialog) {
@@ -207,12 +212,21 @@ export function getPluginScopedRequire(plugin: PluginOrDevTools) {
 const originalRequire = window.require;
 delete window.require;
 
+/**
+ * Revoke the permissions of a plugin
+ * @param plugin 
+ * @returns List of revoked permissions
+ * @private
+ */
 export function revokePluginPermissions(plugin: PluginOrDevTools): string[] {
 	let permissions = Object.keys(PluginSettings[plugin.id]?.allowed ?? {});
 	delete PluginSettings[plugin.id];
 	savePluginSettings();
 	return permissions;
 }
+/**
+ * @private
+ */
 export function getPluginPermissions(plugin: PluginOrDevTools) {
 	let data = PluginSettings[plugin.id]?.allowed;
 	if (data) return parse(stringify(data)) as Record<string, (boolean | any)>;
@@ -274,14 +288,14 @@ export function openDevTools() {
 	currentwindow.webContents.openDevTools();
 }
 
-Object.assign(window, {
+
+const global = {
 	openDevTools,
 	SystemInfo,
 	Buffer,
-});
-
-/**
- * TODO:
- * - Ensure it still works in the web app
- */
-
+};
+declare global {
+	const openDevTools: typeof global.openDevTools
+	const SystemInfo: typeof global.SystemInfo
+}
+Object.assign(window, global);

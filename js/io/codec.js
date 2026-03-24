@@ -26,6 +26,7 @@ export class Codec extends EventSystem {
 		Merge.boolean(this, data, 'remember');
 		Merge.boolean(this, data, 'multiple_per_file');
 		Merge.boolean(this, data, 'support_partial_export');
+		Merge.boolean(this, data, 'support_offset');
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
@@ -51,6 +52,7 @@ export class Codec extends EventSystem {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
+			Project.export_codec = this.id;
 		}
 
 		this.parse(model, file.path, args)
@@ -109,10 +111,11 @@ export class Codec extends EventSystem {
 			}).show();
 		})
 	}
-	async export() {
+	async export(options) {
 		if (Object.keys(this.export_options).length) {
 			let result = await this.promptExportOptions();
-			if (result === null) return;
+			if (options === null) return;
+			if (result) options = Object.assign({...options}, result);
 		}
 		Blockbench.export({
 			resource_id: 'model',
@@ -120,7 +123,7 @@ export class Codec extends EventSystem {
 			extensions: [this.extension],
 			name: this.fileName(),
 			startpath: this.startPath(),
-			content: this.compile(),
+			content: this.compile(options),
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
 	}
@@ -159,6 +162,7 @@ export class Codec extends EventSystem {
 	async writeCollection(collection) {
 		this.patchCollectionExport(collection, async () => {
 			this.write(this.compile(), collection.export_path);
+			collection.saved = true;
 		})
 	}
 	fileName() {
@@ -193,13 +197,14 @@ export class Codec extends EventSystem {
 		var name = pathToName(path, true)
 		if (this.context instanceof Collection) {
 			this.context.export_path = path;
-			this.context.codec = this.id;
+			this.context.export_codec = this.id;
 
 		} else if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
 				Project.save_path = path;
 			} else {
 				Project.export_path = path;
+				Project.export_codec = this.id;
 			}
 			Project.name = pathToName(path, false);
 			Project.saved = true;
@@ -223,9 +228,13 @@ export class Codec extends EventSystem {
 }
 Codec.getAllExtensions = function() {
 	let extensions = [];
-	for (var id in Codecs) {
-		if (Codecs[id].load_filter && Codecs[id].load_filter.extensions) {
-			extensions.safePush(...Codecs[id].load_filter.extensions);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.extensions) {
+			let list = typeof codec.load_filter.extensions == 'function'
+				? codec.load_filter.extensions()
+				: codec.load_filter.extensions ?? [];
+			extensions.safePush(...list);
 		}
 	}
 	return extensions;

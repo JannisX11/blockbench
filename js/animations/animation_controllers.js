@@ -3,6 +3,7 @@ import { openMolangEditor } from './molang_editor';
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from '../native_apis';
 import { Filesystem } from '../file_system';
 import { Easings } from '../lib/easing';
+import { markerColors } from '../marker_colors';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
@@ -474,7 +475,7 @@ export class AnimationControllerState {
 
 		let dialog = new Dialog('blend_transition_edit', {
 			title: 'animation_controllers.state.blend_transition_curve',
-			width: 418,
+			width: 478,
 			keyboard_actions: {
 				copy: {
 					keybind: new Keybind({key: 'c', ctrl: true}),
@@ -590,7 +591,7 @@ export class AnimationControllerState {
 					graph_data: '',
 					zero_line: '',
 					preview_value: 0,
-					width: Math.min(340, window.innerWidth - 42),
+					width: Math.min(400, window.innerWidth - 42),
 					height: 220,
 					scale_y: 220
 				}},
@@ -1167,7 +1168,7 @@ export class AnimationController extends AnimationItem {
 		if (undo) {
 			Undo.finishEdit('Remove animation controller', {animation_controllers: []})
 
-			if (isApp && remove_from_file && this.path && fs.existsSync(this.path)) {
+			if (isApp && remove_from_file && AnimationCodec.getCodec(this)?.deleteAnimationFromFile && this.path && fs.existsSync(this.path)) {
 				Blockbench.showMessageBox({
 					translateKey: 'delete_animation',
 					icon: 'movie',
@@ -1176,13 +1177,7 @@ export class AnimationController extends AnimationItem {
 					cancel: 1,
 				}, (result) => {
 					if (result == 0) {
-						let content = fs.readFileSync(this.path, 'utf-8');
-						let json = autoParseJSON(content, false);
-						if (json && json.animation_controllers && json.animation_controllers[this.name]) {
-							delete json.animation_controllers[this.name];
-							Blockbench.writeFile(this.path, {content: compileJSON(json)});
-							Undo.history.last().before.animation_controllers[this.uuid].saved = false
-						}
+						AnimationCodec.getCodec(this).deleteAnimationFromFile(this);
 					}
 				})
 			}
@@ -1290,7 +1285,7 @@ export class AnimationController extends AnimationItem {
 					Undo.initEdit({animation_controllers: [controller]})
 					let anim_index = AnimationController.all.indexOf(controller);
 					controller.remove(false, false);
-					let [new_ac] = Animator.loadFile(file, [controller.name]);
+					let [new_ac] = AnimationCodec.codecs.bedrock_animation_controller.loadFile(file, [controller.name]);
 					AnimationController.all.remove(new_ac);
 					AnimationController.all.splice(anim_index, 0, new_ac);
 					new_ac.select();
@@ -1649,7 +1644,7 @@ Interface.definePanels(() => {
 					return state ? state.name : '';
 				},
 				onMouseWheel(event) {
-					if (event.ctrlOrCmd) {
+					if (Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 						let delta = (event.deltaY < 0) ? 0.1 : -0.1;
 						this.zoom = Math.clamp(this.zoom + delta, 0.3, 1);
 						this.updateConnectionWrapperOffset();

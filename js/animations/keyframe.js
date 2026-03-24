@@ -1,4 +1,4 @@
-import { flipNameOnAxis } from "../modeling/transform";
+import { markerColors } from "../marker_colors";
 import { clipboard } from "../native_apis";
 import { invertMolang } from "../util/molang";
 import { openMolangEditor } from "./molang_editor";
@@ -53,7 +53,8 @@ export class Keyframe {
 	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
-		this.channel == 'rotation'
+		this.time = 0;
+		this.channel = 'rotation'
 		this.selected = false;
 		this.has_expressions = false;
 		this.display_value = 0;
@@ -269,16 +270,30 @@ export class Keyframe {
 		})
 		return arr;
 	}
-	getFixed(data_point = 0, do_quaternion = true) {
+	getFixed(data_point = 0, return_quaternion = true) {
 		if (this.channel === 'rotation') {
+			
 			let fix = this.animator.group.mesh.fix_rotation;
-			let euler = new THREE.Euler(
-				(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
-				(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
-				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
-				Format.euler_order
-			)
-			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			let use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+			if (use_quaternions) {
+				let euler = new THREE.Euler(
+					Math.degToRad(this.calc('x', data_point)),
+					Math.degToRad(this.calc('y', data_point)),
+					Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				);
+				let quat = new THREE.Quaternion().setFromEuler(fix);
+				quat.multiply(Reusable.quat2.setFromEuler(euler));
+				return return_quaternion ? quat : euler.setFromQuaternion(quat);
+			} else {
+				let euler = new THREE.Euler(
+					(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
+					(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
+					(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				)
+				return return_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			}
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(
@@ -573,6 +588,7 @@ export class Keyframe {
 		'resolve_keyframe_expressions',
 		'reset_keyframe_handles',
 		'reset_keyframe',
+		'round_keyframe_values',
 		new MenuSeparator('copypaste'),
 		'copy',
 		'save_animation_preset',
@@ -876,7 +892,7 @@ BARS.defineActions(function() {
 		Undo.finishEdit('Move keyframe graph');
 	}
 	new Action('move_graph_keyframes_up', {
-		icon: 'arrow_back',
+		icon: 'arrow_warm_up',
 		category: 'transform',
 		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
 		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
@@ -886,7 +902,7 @@ BARS.defineActions(function() {
 		}
 	})
 	new Action('move_graph_keyframes_down', {
-		icon: 'arrow_forward',
+		icon: 'arrow_cool_down',
 		category: 'transform',
 		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
 		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
@@ -1089,6 +1105,32 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+	new Action('round_keyframe_values', {
+		icon: 'percent',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length,
+		click: function () {
+			let round = (input) => {
+				if (typeof input == 'number') return Math.round(input);
+				return input.replace(/\d+.\d+/g, (number) => {
+					return Math.round(parseFloat(number));
+				})
+			}
+			let keyframes = Timeline.selected.filter(kf => kf.transform);
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				for (let dp of kf.data_points) {
+					for (let axis of 'xyz') {
+						if (!Condition(KeyframeDataPoint.properties[axis].condition, dp)) continue;
+						dp[axis] = round(dp[axis]);
+					}
+				}
+			})
+			Undo.finishEdit('Round keyframe values')
+			updateKeyframeSelection()
+			Animator.preview()
+		}
+	})
 	new Action('resolve_keyframe_expressions', {
 		icon: 'functions',
 		category: 'animation',
@@ -1146,14 +1188,24 @@ BARS.defineActions(function() {
 		icon: 'add_road',
 		category: 'animation',
 		condition: () => Animator.open,
-		click() {
+		keybind: new Keybind({}, {
+			all_channels: 'shift'
+		}),
+		variations: {
+			all_channels: {
+				name: 'action.keyframe_column_create.all_channels',
+				description: 'action.keyframe_column_create.all_channels.desc'
+			}
+		},
+		click(event) {
+			let all_channels = BarItems.keyframe_column_create.keybind.additionalModifierTriggered(event) == 'all_channels';
 			Timeline.selected.empty();
 			let new_keyframes = [];
 			Undo.initEdit({keyframes: new_keyframes})
 			Timeline.animators.forEach(animator => {
 				if (animator instanceof BoneAnimator == false) return;
 				channels.forEach(channel => {
-					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && (animator[channel].length || all_channels)) {
 						let kf = animator[channel].find(kf => Math.epsilon(kf.time, Timeline.time, 1e-5));
 						if (!kf) {
 							kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
@@ -1190,106 +1242,6 @@ BARS.defineActions(function() {
 			updateKeyframeSelection();
 		}
 	})
-
-	let flip_action = new Action('flip_animation', {
-		icon: 'transfer_within_a_station',
-		category: 'animation',
-		condition: {modes: ['animate'], method: () => Animation.selected},
-		click() {
-
-			if (!Animation.selected) {
-				Blockbench.showQuickMessage('message.no_animation_selected')
-				return;
-			}
-
-			let original_keyframes = (Timeline.selected.length ? Timeline.selected : Timeline.keyframes).slice();
-			if (!original_keyframes.length) return;
-
-			new Dialog({
-				id: 'flip_animation',
-				title: 'action.flip_animation',
-				form: {
-					info: {type: 'info', text: 'dialog.flip_animation.info'},
-					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
-					show_in_timeline: {label: 'dialog.flip_animation.show_in_timeline', type: 'checkbox', value: true},
-				},
-				onConfirm(formResult) {
-					this.hide()
-					
-					let new_keyframes = [];
-					Undo.initEdit({keyframes: new_keyframes});
-					let animators = [];
-					original_keyframes.forEach(kf => animators.safePush(kf.animator));
-					let channels = ['rotation', 'position', 'scale'];
-					let all_animatable_nodes = Group.all.concat(Outliner.elements.filter(el => el.constructor.animator));
-
-					animators.forEach(animator => {
-						let opposite_animator;
-						channels.forEach(channel => {
-							if (!animator[channel]) return;
-							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
-							if (!kfs.length) return;
-							if (!opposite_animator) {
-								let name = flipNameOnAxis({name: animator.name}, 0, null, animator.name);
-								let opposite_bone = all_animatable_nodes.find(g => g.name == name);
-								if (!opposite_bone) {
-									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
-									return;
-								}
-								opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
-							}
-
-							let center_keyframe;
-							if (formResult.offset && !kfs.find(kf => Math.epsilon(kf.time, Timeline.snapTime(Animation.selected.length/2), 0.004))) {
-								center_keyframe = animator.createKeyframe(null, Timeline.snapTime(Animation.selected.length/2), channel, false, false);
-								kfs.push(center_keyframe);
-							}
-							kfs.sort((a, b) => a.time - b.time);
-							let occupied_times = [];
-							kfs.forEach(old_kf => {
-								let time = old_kf.time;
-								if (formResult.offset) {
-									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
-								}
-								time = Timeline.snapTime(time);
-								if (Math.epsilon(time, Animation.selected.length, 0.004) && formResult.offset && !occupied_times.includes(0)) {
-									// Copy keyframe to start
-									occupied_times.push(0);
-									let new_kf = opposite_animator.createKeyframe(old_kf, 0, channel, false, false)
-									if (new_kf) {
-										new_kf.flip(0);
-										new_keyframes.push(new_kf);
-									}
-								}
-								if (occupied_times.includes(time)) return;
-								occupied_times.push(time);
-								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
-								if (new_kf) {
-									new_kf.flip(0);
-									new_keyframes.push(new_kf);
-								}
-							})
-							if (formResult.offset && !occupied_times.includes(0)) {
-								let new_kf = opposite_animator.createKeyframe(new_keyframes.last(), 0, channel, false, false)
-								if (new_kf) {
-									new_keyframes.push(new_kf);
-								}
-							}
-							if (center_keyframe) center_keyframe.remove();
-						})
-						if (formResult.show_in_timeline && opposite_animator) {
-							opposite_animator.addToTimeline();
-						}
-					})
-					updateKeyframeSelection();
-					Animator.preview();
-
-					Undo.finishEdit('Copy and flip keyframes');
-				}
-			}).show()
-		}
-	})
-	MenuBar.addAction(flip_action, 'animation')
 })
 
 Interface.definePanels(function() {
@@ -1406,7 +1358,7 @@ Interface.definePanels(function() {
 							let val = Math.round((clientX - e1.clientX) / 40);
 							let difference = (val - last_val);
 							if (difference) {
-								if (Toolbox.selected.id === 'rotate_tool') {
+								if (Keyframe.selected[0]?.channel == 'rotation') {
 									difference *= getRotationInterval(e2);
 								} else {
 									difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);

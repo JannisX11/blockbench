@@ -57,6 +57,9 @@ export class TextureLayer {
 		UVEditor.vue.layer = this;
 		BarItems.layer_opacity.update();
 		BarItems.layer_blend_mode.set(this.blend_mode);
+		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
+			BarItems.selection_tool.select();
+		}
 	}
 	clickSelect(event) {
 		Undo.initSelection();
@@ -364,7 +367,7 @@ new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
 new Property(TextureLayer, 'boolean', 'visible', {default: true});
-new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'darken', 'lighten', 'screen', 'overlay', 'difference']});
+new Property(TextureLayer, 'enum', 'blend_mode', {default: 'default', values: ['default', 'set_opacity', 'color', 'multiply', 'add', 'darken', 'lighten', 'screen', 'overlay', 'difference', 'alpha_mask']});
 new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
@@ -438,10 +441,12 @@ BARS.defineActions(() => {
 	new Action('create_empty_layer', {
 		icon: 'new_window',
 		category: 'layers',
-		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled,
+		condition: () => Modes.paint && Texture.all[0],
 		click() {
+			if (!Texture.selected) Texture.all[0].select();
 			let texture = Texture.selected;
 			Undo.initEdit({textures: [texture], bitmap: true});
+			if (!texture.layers_enabled) texture.activateLayers(false);
 			let layer = new TextureLayer({
 				name: `layer #${texture.layers.length+1}`
 			}, texture);
@@ -454,8 +459,12 @@ BARS.defineActions(() => {
 	new Action('import_layer', {
 		icon: 'add_photo_alternate',
 		category: 'layers',
-		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled,
+		condition: () => Modes.paint && Texture.all[0],
 		click() {
+			if (!Texture.selected) Texture.all[0].select();
+			let texture = Texture.selected;
+			if (!texture.layers_enabled) texture.activateLayers(true);
+
 			let start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
@@ -468,11 +477,16 @@ BARS.defineActions(() => {
 				arr.push('textures')
 				start_path = arr.join(osfs)
 			}
+			let extensions = [];
+			for (let key in Texture.file_formats) {
+				if (Texture.file_formats[key].decode) continue; // Custom decode function means they are not supported by HTML images
+				extensions.safePush(...Texture.file_formats[key].extensions);
+			}
 			Blockbench.import({
 				resource_id: 'texture',
 				readtype: 'image',
-				type: 'PNG Texture',
-				extensions: ['png'],
+				type: 'Image File',
+				extensions,
 				multiple: true,
 				startpath: start_path
 			}, async (files) => {
@@ -509,12 +523,12 @@ BARS.defineActions(() => {
 	new Action('enable_texture_layers', {
 		icon: 'library_add_check',
 		category: 'layers',
-		condition: () => Texture.selected && !Texture.selected.layers_enabled,
+		condition: () => Texture.getDefault()?.layers_enabled == false,
 		click() {
 			if (!Modes.paint) {
 				Modes.options.paint.select();
 			}
-			let texture = Texture.selected;
+			let texture = Texture.getDefault();
 			texture.activateLayers(true);
 		}
 	})
@@ -664,8 +678,10 @@ Interface.definePanels(function() {
 		icon: 'layers',
 		growable: true,
 		resizable: true,
-		condition: () => Modes.paint && ((Texture.selected && Texture.selected.layers_enabled) || Format.image_editor),
+		condition: () => Modes.paint,
 		default_position: {
+			attached_to: 'textures',
+			attached_index: 1,
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 300],
@@ -802,6 +818,14 @@ Interface.definePanels(function() {
 
 					addEventListeners(document, 'mousemove touchmove', move, {passive: false});
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
+				},
+				activateLayers() {
+					let texture = Texture.selected || Texture.getDefault();
+					if (!texture) return;
+					if (!texture.selected) texture.select();
+					if (!texture.layers_enabled) {
+						BarItems.enable_texture_layers.trigger();
+					}
 				}
 			},
 			template: `
@@ -833,6 +857,9 @@ Interface.definePanels(function() {
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>
 					</li>
+					<div v-if="layers.length == 0" class="activate_layers_button" @click="activateLayers()">
+						<span>${tl('action.enable_texture_layers')}</span>
+					</div>
 				</ul>
 			`
 		},

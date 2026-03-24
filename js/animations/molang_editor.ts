@@ -1,4 +1,4 @@
-import { MolangAutocomplete } from "./molang";
+import { MolangAutocomplete } from "../../types/custom/molang";
 
 interface MolangEditorOptions {
 	autocomplete_context: MolangAutocomplete.Context

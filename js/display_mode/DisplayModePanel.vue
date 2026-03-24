@@ -22,6 +22,11 @@
 			<input class="hidden" type="radio" name="display" id="fixed">
 			<label class="tool" for="fixed" onclick="DisplayMode.loadFixed()"><div class="tooltip">{{ tl('display.slot.frame') }}</div><i class="material-icons">filter_frames</i></label>
 			
+			<template v-if="isBedrockStyle()">
+				<input class="hidden" type="radio" name="display" id="embedded">
+				<label class="tool" for="embedded" onclick="DisplayMode.loadEmbedded()"><div class="tooltip">{{ tl('display.slot.embedded') }}</div><i class="material-icons">potted_plant</i></label>
+			</template>
+
 			<template v-if="!isBedrockStyle()">
 				<input class="hidden" type="radio" name="display" id="on_shelf">
 				<label class="tool" for="on_shelf" onclick="DisplayMode.loadShelf()"><div class="tooltip">{{ tl('display.slot.on_shelf') }}</div><i class="material-icons">table_view</i></label>
@@ -93,6 +98,15 @@
 				</div>
 			</template>
 			
+			<template v-if="slot.slot_id == 'ground'">
+				<div class="bar display_slot_section_bar">
+					<p class="panel_toolbar_label">{{ tl('display.animate_preview') }}</p>
+				</div>
+				<div class="bar slider_input_combo">
+					<input type="checkbox" v-model.number="animate_preview" >
+				</div>
+			</template>
+			
 			<template v-if="isBedrockStyle()">
 				<div class="bar display_slot_section_bar">
 					<p class="panel_toolbar_label">{{ tl('display.rotation_pivot') }}</p>
@@ -140,12 +154,16 @@ export default {
 		reference_model: 'player',
 		pose_angle: 0,
 		slot: new DisplaySlot(''),
-		allow_mirroring: Settings.get('allow_display_slot_mirror')
+		allow_mirroring: Settings.get('allow_display_slot_mirror'),
+		animate_preview: DisplayMode.animate_preview
 	}},
 	watch: {
 		pose_angle(value) {
 			displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value;
 			if (displayReferenceObjects.active.updateBasePosition) displayReferenceObjects.active.updateBasePosition();
+		},
+		animate_preview(value) {
+			DisplayMode.animate_preview = value;
 		}
 	},
 	methods: {

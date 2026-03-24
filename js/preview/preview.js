@@ -5,14 +5,13 @@ import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
 import { Pressing } from '../misc';
+import { PointerTarget } from '../interface/pointer_target';
 
 window.scene = null;
 window.main_preview = null;
 window.MediaPreview = null;
 window.Sun = null;
 window.lights = null;
-window.display_area = null;
-window.display_base = null;
 
 var framespersecond = 0;
 const canvas_scenes = {};
@@ -337,10 +336,12 @@ export class Preview {
 			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
 			frustum: new THREE.Frustum()
 		}
+		this.label = Interface.createElement('label', {class: 'preview_perspective_label'});
+		this.node.append(this.label);
 
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
-		addEventListeners(this.canvas, 'mousedown touchstart', 	event => { this.click(event)}, { passive: false })
+		addEventListeners(this.canvas, 'pointerdown',			event => { this.click(event)}, { passive: false })
 		addEventListeners(this.canvas, 'mousemove touchmove', 	event => {
 			if (!this.static_rclick) return;
 			convertTouchEvent(event);
@@ -349,7 +350,10 @@ export class Preview {
 				this.static_rclick = false;
 			}
 		}, false)
-		addEventListeners(this.canvas, 'mousemove touchmove',	event => { this.mousemove(event)}, false)
+		addEventListeners(this.canvas, 'mousemove touchmove',	event => {
+			if (PointerTarget.active == PointerTarget.types.global_drag_slider) return;
+			this.mousemove(event)
+		}, false)
 		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
 		addEventListeners(this.canvas, 'dblclick', 				event => { if (settings.double_click_switch_tools.value) Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
@@ -362,6 +366,20 @@ export class Preview {
 		if (this.canvas.isConnected && this !== MediaPreview) {
 			this.height = this.node.parentElement.clientHeight;
 			this.width  = this.node.parentElement.clientWidth;
+			if (this.aspect_ratio) {
+				let natural_ratio = this.width/this.height;
+				if (Math.abs(natural_ratio-this.aspect_ratio) > 0.02) {
+					if (natural_ratio < this.aspect_ratio) {
+						this.height = this.width / this.aspect_ratio;
+					} else {
+						this.width = this.height * this.aspect_ratio;
+					}
+				}
+				this.node.classList.add('fixed_ratio');
+			} else {
+				this.node.classList.remove('fixed_ratio');
+			}
+
 		} else if (height && width) {
 			this.height = height;
 			this.width = width;
@@ -673,6 +691,7 @@ export class Preview {
 			if (this.camOrtho.axis != 'z') {
 				this.controls.target.z = this.camOrtho.position.z = this.side_view_target.z;
 			}
+			this.label.textContent = tl(`direction.${angle}`);
 
 		} else {
 
@@ -684,6 +703,7 @@ export class Preview {
 			this.camOrtho.layers.enable(6);
 			this.resize()
 			this.controls.enableRotate = true;
+			this.label.textContent = '';
 		}
 
 		Transformer.update();
@@ -710,6 +730,9 @@ export class Preview {
 			));
 			this.controls.target.add(this.camera.position);
 		}
+		if (this.aspect_ratio != preset.aspect_ratio) {
+			this.aspect_ratio = preset.aspect_ratio;
+		}
 		if (preset.projection !== 'unset') {
 			this.setProjectionMode(preset.projection == 'orthographic')
 		}
@@ -722,7 +745,7 @@ export class Preview {
 				// Only used for display mode and similar presets
 				this.camera.setFocalLength(preset.focal_length);
 			} else {
-				this.setFOV(Settings.get('fov'));
+				this.setFOV(preset.fov ?? Settings.get('fov'));
 			}
 		}
 		this.setLockedAngle(preset.locked_angle)
@@ -830,7 +853,7 @@ export class Preview {
 	}
 	//Controls
 	click(event) {
-		event.preventDefault();
+		//event.preventDefault();
 		$(':focus').blur();
 		if (open_menu) open_menu.hide();
 		unselectInterface(event);
@@ -847,7 +870,7 @@ export class Preview {
 			Transformer.dispatchPointerHover(event);
 		}
 		if (Transformer.hoverAxis !== null) return;
-		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.which === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
+		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.button === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
 		var data = is_canvas_click && this.raycast(event);
 		if (data) {
@@ -1380,10 +1403,13 @@ export class Preview {
 	occupyTransformer(event) {
 		if (this.offscreen || Transformer.dragging) return this;
 
+		let update = Transformer.canvas != this.canvas;
 		Transformer.camera = this.isOrtho ? this.camOrtho : this.camPers
 		Transformer.orbit_controls = this.controls
-		Transformer.setCanvas(this.canvas)
-		main_preview.controls.updateSceneScale()
+		if (update) {
+			Transformer.setCanvas(this.canvas);
+			Preview.selected.controls.updateSceneScale();
+		}
 		if (event && event.type == 'touchstart') {
 			Transformer.simulateMouseDown(event);
 		}
@@ -1455,7 +1481,7 @@ export class Preview {
 		let rect_start = [c.ax, c.ay];
 		let rect_end = [c.bx, c.by];
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
-				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl)
+				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl && !Keybinds.extra.preview_area_select.keybind.meta)
 		let selection_mode = BarItems.selection_mode.value;
 		let spline_selection_mode = BarItems.spline_selection_mode.value;
 
@@ -2123,14 +2149,7 @@ export function initCanvas() {
 	
 	//Objects
 	window.scene = Canvas.scene = new THREE.Scene();
-	display_area = new THREE.Object3D();
-	display_base = new THREE.Object3D();
-
-	display_area.add(display_base)
-
 	scene.name = 'scene'
-	display_base.name = 'display_base'
-	display_area.name = 'display_area'
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
@@ -2221,8 +2240,11 @@ export function animate() {
 		}
 	})
 	framespersecond++;
-	if (Modes.display === true && Canvas.ground_animation === true && !Transformer.hoverAxis) {
+	if (Modes.display === true && Canvas.ground_animation === true && !Transformer.hoverAxis && DisplayMode.animate_preview) {
 		DisplayMode.groundAnimation()
+	}
+	if (TextureAnimator.isPlaying) {
+		TextureAnimator.playAnimationFrame();
 	}
 	Blockbench.dispatchEvent('render_frame');
 }
@@ -2588,8 +2610,6 @@ BARS.defineActions(function() {
 Object.assign(window, {
 	scene,
 	Sun,
-	display_area,
-	display_base,
 	three_grid,
 	gizmo_colors,
 	DefaultCameraPresets,

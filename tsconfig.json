@@ -18,6 +18,7 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "allowJs": true,
+    "allowUmdGlobalAccess": true,
     "rootDir": "js",
 
     "declaration": true,

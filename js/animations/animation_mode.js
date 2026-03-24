@@ -1,9 +1,9 @@
 import MolangParser from "molangjs";
 import Wintersky from 'wintersky';
 import { Mode } from "../modes";
-import { invertMolang } from "../util/molang";
-import { fs } from "../native_apis";
+import { clipboard, fs } from "../native_apis";
 import { openMolangEditor } from "./molang_editor";
+import './mirror_animating'
 
 export const Animator = {
 	get possible_channels() {
@@ -34,7 +34,7 @@ export const Animator = {
 			if (paths.length) {
 				Blockbench.read(paths, {}, files => {
 					files.forEach(file => {
-						Animator.importFile(file, true);
+						AnimationCodec.getCodec()?.importFile(file, true);
 					})
 				})
 			}
@@ -157,6 +157,7 @@ export const Animator = {
 		let keyframe_source = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : null);
 		if (keyframe_source) {
 			let ba = Animation.selected.getBoneAnimator(keyframe_source);
+			if (!ba) return;
 			let channel = target == Group.first_selected ? ba.position : (ba[Toolbox.selected.animation_channel] || ba.position)
 			channel.forEach(kf => {
 				keyframes[Math.round(kf.time / step)] = kf;
@@ -316,13 +317,14 @@ export const Animator = {
 			animations.remove(Animation.selected);
 			animations.push(Animation.selected);
 		}
-		[...Group.all, ...Outliner.elements].forEach(node => {
+		Group.all.concat(Outliner.elements).forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
 			animations.forEach((animation, anim_i) => {
 				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
 					return;
 				}
+				let ba = animation.getBoneAnimator(node);
 				let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
 				if (typeof controller_blend_values[animation.uuid] == 'number') multiplier *= controller_blend_values[animation.uuid];
 				if (anim_i == animations.length - 1) {
@@ -330,7 +332,7 @@ export const Animator = {
 					if (!mesh.pre_rotation) mesh.pre_rotation = new THREE.Euler();
 					mesh.pre_rotation.copy(mesh.rotation);
 				}
-				animation.getBoneAnimator(node).displayFrame(multiplier);
+				ba?.displayFrame(multiplier);
 			})
 		})
 
@@ -448,7 +450,7 @@ export const Animator = {
 		if (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
 			Transformer.updateSelection()
 		}
-		Blockbench.dispatchEvent('display_animation_frame')
+		Blockbench.dispatchEvent('display_animation_frame', {in_loop});
 	},
 	particle_effects: {},
 	loadParticleEmitter(path, content) {
@@ -486,447 +488,34 @@ export const Animator = {
 		return Animator.particle_effects[path];
 	},
 	loadFile(file, animation_filter) {
-		var json = file.json || autoParseJSON(file.content, {file_path: file.path});
-		let path = file.path;
-		let new_animations = [];
-		function multilinify(string) {
-			return typeof string == 'string'
-						? string.replace(/;\s*(?!$)/g, ';\n')
-						: string
-		}
-		if (!json) return new_animations;
-		if (typeof json.animations === 'object') {
-			for (let ani_name in json.animations) {
-				if (animation_filter && !animation_filter.includes(ani_name)) continue;
-				//Animation
-				var a = json.animations[ani_name]
-				var animation = new Animation({
-					name: ani_name,
-					saved_name: ani_name,
-					path,
-					loop: a.loop && (a.loop == 'hold_on_last_frame' ? 'hold' : 'loop'),
-					override: a.override_previous_animation,
-					anim_time_update: multilinify(a.anim_time_update),
-					blend_weight: multilinify(a.blend_weight),
-					start_delay: multilinify(a.start_delay),
-					loop_delay: multilinify(a.loop_delay),
-					length: a.animation_length
-				}).add()
-				//Bones
-				if (a.bones) {
-					let existing_variables = [
-						'query.anim_time',
-						'query.life_time',
-						'query.time_stamp',
-						'query.delta_time',
-						'query.camera_rotation',
-						'query.rotation_to_camera',
-						'query.distance_from_camera',
-						'query.lod_index',
-						'query.camera_distance_range_lerp',
-					];
-					function processPlaceholderVariables(text) {
-						if (typeof text !== 'string') return;
-						text = text.replace(/v\./, 'variable.').replace(/q\./, 'query.').replace(/t\./, 'temp.').replace(/c\./, 'context.').toLowerCase();
-						let matches = text.match(/(query|variable|context|temp)\.\w+(\([^)]*\))?/gi);
-						if (!matches) return;
-						matches.forEach(match => {
-							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
-							if (existing_variables.includes(match)) return;
-							if (panel_vue.text.split('\n').find(line => line.substr(0, match.length) == match)) return;
-
-							let [space, name] = match.split(/\./);
-							if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
-							name = name.replace(/[')]/g, '').replace('(', ':');
-
-							if (name == 'modified_distance_moved') {
-								panel_vue.text += `${match} = time * 8`;
-							} else if (name.match(/is_|has_|can_|blocking/)) {
-								panel_vue.text += `${match} = toggle('${name}')`;
-							} else {
-								panel_vue.text += `${match} = slider('${name}')`;
-							}
-						})
-					}
-					function getKeyframeDataPoints(source, channel) {
-						if (source instanceof Array) {
-							source.forEach(processPlaceholderVariables);
-							let vec = {
-								x: source[0],
-								y: source[1],
-								z: source[2],
-							}
-							if (channel == 'position') {
-								vec.x = invertMolang(vec.x);
-							}
-							if (channel == 'rotation') {
-								vec.x = invertMolang(vec.x);
-								vec.y = invertMolang(vec.y);
-							}
-							return [vec];
-						} else if (['number', 'string'].includes(typeof source)) {
-							processPlaceholderVariables(source);
-							return [{
-								x: source, y: source, z: source
-							}]
-						} else if (typeof source == 'object') {
-							let points = [];
-							if (source.pre) {
-								points.push(getKeyframeDataPoints(source.pre, channel)[0]);
-							}
-							if (source.post && !(source.pre instanceof Array && source.post instanceof Array && source.post.equals(source.pre))) {
-								points.push(getKeyframeDataPoints(source.post, channel)[0]);
-							}
-							return points;
-						}
-					}
-					for (var bone_name in a.bones) {
-						var b = a.bones[bone_name]
-						let lowercase_bone_name = bone_name.toLowerCase();
-						var group = Group.all.find(group => group.name.toLowerCase() == lowercase_bone_name)
-						let uuid = group ? group.uuid : guid();
-
-						var ba = new BoneAnimator(uuid, animation, bone_name);
-						animation.animators[uuid] = ba;
-						//Channels
-						for (var channel in b) {
-							if (!BoneAnimator.prototype.channels[channel]) continue;
-							if (typeof b[channel] === 'string' || typeof b[channel] === 'number' || b[channel] instanceof Array) {
-								ba.addKeyframe({
-									time: 0,
-									channel,
-									uniform: !(b[channel] instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel], channel),
-								})
-							} else if (typeof b[channel] === 'object' && b[channel].post) {
-								ba.addKeyframe({
-									time: 0,
-									channel,
-									interpolation: b[channel].lerp_mode,
-									uniform: !(b[channel].post instanceof Array),
-									data_points: getKeyframeDataPoints(b[channel], channel),
-								});
-							} else if (typeof b[channel] === 'object') {
-								for (var timestamp in b[channel]) {
-									ba.addKeyframe({
-										time: parseFloat(timestamp),
-										channel,
-										interpolation: b[channel][timestamp].lerp_mode,
-										uniform: !(b[channel][timestamp] instanceof Array),
-										data_points: getKeyframeDataPoints(b[channel][timestamp], channel),
-									});
-								}
-							}
-							// Set step interpolation
-							let sorted_keyframes = ba[channel].slice().sort((a, b) => a.time - b.time);
-							let last_kf_was_step = false;
-							sorted_keyframes.forEach((kf, i) => {
-								let next = sorted_keyframes[i+1];
-								if (next && next.data_points.length == 2 && kf.getArray(1).equals(next.getArray(0))) {
-									next.data_points.splice(0, 1);
-									kf.interpolation = 'step';
-									last_kf_was_step = true;
-								} else if (!next && last_kf_was_step) {
-									kf.interpolation = 'step';
-								}
-							})
-						}
-						if (b.relative_to && b.relative_to.rotation == 'entity') {
-							ba.rotation_global = true;
-						}
-					}
-				}
-				if (a.sound_effects) {
-					if (!animation.animators.effects) {
-						animation.animators.effects = new EffectAnimator(animation);
-					}
-					for (var timestamp in a.sound_effects) {
-						var sounds = a.sound_effects[timestamp];
-						if (sounds instanceof Array === false) sounds = [sounds];
-						animation.animators.effects.addKeyframe({
-							channel: 'sound',
-							time: parseFloat(timestamp),
-							data_points: sounds
-						})
-					}
-				}
-				if (a.particle_effects) {
-					if (!animation.animators.effects) {
-						animation.animators.effects = new EffectAnimator(animation);
-					}
-					for (var timestamp in a.particle_effects) {
-						var particles = a.particle_effects[timestamp];
-						if (particles instanceof Array === false) particles = [particles];
-						particles.forEach(particle => {
-							if (particle) particle.script = particle.pre_effect_script;
-						})
-						animation.animators.effects.addKeyframe({
-							channel: 'particle',
-							time: parseFloat(timestamp),
-							data_points: particles
-						})
-					}
-				}
-				if (a.timeline) {
-					if (!animation.animators.effects) {
-						animation.animators.effects = new EffectAnimator(animation);
-					}
-					for (var timestamp in a.timeline) {
-						var entry = a.timeline[timestamp];
-						var script = entry instanceof Array ? entry.join('\n') : entry;
-						
-						if (typeof script == 'string') {
-							let panel_vue = Interface.Panels.variable_placeholders.inside_vue;
-							let tex_variables = script.match(/(v|variable)\.texture\w*\s*=/);
-							if (tex_variables && !panel_vue.text.includes('preview.texture =')) {
-								if (panel_vue.text != '' && panel_vue.text.substr(-1) !== '\n') panel_vue.text += '\n';
-								panel_vue.text += `preview.texture = ${tex_variables[0].replace(/\s*=$/, '')}`
-							}
-						}
-						animation.animators.effects.addKeyframe({
-							channel: 'timeline',
-							time: parseFloat(timestamp),
-							data_points: [{script}]
-						})
-					}
-				}
-				animation.calculateSnappingFromKeyframes();
-				if (!Animation.selected && Animator.open) {
-					animation.select()
-				}
-				new_animations.push(animation)
-				Blockbench.dispatchEvent('load_animation', {animation, json});
-			}
-		} else if (typeof json.animation_controllers === 'object') {
-			for (let ani_name in json.animation_controllers) {
-				if (animation_filter && !animation_filter.includes(ani_name)) continue;
-				//Animation
-				let a = json.animation_controllers[ani_name];
-				let controller = new AnimationController({
-					name: ani_name,
-					saved_name: ani_name,
-					path,
-					states: a.states,
-					initial_state: a.initial_state || (a.states?.default ? 'default' : undefined)
-				}).add()
-				if (!Animation.selected && !AnimationController.selected && Animator.open) {
-					controller.select();
-				}
-				new_animations.push(controller)
-				Blockbench.dispatchEvent('load_animation_controller', {animation_controller: controller, json});
-			}
-		}
-		return new_animations
+		console.warn('"Animator.loadFile" is deprecated, use AnimationCodec instead')
+		return AnimationCodec.codecs.bedrock.loadFile(file, animation_filter);
 	},
 	buildFile(path_filter, name_filter) {
-		var animations = {}
-		Animator.animations.forEach(function(a) {
-			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
-				let ani_tag = a.compileBedrockAnimation();
-				animations[a.name] = ani_tag;
-			}
+		console.warn('"Animator.buildFile" is deprecated, use AnimationCodec instead')
+		let animations = Animator.animations.filter((a) => {
+			return (typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name));
 		})
-		return {
-			format_version: '1.8.0',
-			animations: animations
-		}
-	},
-	buildController(path_filter, name_filter) {
-		var controllers = {}
-		AnimationController.all.forEach(function(a) {
-			if ((typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))) {
-				let ani_tag = a.compileForBedrock();
-				controllers[a.name] = ani_tag;
-			}
-		})
-		return {
-			format_version: '1.19.0',
-			animation_controllers: controllers
-		}
+		return AnimationCodec.codecs.bedrock.compileFile(animations);
 	},
 	importFile(file, auto_loaded) {
-		let form = {};
-		if (auto_loaded && file.path) {
-			form['_path'] = {type: 'info', text: file.path};
-		}
-		let json = autoParseJSON(file.content, {file_path: file.path})
-		let keys = [];
-		let is_controller = !!json.animation_controllers;
-		let entries = json.animations || json.animation_controllers;
-		for (var key in entries) {
-			// Test if already loaded
-			if (isApp && file.path) {
-				let is_already_loaded = false
-				for (var anim of is_controller ? AnimationController.all : Animation.all) {
-					if (anim.path == file.path && anim.name == key) {
-						is_already_loaded = true;
-						break;
-					}
-				}
-				if (is_already_loaded) continue;
-			}
-			form['anim' + key.hashCode()] = {label: key, type: 'checkbox', value: true};
-			keys.push(key);
-		}
-		file.json = json;
-		if (keys.length == 0) {
-			Blockbench.showQuickMessage('message.no_animation_to_import');
-
-		} else if (keys.length == 1) {
-			Undo.initEdit({animations: []})
-			let new_animations = Animator.loadFile(file, keys);
-			Undo.finishEdit('Import animations', {animations: new_animations})
-
-		} else {
-			return new Promise(resolve => {
-				let buttons = ['dialog.ok', 'dialog.ignore'];
-				if (auto_loaded && Project?.memory_animation_files_to_load?.length > 1) {
-					buttons.push('dialog.ignore_all');
-				}
-				let dialog = new Dialog({
-					id: 'animation_import',
-					title: 'dialog.animation_import.title',
-					form,
-					buttons,
-					cancelIndex: 1,
-					onConfirm(form_result) {
-						this.hide();
-						let names = [];
-						for (var key of keys) {
-							if (form_result['anim' + key.hashCode()]) {
-								names.push(key);
-							}
-						}
-						Undo.initEdit({animations: []})
-						let new_animations = Animator.loadFile(file, names);
-						Undo.finishEdit('Import animations', {animations: new_animations})
-						resolve();
-					},
-					onCancel(index) {
-						Project.memory_animation_files_to_load.remove(file.path);
-						resolve();
-					},
-					onButton(index) {
-						if (auto_loaded && index == 2) {
-							Project.memory_animation_files_to_load.empty();
-						}
-						resolve();
-					}
-				});
-				form.select_all_none = {
-					type: 'buttons',
-					buttons: ['generic.select_all', 'generic.select_none'],
-					click(index) {
-						let values = {};
-						keys.forEach(key => values['anim' + key.hashCode()] = (index == 0));
-						dialog.setFormValues(values);
-					}
-				}
-				dialog.show();
-			});
-		}
+		console.warn('"Animator.importFile" is deprecated, use AnimationCodec instead')
+		return AnimationCodec.codecs.bedrock.importFile(file, auto_loaded);
 	},
 	exportAnimationFile(path, save_as) {
-		let filter_path = path || '';
-
-		if (isApp && !path) {
-			path = Project.export_path
-			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
-			var m_index = path.search(exp)
-			if (m_index > 3) {
-				path = path.substr(0, m_index) + osfs + 'animations' + osfs +  pathToName(Project.export_path, true)
-			}
-			path = path.replace(/(\.geo)?\.json$/, '.animation.json')
-		}
-
-		if (!save_as && isApp && path && fs.existsSync(path)) {
-			Animator.animations.forEach(function(a) {
-				if (a.path == filter_path && !a.saved) {
-					a.save();
-				}
-			})
-		} else {
-			let content = Animator.buildFile(filter_path, true);
-			Blockbench.export({
-				resource_id: 'animation',
-				type: 'JSON Animation',
-				extensions: ['json'],
-				name: (Project.geometry_name||'model')+'.animation',
-				startpath: path,
-				content: autoStringify(content),
-				custom_writer: isApp && ((content, new_path, cb) => {
-					if (new_path && fs.existsSync(new_path)) {
-						Animator.animations.forEach(function(a) {
-							if (a.path == filter_path && !a.saved) {
-								a.path = new_path;
-								a.save();
-							}
-						})
-					} else {
-						Blockbench.writeFile(new_path, {content})
-						cb(new_path);
-					}
-				})
-			}, new_path => {
-				Animator.animations.forEach(function(a) {
-					if (a.path == filter_path) {
-						a.path = new_path;
-						a.saved = true;
-					}
-				})
-			})
-		}
+		console.warn('"Animator.exportAnimationFile" is deprecated, use AnimationCodec instead')
+		return AnimationCodec.codecs.bedrock.exportFile(path, save_as);
+	},
+	buildController(path_filter, name_filter) {
+		console.warn('"Animator.buildController" is deprecated, use AnimationCodec instead')
+		let controllers = AnimationController.all.filter(function(a) {
+			return (typeof path_filter != 'string' || a.path == path_filter || (!a.path && !path_filter)) && (!name_filter || !name_filter.length || name_filter.includes(a.name))
+		})
+		return AnimationCodec.codecs.bedrock_animation_controller.compileFile(controllers);
 	},
 	exportAnimationControllerFile(path, save_as) {
-		let filter_path = path || '';
-
-		if (isApp && !path) {
-			path = Project.export_path
-			var exp = new RegExp(osfs.replace('\\', '\\\\')+'models'+osfs.replace('\\', '\\\\'))
-			var m_index = path.search(exp)
-			if (m_index > 3) {
-				path = path.substr(0, m_index) + osfs + 'animation_controllers' + osfs +  pathToName(Project.export_path, true)
-			}
-			path = path.replace(/(\.geo)?\.json$/, '.animation_controllers.json')
-		}
-
-		if (!save_as && isApp && path && fs.existsSync(path)) {
-			AnimationController.all.forEach(function(a) {
-				if (a.path == filter_path && !a.saved) {
-					a.save();
-				}
-			})
-		} else {
-			let content = Animator.buildController(filter_path, true);
-			Blockbench.export({
-				resource_id: 'animation_controller',
-				type: 'JSON Animation Controller',
-				extensions: ['json'],
-				name: (Project.geometry_name||'model')+'.animation_controllers',
-				startpath: path,
-				content: autoStringify(content),
-				custom_writer: isApp && ((content, new_path, cb) => {
-					if (new_path && fs.existsSync(new_path)) {
-						AnimationController.all.forEach(function(a) {
-							if (a.path == filter_path && !a.saved) {
-								a.path = new_path;
-								a.save();
-							}
-						})
-					} else {
-						Blockbench.writeFile(new_path, {content})
-						cb(new_path);
-					}
-				})
-			}, new_path => {
-				AnimationController.all.forEach(function(a) {
-					if (a.path == filter_path) {
-						a.path = new_path;
-						a.saved = true;
-					}
-				})
-			})
-		}
+		console.warn('"Animator.exportAnimationControllerFile" is deprecated, use AnimationCodec instead')
+		return AnimationCodec.codecs.bedrock_animation_controller.exportFile(path, save_as);
 	}
 }
 Canvas.gizmos.push(Animator.motion_trail, Animator.onion_skin_object);
@@ -1370,6 +959,43 @@ BARS.defineActions(function() {
 			Animator.updateOnionSkin();
 		}
 	})
+	new Action('copy_animation_pose', {
+		icon: 'detection_and_zone',
+		category: 'animation',
+		condition: () => Animator.open && Animation.selected,
+		click() {
+			let new_keyframes = [];
+
+			for (let uuid in Animation.selected.animators) {
+				let animator = Animation.selected.animators[uuid];
+				if (!animator || !animator.keyframes.length || !(animator.group || animator.element)) continue;
+
+				for (let channel in animator.channels) {
+					if (!animator[channel] || !animator[channel].length) continue;
+					let kf = animator[channel].find(kf => Math.epsilon(kf.time, Timeline.time, 1e-5));
+					if (!kf) {
+						kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
+						new_keyframes.push(kf)
+					}
+				}
+			}
+
+			Clipbench.keyframes = [];
+			if (new_keyframes.length == 0) return;
+
+			new_keyframes.forEach((kf) => {
+				let copy = kf.getUndoCopy();
+				copy.time_offset = 0;
+				Clipbench.keyframes.push(copy);
+			})
+			for (let kf of new_keyframes) {
+				kf.remove();
+			}
+			if (isApp) {
+				clipboard.writeHTML(JSON.stringify({type: 'keyframes', content: Clipbench.keyframes}));
+			}
+		}
+	})
 })
 
 
@@ -1589,6 +1215,7 @@ function processVariablePlaceholderText(text) {
 }
 
 Object.assign(window, {
+	MolangParser,
 	Animator,
 	Wintersky,
 	WinterskyScene

@@ -6,7 +6,7 @@
 
 /// <reference types="./texture_layers" />
 /// <reference types="./texture_group" />
-/// <reference types="./action" />
+/// <reference types="./toolbars" />
 /// <reference types="./animation" />
 /// <reference types="./animation_controller" />
 /// <reference types="./canvas_frame" />
@@ -28,15 +28,15 @@
 /// <reference types="./painter" />
 /// <reference types="./preview" />
 /// <reference types="./preview_scene" />
-/// <reference types="./project" />
+/// <reference types="./edit_session" />
 /// <reference types="./screencam" />
 /// <reference types="./textures" />
 /// <reference types="./timeline" />
 /// <reference types="./undo" />
 /// <reference types="./util" />
+/// <reference types="./io" />
 /// <reference types="./uveditor" />
 /// <reference types="./validator" />
-/// <reference types="./shared_actions" />
 /// <reference types="./display_mode" />
 /// <reference types="./misc" />
 /// <reference types="./util" />
@@ -45,6 +45,7 @@
 /// <reference types="./io" />
 /// <reference types="./native_apis" />
 /// <reference types="./util/VersionUtil" />
+/// <reference types="./start_screen" />
 
 /**
  * Provides access to global Javascript/DOM variables that are overwritten by Blockbench's own variables

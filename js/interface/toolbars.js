@@ -373,6 +373,14 @@ export const BARS = {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, shift: true})
 			})
+			new KeybindItem('preview_scroll_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1001})
+			})
+			new KeybindItem('uv_editor_scroll_zoom', {
+				category: 'navigate',
+				keybind: new Keybind({key: 1001, ctrl: true})
+			})
 			new KeybindItem('preview_area_select', {
 				category: 'navigate',
 				keybind: new Keybind({key: 1, ctrl: true, shift: null})
@@ -471,17 +479,6 @@ export const BARS = {
 					Blockbench.removeListener('update_selection', Vertexsnap.select)
 				}
 			})
-			new Action('swap_tools', {
-				icon: 'swap_horiz',
-				category: 'tools',
-				condition: {modes: ['edit', 'paint', 'display'], project: true},
-				keybind: new Keybind({key: 32}),
-				click: function () {
-					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
-						BarItems[Toolbox.selected.alt_tool].select()
-					}
-				}
-			})
 			new Tool('stretch_tool', {
 				icon: 'expand',
 				category: 'tools',
@@ -494,6 +491,20 @@ export const BARS = {
 				modes: ['edit'],
 				keybind: new Keybind({key: 's', alt: true}),
 			})
+
+			let swap_tools = new Action('swap_tools', {
+				icon: 'swap_horiz',
+				category: 'tools',
+				condition: {modes: ['edit', 'paint', 'display'], project: true},
+				keybind: new Keybind({key: 32}),
+				click: function () {
+					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
+						BarItems[Toolbox.selected.alt_tool].select()
+					}
+				}
+			})
+			swap_tools.addSubKeybind('hold', 'action.swap_tools.hold', new Keybind({key: 18}), () => {});
+			
 			new Action('set_element_marker_color', {
 				name: 'menu.cube.color',
 				icon: 'color_lens',
@@ -778,6 +789,7 @@ export const BARS = {
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
 				'bedrock_animation_mode',
+				'load_on_bedrock_player',
 				'lock_motion_trail',
 				'extrude_mesh_selection',
 				'inset_mesh_selection',
@@ -786,6 +798,7 @@ export const BARS = {
 				'invert_face',
 				'_',
 				'mirror_modeling',
+				'mirror_animating',
 			]
 		})
 
@@ -1103,7 +1116,7 @@ export const BARS = {
 			}
 		}
 		// On mobile, the variable height of the top toolbar can shift the UI
-		resizeWindow();
+		TickUpdates.interface = true;
 	}
 }
 
