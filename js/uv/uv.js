@@ -3235,6 +3235,7 @@ Interface.definePanels(function() {
 								if (old_elements) Outliner.selected.empty();
 							} else {
 								for (let element of elements) {
+									if (!old_faces[element.uuid]) continue;
 									UVEditor.getSelectedFaces(element, true).replace(old_faces[element.uuid]);
 								}
 								if (old_elements) Outliner.selected.replace(old_elements);
