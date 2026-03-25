@@ -27,6 +27,7 @@ export class Animation extends AnimationItem {
 		this.override = false;
 		this.selected = false;
 		this.length = 0;
+		this.path = '';
 		this.snapping = Math.clamp(settings.animation_snap.value, 10, 500);
 		this.animators = {};
 		this.markers = [];
@@ -998,7 +999,9 @@ BARS.defineActions(function() {
 				onConfirm(form_result) {
 					dialog.hide();
 					keys = keys.filter(key => form_result[key.hashCode()])
-					let content = AnimationCodec.getCodec()?.buildFile(null, keys)
+					let animations = Animator.animations.filter((a) => keys.includes(a.name));
+					let codec = AnimationCodec.getCodec() || AnimationCodec.codecs.bedrock;
+					let content = codec.compileFile(animations);
 
 					Blockbench.export({
 						resource_id: 'animation',
