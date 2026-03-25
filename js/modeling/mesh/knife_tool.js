@@ -595,7 +595,7 @@ export class KnifeToolCubeContext {
 			this.face_axis = KnifeToolCubeContext.face_axis[this.face];
 			let off_axes = [0, 1, 2].filter(a1 => a1 != this.face_axis);
 			let snap = canvasGridSize(data.event?.shiftKey || Pressing.overrides.shift, data.event?.ctrlOrCmd || Pressing.overrides.ctrl);
-			let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate);
+			let modified_from = this.cube.from.slice().V3_subtract(this.cube.inflate).V3_subtract(this.cube.origin);
 
 			this.first_point[getAxisLetter(off_axes[0])] = Math.round((this.first_point[getAxisLetter(off_axes[0])] - modified_from[off_axes[0]]) / snap) * snap + modified_from[off_axes[0]];
 			this.first_point[getAxisLetter(off_axes[1])] = Math.round((this.first_point[getAxisLetter(off_axes[1])] - modified_from[off_axes[1]]) / snap) * snap + modified_from[off_axes[1]];

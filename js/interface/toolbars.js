@@ -1034,7 +1034,7 @@ export const BARS = {
 						var scope = this;
 						$('#bar_items_current .tooltip').css('display', '')
 						setTimeout(() => {
-							if ($('#bar_items_current:hover').length === 0) {
+							if ($('#bar_items_current:hover').length === 0 && !Blockbench.isTouch) {
 								var item = scope.currentBar.splice(event.newIndex, 1)[0];
 								if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
 								scope.update();

@@ -863,24 +863,23 @@
 	}
 	.toast_notification {
 		position: relative;
+		display: flex;
+		align-items: center;
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
-		min-height: 30px;
-		margin: 2px;
-		padding: 3px 28px 3px 10px;
-		width: calc(100% - 4px);
+		min-height: 34px;
+		margin: 4px;
+		gap: 4px;
+		padding: 5px 5px 5px 10px;
 		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
+		border-radius: 6px;
 	}
-	.toast_notification .icon {
-		float: left;
+	.toast_notification > span {
+		flex-grow: 1;
 	}
 	.toast_close_button {
-		position: absolute;
-		right: 0px;
-		top: 0px;
-		height: 30px;
-		width: 30px;
-		padding: 4px;
+		height: 28px;
+		padding-top: 2px;
 		cursor: pointer;
 	}
 	.toast_close_button:hover {

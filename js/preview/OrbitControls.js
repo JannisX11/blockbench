@@ -699,12 +699,8 @@ constructor ( object, preview ) {
 		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
 		let enabled = keybind.isTriggered(event);
 
-		if (!enabled) {
-			if (event.shiftKey) {
-				pan( -event.deltaY, 0 );
-			} else {
-				pan( -event.deltaX, -event.deltaY );
-			}
+		if (!enabled && !event.ctrlKey && !event.shiftKey && !event.metaKey && Math.abs(event.deltaY) != 100) {
+			pan( -event.deltaX, -event.deltaY );
 
 			scope.update();
 			scope.updateSceneScale();

@@ -1774,13 +1774,14 @@ export class Texture {
 		for (let layer of this.layers) {
 			if (layer.visible == false || layer.opacity == 0) continue;
 			if (layer.blend_mode == 'alpha_mask') {
+				let opacity_factor = layer.opacity / 100;
 				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
 				Painter.scanCanvas(this.ctx, 0, 0, this.canvas.width, this.canvas.height, (px, py, color) => {
 					let mask_coords = [ px - layer.offset[0], py - layer.offset[1] ];
 					if (mask_coords[0] < 0 || mask_coords[0] >= layer.canvas.width) return;
 					if (mask_coords[1] < 0 || mask_coords[1] >= layer.canvas.height) return;
 					let value = mask.data[(mask_coords[1] * layer.canvas.width + mask_coords[0]) * 4];
-					color[3] *= value / 255;
+					color[3] *= (value / 255) * opacity_factor;
 					return color;
 				})
 				continue;

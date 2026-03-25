@@ -69,9 +69,9 @@ function compare(versionA: string, operator?: Operator, versionB?: string): bool
 		// If the main versions are equal, compare beta versions.
 		if (result === 0) {
 			if (parsedA.beta && !parsedB.beta) {
-				result = 1
-			} else if (!parsedA.beta && parsedB.beta) {
 				result = -1
+			} else if (!parsedA.beta && parsedB.beta) {
+				result = 1
 			} else if (parsedA.beta && parsedB.beta) {
 				result = compare(parsedA.beta.join('.'), parsedB.beta.join('.'))
 			}

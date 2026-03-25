@@ -7,6 +7,7 @@ import { BoneAnimator } from "./timeline_animators";
 
 type TKeyframe = _Keyframe;
 interface FlipCopyKeyframesOptions {
+	mirror_animating?: boolean
 	keyframes: TKeyframe[]
 	animators?: BoneAnimator[]
 	clear_opposite?: boolean
@@ -57,7 +58,7 @@ function flipCopyKeyframes(options: FlipCopyKeyframesOptions):
 				}
 				opposite_animator = animation.getBoneAnimator(opposite_bone);
 			}
-			if (opposite_animator == animator) return;
+			if (opposite_animator == animator && options.mirror_animating) return;
 
 			if (options.clear_opposite) {
 				for (let kf of opposite_animator[channel].slice() as TKeyframe[]) {
@@ -146,6 +147,7 @@ Blockbench.on('finish_edit', (args) => {
 	let offset = options.offset == '180' ? 180 : 0;
 	if (options.offset == 'custom') offset = options.custom_offset as number;
 	let {added_keyframes, removed_keyframes} = flipCopyKeyframes({
+		mirror_animating: true,
 		keyframes: args.aspects.keyframes,
 		animators,
 		clear_opposite: true,
@@ -161,6 +163,7 @@ Blockbench.on('finish_edit', (args) => {
 		...added_keyframes
 	]
 
+	Animator.preview();
 })
 
 BARS.defineActions(function() {
@@ -168,7 +171,7 @@ BARS.defineActions(function() {
 		offset: {
 			label: 'dialog.flip_animation.phase_offset',
 			type: 'inline_select',
-			value: '180',
+			value: '0',
 			options: {
 				'0': 'dialog.flip_animation.phase_offset.off',
 				'180': '180°',
