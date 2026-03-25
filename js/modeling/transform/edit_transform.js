@@ -222,10 +222,11 @@ new TransformerModule('edit', {
 						obj.oldVertices[key] = obj.vertices[key].slice();
 					}
 				} else if (obj.getTypeBehavior('resizable')) {
-					obj.temp_data.old_size = typeof obj.size == 'function' ? obj.size(context.axis_number) : obj.size.slice();
+					obj.temp_data.old_size = typeof obj.size == 'function' ? obj.size() : obj.size.slice();
 					if (obj.stretch) obj.temp_data.oldStretch = obj.stretch.slice();
 					if (obj.uv_offset) obj.temp_data.oldUVOffset = obj.uv_offset.slice();
 					if (obj.to && obj.to) obj.temp_data.oldCenter = obj.from.map((from, i) => (from + obj.to[i]) / 2);
+					
 				} else if (obj.size) {
 					obj.temp_data.old_size = obj.size.slice();
 				}
