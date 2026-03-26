@@ -39,7 +39,7 @@ export const Clipbench = {
 		if (Animator.open && Prop.active_panel == 'animations') {
 			return Clipbench.types.animation
 		}
-		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
+		if (Animator.open && (Timeline.animators.length || p == 'timeline') && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && (mode !== 2 || Clipbench.vertices)) {
@@ -81,7 +81,7 @@ export const Clipbench = {
 		if (Animator.open && Prop.active_panel == 'animations') {
 			return Clipbench.types.animation
 		}
-		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
+		if (Animator.open && (Timeline.animators.length || p == 'timeline') && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if (Modes.edit && p == 'preview') {
