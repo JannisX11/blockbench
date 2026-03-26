@@ -155,7 +155,7 @@ export class Animation extends AnimationItem {
 	}
 	compileBedrockAnimation() {
 		console.warn('"Animation.compileBedrockAnimation" is deprecated')
-		return AnimationCodec.codecs.bedrock.compileAnimation()
+		return AnimationCodec.codecs.bedrock.compileAnimation(this)
 	}
 	sampleIK(sample_rate = settings.animation_sample_rate.value) {
 		let interval = 1 / Math.clamp(sample_rate, 1, 144);
