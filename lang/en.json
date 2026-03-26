@@ -1024,6 +1024,8 @@
 	"settings.classroom_mode.desc": "Restricts functionality such as installing plugins and removes links to social media",
 	"settings.cdn_mirror": "Use CDN Mirror",
 	"settings.cdn_mirror.desc": "Use the mirror CDN to download plugins. The mirror receives updates faster and works in some regions where the default does not work.",
+	"settings.custom_cdn": "Custom CDN",
+	"settings.custom_cdn.desc": "Specify a custom CDN URL to download plugins from.",
 	"settings.recovery_save_interval": "Recovery Point Save Interval",
 	"settings.recovery_save_interval.desc": "Blockbench regularly saves the open project in the background to recover in case of a computer crash. Set the interval in seconds. Set to 0 to disable saving.",
 
