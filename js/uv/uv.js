@@ -2566,7 +2566,7 @@ BARS.defineActions(function() {
                                 }
 							}
 						})
-					} else if (element instanceof CubeFace) {
+					} else if (face instanceof CubeFace) {
 						face.uv[0] = Math.round(face.uv[0] / res_x) * res_x;
 						face.uv[1] = Math.round(face.uv[1] / res_y) * res_y;
 						face.uv[2] = Math.round(face.uv[2] / res_x) * res_x;
