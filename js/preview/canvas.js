@@ -598,6 +598,9 @@ export const Canvas = {
 		}
 		if (options.groups) {
 			Canvas.updateAllBones(options.groups)
+			for (let group of options.groups) {
+				group.preview_controller.updateVisibility(group);
+			}
 		}
 		if (options.selection) {
 			updateSelection();
