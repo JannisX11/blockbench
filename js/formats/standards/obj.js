@@ -1,18 +1,5 @@
 var _obj_export;
-export function getMtlFace(obj, index) {
-	//if (index % 2 == 1) index--;
-	var key = Canvas.face_order[index];
-	var tex = obj.faces[key].getTexture()
-
-	if (tex === null) {
-		return false
-	} else if (!tex || typeof tex === 'string') {
-		return 'usemtl none'
-	} else {
-		return 'usemtl m_' + tex.uuid;
-	}
-}
-export const cube_face_normals = {
+const cube_face_normals = {
 	north: [0, 0, -1],
 	east: [1, 0, 0],
 	south: [0, 0, 1],
@@ -63,6 +50,7 @@ var codec = new Codec('obj', {
 
 			if (!element) return;
 			if (element.export === false) return;
+			if (!element.faces) return;
 
 			normalMatrixWorld.getNormalMatrix( mesh.matrixWorld );
 
@@ -326,12 +314,26 @@ var codec = new Codec('obj', {
 					}
 				}
 
+				
+				function getMtlFace(obj, index) {
+					let keys = Object.keys(obj.faces);
+					var key = keys[index] ?? keys[0];
+					var tex = obj.faces[key].getTexture()
+
+					if (tex === null) {
+						return false
+					} else if (!tex || typeof tex === 'string') {
+						return 'usemtl none'
+					} else {
+						return 'usemtl m_' + tex.uuid;
+					}
+				}
+
 				// faces
 				if ( indices !== null ) {
-
 					for ( let i = 0, l = indices.count; i < l; i += 3 ) {
 
-						let f_mat = getMtlFace(element, geometry.groups[ Math.floor(i / 6) ].materialIndex)
+						let f_mat = getMtlFace(element, geometry.groups[ Math.floor(i / 6) ]?.materialIndex)
 						if (f_mat) {
 
 							if (i % 2 === 0) {
