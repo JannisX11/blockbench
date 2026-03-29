@@ -2781,30 +2781,6 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
-	/*new Tool('copy_paste_tool', {
-		icon: 'fa-vector-square',
-		category: 'tools',
-		toolbar: 'brush',
-		alt_tool: 'color_picker',
-		cursor: 'crosshair',
-		selectFace: true,
-		transformerMode: 'hidden',
-		paintTool: true,
-		allowed_view_modes: ['textured', 'material'],
-		modes: ['paint'],
-		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 'm'}),
-		onCanvasClick(data) {
-			if (data && data.element) {
-				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
-			}
-		},
-		onUnselect() {
-			if (Painter.selection.overlay && open_interface) {
-				open_interface.confirm()
-			}
-		}
-	})*/
 	let selection_tools = {
 		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
 		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},

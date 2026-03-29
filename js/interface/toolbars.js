@@ -882,7 +882,6 @@ export const BARS = {
 				'fill_mode',
 				'copy_brush_mode',
 				'draw_shape_type',
-				'copy_paste_tool_mode',
 				'selection_tool_operation_mode',
 				'_',
 				'slider_brush_size',

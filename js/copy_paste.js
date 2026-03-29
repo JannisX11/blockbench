@@ -12,7 +12,6 @@ export const Clipbench = {
 		texture: 'texture',
 		layer: 'layer',
 		outliner: 'outliner',
-		texture_selection: 'texture_selection',
 		image: 'image',
 	},
 	type_icons: {
@@ -29,9 +28,6 @@ export const Clipbench = {
 		}
 		if (text) {
 			return Clipbench.types.text;
-		}
-		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
-			return Clipbench.types.texture_selection;
 		}
 		if (Modes.display) {
 			return Clipbench.types.display_slot
@@ -71,9 +67,6 @@ export const Clipbench = {
 		}
 		if (!Project) {
 			return Clipbench.types.image;
-		}
-		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
-			return Clipbench.types.texture_selection;
 		}
 		if (Modes.display) {
 			return Clipbench.types.display_slot
@@ -196,9 +189,6 @@ export const Clipbench = {
 			case 'text':
 				let text = isApp ? clipboard.readText() : await navigator.clipboard.readText();
 				Blockbench.dispatchEvent('paste_text', {text});
-				break;
-			case 'texture_selection':
-				UVEditor.addPastingOverlay();
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
