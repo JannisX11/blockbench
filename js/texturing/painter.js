@@ -163,6 +163,9 @@ export const Painter = {
 					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
+				if (Painter.current.face != data.face && (delta[0]**2 + delta[1]**2) > 9) {
+					new_face = true;
+				}
 				Painter.current.face = data.face;
 			}
 			Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
@@ -282,13 +285,14 @@ export const Painter = {
 		} else {
 			texture.edit(canvas => {
 				let is_line = true;
+				if (new_face) is_line = false;
 				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
 					is_line = false;
 				}
 				if (is_line) {
 					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
 				} else {
-					Painter.current.x = Painter.current.y = 0
+					Painter.current.x = Painter.current.y = 0;
 					Painter.useBrushlike(texture, x, y, event, uv)
 				}
 			}, {no_undo: true, use_cache: true});
