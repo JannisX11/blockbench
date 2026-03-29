@@ -323,6 +323,10 @@ export const Painter = {
 			Blockbench.setStatusBarText();
 		}
 		preventContextMenu();
+		for (let key in Painter.current) {
+			delete Painter.current[key];
+		}
+		/*
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
@@ -332,6 +336,9 @@ export const Painter = {
 		delete Painter.current.uv_rects;
 		delete Painter.current.uv_islands;
 		delete Painter.current.dynamic_brush_size;
+		delete Painter.current.face_matrices;
+		delete Painter.current.start_event;
+		*/
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
@@ -464,6 +471,8 @@ export const Painter = {
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
 					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[matrix_id]);
+					let matrix_id2 = Painter.current.element ? (Painter.current.element.uuid + fkey) : fkey;
+					Painter.current.face_matrices[matrix_id2] = Painter.current.face_matrices[matrix_id];
 				}
 			}
 		}
