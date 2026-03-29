@@ -2142,9 +2142,9 @@ export class IntMatrix {
 
 SharedActions.add('copy', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, cut) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2195,9 +2195,9 @@ SharedActions.add('copy', {
 })
 SharedActions.add('paste', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 
 		async function loadFromDataUrl(data_url) {
 			let frame = new CanvasFrame();
@@ -2253,9 +2253,9 @@ SharedActions.add('paste', {
 })
 SharedActions.add('duplicate', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2296,9 +2296,9 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('delete', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, context = 0) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		if (texture.selection.override == false) return;
 
 		texture.edit((canvas, {ctx, offset}) => {
