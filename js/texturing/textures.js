@@ -92,6 +92,7 @@ export class Texture {
 		mat.map = tex;
 		mat.name = this.name;
 		this.material = mat;
+		this.updateMaterial();
 
 		let size_control = {};
 
@@ -99,8 +100,10 @@ export class Texture {
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
 			if (self.width && dimensions_changed) {
 				tex = new THREE.Texture(this.canvas);
-				tex.magFilter = THREE.NearestFilter;
-				tex.minFilter = THREE.NearestFilter;
+				tex.magFilter = mat.map.magFilter;
+				tex.minFilter = mat.map.minFilter;
+				tex.wrapS = mat.map.wrapS;
+				tex.wrapT = mat.map.wrapT;
 				tex.name = this.name;
 				mat.map = tex;
 				mat.uniforms.map.value = tex;
