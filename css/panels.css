@@ -1476,9 +1476,18 @@
 	.timeline_marker > i {
 		position: relative;
 		pointer-events: none;
-		left: 5px;
 		top: -4px;
+		font-size: 17px;
 		color: var(--color);
+	}
+	.timeline_marker > i::after {
+		content: "";
+		width: 9px;
+		height: 9px;
+		position: absolute;
+		top: 3px;
+		left: 5px;
+		background-color: var(--color);
 	}
 	.timeline_marker:hover > i {
 		top: -3px;
