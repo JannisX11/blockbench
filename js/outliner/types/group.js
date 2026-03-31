@@ -628,6 +628,9 @@ new NodePreviewController(Group, {
 
 		this.dispatchEvent('update_transform', {group});
 	},
+	updateVisibility(element) {
+		this.dispatchEvent('update_visibility', {element});
+	},
 	updateTransform(group) {
 		NodePreviewController.prototype.updateTransform.call(this, group);
 		let bone = group.scene_object;

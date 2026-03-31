@@ -657,7 +657,7 @@ export const Canvas = {
 	updateVisibility() {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
 		Group.all.forEach(group => {
-			if (group.mesh) group.mesh.visible = group.visibility;
+			group.preview_controller.updateVisibility(group);
 		});
 	},
 	updateAllFaces(texture) {
