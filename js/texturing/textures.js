@@ -2797,9 +2797,11 @@ Interface.definePanels(function() {
 						}
 					} else if (isNodeUnderCursor(document.getElementById('texture_list'), e2)) {
 
-						let selected_textures = Texture.all.filter(t => t.selected || t.multi_selected);
+						let selected_textures = (!texture || texture.selected || texture.multi_selected)
+							? Texture.all.filter(t => t.selected || t.multi_selected)
+							: [texture];
 
-						let index = Texture.all.length-1;
+						let index = Texture.all.length;
 						let texture_node = findNodeUnderCursor('#texture_list li.texture', e2);
 						let target_group_head = findNodeUnderCursor('#texture_list .texture_group_head', e2);
 						let new_group = '';
@@ -2819,7 +2821,9 @@ Interface.definePanels(function() {
 						Undo.initEdit({texture_order: true, textures: track_group_changes ? selected_textures : null});
 						let item_at_index = Texture.all[index];
 						selected_textures.forEach(t => Texture.all.remove(t));
-						index = item_at_index ? Texture.all.indexOf(item_at_index) : index;
+						if (item_at_index && Texture.all.includes(item_at_index)) {
+							index = Texture.all.indexOf(item_at_index);
+						}
 						selected_textures.forEach((texture, i) => {
 							Texture.all.splice(index+i, 0, texture);
 							texture.group = new_group;
