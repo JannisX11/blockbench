@@ -4669,7 +4669,7 @@ Interface.definePanels(function() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
 				},
 				isFaceSelected(element, fkey) {
-					if (this.mode != 'uv') return false;
+					if (this.mode == 'paint') return false;
 					if (!element) element = this.mappable_elements[0];
 					if (element.getTypeBehavior('select_faces') == false) return true;
 					return UVEditor.getSelectedFaces(element).indexOf(fkey) != -1;
@@ -4850,10 +4850,10 @@ Interface.definePanels(function() {
 							<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 								class="uv_face_properties_line"
 								:class="{selected: isFaceSelected(mappable_elements[0], key), disabled: mappable_elements[0].faces[key].texture === null}"
-								@mousedown="selectFace(mappable_elements[0], key, $event, false, true)"
+								@pointerdown="selectFace(mappable_elements[0], key, $event, false, true)"
 							>
 								
-								<input type="checkbox" :checked="mappable_elements[0].faces[key].texture !== null" @change="toggleFaceEnabled(key, $event)">
+								<input type="checkbox" :checked="mappable_elements[0].faces[key].texture !== null" @change="toggleFaceEnabled(key, $event)" @pointerdown.stop>
 
 								<label>{{ face_names[key] }}</label>
 
