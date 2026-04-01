@@ -1240,6 +1240,7 @@ export class Texture {
 						this.path = this.path.replace(regex, '.'+new_extensions[0]);
 					}
 					this.file_format = results.file_format;
+					this.convertToInternal();
 				}
 				
 				if (Format.per_texture_uv_size) {
