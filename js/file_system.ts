@@ -726,8 +726,8 @@ export namespace Filesystem {
 			}
 			let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
 			let name = event.dataTransfer.files[0].name;
-			let extension = pathToExtension(name);
-			if (el && extensions.includes(extension)) {
+			let name_lower_case = name.toLowerCase();
+			if (el && extensions.find(ext => name_lower_case.endsWith('.'+ext))) {
 				cb(handler, el)
 				break;
 			}
