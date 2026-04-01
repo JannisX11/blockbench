@@ -196,7 +196,7 @@ export namespace ModelScaler {
 		let {origin} = data;
 		let scale_groups = getScaleGroups();
 		
-		scaleElements(Outliner.selected, scale_groups, size, origin as ArrayVector3);
+		scaleElements(Outliner.selected, scale_groups, size, origin as ArrayVector3, data.axis as any);
 		
 		if (save === true) {
 			Undo.finishEdit('Scale model')
