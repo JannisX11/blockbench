@@ -182,7 +182,7 @@ export class Animation extends AnimationItem {
 				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
 				let animator = this.getBoneAnimator(node);
-				if (!animator) return;
+				if (!animator || !animator.displayIK) return;
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				animator.displayPosition(animator.interpolate('position'), multiplier);
 				let bone_frame_rotation = animator.displayIK(true);
