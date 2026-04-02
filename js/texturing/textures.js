@@ -959,9 +959,12 @@ export class Texture {
 		}
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 
+		if (Canvas.layered_material) {
+			Canvas.updateLayeredTextures();
+		}
 		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
 			Canvas.updateAllFaces()
-			if (selected.length) {
+			if (Outliner.selected.length) {
 				UVEditor.loadData()
 			}
 		}
@@ -983,6 +986,9 @@ export class Texture {
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
+			if (Canvas.layered_material) {
+				Canvas.updateLayeredTextures();
+			}
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
 			if (UVEditor.texture == this) {
@@ -2361,6 +2367,9 @@ SharedActions.add('delete', {
 			texture.remove(true);
 		})
 		Canvas.updateAllFaces();
+		if (Canvas.layered_material) {
+			Canvas.updateLayeredTextures();
+		}
 		TextureAnimator.updateButton();
 		UVEditor.vue.updateTexture();
 		BARS.updateConditions();
