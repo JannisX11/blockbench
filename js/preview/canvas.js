@@ -573,7 +573,8 @@ export const Canvas = {
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
-				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+				// TODO: No longer update all when visibility changes, but test in beta to catch issues
+				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible && !(element.constructor.animator));
 				let controller = element.constructor.preview_controller
 				
 				if (aspects.transform || update_all) {
