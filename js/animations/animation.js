@@ -4,6 +4,7 @@ import { openMolangEditor } from "./molang_editor";
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_apis";
 import { invertMolang } from "../util/molang";
 import { ScopeColors } from "../multi_file_editing";
+import { nextTick } from "vue";
 
 export class AnimationItem {
 	constructor() {}
@@ -1646,7 +1647,7 @@ BARS.defineActions(function() {
 			Panels.animations.inside_vue._data.search_term = '';
 			Panels.animations.inside_vue._data.search_enabled = value;
 			if (value) {
-				Vue.nextTick(() => {
+				nextTick(() => {
 					document.getElementById('animation_search_bar').firstChild.focus();
 				});
 			}

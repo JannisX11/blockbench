@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { PointerTarget } from "../interface/pointer_target";
 import { clipboard, nativeImage } from "../native_apis";
 import { Dynamic2DMap } from "../util/dynamic_2d_map";
@@ -1864,7 +1865,7 @@ export const Painter = {
 				if (current_preset) Painter.loadBrushPreset(current_preset);
 			},
 			onOpen() {
-				Vue.nextTick(() => {
+				nextTick(() => {
 					if (this.content_vue.presets[0]) {
 						this.content_vue.selectPreset(this.content_vue.presets[0]);
 					}

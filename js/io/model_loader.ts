@@ -1,3 +1,4 @@
+import { defineComponent } from "vue";
 import { Vue } from "../lib/libs";
 import { FormatPage } from "./format";
 
@@ -50,9 +51,10 @@ export class ModelLoader implements Deletable {
 		this.onFormatPage = options.onFormatPage;
 		this.onStart = options.onStart;
 
-		Vue.set(ModelLoader.loaders, id, this);
+		ModelLoader.loaders[id] = this;
 		if (this.format_page && this.format_page.component) {
-			Vue.component(`format_page_${this.id}`, this.format_page.component)
+			this.format_page.component.name = `format_page_${this.id}`;
+			defineComponent(this.format_page.component)
 		}
 		Blockbench.dispatchEvent('construct_model_loader', {loader: this});
 	}
@@ -60,7 +62,7 @@ export class ModelLoader implements Deletable {
 		this.onStart();
 	}
 	delete() {
-		Vue.delete(ModelLoader.loaders, this.id);
+		delete ModelLoader.loaders[this.id];
 		Blockbench.dispatchEvent('delete_model_loader', {loader: this});
 	}
 	static loaders: Record<string, ModelLoader> = {}

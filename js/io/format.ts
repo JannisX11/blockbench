@@ -9,6 +9,7 @@ import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
 import { SplineMesh } from "../outliner/types/spline_mesh";
+import { defineComponent } from "vue";
 
 export interface FormatPage {
 	component?: Vue.Component
@@ -394,7 +395,8 @@ export class ModelFormat implements FormatOptions {
 			this.animation_grouping = 'custom';
 		}
 		if (this.format_page && this.format_page.component) {
-			Vue.component(`format_page_${this.id}`, this.format_page.component)
+			this.format_page.component.name = `format_page_${this.id}`;
+			defineComponent(this.format_page.component)
 		}
 		Blockbench.dispatchEvent('construct_format', {format: this});
 	}

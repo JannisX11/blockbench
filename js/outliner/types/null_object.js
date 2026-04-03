@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 
 export class NullObject extends OutlinerElement {
 	constructor(data, uuid) {
@@ -181,7 +182,7 @@ BARS.defineActions(function() {
 			null_object.select().createUniqueName();
 			objs.push(null_object);
 			Undo.finishEdit('Add null object');
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					null_object.rename();
 				}

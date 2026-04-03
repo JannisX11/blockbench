@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { markerColors } from "../../marker_colors";
 
 BARS.defineActions(function() {
@@ -369,7 +370,7 @@ BARS.defineActions(function() {
 				Blockbench.dispatchEvent( 'add_mesh', {object: mesh} )
 				iteration++;
 
-				Vue.nextTick(function() {
+				nextTick(function() {
 					if (settings.create_rename.value && iteration == 1) {
 						mesh.rename()
 					}

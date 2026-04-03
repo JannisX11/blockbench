@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { currentwindow } from "./native_apis";
 
 window.osfs = '/'
@@ -283,7 +284,7 @@ export const TickUpdates = {
 			}
 			if (TickUpdates.keyframe_selection) {
 				delete TickUpdates.keyframe_selection;
-				Vue.nextTick(updateKeyframeSelection)
+				nextTick(updateKeyframeSelection)
 			}
 			if (TickUpdates.keybind_conflicts) {
 				delete TickUpdates.keybind_conflicts;

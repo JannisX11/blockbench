@@ -6,6 +6,7 @@ import { Panels, updateInterfacePanels, updatePanelSelector, updateSidebarOrder 
 import { Prop } from "./misc"
 import { Outliner } from "./outliner/outliner"
 import { ReferenceImage } from "./preview/reference_images"
+import { createApp } from "vue"
 
 interface ModeOptions {
 	id?: string
@@ -74,8 +75,8 @@ export class Mode extends KeybindItem {
 			node.appendChild(mount);
 			document.getElementById('center').appendChild(node);
 
-			this.vue = new Vue(data.component)
-			this.vue.$mount(mount);
+			this.vue = createApp(data.component)
+			this.vue.mount(mount);
 		}
 	}
 	/**Selects the mode */
@@ -194,11 +195,11 @@ export const Modes = {
 };
 onVueSetup(function() {
 	if (!Blockbench.isMobile) {
-		Modes.vue = new Vue({
+		Modes.vue = createApp({
 			el: '#mode_selector',
-			data: {
+			data() {return {
 				options: Modes.options
-			},
+			}},
 			methods: {
 				showModes() {
 					let count = 0;

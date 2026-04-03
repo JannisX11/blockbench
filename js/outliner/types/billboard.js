@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { THREE } from "../../lib/libs";
 
 export class BillboardFace extends CubeFace {
@@ -766,7 +767,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Add billboard', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_billboard', {object: new_billboard} )
 
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					new_billboard.rename()
 				}

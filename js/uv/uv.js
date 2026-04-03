@@ -1,6 +1,7 @@
 import { editUVSizeDialog } from "./uv_size";
 import { PointerTarget } from "../interface/pointer_target";
 import { dragHelper } from "../util/drag_helper";
+import { nextTick } from "vue";
 
 // Image manipulation helpers for UV+texture transforms
 function flipImageDataH(imageData) {
@@ -366,7 +367,7 @@ export const UVEditor = {
 				target_zoom = Math.clamp(UVEditor.zoom, target_zoom_factor * 0.618, Math.max(1, target_zoom_factor * 0.84));
 			}
 			UVEditor.setZoom(target_zoom);
-			await new Promise(Vue.nextTick);
+			await new Promise(nextTick);
 		}
 
 		let pixel_size = UVEditor.inner_width / UVEditor.vue.uv_resolution[0];
@@ -594,7 +595,7 @@ export const UVEditor = {
 		zoom = Math.clamp(zoom, min_zoom, Math.clamp(max_zoom, 16, 128));
 		this.vue.zoom = zoom;
 		Project.uv_viewport.zoom = this.zoom;
-		Vue.nextTick(() => {
+		nextTick(() => {
 			UVEditor.updateSelectionOutline(false);
 		})
 		return this;
@@ -918,7 +919,7 @@ export const UVEditor = {
 		if (!uv_viewport || !Project) return;
 		UVEditor.setZoom(Project.uv_viewport.zoom);
 		let project = Project;
-		Vue.nextTick(() => {
+		nextTick(() => {
 			if (!Project || project != Project) return;
 			uv_viewport.scrollLeft = Project.uv_viewport.offset[0] * this.vue.inner_width + this.width/2;
 			uv_viewport.scrollTop = Project.uv_viewport.offset[1] * this.vue.inner_height + this.height/2;
@@ -2697,12 +2698,12 @@ Interface.definePanels(function() {
 		],
 		onResize: function() {
 			UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
-			Vue.nextTick(() => {
+			nextTick(() => {
 				UVEditor.vue.updateSize();
 			})
 		},
 		onFold: function() {
-			Vue.nextTick(() => {
+			nextTick(() => {
 				if (!this.folded) UVEditor.loadData();
 				UVEditor.vue.hidden = Format.image_editor ? false : !this.isVisible();
 			})
@@ -2853,7 +2854,7 @@ Interface.definePanels(function() {
 					);
 				},
 				mode() {
-					Vue.nextTick(() => {
+					nextTick(() => {
 						this.updateSize();
 					})
 				}
@@ -2951,7 +2952,7 @@ Interface.definePanels(function() {
 
 					UVEditor.updateOverlayCanvas();
 
-					Vue.nextTick(() => {
+					nextTick(() => {
 						let wrapper = this.$refs.texture_canvas_wrapper;
 						let overlay_canvas_mode = this.overlay_canvas_mode || this.texture.wrap_mode == 'repeat';
 						if (!wrapper || (wrapper.firstChild == this.texture.canvas && !overlay_canvas_mode)) return;
@@ -3032,7 +3033,7 @@ Interface.definePanels(function() {
 							}
 						}
 						if (n > 0) {
-							Vue.nextTick(updateScroll);
+							nextTick(updateScroll);
 						} else {
 							updateScroll();
 						}
@@ -5127,7 +5128,7 @@ Interface.definePanels(function() {
 		}
 	})
 	UVEditor.panel.on('moved_to', (data) => {
-		Vue.nextTick(() => {
+		nextTick(() => {
 			UVEditor.loadViewportOffset();
 		})
 	})

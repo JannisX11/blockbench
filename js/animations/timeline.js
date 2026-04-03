@@ -2213,7 +2213,7 @@ BARS.defineActions(function() {
 						name: channel.name ?? `timeline.${id}`,
 						icon: channels[id] != false ? on : off,
 						click() {
-							Vue.set(channels, id, channels[id] == false);
+							channels[id] = channels[id] == false;
 						}
 					})
 				}

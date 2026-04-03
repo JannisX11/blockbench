@@ -1,3 +1,4 @@
+import { createApp, nextTick } from "vue";
 import { Filesystem } from "../file_system";
 import { ModelLoader } from "../io/model_loader";
 import { documentReady } from "../misc";
@@ -170,10 +171,10 @@ onVueSetup(async function() {
 
 	let slideshow_timer = 0;
 
-	StartScreen.vue = new Vue({
+	StartScreen.vue = createApp({
 		el: '#start_screen',
 		components: {},
-		data: {
+		data() {return {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
@@ -210,7 +211,7 @@ onVueSetup(async function() {
 			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
-		},
+		}},
 		methods: {
 			getDate(p) {
 				if (p.day) {
@@ -316,7 +317,7 @@ onVueSetup(async function() {
 			loadFormat(format_entry) {
 				this.selected_format_id = format_entry.id;
 				if (format_entry.onFormatPage) format_entry.onFormatPage();
-				Vue.nextTick(() => {
+				nextTick(() => {
 					let button = document.querySelector('.start_screen_format_page button');
 					if (!button) return;
 					let offset = $(button).offset().top;
@@ -595,7 +596,7 @@ onVueSetup(async function() {
 			let section = Interface.createElement('section', {id: 'quick_setup'});
 			document.querySelector('#start_screen #splash_screen').after(section);
 
-			new Vue({
+			createApp({
 				data() {return {
 					language: Language.code,
 					language_original: Language.code,
@@ -675,7 +676,7 @@ onVueSetup(async function() {
 						</div>
 					</section>
 				`
-			}).$mount(section);
+			}).mount(section);
 		}
 	})
 	Promise.all([news_call, documentReady]).then((data) => {

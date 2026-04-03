@@ -1,3 +1,4 @@
+import { createApp, nextTick } from "vue";
 import { AutoBackup } from "../auto_backup";
 import { FormElementOptions } from "../interface/form";
 import { setProjectTitle } from "../interface/interface";
@@ -199,14 +200,14 @@ export class ModelProject {
 	set texture_width(n: number) {
 		n = n || 16;
 		if (this.selected && n != this._texture_width) {
-			Vue.nextTick(updateProjectResolution);
+			nextTick(updateProjectResolution);
 		}
 		this._texture_width = n;
 	}
 	set texture_height(n: number) {
 		n = n || 16;
 		if (this.selected && n != this._texture_height) {
-			Vue.nextTick(updateProjectResolution);
+			nextTick(updateProjectResolution);
 		}
 		this._texture_height = n;
 	}
@@ -405,7 +406,7 @@ export class ModelProject {
 		ReferenceImage.updateAll();
 		updateProjectResolution();
 		Validator.validate();
-		Vue.nextTick(() => {
+		nextTick(() => {
 			if (this.on_next_upen instanceof Array) {
 				this.on_next_upen.forEach(callback => callback());
 				delete this.on_next_upen;
@@ -842,9 +843,9 @@ onVueSetup(() => {
 		},
 		openSettings() {}
 	}
-	Interface.tab_bar = new Vue({
+	Interface.tab_bar = createApp({
 		el: '#tab_bar',
-		data: {
+		data() {return {
 			projects: ModelProject.all,
 			drag_target_index: null,
 			drag_position_index: null,
@@ -852,7 +853,7 @@ onVueSetup(() => {
 			search_tabs_label: tl('action.tab_overview'),
 			last_opened_project: '',
 			new_tab
-		},
+		}},
 		computed: {
 			tabs() {
 				let tabs = this.projects.slice();
@@ -1360,7 +1361,7 @@ BARS.defineActions(function() {
 					}
 				}
 			}).show();
-			Vue.nextTick(() => {
+			nextTick(() => {
 				(document.querySelector('#tab_overview_search input') as HTMLElement)?.focus();
 			})
 		}

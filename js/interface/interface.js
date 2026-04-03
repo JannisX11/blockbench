@@ -1,3 +1,4 @@
+import { createApp } from "vue";
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
 import { currentwindow } from "../native_apis";
@@ -634,7 +635,7 @@ Blockbench.setProgress = function(progress, time = 0, bar) {
 };
 
 onVueSetup(function() {
-	Interface.status_bar.vue = new Vue({
+	Interface.status_bar.vue = createApp({
 		el: '#status_bar',
 		data: {
 			Prop,

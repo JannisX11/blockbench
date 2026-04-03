@@ -1,4 +1,8 @@
-Vue.component('search-bar', {
+import { defineComponent } from "vue";
+
+
+
+defineComponent('search-bar', {
 	props: {
 		value: String,
 		hide: Boolean
@@ -26,7 +30,7 @@ Vue.component('search-bar', {
 		</div>`
 })
 
-Vue.component('select-input', {
+defineComponent('select-input', {
 	props: {
 		value: String,
 		options: Object,
@@ -79,7 +83,7 @@ Vue.component('select-input', {
 	`
 })
 
-Vue.component('numeric-input', {
+defineComponent('numeric-input', {
 	props: {
 		value: Number,
 		min: Number,
@@ -154,7 +158,7 @@ Vue.component('numeric-input', {
 		if (typeof this.step == 'string') console.warn('Argument "step" should be set as a numeric property via "v-bind:"')
 	}
 })
-Vue.component('dynamic-icon', {
+defineComponent('dynamic-icon', {
 	props: {
 		icon: [String, HTMLElement],
 		color: String,

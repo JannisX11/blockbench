@@ -4,6 +4,7 @@ import { clipboard, currentwindow, dialog, fs, ipcRenderer } from '../native_api
 import { Filesystem } from '../file_system';
 import { Easings } from '../lib/easing';
 import { markerColors } from '../marker_colors';
+import { nextTick } from 'vue';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
@@ -378,7 +379,7 @@ export class AnimationControllerState {
 		Blockbench.dispatchEvent('add_animation_controller_transition', {state: this});
 		Undo.finishEdit('Add transition to animation controller state');
 
-		Vue.nextTick(() => {
+		nextTick(() => {
 			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_transition:last-child pre`);
 			if (node) {
 				$(node).trigger('focus');
@@ -400,7 +401,7 @@ export class AnimationControllerState {
 		Blockbench.dispatchEvent('add_animation_controller_particle', {state: this});
 		Undo.finishEdit('Add particle to animation controller state');
 
-		Vue.nextTick(() => {
+		nextTick(() => {
 			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_particle input[type="text"]`);
 			if (node) {
 				$(node).trigger('focus');
@@ -419,7 +420,7 @@ export class AnimationControllerState {
 		Blockbench.dispatchEvent('add_animation_controller_sound', {state: this});
 		Undo.finishEdit('Add sound to animation controller state');
 
-		Vue.nextTick(() => {
+		nextTick(() => {
 			let node = document.querySelector(`.controller_state[uuid="${this.uuid}"] .controller_sound input[type="text"]`);
 			if (node) {
 				$(node).trigger('focus');
@@ -1651,7 +1652,7 @@ Interface.definePanels(() => {
 					}
 				},
 				updateConnectionWrapperOffset() {
-					Vue.nextTick(() => {
+					nextTick(() => {
 						let first = document.querySelector('#animation_controllers_wrapper .controller_state');
 						this.connection_wrapper_offset = first ? first.offsetLeft : 0;
 					})
@@ -1690,7 +1691,7 @@ Interface.definePanels(() => {
 					} else {
 						state.select().scrollTo();
 						state.fold.transitions = false;
-						Vue.nextTick(() => {
+						nextTick(() => {
 							let node = document.querySelector(`.controller_transition[uuid="${connection.uuid}"] pre`);
 							if (node) {
 								$(node).trigger('focus');
@@ -1708,7 +1709,7 @@ Interface.definePanels(() => {
 							click() {
 								state.select().scrollTo();
 								state.fold.transitions = false;
-								Vue.nextTick(() => {
+								nextTick(() => {
 									let node = document.querySelector(`.controller_transition[uuid="${connection.uuid}"] pre`);
 									if (node) {
 										$(node).trigger('focus');

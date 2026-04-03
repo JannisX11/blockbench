@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 
 export class Locator extends OutlinerElement {
 	constructor(data, uuid) {
@@ -172,7 +173,7 @@ BARS.defineActions(function() {
 			locator.select().createUniqueName();
 			objs.push(locator);
 			Undo.finishEdit('Add locator');
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					locator.rename();
 				}

@@ -1,5 +1,6 @@
 import Peer from "peerjs";
 import { clipboard, getPCUsername } from "./native_apis";
+import { nextTick } from "vue";
 
 export class EditSession {
 	constructor() {
@@ -318,7 +319,7 @@ export class EditSession {
 		if (!message.text) return;
 		
 		this.chat_history.push(message)
-		Vue.nextTick(() => {
+		nextTick(() => {
 			$('#chat_history').scrollTop(10000)
 		})
 		if (!document.hasFocus() && !message.self) {

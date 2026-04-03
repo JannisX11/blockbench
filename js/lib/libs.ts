@@ -2,7 +2,7 @@ import * as GIFEnc from 'gifenc'
 import $ from 'jquery'
 import * as threejs from "three"
 import * as FIK from './fik'
-import Vue from 'vue/dist/vue.js'
+import Vue from 'vue'
 import JSZip from 'jszip'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-json'
@@ -13,12 +13,12 @@ import {marked} from 'marked'
 import { APNGencoder } from './canvas2apng'
 import DOMPurify from 'dompurify'
 
-Vue.use(vSortable)
+/*Vue.use(vSortable)
 Vue.directive('sortable', {
     inserted: function (el, binding) {
         new Sortable(el, binding.value || {})
     }
-})
+})*/
 
 const THREE = Object.assign({}, threejs);
 

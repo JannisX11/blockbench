@@ -4,6 +4,7 @@ import { FormResultValue, InputForm, InputFormConfig } from "./form"
 import { Vue } from './../lib/libs'
 import { getStringWidth } from "../util/util"
 import { dragHelper } from "../util/drag_helper"
+import { createApp } from "vue"
 
 interface ActionInterface {
 	name: string
@@ -86,7 +87,7 @@ function buildComponent(dialog: Dialog) {
 		dialog_content.append(mount);
 	}
 	dialog.component.name = 'dialog-content'
-	dialog.content_vue = new Vue(dialog.component).$mount(mount);
+	dialog.content_vue = createApp(dialog.component).mount(mount);
 }
 function buildToolbars(dialog: Dialog) {
 	let dialog_content = $(dialog.object).find('.dialog_content')
@@ -866,7 +867,7 @@ export class ShapelessDialog extends Dialog {
 
 		if (this.component) {
 			this.component.name = 'dialog-content';
-			this.content_vue = new Vue(this.component).$mount(this.object, true);
+			this.content_vue = createApp(this.component).mount(this.object, true);
 		}
 		return this;
 	}

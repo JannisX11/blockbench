@@ -1,3 +1,4 @@
+import { nextTick } from "vue"
 import { Blockbench } from "../../api"
 import { Vue } from "../../lib/libs"
 import { Property } from "../../util/property"
@@ -174,7 +175,7 @@ export abstract class OutlinerNode {
 		if (this.parent !== 'root') {
 			this.parent.openUp()
 		}
-		Vue.nextTick(() => {
+		nextTick(() => {
 			var el = $('#'+scope.uuid)
 			if (el.length === 0) return;
 			var outliner_pos = $('#panel_outliner').offset().top

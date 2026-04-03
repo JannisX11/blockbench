@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { settings, Settings } from "../../interface/settings";
 import { markerColors } from "../../marker_colors";
 import { flipNameOnAxis } from "../../modeling/transform";
@@ -551,7 +552,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Add bounding box', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_bounding_box', {object: base_bounding_box} )
 
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					base_bounding_box.rename()
 				}

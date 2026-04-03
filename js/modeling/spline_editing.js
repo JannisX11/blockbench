@@ -1,3 +1,5 @@
+import { nextTick } from "vue";
+
 SharedActions.add('delete', {
 	condition: () => Modes.edit && Prop.active_panel == 'preview' && SplineMesh.selected[0] && Project.spline_selection[SplineMesh.selected[0].uuid],
 	run() {
@@ -247,7 +249,7 @@ BARS.defineActions(function() {
 				Blockbench.dispatchEvent( 'add_spline', {object: spline} )
 				iteration++;
 
-				Vue.nextTick(function() {
+				nextTick(function() {
 					if (settings.create_rename.value && iteration == 1) {
 						spline.rename()
 					}

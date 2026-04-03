@@ -5,7 +5,7 @@ import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
 import fs from 'node:fs';
-import vuePlugin from 'esbuild-vue/src/index.js';
+import vuePlugin from 'esbuild-plugin-vue3';
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
 

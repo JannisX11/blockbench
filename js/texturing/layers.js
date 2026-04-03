@@ -1,3 +1,5 @@
+import { defineComponent, nextTick } from "vue";
+
 export class TextureLayer {
 	constructor(data, texture = Texture.selected, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
@@ -185,7 +187,7 @@ export class TextureLayer {
 			this.texture.layers.splice(i+1, 0, this);
 		}
 		this.select();
-		Vue.nextTick(() => {
+		nextTick(() => {
 			this.scrollTo();
 		});
 		return this;
@@ -644,7 +646,8 @@ BARS.defineActions(() => {
 })
 
 Interface.definePanels(function() {
-	Vue.component('texture-layer-icon', {
+	let TextureLayerIcon = defineComponent({
+		name: 'texture-layer-icon',
 		props: {
 			layer: TextureLayer
 		},
@@ -710,6 +713,7 @@ Interface.definePanels(function() {
 			data() { return {
 				layers: [],
 			}},
+			components: {TextureLayerIcon},
 			methods: {
 				openMenu(event) {
 					Interface.Panels.layers.menu.show(event)

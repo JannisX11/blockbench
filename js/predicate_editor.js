@@ -23,10 +23,10 @@ export const PredicateOverrideEditor = {
 		tooting: {type: 'checkbox', filter: 'goat_horn'},
 	},
 	addPredicateOption(key, settings) {
-		Vue.set(PredicateOverrideEditor.predicate_options, key, settings);
+		PredicateOverrideEditor.predicate_options[key] = settings;
 		return {
 			delete() {
-				Vue.delete(PredicateOverrideEditor.predicate_options, key);
+				delete PredicateOverrideEditor.predicate_options[key];
 			}
 		}
 	},
@@ -149,12 +149,12 @@ export const PredicateOverrideEditor = {
 						let options = Object.keys(this.available_predicate_options);
 						let key = options.find(option => override.predicate[option] === undefined);
 						if (!key) return;
-						Vue.set(override.predicate, key, 0);
+						override.predicate[key] = 0;
 					},
 					changePredicateType(override, new_key, value, key) {
 						if (key !== new_key) {
-							Vue.set(override.predicate, new_key, value);
-							Vue.delete(override.predicate, key);
+							override.predicate[new_key] = value;
+							delete override.predicate[key];
 						}
 					},
 					changePredicateValue(override, key, event) {
@@ -168,7 +168,7 @@ export const PredicateOverrideEditor = {
 						}
 					},
 					removePredicate(override, key) {
-						Vue.delete(override.predicate, key);
+						delete override.predicate[key];
 					},
 					hasMultiplePredicates(override) {
 						return Object.keys(override.predicate).length > 1

@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 
 export class Group extends OutlinerNode {
 	constructor(data, uuid) {
@@ -743,7 +744,7 @@ BARS.defineActions(function() {
 
 			base_group.init().select()
 			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
-			Vue.nextTick(function() {
+			nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
 					base_group.rename()
@@ -784,7 +785,7 @@ BARS.defineActions(function() {
 			})
 			base_group.select()
 			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
-			Vue.nextTick(function() {
+			nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
 					base_group.rename()

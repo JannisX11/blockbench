@@ -4,6 +4,7 @@ import { Dialog } from "./dialog";
 import { FormInputType } from "./form";
 import { ipcRenderer } from "../native_apis";
 import { markerColors } from "../marker_colors";
+import { nextTick } from "vue";
 
 export const settings: Record<string, Setting> = {};
 export type settings_type = typeof settings;
@@ -127,7 +128,7 @@ export class Setting {
 			category.items[id] = this;
 			let before = category.open;
 			category.open = false;
-			Vue.nextTick(() => {
+			nextTick(() => {
 				category.open = before;
 			})
 		}
@@ -175,7 +176,7 @@ export class Setting {
 		let profile = Settings.dialog.content_vue?.$data.profile;
 		if (this.type == 'number') value = Math.clamp(value as number, this.min, this.max)
 		if (profile) {
-			Vue.set(profile.settings, this.id, value);
+			profile.settings[this.id] = value;
 		} else {
 			this.master_value = value;
 		}
@@ -352,7 +353,7 @@ export class SettingsProfile {
 			for (let key in data.settings) {
 				let value = data.settings[key];
 				if (value === undefined || value === null) continue;
-				Vue.set(this.settings, key, value);
+				this.settings[key] = value;
 			}
 		}
 	}
@@ -376,7 +377,7 @@ export class SettingsProfile {
 		return false;
 	}
 	clear(key) {
-		Vue.delete(this.settings, key);
+		delete this.settings[key];
 		Settings.saveLocalStorages();
 	}
 	openDialog() {

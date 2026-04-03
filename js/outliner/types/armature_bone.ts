@@ -7,6 +7,7 @@ import { Vue } from '../../lib/libs'
 import { OutlinerElement } from "../abstract/outliner_element";
 import { OutlinerNode } from "../abstract/outliner_node";
 import { markerColors } from "../../marker_colors";
+import { nextTick } from "vue";
 
 interface ArmatureBoneOptions {
 	name?: string
@@ -586,7 +587,7 @@ BARS.defineActions(function() {
 			}
 			new_instance.init().select()
 			Undo.finishEdit('Add armature bone', {outliner: true, elements: [new_instance], selection: true});
-			Vue.nextTick(function() {
+			nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
 					new_instance.rename()

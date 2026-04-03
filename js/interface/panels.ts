@@ -5,6 +5,7 @@ import { Interface, openTouchKeyboardModifierMenu, resizeWindow, updateInterface
 import {Toolbar} from './toolbars'
 import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
+import { createApp, nextTick, App, Component } from "vue";
 
 interface PanelPositionData {
 	slot: PanelSlot
@@ -51,7 +52,7 @@ interface PanelOptions {
 		| Toolbar[]
 	default_position?: Partial<PanelPositionData>
 	mode_positions?: Record<string, Partial<PanelPositionData>>
-	component?: Vue.Component
+	component?: Component
 	form?: InputForm
 	default_side?: 'right' | 'left'
 	/**
@@ -105,8 +106,8 @@ export class Panel extends EventSystem {
 	handle: HTMLElement
 	tab_bar: HTMLElement
 	form?: InputForm
-	vue?: Vue
-	inside_vue?: Vue
+	vue?: App
+	inside_vue?: App
 	toolbars: Toolbar[]
 	sidebar_resize_handle: HTMLElement
 	resize_handles?: HTMLElement
@@ -198,7 +199,7 @@ export class Panel extends EventSystem {
 			this.node.append(component_mount);
 			let onmounted = data.component.mounted;
 			data.component.mounted = function() {
-				Vue.nextTick(() => {
+				nextTick(() => {
 
 					let toolbar_wrappers = this.$el.querySelectorAll('.toolbar_wrapper');
 					toolbar_wrappers.forEach((wrapper: HTMLElement) => {
@@ -215,9 +216,9 @@ export class Panel extends EventSystem {
 					//updateInterfacePanels()
 				})
 			}
-			this.vue = this.inside_vue = new Vue(data.component)
-			this.vue.$mount(component_mount);
-			this.vue.$el.classList.add('panel_vue_wrapper');
+			this.vue = this.inside_vue = createApp(data.component);
+			this.vue.mount(component_mount);
+			this.vue._container.classList.add('panel_vue_wrapper');
 		}
 
 		if (!Blockbench.isMobile) {
@@ -1354,13 +1355,13 @@ export function setActivePanel(panel_id: string) {
 }
 
 export function setupMobilePanelSelector() {
-	Interface.PanelSelectorVue = new Vue({
+	Interface.PanelSelectorVue = createApp({
 		el: '#panel_selector_bar',
-		data: {
+		data() {return {
 			all_panels: Interface.Panels,
 			selected: null,
 			modifiers: Pressing.overrides
-		},
+		}},
 		computed: {
 		},
 		methods: {

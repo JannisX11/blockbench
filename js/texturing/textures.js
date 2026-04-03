@@ -9,6 +9,7 @@ import { editUVSizeDialog } from '../uv/uv_size';
 import { decodeTga, encodeTga } from '@lunapaint/tga-codec';
 import { pathToExtension } from '../util/util';
 import { ScopeColors } from '../multi_file_editing';
+import { defineComponent, nextTick } from 'vue';
 
 let tex_version = 1;
 
@@ -2535,7 +2536,7 @@ BARS.defineActions(function() {
 			Panels.textures.inside_vue._data.search_term = '';
 			Panels.textures.inside_vue._data.search_enabled = value;
 			if (value) {
-				Vue.nextTick(() => {
+				nextTick(() => {
 					document.getElementById('texture_search_bar').firstChild.focus();
 				});
 			}
@@ -2584,7 +2585,7 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	let texture_component = Vue.extend({
+	let texture_component = defineComponent({
 		props: {
 			texture: Texture
 		},

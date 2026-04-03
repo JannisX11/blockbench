@@ -1,3 +1,5 @@
+import { createApp, nextTick } from "vue";
+
 export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
@@ -13,7 +15,7 @@ export const ActionControl = {
 		if (input) {
 			ActionControl.vue.search_input = input;
 		}
-		Vue.nextTick(_ => {
+		nextTick(_ => {
 			let element = $('#action_selector > input');
 			element.trigger('focus');
 			if (!input)  element.trigger('select');
@@ -95,7 +97,7 @@ export const ActionControl = {
 			ActionControl.vue.$forceUpdate()
 		}
 		function updateScroll() {
-			Vue.nextTick(() => {
+			nextTick(() => {
 				let list = document.querySelector('#action_selector_list ul');
 				let node = list && list.children[data.index];
 				if (!node) return;
@@ -156,7 +158,7 @@ BARS.defineActions(function() {
 		}
 	})
 
-	ActionControl.vue = new Vue({
+	ActionControl.vue = createApp({
 		el: '#action_selector',
 		data: {
 			open: false,
@@ -401,7 +403,7 @@ BARS.defineActions(function() {
 						icon: this.search_types[key].icon,
 						click: () => {
 							this.search_input = key && (key + ': ');
-							Vue.nextTick(_ => {
+							nextTick(_ => {
 								let element = $('#action_selector > input');
 								element.trigger('focus');
 							})

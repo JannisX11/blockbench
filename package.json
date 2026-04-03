@@ -167,6 +167,7 @@
 		"electron-builder": "^26.0.18",
 		"esbuild": "^0.25.8",
 		"esbuild-plugin-glsl": "^1.2.2",
+		"esbuild-plugin-vue3": "^0.5.1",
 		"esbuild-vue": "^0.0.1",
 		"file-saver": "^2.0.5",
 		"gifenc": "^1.0.3",
@@ -182,7 +183,7 @@
 		"typedoc": "^0.28.14",
 		"typedoc-plugin-missing-exports": "^4.1.2",
 		"typescript": "^5.8.3",
-		"vue": "^2.7.16",
+		"vue": "^3.5.31",
 		"vue-sortable": "^0.1.3",
 		"wintersky": "^1.3.2",
 		"workbox-build": "^6.5.3"

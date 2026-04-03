@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { Blockbench } from "../../api";
 import { THREE, Vue } from "../../lib/libs";
 import { OutlinerElement } from "../abstract/outliner_element";
@@ -306,7 +307,7 @@ BARS.defineActions(function() {
 
 			// @ts-ignore
 			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
-			Vue.nextTick(function() {
+			nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
 					armature.rename()

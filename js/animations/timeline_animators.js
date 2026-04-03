@@ -1,5 +1,6 @@
 import Wintersky from 'wintersky';
 import { THREE } from '../lib/libs';
+import { nextTick } from 'vue';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -52,7 +53,7 @@ export class GeneralAnimator {
 		this.selected = true;
 		Timeline.selected_animator = this;
 		this.addToTimeline();
-		Vue.nextTick(() => {
+		nextTick(() => {
 			scope.scrollTo();
 		})
 		return this;
@@ -200,9 +201,9 @@ GeneralAnimator.addChannel = function(channel, options) {
 		project.animations.forEach(animation => {
 			animation.animators.forEach(animator => {
 				if (animator instanceof this && !animator[channel]) {
-					Vue.set(animator, channel, []);
+					animator[channel] = [];
 					if (this.prototype.channels[channel].mutable) {
-						Vue.set(animator.muted, channel, false);
+						animator.muted[channel] = false;
 					}
 				}
 			})

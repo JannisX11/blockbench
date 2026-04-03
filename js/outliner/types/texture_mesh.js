@@ -1,3 +1,5 @@
+import { nextTick } from "vue";
+
 export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
@@ -366,7 +368,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Add texture mesh', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_texture_mesh', {object: base_texture_mesh} )
 
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					base_texture_mesh.rename()
 				}

@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { Property } from "../../util/property";
 import { Face } from "../abstract/face";
 
@@ -1648,7 +1649,7 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Add cube', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
-			Vue.nextTick(function() {
+			nextTick(function() {
 				if (settings.create_rename.value) {
 					base_cube.rename()
 				}

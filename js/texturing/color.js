@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
 import { colorDistance } from "../util/util";
@@ -527,7 +528,7 @@ Interface.definePanels(() => {
 		],
 		onResize() {
 			Panels.color.vue.width = 0;
-			Vue.nextTick(() => {
+			nextTick(() => {
 				let disp_before = this.vue.$refs.square_picker.style.display;
 				this.vue.$refs.square_picker.style.display = 'none';
 				Panels.color.vue.width = Math.clamp(this.width, 100, 1000);
@@ -541,7 +542,7 @@ Interface.definePanels(() => {
 					}
 				}
 				this.vue.$refs.square_picker.style.display = disp_before;
-				Vue.nextTick(() => {
+				nextTick(() => {
 					Panels.color.picker.spectrum('reflow');
 				})
 			})

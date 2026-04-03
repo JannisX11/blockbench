@@ -1,3 +1,4 @@
+import { nextTick } from "vue";
 import { markerColors } from "../marker_colors";
 import { clipboard } from "../native_apis";
 import { invertMolang } from "../util/molang";
@@ -493,7 +494,7 @@ export class Keyframe {
 		this.animator.addToTimeline();
 		this.select();
 
-		Vue.nextTick(() => {
+		nextTick(() => {
 			let element = $(`.keyframe#${this.uuid}`);
 			let offset = element.offset();
 			if (!offset) return;
