@@ -1736,7 +1736,7 @@ Interface.definePanels(() => {
 									@dblclick.prevent="marker.propertiesDialog()"
 									v-on:click="marker.callPlayhead()"
 								>
-									<i class="material-icons icon">sports_score</i>
+									<i class="material-icons icon">beenhere</i>
 									<div class="tooltip" v-if="marker.name">{{ marker.name }}</div>
 								</div>
 							</div>

@@ -174,23 +174,32 @@ export class Armature extends OutlinerElement {
 		let bind_matrix_inverse = bind_matrix.clone().invert();
 		let bones = this.getAllBones();
 		let vertex_offsets = {};
+		let vertices = mesh.vertices;
 
-		for (let vkey in mesh.vertices) {
+		for (let vkey in vertices) {
 
-			_basePosition.fromArray(mesh.vertices[vkey]);
+			_basePosition.fromArray(vertices[vkey]);
 			_basePosition.applyMatrix4(bind_matrix);
 	
 			target.set(0, 0, 0);
 
-			let affecting_bones = bones.filter(bone => bone.getVertexWeight(mesh, vkey));
+			let bone_weights: Record<UUID, number> = {};
+
+			let affecting_bones = bones.filter(bone => {
+				let weight = bone.getVertexWeight(mesh, vkey);
+				if (weight) {
+					bone_weights[bone.uuid] = weight;
+					return true;
+				}
+			});
 			if (affecting_bones.length > 4) {
-				affecting_bones.sort((a, b) => a.getVertexWeight(mesh, vkey) - b.getVertexWeight(mesh, vkey)).slice(0, 4);
+				affecting_bones.sort((a, b) => bone_weights[a.uuid] - bone_weights[b.uuid]).slice(0, 4);
 			}
 			// Normalize weights
 			// The sum of all weights shold be 1, otherwise vertices are not influenced by bones equally and start drifting towards the mesh origin
 			let weights = [];
 			for ( let i = 0; i < 4; i ++ ) {
-				const weight = affecting_bones[i]?.getVertexWeight(mesh, vkey) ?? 0;
+				const weight = affecting_bones[i] ? bone_weights[affecting_bones[i].uuid] : 0;
 				weights.push(weight);
 			}
 			let weight_vector = new THREE.Vector4().fromArray(weights);
@@ -215,7 +224,7 @@ export class Armature extends OutlinerElement {
 			}
 
 			target.applyMatrix4( bind_matrix_inverse );
-			vertex_offsets[vkey] = target.toArray().V3_subtract(mesh.vertices[vkey]);
+			vertex_offsets[vkey] = target.toArray().V3_subtract(vertices[vkey]);
 		}
 		return vertex_offsets;
 	}

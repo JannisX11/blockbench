@@ -167,11 +167,15 @@ new NodePreviewController(TextureMesh, {
 			normals.push(x, y, z);
 			normals.push(x, y, z);
 		}
+		let uv_size = [
+			Project.getUVWidth(texture),
+			Project.getUVHeight(texture),
+		]
 
 		let corners = [
-			[-Project.texture_width, 0, 0],
-			[-Project.texture_width, 0, Project.texture_height],
-			[0, 0, Project.texture_height],
+			[-uv_size[0], 0, 0],
+			[-uv_size[0], 0, uv_size[1]],
+			[0, 0, uv_size[1]],
 			[0, 0, 0],
 		]
 		corners.push(...corners.map(corner => {
@@ -214,10 +218,10 @@ new NodePreviewController(TextureMesh, {
 			function addFace(sx, sy, ex, ey, dir) {
 
 				let s = position_array.length / 3;
-				position_array.push(-sx * Project.texture_width / texture.width, 0, sy * Project.texture_height / texture.height);
-				position_array.push(-sx * Project.texture_width / texture.width, -1, sy * Project.texture_height / texture.height);
-				position_array.push(-ex * Project.texture_width / texture.width, -1, ey * Project.texture_height / texture.height);
-				position_array.push(-ex * Project.texture_width / texture.width, 0, ey * Project.texture_height / texture.height);
+				position_array.push(-sx * uv_size[0] / texture.width, 0, sy * uv_size[1] / texture.height);
+				position_array.push(-sx * uv_size[0] / texture.width, -1, sy * uv_size[1] / texture.height);
+				position_array.push(-ex * uv_size[0] / texture.width, -1, ey * uv_size[1] / texture.height);
+				position_array.push(-ex * uv_size[0] / texture.width, 0, ey * uv_size[1] / texture.height);
 
 				if (dir == 1) {
 					indices.push(s+0, s+1, s+2, s+0, s+2, s+3);

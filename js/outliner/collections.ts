@@ -222,7 +222,7 @@ export class Collection {
 		all.forEach(node => {
 			node.visibility = state;
 		})
-		Canvas.updateView({elements, element_aspects: {visibility: true}});
+		Canvas.updateView({elements, element_aspects: {visibility: true}, groups, group_aspects: {visibility: true}});
 		Undo.finishEdit('Toggle collection visibility');
 	}
 	/**

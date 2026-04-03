@@ -573,7 +573,8 @@ export const Canvas = {
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
-				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+				// TODO: No longer update all when visibility changes, but test in beta to catch issues
+				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible && !(element.constructor.animator));
 				let controller = element.constructor.preview_controller
 				
 				if (aspects.transform || update_all) {
@@ -598,6 +599,9 @@ export const Canvas = {
 		}
 		if (options.groups) {
 			Canvas.updateAllBones(options.groups)
+			for (let group of options.groups) {
+				group.preview_controller.updateVisibility(group);
+			}
 		}
 		if (options.selection) {
 			updateSelection();
@@ -654,7 +658,7 @@ export const Canvas = {
 	updateVisibility() {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
 		Group.all.forEach(group => {
-			if (group.mesh) group.mesh.visible = group.visibility;
+			group.preview_controller.updateVisibility(group);
 		});
 	},
 	updateAllFaces(texture) {

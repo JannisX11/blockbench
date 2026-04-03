@@ -92,6 +92,7 @@ export class Texture {
 		mat.map = tex;
 		mat.name = this.name;
 		this.material = mat;
+		this.updateMaterial();
 
 		let size_control = {};
 
@@ -99,8 +100,10 @@ export class Texture {
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
 			if (self.width && dimensions_changed) {
 				tex = new THREE.Texture(this.canvas);
-				tex.magFilter = THREE.NearestFilter;
-				tex.minFilter = THREE.NearestFilter;
+				tex.magFilter = mat.map.magFilter;
+				tex.minFilter = mat.map.minFilter;
+				tex.wrapS = mat.map.wrapS;
+				tex.wrapT = mat.map.wrapT;
 				tex.name = this.name;
 				mat.map = tex;
 				mat.uniforms.map.value = tex;
@@ -956,9 +959,12 @@ export class Texture {
 		}
 		Blockbench.dispatchEvent( 'add_texture', {texture: this})
 
+		if (Canvas.layered_material) {
+			Canvas.updateLayeredTextures();
+		}
 		if ((Format.single_texture || Format.single_texture_default) && Cube.all.length) {
 			Canvas.updateAllFaces()
-			if (selected.length) {
+			if (Outliner.selected.length) {
 				UVEditor.loadData()
 			}
 		}
@@ -980,6 +986,9 @@ export class Texture {
 		Project.textures.splice(Texture.all.indexOf(this), 1)
 		Blockbench.dispatchEvent('update_texture_selection');
 		if (!no_update) {
+			if (Canvas.layered_material) {
+				Canvas.updateLayeredTextures();
+			}
 			Canvas.updateAllFaces()
 			TextureAnimator.updateButton()
 			if (UVEditor.texture == this) {
@@ -1237,6 +1246,7 @@ export class Texture {
 						this.path = this.path.replace(regex, '.'+new_extensions[0]);
 					}
 					this.file_format = results.file_format;
+					this.convertToInternal();
 				}
 				
 				if (Format.per_texture_uv_size) {
@@ -2357,6 +2367,9 @@ SharedActions.add('delete', {
 			texture.remove(true);
 		})
 		Canvas.updateAllFaces();
+		if (Canvas.layered_material) {
+			Canvas.updateLayeredTextures();
+		}
 		TextureAnimator.updateButton();
 		UVEditor.vue.updateTexture();
 		BARS.updateConditions();
@@ -2794,9 +2807,11 @@ Interface.definePanels(function() {
 						}
 					} else if (isNodeUnderCursor(document.getElementById('texture_list'), e2)) {
 
-						let selected_textures = Texture.all.filter(t => t.selected || t.multi_selected);
+						let selected_textures = (!texture || texture.selected || texture.multi_selected)
+							? Texture.all.filter(t => t.selected || t.multi_selected)
+							: [texture];
 
-						let index = Texture.all.length-1;
+						let index = Texture.all.length;
 						let texture_node = findNodeUnderCursor('#texture_list li.texture', e2);
 						let target_group_head = findNodeUnderCursor('#texture_list .texture_group_head', e2);
 						let new_group = '';
@@ -2816,7 +2831,9 @@ Interface.definePanels(function() {
 						Undo.initEdit({texture_order: true, textures: track_group_changes ? selected_textures : null});
 						let item_at_index = Texture.all[index];
 						selected_textures.forEach(t => Texture.all.remove(t));
-						index = item_at_index ? Texture.all.indexOf(item_at_index) : index;
+						if (item_at_index && Texture.all.includes(item_at_index)) {
+							index = Texture.all.indexOf(item_at_index);
+						}
 						selected_textures.forEach((texture, i) => {
 							Texture.all.splice(index+i, 0, texture);
 							texture.group = new_group;

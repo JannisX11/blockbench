@@ -56,7 +56,9 @@ function setupSettings() {
 	new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 	new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
 		if (Animator.open) {
-			scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			Canvas.scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			Animator.showMotionTrail(null, true);
+			Animator.preview();
 		}
 	}});
 	new Setting('seethrough_outline', 	{category: 'interface', value: false, onChange(value) {
