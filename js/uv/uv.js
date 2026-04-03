@@ -4183,7 +4183,11 @@ Interface.definePanels(function() {
 					let min = [Infinity, Infinity];
 					let max = [-Infinity, -Infinity];
 					this.mappable_elements.forEach(element => {
-						UVEditor.getSelectedFaces(element).forEach(fkey => {
+						let faces = UVEditor.getSelectedFaces(element);
+						if (element instanceof Cube && element.box_uv) {
+							faces = Object.keys(element.faces);
+						}
+						faces.forEach(fkey => {
 							if (element instanceof SplineMesh) return;
 							if (element.faces[fkey].texture === null) return;
 
