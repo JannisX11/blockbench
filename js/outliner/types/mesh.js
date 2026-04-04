@@ -1138,7 +1138,7 @@ new NodePreviewController(Mesh, {
 				}
 			}
 		}
-		if (Modes.animate && vertex_offsets) {
+		if (vertex_offsets) {
 			for (let key in faces) {
 				let face = faces[key];
 				if (face.vertices.length <= 2) continue;

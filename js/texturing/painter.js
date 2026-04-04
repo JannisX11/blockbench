@@ -2361,7 +2361,7 @@ BARS.defineActions(function() {
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
-			Canvas.updateAllBones()
+			Animator.showDefaultPose();
 			Outliner.elements.forEach(cube => {
 				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
