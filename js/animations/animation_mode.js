@@ -135,6 +135,7 @@ export const Animator = {
 			}
 		}
 		if (!target) return;
+		if (!settings.motion_trails.value) return;
 		let animation = Animation.selected;
 		let currentTime = Timeline.time;
 		let step = Timeline.getStep();
@@ -336,7 +337,7 @@ export const Animator = {
 			})
 		})
 
-		scene.updateMatrixWorld();
+		Canvas.scene.updateMatrixWorld();
 
 		Animator.resetLastValues();
 

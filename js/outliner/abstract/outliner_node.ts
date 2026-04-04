@@ -88,7 +88,7 @@ export abstract class OutlinerNode {
 		if (index < 0) {
 			arr.push(this)
 		} else {
-			arr.splice(index + index_modifier, 0, this)
+			arr.splice(index + (index_modifier??0), 0, this)
 		}
 		return this;
 	}

@@ -2566,7 +2566,7 @@ BARS.defineActions(function() {
                                 }
 							}
 						})
-					} else if (element instanceof CubeFace) {
+					} else if (face instanceof CubeFace) {
 						face.uv[0] = Math.round(face.uv[0] / res_x) * res_x;
 						face.uv[1] = Math.round(face.uv[1] / res_y) * res_y;
 						face.uv[2] = Math.round(face.uv[2] / res_x) * res_x;
@@ -4183,7 +4183,11 @@ Interface.definePanels(function() {
 					let min = [Infinity, Infinity];
 					let max = [-Infinity, -Infinity];
 					this.mappable_elements.forEach(element => {
-						UVEditor.getSelectedFaces(element).forEach(fkey => {
+						let faces = UVEditor.getSelectedFaces(element);
+						if (element instanceof Cube && element.box_uv) {
+							faces = Object.keys(element.faces);
+						}
+						faces.forEach(fkey => {
 							if (element instanceof SplineMesh) return;
 							if (element.faces[fkey].texture === null) return;
 
@@ -4669,7 +4673,7 @@ Interface.definePanels(function() {
 					return UVEditor.getSelectedFaces(this.mappable_elements[0]).length;
 				},
 				isFaceSelected(element, fkey) {
-					if (this.mode != 'uv') return false;
+					if (this.mode == 'paint') return false;
 					if (!element) element = this.mappable_elements[0];
 					if (element.getTypeBehavior('select_faces') == false) return true;
 					return UVEditor.getSelectedFaces(element).indexOf(fkey) != -1;
@@ -4850,10 +4854,10 @@ Interface.definePanels(function() {
 							<li v-for="(face, key) in mappable_elements[0].faces" :face="key"
 								class="uv_face_properties_line"
 								:class="{selected: isFaceSelected(mappable_elements[0], key), disabled: mappable_elements[0].faces[key].texture === null}"
-								@mousedown="selectFace(mappable_elements[0], key, $event, false, true)"
+								@pointerdown="selectFace(mappable_elements[0], key, $event, false, true)"
 							>
 								
-								<input type="checkbox" :checked="mappable_elements[0].faces[key].texture !== null" @change="toggleFaceEnabled(key, $event)">
+								<input type="checkbox" :checked="mappable_elements[0].faces[key].texture !== null" @change="toggleFaceEnabled(key, $event)" @pointerdown.stop>
 
 								<label>{{ face_names[key] }}</label>
 

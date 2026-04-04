@@ -155,7 +155,7 @@ export class Animation extends AnimationItem {
 	}
 	compileBedrockAnimation() {
 		console.warn('"Animation.compileBedrockAnimation" is deprecated')
-		return AnimationCodec.codecs.bedrock.compileAnimation()
+		return AnimationCodec.codecs.bedrock.compileAnimation(this)
 	}
 	sampleIK(sample_rate = settings.animation_sample_rate.value) {
 		let interval = 1 / Math.clamp(sample_rate, 1, 144);
@@ -182,7 +182,7 @@ export class Animation extends AnimationItem {
 				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
 				let animator = this.getBoneAnimator(node);
-				if (!animator) return;
+				if (!animator || !animator.displayIK) return;
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				animator.displayPosition(animator.interpolate('position'), multiplier);
 				let bone_frame_rotation = animator.displayIK(true);

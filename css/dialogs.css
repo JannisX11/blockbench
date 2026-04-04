@@ -211,7 +211,7 @@
 		width: var(--max_label_width);
 	}
 	.dialog_bar > .molang_input {
-		width: calc(100% - var(--max_label_width));
+		width: calc(100% - var(--max_label_width) - 10px);
 	}
 	.dialog_bar.form_bar.small_text {
 		word-break: break-word;
