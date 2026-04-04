@@ -5,6 +5,7 @@ import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
 import { Dialog } from "./dialog";
 import { Setting, SettingsProfile } from "./settings";
+import { VueSelectInput } from "./vue_components";
 
 BARS.defineActions(() => {
 	new Action('settings_window', {
@@ -127,6 +128,7 @@ onVueSetup(function() {
 			}
 		},
 		component: {
+			components: {'select-input': VueSelectInput},
 			data() {return {
 				structure: Settings.structure,
 				profile: null,

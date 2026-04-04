@@ -1,6 +1,7 @@
 import { editUVSizeDialog } from "./uv_size";
 import { PointerTarget } from "../interface/pointer_target";
 import { dragHelper } from "../util/drag_helper";
+import { VueSelectInput } from "../interface/vue_components";
 
 // Image manipulation helpers for UV+texture transforms
 function flipImageDataH(imageData) {
@@ -2708,6 +2709,7 @@ Interface.definePanels(function() {
 			})
 		},
 		component: {
+			components: {'select-input': VueSelectInput},
 			data() {return {
 				mode: 'uv',
 				hidden: false,
@@ -4152,6 +4154,10 @@ Interface.definePanels(function() {
 				},
 				filterMeshFaces(element) {
 					let keys = Object.keys(element.faces);
+					keys = keys.filter(key => {
+						let face = element.faces[key];
+						return (face.vertices.length > 2 && (this.display_uv !== 'selected_faces' || this.mode == 'paint' || this.isFaceSelected(element, key)) && face.getTexture() == this.texture);
+					})
 					if (keys.length > 2000) {
 						let result = {};
 						element.getSelectedFaces().forEach(key => {
@@ -4161,6 +4167,20 @@ Interface.definePanels(function() {
 					} else {
 						return element.faces;
 					}
+				},
+				filterCubeFaces(element) {
+					let visible = {};
+					for (let fkey in element.faces) {
+						let face = element.faces[fkey];
+						if (
+							(face.getTexture() == this.texture || this.texture == 0) &&
+							face.texture !== null &&
+							(this.display_uv !== 'selected_faces' || this.mode == 'paint' || this.isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)
+						) {
+							visible[fkey] = face;
+						}
+					}
+					return visible;
 				},
 				isScalingAvailable() {
 					if (this.mappable_elements[0]?.getTypeBehavior('cube_faces')) {
@@ -4920,8 +4940,7 @@ Interface.definePanels(function() {
 
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
 									<div class="cube_uv_face uv_face"
-										v-for="(face, key) in element.faces" :key="element.uuid + ':' + key"
-										v-if="(face.getTexture() == texture || texture == 0) && face.texture !== null && (display_uv !== 'selected_faces' || mode == 'paint' || isFaceSelected(element, key) || element.getTypeBehavior('select_faces') == false)"
+										v-for="(face, key) in filterCubeFaces(element)" :key="element.uuid + ':' + key"
 										:title="face_names[key]"
 										:class="{selected: isFaceSelected(element, key), unselected: display_uv === 'all_elements' && !mappable_elements.includes(element)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
@@ -4973,7 +4992,6 @@ Interface.definePanels(function() {
 								<template v-if="element.type == 'mesh'">
 									<div class="mesh_uv_face uv_face"
 										v-for="(face, key) in filterMeshFaces(element)" :key="element.uuid + ':' + key"
-										v-if="face.vertices.length > 2 && (display_uv !== 'selected_faces' || mode == 'paint' || isFaceSelected(element, key)) && face.getTexture() == texture"
 										:class="{selected: isFaceSelected(element, key)}"
 										@mousedown.prevent="dragFace(element, key, $event)"
 										@touchstart.prevent="dragFace(element, key, $event)"

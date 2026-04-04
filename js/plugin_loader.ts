@@ -12,6 +12,7 @@ import { Panels } from "./interface/panels";
 import VersionUtil from './util/version_util'
 import { ModelLoader } from "./io/model_loader";
 import { markerColors } from "./marker_colors";
+import { VueSelectInput } from "./interface/vue_components";
 
 
 export const Plugins = {
@@ -1209,7 +1210,8 @@ BARS.defineActions(function() {
 			}
 		},
 		component: {
-			data: {
+			components: {'select-input': VueSelectInput},
+			data() {return {
 				tab: 'installed',
 				page_tab: 'about',
 				search_term: '',
@@ -1222,7 +1224,7 @@ BARS.defineActions(function() {
 				isApp,
 				markerColors,
 				online: navigator.onLine
-			},
+			}},
 			computed: {
 				plugin_search() {
 					let search_name = this.search_term.toUpperCase();
@@ -1597,7 +1599,7 @@ BARS.defineActions(function() {
 			},
 			mount_directly: true,
 			template: `
-				<content style="display: flex;" class="dialog_content">
+				<template style="display: flex;">
 					<div id="plugin_browser_sidebar" v-show="!isMobile || !selected_plugin">
 						<div class="bar flex" id="plugins_list_main_bar">
 							<div class="tool" v-if="!isMobile" @click="selectPlugin(null);"><i class="material-icons icon">home</i></div>
@@ -1873,7 +1875,7 @@ BARS.defineActions(function() {
 						</div>
 					</div>
 					
-				</content>
+				</template>
 			`
 		}
 	})

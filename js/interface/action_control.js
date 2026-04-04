@@ -1,3 +1,5 @@
+import { VueDynamicIcon } from "./vue_components";
+
 export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
@@ -10,6 +12,7 @@ export const ActionControl = {
 		open_interface = ActionControl;
 		ActionControl.vue._data.index = 0;
 		ActionControl.vue.updateSearch();
+		document.getElementById('action_selector').style.display = 'block';
 		if (input) {
 			ActionControl.vue.search_input = input;
 		}
@@ -33,6 +36,7 @@ export const ActionControl = {
 		if (open_interface == ActionControl) open_interface = false;
 		ActionControl.recent_in_streamer_mode = false;
 		ActionControl.open = false;
+		document.getElementById('action_selector').style.display = 'none';
 	},
 	confirm(e) {
 		var data = ActionControl.vue._data
@@ -158,6 +162,9 @@ BARS.defineActions(function() {
 
 	ActionControl.vue = new Vue({
 		el: '#action_selector',
+		components: {
+			'dynamic-icon': VueDynamicIcon
+		},
 		data: {
 			open: false,
 			search_input: '',
@@ -416,10 +423,10 @@ BARS.defineActions(function() {
 		watch: {
 			search_input() {
 				this.updateSearch();
-			}
+			},
 		},
 		template: `
-			<dialog id="action_selector" v-if="open">
+			<template>
 				<div class="tool" ref="search_type_menu" @click="openTypeMenu($event)">
 					<dynamic-icon :icon="search_types[search_type] ? search_types[search_type].icon : 'fullscreen'" />
 				</div>
@@ -441,7 +448,7 @@ BARS.defineActions(function() {
 					</ul>
 					<div class="small_text" v-if="list[index]">{{ subtext() }}</div>
 				</div>
-			</dialog>
+			</template>
 		`
 	})
 })

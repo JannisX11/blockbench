@@ -155,7 +155,7 @@ export function updateSelection(options = {}) {
 	for (let group of Group.multi_selected) {
 		if (group.locked) group.unselect()
 	}
-	UVEditor.vue._computedWatchers.mappable_elements.run();
+	//UVEditor.vue._computedWatchers.mappable_elements.run();
 
 	Project.elements.forEach(element => {
 		if (element.preview_controller.updateSelection) {

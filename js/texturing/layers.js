@@ -1,3 +1,5 @@
+import { defineComponent } from "vue";
+
 export class TextureLayer {
 	constructor(data, texture = Texture.selected, uuid) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
@@ -646,7 +648,7 @@ BARS.defineActions(() => {
 })
 
 Interface.definePanels(function() {
-	Vue.component('texture-layer-icon', {
+	const VueTextureLayerIcon = defineComponent('texture-layer-icon', {
 		props: {
 			layer: TextureLayer
 		},
@@ -712,6 +714,9 @@ Interface.definePanels(function() {
 			data() { return {
 				layers: [],
 			}},
+			components: {
+				'texture-layer-icon': VueTextureLayerIcon
+			},
 			methods: {
 				openMenu(event) {
 					Interface.Panels.layers.menu.show(event)

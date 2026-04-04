@@ -1,5 +1,6 @@
 import { isMac } from './keyboard';
 import { BARS } from './toolbars';
+import { VueSelectInput } from './vue_components';
 
 
 BARS.defineActions(() => {
@@ -129,6 +130,7 @@ onVueSetup(function() {
 			}
 		},
 		component: {
+			components: {'select-input': VueSelectInput},
 			data() {
 				return {
 				structure: Keybinds.structure,

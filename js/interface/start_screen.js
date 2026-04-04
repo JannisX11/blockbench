@@ -4,6 +4,7 @@ import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
 import { pureMarked } from "../util/util";
 import VersionUtil from '../util/version_util';
+import { VueSelectInput } from "./vue_components";
 
 export const StartScreen = {
 	loaders: {},
@@ -596,6 +597,7 @@ onVueSetup(async function() {
 			document.querySelector('#start_screen #splash_screen').after(section);
 
 			new Vue({
+				components: {'select-input': VueSelectInput},
 				data() {return {
 					language: Language.code,
 					language_original: Language.code,

@@ -199,6 +199,18 @@ onVueSetup(function() {
 			data: {
 				options: Modes.options
 			},
+			computed: {
+				visibleOptions() {
+					let list: typeof Modes.options = {};
+					for (let id in Modes.options) {
+						let mode = Modes.options[id];
+						if (Condition(mode.condition)) {
+							list[id] = mode;
+						}
+					}
+					return list;
+				}
+			},
 			methods: {
 				showModes() {
 					let count = 0;

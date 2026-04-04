@@ -144,7 +144,7 @@
 			</div>
 		</div>
 
-		<dialog id="action_selector"></dialog>
+		<dialog id="action_selector" hidden></dialog>
 
 		<div id="start_screen"></div>
 
@@ -156,8 +156,7 @@
 				<div class="toolbar_wrapper narrow tool_options"></div>
 				<ul id="mode_selector" v-if="showModes()">
 					<li
-						v-for="mode in options"
-						v-if="Condition(mode.condition)"
+						v-for="mode of visibleOptions"
 						v-bind:class="{selected: mode.selected}"
 						v-on:mousedown="mode.select()"
 					>

@@ -1,4 +1,5 @@
-Vue.component('search-bar', {
+
+export const VueSearchBar = {
 	props: {
 		value: String,
 		hide: Boolean
@@ -24,9 +25,9 @@ Vue.component('search-bar', {
 			<input type="text" inputmode="search" ref="input" class="dark_bordered" :value="value" @focusout="hidden = hide;" @input="change($event.target.value)">
 			<i class="material-icons" :class="{light_on_hover: !!value}" @click="clickIcon()">{{ value ? 'clear' : 'search' }}</i>
 		</div>`
-})
+}
 
-Vue.component('select-input', {
+export const VueSelectInput = {
 	props: {
 		value: String,
 		options: Object,
@@ -77,9 +78,9 @@ Vue.component('select-input', {
 			{{ getNameFor(value) }}
 		</div>
 	`
-})
+}
 
-Vue.component('numeric-input', {
+export const VueNumericInput = {
 	props: {
 		value: Number,
 		min: Number,
@@ -153,8 +154,8 @@ Vue.component('numeric-input', {
 		if (typeof this.max == 'string') console.warn('Argument "max" should be set as a numeric property via "v-bind:"')
 		if (typeof this.step == 'string') console.warn('Argument "step" should be set as a numeric property via "v-bind:"')
 	}
-})
-Vue.component('dynamic-icon', {
+}
+export const VueDynamicIcon = {
 	props: {
 		icon: [String, HTMLElement],
 		color: String,
@@ -173,4 +174,4 @@ Vue.component('dynamic-icon', {
 		};
 		return h(node.tagName, attrs, node.textContent);
 	}
-})
+}

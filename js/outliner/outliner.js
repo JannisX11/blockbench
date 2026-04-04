@@ -6,6 +6,7 @@ import { radToDeg } from "three/src/math/MathUtils"
 import { PointerTarget } from "../interface/pointer_target"
 import { markerColors } from "../marker_colors"
 import { ScopeColors } from "../multi_file_editing"
+import { defineComponent } from "vue"
 
 export const Outliner = {
 	ROOT: 'root',
@@ -1166,7 +1167,7 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
-	var VueTreeItem = Vue.extend({
+	const VueTreeItem = defineComponent({
 		template: 
 		`<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" v-bind:style="{'--indentation': indentation}">` +
 			`<div
@@ -1286,7 +1287,6 @@ Interface.definePanels(function() {
 			Condition
 		}
 	});
-	Vue.component('vue-tree-item', VueTreeItem);
 
 	function eventTargetToNode(target) {
 		if (!target) return [];

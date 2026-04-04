@@ -1,3 +1,4 @@
+import { VueSearchBar } from './interface/vue_components';
 import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage, SystemInfo } from './native_apis';
 
 export const recent_projects = (function() {
@@ -556,6 +557,9 @@ BARS.defineActions(() => {
 				width: 720,
 				buttons: ['dialog.confirm', 'dialog.view_backups.open_folder', 'dialog.cancel'],
 				component: {
+					components: {
+						'search-bar': VueSearchBar
+					},
 					data() {return {
 						backups: entries,
 						page: 0,
@@ -596,7 +600,7 @@ BARS.defineActions(() => {
 						}
 					},
 					template: `
-						<div>
+						<template>
 							<div class="bar">
 								<search-bar v-model="search_term" @input="setPage(0)"></search-bar>
 							</div>
@@ -611,7 +615,7 @@ BARS.defineActions(() => {
 							<ol class="pagination_numbers" v-if="pages.length > 1">
 								<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
 							</ol>
-						</div>
+						</template>
 					`
 				},
 				onButton(button) {

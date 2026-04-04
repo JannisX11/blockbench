@@ -134,6 +134,7 @@ export const PredicateOverrideEditor = {
 						model: ''
 					}
 				}},
+				components: {'select-input': VueSelectInput},
 				methods: {
 					addOverride() {
 						this.overrides.push({

@@ -866,7 +866,7 @@ export class ShapelessDialog extends Dialog {
 
 		if (this.component) {
 			this.component.name = 'dialog-content';
-			this.content_vue = new Vue(this.component).$mount(this.object, true);
+			this.content_vue = new Vue(this.component).mount(this.object, true);
 		}
 		return this;
 	}

@@ -5,7 +5,7 @@ import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
 import fs from 'node:fs';
-import vuePlugin from 'esbuild-vue/src/index.js';
+import vuePlugin from 'esbuild-plugin-vue3';
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
 
@@ -94,6 +94,9 @@ const config = {
         '.bbtheme': 'text',
         '.png': 'dataurl'
     },
+    alias: {
+        vue: '@vue/compat',
+    },
     plugins: [
         conditionalImportPlugin(2, {
             filter: /native_apis/,
@@ -109,7 +112,14 @@ const config = {
             file: isApp ? 'desktop.js' : 'web.js'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
-        vuePlugin(),
+        vuePlugin({
+            compilerOptions: {
+                isCustomElement: (tag) => tag.includes('content'),
+                compatConfig: {
+                    MODE: 2,
+                },
+            }
+        }),
         glsl({
             minify
         })

@@ -2010,7 +2010,6 @@
 /*Action Control*/
 	#action_selector {
 		position: absolute;
-		display: block;
 		z-index: 24;
 		right: 0;
 		left: 0;
