@@ -430,9 +430,11 @@ SharedActions.add('paste', {
 	condition: () => Prop.active_panel == 'layers' && Texture.selected && Clipbench.layer,
 	run() {
 		let texture = Texture.selected;
-		Undo.initEdit({textures: [texture]});
+		Undo.initEdit({textures: [texture], bitmap: true});
+		if (!texture.layers_enabled) texture.activateLayers(false);
 		let layer = new TextureLayer(Clipbench.layer, texture);
 		layer.addForEditing();
+		texture.updateLayerChanges(true);
 		Undo.finishEdit('Paste layer');
 	}
 })

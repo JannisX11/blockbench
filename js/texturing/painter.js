@@ -163,6 +163,10 @@ export const Painter = {
 					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
+				let max_interval_dist = 6;
+				if (Painter.current.face != data.face && (delta[0]**2 + delta[1]**2) > max_interval_dist**2) {
+					new_face = true;
+				}
 				Painter.current.face = data.face;
 			}
 			Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
@@ -176,7 +180,7 @@ export const Painter = {
 	getMeshUVIsland(fkey, face) {
 		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
 		if (!Painter.current.uv_islands[fkey]) {
-			Painter.current.uv_islands[fkey] = face.getUVIsland();
+			Painter.current.uv_islands[fkey] = face.getUVIsland(48);
 		}
 		return Painter.current.uv_islands[fkey];
 	},
@@ -282,13 +286,14 @@ export const Painter = {
 		} else {
 			texture.edit(canvas => {
 				let is_line = true;
+				if (new_face) is_line = false;
 				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
 					is_line = false;
 				}
 				if (is_line) {
 					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
 				} else {
-					Painter.current.x = Painter.current.y = 0
+					Painter.current.x = Painter.current.y = 0;
 					Painter.useBrushlike(texture, x, y, event, uv)
 				}
 			}, {no_undo: true, use_cache: true});
@@ -328,6 +333,9 @@ export const Painter = {
 		delete Painter.current.uv_rects;
 		delete Painter.current.uv_islands;
 		delete Painter.current.dynamic_brush_size;
+		delete Painter.current.face_matrices;
+		delete Painter.current.start_event;
+
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
@@ -460,6 +468,8 @@ export const Painter = {
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
 					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[matrix_id]);
+					let matrix_id2 = Painter.current.element ? (Painter.current.element.uuid + fkey) : fkey;
+					Painter.current.face_matrices[matrix_id2] = Painter.current.face_matrices[matrix_id];
 				}
 			}
 		}
@@ -2142,9 +2152,9 @@ export class IntMatrix {
 
 SharedActions.add('copy', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, cut) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2195,9 +2205,9 @@ SharedActions.add('copy', {
 })
 SharedActions.add('paste', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 
 		async function loadFromDataUrl(data_url) {
 			let frame = new CanvasFrame();
@@ -2253,9 +2263,9 @@ SharedActions.add('paste', {
 })
 SharedActions.add('duplicate', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2296,9 +2306,9 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('delete', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, context = 0) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		if (texture.selection.override == false) return;
 
 		texture.edit((canvas, {ctx, offset}) => {
