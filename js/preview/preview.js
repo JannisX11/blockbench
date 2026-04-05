@@ -2457,7 +2457,7 @@ BARS.defineActions(function() {
 		click(event = 0) {
 			if (!Project) return;
 			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
-			if (Prop.active_panel == 'uv') {
+			if (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover')) {
 				UVEditor.focusOnSelection(zoom)
 
 			} else {

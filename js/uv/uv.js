@@ -358,6 +358,7 @@ export const UVEditor = {
 			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
 		}
 		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		if (min_x == Infinity) return;
 		if (zoom) {
 			let width = (max_x-min_x) / UVEditor.getUVWidth();
 			let height = (max_y-min_y) / UVEditor.getUVHeight();
