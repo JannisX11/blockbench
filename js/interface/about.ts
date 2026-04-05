@@ -140,6 +140,7 @@ BARS.defineActions(() => {
 
 							<p style="margin-top: 20px">Released under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
 							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+							<i class="material-icons icon" style="position: absolute;font-size: 40px;color: rgb(215 79 79);max-width: unset;top: 338px;right: 51px;transform: rotate(8deg);" title="Easter Egg">egg</i>
 
 						</div>`
 				}

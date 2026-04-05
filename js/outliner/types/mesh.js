@@ -134,7 +134,7 @@ export class MeshFace extends Face {
 							face.uv[vkey][0] * factor_x,
 							face.uv[vkey][1] * factor_y,
 						];
-						if (pointInRectangle(uv_a, ...px_rect)) {
+						if (pointInRectangle(uv_a, px_rect[0], px_rect[1])) {
 							inside = true; break;
 						}
 						let vkey_b = sorted_vertices[i+1] || sorted_vertices[0];
@@ -143,7 +143,7 @@ export class MeshFace extends Face {
 							face.uv[vkey_b][0] * factor_x,
 							face.uv[vkey_b][1] * factor_y,
 						];
-						if (lineIntersectsReactangle(uv_a, uv_b, ...px_rect)) {
+						if (lineIntersectsReactangle(uv_a, uv_b, px_rect[0], px_rect[1])) {
 							inside = true; break;
 						}
 						i++;
@@ -160,10 +160,19 @@ export class MeshFace extends Face {
 	getUVIsland(max_depth = 4096) {
 		let keys = [this.getFaceKey()];
 		let epsilon = 0.2;
+		let vkey_fkey_map = {};
+		let faces = this.mesh.faces;
+		for (let fkey in faces) {
+			let face = faces[fkey];
+			for (let vkey of face.vertices) {
+				vkey_fkey_map[vkey] ??= [];
+				vkey_fkey_map[vkey].push(fkey);
+			}
+		}
 		function crawl(face, depth) {
 			if (depth >= max_depth) return;
 			for (let i = 0; i < face.vertices.length; i++) {
-				let adjacent = face.getAdjacentFace(i);
+				let adjacent = face.getAdjacentFace(i, vkey_fkey_map);
 				if (!adjacent) continue;
 				if (keys.includes(adjacent.key)) continue;
 				let uv_a1 = adjacent.face.uv[adjacent.edge[0]];
@@ -267,7 +276,7 @@ export class MeshFace extends Face {
 			return [];
 		}
 	}
-	getAdjacentFace(side_index = 0) {
+	getAdjacentFace(side_index = 0, vkey_fkey_map) {
 		let vertices = this.getSortedVertices();
 		side_index = side_index % this.vertices.length;
 		let side_vertices = [
@@ -275,7 +284,8 @@ export class MeshFace extends Face {
 			vertices[side_index+1] || vertices[0]
 		]
 		let faces = this.mesh.faces;
-		for (let fkey in faces) {
+		let fkeys = vkey_fkey_map ? vkey_fkey_map[side_vertices[0]] : Object.keys(faces);
+		for (let fkey of fkeys) {
 			let face = faces[fkey];
 			if (face === this) continue;
 			if (face.vertices.includes(side_vertices[0]) && face.vertices.includes(side_vertices[1])) {

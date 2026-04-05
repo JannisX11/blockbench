@@ -1035,9 +1035,18 @@ export const UVEditor = {
 		let selected_faces = mesh.getSelectedFaces(true);
 		if (face_key && mesh && mesh.faces[face_key]) {
 			if (selected_faces.length == 1) {
+				let vkey_fkey_map = {};
+				let faces = mesh.faces;
+				for (let fkey in faces) {
+					let face = faces[fkey];
+					for (let vkey of face.vertices) {
+						vkey_fkey_map[vkey] ??= [];
+						vkey_fkey_map[vkey].push(fkey);
+					}
+				}
 				function crawl(face) {
 					for (let i = 0; i < face.vertices.length; i++) {
-						let adjacent = face.getAdjacentFace(i);
+						let adjacent = face.getAdjacentFace(i, vkey_fkey_map);
 						if (!adjacent) continue;
 						if (selected_faces.includes(adjacent.key)) continue;
 						let epsilon = 0.2;
