@@ -1519,10 +1519,12 @@ Interface.definePanels(function() {
 									Interface.createElement('label', {}, item.name)
 								]);
 								
-								if (item instanceof Group == false && Outliner.selected.length > 1) {
+								let all_nodes = Outliner.selected.concat(Group.selected);
+								let count = all_nodes.filter(node => node.parent == Outliner.ROOT || node.parent.selected == false).length;
+								if (count > 1) {
 									let counter = document.createElement('div');
 									counter.classList.add('outliner_drag_number');
-									counter.textContent = Outliner.selected.length.toString();
+									counter.textContent = count.toString();
 									helper.append(counter);
 								}
 								document.body.append(helper);

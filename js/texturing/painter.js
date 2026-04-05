@@ -163,7 +163,8 @@ export const Painter = {
 					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
-				if (Painter.current.face != data.face && (delta[0]**2 + delta[1]**2) > 9) {
+				let max_interval_dist = 6;
+				if (Painter.current.face != data.face && (delta[0]**2 + delta[1]**2) > max_interval_dist**2) {
 					new_face = true;
 				}
 				Painter.current.face = data.face;
@@ -179,7 +180,7 @@ export const Painter = {
 	getMeshUVIsland(fkey, face) {
 		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
 		if (!Painter.current.uv_islands[fkey]) {
-			Painter.current.uv_islands[fkey] = face.getUVIsland();
+			Painter.current.uv_islands[fkey] = face.getUVIsland(48);
 		}
 		return Painter.current.uv_islands[fkey];
 	},
@@ -323,10 +324,6 @@ export const Painter = {
 			Blockbench.setStatusBarText();
 		}
 		preventContextMenu();
-		for (let key in Painter.current) {
-			delete Painter.current[key];
-		}
-		/*
 		delete Painter.current.alpha_matrix;
 		delete Painter.editing_area;
 		delete Painter.current.cached_canvases;
@@ -338,7 +335,7 @@ export const Painter = {
 		delete Painter.current.dynamic_brush_size;
 		delete Painter.current.face_matrices;
 		delete Painter.current.start_event;
-		*/
+
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
@@ -2364,7 +2361,7 @@ BARS.defineActions(function() {
 			three_grid.visible = false;
 		},
 		onUnselect: () => {
-			Canvas.updateAllBones()
+			Animator.showDefaultPose();
 			Outliner.elements.forEach(cube => {
 				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
 			})
