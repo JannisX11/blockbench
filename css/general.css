@@ -687,7 +687,10 @@
 	}
 	.tool.side_menu_tool i.icon.action_more_options {
 		display: inline-block;
-		width: 19px;
+		width: 20px;
+		height: 100%;
+		margin-top: 0;
+		padding-top: 4px;
 		color: var(--color-text);
 		margin-left: 0;
 	}
@@ -702,6 +705,7 @@
 		text-align: center;
 		width: 100%;
 		margin-top: 0px;
+		padding-top: 0px;
 	}
 
 /*(Context-)Menu*/
