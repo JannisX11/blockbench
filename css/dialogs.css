@@ -1091,6 +1091,7 @@
 	/*About*/
 	dialog#about .dialog_content {
 		text-align: center;
+		user-select: text;
 	}
 	dialog#about h4 {
 		color: var(--color-subtle_text);
