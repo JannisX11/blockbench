@@ -195,7 +195,9 @@ export const Painter = {
 		}
 		if (!PointerTarget.requestTarget(PointerTarget.types.paint)) {
 			Painter.paint_stroke_canceled = true;
-			return;
+			if (Toolbox.selected != BarItems.copy_brush || !event.ctrlOrCmd) {
+				return;
+			}
 		}
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeStart) {
 			let result = Toolbox.selected.brush.onStrokeStart({texture, x, y, uv: uvTag, event, raycast_data: data});
