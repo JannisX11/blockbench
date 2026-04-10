@@ -1120,6 +1120,7 @@
 	}
 	.texture_layer > label {
 		flex-grow: 1;
+		overflow: hidden;
 	}
 	.texture_layer i.toggle_disabled {
 		color: var(--color-subtle_text);
