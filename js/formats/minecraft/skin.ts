@@ -10500,7 +10500,6 @@ skin_presets.zombie = {
 	pose: true,
 	model_java: `{
 		"name": "zombie",
-		"external_textures": ["entity/zombie/zombie.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [
