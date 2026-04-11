@@ -1855,7 +1855,7 @@ BARS.defineActions(function() {
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
 						<h1>Blockbench Plugins</h1>
 						<img src="./assets/plugins.png" />
-						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a list of 100 community created plugins.</p>
+						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a catalog of community created plugins.</p>
 						<p>Want to write your own plugin? Check out the <a href="https://www.blockbench.net/wiki/docs/plugin" target="_blank">Plugin Documentation</a>.</p>
 						
 						<div v-for="row in suggested_rows" class="plugins_suggested_row">
