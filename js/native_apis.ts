@@ -44,7 +44,8 @@ const SAFE_APIS = [
 	'constants',
 	'buffer',
 	'stream',
-	'tty'
+	'tty',
+	'perf_hooks'
 ];
 const REQUESTABLE_APIS = [
 	'fs',
