@@ -43,7 +43,8 @@ const SAFE_APIS = [
 	'querystring',
 	'constants',
 	'buffer',
-	'stream'
+	'stream',
+	'tty'
 ];
 const REQUESTABLE_APIS = [
 	'fs',
