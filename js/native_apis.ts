@@ -26,6 +26,7 @@ export {
  * @internal
  */
 export const process = window.process;
+// @ts-expect-error - Purposefully deleting a non-deletable property.
 delete window.process;
 
 
@@ -214,7 +215,7 @@ delete window.require;
 
 /**
  * Revoke the permissions of a plugin
- * @param plugin 
+ * @param plugin
  * @returns List of revoked permissions
  * @private
  */
