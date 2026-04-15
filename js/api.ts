@@ -6,6 +6,7 @@ import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
 import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
+import { setProjectResolution } from './uv/uv_size'
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -29,7 +30,7 @@ interface ToastNotificationOptions {
 	 */
 	color?: string
 	/**
-	 * Method to run on click. 
+	 * Method to run on click.
 	 * @returns Return `true` to close toast
 	 */
 	click?: (event: Event) => boolean
@@ -108,7 +109,7 @@ export const Blockbench = {
 			//Node
 			node = document.createElement('i');
 			node.classList.add('fa_big', 'icon');
-			
+
 		} else if (icon.match(/^(fa[.-])|(fa[rsb]\.)/)) {
 			//Font Awesome
 			node = document.createElement('i');
@@ -236,10 +237,10 @@ export const Blockbench = {
 		return new MessageBox(options, cb).show();
 	},
 	/**
-	 * 
-	 * @param {*} title 
-	 * @param {*} value 
-	 * @param {*} callback 
+	 *
+	 * @param {*} title
+	 * @param {*} value
+	 * @param {*} callback
 	 * @param {object} options Options
 	 * @param {string} options.info Info text
 	 * @param {string} options.description Description for the text input
@@ -385,6 +386,7 @@ export const Blockbench = {
 	findFileFromContent: Filesystem.findFileFromContent,
 	addDragHandler: Filesystem.addDragHandler,
 	removeDragHandler: Filesystem.removeDragHandler,
+	setProjectResolution: setProjectResolution
 };
 
 (function() {
