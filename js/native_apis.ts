@@ -26,7 +26,6 @@ export {
  * @internal
  */
 export const process = window.process;
-// @ts-expect-error - Purposefully deleting a non-deletable property.
 delete window.process;
 
 
