@@ -453,6 +453,9 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 				item.preview_controller.updateFaces(item);
 			}
 		}
+		if (item.preview_controller.updateGeometry) {
+			item.preview_controller.updateGeometry(item);
+		}
 	}
 	let matrix1 = new THREE.Matrix4();
 	let matrix2 = new THREE.Matrix4();
