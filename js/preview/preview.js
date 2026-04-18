@@ -596,7 +596,7 @@ export class Preview {
 	render() {
 		this.controls.update()
 		this.renderer.render(
-			scene,
+			Canvas.scene,
 			this.camera
 		)
 	}
