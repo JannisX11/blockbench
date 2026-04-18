@@ -10,7 +10,9 @@ declare function openDefaultTexturePath(): void
 declare function createBackup(init: any): void
 declare function closeBlockbenchWindow(): any
 
-type ScopedFS = Pick<typeof import("node:fs"), 
+type ScopedFS = Pick<typeof import("node:fs"),
+	"access" |
+	"accessSync" |
 	"copyFile" |
 	"copyFileSync" |
 	"readFile" |
@@ -27,15 +29,19 @@ type ScopedFS = Pick<typeof import("node:fs"),
 	"rename" |
 	"renameSync" |
 	"rm" |
-	"rmSync" |
+	"rm" |
 	"rmdir" |
 	"rmdirSync" |
 	"unlink" |
 	"unlinkSync" |
 	"stat" |
-	"statSync"
+	"statSync" |
+	"watchFile" |
+	"unwatchFile" |
+	"watch"
 > & {
 	promises: Pick<typeof import("node:fs").promises, 
+		"access" |
 		"copyFile" |
 		"readFile" |
 		"writeFile" |
@@ -46,7 +52,8 @@ type ScopedFS = Pick<typeof import("node:fs"),
 		"rm" |
 		"rmdir" |
 		"unlink" |
-		"stat"
+		"stat" |
+		"watch"
 	>
 }
 interface RequireDialogOptions {
