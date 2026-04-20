@@ -1774,7 +1774,7 @@
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
-		justify-content: flex-end;
+		justify-content: flex-start;
 	}
 	.drag_hover[order]::before {
 		z-index: 7;
