@@ -1395,7 +1395,7 @@ Interface.definePanels(function() {
 									node[key] = value;
 								})
 								// Update
-								Canvas.updateVisibility();
+								Canvas.updateView({elements: affected, element_aspects: {visibility: true}});
 								
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
@@ -1417,7 +1417,9 @@ Interface.definePanels(function() {
 									if (key == 'mirror_uv' && node.preview_controller.updateUV) node.preview_controller.updateUV(node);
 								})
 								// Update
-								if (key == 'visibility') Canvas.updateVisibility();
+								if (key == 'visibility') {
+									Canvas.updateView({elements: affected, element_aspects: {visibility: true}});
+								}
 								if (key == 'locked') updateSelection();
 							}
 						}
