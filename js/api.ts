@@ -386,7 +386,6 @@ export const Blockbench = {
 	findFileFromContent: Filesystem.findFileFromContent,
 	addDragHandler: Filesystem.addDragHandler,
 	removeDragHandler: Filesystem.removeDragHandler,
-	setProjectResolution: setProjectResolution
 };
 
 (function() {

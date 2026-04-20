@@ -6,7 +6,7 @@ import { MultiFileRuleset } from "../multi_file_editing";
 import { currentwindow, ipcRenderer, shell } from "../native_apis";
 import { ReferenceImage, ReferenceImageMode } from "../preview/reference_images";
 import { Property } from "../util/property";
-import { editUVSizeDialog } from "../uv/uv_size";
+import { adjustElementUVToResolution, editUVSizeDialog } from "../uv/uv_size";
 import { ModelFormat } from "./format";
 
 interface ModelProjectOptions {
@@ -232,8 +232,8 @@ export class ModelProject {
 		this._saved = saved;
 
 		// Dispatch an event to allow other scripts to react to the change
-		Blockbench.dispatchEvent('saved_state_changed', { 
-			project: this, 
+		Blockbench.dispatchEvent('saved_state_changed', {
+			project: this,
 			saved: saved
 		});
 		if (Project == this) {
@@ -289,7 +289,7 @@ export class ModelProject {
 	}
 	saveEditorState(): this {
 		UVEditor.saveViewportOffset();
-		
+
 		Preview.all.forEach(preview => {
 			this.previews[preview.id] = {
 				position: preview.camera.position.toArray(),
@@ -437,7 +437,7 @@ export class ModelProject {
 			this.updateThumbnail();
 			this.saveEditorState();
 		}
-		
+
 		Interface.tab_bar.$data.last_opened_project = this.uuid;
 
 		if (Format && typeof Format.onDeactivation == 'function') {
@@ -458,7 +458,7 @@ export class ModelProject {
 		Blockbench.Project = 0;
 		if (Modes.selected instanceof Mode) Modes.selected.unselect();
 		Settings.updateSettingsInProfiles();
-		
+
 		// Clear spline gizmos, otherwise they force the project open and glitch out the entire app
 		// @ts-expect-error
 		SplineGizmos.clear();
@@ -539,7 +539,7 @@ export class ModelProject {
 			if (this.EditSession) {
 				this.EditSession.quit();
 			}
-			
+
 			this.unselect(true);
 			Texture.all.forEach(tex => tex.stopWatcher());
 
@@ -557,7 +557,7 @@ export class ModelProject {
 			ModelProject.all.remove(this);
 			delete ProjectData[this.uuid];
 			Blockbench.Project = 0;
-			
+
 			await AutoBackup.removeBackup(this.uuid);
 
 			if (last_selected && last_selected !== this) {
@@ -578,6 +578,43 @@ export class ModelProject {
 			return false;
 		}
 	}
+
+	setResolution(width: number, height: number, modify_uv: boolean = false) {
+		if (this.texture_width / width != this.texture_width / height) {
+			modify_uv = false;
+		}
+
+		let textures = Format.per_texture_uv_size ? Texture.all : undefined;
+
+		Undo.initEdit({uv_mode: true, elements: Cube.all, uv_only: true, textures});
+
+		let old_res = {
+			x: this.texture_width,
+			y: this.texture_height
+		}
+		this.texture_width = width;
+		this.texture_height = height;
+
+		if (modify_uv) {
+			if (old_res.x != this.texture_width && Math.areMultiples(old_res.x, this.texture_width)) {
+				adjustElementUVToResolution([
+					this.texture_width/old_res.x,
+					this.texture_height/old_res.y
+				]);
+			}
+		}
+		textures && textures.forEach(tex => {
+			tex.uv_width = this.texture_width;
+			tex.uv_height = this.texture_height;
+		});
+
+		Undo.finishEdit('Changed project resolution')
+		Canvas.updateAllUVs()
+		if (Outliner.selected.length) {
+			UVEditor.loadData()
+		}
+	}
+
 	static all: ModelProject[] = [];
 }
 new Property(ModelProject, 'string', 'name', {
@@ -751,7 +788,7 @@ export function newProject(format: ModelFormat | string): boolean {
 }
 export function selectNoProject() {
 	setStartScreen(true);
-	
+
 	Blockbench.Project = 0;
 
 	// Setup Data
@@ -876,7 +913,7 @@ onVueSetup(() => {
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
 				e1.preventDefault();
-				
+
 				if (this.thumbnail) {
 					this.thumbnail.remove();
 					delete this.thumbnail;
@@ -890,7 +927,7 @@ onVueSetup(() => {
 					addEventListeners(document, 'mouseup', off, {passive: false});
 					return;
 				}
-				
+
 				let scope = this;
 				let active = false;
 				let timeout;
@@ -927,14 +964,14 @@ onVueSetup(() => {
 						}
 					} else {
 						if (e2) e2.preventDefault();
-						
+
 						tab_node.style.left = `${offset}px`;
 
 						let index_offset = Math.trunc((e2.clientX - e1.clientX) / tab_node.clientWidth);
 						scope.drag_position_index = scope.drag_target_index + index_offset;
 
 						// Detach tab
-						let outside_tab_bar_before = outside_tab_bar; 
+						let outside_tab_bar_before = outside_tab_bar;
 						outside_tab_bar = isApp && Math.abs(e2.clientY - 42) > 60 || e2.clientX < 2 || e2.clientX > window.innerWidth;
 
 						if (outside_tab_bar !== outside_tab_bar_before) {
@@ -969,7 +1006,7 @@ onVueSetup(() => {
 
 					if (Blockbench.isTouch) clearTimeout(timeout);
 
-					
+
 					if (isApp && outside_tab_bar && !tab.EditSession) {
 						let project = Codecs.project.compile({editor_state: true, history: true, uuids: true, bitmaps: true, raw: true})
 						let pos = currentwindow.getPosition()
@@ -1074,7 +1111,7 @@ BARS.defineActions(function() {
 			let form: Record<string, FormElementOptions> = {
 				format: {type: 'info', label: 'data.format', text: Format.name||'unknown', description: Format.description}
 			}
-			
+
 			for (var key in ModelProject.properties) {
 				let property = ModelProject.properties[key];
 				if (property.exposed === false || !Condition(property.condition)) continue;
@@ -1169,7 +1206,7 @@ BARS.defineActions(function() {
 						Canvas.updateAllUVs()
 						updateSelection()
 					}
-					
+
 					for (var key in ModelProject.properties) {
 						if (formResult[key] != undefined && Project[key] != formResult[key] && typeof Project[key] != 'object') {
 							was_changed = true;
@@ -1200,7 +1237,7 @@ BARS.defineActions(function() {
 						}
 						Project.EditSession.sendAll('change_project_meta', JSON.stringify(metadata));
 					}
-					
+
 					dialog.hide()
 				}
 			})
@@ -1272,7 +1309,7 @@ BARS.defineActions(function() {
 				onConfirm: function(formResult) {
 					var format = Formats[formResult.format]
 					if (!format || format == Format) return;
-					
+
 					if (formResult.create_copy) {
 						let selected_texture_uuid = Texture.selected?.uuid
 						let model = Codecs.project.compile({raw: true});
@@ -1281,7 +1318,7 @@ BARS.defineActions(function() {
 						if (Project.name) Project.name += ' - Converted';
 						Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
 					}
-					
+
 					format.convertTo()
 				}
 			})
