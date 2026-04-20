@@ -6,7 +6,9 @@ import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
 import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
-import { setProjectResolution } from './uv/uv_size'
+import type { SplineCurve, SplineHandle, SplineMesh } from './outliner/types/spline_mesh'
+import type { BillboardFace } from './outliner/types/billboard'
+import type { Animation } from './animations/animation';
 
 declare const appVersion: string;
 declare let Format: ModelFormat
@@ -40,7 +42,86 @@ export const LastVersion = localStorage.getItem('last_version') || localStorage.
 // @ts-ignore
 // const previous_data = window.Blockbench as {};
 
-export const Blockbench = {
+interface Blockbench {
+	Outliner: typeof Outliner
+	OutlinerNode: typeof OutlinerNode
+	OutlinerElement: typeof OutlinerElement
+	Group: typeof Group
+	Cube: typeof Cube
+	Mesh: typeof Mesh
+	Locator: typeof Locator
+	NullObject: typeof NullObject
+	TextureMesh: typeof TextureMesh
+	SplineMesh: typeof SplineMesh
+
+	Face: typeof Face
+	CubeFace: typeof CubeFace
+	MeshFace: typeof MeshFace
+	BillboardFace: typeof BillboardFace
+	SplineHandle: typeof SplineHandle
+	SplineCurve: typeof SplineCurve
+	NodePreviewController: typeof NodePreviewController
+
+	Animator: typeof Animator
+	Timeline: typeof Timeline
+	AnimationItem: typeof AnimationItem
+	Animation: typeof Animation
+	AnimationController: typeof AnimationController
+	AnimationControllerState: typeof AnimationControllerState
+	Keyframe: typeof _Keyframe
+	KeyframeDataPoint: typeof KeyframeDataPoint
+	BoneAnimator: typeof BoneAnimator
+	NullObjectAnimator: typeof NullObjectAnimator
+	EffectAnimator: typeof EffectAnimator
+	TimelineMarker: typeof TimelineMarker
+
+	Panel: typeof Panel
+	Mode: typeof Mode
+	Dialog: typeof Dialog
+	ShapelessDialog: typeof ShapelessDialog
+	ToolConfig: typeof ToolConfig
+	InputForm: typeof InputForm
+	Setting: typeof Setting
+	Plugin: typeof BBPlugin
+	Preview: typeof Preview
+	Toolbar: typeof Toolbar
+
+	Language: typeof Language
+	Painter: typeof Painter
+	Screencam: typeof Screencam
+	Settings: typeof Settings
+	TextureAnimator: typeof TextureAnimator
+	Toolbox: typeof Toolbox
+	BarItems: typeof BarItems
+
+	BarItem: typeof BarItem
+	Action: typeof Action
+	Tool: typeof Tool
+	Toggle: typeof Toggle
+	Widget: typeof Widget
+	BarSelect: typeof BarSelect
+	BarSlider: typeof BarSlider
+	BarText: typeof BarText
+	NumSlider: typeof NumSlider
+	ColorPicker: typeof ColorPicker
+	Keybind: typeof Keybind
+	KeybindItem: typeof KeybindItem
+	Menu: typeof Menu
+	BarMenu: typeof BarMenu
+	ResizeLine: typeof ResizeLine
+
+	ModelProject: typeof ModelProject
+	ModelFormat: typeof ModelFormat
+	Codec: typeof Codec
+	DisplaySlot: typeof DisplaySlot
+	Reusable: typeof Reusable
+
+	Texture: typeof Texture
+	TextureLayer: typeof TextureLayer
+	SharedActions: typeof SharedActions
+}
+
+const API = {
 	//...previous_data,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
@@ -387,6 +468,8 @@ export const Blockbench = {
 	addDragHandler: Filesystem.addDragHandler,
 	removeDragHandler: Filesystem.removeDragHandler,
 };
+
+export const Blockbench: Blockbench & typeof API = API as any;
 
 (function() {
 	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
