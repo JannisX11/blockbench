@@ -1333,6 +1333,16 @@
 		max-height: 60vh;
 		transform-origin: top left;
 	}
+	.advanced_screenshot_preview {
+		display: flex;
+		justify-content: center;
+	}
+	.advanced_screenshot_preview > img {
+		max-width: 100%;
+		max-height: 240px;
+		border-radius: 5px;
+		background-color: var(--color-back);
+	}
 
 /*Bedrock Bindings*/
 	dialog#edit_bedrock_binding > .dialog_wrapper > .dialog_content {

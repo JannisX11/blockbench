@@ -805,6 +805,7 @@
 	"dialog.advanced_screenshot.anti_aliasing.ssaa": "Supersampling",
 	"dialog.advanced_screenshot.show_gizmos": "Show Edit Gizmos",
 	"dialog.advanced_screenshot.shading": "Shading",
+	"dialog.advanced_screenshot.export": "Export",
 
 	"dialog.timelapse.interval": "Interval (Seconds)",
 	"dialog.timelapse.source": "Source",
