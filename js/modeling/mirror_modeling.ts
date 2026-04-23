@@ -245,7 +245,10 @@ export const MirrorModeling = {
 		// post
 		if (!before_snapshop) undo_aspects.outliner = true;
 		if (!undo_aspects.groups) undo_aspects.groups = [];
-		undo_aspects.groups.safePush(group);
+		if (!undo_aspects.groups.includes(group)) {
+			// Must be new array so we don't accidentally change the undo input array
+			undo_aspects.groups = [...undo_aspects.groups, group];
+		}
 	},
 	element_types: {} as Record<string, MirrorModelingElementTypeOptions>,
 	registerElementType(type_class: any, options: MirrorModelingElementTypeOptions) {
@@ -366,13 +369,17 @@ Blockbench.on('finish_edit', ({aspects}) => {
 		if (aspects.group || aspects.groups || aspects.outliner) {
 			Canvas.updateAllBones();
 		}
-	} else if (aspects.group || aspects.groups) {
+	}
+	if (aspects.group || aspects.groups) {
 		let selected_groups = aspects.groups ?? [aspects.group];
 
 		selected_groups.forEach(group => {
 			let mirror_group = MirrorModeling.cached_elements[group.uuid]?.counterpart;
 			if (mirror_group && Group.all.includes(mirror_group)) {
+				let before_snapshot = mirror_group.getChildlessCopy();
+				before_snapshot.uuid = mirror_group.uuid;
 				MirrorModeling.updateParentNodeCounterpart(mirror_group, group);
+				MirrorModeling.insertGroupIntoUndo(mirror_group, aspects, before_snapshot);
 			}
 		})
 
@@ -421,7 +428,8 @@ MirrorModeling.registerElementType(Cube, {
 					!off_axes.some(axis => !Math.epsilon(element.to[axis], element2.to[axis], e)) &&
 					!symmetry_axes.some(axis => !Math.epsilon(element.size(axis), element2.size(axis), e)) &&
 					!symmetry_axes.some(axis => !Math.epsilon(element.to[axis]-center, center-element2.from[axis], e)) &&
-					isOppositeEuler(element.rotation, element2.rotation)
+					isOppositeEuler(element.rotation, element2.rotation) &&
+					element2.getDepth() == element.getDepth()
 				) {
 					return element2;
 				}
@@ -469,7 +477,8 @@ MirrorModeling.registerElementType(Mesh, {
 					symmetry_axes.find(axis => !Math.epsilon(this_center[axis]-center, center-other_center[axis], ep)) == undefined &&
 					off_axes.find(axis => !Math.epsilon(element.origin[axis], element2.origin[axis], e)) == undefined &&
 					off_axes.find(axis => !Math.epsilon(this_center[axis], other_center[axis], ep)) == undefined &&
-					isOppositeEuler(element.rotation, element2.rotation)
+					isOppositeEuler(element.rotation, element2.rotation) &&
+					element2.getDepth() == element.getDepth()
 				) {
 					return element2;
 				}
@@ -698,7 +707,8 @@ MirrorModeling.registerElementType(ArmatureBone, {
 				if (
 					isOppositeVector(element.position, element2.position, center) &&
 					isOppositeEuler(element.rotation, element2.rotation) &&
-					MirrorModeling.isParentTreeOpposite(element, element2)
+					MirrorModeling.isParentTreeOpposite(element, element2) &&
+					element2.getDepth() == element.getDepth()
 				) {
 					return element2;
 				}
@@ -737,7 +747,8 @@ MirrorModeling.registerElementType(Billboard, {
 			for (let element2 of (Billboard.all as Billboard[])) {
 				if (element == element2) continue;
 				if (
-					isOppositeVector(element.position, element2.position, center)
+					isOppositeVector(element.position, element2.position, center) &&
+					element2.getDepth() == element.getDepth()
 				) {
 					return element2;
 				}
