@@ -80,3 +80,4 @@ declare function requireNativeModule(module: 'util', options?: RequireDialogOpti
 declare function requireNativeModule(module: 'os', options?: RequireDialogOptions): (typeof import("node:os")) | undefined;
 declare function requireNativeModule(module: 'v8', options?: RequireDialogOptions): (typeof import("node:v8")) | undefined;
 declare function requireNativeModule(module: 'clipboard', options?: RequireDialogOptions): (import('electron').Clipboard) | undefined;
+declare function requireNativeModule(module: 'shell', options?: RequireDialogOptions): (import('electron').Shell) | undefined;
