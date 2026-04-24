@@ -82,7 +82,7 @@ export const MirrorModeling = {
 				let parent = child.parent;
 				if (parent instanceof OutlinerNode == false) return 'root';
 
-				if ('origin' in parent && parent.origin[0] == center && MirrorModeling.isParentTreeSymmetrical(child, {center})) {
+				if ('origin' in parent && Math.epsilon(parent.origin[0], center) && MirrorModeling.isParentTreeSymmetrical(child, {center})) {
 					return parent;
 				} else {
 					let mirror_group_parent = getParentMirror(parent) as OutlinerNode & OutlinerNodeParentTraits;
@@ -185,8 +185,8 @@ export const MirrorModeling = {
 			parents.push(subject)
 		}
 		return parents.allAre(parent => {
-			if (parent.rotation && off_axes.some(axis => parent.rotation[axis])) return false;
-			if (parent.origin && !symmetry_axes.allAre(axis => parent.origin[axis] == center)) return false;
+			if (parent.rotation && off_axes.some(axis => !Math.epsilon(parent.rotation[axis], 0))) return false;
+			if (parent.origin && !symmetry_axes.allAre(axis => Math.epsilon(parent.origin[axis], center))) return false;
 			return true;
 		})
 	},
@@ -313,7 +313,7 @@ Blockbench.on('init_edit', (args) => {
 		aspects.outliner = true;
 
 		selected_groups.forEach(group => {
-			if (group.origin[0] == (Format.centered_grid ? 0 : 8)) return;
+			if (Math.epsilon(group.origin[0], (Format.centered_grid ? 0 : 8))) return;
 
 			let mirror_group = Group.all.find(g => {
 				if (
@@ -777,7 +777,7 @@ export function symmetrizeArmature(armature: Armature, mesh: Mesh, affected_vkey
 	// For each vkey, copy its value on each bone to the other side
 	for (let vkey in mesh.vertices) {
 		let position = mesh.vertices[vkey];
-		if (position[0] == 0) continue;
+		if (!Math.epsilon(position[0], 0)) continue;
 		if (affected_vkeys.has(vkey) == false) continue;
 		let opposite = getOppositeMeshVertex(mesh, vkey);
 		if (!opposite) continue;
