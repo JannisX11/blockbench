@@ -61,6 +61,8 @@ declare function requireNativeModule(module: 'zlib'): typeof import("node:zlib")
 declare function requireNativeModule(module: 'timers'): typeof import("node:timers");
 declare function requireNativeModule(module: 'url'): typeof import("node:url");
 declare function requireNativeModule(module: 'string_decoder'): typeof import("node:string_decoder");
+declare function requireNativeModule(module: 'stream'): typeof import("node:stream");
+declare function requireNativeModule(module: 'perf_hooks'): typeof import("node:perf_hooks");
 declare function requireNativeModule(module: 'querystring'): typeof import("node:querystring");
 declare function requireNativeModule(module: 'child_process', options?: RequireDialogOptions): (typeof import("node:child_process")) | undefined;
 declare function requireNativeModule(module: 'electron', options?: RequireDialogOptions): (typeof import("node:electron")) | undefined;
