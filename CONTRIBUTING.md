@@ -17,10 +17,11 @@ If you want to contribute Blockbench translations, you can visit [blockbench.net
 
 ## Source code contributions
 
-Blockbench, the program itself, is mostly just coded by me. But sometimes, code contributions can be helpful!
+Blockbench, the program itself, is mostly just coded by me. But third party contributions are welcome!
 
-If you want to contribute to the Blockbench code, please contact me (@Jannis) on [Discord](https://discord.gg/sGkj78W) (e.g. in #bb-feedback) *before* to discuss whether a change is necessary in the base program and how it can be approached.
-Some changes make sense in Blockbench itself, while others could work better as a plugin.
+Bug fixes can be submitted via pull request.
+
+If you want to add a feature or change functionality, I recommend opening a discussion on Discord before to talk about if and where it fits in. You can do so in the channel [#bb-feedback](https://discord.gg/kZBmCwvBFw). Some features may be out of scope and work better as plugins, or I might have additional tips on how to approach it. The timing of features being integrated also depends on the release cycle, new features should go through beta testing before being shipped.
 
 Minor fixes should be targeting the `patch` branch, new features and fixes that require additional testing should generally target the `next` branch.
 
