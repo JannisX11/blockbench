@@ -41,7 +41,9 @@ const SAFE_APIS = [
 	'string_decoder',
 	'querystring',
 	'constants',
-	'buffer'
+	'buffer',
+	'stream',
+	'perf_hooks'
 ];
 const REQUESTABLE_APIS = [
 	'fs',
@@ -214,7 +216,7 @@ delete window.require;
 
 /**
  * Revoke the permissions of a plugin
- * @param plugin 
+ * @param plugin
  * @returns List of revoked permissions
  * @private
  */
