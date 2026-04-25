@@ -112,7 +112,8 @@ export const MirrorModeling = {
 						match = mirror_group;
 					}
 					if (match instanceof Group) {
-						MirrorModeling.insertGroupIntoUndo(match, undo_aspects);
+						let before_snapshot = match.getSaveCopy();
+						MirrorModeling.insertGroupIntoUndo(match, undo_aspects, before_snapshot);
 					} else {
 						MirrorModeling.insertElementIntoUndo(match as OutlinerElement, undo_aspects);
 					}
