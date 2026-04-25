@@ -25,7 +25,7 @@ export const Plugins = {
 	 */
 	installed: [] as PluginInstallation[],
 	json: undefined,
-	download_stats: {},
+	download_stats: {} as Record<string, number>,
 	/**
 	 * All loaded plugins, including plugins from the store that are not installed
 	 */
@@ -684,10 +684,10 @@ export class Plugin {
 					}
 				});
 			})
-	
+
 		} else if (isApp) {
 			file_content = fs.readFileSync(path, {encoding: 'utf-8'});
-	
+
 		} else {
 			throw 'Failed to load plugin: Unknown URL format'
 		}
@@ -728,10 +728,10 @@ export class Plugin {
 	}
 	isInstallable() {
 		var scope = this;
-		var result: string | boolean = 
+		var result: string | boolean =
 			scope.variant === 'both' ||
 			(
-				isApp === (scope.variant === 'desktop') && 
+				isApp === (scope.variant === 'desktop') &&
 				isApp !== (scope.variant === 'web')
 			);
 		if (result && scope.min_version) {
@@ -889,7 +889,7 @@ export class Plugin {
 	}
 
 	static selected: Plugin|null = null
-	
+
 	static menu = new Menu([
 		new MenuSeparator('general'),
 		{
@@ -1024,19 +1024,22 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
-				
+
 			resolve();
 			Plugins.loading_promise = null;
 		},
 		error(response, type) {
 			console.error('Could not connect to plugin server:', type, response)
-			$('#plugin_available_empty').text('Could not connect to plugin server')
 			resolve();
 			Plugins.loading_promise = null;
 
 			if (settings.cdn_mirror.value == false && navigator.onLine) {
 				settings.cdn_mirror.set(true);
 				console.log('Switching to plugin CDN mirror. Restart to apply.');
+			}
+			if (Plugins.dialog) {
+				if (Plugins.dialog.content_vue) Plugins.dialog.content_vue._data.network_error = response.status;
+				Plugins.dialog.component.data.network_error = response.status;
 			}
 		}
 	});
@@ -1128,7 +1131,7 @@ export async function loadInstalledPlugins() {
 				if (plugin) {
 					plugin.installed = true;
 					if (installation.disabled) plugin.disabled = true;
-					
+
 					if (isApp && (
 						(installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version)) ||
 						(plugin.min_version && Blockbench.isOlderThan(plugin.min_version))
@@ -1152,7 +1155,7 @@ export async function loadInstalledPlugins() {
 
 			} else if (isApp && installation.source == 'store') {
 				// Offline install store plugin
-				let plugin = new Plugin(installation.id); 
+				let plugin = new Plugin(installation.id);
 				let promise = plugin.load(false);
 				install_promises.push(promise);
 			} else {
@@ -1170,7 +1173,7 @@ export async function loadInstalledPlugins() {
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')
-	
+
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
@@ -1221,7 +1224,8 @@ BARS.defineActions(function() {
 				isMobile: Blockbench.isMobile,
 				isApp,
 				markerColors,
-				online: navigator.onLine
+				online: navigator.onLine,
+				network_error: null
 			},
 			computed: {
 				plugin_search() {
@@ -1626,13 +1630,17 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'">
+								{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}
+								<p v-if="online && network_error">Error {{ network_error }}</p>
+								<p v-if="online && network_error">This is not an issue with Blockbench itself, it is most likely caused by network issues or internet restrictions.</p>
+							</div>
 						</ul>
 						<ol class="pagination_numbers" v-if="pages.length > 1">
 							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
 						</ol>
 					</div>
-					
+
 					<div id="plugin_browser_page" v-if="selected_plugin" :class="{plugin_disabled: selected_plugin.disabled, plugin_installed: selected_plugin.installed}">
 						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
@@ -1788,7 +1796,7 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 						</ul>
-						
+
 						<ul class="settings_list plugin_browser_tabbed_page" v-if="page_tab == 'settings'">
 							<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
 								v-on="setting.click ? {click: setting.click} : {}"
@@ -1835,7 +1843,7 @@ BARS.defineActions(function() {
 								</template>
 							</li>
 						</ul>
-						
+
 						<ul v-if="page_tab == 'features'" class="features_list plugin_browser_tabbed_page">
 							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
 								<h4>{{ type.name }}</h4>
@@ -1849,15 +1857,15 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 						</ul>
-						
+
 					</div>
-					
+
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
 						<h1>Blockbench Plugins</h1>
 						<img src="./assets/plugins.png" />
-						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a list of 100 community created plugins.</p>
+						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a catalog of community created plugins.</p>
 						<p>Want to write your own plugin? Check out the <a href="https://www.blockbench.net/wiki/docs/plugin" target="_blank">Plugin Documentation</a>.</p>
-						
+
 						<div v-for="row in suggested_rows" class="plugins_suggested_row">
 							<h3>{{row.title}}</h3>
 							<ul>
@@ -1872,7 +1880,7 @@ BARS.defineActions(function() {
 							</ul>
 						</div>
 					</div>
-					
+
 				</content>
 			`
 		}
@@ -1940,7 +1948,7 @@ BARS.defineActions(function() {
 			function getList(details: boolean): string {
 				let plugins = Plugins.all.filter(p => p.installed);
 				if (details) {
-					return plugins.map(p => 
+					return plugins.map(p =>
 						(`${p.id}@${p.version}${p.source == 'store' ? '' : ('('+p.source+')')}`)
 					).join(', ');
 				} else {

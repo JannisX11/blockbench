@@ -421,31 +421,32 @@ export class Preview {
 	raycast(event, options = Toolbox.selected.raycast_options) {
 		if (!options) options = 0;
 		convertTouchEvent(event);
-		var canvas_offset = $(this.canvas).offset()
+		let canvas_offset = this.canvas.getBoundingClientRect();
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
 		this.mouse.y = - ((event.clientY - canvas_offset.top) / this.height) * 2 + 1;
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.visibility === false || element.locked === true || (element.mesh && element.mesh.visible == false)) return;
-			if (element.mesh && element.mesh.geometry) {
-				objects.push(element.mesh);
+			let mesh = element.mesh;
+			if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
+			if (mesh && mesh.geometry) {
+				objects.push(mesh);
 				if (Modes.edit && element.selected) {
-					if (element.mesh.vertex_points && (element.mesh.vertex_points.visible || options.vertices)) {
-						objects.push(element.mesh.vertex_points);
+					if (mesh.vertex_points && (mesh.vertex_points.visible || options.vertices)) {
+						objects.push(mesh.vertex_points);
 					}
-					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
-						objects.push(element.mesh.outline);
+					if (element instanceof Mesh && ((mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
+						objects.push(mesh.outline);
 					}
 				} else if (element instanceof SplineMesh && element.render_mode !== "mesh") {
-					objects.push(element.mesh.pathLine);
+					objects.push(mesh.pathLine);
 				}
 			} else if (element instanceof Locator) {
-				objects.push(element.mesh.sprite);
+				objects.push(mesh.sprite);
 			} else if (element instanceof ArmatureBone) {
 				if (Toolbox.selected.id == 'weight_brush' && !(event.altKey || Pressing.overrides.alt)) return;
-				objects.push(element.mesh.children[0]);
+				objects.push(mesh.children[0]);
 			}
 		})
 		for (let group of Group.multi_selected) {
@@ -596,7 +597,7 @@ export class Preview {
 	render() {
 		this.controls.update()
 		this.renderer.render(
-			scene,
+			Canvas.scene,
 			this.camera
 		)
 	}

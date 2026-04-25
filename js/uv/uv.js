@@ -4726,13 +4726,26 @@ Interface.definePanels(function() {
 					let value = this.mappable_elements[0].faces[key].texture === null;
 					Undo.initEdit({elements: Cube.selected, uv_only: true})
 					UVEditor.forCubes(obj => {
-						UVEditor.getFaces(obj, event).forEach(function(side) {
-							if (value) {
-								if (obj.faces[side].texture === null) obj.faces[side].texture = false;
-							} else {
+						let faces = UVEditor.getFaces(obj, event);
+						if (!faces.includes(key)) {
+							faces = [key];
+						}
+						for (let side of faces) {
+							if (!value) {
 								obj.faces[side].texture = null;
+								
+							} else if (obj.faces[side].texture === null) {
+								let value = false;
+								for (let fkey in obj.faces) {
+									let face = obj.faces[fkey];
+									if (fkey != side && face.texture) {
+										value = face.texture;
+										break;
+									}
+								}
+								obj.faces[side].texture = value;
 							}
-						})
+						}
 						obj.preview_controller.updateFaces(obj);
 					})
 					UVEditor.loadData()

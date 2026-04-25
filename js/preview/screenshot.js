@@ -257,7 +257,6 @@ export const Screencam = {
 			let render_viewport = options.anti_aliasing == 'msaa' ? MediaPreview : Screencam.NoAAPreview;
 
 			let sample_factor = options.anti_aliasing == 'ssaa' ? 4 : 1;
-			render_viewport.resize(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
 			if (options.angle_preset == 'view') {
 				render_viewport.copyView(preview);
 			} else {
@@ -266,6 +265,8 @@ export const Screencam = {
 					: JSON.parse(localStorage.getItem('camera_presets'))[parseInt(options.angle_preset)];
 				render_viewport.loadAnglePreset(preset);
 			}
+			render_viewport.resize(options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
+
 			if (options.zoom) {
 				if (!render_viewport.isOrtho) {
 					render_viewport.camera.setFocalLength(options.zoom);

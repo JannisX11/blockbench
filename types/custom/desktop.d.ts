@@ -10,7 +10,9 @@ declare function openDefaultTexturePath(): void
 declare function createBackup(init: any): void
 declare function closeBlockbenchWindow(): any
 
-type ScopedFS = Pick<typeof import("node:fs"), 
+type ScopedFS = Pick<typeof import("node:fs"),
+	"access" |
+	"accessSync" |
 	"copyFile" |
 	"copyFileSync" |
 	"readFile" |
@@ -27,15 +29,19 @@ type ScopedFS = Pick<typeof import("node:fs"),
 	"rename" |
 	"renameSync" |
 	"rm" |
-	"rmSync" |
+	"rm" |
 	"rmdir" |
 	"rmdirSync" |
 	"unlink" |
 	"unlinkSync" |
 	"stat" |
-	"statSync"
+	"statSync" |
+	"watchFile" |
+	"unwatchFile" |
+	"watch"
 > & {
 	promises: Pick<typeof import("node:fs").promises, 
+		"access" |
 		"copyFile" |
 		"readFile" |
 		"writeFile" |
@@ -46,7 +52,8 @@ type ScopedFS = Pick<typeof import("node:fs"),
 		"rm" |
 		"rmdir" |
 		"unlink" |
-		"stat"
+		"stat" |
+		"watch"
 	>
 }
 interface RequireDialogOptions {
@@ -61,6 +68,8 @@ declare function requireNativeModule(module: 'zlib'): typeof import("node:zlib")
 declare function requireNativeModule(module: 'timers'): typeof import("node:timers");
 declare function requireNativeModule(module: 'url'): typeof import("node:url");
 declare function requireNativeModule(module: 'string_decoder'): typeof import("node:string_decoder");
+declare function requireNativeModule(module: 'stream'): typeof import("node:stream");
+declare function requireNativeModule(module: 'perf_hooks'): typeof import("node:perf_hooks");
 declare function requireNativeModule(module: 'querystring'): typeof import("node:querystring");
 declare function requireNativeModule(module: 'child_process', options?: RequireDialogOptions): (typeof import("node:child_process")) | undefined;
 declare function requireNativeModule(module: 'electron', options?: RequireDialogOptions): (typeof import("node:electron")) | undefined;
@@ -71,3 +80,4 @@ declare function requireNativeModule(module: 'util', options?: RequireDialogOpti
 declare function requireNativeModule(module: 'os', options?: RequireDialogOptions): (typeof import("node:os")) | undefined;
 declare function requireNativeModule(module: 'v8', options?: RequireDialogOptions): (typeof import("node:v8")) | undefined;
 declare function requireNativeModule(module: 'clipboard', options?: RequireDialogOptions): (import('electron').Clipboard) | undefined;
+declare function requireNativeModule(module: 'shell', options?: RequireDialogOptions): (import('electron').Shell) | undefined;

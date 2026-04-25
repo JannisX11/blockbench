@@ -37,7 +37,19 @@ export const TextureAnimator = {
 			let fps = Format.texture_mcmeta
 				? 1000 / Math.max(16.66, 50 * texture.frame_time)
 				: Math.max(1, texture.fps);
-			let frame = Math.floor((anim_time) * fps) % texture.frameCount;
+			let frame = Math.floor((anim_time) * fps);
+			if (texture.frame_order_type == 'custom' && texture.frame_order) {
+				let indices = texture.frame_order.split(/\s+/g).map(number => parseInt(number));
+				let frame_at_index = indices[frame%indices.length];
+				if (!isNaN(frame_at_index)) frame = frame_at_index;
+			} else if (texture.frame_order_type == 'backwards') {
+				frame = texture.frameCount - (frame % texture.frameCount) - 1;
+			} else if (texture.frame_order_type == 'back_and_forth') {
+				let length = texture.frameCount*2 - 2;
+				let mod = frame % length;
+				frame = (mod < texture.frameCount) ? mod : (length - (mod % texture.frameCount));
+			}
+			frame = frame % texture.frameCount;
 			if (frame != texture.currentFrame) {
 				texture.currentFrame = frame;
 				animated_textures.push(texture);
@@ -142,7 +154,6 @@ BARS.defineActions(function() {
 		click() {
 			Texture.getDefault().propertiesDialog()
 			if (Format.texture_mcmeta && Texture.all.length) {
-				Texture.getDefault().propertiesDialog()
 				$('dialog div.form_bar_frame_time input').trigger('focus');
 			} else {
 				$('dialog div.form_bar_fps input').trigger('focus');

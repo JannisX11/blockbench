@@ -176,9 +176,9 @@ new Tool('weight_brush', {
 				affected_vkeys.add(vkey);
 			}
 			if ((BarItems.mirror_modeling as Toggle).value) {
-				symmetrizeArmature(armature, mesh, affected_vkeys);
+				let mesh2 = symmetrizeArmature(armature, mesh, affected_vkeys);
+				if (mesh2) Mesh.preview_controller.updateGeometry(mesh2);
 			}
-			// @ts-ignore
 			Mesh.preview_controller.updateGeometry(mesh);
 		}
 		const stop = (event: MouseEvent) => {
