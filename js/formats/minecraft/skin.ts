@@ -3162,7 +3162,7 @@ skin_presets.cape_elytra = {
 	display_name: 'Cape + Elytra',
 	model: `{
 		"name": "cape and elytra",
-		"external_textures": ["entity/models/armor/elytra.png"],
+		"external_textures": ["models/armor/elytra.png"],
 		"texturewidth": 64,
 		"textureheight": 32,
 		"bones": [
@@ -3176,23 +3176,23 @@ skin_presets.cape_elytra = {
 			},
 			{
 				"name": "elytra",
-				"pivot": [-14, 24, 1]
+				"pivot": [-18, 24, 1]
 			},
 			{
 				"name": "left_wing",
 				"parent": "elytra",
-				"pivot": [-14, 28, 1],
+				"pivot": [-18, 4, 1],
 				"cubes": [
-					{"origin": [-24, 4, 1], "size": [10, 20, 2], "uv": [22, 0]}
+					{"origin": [-18, 4, 1], "size": [10, 20, 2], "uv": [22, 0]}
 				]
 			},
 			{
 				"name": "right_wing",
 				"parent": "elytra",
-				"pivot": [-14, 28, 1],
+				"pivot": [-18, 4, 1],
 				"mirror": true,
 				"cubes": [
-					{"origin": [-14, 4, 1], "size": [10, 20, 2], "uv": [22, 0], "mirror": true}
+					{"origin": [-28, 4, 1], "size": [10, 20, 2], "uv": [22, 0], "mirror": true}
 				]
 			}
 		]
