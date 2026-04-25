@@ -747,7 +747,7 @@ SharedActions.add('duplicate', {
 
 		let all_new = [];
 		let new_groups = [];
-		let groups_to_duplicate = Group.selected.filter(g => g.parent.selected == false);
+		let groups_to_duplicate = Group.selected.filter(g => g.parent.selected != true);
 		Group.multi_selected.empty();
 		for (let group of Group.all) {
 			if (group.selected) group.selected = false;
