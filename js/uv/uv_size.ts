@@ -1,5 +1,5 @@
 
-export function setProjectResolution(width: number, height: number, modify_uv: boolean = false) {
+function adjustProjectResolution(width: number, height: number, modify_uv: boolean = false) {
 	if (Project.texture_width / width != Project.texture_width / height) {
 		modify_uv = false;
 	}
@@ -35,7 +35,7 @@ export function setProjectResolution(width: number, height: number, modify_uv: b
 	}
 }
 
-export function adjustElementUVToResolution(multiplier: ArrayVector2, elements = Outliner.elements, textures?: Texture[]) {
+function adjustElementUVToResolution(multiplier: ArrayVector2, elements = Outliner.elements, textures?: Texture[]) {
 	for (let element of elements) {
 		if ('faces' in element == false) continue;
 		if (element instanceof Mesh) {
@@ -232,3 +232,16 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 		}
 	}).show();
 }
+
+export const UVSizeUtil = {
+	adjustProjectResolution,
+	adjustElementUVToResolution,
+	editUVSizeDialog
+}
+const global = {
+	UVSizeUtil
+};
+declare global {
+	const UVSizeUtil: typeof global.UVSizeUtil
+}
+Object.assign(window, global);
