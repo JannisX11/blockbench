@@ -1030,13 +1030,16 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 		},
 		error(response, type) {
 			console.error('Could not connect to plugin server:', type, response)
-			$('#plugin_available_empty').text('Could not connect to plugin server')
 			resolve();
 			Plugins.loading_promise = null;
 
 			if (settings.cdn_mirror.value == false && navigator.onLine) {
 				settings.cdn_mirror.set(true);
 				console.log('Switching to plugin CDN mirror. Restart to apply.');
+			}
+			if (Plugins.dialog) {
+				if (Plugins.dialog.content_vue) Plugins.dialog.content_vue._data.network_error = response.status;
+				Plugins.dialog.component.data.network_error = response.status;
 			}
 		}
 	});
@@ -1221,7 +1224,8 @@ BARS.defineActions(function() {
 				isMobile: Blockbench.isMobile,
 				isApp,
 				markerColors,
-				online: navigator.onLine
+				online: navigator.onLine,
+				network_error: null
 			},
 			computed: {
 				plugin_search() {
@@ -1626,7 +1630,11 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'">
+								{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}
+								<p v-if="online && network_error">Error {{ network_error }}</p>
+								<p v-if="online && network_error">This is not an issue with Blockbench itself, it is most likely caused by network issues or internet restrictions.</p>
+							</div>
 						</ul>
 						<ol class="pagination_numbers" v-if="pages.length > 1">
 							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
