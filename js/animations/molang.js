@@ -237,6 +237,9 @@ new ValidatorCheck('molang_syntax', {
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character')
 			}
+			if (clear_string.endsWith(';') && !clear_string.includes('return ')) {
+				issues.push('Complex expression with no return value. Remove the semicolon or add a return statement')
+			}
 			if (
 				(clear_string.match(/[\w.]\s+[\w.]/) &&
 					!keywords.find((k) => clear_string.includes(k))) ||

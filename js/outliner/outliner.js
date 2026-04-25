@@ -433,7 +433,7 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 		return;
 	}
 	if (duplicate) {
-		Undo.initEdit({elements: [], outliner: true, selection: true}, options.amended);
+		Undo.initEdit({elements: [], groups: [], outliner: true, selection: true}, options.amended);
 		Outliner.selected.empty();
 	} else {
 		Undo.initEdit({
@@ -452,6 +452,9 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 			if (Format.per_group_texture && item.preview_controller.updateFaces) {
 				item.preview_controller.updateFaces(item);
 			}
+		}
+		if (item.preview_controller.updateGeometry) {
+			item.preview_controller.updateGeometry(item);
 		}
 	}
 	let matrix1 = new THREE.Matrix4();
@@ -527,7 +530,7 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 	}
 	updateSelection();
 	if (duplicate) {
-		Undo.finishEdit('Duplicate selection', {elements: Outliner.selected, outliner: true, selection: true, groups: Group.selected})
+		Undo.finishEdit('Duplicate selection', {elements: Outliner.selected, outliner: true, selection: true, groups: Group.all.filter(g => g.selected)})
 	} else {
 		Undo.finishEdit('Move elements in outliner')
 	}
@@ -736,7 +739,6 @@ SharedActions.add('duplicate', {
 	condition: () => Modes.edit && Group.first_selected,
 	priority: -1,
 	run() {
-		let cubes_before = elements.length;
 		Undo.initEdit({outliner: true, elements: [], groups: [], selection: true});
 		let all_original = [];
 		for (let group of Group.multi_selected) {
@@ -745,10 +747,12 @@ SharedActions.add('duplicate', {
 
 		let all_new = [];
 		let new_groups = [];
-		let old_selected_groups = Group.multi_selected.slice();
+		let groups_to_duplicate = Group.selected.filter(g => g.parent.selected == false);
 		Group.multi_selected.empty();
-		for (let group of old_selected_groups) {
-			group.selected = false;
+		for (let group of Group.all) {
+			if (group.selected) group.selected = false;
+		}
+		for (let group of groups_to_duplicate) {
 			let new_group = group.duplicate();
 			new_group.forEachChild(g => all_new.push(g), Group, true);
 			new_group.multiSelect();
@@ -756,7 +760,12 @@ SharedActions.add('duplicate', {
 		}
 
 		updateSelection();
-		Undo.finishEdit('Duplicate group', {outliner: true, elements: elements.slice().slice(cubes_before), groups: new_groups, selection: true});
+		Undo.finishEdit('Duplicate group', {
+			outliner: true,
+			elements: Outliner.selected,
+			groups: Group.all.filter(g => g.selected),
+			selection: true
+		});
 
 		if (Animation.all.length) {
 			let affected_anims = Animation.all.filter(a => all_original.find(bone => a.animators[bone.uuid]?.keyframes.length));
@@ -1392,7 +1401,7 @@ Interface.definePanels(function() {
 									node[key] = value;
 								})
 								// Update
-								Canvas.updateVisibility();
+								Canvas.updateView({elements: affected, element_aspects: {visibility: true}});
 								
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
@@ -1414,7 +1423,9 @@ Interface.definePanels(function() {
 									if (key == 'mirror_uv' && node.preview_controller.updateUV) node.preview_controller.updateUV(node);
 								})
 								// Update
-								if (key == 'visibility') Canvas.updateVisibility();
+								if (key == 'visibility') {
+									Canvas.updateView({elements: affected, element_aspects: {visibility: true}});
+								}
 								if (key == 'locked') updateSelection();
 							}
 						}
@@ -1519,10 +1530,12 @@ Interface.definePanels(function() {
 									Interface.createElement('label', {}, item.name)
 								]);
 								
-								if (item instanceof Group == false && Outliner.selected.length > 1) {
+								let all_nodes = Outliner.selected.concat(Group.selected);
+								let count = all_nodes.filter(node => node.parent == Outliner.ROOT || node.parent.selected == false).length;
+								if (count > 1) {
 									let counter = document.createElement('div');
 									counter.classList.add('outliner_drag_number');
-									counter.textContent = Outliner.selected.length.toString();
+									counter.textContent = count.toString();
 									helper.append(counter);
 								}
 								document.body.append(helper);

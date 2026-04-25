@@ -847,6 +847,8 @@ Interface.definePanels(function() {
 // Source: https://github.com/Mojang/bedrock-samples/, licensed under the Minecraft EULA
 // With modifications for usability
 
+// Clipbench.setText(compileJSON(Codecs.skin_model.compile({raw: false})).replace(/\n/g, '\n\t'))
+
 skin_presets.steve = {
 	display_name: 'Player - Wide',
 	pose: true,
@@ -6873,7 +6875,7 @@ skin_presets.panda_baby = {
 };
 skin_presets.parrot = {
 	display_name: 'Parrot',
-	model: `{
+	model_bedrock: `{
 		"name": "parrot",
 		"external_textures": ["entity/parrot/parrot_red_blue.png"],
 		"texturewidth": 32,
@@ -6936,6 +6938,73 @@ skin_presets.parrot = {
 				"pivot": [-0.5, 1, -0.5],
 				"cubes": [
 					{"name": "leg1", "origin": [-1.5, -0.5, -1.5], "size": [1, 2, 1], "uv": [14, 18]}
+				]
+			}
+		]
+	}`,
+	model_java: `{
+		"name": "parrot",
+		"external_textures": ["entity/parrot/parrot_red_blue.png"],
+		"texturewidth": 32,
+		"textureheight": 32,
+		"bones": [
+			{
+				"name": "body",
+				"pivot": [0, 7.5, -3],
+				"rotation": [25, 0, 0],
+				"cubes": [
+					{"origin": [-1.5, 1.5, -4.5], "size": [3, 6, 3], "uv": [2, 8]}
+				]
+			},
+			{
+				"name": "wing0",
+				"parent": "body",
+				"pivot": [1.5, 7.1, -2.8],
+				"rotation": [10, 0, 0],
+				"cubes": [
+					{"origin": [1, 2.1, -4.3], "size": [1, 5, 3], "uv": [19, 8]}
+				]
+			},
+			{
+				"name": "wing1",
+				"parent": "body",
+				"pivot": [-1.5, 7.1, -2.8],
+				"rotation": [10, 0, 0],
+				"cubes": [
+					{"origin": [-2, 2.1, -4.3], "size": [1, 5, 3], "uv": [19, 8]}
+				]
+			},
+			{
+				"name": "head",
+				"pivot": [0, 8.3, -2.8],
+				"cubes": [
+					{"origin": [-1, 6.8, -3.8], "size": [2, 3, 2], "uv": [2, 2]},
+					{"origin": [-1, 9.8, -5.8], "size": [2, 1, 4], "uv": [10, 0]},
+					{"origin": [-0.5, 7.8, -4.7], "size": [1, 2, 1], "uv": [11, 7]},
+					{"origin": [-0.5, 8.035, -5.64], "size": [1, 2.025, 1], "uv": [16, 7]},
+					{"origin": [0, 9.1, -4.9], "size": [0, 5, 4], "uv": [2, 18]}
+				]
+			},
+			{
+				"name": "tail",
+				"pivot": [0, 2.9, 1.2],
+				"rotation": [50, 0, 0],
+				"cubes": [
+					{"origin": [-1.5, -0.1, 0.2], "size": [3, 4, 1], "uv": [22, 1]}
+				]
+			},
+			{
+				"name": "leg0",
+				"pivot": [1.5, 1, -0.5],
+				"cubes": [
+					{"origin": [0.5, -0.5, -1.5], "size": [1, 2, 1], "uv": [14, 18]}
+				]
+			},
+			{
+				"name": "leg1",
+				"pivot": [-0.5, 1, -0.5],
+				"cubes": [
+					{"origin": [-1.5, -0.5, -1.5], "size": [1, 2, 1], "uv": [14, 18]}
 				]
 			}
 		]
@@ -10500,7 +10569,6 @@ skin_presets.zombie = {
 	pose: true,
 	model_java: `{
 		"name": "zombie",
-		"external_textures": ["entity/zombie/zombie.png"],
 		"texturewidth": 64,
 		"textureheight": 64,
 		"eyes": [

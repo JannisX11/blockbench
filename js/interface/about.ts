@@ -7,9 +7,11 @@ BARS.defineActions(() => {
 		icon: 'info',
 		category: 'blockbench',
 		click: function () {
+			let date = new Date();
 			const data = {
 				isApp,
-				version_label: Blockbench.version
+				version_label: Blockbench.version,
+				ann: date.dayOfYear() == 95 && date.getFullYear() == 2026, c: 0, link: Blockbench.openLink
 			};
 			jQuery.ajax({
 				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
@@ -140,6 +142,7 @@ BARS.defineActions(() => {
 
 							<p style="margin-top: 20px">Released under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
 							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+							<i class="material-icons icon" v-if="ann" style="position: absolute;font-size: 40px;color: rgb(215 79 79);max-width: unset;top: 338px;right: 51px;transform: rotate(8deg);" @click="c++; if (c==5) link('https://www.youtube.com/watch?v=ajZDIH61ww8')" title="Easter Egg">egg</i>
 
 						</div>`
 				}

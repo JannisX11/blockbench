@@ -410,9 +410,10 @@ SharedActions.add('duplicate', {
 		let original = texture.getActiveLayer();
 		let copy = original.getUndoCopy(true);
 		copy.name += '-copy';
-		Undo.initEdit({textures: [texture]});
+		Undo.initEdit({textures: [texture], bitmap: true});
 		let layer = new TextureLayer(copy, texture);
 		layer.addForEditing();
+		texture.updateLayerChanges(true);
 		Undo.finishEdit('Duplicate layer');
 	}
 })
