@@ -764,36 +764,45 @@ MirrorModeling.registerElementType(Billboard, {
 	}
 })
 
-function getOppositeMeshVertex(mesh: Mesh, vkey: string): string | undefined {
+function getOppositeMeshVertex(mesh: Mesh, target_mesh: Mesh, vkey: string): string | undefined {
 	let position = mesh.vertices[vkey];
-	for (let vkey2 in mesh.vertices) {
-		let pos2 = mesh.vertices[vkey2];
+	for (let vkey2 in target_mesh.vertices) {
+		let pos2 = target_mesh.vertices[vkey2];
 		if (isOppositeVector(position, pos2)) {
 			return vkey2;
 		}
 	}
 }
-export function symmetrizeArmature(armature: Armature, mesh: Mesh, affected_vkeys: Set<string>) {
+export function symmetrizeArmature(armature: Armature, mesh: Mesh, affected_vkeys: Set<string>): Mesh | undefined {
 	let bones = armature.getAllBones();
+	let opposite_mesh: Mesh | undefined;
+	let target_mesh = mesh;
+	if (!MirrorModeling.element_types.mesh.isCentered(mesh, {center: 0})) {
+		opposite_mesh = MirrorModeling.element_types.mesh.getMirroredElement(mesh, {center: 0}) as Mesh;
+		if (!opposite_mesh) return;
+		target_mesh = opposite_mesh;
+	}
+
 	// For each vkey, copy its value on each bone to the other side
 	for (let vkey in mesh.vertices) {
 		let position = mesh.vertices[vkey];
-		if (!Math.epsilon(position[0], 0)) continue;
 		if (affected_vkeys.has(vkey) == false) continue;
-		let opposite = getOppositeMeshVertex(mesh, vkey);
+		if (mesh == target_mesh && Math.epsilon(position[0], 0)) continue;
+		let opposite = getOppositeMeshVertex(mesh, target_mesh, vkey);
 		if (!opposite) continue;
 		for (let bone of bones) {
 			//if (!bone.getVertexWeight(mesh, vkey)) continue;
 			if (MirrorModeling.element_types.armature_bone.isCentered(bone, {center: 0})) {
-				bone.setVertexWeight(mesh, opposite, bone.getVertexWeight(mesh, vkey));
+				bone.setVertexWeight(target_mesh, opposite, bone.getVertexWeight(mesh, vkey));
 			} else {
 				let target_bone = MirrorModeling.element_types.armature_bone.getMirroredElement(bone, {center: 0}) as ArmatureBone;
 				if (target_bone) {
-					target_bone.setVertexWeight(mesh, opposite, bone.getVertexWeight(mesh, vkey));
+					target_bone.setVertexWeight(target_mesh, opposite, bone.getVertexWeight(mesh, vkey));
 				}
 			}
 		}
 	}
+	return opposite_mesh;
 }
 
 BARS.defineActions(() => {
