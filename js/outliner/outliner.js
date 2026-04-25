@@ -803,12 +803,19 @@ SharedActions.add('duplicate', {
 	priority: -2,
 	run() {
 		let added_elements = [];
-		Undo.initEdit({elements: added_elements, outliner: true, selection: true})
-		Outliner.selected.slice().forEachReverse(function(obj, i) {
+		Undo.initEdit({elements: added_elements, outliner: true, selection: true});
+		let list = Outliner.selected.slice();
+		Outliner.selected.empty();
+		list.forEachReverse(function(obj, i) {
 			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
 			let copy = obj.duplicate();
 			added_elements.push(copy);
-			Outliner.selected[i] = copy;
+			if ('forEachChild' in copy) {
+				copy.forEachChild(child => {
+					if (child instanceof OutlinerElement) added_elements.push(child);
+				})
+			}
+			copy.markAsSelected();
 		})
 		BarItems.move_tool.select();
 		updateSelection();
@@ -1689,6 +1696,15 @@ Interface.definePanels(function() {
 		}
 	})
 })
+
+if (location.href.endsWith('/blockbench/index.html')) {
+	// Debug helper
+	Object.defineProperty(window, 'N', {
+		get() {
+			return Group.first_selected || Outliner.selected[0];
+		}
+	})
+}
 
 Object.assign(window, {
 	Outliner,
