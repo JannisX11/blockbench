@@ -31,11 +31,13 @@
 		background-color: var(--color-back);
 		height: 18px;
 		margin-top: 12px;
+		border-radius: 10px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
 		width: calc(100% * var(--progress));
+		border-radius: inherit;
 	}
 	.accent_color {
 		color: var(--color-accent);
