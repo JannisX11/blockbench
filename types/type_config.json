@@ -29,7 +29,6 @@
 		"texturing/painter",
 		"texturing/texture_groups",
 		"texturing/textures",
-		"texturing/layers",
 		"undo",
 		"web",
 		"copy_paste",

@@ -157,6 +157,17 @@ declare global {
 		V3_divide(values: ArrayVector3): ArrayVector3
 		V3_divide(value: THREE.Vector3): ArrayVector3
 		V3_toThree(): THREE.Vector3
+
+		V2_set(x: number, y: number): ArrayVector2
+		V2_set(values: ArrayVector2): ArrayVector2
+		V2_add(x: number, y: number): ArrayVector2
+		V2_add(values: ArrayVector2): ArrayVector2
+		V2_subtract(x: number, y: number): ArrayVector2
+		V2_subtract(values: ArrayVector2): ArrayVector2
+		V2_multiply(x: number, y: number): ArrayVector2
+		V2_multiply(values: ArrayVector2): ArrayVector2
+		V2_divide(x: number, y: number): ArrayVector2
+		V2_divide(values: ArrayVector2): ArrayVector2
 	}
 
 	interface Event {

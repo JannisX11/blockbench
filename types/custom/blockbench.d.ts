@@ -4,7 +4,6 @@
 /// <reference types="@types/jquery" />
 /// <reference types="wintersky" />
 
-/// <reference types="./texture_layers" />
 /// <reference types="./texture_group" />
 /// <reference types="./toolbars" />
 /// <reference types="./animation" />

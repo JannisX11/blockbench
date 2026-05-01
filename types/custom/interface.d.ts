@@ -51,6 +51,8 @@ declare namespace Interface {
 	function addSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
 	function removeSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
 
+	function definePanels(callback: () => void): void
+
 	const center_screen: HTMLElement
 	const page_wrapper: HTMLElement
 	const preview: HTMLElement

@@ -3,6 +3,13 @@
 import type { FSWatcher } from 'fs'
 import type { ShaderMaterial } from 'three'
 
+interface FileFormatOptions {
+	name: string
+	extensions: string[],
+	async encode?(texture: Texture): Uint8Array
+	async decode?(data: Uint8Array, texture: Texture): void
+}
+
 declare global {
 	interface TextureData {
 		path?: string
@@ -386,6 +393,8 @@ declare global {
 		static all: Texture[]
 		static getDefault(): Texture
 		static properties: Record<string, Property<any>>
+
+		static file_formats: Record<string, FileFormatOptions>
 	}
 	/**
 	 * Saves all textures

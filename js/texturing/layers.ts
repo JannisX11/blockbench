@@ -1,5 +1,48 @@
+import { getFocusedTextInput } from "../interface/keyboard"
+import { Property } from "../util/property"
+
+interface TextureLayerData {
+	name?: string
+	in_limbo?: boolean
+	offset?: ArrayVector2
+	scale?: ArrayVector2
+	width?: number
+	height?: number
+	opacity?: number
+	visible?: boolean
+	blend_mode?: LayerBlendMode
+	image_data?: ImageData
+	data_url?: string
+}
+type LayerBlendMode = 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
+
+/**
+ * Texture layers always belong to a texture and represent the layers of the texture. Each layer has its own HTML canvas and canvas context
+ */
 export class TextureLayer {
-	constructor(data, texture = Texture.selected, uuid) {
+	name: string
+	uuid: UUID
+	texture: Texture
+	canvas: HTMLCanvasElement
+	ctx: CanvasRenderingContext2D
+	in_limbo: boolean
+	img: HTMLImageElement
+	declare menu?: Menu
+	/**
+	 * Layer offset from the top left corner of the texture to the top left corner of the layer
+	 */
+	offset: ArrayVector2
+	/**
+	 * Layer scale. This is only used by the layer transform tool and should be applied and reset to 1x1 before doing further changes
+	 */
+	scale: ArrayVector2
+	opacity: number
+	visible: boolean
+	blend_mode: LayerBlendMode
+
+	static properties: Record<string, Property<any>>
+
+	constructor(data: TextureLayerData, texture = Texture.selected, uuid?: UUID) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
 		this.canvas = document.createElement('canvas');
@@ -37,7 +80,7 @@ export class TextureLayer {
 	get selected() {
 		return this.texture.selected_layer == this;
 	}
-	extend(data) {
+	extend(data: TextureLayerData) {
 		for (var key in TextureLayer.properties) {
 			TextureLayer.properties[key].merge(this, data)
 		}
@@ -52,25 +95,32 @@ export class TextureLayer {
 			this.img.src = data.data_url;
 		}
 	}
+	/**
+	 * Selects the layer
+	 */
 	select() {
 		this.texture.selected_layer = this;
 		UVEditor.vue.layer = this;
-		BarItems.layer_opacity.update();
-		BarItems.layer_blend_mode.set(this.blend_mode);
+		(BarItems.layer_opacity as NumSlider).update();
+		(BarItems.layer_blend_mode as BarSelect).set(this.blend_mode);
 		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
-			BarItems.selection_tool.select();
+			(BarItems.selection_tool as Tool).select();
 		}
 	}
 	clickSelect(event) {
 		Undo.initSelection();
-		this.select(event);
-		Undo.finishSelection();
+		this.select();
+		Undo.finishSelection('Select layer');
 	}
-	showContextMenu(event) {
+	showContextMenu(event: MouseEvent): void {
 		if (!this.selected) this.clickSelect(event);
 		this.menu.open(event, this);
 	}
-	remove(undo) {
+	/**
+	 * Remove the layer
+	 * @param undo Create an undo point and update the texture
+	 */
+	remove(undo = false) {
 		if (undo) {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
@@ -85,8 +135,8 @@ export class TextureLayer {
 			Undo.finishEdit('Remove layer');
 		}
 	}
-	getUndoCopy(image_data) {
-		let copy = {};
+	getUndoCopy(image_data: boolean): any {
+		let copy: any = {};
 		copy.texture = this.texture.uuid;
 		copy.uuid = this.uuid;
 		for (var key in TextureLayer.properties) {
@@ -99,8 +149,8 @@ export class TextureLayer {
 		}
 		return copy;
 	}
-	getSaveCopy() {
-		let copy = {};
+	getSaveCopy(): any {
+		let copy: any = {};
 		for (var key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
@@ -110,15 +160,22 @@ export class TextureLayer {
 		copy.data_url = this.canvas.toDataURL('image/png', 1);
 		return copy;
 	}
+	/**
+	 * Set the layer into a limbo state, where clicking Place or clicking next to the layer will place it on the layer below
+	 */
 	setLimbo() {
 		this.texture.layers.forEach(layer => layer.in_limbo = false);
 		this.in_limbo = true;
 	}
-	resolveLimbo(keep_separate) {
+	/**
+	 * Resolves the limbo state by turning the limbo layer into a full layer, or merging it into the layer below
+	 * @param keep_separate If true, the layer is kept as a separate layer
+	 */
+	resolveLimbo(keep_separate: boolean): void {
 		if (keep_separate) {
 			if (this.scale[0] != 1 || this.scale[1] != 1) {
 				
-				let temp_canvas = this.canvas.cloneNode();
+				let temp_canvas = this.canvas.cloneNode() as HTMLCanvasElement;
 				let temp_canvas_ctx = temp_canvas.getContext('2d');
 				temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 	
@@ -158,26 +215,38 @@ export class TextureLayer {
 		UVEditor.updateSelectionOutline();
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 	}
-	setSize(width, height) {
+	/**
+	 * Set the layer size. This resizes the canvas, which discards the layer content
+	 */
+	setSize(width: number, height: number): this {
 		this.canvas.width = width;
 		this.canvas.height = height;
 		return this;
 	}
-	toggleVisibility() {
+	/**
+	 * Toggle layer visibility. This creates an undo point
+	 */
+	toggleVisibility(): this {
 		Undo.initEdit({layers: [this]});
 		this.visible = !this.visible;
 		this.texture.updateChangesAfterEdit();
 		Undo.finishEdit('Toggle layer visibility');
 		return this;
 	}
-	scrollTo() {
+	/**
+	 * Scroll the layer panel list to
+	 */
+	scrollTo(): this {
 		let el = document.querySelector(`#layers_list > li[layer_id="${this.uuid}"]`);
 		if (el) {
 			el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
 		}
 		return this;
 	}
-	addForEditing() {
+	/**
+	 * Add the layer to the associated texture above the previously selected layer, select this layer, and scroll the layer panel list to it
+	 */
+	addForEditing(): this {
 		let i = this.texture.layers.indexOf(this.texture.selected_layer);
 		if (i == -1) {
 			this.texture.layers.push(this);
@@ -190,7 +259,11 @@ export class TextureLayer {
 		});
 		return this;
 	}
-	mergeDown(undo = true) {
+	/**
+	 * Merge this texture onto the texture below
+	 * @param undo Create an undo entry
+	 */
+	mergeDown(undo: boolean = true): void {
 		let down_layer = this.texture.layers[this.texture.layers.indexOf(this) - 1];
 		if (!down_layer) {
 			this.in_limbo = false;
@@ -221,7 +294,11 @@ export class TextureLayer {
 			Undo.finishEdit('Merge layers');
 		}
 	}
-	expandTo(...points) {
+	/**
+	 * Expand the layer to include the listed pixels
+	 * @param points
+	 */
+	expandTo(...points: ArrayVector2[]): void {
 		let min = this.offset.slice();
 		let max = this.offset.slice().V2_add(this.width, this.height);
 		points.forEach(point => {
@@ -242,8 +319,13 @@ export class TextureLayer {
 			this.offset.replace(min);
 		}
 	}
-	flip(axis = 0, undo) {
-		let temp_canvas = this.canvas.cloneNode();
+	/**
+	 * Flip the texture along an axis
+	 * @param axis Flip axis, where 0 is X and 1 is Y
+	 * @param undo Create an undo entry
+	 */
+	flip(axis: 0 | 1 = 0, undo: boolean): void {
+		let temp_canvas = this.canvas.cloneNode() as HTMLCanvasElement;
 		let temp_canvas_ctx = temp_canvas.getContext('2d');
 		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 
@@ -270,8 +352,13 @@ export class TextureLayer {
 			this.texture.saved = false;
 		}
 	}
-	rotate(angle = 90, undo) {
-		let temp_canvas = this.canvas.cloneNode();
+	/**
+	 * Rotate the layer around itself in 90 degree steps
+	 * @param angle Angle in degrees
+	 * @param undo Create an undo entry
+	 */
+	rotate(angle: number = 90, undo: boolean): void {
+		let temp_canvas = this.canvas.cloneNode() as HTMLCanvasElement;
 		let temp_canvas_ctx = temp_canvas.getContext('2d');
 		temp_canvas_ctx.drawImage(this.canvas, 0, 0);
 
@@ -293,12 +380,18 @@ export class TextureLayer {
 		}
 		UVEditor.vue.$forceUpdate();
 	}
-	center() {
+	/**
+	 * Centers the layer on the texture
+	 */
+	center(): void {
 		this.offset[0] = Math.round(Math.max(0, this.texture.width  - this.width ) / 2);
 		this.offset[1] = Math.round(Math.max(0, this.texture.height - this.height) / 2);
 		this.texture.updateLayerChanges();
 	}
-	propertiesDialog() {
+	/**
+	 * Open the properties dialog
+	 */
+	propertiesDialog(): void {
 		let blend_mode_options = {};
 		TextureLayer.properties.blend_mode.enum_values.forEach(mode => {
 			blend_mode_options[mode] = `action.blend_mode.${mode}`
@@ -331,6 +424,15 @@ export class TextureLayer {
 		})
 		dialog.show();
 	}
+
+	/**
+	 * Get all layers of the active texture
+	 */
+	static all: TextureLayer[] = []
+	/**
+	 * Get the selected layer
+	 */
+	static selected: TextureLayer | null = null
 }
 TextureLayer.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
@@ -383,7 +485,7 @@ Object.defineProperty(TextureLayer, 'selected', {
 
 SharedActions.add('delete', {
 	subject: 'layer',
-	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
+	condition: () => Prop.active_panel == 'layers' && !!Texture.selected?.selected_layer,
 	run() {
 		if (Texture.selected.layers.length >= 2) {
 			Texture.selected?.selected_layer.remove(true);
@@ -404,7 +506,7 @@ SharedActions.add('delete', {
 })
 SharedActions.add('duplicate', {
 	subject: 'layer',
-	condition: () => Prop.active_panel == 'layers' && Texture.selected?.selected_layer,
+	condition: () => Prop.active_panel == 'layers' && !!Texture.selected?.selected_layer,
 	run() {
 		let texture = Texture.selected;
 		let original = texture.getActiveLayer();
@@ -418,7 +520,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('copy', {
 	subject: 'layer',
-	condition: () => Prop.active_panel == 'layers' && TextureLayer.selected,
+	condition: () => Prop.active_panel == 'layers' && !!TextureLayer.selected,
 	run() {
 		let layer = TextureLayer.selected;
 		let copy = layer.getUndoCopy(true);
@@ -427,7 +529,7 @@ SharedActions.add('copy', {
 })
 SharedActions.add('paste', {
 	subject: 'layer',
-	condition: () => Prop.active_panel == 'layers' && Texture.selected && Clipbench.layer,
+	condition: () => Prop.active_panel == 'layers' && Texture.selected && !!Clipbench.layer,
 	run() {
 		let texture = Texture.selected;
 		Undo.initEdit({textures: [texture], bitmap: true});
@@ -443,7 +545,7 @@ BARS.defineActions(() => {
 	new Action('create_empty_layer', {
 		icon: 'new_window',
 		category: 'layers',
-		condition: () => Modes.paint && Texture.all[0],
+		condition: () => Modes.paint && Texture.all.length > 0,
 		click() {
 			if (!Texture.selected) Texture.all[0].select();
 			let texture = Texture.selected;
@@ -461,7 +563,7 @@ BARS.defineActions(() => {
 	new Action('import_layer', {
 		icon: 'add_photo_alternate',
 		category: 'layers',
-		condition: () => Modes.paint && Texture.all[0],
+		condition: () => Modes.paint && Texture.all.length > 0,
 		click() {
 			if (!Texture.selected) Texture.all[0].select();
 			let texture = Texture.selected;
@@ -498,7 +600,7 @@ BARS.defineActions(() => {
 				for (let file of files) {
 					let img = new Image();
 					await new Promise((resolve, reject) => {
-						img.src = isApp ? file.path : file.content;
+						img.src = isApp ? file.path : file.content as string;
 						img.onload = resolve;
 						img.onerror = reject;
 					})
@@ -518,7 +620,7 @@ BARS.defineActions(() => {
 				Undo.finishEdit('Add image as layer');
 				updateInterfacePanels();
 				BARS.updateConditions();
-				BarItems.move_layer_tool.select();
+				(BarItems.move_layer_tool as Tool).select();
 			})
 		}
 	})
@@ -552,7 +654,7 @@ BARS.defineActions(() => {
 	})
 	new NumSlider('layer_opacity', {
 		category: 'layers',
-		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled && Texture.selected.getActiveLayer(),
+		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled && !!Texture.selected.getActiveLayer(),
 		settings: {
 			min: 0, max: 100, default: 100,
 			show_bar: true
@@ -583,10 +685,10 @@ BARS.defineActions(() => {
 	new BarSelect('layer_blend_mode', {
 		name: 'action.blend_mode',
 		category: 'animation',
-		condition: () => Modes.paint && TextureLayer.selected,
+		condition: () => Modes.paint && !!TextureLayer.selected,
 		options: blend_mode_options,
 		onChange(sel) {
-			let mode = sel.value;
+			let mode = sel.value as LayerBlendMode;
 			let layer = TextureLayer.selected;
 			Undo.initEdit({layers: [layer]});
 			layer.blend_mode = mode;
@@ -597,7 +699,7 @@ BARS.defineActions(() => {
 	new Action('layer_to_texture_size', {
 		icon: 'fit_screen',
 		category: 'layers',
-		condition: () => TextureLayer.selected,
+		condition: () => !!TextureLayer.selected,
 		click() {
 			let layer = TextureLayer.selected;
 			Undo.initEdit({layers: [layer], bitmap: true});
@@ -615,7 +717,7 @@ BARS.defineActions(() => {
 	new Action('merge_layer_down', {
 		icon: 'fa-caret-square-down',
 		category: 'layers',
-		condition: () => TextureLayer.selected,
+		condition: () => !!TextureLayer.selected,
 		click() {
 			TextureLayer.selected.mergeDown(true);
 		}
@@ -624,7 +726,7 @@ BARS.defineActions(() => {
 	new Action('crop_layer_to_selection', {
 		icon: 'crop',
 		category: 'layers',
-		condition: () => TextureLayer.selected,
+		condition: () => !!TextureLayer.selected,
 		click() {
 			let layer = TextureLayer.selected;
 			let rect = layer.texture.selection.getBoundingRect();
@@ -788,7 +890,7 @@ Interface.definePanels(function() {
 						$('.texture_layer[order]').attr('order', null);
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
-						if (active && !open_menu) {
+						if (active && !Menu.open) {
 							convertTouchEvent(e2);
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							let [target_layer] = eventTargetToLayer(target, texture);
@@ -826,7 +928,7 @@ Interface.definePanels(function() {
 					if (!texture) return;
 					if (!texture.selected) texture.select();
 					if (!texture.layers_enabled) {
-						BarItems.enable_texture_layers.trigger();
+						(BarItems.enable_texture_layers as Action).trigger();
 					}
 				}
 			},
