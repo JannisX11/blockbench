@@ -147,18 +147,21 @@ export const Outliner = {
 		return result;
 	},
 	loadJSON(array, add_to_project) {
+		const handled = new Set();
 		function iterate(array, save_array, addGroup) {
 			for (let item of array) {
 				if (typeof item === 'string') {
 
 					let obj = OutlinerNode.uuids[item];
 					if (obj) {
+						handled.add(item);
 						obj.removeFromParent();
 						save_array.push(obj);
 						obj.parent = addGroup;
 					}
 				} else {
 					let obj = OutlinerNode.uuids[item.uuid];
+					handled.add(item.uuid);
 
 					// Legacy group support
 					if (item && item.name != undefined) {
@@ -202,6 +205,20 @@ export const Outliner = {
 			})
 		}
 		iterate(array, Outliner.root, 'root');
+
+		// Add unhandled nodes to outliner end
+		if (!add_to_project) {
+			let all = Group.all.concat(Outliner.elements);
+			if (all.length != handled.size) {
+				console.warn('Potential outliner mismatch detected:', `${all.length} vs ${handled.size}`);
+				for (let node of Group.all.concat(Outliner.elements)) {
+					if (handled.has(node.uuid)) continue;
+					Outliner.root.push(node);
+					node.parent = Outliner.ROOT;
+					console.warn('Existing element missing in outliner. Adding to root instead.', node);
+				}
+			}
+		}
 	}
 }
 Object.defineProperty(window, 'elements', {
