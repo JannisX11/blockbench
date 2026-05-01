@@ -1540,6 +1540,7 @@
 	.plugin_icon_area img {
 		border-radius: 8px;
 		pointer-events: none;
+		image-rendering: auto;
 	}
 	#plugin_list > li * {
 		cursor: inherit;
