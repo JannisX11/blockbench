@@ -12,6 +12,7 @@ export const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
+		start_screen_width: 1000,
 		modes: {},
 	},
 	get left_bar_width() {
@@ -208,12 +209,6 @@ export function setupInterface() {
 		let panel_selector_bar = document.getElementById('panel_selector_bar');
 		if (panel_selector_bar) panel_selector_bar.remove();
 	}
-
-	for (var key in Interface.Resizers) {
-		var resizer = Interface.Resizers[key]
-		$('#work_screen').append(resizer.node)
-	}
-	//$(document).contextmenu()
 
 	if (Blockbench.isMobile) {
 		document.getElementById('preview').append(

@@ -373,9 +373,36 @@ onVueSetup(async function() {
 				}
 			}, 1000);
 
+			let start_screen_element = document.getElementById('start_screen');
+
 			if (settings.always_show_splash_art.value && !Blockbench.hasFlag('after_update') && !Blockbench.isMobile) {
-				document.getElementById('start_screen').scrollTop = 100;
+				start_screen_element.scrollTop = 100;
 			}
+
+			new ResizeLine('start_screen_width', {
+				horizontal: false,
+				parent_element: start_screen_element,
+				condition: () => start_screen_element.clientWidth > 1000 && Interface.tab_bar.new_tab.selected,
+				get: () => Interface.data.start_screen_width,
+				set(o, diff) {
+					let value = Math.clamp(o + diff*2, 700, start_screen_element.clientWidth);
+					value = Math.snapToValues(value, [Interface.default_data.start_screen_width], 12);
+					Interface.data.start_screen_width = value;
+					start_screen_element.style.setProperty('--start-screen-width', value + 'px');
+				},
+				reset() {
+					Interface.data.start_screen_width = Interface.default_data.start_screen_width;
+				},
+				position() {
+					let rect = document.querySelector('#start_screen > content').getBoundingClientRect();
+					this.setPosition({
+						left: Math.clamp((start_screen_element.clientWidth + Interface.data.start_screen_width) / 2 + 3, 0, start_screen_element.clientWidth),
+						top: rect.top,
+						bottom: window.innerHeight - rect.bottom
+					})
+				}
+			});
+			start_screen_element.style.setProperty('--start-screen-width', Interface.data.start_screen_width + 'px');
 		},
 		template: `
 			<div id="start_screen">
@@ -532,37 +559,22 @@ onVueSetup(async function() {
 
 
 
-(function() {
-	/*$.getJSON('./content/news.json').then(data => {
-		addStartScreenSection('new_version', data.new_version)
-	})*/
+/*$.getJSON('./content/news.json').then(data => {
+	addStartScreenSection('new_version', data.new_version)
+})*/
 
-	var news_call = $.ajax({
-		cache: false,
-		url: 'https://web.blockbench.net/content/news.json',
-		dataType: 'json'
-	});
-	documentReady.then(() => {
+var news_call = $.ajax({
+	cache: false,
+	url: 'https://web.blockbench.net/content/news.json',
+	dataType: 'json'
+});
+documentReady.then(() => {
 
+	//Bluesky
+	let bsky_ad;
+	Blockbench.onUpdateTo('4.12.2', () => {
 		//Bluesky
-		let bsky_ad;
-		Blockbench.onUpdateTo('4.12.2', () => {
-			//Bluesky
-			if (!settings.classroom_mode.value) {
-				bsky_ad = true;
-				addStartScreenSection('bluesky_link', {
-					color: 'rgb(32, 139, 254);',
-					text_color: '#ffffff',
-					graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
-					text: [
-						{type: 'h3', text: 'Blockbench on Bluesky'},
-						{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
-					],
-					last: true
-				})
-			}
-		})
-		if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+		if (!settings.classroom_mode.value) {
 			bsky_ad = true;
 			addStartScreenSection('bluesky_link', {
 				color: 'rgb(32, 139, 254);',
@@ -575,142 +587,157 @@ onVueSetup(async function() {
 				last: true
 			})
 		}
-		//Discord
-		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
-			addStartScreenSection('discord_link', {
-				color: '#5865F2',
-				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-discord'},
-				text: [
-					{type: 'h2', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
-				],
-				last: true
-			})
-		}
-
-		// Quick Setup
-		if (Blockbench.startup_count <= 1) {
-			
-			let section = Interface.createElement('section', {id: 'quick_setup'});
-			document.querySelector('#start_screen #splash_screen').after(section);
-
-			new Vue({
-				data() {return {
-					language: Language.code,
-					language_original: Language.code,
-					languages: Language.options,
-					keymap: 'default',
-					keymap_changed: false,
-					theme: 'default',
-					keymap_options: {
-						default: tl('action.load_keymap.default'),
-						mouse: tl('action.load_keymap.mouse'),
-						blender: 'Blender',
-						cinema4d: 'Cinema 4D',
-						maya: 'Maya',
-					},
-				}},
-				methods: {
-					tl,
-					close() {
-						this.$el.remove();
-					},
-					reload() {
-						Blockbench.reload();
-					},
-					loadTheme(theme_id) {
-						this.theme = theme_id;
-						let theme = CustomTheme.themes.find(t => t.id == theme_id);
-						if (theme) CustomTheme.loadTheme(theme);
-					},
-					getThemeThumbnailStyle(theme_id) {
-						let theme = CustomTheme.themes.find(t => t.id == theme_id);
-						let style = {};
-						if (!theme) return style;
-						for (let key in theme.colors) {
-							style[`--color-${key}`] = theme.colors[key];
-						}
-						return style;
-					},
-					openThemes() {
-						BarItems.theme_window.click();
-					}
-				},
-				watch: {
-					language(v) {
-						settings.language.set(v);
-						Settings.save();
-					},
-					keymap(keymap, old_keymap) {
-						this.keymap_changed = true;
-						let success = Keybinds.loadKeymap(keymap, true);
-						if (!success) this.keymap = old_keymap;
-					}
-				},
-				template: `
-					<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
-						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
-						<h2>${tl('mode.start.quick_setup')}</h2>
-
-						<div>
-							<label>${tl('mode.start.keymap')}:</label>
-							<select-input v-model="keymap" :options="keymap_options" />
-							<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
-						</div>
-						<div>
-							<label>${tl('settings.language')}:</label>
-							<select-input v-model="language" :options="languages" />
-							<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
-								<i class="material-icons">refresh</i>
-							</div>
-							<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
-						</div>
-						<div style="width: 640px;">
-							<label>${tl('dialog.settings.theme')}:</label>
-							<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
-							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
-						</div>
-					</section>
-				`
-			}).$mount(section);
-		}
 	})
-	Promise.all([news_call, documentReady]).then((data) => {
-		if (!data || !data[0]) return;
-		data = data[0];
+	if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+		bsky_ad = true;
+		addStartScreenSection('bluesky_link', {
+			color: 'rgb(32, 139, 254);',
+			text_color: '#ffffff',
+			graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
+			text: [
+				{type: 'h3', text: 'Blockbench on Bluesky'},
+				{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
+			],
+			last: true
+		})
+	}
+	//Discord
+	if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
+		addStartScreenSection('discord_link', {
+			color: '#5865F2',
+			text_color: '#ffffff',
+			graphic: {type: 'icon', icon: 'fab.fa-discord'},
+			text: [
+				{type: 'h2', text: 'Discord Server'},
+				{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
+			],
+			last: true
+		})
+	}
 
-		//Update Screen
-		if (Blockbench.hasFlag('after_update') && data.new_version) {
-			data.new_version.insert_after = 'splash_screen'
-			addStartScreenSection('new_version', data.new_version);
-			jQuery.ajax({
-				url: 'https://blckbn.ch/api/event/successful_update',
-				type: 'POST',
-				data: {
-					version: Blockbench.version
-				}
-			})
-		}
-		if (data.psa) {
-			(function() {
-				if (typeof data.psa.version == 'string') {
-					if (data.psa.version.includes('-')) {
-						limits = data.psa.version.split('-');
-						if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
-						if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
-					} else {
-						if (data.psa.version != Blockbench.version) return;
+	// Quick Setup
+	if (Blockbench.startup_count <= 1) {
+		
+		let section = Interface.createElement('section', {id: 'quick_setup'});
+		document.querySelector('#start_screen #splash_screen').after(section);
+
+		new Vue({
+			data() {return {
+				language: Language.code,
+				language_original: Language.code,
+				languages: Language.options,
+				keymap: 'default',
+				keymap_changed: false,
+				theme: 'default',
+				keymap_options: {
+					default: tl('action.load_keymap.default'),
+					mouse: tl('action.load_keymap.mouse'),
+					blender: 'Blender',
+					cinema4d: 'Cinema 4D',
+					maya: 'Maya',
+				},
+			}},
+			methods: {
+				tl,
+				close() {
+					this.$el.remove();
+				},
+				reload() {
+					Blockbench.reload();
+				},
+				loadTheme(theme_id) {
+					this.theme = theme_id;
+					let theme = CustomTheme.themes.find(t => t.id == theme_id);
+					if (theme) CustomTheme.loadTheme(theme);
+				},
+				getThemeThumbnailStyle(theme_id) {
+					let theme = CustomTheme.themes.find(t => t.id == theme_id);
+					let style = {};
+					if (!theme) return style;
+					for (let key in theme.colors) {
+						style[`--color-${key}`] = theme.colors[key];
 					}
+					return style;
+				},
+				openThemes() {
+					BarItems.theme_window.click();
 				}
-				addStartScreenSection('psa', data.psa);
-			})()
-		}
+			},
+			watch: {
+				language(v) {
+					settings.language.set(v);
+					Settings.save();
+				},
+				keymap(keymap, old_keymap) {
+					this.keymap_changed = true;
+					let success = Keybinds.loadKeymap(keymap, true);
+					if (!success) this.keymap = old_keymap;
+				}
+			},
+			template: `
+				<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
+					<i class="material-icons start_screen_close_button" @click="close()">clear</i>
+					<h2>${tl('mode.start.quick_setup')}</h2>
 
-	})
-})()
+					<div>
+						<label>${tl('mode.start.keymap')}:</label>
+						<select-input v-model="keymap" :options="keymap_options" />
+						<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
+					</div>
+					<div>
+						<label>${tl('settings.language')}:</label>
+						<select-input v-model="language" :options="languages" />
+						<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
+							<i class="material-icons">refresh</i>
+						</div>
+						<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
+					</div>
+					<div style="width: 640px;">
+						<label>${tl('dialog.settings.theme')}:</label>
+						<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
+						<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
+						<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
+						<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
+					</div>
+				</section>
+			`
+		}).$mount(section);
+	}
+	Interface.Resizers.start_screen_width.update();
+})
+Promise.all([news_call, documentReady]).then((data) => {
+	if (!data || !data[0]) return;
+	data = data[0];
+
+	//Update Screen
+	if (Blockbench.hasFlag('after_update') && data.new_version) {
+		data.new_version.insert_after = 'splash_screen'
+		addStartScreenSection('new_version', data.new_version);
+		jQuery.ajax({
+			url: 'https://blckbn.ch/api/event/successful_update',
+			type: 'POST',
+			data: {
+				version: Blockbench.version
+			}
+		})
+	}
+	if (data.psa) {
+		(function() {
+			if (typeof data.psa.version == 'string') {
+				if (data.psa.version.includes('-')) {
+					limits = data.psa.version.split('-');
+					if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
+					if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
+				} else {
+					if (data.psa.version != Blockbench.version) return;
+				}
+			}
+			addStartScreenSection('psa', data.psa);
+		})()
+	}
+	Interface.Resizers.start_screen_width.update();
+})
+
 
 Object.assign(window, {
 	StartScreen,

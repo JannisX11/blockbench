@@ -11,6 +11,7 @@
 		padding: 36px 0;
 		overflow-y: auto;
 		background: linear-gradient(180deg, var(--color-ui) 5%, var(--color-dark) 60%);
+		--start-screen-width: 1000px;
 	}
 	body.is_mobile #start_screen {
 		padding: 0;
@@ -165,7 +166,7 @@
 
 	#start_screen > content {
 		display: block;
-		max-width: 1000px;
+		max-width: var(--start-screen-width);
 		height: auto;
 		margin-left: auto;
 		margin-right: auto;
@@ -283,7 +284,6 @@
 		width: 50%;
 	}
 	#start_screen .start_screen_features > li > img {
-		max-height: 230px;
 		width: 58%;
 		border-radius: 11px;
 		-webkit-user-drag: none;
@@ -331,6 +331,7 @@
 		aspect-ratio: 21/9;
 		width: 100%;
 		min-height: 100px;
+		max-height: 490px;
 	}
 	#splash_screen .splash_art_slideshow_image {
 		width: 100%;
@@ -394,7 +395,7 @@
 
 
 	#start_files div.start_screen_left {
-		width: 30%;
+		width: 300px;
 		padding: 20px 0 0px 0;
 		position: relative;
 		display: flex;
