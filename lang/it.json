@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Sposta i cubi selezionati indietro relativamente all'angolo della videocamera",
 	"layout.color.wireframe": "Wireframe",
 	"layout.color.wireframe.desc": "Linee del wireframe",
+	"layout.color.wireframe_selectable": "Wireframe selezionabile",
+	"layout.color.wireframe_selectable.desc": "Spigoli e vertici non selezionati della mesh attiva in modalità modifica",
 	"action.add_animation": "Aggiungi Animazione",
 	"action.add_animation.desc": "Crea Animazione Vuota",
 	"action.load_animation_file": "Importa Animazioni",

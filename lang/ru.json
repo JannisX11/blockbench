@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Сместить выбранные элементы назад относительно камеры",
 	"layout.color.wireframe": "Каркас",
 	"layout.color.wireframe.desc": "Линии при отображении каркаса",
+	"layout.color.wireframe_selectable": "Выделяемый каркас",
+	"layout.color.wireframe_selectable.desc": "Невыделенные рёбра и вершины активного меша в режиме редактирования",
 	"action.add_animation": "Добавление анимации",
 	"action.add_animation.desc": "Создать пустую анимацию",
 	"action.load_animation_file": "Импортирование анимаций",

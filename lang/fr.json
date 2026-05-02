@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Déplace les cubes sélectionnés vers l'arrière par rapport à l'angle de la caméra actuel",
 	"layout.color.wireframe": "Squelette",
 	"layout.color.wireframe.desc": "Contours de vue squelettique",
+	"layout.color.wireframe_selectable": "Squelette sélectionnable",
+	"layout.color.wireframe_selectable.desc": "Arêtes et sommets non sélectionnés du maillage actif en mode édition",
 	"action.add_animation": "Ajouter une animation",
 	"action.add_animation.desc": "Crée une animation vierge",
 	"action.load_animation_file": "Importer une animation",

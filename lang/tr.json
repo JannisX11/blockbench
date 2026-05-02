@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Seçili öğeleri mevcut kamera açısına göre geri taşıyın",
 	"layout.color.wireframe": "Tel Kafes",
 	"layout.color.wireframe.desc": "Tel kafes görünüm çizgileri",
+	"layout.color.wireframe_selectable": "Seçilebilir Tel Kafes",
+	"layout.color.wireframe_selectable.desc": "Düzenleme modunda aktif ağın seçili olmayan kenarları ve köşeleri",
 	"action.add_animation": "Animasyon Ekle",
 	"action.add_animation.desc": "Boş bir animasyon oluşturun",
 	"action.load_animation_file": "Animasyonları İçe Aktar",

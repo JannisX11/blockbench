@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Verschiebt die ausgewählten Elemente relativ zur Kameraperspektive nach hinten",
 	"layout.color.wireframe": "Drahtgitter",
 	"layout.color.wireframe.desc": "Drahtgitterlinien",
+	"layout.color.wireframe_selectable": "Auswählbares Drahtgitter",
+	"layout.color.wireframe_selectable.desc": "Nicht ausgewählte Kanten und Eckpunkte des aktiven Netzes im Bearbeitungsmodus",
 	"action.add_animation": "Animation hinzufügen",
 	"action.add_animation.desc": "Fügt eine neue Animation hinzu",
 	"action.load_animation_file": "Animation importieren",
