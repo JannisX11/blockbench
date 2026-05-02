@@ -29,7 +29,7 @@ declare namespace Painter {
 	): RGBAColor
 	function getMirrorElement(element: OutlinerElement, symmetry_axes: number[]): void
 	function updateNslideValues(): void
-	function getBlendModeCompositeOperation(blend_mode?: string): string
+	function getBlendModeCompositeOperation(blend_mode?: string): GlobalCompositeOperation
 	function getCanvas(texture: Texture): HTMLCanvasElement
 	function copyCanvas(original_canvas: HTMLCanvasElement): HTMLCanvasElement
 	function scanCanvas(

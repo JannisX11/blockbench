@@ -1,7 +1,7 @@
 import { getFocusedTextInput } from "../interface/keyboard"
 import { Property } from "../util/property"
 
-interface TextureLayerData {
+export interface TextureLayerData {
 	name?: string
 	in_limbo?: boolean
 	offset?: ArrayVector2
@@ -14,107 +14,73 @@ interface TextureLayerData {
 	image_data?: ImageData
 	data_url?: string
 }
-type LayerBlendMode = 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
+export type LayerBlendMode = 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
 
-/**
- * Texture layers always belong to a texture and represent the layers of the texture. Each layer has its own HTML canvas and canvas context
- */
-export class TextureLayer {
+export abstract class TextureLayerItem {
+	texture: Texture
 	name: string
 	uuid: UUID
-	texture: Texture
-	canvas: HTMLCanvasElement
-	ctx: CanvasRenderingContext2D
-	in_limbo: boolean
-	img: HTMLImageElement
+	parent_uuid: string | UUID
+	multi_selected: boolean
+	public type = 'layer'
 	declare menu?: Menu
-	/**
-	 * Layer offset from the top left corner of the texture to the top left corner of the layer
-	 */
-	offset: ArrayVector2
-	/**
-	 * Layer scale. This is only used by the layer transform tool and should be applied and reset to 1x1 before doing further changes
-	 */
-	scale: ArrayVector2
-	opacity: number
-	visible: boolean
-	blend_mode: LayerBlendMode
-
-	static properties: Record<string, Property<any>>
 
 	constructor(data: TextureLayerData, texture = Texture.selected, uuid?: UUID) {
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
 		this.texture = texture;
-		this.canvas = document.createElement('canvas');
-		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
-		this.in_limbo = false;
-
-		this.img = new Image();
-		this.img.onload = () => {
-			this.canvas.width = this.img.naturalWidth;
-			this.canvas.height = this.img.naturalHeight;
-			this.ctx.drawImage(this.img, 0, 0);
-		}
-
-		for (var key in TextureLayer.properties) {
-			TextureLayer.properties[key].reset(this);
-		}
-
-		if (data) this.extend(data);
-	}
-	get width() {
-		return this.canvas.width;
-	}
-	get height() {
-		return this.canvas.height;
-	}
-	get scaled_width() {
-		return this.canvas.width * this.scale[0];
-	}
-	get scaled_height() {
-		return this.canvas.height * this.scale[1];
-	}
-	get size() {
-		return [this.canvas.width, this.canvas.height];
+		this.multi_selected = false;
 	}
 	get selected() {
-		return this.texture.selected_layer == this;
+		return this.texture.selected_layer == this || this.multi_selected;
 	}
-	extend(data: TextureLayerData) {
-		for (var key in TextureLayer.properties) {
-			TextureLayer.properties[key].merge(this, data)
+	get parent(): TextureLayerGroup | null {
+		if (!this.parent_uuid) return null;
+		return this.texture.layers.find(l => l.uuid == this.parent_uuid) ?? null;
+	}
+	set parent(parent: TextureLayerGroup) {
+		this.parent_uuid = parent.uuid;
+	}
+	getDepth(): number {
+		let d = 0;
+		let it = (p: TextureLayerItem) => {
+			if (p.parent) {
+				d++;
+				return it(p.parent);
+			} else {
+				return d;
+			}
 		}
-		if (data.image_data) {
-			this.canvas.width = data.width || 16;
-			this.canvas.height = data.height || 16;
-			this.ctx.putImageData(data.image_data, 0, 0);
-
-		} else if (data.data_url) {
-			this.canvas.width = data.width || 16;
-			this.canvas.height = data.height || 16;
-			this.img.src = data.data_url;
-		}
+		return it(this);
 	}
 	/**
 	 * Selects the layer
 	 */
-	select() {
+	select(multi_select?: boolean) {
 		this.texture.selected_layer = this;
-		UVEditor.vue.layer = this;
-		(BarItems.layer_opacity as NumSlider).update();
-		(BarItems.layer_blend_mode as BarSelect).set(this.blend_mode);
-		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
-			(BarItems.selection_tool as Tool).select();
+		if (!multi_select) {
+			this.texture.layers.forEach(layer => layer.multi_selected = false);
 		}
+		this.multi_selected = true;
+		UVEditor.vue.layer = this;
 	}
-	clickSelect(event) {
+	clickSelect(event: MouseEvent) {
 		Undo.initSelection();
-		this.select();
+		this.select(event.ctrlOrCmd || Pressing.overrides.ctrl);
 		Undo.finishSelection('Select layer');
 	}
 	showContextMenu(event: MouseEvent): void {
 		if (!this.selected) this.clickSelect(event);
-		this.menu.open(event, this);
+		if ('menu' in this) this.menu.open(event, this);
+	}
+	/**
+	 * Scroll the layer panel list to
+	 */
+	scrollTo(): this {
+		let el = document.querySelector(`#layers_list > li[layer_id="${this.uuid}"]`);
+		if (el) {
+			el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+		}
+		return this;
 	}
 	/**
 	 * Remove the layer
@@ -135,11 +101,99 @@ export class TextureLayer {
 			Undo.finishEdit('Remove layer');
 		}
 	}
+}
+
+/**
+ * Texture layers always belong to a texture and represent the layers of the texture. Each layer has its own HTML canvas and canvas context
+ */
+export class TextureLayer extends TextureLayerItem {
+	canvas: HTMLCanvasElement
+	ctx: CanvasRenderingContext2D
+	in_limbo: boolean
+	img: HTMLImageElement
+	declare menu?: Menu
+	/**
+	 * Layer offset from the top left corner of the texture to the top left corner of the layer
+	 */
+	offset: ArrayVector2
+	/**
+	 * Layer scale. This is only used by the layer transform tool and should be applied and reset to 1x1 before doing further changes
+	 */
+	scale: ArrayVector2
+	opacity: number
+	visible: boolean
+	blend_mode: LayerBlendMode
+
+	public type = 'pixel_layer'
+	static properties: Record<string, Property<any>>
+
+	constructor(data: TextureLayerData, texture = Texture.selected, uuid?: UUID) {
+		super(data, texture, uuid);
+		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
+		this.texture = texture;
+		this.canvas = document.createElement('canvas');
+		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
+		this.in_limbo = false;
+
+		this.img = new Image();
+		this.img.onload = () => {
+			this.canvas.width = this.img.naturalWidth;
+			this.canvas.height = this.img.naturalHeight;
+			this.ctx.drawImage(this.img, 0, 0);
+		}
+
+		for (let key in TextureLayer.properties) {
+			TextureLayer.properties[key].reset(this);
+		}
+
+		if (data) this.extend(data);
+	}
+	get width() {
+		return this.canvas.width;
+	}
+	get height() {
+		return this.canvas.height;
+	}
+	get scaled_width() {
+		return this.canvas.width * this.scale[0];
+	}
+	get scaled_height() {
+		return this.canvas.height * this.scale[1];
+	}
+	get size() {
+		return [this.canvas.width, this.canvas.height];
+	}
+	extend(data: TextureLayerData) {
+		for (let key in TextureLayer.properties) {
+			TextureLayer.properties[key].merge(this, data)
+		}
+		if (data.image_data) {
+			this.canvas.width = data.width || 16;
+			this.canvas.height = data.height || 16;
+			this.ctx.putImageData(data.image_data, 0, 0);
+
+		} else if (data.data_url) {
+			this.canvas.width = data.width || 16;
+			this.canvas.height = data.height || 16;
+			this.img.src = data.data_url;
+		}
+	}
+	/**
+	 * Selects the layer
+	 */
+	select() {
+		super.select();
+		(BarItems.layer_opacity as NumSlider).update();
+		(BarItems.layer_blend_mode as BarSelect).set(this.blend_mode);
+		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
+			(BarItems.selection_tool as Tool).select();
+		}
+	}
 	getUndoCopy(image_data: boolean): any {
 		let copy: any = {};
 		copy.texture = this.texture.uuid;
 		copy.uuid = this.uuid;
-		for (var key in TextureLayer.properties) {
+		for (let key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
 		copy.width = this.width;
@@ -151,7 +205,7 @@ export class TextureLayer {
 	}
 	getSaveCopy(): any {
 		let copy: any = {};
-		for (var key in TextureLayer.properties) {
+		for (let key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
 		delete copy.in_limbo;
@@ -231,16 +285,6 @@ export class TextureLayer {
 		this.visible = !this.visible;
 		this.texture.updateChangesAfterEdit();
 		Undo.finishEdit('Toggle layer visibility');
-		return this;
-	}
-	/**
-	 * Scroll the layer panel list to
-	 */
-	scrollTo(): this {
-		let el = document.querySelector(`#layers_list > li[layer_id="${this.uuid}"]`);
-		if (el) {
-			el.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-		}
 		return this;
 	}
 	/**
@@ -401,7 +445,7 @@ export class TextureLayer {
 			title: `${this.name} (${this.width}x${this.height})`,
 			form: {
 				name: {label: 'generic.name', value: this.name},
-				opacity: {label: 'Opacity', type: 'range', value: this.opacity},
+				opacity: {label: 'action.layer_opacity', type: 'range', value: this.opacity},
 				blend_mode: {label: 'action.blend_mode', type: 'select', value: this.blend_mode, options: blend_mode_options},
 			},
 			onConfirm: form_data => {
@@ -465,6 +509,7 @@ TextureLayer.prototype.menu = new Menu([
 	 */
 ])
 new Property(TextureLayer, 'string', 'name', {default: 'layer'});
+new Property(TextureLayer, 'string', 'parent_uuid');
 new Property(TextureLayer, 'vector2', 'offset');
 new Property(TextureLayer, 'vector2', 'scale', {default: [1, 1]});
 new Property(TextureLayer, 'number', 'opacity', {default: 100});
@@ -474,14 +519,104 @@ new Property(TextureLayer, 'boolean', 'in_limbo', {default: false});
 
 Object.defineProperty(TextureLayer, 'all', {
 	get() {
-		return Texture.selected?.layers_enabled ? Texture.selected.layers : [];
+		return Texture.selected?.layers_enabled ? Texture.selected.layers.filter(l => l instanceof TextureLayer) : [];
 	}
 })
 Object.defineProperty(TextureLayer, 'selected', {
 	get() {
-		return Texture.selected?.selected_layer;
+		let layer = Texture.selected?.selected_layer;
+		if (layer instanceof TextureLayer) return Texture.selected?.selected_layer;
 	}
 })
+
+
+export interface TextureLayerGroupData {
+	name?: string
+	folded?: boolean
+}
+export type TextureLayerHierarchy = (TextureLayerGroupData|string)[]
+export class TextureLayerGroup extends TextureLayerItem {
+	folded: boolean
+	public type = 'layer_group'
+	static properties: Record<string, Property<any>>
+
+	constructor(data: TextureLayerGroupData, texture?: Texture, uuid?: UUID) {
+		super(data, texture, uuid);
+		for (let key in TextureLayer.properties) {
+			TextureLayer.properties[key].reset(this);
+		}
+		this.extend(data);
+	}
+	get children(): TextureLayerItem[] {
+		return this.texture.layers.filter(l => l.parent_uuid == this.uuid);
+	}
+	extend(data: TextureLayerGroupData) {
+		for (let key in TextureLayer.properties) {
+			TextureLayer.properties[key].merge(this, data)
+		}
+	}
+	getUndoCopy(): TextureLayerGroupData {
+		let data: any = {
+			texture: this.texture.uuid,
+			name: this.name,
+			uuid: this.uuid,
+			folded: this.folded
+		};
+		for (let key in TextureLayerGroup.properties) {
+			TextureLayerGroup.properties[key].copy(this, data);
+		}
+
+		return data;
+	}
+	getSaveCopy() {
+		return this.getUndoCopy();
+	}
+	/**
+	 * Selects the layer
+	 */
+	select(multi_select?: boolean) {
+		let children = this.children;
+		if (!multi_select) {
+			this.texture.layers.forEach(layer => layer.multi_selected = false);
+		}
+		for (let child of children) {
+			child.select(true);
+		}
+		this.multi_selected = true;
+	}
+	/**
+	 * Open the properties dialog
+	 */
+	propertiesDialog(): void {
+		let dialog = new Dialog({
+			id: 'layer_properties',
+			title: this.name,
+			form: {
+				name: {label: 'generic.name', value: this.name},
+			},
+			onConfirm: form_data => {
+				dialog.hide().delete();
+				if (
+					form_data.name != this.name
+				) {
+					Undo.initEdit({layers: [this]});
+					this.extend(form_data);
+					this.texture.updateChangesAfterEdit();
+					Blockbench.dispatchEvent('edit_layer_properties', {layer: this});
+					Undo.finishEdit('Edit layer group properties');
+				}
+			},
+			onCancel() {
+				dialog.hide().delete();
+			}
+		})
+		dialog.show();
+	}
+}
+new Property(TextureLayerGroup, 'string', 'name', {default: 'layer'});
+new Property(TextureLayerGroup, 'boolean', 'folded');
+new Property(TextureLayerGroup, 'string', 'parent_uuid');
+
 
 SharedActions.add('delete', {
 	subject: 'layer',
@@ -569,7 +704,7 @@ BARS.defineActions(() => {
 			let texture = Texture.selected;
 			if (!texture.layers_enabled) texture.activateLayers(true);
 
-			let start_path;
+			let start_path: string;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
 				let arr = Texture.all[0].path.split(osfs)
@@ -622,6 +757,30 @@ BARS.defineActions(() => {
 				BARS.updateConditions();
 				(BarItems.move_layer_tool as Tool).select();
 			})
+		}
+	})
+	new Action('create_layer_group', {
+		icon: 'files',
+		category: 'layers',
+		condition: () => Modes.paint && Texture.selected?.selected_layer,
+		click() {
+			if (!Texture.selected) Texture.all[0].select();
+			let texture = Texture.selected;
+			Undo.initEdit({textures: [texture]});
+			if (!texture.layers_enabled) texture.activateLayers(false);
+			
+			let group = new TextureLayerGroup({name: 'Layer Group'}, texture);
+			let i = group.texture.layers.indexOf(group.texture.selected_layer);
+			if (i == -1) {
+				group.texture.layers.push(group);
+			} else {
+				group.texture.layers.splice(i+1, 0, group);
+			}
+			if (group.texture.selected_layer) {
+				group.texture.selected_layer.parent_uuid = group.uuid;
+			}
+
+			Undo.finishEdit('Create layer group');
 		}
 	})
 	new Action('enable_texture_layers', {
@@ -804,6 +963,7 @@ Interface.definePanels(function() {
 					'create_empty_layer',
 					'import_layer',
 					'enable_texture_layers',
+					'create_layer_group',
 					'layer_opacity',
 					'layer_blend_mode'
 				]
@@ -874,7 +1034,7 @@ Interface.definePanels(function() {
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target, drop_target_node] = eventTargetToLayer(target, texture);
 							if (drop_target) {
-								var location = e2.clientY - $(drop_target_node).offset().top;
+								let location = e2.clientY - $(drop_target_node).offset().top;
 								order = getOrder(location, drop_target)
 								drop_target_node.setAttribute('order', order)
 								drop_target_node.classList.add('drag_hover');
@@ -932,6 +1092,20 @@ Interface.definePanels(function() {
 					}
 				}
 			},
+			computed: {
+				displayedLayers() {
+					let isDisplayed = (layer: TextureLayerItem): boolean => {
+						let parent = layer.parent;
+						if (parent) {
+							return !parent.folded && isDisplayed(parent);
+						} else {
+							return true;
+						}
+
+					}
+					return this.layers.filter(isDisplayed);
+				}
+			},
 			template: `
 				<ul
 					id="layers_list"
@@ -941,22 +1115,30 @@ Interface.definePanels(function() {
 					@touchstart="dragLayer($event)"
 				>
 					<li
-						v-for="layer in layers"
+						v-for="layer in displayedLayers"
 						:class="{ selected: layer.selected, in_limbo: layer.in_limbo }"
 						:key="layer.uuid"
 						:layer_id="layer.uuid"
+						:layer_type="layer.type"
 						class="texture_layer"
-						@click.stop="layer.clickSelect()"
+						:style="{'--indentation': layer.getDepth()}"
+						@click.stop="layer.clickSelect($event)"
 						@dblclick.stop="layer.propertiesDialog()"
 						@contextmenu.prevent.stop="layer.showContextMenu($event)"
 					>
-						<texture-layer-icon :layer="layer" />
+						<texture-layer-icon v-if="layer.type == 'pixel_layer'" :layer="layer" />
+
+						<i
+							v-if="layer.type == 'layer_group'"
+							@click.stop="layer.folded = !layer.folded" class="icon-open-state fa"
+							:class='{"fa-angle-right": layer.folded, "fa-angle-down": !layer.folded}'
+						></i>
 
 						<label>
 							{{ layer.name }}
 						</label>
 
-						<div class="in_list_button" @click.stop="layer.toggleVisibility()" @dblclick.stop>
+						<div v-if="'toggleVisibility' in layer" class="in_list_button" @click.stop="layer.toggleVisibility()" @dblclick.stop>
 							<i v-if="layer.visible" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
 						</div>
@@ -970,10 +1152,19 @@ Interface.definePanels(function() {
 		menu: new Menu([
 			'create_empty_layer',
 			'import_layer',
+			'create_layer_group',
 		])
 	})
 })
 
-Object.assign(window, {
-	TextureLayer
-});
+const global = {
+	TextureLayer,
+	TextureLayerGroup,
+};
+declare global {
+	const TextureLayer: typeof global.TextureLayer
+	type TextureLayer = import('./layers').TextureLayer
+	const TextureLayerGroup: typeof global.TextureLayerGroup
+	type TextureLayerGroup = import('./layers').TextureLayerGroup
+}
+Object.assign(window, global);

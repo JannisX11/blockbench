@@ -1094,6 +1094,7 @@
 		box-sizing: border-box;
 		align-items: center;
 		gap: 6px;
+		margin-left: calc(var(--indentation) * 20px);
 	}
 	.texture_layer:first-child {
 		margin-bottom: auto;
@@ -1108,6 +1109,9 @@
 		border: 2px dashed var(--color-accent);
 		font-style: italic;
 	}
+	.texture_layer[layer_type="layer_group"] {
+		height: 30px;
+	}
 	.layer_icon_wrapper {
 		height: 40px;
 		width: 40px;
@@ -1117,6 +1121,10 @@
 	}
 	.layer_icon_wrapper canvas {
 		width: 100%;
+	}
+	.texture_layer[layer_type="layer_group"] > i.icon-open-state {
+		width: 14px;
+		text-align: center;
 	}
 	.texture_layer > label {
 		flex-grow: 1;

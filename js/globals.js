@@ -75,4 +75,5 @@ Blockbench.Reusable = Reusable;
 
 Blockbench.Texture = Texture;
 Blockbench.TextureLayer = TextureLayer;
+Blockbench.TextureLayerGroup = TextureLayerGroup;
 Blockbench.SharedActions = SharedActions;

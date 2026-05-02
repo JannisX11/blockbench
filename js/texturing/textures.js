@@ -351,6 +351,8 @@ export class Texture {
 				if (layer)  {
 					layer.extend(layer_template);
 					old_layers.remove(layer);
+				} else if (layer_template.type == 'layer_group') {
+					layer = new TextureLayerGroup(layer_template, this, layer_template.uuid);
 				} else {
 					layer = new TextureLayer(layer_template, this, layer_template.uuid);
 				}
@@ -1389,6 +1391,7 @@ export class Texture {
 
 					if (scope.layers_enabled && scope.layers.length) {
 						for (let layer of scope.layers) {
+							if (layer.type != 'pixel_layer') continue;
 							if (formResult.mode == 'scale') {
 								resizeCanvas(layer.ctx);
 								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
@@ -1782,7 +1785,7 @@ export class Texture {
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
-			if (layer.visible == false || layer.opacity == 0) continue;
+			if (layer.type != 'pixel_layer' || layer.visible == false || layer.opacity == 0) continue;
 			if (layer.blend_mode == 'alpha_mask') {
 				let opacity_factor = layer.opacity / 100;
 				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
@@ -2319,7 +2322,7 @@ export function getTexturesById(id) {
 function getTextureDataWithAccurateAlpha(texture) {
 	let data = texture.ctx.createImageData(texture.canvas.width, texture.canvas.height);
 	for (let layer of texture.layers) {
-		if (layer.visible == false || layer.opacity == 0) continue;
+		if (layer.type != 'pixel_layer' || layer.visible == false || layer.opacity == 0) continue;
 
 		let layer_data = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
 		

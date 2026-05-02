@@ -137,7 +137,7 @@ interface BlockbenchEventMap {
 	select_no_project: any
 	flip_node_name: any
 	update_scene_shading: any
-	edit_layer_properties: {layer: TextureLayer}
+	edit_layer_properties: {layer: TextureLayerItem}
 	select_texture: {texture: Texture, event: Event}
 	compile_texture_mcmeta: {mcmeta: any}
 	register_element_type: any
