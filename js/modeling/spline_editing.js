@@ -333,7 +333,7 @@ BARS.defineActions(function() {
 			return (spline && selectedHandles.length && (isFirstSelected || isLastSelected));
 		}},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = getSpatialInterval()) {
 				Undo.initEdit({elements: SplineMesh.selected, selection: true}, amended);
 
 				function extrudeAlongSpline(spline, cKey, hKey, isEnd = false) {
