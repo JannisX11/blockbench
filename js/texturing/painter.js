@@ -4,6 +4,8 @@ import { Dynamic2DMap } from "../util/dynamic_2d_map";
 
 StateMemory.init('brush_presets', 'array')
 
+let PROJECTED = true
+
 export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
@@ -412,7 +414,7 @@ export const Painter = {
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
 
-		if (Painter.mirror_painting && !is_opposite) {
+		if (Painter.mirror_painting && !is_opposite && !PROJECTED) {
 			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
 			if (targets.length) {
 				let old_element = Painter.current.element;
@@ -430,10 +432,12 @@ export const Painter = {
 		let ctx = Painter.current.ctx;
 		ctx.save()
 
-		ctx.beginPath();
-		let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
-		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-		ctx.rect(rect[0], rect[1], w, h)
+		if (!PROJECTED) {
+			ctx.beginPath();
+			let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+			ctx.rect(rect[0], rect[1], w, h)
+		}
 
 		if (Toolbox.selected.id === 'fill_tool') {
 			Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
@@ -504,11 +508,13 @@ export const Painter = {
 		}
 
 		if (tool.brush.draw) {
+			console.log('draw')
 
 			tool.brush.draw({ctx, x, y, size, softness, texture, event});
 
 		} else {
 			let face_matrix = settings.paint_side_restrict.value && Painter.current.face_matrices[matrix_id];
+			let shape = BarItems.brush_shape.value;
 			let run_per_pixel = (pxcolor, local_opacity, px, py) => {
 				if (face_matrix) {
 					if (!face_matrix[px] || !face_matrix[px][py % texture.display_height]) {
@@ -517,11 +523,19 @@ export const Painter = {
 				}
 				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, max_opacity, ctx, x, y, size, softness, texture, event});
 			}
-			let shape = BarItems.brush_shape.value;
-			if (shape == 'square') {
-				Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
-			} else if (shape == 'circle') {
-				Painter.editCircle(ctx, x, y, size, softness * 1.8, run_per_pixel);
+
+			if (PROJECTED) {
+				Painter.projectBrush(ctx, {
+					x, y, size,
+					softness: softness * 1.8,
+					event,
+				}, run_per_pixel);
+			} else {
+				if (shape == 'square') {
+					Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
+				} else if (shape == 'circle') {
+					Painter.editCircle(ctx, x, y, size, softness * 1.8, run_per_pixel);
+				}
 			}
 
 		}
@@ -1669,6 +1683,16 @@ export const Painter = {
 				return pixel;
 			}
 		});
+	},
+	projectBrush(ctx, args, run_per_pixel) {
+		const pixel_intensities = {};
+		
+
+		// Calculate brush size on onscreen-pixels
+		// Calculate sampling resolution
+		// Raycast from each point (rough first, filter elements, then file with selected elements)
+		// If pixel hit, set intensity value (calculate average)
+		// Iterate over affected pixels and run run_per_pixel
 	},
 	openBrushOptions() {
 		let current_preset = 0;
