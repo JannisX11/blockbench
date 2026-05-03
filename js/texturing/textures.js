@@ -174,7 +174,7 @@ export class Texture {
 								cancel: 1
 							}, function(result) {
 								if (result === 0) {
-									setProjectResolution(img.naturalWidth, img.naturalHeight)
+									UVSizeUtil.adjustProjectResolution(img.naturalWidth, img.naturalHeight);
 									if (selected.length) {
 										UVEditor.loadData()
 									}

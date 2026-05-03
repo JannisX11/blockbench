@@ -1120,6 +1120,7 @@
 	}
 	.texture_layer > label {
 		flex-grow: 1;
+		overflow: hidden;
 	}
 	.texture_layer i.toggle_disabled {
 		color: var(--color-subtle_text);
@@ -1773,7 +1774,7 @@
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
-		justify-content: flex-end;
+		justify-content: flex-start;
 	}
 	.drag_hover[order]::before {
 		z-index: 7;

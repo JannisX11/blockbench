@@ -520,11 +520,11 @@ function changeNodeLocalPosition(obj, vector) {
 	if ('forEachChild' in obj && obj.getTypeBehavior('use_absolute_position')) {
 		let difference = position_arr.slice().V3_subtract(obj.origin);
 		obj.forEachChild(child => {
-			if (child instanceof Mesh) {
+			/*if (child instanceof Mesh) {
 				for (let vkey in child.vertices) {
 					child.vertices[vkey].V3_add(difference);
 				}
-			}
+			}*/
 			if (child.from) child.from.V3_add(difference);
 			if (child.to) child.to.V3_add(difference);
 			if (child.origin) child.origin.V3_add(difference);

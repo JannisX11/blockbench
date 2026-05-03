@@ -1150,7 +1150,7 @@ export class NumSlider extends Widget {
 			this.node.classList.add('is_colored');
 		}
 
-		//this.addLabel(data.label);
+		this.addLabel();
 
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {

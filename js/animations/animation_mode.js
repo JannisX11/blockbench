@@ -81,9 +81,9 @@ export const Animator = {
 		Timeline.pause()
 		Animator.open = false;
 
-		scene.remove(WinterskyScene.space);
-		scene.remove(Animator.motion_trail);
-		scene.remove(Animator.onion_skin_object);
+		Canvas.scene.remove(WinterskyScene.space);
+		Canvas.scene.remove(Animator.motion_trail);
+		Canvas.scene.remove(Animator.onion_skin_object);
 		Animator.resetParticles(true);
 
 		three_grid.position.z = three_grid.position.x;
@@ -113,7 +113,7 @@ export const Animator = {
 			}
 		}
 		Blockbench.dispatchEvent('display_default_pose', {reduced_updates});
-		if (!reduced_updates) scene.updateMatrixWorld()
+		if (!reduced_updates) Canvas.scene.updateMatrixWorld()
 	},
 	resetParticles(optimized) {
 		for (var path in Animator.particle_effects) {
