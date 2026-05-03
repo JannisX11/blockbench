@@ -415,8 +415,9 @@ export const Painter = {
 		}
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
+		let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
 
-		if (Painter.mirror_painting && !is_opposite && !PROJECTED) {
+		if (Painter.mirror_painting && !is_opposite && !use_screen_projection) {
 			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
 			if (targets.length) {
 				let old_element = Painter.current.element;
@@ -434,7 +435,7 @@ export const Painter = {
 		let ctx = Painter.current.ctx;
 		ctx.save()
 
-		if (!PROJECTED) {
+		if (!use_screen_projection) {
 			ctx.beginPath();
 			let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
@@ -510,7 +511,6 @@ export const Painter = {
 		}
 
 		if (tool.brush.draw) {
-			console.log('draw')
 
 			tool.brush.draw({ctx, x, y, size, softness, texture, event});
 
@@ -526,8 +526,9 @@ export const Painter = {
 				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, max_opacity, ctx, x, y, size, softness, texture, event});
 			}
 
-			if (PROJECTED) {
-				Painter.projectBrush(ctx, {
+			let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
+			if (use_screen_projection) {
+				Painter.projectScreenSpaceBrush(ctx, {
 					x, y, size, texture,
 					softness: softness * 1.8,
 					shape,
@@ -927,6 +928,7 @@ export const Painter = {
 		return targets;
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {
+		// TODO: Support screen space brush
 		var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
 		var start_y = (Painter.current.y == undefined ? end_y : Painter.current.y);
 		
@@ -1687,8 +1689,7 @@ export const Painter = {
 			}
 		});
 	},
-	projectBrush(ctx, args, editPx) {
-		let event = args.event;
+	projectScreenSpaceBrush(ctx, args, editPx) {
 		let texture = args.texture;
 		let preview = Preview.selected;
 		let r = Math.round(args.size+1)/2;
@@ -1697,8 +1698,8 @@ export const Painter = {
 
 		let canvas_offset = preview.canvas.getBoundingClientRect();
 		let mouse_canvas_offset = [
-			event.clientX - canvas_offset.left,
-			event.clientY - canvas_offset.top
+			args.event.clientX - canvas_offset.left,
+			args.event.clientY - canvas_offset.top
 		]
 		function filterObjects(elements) {
 			let objects = [];
@@ -1790,7 +1791,6 @@ export const Painter = {
 
 			let pos_on_gradient = pixel_intensities[key] / pixel_hits[key];
 			let opacity = Math.clamp(1-pos_on_gradient, 0, 1)
-			console.log(pixel_intensities[key], pixel_hits[key], opacity, pos_on_gradient)
 
 			if (opacity > 0) {
 				let result_color = editPx({
@@ -1862,6 +1862,7 @@ export const Painter = {
 							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
 							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
 							pixel_perfect: preset.pixel_perfect == null ? BarItems.pixel_perfect_drawing.value : preset.pixel_perfect,
+							screen_space: preset.screen_space == null ? BarItems.screen_space_brush_projection.value : preset.screen_space,
 							color: preset.color == null ? ColorPanel.get() : preset.color,
 							shape: preset.shape ? preset.shape : 'unset',
 							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
@@ -1950,6 +1951,10 @@ export const Painter = {
 					label: 'action.pixel_perfect_drawing',
 					type: 'checkbox',
 				},
+				screen_space: {
+					label: 'action.screen_space_brush_projection',
+					type: 'checkbox',
+				},
 				color: {
 					label: 'data.color',
 					description: 'action.brush_shape.desc', type: 'color',
@@ -1995,6 +2000,11 @@ export const Painter = {
 				} else {
 					preset.pixel_perfect = false;
 				}
+				if (form.screen_space) {
+					preset.screen_space = true;
+				} else {
+					preset.screen_space = false;
+				}
 				if (form.shape !== 'unset') {
 					preset.shape = form.shape;
 				} else {
@@ -2024,6 +2034,7 @@ export const Painter = {
 		if (typeof preset.softness == 'number') BarItems.slider_brush_softness.setValue(preset.softness);
 		if (typeof preset.opacity == 'number') 	BarItems.slider_brush_opacity.setValue(preset.opacity);
 		if (preset.pixel_perfect != undefined) 	BarItems.pixel_perfect_drawing.set(preset.pixel_perfect);
+		if (preset.screen_space != undefined) 	BarItems.screen_space_brush_projection.set(preset.screen_space);
 		if (preset.color) 		ColorPanel.set(preset.color);
 		if (preset.shape) {
 			BarItems.brush_shape.set(preset.shape);
@@ -2045,6 +2056,7 @@ export const Painter = {
 			size: 1,
 			softness: 0,
 			pixel_perfect: false,
+			screen_space: false,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -2054,6 +2066,7 @@ export const Painter = {
 			size: 1,
 			softness: 0,
 			pixel_perfect: true,
+			screen_space: false,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -2063,6 +2076,17 @@ export const Painter = {
 			size: 5,
 			softness: 70,
 			pixel_perfect: false,
+			screen_space: false,
+			shape: 'circle',
+			blend_mode: 'default'
+		},
+		{
+			name: 'menu.brush_presets.screen_space',
+			default: true,
+			size: 5,
+			softness: 70,
+			pixel_perfect: false,
+			screen_space: true,
 			shape: 'circle',
 			blend_mode: 'default'
 		}
@@ -2549,6 +2573,7 @@ BARS.defineActions(function() {
 			opacity: true,
 			offset_even_radius: true,
 			pixel_perfect: true,
+			screen_space: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {
 				let size = Painter.current.dynamic_brush_size ?? BarItems.slider_brush_size.get();
@@ -2624,6 +2649,10 @@ BARS.defineActions(function() {
 				{name: 'menu.brush_presets.smooth_brush', icon: 'fa-paint-brush', click() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[2])
+				}},
+				{name: 'menu.brush_presets.screen_space', icon: 'stylus_brush', click() {
+					BarItems.brush_tool.select();
+					Painter.loadBrushPreset(Painter.default_brush_presets[3])
 				}},
 			];
 			StateMemory.brush_presets.forEach((preset) => {
@@ -3446,6 +3475,11 @@ BARS.defineActions(function() {
 		icon: 'stylus_laser_pointer',
 		category: 'view',
 		condition: () => Toolbox && Toolbox.selected.brush?.pixel_perfect == true,
+	})
+	new Toggle('screen_space_brush_projection', {
+		icon: 'stylus_laser_pointer',
+		category: 'view',
+		condition: () => Format.image_editor == false && Toolbox && Toolbox.selected.brush?.screen_space == true,
 	})
 	new NumSlider('slider_color_select_threshold', {
 		category: 'paint',

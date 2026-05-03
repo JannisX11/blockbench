@@ -1401,6 +1401,8 @@
 	"action.slider_color_select_threshold.desc": "How close the color of a neighboring pixel has to be to get selected by color or wand select",
 	"action.pixel_perfect_drawing": "Pixel Perfect Drawing",
 	"action.pixel_perfect_drawing.desc": "Draw smooth pixel-art lines without double pixels at curves",
+	"action.screen_space_brush_projection": "Screen Space Brush Projection",
+	"action.screen_space_brush_projection.desc": "Use screen space projection for painting with a brush",
 	"action.brush_shape": "Brush Shape",
 	"action.brush_shape.square": "Square",
 	"action.brush_shape.circle": "Circle",
@@ -2381,6 +2383,7 @@
 	"menu.brush_presets.pixel_brush": "Pixel Brush",
 	"menu.brush_presets.pixel_perfect": "Pixel-perfect Brush",
 	"menu.brush_presets.smooth_brush": "Smooth Brush",
+	"menu.brush_presets.screen_space": "Screen Space Brush",
 
 	"menu.palette.load.default": "Default",
 	"menu.palette.load.empty": "Blank",

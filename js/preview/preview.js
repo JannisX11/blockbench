@@ -358,6 +358,12 @@ export class Preview {
 		addEventListeners(this.canvas, 'dblclick', 				event => { if (settings.double_click_switch_tools.value) Toolbox.toggleTransforms(event); }, false)
 		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
 		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
+		addEventListeners(this.canvas, 'mouseleave',			event => {
+			if (Painter.screen_space_brush_cursor) {
+				Painter.screen_space_brush_cursor.remove();
+				delete Painter.screen_space_brush_cursor;
+			}
+		}, false)
 
 		Preview.all.push(this);
 	}
@@ -1197,10 +1203,13 @@ export class Preview {
 			updateCubeHighlights(data && data.element);
 		}
 
+		let brush_cursor_3d = Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d');
+		let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
+
 		brush_cursor:
-		if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
+		if (brush_cursor_3d && !use_screen_projection) {
 			if (!data) {
-				scene.remove(Canvas.brush_outline);
+				Canvas.scene.remove(Canvas.brush_outline);
 				break brush_cursor;
 			}
 			if (!data.element.faces) break brush_cursor;
@@ -1208,10 +1217,10 @@ export class Preview {
 			let face = data.element.faces[data.face];
 			let texture = face.getTexture();
 			if (!texture) {
-				scene.remove(Canvas.brush_outline);
+				Canvas.scene.remove(Canvas.brush_outline);
 				break brush_cursor;
 			}
-			scene.add(Canvas.brush_outline);
+			Canvas.scene.add(Canvas.brush_outline);
 
 			let intersect = data.intersects[0];
 			let world_quaternion = intersect.object.getWorldQuaternion(Reusable.quat1)
@@ -1266,6 +1275,27 @@ export class Preview {
 				brush_matrix.multiplyMatrices(Canvas.brush_outline.parent.matrixWorld.clone().invert(), brush_matrix);
 			}
 			Canvas.brush_outline.matrix = brush_matrix;
+		}
+
+		screen_space_brush_cursor:
+		if (brush_cursor_3d && use_screen_projection) {
+			Painter.screen_space_brush_cursor ??= Interface.createElement('div', {
+				id: 'viewport_brush_outline',
+				class: 'brush_outline'
+			});
+			Painter.screen_space_brush_cursor.classList.toggle('circle', BarItems.brush_shape.value == 'circle');
+			Painter.screen_space_brush_cursor.style.left = event.offsetX + 'px';
+			Painter.screen_space_brush_cursor.style.top = event.offsetY + 'px';
+			this.node.append(Painter.screen_space_brush_cursor);
+			if (data && data.face) {
+				let r = Math.round(BarItems.slider_brush_size.get()+1)/2;
+				let screen_radius = 10 * r / this.calculateControlScale(data.intersects[0].point);
+				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius);
+			}
+
+		} else if (Painter.screen_space_brush_cursor) {
+			Painter.screen_space_brush_cursor.remove();
+			delete Painter.screen_space_brush_cursor;
 		}
 		
 		if (Toolbox.selected.onCanvasMouseMove) {
