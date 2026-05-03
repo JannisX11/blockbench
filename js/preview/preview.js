@@ -1272,6 +1272,7 @@ export class Preview {
 			if (!data) data = this.raycast(event);
 			Toolbox.selected.onCanvasMouseMove(data);
 		}
+		// Hover helpers
 		if (Condition(BarItems.selection_mode.condition) && Mesh.hasAny() && data && data.element instanceof Mesh) {
 			if (BarItems.selection_mode.value == 'edge' && data.type == 'line' && data.vertices) {
 				let pos_1 = Reusable.vec1.fromArray(data.element.vertices[data.vertices[0]]);

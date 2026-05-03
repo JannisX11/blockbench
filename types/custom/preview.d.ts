@@ -105,6 +105,7 @@ declare class Preview extends Deletable {
 	 * Take a screenshot of the current view of the preview
 	 */
 	screenshot(options: ScreenshotOptions, callback: ScreenshotReturn): void
+	calculateControlScale(position: THREE.Vector3): number
 
 	/**
 	 * List of all previews

@@ -528,8 +528,9 @@ export const Painter = {
 
 			if (PROJECTED) {
 				Painter.projectBrush(ctx, {
-					x, y, size,
+					x, y, size, texture,
 					softness: softness * 1.8,
+					shape,
 					event,
 				}, run_per_pixel);
 			} else {
@@ -1666,7 +1667,7 @@ export const Painter = {
 				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
 				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
-				pos_on_gradient = Math.floor((distance)/r)
+				pos_on_gradient = Math.floor(distance/r)
 			}
 
 			let opacity = limitNumber(1-pos_on_gradient, 0, 1)
@@ -1686,15 +1687,125 @@ export const Painter = {
 			}
 		});
 	},
-	projectBrush(ctx, args, run_per_pixel) {
-		const pixel_intensities = {};
-		
+	projectBrush(ctx, args, editPx) {
+		let event = args.event;
+		let texture = args.texture;
+		let preview = Preview.selected;
+		let r = Math.round(args.size+1)/2;
+		let selection = Painter.current.texture.selection;
+		const bounds = [texture.width, texture.height, 0, 0];
+
+		let canvas_offset = preview.canvas.getBoundingClientRect();
+		let mouse_canvas_offset = [
+			event.clientX - canvas_offset.left,
+			event.clientY - canvas_offset.top
+		]
+		function filterObjects(elements) {
+			let objects = [];
+			elements.forEach(element => {
+				if (!element.faces) return;
+				let mesh = element.mesh;
+				if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
+				if (mesh && mesh.geometry) {
+					objects.push(mesh);
+				}
+			});
+			return objects;
+		}
+		let objects = filterObjects(Outliner.elements);
+		let detected_elements = [];
 
 		// Calculate brush size on onscreen-pixels
+		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
+		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
+		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
+		let intersect = preview.raycaster.intersectObjects(objects, false)[0];
+		if (!intersect) return;
+		const screen_radius = 10 * r / preview.calculateControlScale(intersect.point);
+
 		// Calculate sampling resolution
+		let rough_samples = r * 0.6;
+		let samples = r * 5;
+
+		const pixel_intensities = {};
+		const pixel_hits = {};
+		function raycast(offset) {
+			let screen_distance = args.shape == 'square'
+				? Math.max(Math.abs(offset[0]), Math.abs(offset[1]))
+				: Math.sqrt(offset[0]**2 + offset[1]**2);
+			if (screen_distance > screen_radius) return;
+			// Distance in pixel space
+			let distance = (screen_distance / screen_radius) * r;
+
+			preview.mouse.x = ((mouse_canvas_offset[0] + offset[0]) / preview.width) * 2 - 1;
+			preview.mouse.y = - ((mouse_canvas_offset[1] + offset[1]) / preview.height) * 2 + 1;
+			preview.raycaster.setFromCamera( preview.mouse, preview.camera );
+		
+			let intersect = preview.raycaster.intersectObjects(objects, false)[0];
+			if (!intersect) return;
+		
+			let element = OutlinerNode.uuids[intersect.object.name];
+			detected_elements.safePush(element);
+
+			let coords = Painter.getCanvasToolPixelCoords(intersect.uv, texture).map(v => Math.floor(v));
+			if (coords[0] < 0 || coords[0] >= texture.width || coords[1] < 0 || coords[1] >= texture.height) return;
+			bounds[0] = Math.min(bounds[0], coords[0]);
+			bounds[1] = Math.min(bounds[1], coords[1]);
+			bounds[2] = Math.max(bounds[2], coords[0]);
+			bounds[3] = Math.max(bounds[3], coords[1]);
+
+			// If pixel hit, set intensity value (calculate average)
+			let pos_on_gradient;
+			if (args.softness*r != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-args.softness)*r) / (args.softness*r), 0, 1)
+				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
+			} else {
+				pos_on_gradient = Math.floor(distance/r)
+			}
+			if (pos_on_gradient != 1) {
+				let key = coords[0] + '.' + coords[1];
+				pixel_intensities[key] = (pixel_intensities[key] ?? 0) + pos_on_gradient;
+				pixel_hits[key] = (pixel_hits[key]??0) + 1;
+			}
+		}
+
 		// Raycast from each point (rough first, filter elements, then file with selected elements)
-		// If pixel hit, set intensity value (calculate average)
-		// Iterate over affected pixels and run run_per_pixel
+		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/rough_samples) {
+			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/rough_samples) {
+				raycast([offset_x, offset_y]);
+			}
+		}
+		objects = filterObjects(detected_elements);
+		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/samples) {
+			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/samples) {
+				raycast([offset_x, offset_y]);
+			}
+		}
+
+		// Iterate over affected pixels and modify pixel
+		Painter.scanCanvas(ctx, bounds[0], bounds[1], bounds[2]-bounds[0]+1, bounds[3]-bounds[1]+1, function (px, py, pixel) {
+			let key = px + '.' + py;
+			if (!pixel_hits[key]) return;
+			if (selection.allow(px, py) == 0) return;
+
+			let pos_on_gradient = pixel_intensities[key] / pixel_hits[key];
+			let opacity = Math.clamp(1-pos_on_gradient, 0, 1)
+			console.log(pixel_intensities[key], pixel_hits[key], opacity, pos_on_gradient)
+
+			if (opacity > 0) {
+				let result_color = editPx({
+					r: pixel[0],
+					g: pixel[1],
+					b: pixel[2],
+					a: pixel[3]/255
+				}, opacity, px, py)
+				pixel[0] = result_color.r
+				pixel[1] = result_color.g
+				pixel[2] = result_color.b
+				pixel[3] = result_color.a*255
+				return pixel;
+			}
+		});
 	},
 	openBrushOptions() {
 		let current_preset = 0;
