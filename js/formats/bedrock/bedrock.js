@@ -1578,7 +1578,7 @@ var block_format = new ModelFormat({
 		]
 	},
 	node_name_regex: '\\w.-',
-	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
+	show_on_start_screen: true,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,

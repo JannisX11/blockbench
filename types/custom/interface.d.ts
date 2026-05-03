@@ -14,6 +14,7 @@ declare namespace Interface {
 		quad_view_x: number
 		quad_view_y: number
 		timeline_head: number
+		start_screen_width: number
 		left_bar: string[]
 		right_bar: string[]
 	}
@@ -35,6 +36,8 @@ declare namespace Interface {
 		top: ResizeLine
 		bottom: ResizeLine
 		timeline_head: ResizeLine
+		start_screen_width: ResizeLine
+		[id: string]: ResizeLine
 	}
 	const status_bar: {
 		menu: Menu

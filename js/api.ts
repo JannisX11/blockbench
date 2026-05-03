@@ -51,12 +51,15 @@ export const Blockbench = {
 	version: appVersion,
 	operating_system: '',
 	platform: 'web',
+	browser: 'electron' as string,
 	flags: [],
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
 	setup_successful: null as null | true,
 	argv: isApp ? electron.process?.argv?.slice() : null,
+	queries: {} as Record<string, string|boolean>,
+	startup_count: 0,
 	/**
 	 * @deprecated Use Undo.initEdit and Undo.finishEdit instead
 	 */

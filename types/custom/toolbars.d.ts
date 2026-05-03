@@ -210,6 +210,7 @@ declare global {
 		const structure: any
 		function save(): void
 		function reset(): void
+		function loadKeymap(id: string, from_start_screen: boolean = false): true | void
 	}
 	class _ToolToolbar extends Toolbar {
 		selected: Tool

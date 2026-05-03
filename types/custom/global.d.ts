@@ -50,6 +50,9 @@ declare global {
 	interface Number {
 		toDigitString(digits: number): string
 	}
+	interface String {
+		hashCode(): number
+	}
 	interface Event {
 		readonly ctrlOrCmd: boolean
 	}

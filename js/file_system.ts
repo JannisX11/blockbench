@@ -37,7 +37,7 @@ export namespace Filesystem {
 		| 'palette'
 
 	// MARK: Import
-	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
+	export type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
 	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean

@@ -284,7 +284,7 @@ Date.prototype.getDateArray = function() {
 	return [
 		this.getDate(),
 		this.getMonth()+1,
-		this.getYear()+1900
+		this.getFullYear()
 	];
 }
 Date.prototype.getDateString = function() {

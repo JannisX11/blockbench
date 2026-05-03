@@ -2153,7 +2153,7 @@ export function initCanvas() {
 
 	Canvas.outlines = new THREE.Object3D();
 	Canvas.outlines.name = 'outline_group'
-	scene.add(Canvas.outlines)
+	Canvas.scene.add(Canvas.outlines)
 	Canvas.gizmos.push(Canvas.outlines)
 
 		/*monitor: new ReferenceImage({

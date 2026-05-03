@@ -146,7 +146,7 @@ interface BlockbenchEventMap {
 
 type BlockbenchEventName = keyof BlockbenchEventMap
 
-type IconString = string
+type IconString = string | HTMLElement
 
 declare const osfs: '\\' | '/'
 
@@ -173,17 +173,6 @@ declare const Pressing: {
 		alt: boolean
 	}
 }
-
-type RecentProjectData = {
-	name: string
-	path: string
-	icon: string
-	day: number
-	favorite: boolean
-	textures?: string[]
-	animation_files?: string[]
-}
-declare const recent_projects: RecentProjectData[]
 
 declare const Prop = {
 	active_panel: string

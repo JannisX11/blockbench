@@ -6,7 +6,7 @@ import { EventSystem } from "../util/event_system"
 import { getStringWidth, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
-type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+type ReadType = Filesystem.ReadType;
 interface FileResult {
 	name: string
 	path: string

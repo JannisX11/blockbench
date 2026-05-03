@@ -45,6 +45,6 @@ const global = {
 	StateMemory
 };
 declare global {
-	const StateMemory: typeof global.StateMemory
+	const StateMemory: (typeof global.StateMemory) & Record<string, any>
 }
 Object.assign(window, global);

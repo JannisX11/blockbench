@@ -81,6 +81,10 @@ declare class Preview extends Deletable {
 
 	raycast(event: MouseEvent): false | RaycastResult
 	render(): void
+	/**
+	 * Set a size of the preview in pixels. With no arguments, and if the preview node is connected to the DOM, it will adjust to the size of the parent element
+	 */
+	resize(width?: number, height?: number): void
 	setProjectionMode(orthographic: boolean): this
 	setFOV(fov: number): void
 	setLockedAngle(angle: number): this
@@ -97,6 +101,10 @@ declare class Preview extends Deletable {
 	occupyTransformer(): this
 	showContextMenu(event: Event | HTMLElement): this
 	loadBackground(): void
+	/**
+	 * Take a screenshot of the current view of the preview
+	 */
+	screenshot(options: ScreenshotOptions, callback: ScreenshotReturn): void
 
 	/**
 	 * List of all previews
@@ -133,5 +141,7 @@ declare class Preview extends Deletable {
 }
 
 declare const DefaultCameraPresets: AnglePreset[]
+
+declare const MediaPreview: Preview
 
 declare function animate(): void

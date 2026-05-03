@@ -34,4 +34,5 @@ declare class EditSession {
 	sendChat(text?: string): void
 	addChatMessage(message: any): any
 	processChatMessage(data: any): void
+	static token?: string
 }

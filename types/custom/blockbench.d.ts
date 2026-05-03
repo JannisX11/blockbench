@@ -44,7 +44,6 @@
 /// <reference types="./io" />
 /// <reference types="./native_apis" />
 /// <reference types="./util/VersionUtil" />
-/// <reference types="./start_screen" />
 
 /**
  * Provides access to global Javascript/DOM variables that are overwritten by Blockbench's own variables

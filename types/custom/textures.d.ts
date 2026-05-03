@@ -232,7 +232,7 @@ declare global {
 		 */
 		load(cb?: () => {}): this
 		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string }): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult): this
 		fromPath(path: string): this
 		/**
 		 * Loads file content **only**.

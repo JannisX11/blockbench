@@ -45,7 +45,7 @@ import "./interface/action_control"
 import "./copy_paste"
 import "./undo"
 
-import './desktop.js';
+import './desktop.ts';
 
 import "./interface/setup_settings"
 import "./interface/settings_window"
