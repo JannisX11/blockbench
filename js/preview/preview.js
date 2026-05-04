@@ -1288,8 +1288,14 @@ export class Preview {
 			Painter.screen_space_brush_cursor.style.top = event.offsetY + 'px';
 			this.node.append(Painter.screen_space_brush_cursor);
 			if (data && data.face) {
-				let r = Math.round(BarItems.slider_brush_size.get()+1)/2;
-				let screen_radius = 10 * r / this.calculateControlScale(data.intersects[0].point);
+				let pixel_density = 1;
+				let face = data.element.faces[data.face];
+				let texture = face?.getTexture();
+				if (texture) {
+					pixel_density = texture.width/texture.getUVWidth();
+				}
+				let r = BarItems.slider_brush_size.get()/2;
+				let screen_radius = (13.4 / this.calculateControlScale(data.intersects[0].point)) * (r / pixel_density);
 				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius);
 			}
 

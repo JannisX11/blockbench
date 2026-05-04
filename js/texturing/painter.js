@@ -120,6 +120,7 @@ export const Painter = {
 		}
 		let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
 		UVEditor.vue.texture = texture;
+		Painter.current.control_scale = Preview.selected.calculateControlScale(data.intersects[0].point);
 
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
@@ -136,6 +137,7 @@ export const Painter = {
 
 			let new_face;
 			let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
+			Painter.current.control_scale = Preview.selected.calculateControlScale(data.intersects[0].point);
 
 			let interval = Toolbox.selected.brush?.interval || 1;
 			let delta = [x - Painter.current.x, y - Painter.current.y];
@@ -159,6 +161,8 @@ export const Painter = {
 				Painter.current.y = y
 				Painter.current.face = data.face
 				Painter.current.element = data.element
+				Painter.current.client_mouse_x = event.clientX;
+				Painter.current.client_mouse_y = event.clientY;
 				new_face = true
 				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture && Undo.current_save) {
@@ -223,6 +227,7 @@ export const Painter = {
 		}
 		Undo.initEdit(undo_aspects);
 		Painter.current.start_event = event;
+		Painter.current.use_screen_projection = !!data && Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
 		Painter.brushChanges = false;
 		
 		if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
@@ -242,18 +247,18 @@ export const Painter = {
 		} else {
 			Painter.current.face_matrices = {};
 
-			let is_line
+			let is_line = (event.shiftKey || Pressing.overrides.shift);
+			// Viewport only
 			if (data) {
-				is_line = (event.shiftKey || Pressing.overrides.shift)
-					   && Painter.current.element == data.element
-					   && (Painter.current.face == data.face ||
+				if (is_line && !Painter.current.use_screen_projection) {
+					// Check if on same face or UV island
+					is_line = Painter.current.element == data.element
+						&& (Painter.current.face == data.face ||
 							(data.element.faces[data.face] instanceof MeshFace && Painter.getMeshUVIsland(data.face, data.element.faces[data.face]).includes(Painter.current.face))
 						)
+				}
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
-			} else {
-				//uv editor
-				is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 			if (Toolbox.selected.brush?.line == false) is_line = false;
 
@@ -261,11 +266,15 @@ export const Painter = {
 				if (is_line) {
 					Painter.drawBrushLine(texture, x, y, event, false, uvTag);
 				} else {
+					Painter.current.client_mouse_x = event.clientX;
+					Painter.current.client_mouse_y = event.clientY;
 					Painter.current.x = Painter.current.y = 0
 					Painter.useBrushlike(texture, x, y, event, uvTag)
 				}
 				Painter.current.x = x;
 				Painter.current.y = y;
+				Painter.current.client_mouse_x = event.clientX;
+				Painter.current.client_mouse_y = event.clientY;
 			}, {no_undo: true, use_cache: true});
 		}
 	},
@@ -298,12 +307,16 @@ export const Painter = {
 					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
 				} else {
 					Painter.current.x = Painter.current.y = 0;
+					delete Painter.current.client_mouse_x;
+					delete Painter.current.client_mouse_y;
 					Painter.useBrushlike(texture, x, y, event, uv)
 				}
 			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
 		Painter.current.y = y;
+		Painter.current.client_mouse_x = event.clientX;
+		Painter.current.client_mouse_y = event.clientY;
 	},
 	stopPaintTool() {
 		PointerTarget.endTarget();
@@ -407,7 +420,8 @@ export const Painter = {
 		return rect;
 	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
-		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
+		let use_screen_projection = Painter.current.use_screen_projection;
+		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y && !use_screen_projection) return;
 		Painter.currentPixel = [x, y];
 		Painter.brushChanges = true;
 		if (!is_opposite) {
@@ -415,7 +429,6 @@ export const Painter = {
 		}
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
-		let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
 
 		if (Painter.mirror_painting && !is_opposite && !use_screen_projection) {
 			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
@@ -526,13 +539,14 @@ export const Painter = {
 				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, max_opacity, ctx, x, y, size, softness, texture, event});
 			}
 
-			let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
-			if (use_screen_projection) {
+			if (Painter.current.use_screen_projection) {
 				Painter.projectScreenSpaceBrush(ctx, {
 					x, y, size, texture,
 					softness: softness * 1.8,
 					shape,
 					event,
+					client_x: Painter.current.client_mouse_x ?? event.clientX,
+					client_y: Painter.current.client_mouse_y ?? event.clientY,
 				}, run_per_pixel);
 			} else {
 				if (shape == 'square') {
@@ -928,57 +942,93 @@ export const Painter = {
 		return targets;
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {
-		// TODO: Support screen space brush
-		var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
-		var start_y = (Painter.current.y == undefined ? end_y : Painter.current.y);
-		
-		var diff_x = end_x - start_x;
-		var diff_y = end_y - start_y;
-
-		var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
-
-		if (new_face && !length) {
-			length = 1
-		}
 		let interval = Toolbox.selected.brush?.interval || 1;
-		var i = Math.min(interval, length);
-		var x, y;
 		let {ctx, offset} = Painter.current;
-		if (interval == 1) {
-			if (Math.abs(diff_x) > Math.abs(diff_y)) {
-				interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
-			} else {
-				interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
-			}
-		}
 
-		if (Toolbox.selected.brush?.pixel_perfect && BarItems.pixel_perfect_drawing.value && BarItems.slider_brush_size.get() == 1) {
-			let direction = 0;
-			if (length == 1 && diff_x && !diff_y) {direction = 1;}
-			if (length == 1 && !diff_x && diff_y) {direction = 2;}
-			let image_data = ctx.getImageData(end_x - offset[0], end_y - offset[1], 1, 1);
-			let pixel = {
-				direction,
-				image_data,
-				position: [end_x - offset[0], end_y - offset[1]]
-			};
-			if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
-				ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
-				delete Painter.current.last_pixel;
-			} else {
-				Painter.current.last_pixel = pixel;
-			}
-		}
+		if (!Painter.current.use_screen_projection) {
+			var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
+			var start_y = (Painter.current.y == undefined ? end_y : Painter.current.y);
+			
+			var diff_x = end_x - start_x;
+			var diff_y = end_y - start_y;
 
-		while (i <= length+0.001) {
-			x = length ? (start_x + diff_x / length * i) : end_x;
-			y = length ? (start_y + diff_y / length * i) : end_y;
-			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-				x = Math.round(x);
-				y = Math.round(y);
+			var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
+
+			if (new_face && !length) {
+				length = 1
 			}
-			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
-			i += interval;
+			var x, y;
+			var i = Math.min(interval, length);
+			if (interval == 1) {
+				if (Math.abs(diff_x) > Math.abs(diff_y)) {
+					interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+				} else {
+					interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+				}
+			}
+
+			if (Toolbox.selected.brush?.pixel_perfect && BarItems.pixel_perfect_drawing.value && BarItems.slider_brush_size.get() == 1) {
+				let direction = 0;
+				if (length == 1 && diff_x && !diff_y) {direction = 1;}
+				if (length == 1 && !diff_x && diff_y) {direction = 2;}
+				let image_data = ctx.getImageData(end_x - offset[0], end_y - offset[1], 1, 1);
+				let pixel = {
+					direction,
+					image_data,
+					position: [end_x - offset[0], end_y - offset[1]]
+				};
+				if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
+					ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
+					delete Painter.current.last_pixel;
+				} else {
+					Painter.current.last_pixel = pixel;
+				}
+			}
+
+			while (i <= length+0.001) {
+				x = length ? (start_x + diff_x / length * i) : end_x;
+				y = length ? (start_y + diff_y / length * i) : end_y;
+				if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+					x = Math.round(x);
+					y = Math.round(y);
+				}
+				Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
+				i += interval;
+			}
+			
+		} else {
+			let pixel_density = texture.width/texture.getUVWidth();
+			const screen_pixel_size = (10 / Painter.current.control_scale) / pixel_density;
+			var start_x = (Painter.current.client_mouse_x ?? event.clientX);
+			var start_y = (Painter.current.client_mouse_y ?? event.clientY);
+			
+			var diff_x = event.clientX - start_x;
+			var diff_y = event.clientY - start_y;
+
+			var length = Math.sqrt(diff_x**2 + diff_y**2) / screen_pixel_size;
+
+			if (new_face && !length) {
+				length = 1
+			}
+			if (!length) {
+				Painter.useBrushlike(texture, end_x, end_y, event, uv, i < length-1);
+				return;
+			}
+			var i = Math.min(interval, length);
+			if (interval == 1) {
+				if (Math.abs(diff_x) > Math.abs(diff_y)) {
+					interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+				} else {
+					interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+				}
+			}
+
+			while (i <= length+0.001) {
+				Painter.current.client_mouse_x = start_x + ((diff_x / length) * i);
+				Painter.current.client_mouse_y = start_y + ((diff_y / length) * i);
+				Painter.useBrushlike(texture, end_x, end_y, event, uv, i < length-1);
+				i += interval;
+			}
 		}
 	},
 	useShapeTool(texture, x, y, event, uvTag) {
@@ -1692,14 +1742,15 @@ export const Painter = {
 	projectScreenSpaceBrush(ctx, args, editPx) {
 		let texture = args.texture;
 		let preview = Preview.selected;
-		let r = Math.round(args.size+1)/2;
+		let r = args.size/2;
 		let selection = Painter.current.texture.selection;
+		let pixel_density = texture.width/texture.getUVWidth();
 		const bounds = [texture.width, texture.height, 0, 0];
 
 		let canvas_offset = preview.canvas.getBoundingClientRect();
 		let mouse_canvas_offset = [
-			args.event.clientX - canvas_offset.left,
-			args.event.clientY - canvas_offset.top
+			args.client_x - canvas_offset.left,
+			args.client_y - canvas_offset.top
 		]
 		function filterObjects(elements) {
 			let objects = [];
@@ -1720,13 +1771,11 @@ export const Painter = {
 		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
 		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
 		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
-		let intersect = preview.raycaster.intersectObjects(objects, false)[0];
-		if (!intersect) return;
-		const screen_radius = 10 * r / preview.calculateControlScale(intersect.point);
+		const screen_radius = (13.4 / Painter.current.control_scale) * (r / pixel_density);
 
 		// Calculate sampling resolution
 		let rough_samples = r * 0.6;
-		let samples = r * 5;
+		let samples = r * 4;
 
 		const pixel_intensities = {};
 		const pixel_hits = {};
@@ -2703,6 +2752,7 @@ BARS.defineActions(function() {
 			softness: true,
 			opacity: true,
 			offset_even_radius: true,
+			screen_space: true,
 			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 					let size = BarItems.slider_brush_size.get();
@@ -2844,6 +2894,7 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			screen_space: true,
 			offset_even_radius: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {

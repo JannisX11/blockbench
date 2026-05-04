@@ -5053,7 +5053,7 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
-							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="brush_type" :style="getBrushOutlineStyle()">
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="['brush_outline', brush_type]" :style="getBrushOutlineStyle()">
 								<div v-if="mouse_coords.line_preview" id="uv_brush_line_preview" :style="getLinePreviewStyle()"></div>
 							</div>
 
