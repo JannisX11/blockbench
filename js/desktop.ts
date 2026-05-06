@@ -136,7 +136,7 @@ window.confirm = function(message: string, title?: string) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {
 		title: title || electron.app.name,
 		detail: message,
-		message: null,
+		message: '',
 		type: 'none',
 		noLink: true,
 		buttons: [tl('dialog.ok'), tl('dialog.cancel')]
@@ -146,7 +146,7 @@ window.confirm = function(message: string, title?: string) {
 window.alert = function(message: string, title?: string) {
 	electron.dialog.showMessageBoxSync(electron.getCurrentWindow(), {
 		title: title || electron.app.name,
-		message: null,
+		message: '',
 		detail: message
 	});
 }
