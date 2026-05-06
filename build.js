@@ -106,7 +106,7 @@ const config = {
         }),
         conditionalImportPlugin(1, {
             filter: /desktop/,
-            file: isApp ? 'desktop.ts' : 'web.js'
+            file: isApp ? 'desktop.ts' : 'web.ts'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         vuePlugin(),
