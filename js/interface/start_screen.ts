@@ -7,13 +7,12 @@ import VersionUtil from '../util/version_util';
 
 export const StartScreen = {
 	loaders: {},
-	vue: null as null | Vue,
+	vue: null as null | (Vue & any),
 	open() {
 		(Interface.tab_bar as any).openNewTab();
 		MenuBar.mode_switcher_button?.classList.add('hidden');
 	},
 	updateThumbnails(model_paths?: string[]) {
-		// @ts-expect-error
 		StartScreen.vue.updateThumbnails(model_paths);
 	},
 	addSection: addStartScreenSection
