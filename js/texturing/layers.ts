@@ -396,19 +396,21 @@ export class TextureLayer {
 		TextureLayer.properties.blend_mode.enum_values.forEach(mode => {
 			blend_mode_options[mode] = `action.blend_mode.${mode}`
 		});
+		let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
 		let dialog = new Dialog({
 			id: 'layer_properties',
 			title: `${this.name} (${this.width}x${this.height})`,
 			form: {
 				name: {label: 'generic.name', value: this.name},
-				opacity: {label: 'Opacity', type: 'range', value: this.opacity},
+				opacity: {label: 'Opacity', type: 'range', value: Math.round(this.opacity / 100 * opacity_range), min: 0, max: opacity_range},
 				blend_mode: {label: 'action.blend_mode', type: 'select', value: this.blend_mode, options: blend_mode_options},
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
+				form_data.opacity = form_data.opacity / opacity_range * 100;
 				if (
 					form_data.name != this.name
-					|| form_data.opacity != this.opacity
+					|| !Math.epsilon(form_data.opacity, this.opacity, 0.2)
 					|| form_data.blend_mode != this.blend_mode
 				) {
 					Undo.initEdit({layers: [this]});
@@ -416,6 +418,7 @@ export class TextureLayer {
 					this.texture.updateChangesAfterEdit();
 					Blockbench.dispatchEvent('edit_layer_properties', {layer: this});
 					Undo.finishEdit('Edit layer properties');
+					(BarItems.layer_opacity as NumSlider).update();
 				}
 			},
 			onCancel() {
@@ -656,18 +659,24 @@ BARS.defineActions(() => {
 		category: 'layers',
 		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled && !!Texture.selected.getActiveLayer(),
 		settings: {
-			min: 0, max: 100, default: 100,
+			min: 0,
+			get max() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get default() {return settings.opacity_range.value == '255' ? 255 : 100},
 			show_bar: true
 		},
 		getInterval(event) {
 			return 1;
 		},
 		get() {
-			return Texture.selected.getActiveLayer().opacity;
+			let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
+			let value = Texture.selected.getActiveLayer().opacity ?? 100;
+			return Math.roundTo(value / 100 * opacity_range, 0);
 		},
 		change(modify) {
+			let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
 			let layer = Texture.selected.getActiveLayer();
-			layer.opacity = Math.clamp(modify(layer.opacity), 0, 100);
+			let new_value = modify(layer.opacity / 100 * opacity_range);
+			layer.opacity = Math.roundTo(Math.clamp(new_value / opacity_range * 100, 0, 100), 4);
 			Texture.selected.updateLayerChanges();
 		},
 		onBefore() {

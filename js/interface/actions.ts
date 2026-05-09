@@ -1473,6 +1473,8 @@ export class NumSlider extends Widget {
 		if (typeof value === 'string') {
 			value = parseFloat(value)
 		}
+		if (this.settings?.min) value = Math.max(value, this.settings.min);
+		if (this.settings?.max) value = Math.min(value, this.settings.max);
 		if (trim === false) {
 			this.value = value
 		} else if (typeof value === 'number') {

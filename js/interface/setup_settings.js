@@ -201,6 +201,13 @@ function setupSettings() {
 	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
 	new Setting('paint_through_transparency',		{category: 'paint', value: true});
 	new Setting('paint_side_restrict',				{category: 'paint', value: true});
+	new Setting('opacity_range',					{category: 'paint', value: '255', type: 'select', options: {
+		'255': '0-255',
+		'100': '0-100%',
+	}, onChange(value) {
+		BarItems.slider_brush_opacity.update();
+		BarItems.layer_opacity.update();
+	}});
 	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
 	new Setting('paint_with_stylus_only',			{category: 'paint', value: false});
 	new Setting('brush_opacity_modifier',			{category: 'paint', value: 'none', type: 'select', options: {

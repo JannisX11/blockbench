@@ -83,8 +83,7 @@ export class Setting {
 				case 'click': this.default_value = false; break;
 			}
 		}
-		if (typeof Settings.stored[id] === 'object') {
-			// @ts-ignore
+		if (typeof Settings.stored[id] === 'object' && Settings.stored[id].value !== undefined) {
 			this.master_value = Settings.stored[id].value;
 
 		} else if (data.value != undefined) {
@@ -468,7 +467,7 @@ export class SettingsProfile {
 export const Settings = {
 	profile_menu_button: null as HTMLElement | null,
 	structure: {} as Record<string, {name: string, open: boolean, items: Record<string, Setting>}>,
-	stored: {} as Record<string, SettingsValue>,
+	stored: {} as Record<string, {value: SettingsValue}>,
 	dialog: null as Dialog | null,
 	addCategory(id: string, data: {name?: string, open?: boolean}) {
 		Settings.structure[id] = {
