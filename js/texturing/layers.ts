@@ -101,10 +101,10 @@ export class TextureLayer {
 	select() {
 		this.texture.selected_layer = this;
 		UVEditor.vue.layer = this;
-		(BarItems.layer_opacity as NumSlider).update();
-		(BarItems.layer_blend_mode as BarSelect).set(this.blend_mode);
+		BarItems.layer_opacity.update();
+		BarItems.layer_blend_mode.set(this.blend_mode);
 		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
-			(BarItems.selection_tool as Tool).select();
+			BarItems.selection_tool.select();
 		}
 	}
 	clickSelect(event) {
@@ -937,7 +937,7 @@ Interface.definePanels(function() {
 					if (!texture) return;
 					if (!texture.selected) texture.select();
 					if (!texture.layers_enabled) {
-						(BarItems.enable_texture_layers as Action).trigger();
+						BarItems.enable_texture_layers.trigger();
 					}
 				}
 			},
@@ -986,3 +986,18 @@ Interface.definePanels(function() {
 Object.assign(window, {
 	TextureLayer
 });
+declare global {
+    interface BarItemRegistry {
+		layer_opacity: NumSlider
+		layer_blend_mode: BarSelect
+		selection_tool: Tool
+		create_empty_layer: Action
+		import_layer: Action
+		enable_texture_layers: Action
+		disable_texture_layers: Action
+		layer_to_texture_size: Action
+		merge_layer_down: Action
+		crop_layer_to_selection: Action
+        opacity_slider: NumSlider
+    }
+}

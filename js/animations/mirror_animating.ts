@@ -126,7 +126,7 @@ function flipCopyKeyframes(options: FlipCopyKeyframesOptions):
 let initial_keyframes: TKeyframe[] | undefined;
 Blockbench.on('init_edit', (args) => {
 	initial_keyframes = undefined;
-	let toggle = BarItems.mirror_animating as Toggle;
+	let toggle = BarItems.mirror_animating;
 	if (!toggle.value) return;
 
 	if (args.aspects.keyframes instanceof Array)  {
@@ -134,7 +134,7 @@ Blockbench.on('init_edit', (args) => {
 	}
 })
 Blockbench.on('finish_edit', (args) => {
-	let toggle = BarItems.mirror_animating as Toggle;
+	let toggle = BarItems.mirror_animating;
 	if (!toggle.value) return;
 
 	if (!args.aspects.keyframes?.length && !initial_keyframes?.length) return;
@@ -193,7 +193,6 @@ BARS.defineActions(function() {
 	let icon = Blockbench.getIconNode('vertical_align_center');
 	icon.style.transform = 'rotate(90deg)';
 	let toggle = new Toggle('mirror_animating', {
-		// @ts-ignore
 		icon,
 		category: 'animation',
 		condition: {modes: ['animate']},
@@ -267,3 +266,9 @@ BARS.defineActions(function() {
 		}
 	})
 });
+declare global {
+	interface BarItemRegistry {
+		mirror_animating: Toggle
+		flip_animation: Action
+	}
+}

@@ -31,7 +31,7 @@ export const MirrorModeling = {
 	},
 	createClone(original: OutlinerElement, undo_aspects: UndoAspects) {
 		// Create or update clone
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
@@ -267,7 +267,7 @@ interface MirrorModelingElementTypeOptions {
 
 
 Blockbench.on('init_edit', (args) => {
-	if (!(BarItems.mirror_modeling as Toggle).value) return;
+	if (!BarItems.mirror_modeling.value) return;
 	let aspects = args.aspects as UndoAspects;
 
 	MirrorModeling.initial_transformer_position = Transformer.position.x;
@@ -332,7 +332,7 @@ Blockbench.on('init_edit', (args) => {
 	}
 })
 Blockbench.on('finish_edit', ({aspects}) => {
-	if (!(BarItems.mirror_modeling as Toggle).value) return;
+	if (!BarItems.mirror_modeling.value) return;
 
 	if (aspects.elements && aspects.mirror_modeling != false) {
 		aspects.elements = aspects.elements.slice();
@@ -538,7 +538,7 @@ MirrorModeling.registerElementType(Mesh, {
 	createLocalSymmetry(mesh: Mesh, cached_data) {
 		// Create or update clone
 		let edit_side = cached_data?.edit_side || MirrorModeling.getEditSide();
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let pre_part_connections = cached_data?.pre_part_connections;
 
@@ -708,7 +708,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	},
 	createLocalSymmetry(element: ArmatureBone, cached_data) {
 		let edit_side = MirrorModeling.getEditSide();
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 	},
 	updateCounterpart(original: ArmatureBone, counterpart: ArmatureBone, context: any) {
 		// Update vertex weights on off-centered bones
@@ -849,5 +849,9 @@ const global = {
 };
 declare global {
 	const MirrorModeling: typeof global.MirrorModeling
+	interface BarItemRegistry {
+		mirror_modeling: Toggle
+		apply_mirror_modeling: Action
+	}
 }
 Object.assign(window, global);

@@ -15,7 +15,8 @@ type ActionEventName =
 	| 'open'
 	| 'modify_color'
 
-export const BarItems: Record<string, BarItem> = {};
+export const BarItems: any = {};
+
 
 //Bars
 type SubKeybind = {
@@ -2029,7 +2030,6 @@ export class ColorPicker extends Widget {
 }
 
 
-
 const global = {
 	BarItem,
 	KeybindItem,
@@ -2068,7 +2068,10 @@ declare global {
 	const BarText: typeof global.BarText
 	type ColorPicker = import('./actions').ColorPicker
 	const ColorPicker: typeof global.ColorPicker
-	const BarItems: typeof global.BarItems
+	const BarItems: BarItemRegistry
+    interface BarItemRegistry {
+		[key: string]: BarItem
+	}
 }
 Object.assign(window, global);
 

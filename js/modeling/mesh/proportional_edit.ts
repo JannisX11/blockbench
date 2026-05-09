@@ -125,7 +125,7 @@ const pe_toggle = new Toggle('proportional_editing', {
 			if (pe_toggle.value != formResult.enabled) {
 				pe_toggle.trigger();
 			}
-			(BarItems.proportional_editing_range as NumSlider).update();
+			BarItems.proportional_editing_range.update();
 		}
 	}),
 	onChange(value) {
@@ -149,3 +149,9 @@ new NumSlider('proportional_editing_range', {
 		pe_toggle.tool_config.save();
 	}
 })
+declare global {
+    interface BarItemRegistry {
+        proportional_editing_range: NumSlider
+		proportional_editing: Toggle
+    }
+}

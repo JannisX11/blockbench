@@ -277,7 +277,7 @@ export class ModelProject {
 		return (texture && Format.per_texture_uv_size) ? texture.uv_height : this.texture_height;
 	}
 	openSettings() {
-		if (this.selected) (BarItems.project_window as Action).click();
+		if (this.selected) BarItems.project_window.click();
 	}
 	whenNextOpen(callback: () => void) {
 		if (Project == this) {
@@ -372,8 +372,8 @@ export class ModelProject {
 
 		(BarItems.lock_motion_trail as Toggle).set(!!Project.motion_trail_lock);
 
-		(BarItems.mirror_modeling as Toggle).set(!!Project.mirror_modeling_enabled);
-		(BarItems.mirror_animating as Toggle).set(!!Project.mirror_animating_enabled);
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
+		BarItems.mirror_animating.set(!!Project.mirror_animating_enabled);
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;
@@ -871,7 +871,7 @@ onVueSetup(() => {
 				selectNoProject();
 			},
 			tabOverview() {
-				(BarItems.tab_overview as Action).trigger();
+				BarItems.tab_overview.trigger();
 			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
@@ -1392,5 +1392,13 @@ declare global {
 	const updateTabBarVisibility: typeof global.updateTabBarVisibility
 	const updateProjectResolution: typeof global.updateProjectResolution
 	const setStartScreen: typeof global.setStartScreen
+	interface BarItemRegistry {
+		project_window: Action
+		close_project: Action
+		duplicate_project: Action
+		convert_project: Action
+		switch_tabs: Action
+		tab_overview: Action
+	}
 }
 Object.assign(window, global);
