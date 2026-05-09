@@ -1235,6 +1235,8 @@
 	"settings.paint_with_stylus_only.desc": "Only use the stylus for painting, reserve mouse or touch input for navigation.",
 	"settings.limit_brush_opacity_per_stroke": "Limit Brush Opacity per Stroke",
 	"settings.limit_brush_opacity_per_stroke.desc": "Limit the opacity that a brush can apply to the value of the opacity slider during each brush stroke. With a smooth brush this behavior can potentially lead to slight unwanted noise.",
+	"settings.projected_brush_sample_rate": "Screen Space Brush Sample Rate",
+	"settings.projected_brush_sample_rate.desc": "How many samples the screen space projected brush uses per pixel unit. A higher rate is more accurate but slower",
 	"settings.image_editor": "Image Editor",
 	"settings.image_editor.desc": "Default image editor to edit textures with",
 

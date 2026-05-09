@@ -4,8 +4,6 @@ import { Dynamic2DMap } from "../util/dynamic_2d_map";
 
 StateMemory.init('brush_presets', 'array')
 
-let PROJECTED = true
-
 export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
@@ -1775,7 +1773,7 @@ export const Painter = {
 
 		// Calculate sampling resolution
 		let rough_samples = r * 0.6;
-		let samples = r * 4;
+		let samples = r * settings.projected_brush_sample_rate.value;
 
 		const pixel_intensities = {};
 		const pixel_hits = {};
