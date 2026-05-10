@@ -1,23 +1,40 @@
 import { markerColors } from "../../marker_colors";
 
+const SHAPE_OPTIONS = {
+	cuboid: 'dialog.add_primitive.shape.cube',
+	beveled_cuboid: 'dialog.add_primitive.shape.beveled_cuboid',
+	pyramid: 'dialog.add_primitive.shape.pyramid',
+	plane: 'dialog.add_primitive.shape.plane',
+	circle: 'dialog.add_primitive.shape.circle',
+	cylinder: 'dialog.add_primitive.shape.cylinder',
+	tube: 'dialog.add_primitive.shape.tube',
+	cone: 'dialog.add_primitive.shape.cone',
+	sphere: 'dialog.add_primitive.shape.sphere',
+	icosphere: 'dialog.add_primitive.shape.icosphere',
+	octahedron: 'dialog.add_primitive.shape.octahedron',
+	dodecahedron: 'dialog.add_primitive.shape.dodecahedron',
+	torus: 'dialog.add_primitive.shape.torus',
+}
+const HEDRONS = ['icosphere', 'octahedron', 'dodecahedron'];
+interface AddMeshFormResult {
+	shape: keyof typeof SHAPE_OPTIONS
+	diameter: number
+	detail: number
+	align_edges: boolean
+	height: number
+	sides: number
+	minor_diameter: number
+	minor_sides: number
+	edge_size: number
+}
 BARS.defineActions(function() {
 	let add_mesh_dialog = new Dialog({
 		id: 'add_primitive',
 		title: 'action.add_mesh',
 		form: {
-			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: {
-				cuboid: 'dialog.add_primitive.shape.cube',
-				beveled_cuboid: 'dialog.add_primitive.shape.beveled_cuboid',
-				pyramid: 'dialog.add_primitive.shape.pyramid',
-				plane: 'dialog.add_primitive.shape.plane',
-				circle: 'dialog.add_primitive.shape.circle',
-				cylinder: 'dialog.add_primitive.shape.cylinder',
-				tube: 'dialog.add_primitive.shape.tube',
-				cone: 'dialog.add_primitive.shape.cone',
-				sphere: 'dialog.add_primitive.shape.sphere',
-				torus: 'dialog.add_primitive.shape.torus',
-			}},
+			shape: {label: 'dialog.add_primitive.shape', type: 'select', options: SHAPE_OPTIONS},
 			diameter: {label: 'dialog.add_primitive.diameter', type: 'number', value: 16},
+			detail: {label: 'dialog.add_primitive.detail', type: 'number', value: 1, min: 0, max: 6, step: 1, force_step: true, condition: ({shape}) => HEDRONS.includes(shape)},
 			align_edges: {label: 'dialog.add_primitive.align_edges', type: 'checkbox', value: true, condition: ({shape}) => !['cuboid', 'beveled_cuboid', 'pyramid', 'plane'].includes(shape)},
 			height: {label: 'dialog.add_primitive.height', type: 'number', value: 8, condition: ({shape}) => ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(shape)},
 			sides: {label: 'dialog.add_primitive.sides', type: 'number', value: 12, min: 3, max: 48, condition: ({shape}) => ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(shape)},
@@ -25,13 +42,13 @@ BARS.defineActions(function() {
 			minor_sides: {label: 'dialog.add_primitive.minor_sides', type: 'number', value: 8, min: 2, max: 32, condition: ({shape}) => ['torus'].includes(shape)},
 			edge_size: {label: 'dialog.add_primitive.edge_size', type: 'number', value: 2, condition: ({shape}) => ['beveled_cuboid'].includes(shape)},
 		},
-		onConfirm(result) {
+		onConfirm(result: AddMeshFormResult) {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
 			const color = Math.floor(Math.random()*markerColors.length);
 			let parent = getCurrentGroup() ?? Armature.selected[0];
 
-			function runEdit(amended: boolean, result) {
+			function runEdit(amended: boolean, result: AddMeshFormResult) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
 					let group_to_select = Group.all.find(g => g.uuid == original_selection_group);
@@ -231,6 +248,43 @@ BARS.defineActions(function() {
 						}
 					}
 				}
+				if (HEDRONS.includes(result.shape)) {
+					let vertices = mesh.vertices;
+					let geometry: THREE.IcosahedronGeometry | THREE.OctahedronGeometry | THREE.DodecahedronGeometry;
+					switch (result.shape) {
+						case 'octahedron': geometry = new THREE.OctahedronGeometry(result.diameter, result.detail); break;
+						case 'dodecahedron': geometry = new THREE.DodecahedronGeometry(result.diameter, result.detail); break;
+						default: geometry = new THREE.IcosahedronGeometry(result.diameter, result.detail); break;
+					}
+					let pos_array = Array.from(geometry.attributes.position.array);
+					let uv_array = Array.from(geometry.attributes.position.array);
+					let face_vertices: string[] = [];
+					let face_uvs: ArrayVector2[] = [];
+					
+					for (let i = 0; i < geometry.attributes.position.count; i += 1) {
+						let position = pos_array.slice(i*3, i*3 + 3) as ArrayVector3;
+						let uv = uv_array.slice(i*2, i*2 + 2) as ArrayVector2;
+						face_uvs.push(uv);
+
+						let vkey = Object.keys(vertices).find(vkey => vertices[vkey].equals(position));
+						if (!vkey) {
+							[vkey] = mesh.addVertices(position);
+						}
+						face_vertices.push(vkey);
+
+						// Create face
+						if (face_vertices.length == 3) {
+							let uv = {
+								[face_vertices[0]]: face_uvs[0],
+								[face_vertices[1]]: face_uvs[1],
+								[face_vertices[2]]: face_uvs[2],
+							}
+							mesh.addFaces(new MeshFace( mesh, {vertices: face_vertices, uv} ));
+							face_vertices.empty();
+							face_uvs.empty();
+						}
+					}
+				}
 				if (result.shape == 'cuboid') {
 					mesh.name = 'mesh';
 					let r = result.diameter/2;
@@ -379,6 +433,7 @@ BARS.defineActions(function() {
 
 			Undo.amendEdit({
 				diameter: {label: 'dialog.add_primitive.diameter', type: 'num_slider', value: result.diameter, interval_type: 'position'},
+				detail: {label: 'dialog.add_primitive.detail', type: 'number', value: result.detail, min: 0, max: 6, step: 1, force_step: true, condition: HEDRONS.includes(result.shape)},
 				height: {label: 'dialog.add_primitive.height', type: 'num_slider', value: result.height, condition: ['cylinder', 'cone', 'cuboid', 'beveled_cuboid', 'pyramid', 'tube'].includes(result.shape), interval_type: 'position'},
 				sides: {label: 'dialog.add_primitive.sides', type: 'num_slider', value: result.sides, min: 3, max: 48, condition: ['cylinder', 'cone', 'circle', 'torus', 'sphere', 'tube'].includes(result.shape)},
 				minor_diameter: {label: 'dialog.add_primitive.minor_diameter', type: 'num_slider', value: result.minor_diameter, condition: ['torus', 'tube'].includes(result.shape), interval_type: 'position'},

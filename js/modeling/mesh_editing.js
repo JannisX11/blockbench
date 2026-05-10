@@ -9,7 +9,6 @@ import './mesh/merge_split'
 import './mesh/import_obj'
 import { autoFixMeshEdit } from './mesh/auto_fix'
 import { sameMeshEdge } from './mesh/util';
-import { PointerTarget } from '../interface/pointer_target';
 
 export function uncorruptMesh() {
 	for (let mesh of Mesh.selected) {
