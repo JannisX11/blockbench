@@ -153,8 +153,8 @@ export class Collection {
 		let match = this.getChildren().find(node => {
 			return node && 'visibility' in node && typeof node.visibility == 'boolean';
 		});
-		// @ts-ignore
-		return match ? match.visibility : true;
+		// @ts-inore
+		return match ? ('visibility' in match ? !!match.visibility : true) : true;
 	}
 	/**
 	 * Get all children, including indirect ones
@@ -269,7 +269,6 @@ export class Collection {
 				group: []
 			}
 			for (let child of collection.getChildren()) {
-				// @ts-ignore
 				let type = child.type;
 				if (!types[type]) types[type] = [];
 				types[type].push(child);
@@ -339,7 +338,7 @@ export class Collection {
 						this.selected.empty();
 					},
 					addWithFilter(this: PropertiesComponentData, event) {
-						// @ts-ignore
+						// @ts-expect-error
 						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
 							for (let node of elements.concat(groups)) {
 								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
@@ -537,13 +536,11 @@ new Property(Collection, 'boolean', 'visibility', {default: false});
 
 Object.defineProperty(Collection, 'all', {
 	get() {
-		// @ts-ignore
 		return Project.collections
 	}
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
-		// @ts-ignore
 		return Project ? Project.collections.filter(c => c.selected) : [];
 	}
 })
@@ -822,7 +819,6 @@ Interface.definePanels(function() {
 						group: []
 					}
 					for (let child of collection.getChildren()) {
-						// @ts-ignore
 						let type = child.type;
 						if (!types[type]) types[type] = [];
 						types[type].push(child);

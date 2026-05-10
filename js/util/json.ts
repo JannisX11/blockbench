@@ -160,7 +160,6 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 		} catch (err) {
 			if (feedback === false) return;
 			if (data.match(/\n\r?[><]{7}/)) {
-				// @ts-ignore
 				Blockbench.showMessageBox({
 					title: 'message.invalid_file.title',
 					icon: 'fab.fa-git-alt',
@@ -191,7 +190,6 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 
 				logErrantPart(data, data.length-16, 10)
 			}
-			// @ts-ignore
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',

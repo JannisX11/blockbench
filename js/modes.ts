@@ -46,7 +46,7 @@ export class Mode extends KeybindItem {
 			data = id;
 			id = data.id;
 		}
-		// @ts-ignore
+		// @ts-expect-error
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);

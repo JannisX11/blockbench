@@ -49,7 +49,6 @@ export const AutoBackup = {
 
 				let section = addStartScreenSection('recover_backup', {
 					graphic: {type: 'icon', icon: 'fa-archive'},
-					// @ts-ignore Idk
 					insert_before: 'start_files',
 					text: [
 						{type: 'h3', text: tl('message.recover_backup.title')},

@@ -74,7 +74,6 @@ new Tool('weight_brush', {
 	category: 'tools',
 	cursor: 'crosshair',
 	toolbar: 'weight_brush',
-	// @ts-ignore
 	transformerMode: 'hidden',
 	selectElements: false,
 	modes: ['edit'],
@@ -178,7 +177,6 @@ new Tool('weight_brush', {
 			if (BarItems.mirror_modeling.value) {
 				symmetrizeArmature(armature, mesh, affected_vkeys);
 			}
-			// @ts-ignore
 			Mesh.preview_controller.updateGeometry(mesh);
 		}
 		const stop = (event: MouseEvent) => {

@@ -845,9 +845,7 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		let getInterval = this.options.getInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'position') getInterval = getSpatialInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
 		this.slider = new NumSlider('form_slider_'+this.id, {
 			private: true,

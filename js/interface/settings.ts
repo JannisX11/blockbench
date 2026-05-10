@@ -98,7 +98,6 @@ export class Setting {
 		this.description = data.description || tl(`settings.${id}.desc`);
 		this.requires_restart = data.requires_restart == true;
 		this.launch_setting = data.launch_setting || false;
-		// @ts-ignore plugin code is loaded after this, so "Plugins" cannot be imported here
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		if (this.type == 'number') {

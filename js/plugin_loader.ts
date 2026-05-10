@@ -70,7 +70,6 @@ export const Plugins = {
 	}
 }
 StateMemory.init('installed_plugins', 'array')
-// @ts-ignore
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
 let session_plugin_installations = 0;
 
@@ -465,7 +464,6 @@ export class Plugin {
 		// Download files
 		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void) {
 			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
-			// @ts-ignore
 			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
 				response.pipe(file);
 				if (callback) response.on('end', callback);
@@ -571,7 +569,6 @@ export class Plugin {
 			if (isApp) {
 				await new Promise((resolve, reject) => {
 					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
-					// @ts-ignore
 					https.get(url, (response) => {
 						response.pipe(file);
 						response.on('end', resolve)

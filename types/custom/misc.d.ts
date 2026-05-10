@@ -162,6 +162,8 @@ declare function getRescalingFactor(angle: number): number
  * @param all If true, calculate the center of all elements instead of just selected
  */
 declare function getSelectionCenter(all: boolean = false): ArrayVector3
+declare function getSpatialInterval(event?: Event): number;
+declare function getRotationInterval(event?: Event): number;
 
 declare const Pressing: {
 	shift: boolean

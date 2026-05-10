@@ -25,7 +25,6 @@ BARS.defineActions(() => {
 		icon: 'folder',
 		category: 'blockbench',
 		click: function () {
-			// @ts-ignore for now
 			Blockbench.import({
 				resource_id: 'config',
 				extensions: ['bbsettings'],
@@ -184,7 +183,7 @@ onVueSetup(function() {
 							this.profile.openDialog();
 						}}
 					)
-					// @ts-ignore
+					// @ts-expect-error
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
 				},
 				profileButtonPress(this: SettingsDialogVueData) {

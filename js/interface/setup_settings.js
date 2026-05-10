@@ -14,7 +14,6 @@ function setupSettings() {
 	new Setting('username', {value: '', type: 'text'});
 	new Setting('streamer_mode', {value: false, onChange() {
 		StartScreen.vue._data.redact_names = settings.streamer_mode.value;
-		// @ts-ignore
 		Interface.status_bar.vue.$data.streamer_mode = settings.streamer_mode.value;
 		updateStreamerModeNotification();
 	}});

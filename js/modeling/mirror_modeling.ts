@@ -823,7 +823,6 @@ BARS.defineActions(() => {
 	})
 	Blockbench.on('update_selection', () => {
 		if (!Condition(allow_toggle.condition)) return;
-		// @ts-ignore
 		let disabled = Outliner.selected.find(el => el.allow_mirror_modeling === false);
 		if (allow_toggle.value != !disabled) {
 			allow_toggle.value = !disabled;

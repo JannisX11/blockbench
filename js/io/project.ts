@@ -107,7 +107,7 @@ export class ModelProject {
 	selected_groups: any
 	spline_selection: any
 	texture_groups: any
-	collections: any
+	collections: Collection[]
 	animation_controllers: any
 
 	constructor(options: ModelProjectOptions = {}, uuid?: UUID) {
@@ -184,7 +184,6 @@ export class ModelProject {
 		ModelProject.all.push(this);
 
 		ProjectData[this.uuid] = {
-			// @ts-ignore
 			model_3d: new THREE.Object3D(),
 			nodes_3d: {}
 		}

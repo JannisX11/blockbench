@@ -445,7 +445,6 @@ export class ModelFormat implements FormatOptions {
 		return this;
 	}
 	new(): boolean {
-		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
 			(BarItems.project_window as Action).click();
 			return true;
@@ -505,9 +504,7 @@ export class ModelFormat implements FormatOptions {
 					el.addTo(root_group)
 				})
 			}
-			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
-				// @ts-ignore
 				Project.geometry_name = Project.name;
 			}
 		}
@@ -587,7 +584,6 @@ export class ModelFormat implements FormatOptions {
 		}
 		//Billboards
 		if (!this.bounding_boxes && old_format.bounding_boxes) {
-			// @ts-ignore
 			BoundingBox.all.slice().forEach(b => {
 				b.remove()
 			})
@@ -643,7 +639,6 @@ export class ModelFormat implements FormatOptions {
 	}
 	delete() {
 		delete Formats[this.id];
-		// @ts-ignore
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 		Blockbench.dispatchEvent('delete_format', {format: this});
 	}

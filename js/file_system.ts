@@ -641,10 +641,8 @@ export namespace Filesystem {
 			if (isApp) {
 				for (let file of file_names) {
 					if ('path' in file) {
-						// @ts-ignore
 						paths.push(file.path)
 					} else if (isApp) {
-						// @ts-ignore
 						let path = webUtils.getPathForFile(file);
 						paths.push(path);
 					}

@@ -162,7 +162,6 @@ BARS.defineActions(function() {
 		condition: () => Project && !!Outliner.elements.length,
 		async click() {
 			let thumbnail = await new Promise(resolve => {
-				// @ts-ignore
 				Preview.selected.screenshot({width: 640, height: 480}, resolve);
 			});
 			let image = new Image();

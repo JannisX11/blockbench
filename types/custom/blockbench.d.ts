@@ -69,3 +69,6 @@ declare module "*.bbtheme" {
 	const value: string | any;
 	export default value;
 }
+declare module "*.png"
+declare module "*.webp"
+declare module "*.jpeg"

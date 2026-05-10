@@ -36,7 +36,6 @@ interface ToastNotificationOptions {
 }
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
-// @ts-ignore
 // const previous_data = window.Blockbench as {};
 
 export const Blockbench = {
@@ -301,7 +300,6 @@ export const Blockbench = {
 				let n = new Notification(title, {body: text, icon: icon||'favicon.png'})
 				n.onclick = function() {
 					if (isApp) {
-						// @ts-ignore
 						currentwindow.focus();
 					} else {
 						window.focus();
@@ -410,13 +408,13 @@ if (isApp) {
 		case 'darwin': 	Blockbench.operating_system = 'macOS'; break;
 		default:		Blockbench.operating_system = 'Linux'; break;
 	}
-	// @ts-ignore
 	if (Blockbench.platform.includes('win32') === true) window.osfs = '\\';
 }
 
 declare global {
-	interface window {
+	interface Window {
 		Blockbench: typeof Blockbench
+		osfs: '/' | '\\'
 	}
 }
 
