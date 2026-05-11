@@ -21,7 +21,6 @@
 		"outliner/outliner",
 		"outliner/texture_mesh",
 		"preview/preview_scenes",
-		"preview/preview",
 		"preview/canvas",
 		"io/codec",
 		"io/io",

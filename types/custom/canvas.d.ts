@@ -74,6 +74,7 @@ declare namespace Canvas {
 	const bones: {
 		[uuid: UUID]: THREE.Object3D
 	}
+	let outlines: THREE.Object3D
 	/**
 	 * Main scene, shared across all tabs
 	 */
@@ -115,6 +116,9 @@ declare namespace Canvas {
 
 	const face_order: ['east', 'west', 'up', 'down', 'south', 'north']
 
+	const hover_helper_line: THREE.LineSegments
+	const hover_helper_vertex: THREE.Points
+
 	/**
 	 * Raycast on the currently selected preview
 	 */
@@ -129,6 +133,7 @@ declare namespace Canvas {
 	function clear(): void
 	function buildGrid(): void
 	function updateShading(): void
+	function updateCubeHighlights(hover_cube: OutlinerElement, force_off?: boolean): void
 	/**
 	 * Updates selected aspects of the preview
 	 * @param options
@@ -269,6 +274,13 @@ interface NodePreviewControllerOptions {
 	updateHighlight?(element: OutlinerNode, ...args: any[]): void
 	[key: string]: any
 }
+interface ViewportRectangleOverlapContext {
+	projectPoint: (vector: THREE.Vector3) => ArrayVector2
+	extend_selection: boolean
+	rect_start: ArrayVector2
+	rect_end: ArrayVector2
+	preview: Preview
+}
 declare class NodePreviewController {
 	constructor(
 		type: typeof OutlinerElement | typeof OutlinerNode,
@@ -304,4 +316,5 @@ declare class NodePreviewController {
 	updateFaces(instance: OutlinerNode): void
 	updatePaintingGrid(instance: OutlinerNode): void
 	updateHighlight(instance: OutlinerNode, ...args: any[]): void
+	viewportRectangleOverlap(element: OutlinerNode, context: ViewportRectangleOverlapContext)
 }

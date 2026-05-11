@@ -71,7 +71,7 @@ declare global {
 		/**
 		 * Checks if the absolute difference between a and b is smaller than epsilon
 		 */
-		epsilon(a: number, b: number, epsilon: number): boolean
+		epsilon(a: number, b: number, epsilon?: number): boolean
 		/**
 		 * Take a rotation value in degrees, and trim it to a value between -180 and 180, while keeping the same angle
 		 */

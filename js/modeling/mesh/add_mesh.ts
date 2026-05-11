@@ -455,3 +455,8 @@ BARS.defineActions(function() {
 		}
 	})
 });
+declare global {
+	interface BarItemRegistry {
+		add_mesh: Action
+	}
+}

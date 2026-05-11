@@ -8,6 +8,7 @@ declare const DisplayMode: {
 	display_slot: string
 	display_area: any
 	display_base: any
+	groundAnimation(): void
 }
 
 declare type DisplaySlotName =

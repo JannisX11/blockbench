@@ -215,6 +215,7 @@ declare global {
 	class _ToolToolbar extends Toolbar {
 		selected: Tool
 		original: any
+		toggleTransforms(event?: MouseEvent): void
 	}
 	const Toolbox: _ToolToolbar
 }

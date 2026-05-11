@@ -1334,7 +1334,6 @@ BARS.defineActions(function() {
 })
 
 Object.assign(window, {
-	sameMeshEdge,
 	ProportionalEdit,
 	autoFixMeshEdit,
 	cleanupOverlappingMeshFaces,

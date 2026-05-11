@@ -155,7 +155,6 @@ declare function updateSelection(): void
 declare var LZUTF8: any
 
 declare function unselectAllElements(exceptions?: OutlinerNode[]): void
-declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number
 /**
  * Get the world-space center of the selection
@@ -177,14 +176,17 @@ declare const Pressing: {
 }
 
 declare const Prop = {
-	active_panel: string
+	active_panel: string,
+	fps: number
 }
 declare const Project: ModelProject
-
-declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
-declare function getRescalingFactor(angle: number): number
 
 declare function isStringNumber(value: any): boolean
 
 declare function marked(text: string): string
 declare function pureMarked(text: string): string
+
+declare type ReferenceImage = any
+declare const ReferenceImage = any
+declare type SplineMesh = typeof OutlinerElement & Record<string, any>
+declare const SplineMesh: typeof OutlinerElement

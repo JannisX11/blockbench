@@ -151,7 +151,7 @@ export class Collection {
 	 */
 	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
-			return node && 'visibility' in node && typeof node.visibility == 'boolean';
+			return node && typeof node.visibility == 'boolean';
 		});
 		// @ts-inore
 		return match ? ('visibility' in match ? !!match.visibility : true) : true;

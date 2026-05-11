@@ -1,5 +1,10 @@
 /// <reference types="./blockbench"/>
 
+/**
+ * Update the size of everything in the UI after the window has been resized or other UI size changes have happeped
+ * @param event 
+ */
+declare function resizeWindow(event?: Event): void
 
 declare namespace Interface {
 	function createElement(

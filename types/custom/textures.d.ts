@@ -520,5 +520,6 @@ declare global {
 		function nextFrame(): void
 		function reset(): void
 		function updateButton(): void
+		function playAnimationFrame(anim_time?: number): void
 	}
 }

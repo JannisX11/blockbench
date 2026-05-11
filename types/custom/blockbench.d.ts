@@ -25,7 +25,6 @@
 /// <reference types="./molang" />
 /// <reference types="./outliner" />
 /// <reference types="./painter" />
-/// <reference types="./preview" />
 /// <reference types="./preview_scene" />
 /// <reference types="./edit_session" />
 /// <reference types="./screencam" />
