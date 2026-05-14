@@ -239,16 +239,20 @@ export class Menu implements Deletable {
 			}
 		}
 	}
-	reveal(path) {
+	//reveal(path) {}
 
-	}
-	keyNavigate(e) {
-		var scope = this;
-		var used;
+	/**
+	 * Trigger keyboard navigation
+	 * @param e Event
+	 * @returns True if the input was used for navigation
+	 * @private
+	 */
+	keyNavigate(e: KeyboardEvent): boolean {
+		var used: boolean = false;
 		var obj = $(this.node)
 		if (e.which >= 37 && e.which <= 40) {
 
-			let is_menu_bar = scope instanceof BarMenu && e.which%2;
+			let is_menu_bar = this instanceof BarMenu && e.which%2;
 			if (obj.find('li.focused').length || is_menu_bar) {
 				var old = obj.find('li.focused'), next;
 				switch (e.which) {
@@ -268,9 +272,9 @@ export class Menu implements Deletable {
 				}
 				if (next && next.length) {
 					old.removeClass('focused')
-					scope.hover(next.get(0))
+					this.hover(next.get(0))
 				} else if (is_menu_bar) {
-					var index = MenuBar.keys.indexOf(scope.id)
+					var index = MenuBar.keys.indexOf(this.id)
 					index += (e.which == 39 ? 1 : -1)
 					if (index < 0) {
 						index = MenuBar.keys.length-1
@@ -285,12 +289,12 @@ export class Menu implements Deletable {
 			used = true;
 		} else if (Keybinds.extra.confirm.keybind.isTriggered(e)) {
 			obj.find('li.focused').trigger('click');
-			if (scope && !this.options.keep_open) {
-				//scope.hide()
+			if (this && !this.options.keep_open) {
+				//this.hide()
 			}
 			used = true;
 		} else if (Keybinds.extra.cancel.keybind.isTriggered(e)) {
-			scope.hide()
+			this.hide()
 			used = true;
 		}
 		return used;
@@ -333,7 +337,7 @@ export class Menu implements Deletable {
 				populateList(list, childlist, 'searchable' in object && object.searchable);
 
 				if ((typeof (object as any).click == 'function' || object instanceof Tool) && (object instanceof Action == false || object.side_menu)) {
-					if (!node.querySelector('> .menu_more_button')) {
+					if (node.querySelector(':scope > .menu_more_button') == null) {
 						node.classList.add('hybrid_parent');
 						let more_button = Interface.createElement('div', {class: 'menu_more_button'}, Blockbench.getIconNode('more_horiz'));
 						node.append(more_button);
@@ -354,7 +358,7 @@ export class Menu implements Deletable {
 			}
 			return 0;
 		}
-		function populateList(list: MenuItem[], menu_node: HTMLUListElement, searchable) {
+		function populateList(list: MenuItem[], menu_node: HTMLUListElement, searchable?: boolean) {
 			
 			if (searchable) {
 				let display_limit = 256;
@@ -370,9 +374,9 @@ export class Menu implements Deletable {
 					object_list.push({
 						object: s2,
 						node: node,
-						id: item.id,
-						name: item.name,
-						description: item.description,
+						id: item?.id,
+						name: item?.name,
+						description: item?.description,
 					})
 				})
 				search_button.onclick = (e) => {
@@ -415,60 +419,62 @@ export class Menu implements Deletable {
 				menu_node.lastElementChild.remove();
 			}
 
-			let is_scrollable = [...menu_node.childNodes].some((node: HTMLElement) => node.classList.contains('parent') || node.classList.contains('hybrid_parent'));
+			let is_scrollable = [...menu_node.childNodes].some((node: HTMLElement) => (
+				node.classList.contains('parent') || node.classList.contains('hybrid_parent'))
+			) == false;
 			menu_node.classList.toggle('scrollable', is_scrollable);
 		}
 
-		function getAndAppendMenuNode(s: MenuItem, parent_ul: HTMLUListElement): {node: HTMLElement, item?: ResolvedMenuItem} {
+		function getAndAppendMenuNode(item: MenuItem, parent_ul: HTMLUListElement): {node: HTMLElement, item?: ResolvedMenuItem} {
 
-			if (typeof s == 'object' && 'context' in s) {
+			if (typeof item == 'object' && 'context' in item) {
 				last_context = context;
-				context = s.context;
+				context = item.context;
 			}
 			let scope_context = context;
 			var entry;
-			if (s === '_') {
-				s = new MenuSeparator();
-			} else if (typeof s == 'string' && s.startsWith('#')) {
-				s = new MenuSeparator(s.substring(1));
+			if (item === '_') {
+				item = new MenuSeparator();
+			} else if (typeof item == 'string' && item.startsWith('#')) {
+				item = new MenuSeparator(item.substring(1));
 			}
-			if (s instanceof MenuSeparator) {
-				entry = s.menu_node;
+			if (item instanceof MenuSeparator) {
+				entry = item.menu_node;
 				var last = parent_ul.lastElementChild
 				if (last && !last.classList.contains('menu_separator')) {
 					parent_ul.append(entry)
 				}
 				return {node: entry};
 			}
-			if (typeof s == 'string' && BarItems[s]) {
-				s = BarItems[s] as Action;
+			if (typeof item == 'string' && BarItems[item]) {
+				item = BarItems[item] as Action;
 			}
-			if (typeof s === 'function') {
-				s = s(scope_context);
+			if (typeof item === 'function') {
+				item = item(scope_context);
 			}
-			if (s == undefined || (typeof s == 'object' && 'condition' in s && !Condition(s.condition, scope_context))) return;
+			if (item == undefined || (typeof item == 'object' && 'condition' in item && !Condition(item.condition, scope_context))) return;
 
-			if (s instanceof Action) {
+			if (item instanceof Action) {
 
-				entry = s.menu_node;
+				entry = item.menu_node;
 
 				entry.classList.remove('focused', 'opened');
 
 				//Submenu
-				if (typeof s.children == 'function' || typeof s.children == 'object') {
-					createChildList(s as (MenuParentItem & {children: any}), entry)
+				if (typeof item.children == 'function' || typeof item.children == 'object') {
+					createChildList(item as (MenuParentItem & {children: any}), entry)
 				} else {
-					if (s.side_menu instanceof Menu) {
-						let content_list = typeof s.side_menu.structure == 'function' ? s.side_menu.structure(scope_context) : s.side_menu.structure;
-						createChildList(s, entry, content_list);
+					if (item.side_menu instanceof Menu) {
+						let content_list = typeof item.side_menu.structure == 'function' ? item.side_menu.structure(scope_context) : item.side_menu.structure;
+						createChildList(item, entry, content_list);
 
-					} else if (s.side_menu instanceof Dialog) {
-						createChildList(s, entry, [
+					} else if (item.side_menu instanceof Dialog) {
+						createChildList(item, entry, [
 							{
 								name: 'menu.options',
 								icon: 'web_asset',
 								click() {
-									s.side_menu.show();
+									item.side_menu.show();
 								}
 							}
 						]);
@@ -477,51 +483,45 @@ export class Menu implements Deletable {
 
 				parent_ul.append(entry)
 
-			} else if (s instanceof BarSelect) {
+			} else if (item instanceof BarSelect) {
 				
-				if (typeof s.icon === 'function') {
-					var icon = Blockbench.getIconNode(s.icon(scope_context), s.color)
+				if (typeof item.icon === 'function') {
+					var icon = Blockbench.getIconNode(item.icon(scope_context), item.color)
 				} else {
-					var icon = Blockbench.getIconNode(s.icon, s.color)
+					var icon = Blockbench.getIconNode(item.icon, item.color)
 				}
-				entry = Interface.createElement('li', {title: s.description && tl(s.description), menu_item: s.id}, Interface.createElement('span', {}, tl(s.name)));
+				entry = Interface.createElement('li', {title: item.description && tl(item.description), menu_item: item.id}, Interface.createElement('span', {}, tl(item.name)));
 				entry.prepend(icon)
 
 				//Submenu
-				var children = [];
-				for (var key in s.options) {
-
-					let val = s.options[key];
-					if (val) {
-						(function() {
-							var save_key = key;
-							children.push({
-								name: s.getNameFor(key),
-								id: key,
-								icon: (val as any).icon || ((s.value == save_key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-								condition: (val as any).condition,
-								click: (e: MouseEvent) => {
-									s.set(save_key);
-									if (s.onChange) {
-										s.onChange(s, e);
-									}
-								}
-							})
-						})()
-					}
+				let children = [];
+				for (let key in item.options) {
+					let val = item.options[key];
+					if (!val) continue;
+					children.push({
+						name: item.getNameFor(key),
+						id: key,
+						icon: (val as any).icon || ((item.value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
+						condition: (val as any).condition,
+						click: (e: MouseEvent) => {
+							item.set(key);
+							if (item.onChange) {
+								item.onChange(item, e);
+							}
+						}
+					})
 				}
 
 				let child_count = createChildList({children} as any, entry);
 
-				if (child_count !== 0 || typeof (s as any).click === 'function') {
+				if (child_count !== 0 || typeof (item as any).click === 'function') {
 					parent_ul.append(entry)
 				}
 				entry.addEventListener('mouseenter', function(e) {
 					scope.hover(entry, e);
 				})
 
-			} else if (s instanceof NumSlider) {
-				let item = s;
+			} else if (item instanceof NumSlider) {
 				let trigger = {
 					name: item.name,
 					description: item.description,
@@ -586,11 +586,11 @@ export class Menu implements Deletable {
 					scope.hover(this, e)
 				})
 				*/
-			} else if (s instanceof HTMLElement) {
-				parent_ul.append(s);
+			} else if (item instanceof HTMLElement) {
+				parent_ul.append(item);
 
-			} else if (typeof s === 'object') {
-				let menu_item = s as CustomMenuItem;
+			} else if (typeof item === 'object') {
+				let menu_item = item as CustomMenuItem;
 
 				let child_count;
 				if (typeof menu_item.icon === 'function') {
@@ -630,7 +630,7 @@ export class Menu implements Deletable {
 				})
 			}
 			//Highlight
-			if (scope.highlight_action == s && entry) {
+			if (scope.highlight_action == item && entry) {
 				let obj = entry;
 				while (obj && obj.nodeName == 'LI') {
 					obj.classList.add('highlighted');
@@ -638,8 +638,10 @@ export class Menu implements Deletable {
 				}
 			}
 			// @ts-expect-error
-			if (s.context && last_context != context) context = last_context;
-			return entry;
+			if (item.context && last_context != context) context = last_context;
+
+			let result_item = (typeof item == 'string' || typeof item == 'function' || item instanceof MenuSeparator) ? undefined : item;
+			return {node: entry, item: result_item};
 		}
 
 		let content_list = typeof this.structure == 'function' ? this.structure(context) : this.structure;
@@ -745,6 +747,9 @@ export class Menu implements Deletable {
 		Menu.open = null;
 		return this;
 	}
+	/**
+	 * @deprecated
+	 */
 	conditionMet() {
 		return Condition(this.condition);
 	}
@@ -798,7 +803,7 @@ export class Menu implements Deletable {
 		}
 	}
 	/**
-	 *
+	 * Remove an action or menu item from the menu
 	 * @param path Path pointing to the location. Use the ID of each level of the menu, or index within a level, or item ID, separated by a point. For example, `export.export_special_format` removes the action "Export Special Format" from the Export submenu.
 	 */
 	removeAction(path: string | Action): void {
@@ -848,7 +853,7 @@ export class Menu implements Deletable {
 		traverse(this.structure, 0)
 	}
 	/**
-	 * @deprecated
+	 * @deprecated Use removeAction instead
 	 */
 	deleteItem(rm_item: Action): void {
 		var scope = this;
