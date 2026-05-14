@@ -26,7 +26,7 @@ interface ArmatureBoneOptions {
 export class ArmatureBone extends OutlinerElement {
 	declare children: ArmatureBone[]
 	isOpen: boolean
-	visibility: boolean
+	visibility: boolean = true
 	origin: ArrayVector3
 	rotation: ArrayVector3
 	vertex_weights: Record<string, number>

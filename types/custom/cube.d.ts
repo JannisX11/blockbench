@@ -146,6 +146,6 @@ declare class CubeFace extends Face {
 	material_name: string
 	enabled: boolean
 
-	extend(data: CubeFaceOptions): void
+	extend(data: CubeFaceOptions): this
 	getVertexIndices(): [number, number, number, number]
 }

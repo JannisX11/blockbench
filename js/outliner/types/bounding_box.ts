@@ -52,7 +52,7 @@ export class BoundingBox extends OutlinerElement {
 		Outliner.buttons.visibility,
 	];
 
-	visibility: boolean
+	visibility: boolean = true
 	color: number
 	function: BoundingBoxFunction[]
 

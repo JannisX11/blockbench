@@ -8,7 +8,7 @@ declare global {
 		/**
 		 * Main key, can be a numeric keycode or a lower case character
 		 */
-		key: number | string
+		key?: number | string
 		ctrl?: boolean
 		shift?: boolean
 		alt?: boolean
@@ -42,6 +42,7 @@ declare global {
 		ctrl?: boolean
 		shift?: boolean
 		alt?: boolean
+		meta?: boolean
 		variations?: {
 			[key: string]: ModifierKey
 		}

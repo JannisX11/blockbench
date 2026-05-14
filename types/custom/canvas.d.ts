@@ -109,10 +109,11 @@ declare namespace Canvas {
 	const ground_plane: THREE.Mesh
 	const brush_outline: THREE.Mesh
 
-	const show_gizmos: boolean
+	let show_gizmos: boolean
+	let ground_animation: boolean
 
 	const global_light_color: THREE.Color
-	const global_light_side: number
+	let global_light_side: number
 
 	const face_order: ['east', 'west', 'up', 'down', 'south', 'north']
 
@@ -133,6 +134,7 @@ declare namespace Canvas {
 	function clear(): void
 	function buildGrid(): void
 	function updateShading(): void
+	function updateViewMode(): void
 	function updateCubeHighlights(hover_cube: OutlinerElement, force_off?: boolean): void
 	/**
 	 * Updates selected aspects of the preview
@@ -234,12 +236,14 @@ declare namespace Canvas {
 	 * Calculate the size of the model, in the currently displayed shape. Returns [width, height] in blockbench units
 	 */
 	function getModelSize(): [number, number]
+	function getSelectionBounds(): THREE.Box3
 }
 
 /**
  * Marks a specific aspect of the interface to be updated in the next tick. Useful to avoid an update function getting called multiple times in the same task.
  */
 declare namespace TickUpdates {
+	private function Run(): void
 	let interface: undefined | true
 	let outliner: undefined | true
 	let selection: undefined | true

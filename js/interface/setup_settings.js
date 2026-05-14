@@ -118,8 +118,8 @@ function setupSettings() {
 		reinhard: 'Reinhard',
 		cineon: 'Cineon',
 		aces_filmic: 'ACES Filmic',
-		agx: 'AgX',
-		neutral: 'Neutral',
+		// agx: 'AgX',
+		// neutral: 'Neutral',
 	}, onChange() {
 		for (let preview of Preview.all) {
 			preview.updateToneMapping();

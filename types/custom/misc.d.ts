@@ -86,6 +86,7 @@ interface BlockbenchEventMap {
 	unselect_mode: { mode: Mode }
 	change_active_panel: any
 	resize_window: {event?: Event}
+	change_view_mode: {view_mode: string, previous_view_mode: string}
 	press_key: {input_in_focus?: HTMLElement, event: KeyboardEvent, capture: () => void}
 	select_format: {format: ModelFormat, project: ModelProject}
 	convert_format: {format: ModelFormat, old_format: ModelFormat}
@@ -180,6 +181,7 @@ declare const Prop = {
 	fps: number
 }
 declare const Project: ModelProject
+declare const ReferenceImageMode: any
 
 declare function isStringNumber(value: any): boolean
 

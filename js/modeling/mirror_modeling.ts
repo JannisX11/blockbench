@@ -718,12 +718,14 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	}
 })
 MirrorModeling.registerElementType(Billboard, {
+	// @ts-expect-error
 	isCentered(element: Billboard, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
 		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		//if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
+	// @ts-expect-error
 	getMirroredElement(element: Billboard, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
@@ -745,6 +747,7 @@ MirrorModeling.registerElementType(Billboard, {
 		}
 		return false;
 	},
+	// @ts-expect-error
 	maintainUV(element: Billboard, original_data) {
 		element.extend({
 			faces: original_data.faces,

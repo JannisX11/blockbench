@@ -254,3 +254,4 @@ declare class TimelineMarker {
 	color: number
 	time: number
 }
+declare const WinterskyScene: Wintersky.Scene

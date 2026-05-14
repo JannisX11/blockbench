@@ -912,6 +912,7 @@ export function initCanvas() {
 
 	lights = new THREE.Object3D()
 	lights.name = 'lights'
+	window.lights = lights;
 	
 	lights.top = new THREE.DirectionalLight();
 	lights.top.name = 'light_top'

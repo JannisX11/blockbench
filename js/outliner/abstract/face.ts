@@ -21,7 +21,7 @@ export abstract class Face {
 			(this.constructor as typeof Face).properties[key].reset(this);
 		}
 	}
-	extend(data: FaceOptions) {
+	extend(data: FaceOptions): this {
 		for (let key in (this.constructor as typeof Face).properties) {
 			(this.constructor as typeof Face).properties[key].merge(this, data)
 		}

@@ -1,6 +1,7 @@
 import MolangParser from "molangjs";
 import { isMac, Keybinds } from "./keyboard";
 import tinycolor from "tinycolor2";
+import { RaycastResult } from "../preview/preview";
 
 type ActionEventName =
 	| 'delete'
@@ -741,7 +742,7 @@ interface ToolSpecificOptions {
 	onCanvasClick?(raycast_data: RaycastResult): void
 	onSelect?(): void
 	onUnselect?(): void
-	onCanvasMouseMove?(raycast_data: RaycastResult)
+	onCanvasMouseMove?(raycast_data: RaycastResult | false)
 	onCanvasRightClick?(raycast_data: RaycastResult)
 	onTextureEditorClick?(raycast_data: RaycastResult)
 }
@@ -1661,7 +1662,7 @@ export class BarSlider extends Widget {
 type BarSelectPropertyFormat = string | boolean | {
 	name: string | true
 	condition?: ConditionResolvable
-	icon?: string
+	icon?: IconString
 }
 interface BarSelectOptions extends WidgetOptions {
 	value?: string

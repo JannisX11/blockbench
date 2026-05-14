@@ -15,7 +15,7 @@ interface OutlinerElementData {
 
 export abstract class OutlinerElement extends OutlinerNode {
 	allow_mirror_modeling?: boolean
-	faces?: Record<string, Face>
+	declare faces?: Record<string, Face>
 	static animator?: BoneAnimator
 	static isParent: false
 	static all: OutlinerElement[]

@@ -752,7 +752,7 @@ export const displayReferenceObjects = {
 			models: []
 		})
 	},
-	active: '',
+	active: null,
 	bar: function(buttons) {
 		buttons = buttons.filter(id => Condition(this.refmodels[id]));
 		$('#display_ref_bar').html('');
@@ -783,7 +783,7 @@ export const displayReferenceObjects = {
 		}
 	},
 	clear: function() {
-		if (displayReferenceObjects.active && displayReferenceObjects.active.shelf_displays) {
+		if (displayReferenceObjects.active?.shelf_displays) {
 			displayReferenceObjects.active.shelf_displays.forEach(display => {
 				display_area.remove(display);
 			});
@@ -792,8 +792,8 @@ export const displayReferenceObjects = {
 				displayReferenceObjects.active.shelf_groups = null;
 			}
 		}
-		scene.remove(displayReferenceObjects.active.model)
-		displayReferenceObjects.active = false
+		scene.remove(displayReferenceObjects.active?.model)
+		displayReferenceObjects.active = null
 	},
 	ref_indexes: {
 		thirdperson_righthand: 0,
@@ -947,7 +947,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 		display_base.position.add(scale_piv_offset)
 	}
 
-	if (displayReferenceObjects.active && displayReferenceObjects.active.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
+	if (displayReferenceObjects.active?.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
 
 		displayReferenceObjects.active.shelf_displays.forEach((slotGroup, index) => {
 			let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
@@ -1072,7 +1072,6 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 		Project.display_settings[key] = new DisplaySlot(key)
 		if (key == 'embedded') Project.display_settings[key].scale_pivot[1] = -0.5;
 	}
-	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
 	DisplayMode.slot = Project.display_settings[key]
 	DisplayMode.updateDisplayBase();
@@ -1194,7 +1193,7 @@ DisplayMode.loadShelf = function() {		//Loader
 DisplayMode.updateShelfAlignment = function() {
 	if (!Modes.display || DisplayMode.display_slot !== 'on_shelf') return;
 
-	if (displayReferenceObjects.active && displayReferenceObjects.active.updateBasePosition) {
+	if (displayReferenceObjects.active?.updateBasePosition) {
 		displayReferenceObjects.active.updateBasePosition();
 	}
 

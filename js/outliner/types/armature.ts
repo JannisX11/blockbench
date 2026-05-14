@@ -14,7 +14,7 @@ interface ArmatureOptions {
 export class Armature extends OutlinerElement {
 	declare children: (ArmatureBone|Mesh|NullObject)[]
 	isOpen: boolean
-	visibility: boolean
+	visibility: boolean = true
 	origin: ArrayVector3
 
 	static preview_controller: NodePreviewController
