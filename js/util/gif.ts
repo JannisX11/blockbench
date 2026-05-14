@@ -1,6 +1,14 @@
-export function quantize(data, opts) {
-	let palette = opts.has_transparency ? [[0, 0, 0]] : [];
-	let counter = opts.has_transparency ? [100] : [];
+interface QuantizeOptions {
+	has_transparency?: boolean
+	/**
+	 * If true, prioritize color accuracy
+	 */
+	prio_color_accuracy?: boolean
+}
+type GIFPalette = [number, number, number][];
+export function quantize(data: number[], opts: QuantizeOptions): GIFPalette {
+	let palette: GIFPalette = opts.has_transparency ? [[0, 0, 0]] : [];
+	let counter: number[] = opts.has_transparency ? [100] : [];
 	for (let i = 0; i < data.length; i += 4) {
 		if (data[i+3] < 127) {
 			continue;
@@ -31,7 +39,7 @@ export function quantize(data, opts) {
 	}
 	return palette;
 }
-export function applyPalette(data, palette, opts) {
+export function applyPalette(data: number[], palette: GIFPalette, opts: QuantizeOptions): Uint8Array {
 	let array = new Uint8Array(data.length / 4);
 	for (let i = 0; i < array.length; i++) {
 		if (data[i*4+3] < 127) {

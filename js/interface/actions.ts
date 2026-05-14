@@ -2,6 +2,7 @@ import MolangParser from "molangjs";
 import { isMac, Keybinds } from "./keyboard";
 import tinycolor from "tinycolor2";
 import { RaycastResult } from "../preview/preview";
+import { MenuItem } from "./menu";
 
 type ActionEventName =
 	| 'delete'
@@ -69,7 +70,7 @@ export abstract class BarItem extends EventSystem {
 	id: string
 	name: string
 	description: string
-	icon?: IconString | (() => IconString)
+	icon?: IconString | ((context?: any) => IconString)
 	category?: string
 	color?: string
 	condition: ConditionResolvable
@@ -992,13 +993,13 @@ export abstract class Widget extends BarItem {
 		this.type = 'widget';
 	}
 }
-type NumSliderOptions = WidgetOptions & {
+export type NumSliderOptions = WidgetOptions & {
 	private?: boolean
 	settings?: {
 		default?: number
 		min?: number
 		max?: number
-		interval?: number
+		interval?: number | (() => number)
 		step?: number
 		show_bar?: boolean
 		limit?: boolean

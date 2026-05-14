@@ -1,4 +1,5 @@
 import { ModelLoader } from "../io/model_loader";
+import { Menu } from "./menu"
 import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
 
 export class BarMenu extends Menu {

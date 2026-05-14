@@ -5,6 +5,7 @@ import { Interface, openTouchKeyboardModifierMenu, resizeWindow, updateInterface
 import {Toolbar} from './toolbars'
 import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
+import { CustomMenuItem } from "./menu";
 
 interface PanelPositionData {
 	slot: PanelSlot

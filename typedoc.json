@@ -11,6 +11,7 @@
 	"plugin": [
 		"typedoc-plugin-missing-exports"
 	],
+	"groupOrder": ["Classes", "*", "Modules"],
 	"readme": "types/documentation.md",
 	"excludeExternals": true,
 	"name": "Blockbench Reference Docs",

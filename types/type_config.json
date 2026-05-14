@@ -6,7 +6,6 @@
 		"animations/keyframe",
 		"animations/molang",
 		"animations/timeline",
-		"interface/menu",
 		"interface/setup_settings",
 		"desktop",
 		"util/math_util",

@@ -4,6 +4,7 @@ import { ipcRenderer } from "../native_apis";
 import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
 import { Dialog } from "./dialog";
+import { MenuItem } from "./menu";
 import { Setting, SettingsProfile } from "./settings";
 
 BARS.defineActions(() => {

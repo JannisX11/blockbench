@@ -117,14 +117,6 @@ declare global {
 	}
 
 
-	class MenuSeparator {
-		constructor(id?: string, label?: string)
-		id: string
-		menu_node: HTMLLIElement
-		label?: string
-		menu_node?: HTMLElement
-	}
-
 	interface ToolbarOptions {
 		id?: string
 		name?: string
