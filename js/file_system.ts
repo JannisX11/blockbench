@@ -641,7 +641,7 @@ export namespace Filesystem {
 			let paths: string[] = [];
 			if (isApp) {
 				for (let file of file_names) {
-					if ('path' in file) {
+					if ('path' in file && typeof file.path == 'string') {
 						paths.push(file.path)
 					} else if (isApp) {
 						let path = webUtils.getPathForFile(file);

@@ -761,7 +761,7 @@ export const Canvas = {
 		}
 		return !!Canvas.pivot_marker.parent;
 	},
-	adaptObjectPosition(object, mesh) {
+	adaptObjectPosition(object) {
 		Canvas.updateView({
 			elements: [object],
 			element_aspects: {geometry: true, transform: true}
