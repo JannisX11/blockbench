@@ -302,6 +302,7 @@ export type FormatOptions = FormatFeatures & {
 	confidential?: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen?: boolean
+	show_in_new_list?: boolean
 	can_convert_to?: boolean
 	format_page?: FormatPage
 	onFormatPage?(): void

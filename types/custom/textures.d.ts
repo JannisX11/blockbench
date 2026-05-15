@@ -395,6 +395,7 @@ declare global {
 		static properties: Record<string, Property<any>>
 
 		static file_formats: Record<string, FileFormatOptions>
+		static getAllExtensions(): string[]
 	}
 	/**
 	 * Saves all textures

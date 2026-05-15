@@ -15,6 +15,7 @@ export namespace Filesystem {
 		path: string
 		content?: string | ArrayBuffer
 		browser_file?: File
+		no_file?: boolean
 	}
 
 	/**
