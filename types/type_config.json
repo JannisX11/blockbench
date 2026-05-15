@@ -7,7 +7,6 @@
 		"animations/molang",
 		"animations/timeline",
 		"interface/setup_settings",
-		"desktop",
 		"util/math_util",
 		"display_mode/display_references",
 		"display_mode/display_mode",
