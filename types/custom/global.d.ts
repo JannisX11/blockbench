@@ -25,7 +25,6 @@ declare global {
 	 * @deprecated Use {@link Outliner.selected} instead
 	 */
 	let selected: OutlinerElement[]
-	const Toolbars: Record<string, Toolbar>
 
 	function rotateOnAxis(modify: OutlinerNode, axis: number, slider?: boolean): void
 	function afterRotateOnAxis(): void

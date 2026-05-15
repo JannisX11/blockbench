@@ -28,6 +28,7 @@ type SubKeybind = {
 	trigger: (event: Event) => void
 }
 export interface KeybindItemOptions {
+	id?: string
 	name?: string
 	description?: string
 	category?: string
@@ -317,7 +318,7 @@ export class KeybindItem {
 	variations?: {
 		[key: string]: { name: string; description?: string }
 	}
-	constructor(id: string, data: KeybindItemOptions & {id: string}) {
+	constructor(id: string, data: KeybindItemOptions) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
@@ -408,7 +409,6 @@ export class Action extends BarItem {
 	constructor(id: string, data: ActionSpecificOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		super(id, data)
@@ -726,7 +726,7 @@ export interface BrushOptions {
 interface ToolSpecificOptions {
 	selectFace?: boolean
 	selectElements?: boolean
-	transformerMode?: 'translate' | 'hidden' | ''
+	transformerMode?: 'translate' | 'scale' | 'rotate' | 'stretch' | 'hidden' | ''
 	cursor?: string,
 	animation_channel?: string
 	toolbar?: string
@@ -760,7 +760,6 @@ export class Tool extends Action implements ToolSpecificOptions {
 	constructor(id: string, data: ToolOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		// @ts-expect-error

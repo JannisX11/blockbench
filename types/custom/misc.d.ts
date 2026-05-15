@@ -178,7 +178,9 @@ declare const Pressing: {
 
 declare const Prop = {
 	active_panel: string,
-	fps: number
+	fps: number,
+	show_left_bar: boolean,
+	show_right_bar: boolean,
 }
 declare const Project: ModelProject
 declare const ReferenceImageMode: any

@@ -195,7 +195,7 @@ declare namespace Canvas {
 	/**
 	 * Update the position of the origin / pivot point gizmo
 	 */
-	function updateOrigin(): boolean
+	function updatePivotMarker(): boolean
 	/**
 	 * Update the position and shape of the specified cube
 	 * @param cube Cube to update
