@@ -70,16 +70,6 @@
 
 	<div style="display: none;"></div>
 
-	<div id="overlay_message_box" style="display: none;">
-		<div>
-			<h3><i class="material-icons icon">keyboard</i><span class="tl">keybindings.recording</span></h3>
-			<p class="tl">keybindings.press</p>
-			<button class="tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
-			<button class="tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
-			<div id="keybind_input_box" contenteditable="true" style="font-size: 0"></div>
-		</div>
-	</div>
-
 	<div id="dialog_wrapper"></div>
 
 	<header>
@@ -139,7 +129,7 @@
 				>
 					<dynamic-icon :icon="project.format ? project.format.icon : 'home'"></dynamic-icon>
 					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
-					<label>{{ project.getDisplayName() }}</label>
+					<label>{{ project.getDisplayName(false) }}<span v-if="project.getFileExtension?.()">.{{ project.getFileExtension() }}</span></label>
 					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
 						<i class="material-icons close_icon">clear</i>
 						<i class="material-icons unsaved_icon" v-if="!project.saved">fiber_manual_record</i>

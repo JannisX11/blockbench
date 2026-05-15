@@ -3,6 +3,7 @@ import { Blockbench } from "../api";
 import { Dialog } from "./dialog";
 import { FormInputType } from "./form";
 import { ipcRenderer } from "../native_apis";
+import { markerColors } from "../marker_colors";
 
 export const settings: Record<string, Setting> = {};
 export type settings_type = typeof settings;
@@ -82,8 +83,7 @@ export class Setting {
 				case 'click': this.default_value = false; break;
 			}
 		}
-		if (typeof Settings.stored[id] === 'object') {
-			// @ts-ignore
+		if (typeof Settings.stored[id] === 'object' && Settings.stored[id].value !== undefined) {
 			this.master_value = Settings.stored[id].value;
 
 		} else if (data.value != undefined) {
@@ -98,7 +98,6 @@ export class Setting {
 		this.description = data.description || tl(`settings.${id}.desc`);
 		this.requires_restart = data.requires_restart == true;
 		this.launch_setting = data.launch_setting || false;
-		// @ts-ignore plugin code is loaded after this, so "Plugins" cannot be imported here
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 
 		if (this.type == 'number') {
@@ -467,7 +466,7 @@ export class SettingsProfile {
 export const Settings = {
 	profile_menu_button: null as HTMLElement | null,
 	structure: {} as Record<string, {name: string, open: boolean, items: Record<string, Setting>}>,
-	stored: {} as Record<string, SettingsValue>,
+	stored: {} as Record<string, {value: SettingsValue}>,
 	dialog: null as Dialog | null,
 	addCategory(id: string, data: {name?: string, open?: boolean}) {
 		Settings.structure[id] = {
@@ -591,10 +590,19 @@ export const Settings = {
 	old: {}
 }
 
-
-Object.assign(window, {
+const globals = {
 	settings,
 	Setting,
 	SettingsProfile,
 	Settings,
-});
+}
+declare global {
+	const settings: typeof globals.settings
+	const Setting: typeof globals.Setting
+	type Setting = import('./settings').Setting
+	const SettingsProfile: typeof globals.SettingsProfile
+	type SettingsProfile = import('./settings').SettingsProfile
+	const Settings: typeof globals.Settings
+}
+
+Object.assign(window, globals);

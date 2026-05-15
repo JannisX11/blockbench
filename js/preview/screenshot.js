@@ -1,4 +1,5 @@
 import { currentwindow, fs, nativeImage } from "../native_apis";
+import { applyPalette, quantize } from "../util/gif";
 
 function createEmptyCanvas(width, height) {
 	let canvas = document.createElement('canvas');
@@ -8,6 +9,7 @@ function createEmptyCanvas(width, height) {
 	ctx.imageSmoothingEnabled = false;
 	return [canvas, ctx];
 }
+let advanced_screenshot_debounce;
 
 export const ScreencamGIFFormats = {
 	gif: {
@@ -21,79 +23,14 @@ export const ScreencamGIFFormats = {
 			let i = 0;
 			let format = 'rgb565';
 			let prio_color_accuracy = false;
-			function quantize(data) {
-				let palette = vars.has_transparency ? [[0, 0, 0]] : [];
-				let counter = vars.has_transparency ? [100] : [];
-				for (let i = 0; i < data.length; i += 4) {
-					if (data[i+3] < 127) {
-						continue;
-					}
-					let r = data[i];
-					let g = data[i+1];
-					let b = data[i+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
-					if (match == -1) {
-						palette.push([r, g, b])
-						counter.push(1)
-					} else {
-						counter[match] += 1;
-					}
-					if (!prio_color_accuracy && palette.length > 256) break;
-				}
-				let threshold = 4;
-				while (palette.length > 256 && prio_color_accuracy) {
-					counter.forEachReverse((count, index) => {
-						if (index == 0) return;
-						if (count < threshold) {
-							palette.splice(index, 1);
-							counter.splice(index, 1);
-						}
-					});
-					threshold *= 1.5;
-					if (threshold > 50) break;
-				}
-				return palette;
-			}
-			function applyPalette(data, palette) {
-				let array = new Uint8Array(data.length / 4);
-				for (let i = 0; i < array.length; i++) {
-					if (data[i*4+3] < 127) {
-						continue;
-					}
-					let r = data[i*4];
-					let g = data[i*4+1];
-					let b = data[i*4+2];
-					let match = palette.findIndex((color, i) => color[0] == r && color[1] == g && color[2] == b && (i != 0 || !vars.has_transparency));
-					if (match == -1 && prio_color_accuracy) {
-						let closest = palette.filter((color, i) => Math.epsilon(color[0], r, 6) && Math.epsilon(color[1], g, 6) && Math.epsilon(color[2], b, 6) && (i != 0 || !vars.has_transparency));
-						if (!closest.length) {
-							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
-						}
-						if (!closest.length) {
-							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 24) && Math.epsilon(color[1], g, 24) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
-						}
-						if (!closest.length) {
-							closest = palette.filter((color, i) => Math.epsilon(color[0], r, 64) && Math.epsilon(color[1], g, 64) && Math.epsilon(color[2], b, 128) && (i != 0 || !vars.has_transparency));
-						}
-						if (!closest.length) {
-							closest = palette.slice();
-						}
-						closest.sort((color_a, color_b) => {
-							let diff_a = Math.pow(color_a[0] + r, 2) + Math.pow(color_a[1] + g, 2) + Math.pow(color_a[2] + b, 2);
-							let diff_b = Math.pow(color_b[0] + r, 2) + Math.pow(color_b[1] + g, 2) + Math.pow(color_b[2] + b, 2);
-							return diff_a - diff_b;
-						})
-						if (closest[0]) {
-							match = palette.indexOf(closest[0]);
-						}
-					}
-					if (match != -1) array[i] = match;
-				}
-				return array;
-			}
+
 			for (let canvas of vars.frame_canvases) {
 				let data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-				let palette = quantize(data, 256, {format, oneBitAlpha: true, clearAlphaThreshold: 127});
+				let palette = quantize(data, {
+					format,
+					has_transparency: vars.has_transparency,
+					prio_color_accuracy
+				});
 				let index;
 				if (palette.length > 256) {
 					// Built-in methods
@@ -101,7 +38,11 @@ export const ScreencamGIFFormats = {
 					index = GIFEnc.applyPalette(data, palette, format);
 				} else {
 					// Direct flicker-free color mapping
-					index = applyPalette(data, palette, format);
+					index = applyPalette(data, palette, {
+						format,
+						has_transparency: vars.has_transparency,
+						prio_color_accuracy
+					});
 				}
 				vars.gif.writeFrame(index, canvas.width, canvas.height, { palette, delay: vars.interval, transparent: vars.has_transparency });
 				i++;
@@ -217,6 +158,12 @@ export const Screencam = {
 	advanced_screenshot_dialog: new Dialog({
 		id: 'advanced_screenshot',
 		title: 'action.advanced_screenshot',
+		part_order: ['form', 'lines'],
+		lines: [
+			Interface.createElement('div', {class: 'advanced_screenshot_preview'}, [
+				Interface.createElement('img')
+			])
+		],
 		form: {
 			angle_preset: 	{type: 'select', label: 'dialog.advanced_screenshot.angle_preset', value: 'view', options() {
 				let options = {
@@ -238,7 +185,7 @@ export const Screencam = {
 			resolution: 	{type: 'vector', label: 'dialog.advanced_screenshot.resolution', dimensions: 2, value: [1920, 1080], linked_ratio: false},
 			//zoom_to_fit: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.zoom_to_fit', value: false},
 			zoom: 			{type: 'number', label: 'dialog.advanced_screenshot.zoom', value: 42, condition: form => !form.zoom_to_fit, toggle_enabled: true, toggle_default: false},
-			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'ssaa', options: {
+			anti_aliasing: 	{type: 'select', label: 'dialog.advanced_screenshot.anti_aliasing', value: 'msaa', options: {
 				off: 'dialog.advanced_screenshot.anti_aliasing.off',
 				msaa: 'dialog.advanced_screenshot.anti_aliasing.msaa',
 				ssaa: 'dialog.advanced_screenshot.anti_aliasing.ssaa',
@@ -246,10 +193,33 @@ export const Screencam = {
 			show_gizmos: 	{type: 'checkbox', label: 'dialog.advanced_screenshot.show_gizmos'},
 			shading: 		{type: 'checkbox', label: 'dialog.advanced_screenshot.shading', value: settings.shading.value},
 		},
+		buttons: ['dialog.advanced_screenshot.export', 'dialog.cancel'],
 		onConfirm(result) {
 			Screencam.advancedScreenshot(Preview.selected, result, Screencam.returnScreenshot);
-		}
+		},
+		onOpen() {
+			Screencam.updateAdvancedScreenshotPreview(this.getFormResult());
+		},
+		onFormChange(result, test) {
+			if (advanced_screenshot_debounce) {
+				clearTimeout(advanced_screenshot_debounce);
+			}
+			advanced_screenshot_debounce = setTimeout(() => {
+				Screencam.updateAdvancedScreenshotPreview(result);
+				advanced_screenshot_debounce = null;
+			}, 200);
+		},
 	}),
+	/**
+	 * @private
+	 */
+	updateAdvancedScreenshotPreview(form_result) {
+		// TODO: Display error when resolution is too high and image is empty
+		form_result.show_errors = false;
+		Screencam.advancedScreenshot(Preview.selected, form_result, (dataurl) => {
+			document.querySelector('.advanced_screenshot_preview > img').src = dataurl;
+		});
+	},
 	screenshotPreview(preview, options = 0, cb) {
 		Canvas.withoutGizmos(function() {
 
@@ -355,7 +325,7 @@ export const Screencam = {
 				img_frame.ctx.drawImage(img, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor);
 				frame.ctx.drawImage(img_frame.canvas, 0, 0, options.resolution[0] * sample_factor, options.resolution[1] * sample_factor, 0, 0, options.resolution[0], options.resolution[1]);
 
-				if (frame.isEmpty() && options.resolution[0] * options.resolution[1] > 2_000_000) {
+				if (frame.isEmpty() && options.resolution[0] * options.resolution[1] > 2_000_000 && options.show_errors != false) {
 					Blockbench.showMessageBox({
 						translateKey: 'screenshot_too_large',
 						icon: 'broken_image'

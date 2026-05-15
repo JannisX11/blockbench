@@ -6,6 +6,7 @@ import { Armature } from "./armature";
 import { Vue } from '../../lib/libs'
 import { OutlinerElement } from "../abstract/outliner_element";
 import { OutlinerNode } from "../abstract/outliner_node";
+import { markerColors } from "../../marker_colors";
 
 interface ArmatureBoneOptions {
 	name?: string
@@ -25,7 +26,7 @@ interface ArmatureBoneOptions {
 export class ArmatureBone extends OutlinerElement {
 	declare children: ArmatureBone[]
 	isOpen: boolean
-	visibility: boolean
+	visibility: boolean = true
 	origin: ArrayVector3
 	rotation: ArrayVector3
 	vertex_weights: Record<string, number>
@@ -33,7 +34,6 @@ export class ArmatureBone extends OutlinerElement {
 	width: number
 	connected: boolean
 	color: number
-	old_size?: number | ArrayVector3
 	
 
 	static preview_controller: NodePreviewController
@@ -85,15 +85,17 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	getVertexWeight(mesh: Mesh, vkey: string): number {
 		let weightkey = mesh.uuid.substring(0, 6) + ':' + vkey;
-		return this.vertex_weights[weightkey] ?? this.vertex_weights[vkey] ?? 0;
+		let weights = this.vertex_weights;
+		return weights[weightkey] ?? weights[vkey] ?? 0;
 	}
 	setVertexWeight(mesh: Mesh, vkey: string, weight?: number) {
 		let weightkey = mesh.uuid.substring(0, 6) + ':' + vkey;
-		if (this.vertex_weights[vkey]) delete this.vertex_weights[vkey];
+		let weights = this.vertex_weights;
+		if (weights[vkey]) delete weights[vkey];
 		if (!weight || weight < 0) {
-			delete this.vertex_weights[weightkey];
+			delete weights[weightkey];
 		} else {
-			this.vertex_weights[weightkey] = weight;
+			weights[weightkey] = weight;
 		}
 	}
 	init(): this {
@@ -108,7 +110,7 @@ export class ArmatureBone extends OutlinerElement {
 		let result = super.select(event, isOutlinerClick);
 		if (result == false) return false;
 		if (Animator.open && Animation.selected) {
-			Animation.selected.getBoneAnimator(this).select(true);
+			Animation.selected.getBoneAnimator(this)?.select(true);
 		}
 		return this;
 	}
@@ -124,8 +126,8 @@ export class ArmatureBone extends OutlinerElement {
 	matchesSelection() {
 		let scope = this;
 		let match = true;
-		for (let i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 128)) {
+		for (let i = 0; i < Outliner.selected.length; i++) {
+			if (!Outliner.selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}
@@ -200,14 +202,14 @@ export class ArmatureBone extends OutlinerElement {
 	}
 	resize(move_value: number | ((input: number) => number), axis_number?: axisNumber, invert?: boolean) {
 		if (axis_number == 1) {
-			let previous_length = (this.old_size instanceof Array) ? this.old_size[1] : this.old_size ?? this.length;
+			let previous_length = (this.temp_data.old_size instanceof Array) ? this.temp_data.old_size[1] : this.temp_data.old_size ?? this.length;
 			if (typeof move_value == 'function') {
 				this.length = move_value(previous_length);
 			} else {
 				this.length = previous_length + move_value * (invert ? -1 : 1);
 			}
 		} else {
-			let previous_width = (this.old_size instanceof Array) ? this.old_size[0] : this.old_size ?? this.width;
+			let previous_width = (this.temp_data.old_size instanceof Array) ? this.temp_data.old_size[0] : this.temp_data.old_size ?? this.width;
 			if (typeof move_value == 'function') {
 				this.width = move_value(previous_width);
 			} else {
@@ -568,13 +570,15 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], selected: {mesh: false, spline: false}, method: () => ((ArmatureBone.hasSelected() || Armature.hasSelected()))},
 		click: function () {
-			Undo.initEdit({outliner: true, elements: []});
+			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;
-			if (!add_to_node && selected.length) {
-				add_to_node = selected.last();
+			if (!add_to_node && Outliner.selected.length) {
+				add_to_node = Outliner.selected.last();
 			}
 			let new_instance = new ArmatureBone({
 				origin: add_to_node instanceof ArmatureBone ? [0, add_to_node.length??8, 0] : undefined,
+				width: add_to_node instanceof ArmatureBone ? add_to_node.width : undefined,
+				length: add_to_node instanceof ArmatureBone ? add_to_node.length : undefined,
 			})
 			new_instance.addTo(add_to_node)
 			new_instance.isOpen = true
@@ -583,7 +587,7 @@ BARS.defineActions(function() {
 				new_instance.createUniqueName()
 			}
 			new_instance.init().select()
-			Undo.finishEdit('Add armature bone', {outliner: true, elements: [new_instance]});
+			Undo.finishEdit('Add armature bone', {outliner: true, elements: [new_instance], selection: true});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -596,7 +600,13 @@ BARS.defineActions(function() {
 	})
 })
 
-Object.assign(window, {
+const global = {
 	ArmatureBone,
 	getAllArmatureBones
-})
+};
+declare global {
+	const ArmatureBone: typeof global.ArmatureBone
+	type ArmatureBone = import('./armature_bone').ArmatureBone
+	const getAllArmatureBones: typeof global.getAllArmatureBones
+}
+Object.assign(window, global);

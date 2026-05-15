@@ -160,7 +160,6 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 		} catch (err) {
 			if (feedback === false) return;
 			if (data.match(/\n\r?[><]{7}/)) {
-				// @ts-ignore
 				Blockbench.showMessageBox({
 					title: 'message.invalid_file.title',
 					icon: 'fab.fa-git-alt',
@@ -191,7 +190,6 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 
 				logErrantPart(data, data.length-16, 10)
 			}
-			// @ts-ignore
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_file',
 				icon: 'error',
@@ -210,8 +208,23 @@ export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions 
 	return data;
 }
 
-Object.assign(window, {
+const global = {
 	oneLiner,
 	compileJSON,
 	autoParseJSON,
-})
+};
+declare global {
+	/**
+	 * Wrapper for anys that tells the custom JSON exporter to write in one line
+	 */
+	const oneLiner: new <T>(data?: T) => T
+	/**
+	 * Compile text into JSON based on the minification settings
+	 */
+	const autoStringify: (data: any) => string
+
+	const compileJSON: typeof global.compileJSON
+	const autoParseJSON: typeof global.autoParseJSON
+
+}
+Object.assign(window, global);

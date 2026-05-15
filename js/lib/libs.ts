@@ -36,7 +36,7 @@ export {
     APNGencoder,
     DOMPurify,
 }
-Object.assign(window, {
+const global = {
     GIFEnc,
     THREE,
     jQuery: $,
@@ -48,4 +48,5 @@ Object.assign(window, {
     marked,
     APNGencoder,
     DOMPurify,
-})
+}
+Object.assign(window, global);

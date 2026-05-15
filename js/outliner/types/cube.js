@@ -7,6 +7,7 @@ export class CubeFace extends Face {
 		this.texture = false;
 		this.direction = direction || 'north';
 		this.cube = cube;
+		this.element = cube;
 		this.uv = [0, 0, canvasGridSize(), canvasGridSize()]
 		this.rotation = 0;
 
@@ -149,22 +150,24 @@ export class Cube extends OutlinerElement {
 		for (var key in Cube.properties) {
 			Cube.properties[key].reset(this);
 		}
-		this._static = Object.freeze({
-			properties: {
-				faces: {
-					north: 	new CubeFace('north', null, this),
-					east: 	new CubeFace('east', null, this),
-					south: 	new CubeFace('south', null, this),
-					west: 	new CubeFace('west', null, this),
-					up: 	new CubeFace('up', null, this),
-					down: 	new CubeFace('down', null, this)
-				},
-				from: [0, 0, 0],
-				to: [size, size, size],
-				rotation: [0, 0, 0],
-				origin: [0, 0, 0],
-			}
+		Object.assign(this._static.properties, {
+			faces: {
+				north: 	new CubeFace('north', null, this),
+				east: 	new CubeFace('east', null, this),
+				south: 	new CubeFace('south', null, this),
+				west: 	new CubeFace('west', null, this),
+				up: 	new CubeFace('up', null, this),
+				down: 	new CubeFace('down', null, this)
+			},
+			from: [0, 0, 0],
+			to: [size, size, size],
+			rotation: [0, 0, 0],
+			origin: [0, 0, 0],
 		})
+		
+		for (var key in Cube.properties) {
+			Cube.properties[key].reset(this);
+		}
 
 		this.box_uv = Project.box_uv;
 		if (data && typeof data === 'object') {
@@ -444,6 +447,10 @@ export class Cube extends OutlinerElement {
 			if (origin != this.origin) {
 				this.origin.V3_set(rotateCoord(this.origin))
 			}
+			if (Format.stretch_cubes) {
+				let off_axes = [0,1,2].filter(i => i != axis);
+				[this.stretch[off_axes[0]], this.stretch[off_axes[1]]] = [this.stretch[off_axes[1]], this.stretch[off_axes[0]]];
+			}
 			if (!this.box_uv) {
 				if (axis === 0) {
 					this.faces.west.rotation = rotateUVFace(this.faces.west.rotation, 1)
@@ -681,7 +688,7 @@ export class Cube extends OutlinerElement {
 				this.faces[side].texture = value;
 			}
 		})
-		if (selected.indexOf(this) === 0) {
+		if (Outliner.selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
 		this.preview_controller.updateFaces(this);
@@ -789,6 +796,7 @@ export class Cube extends OutlinerElement {
 				let texture = face.getTexture();
 				let uv_width = Project.getUVWidth(texture);
 				let uv_height = Project.getUVHeight(texture);
+				let clamp = UVEditor.isUVClamped(texture);
 
 				//Match To Rotation
 				if (rot === 90 || rot === 270) {
@@ -796,13 +804,20 @@ export class Cube extends OutlinerElement {
 					dimension_axes.reverse()
 					world_directions.reverse()
 				}
-				if (rot == 180) {
+				if (rot == 180 || rot === 270) {
 					world_directions[0] *= -1;
 					world_directions[1] *= -1;
 				}
-				//Limit Input to 16
-				size[0] = Math.clamp(size[0], -uv_width, uv_width) * (Math.sign(previous_size[0]) || 1);
-				size[1] = Math.clamp(size[1], -uv_height, uv_height) * (Math.sign(previous_size[1]) || 1);
+				if (rot === 270) {
+					//world_directions[0] *= -1;
+					world_directions[1] *= -1;
+				}
+				if (clamp) {
+					size[0] = Math.clamp(size[0], -uv_width, uv_width);
+					size[1] = Math.clamp(size[1], -uv_height, uv_height);
+				}
+				size[0] *= Math.sign(previous_size[0]) || 1;
+				size[1] *= Math.sign(previous_size[1]) || 1;
 
 				if (options && typeof options.axis == 'number') {
 					if (options.axis == dimension_axes[0] && options.direction == world_directions[0]) {
@@ -811,20 +826,27 @@ export class Cube extends OutlinerElement {
 					if (options.axis == dimension_axes[1] && options.direction == world_directions[1]) {
 						sy += previous_size[1] - size[1];
 					}
+					if (options.axis == dimension_axes[0] && options.direction == 0) {
+						sx += (previous_size[0] - size[0]) / 2;
+					}
+					if (options.axis == dimension_axes[1] && options.direction == 0) {
+						sy += (previous_size[1] - size[1]) / 2;
+					}
 				}
 
+
 				//Prevent Negative
-				if (sx < 0) sx = 0
-				if (sy < 0) sy = 0
+				if (clamp && sx < 0) sx = 0
+				if (clamp && sy < 0) sy = 0
 				//Calculate End Points
 				let endx = sx + size[0];
 				let endy = sy + size[1];
 				//Prevent overflow
-				if (endx > uv_width) {
+				if (clamp && endx > uv_width) {
 					sx = uv_width - (endx - sx)
 					endx = uv_width
 				}
-				if (endy > uv_height) {
+				if (clamp && endy > uv_height) {
 					sy = uv_height - (endy - sy)
 					endy = uv_height
 				}
@@ -875,7 +897,7 @@ export class Cube extends OutlinerElement {
 		return in_box;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let before = this.old_size != undefined ? this.old_size : this.size(axis);
+		let before = this.temp_data.old_size != undefined ? this.temp_data.old_size : this.size(axis);
 		if (before instanceof Array) before = before[axis];
 		let is_inverted = before < 0;
 		if (is_inverted && allow_negative == null) negative = !negative;
@@ -883,7 +905,7 @@ export class Cube extends OutlinerElement {
 
 		if (bidirectional) {
 
-			let center = this.oldCenter[axis] || 0;
+			let center = this.temp_data.oldCenter[axis] || 0;
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
@@ -929,12 +951,12 @@ export class Cube extends OutlinerElement {
 			if (axis == 2) {
 				let difference = before - this.size(axis);
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
-				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
-				this.uv_offset[1] = (this.oldUVOffset ? this.oldUVOffset[1] : this.uv_offset[1]) + difference;
+				this.uv_offset[0] = (this.temp_data.oldUVOffset ? this.temp_data.oldUVOffset[0] : this.uv_offset[0]) + difference;
+				this.uv_offset[1] = (this.temp_data.oldUVOffset ? this.temp_data.oldUVOffset[1] : this.uv_offset[1]) + difference;
 			} else if (axis == 0 && (!negative || bidirectional)) {
 				let difference = before - this.size(axis);
 				if (!Format.box_uv_float_size) difference = Math.ceil(difference);
-				this.uv_offset[0] = (this.oldUVOffset ? this.oldUVOffset[0] : this.uv_offset[0]) + difference;
+				this.uv_offset[0] = (this.temp_data.oldUVOffset ? this.temp_data.oldUVOffset[0] : this.uv_offset[0]) + difference;
 			}
 			this.preview_controller.updateUV(this);
 		}
@@ -1230,10 +1252,10 @@ new NodePreviewController(Cube, {
 		} else if (Project.view_mode === 'uv') {
 			mesh.material = Canvas.uvHelperMaterial
 
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
-		} else if (Format.single_texture) {
+		} else if (Format.single_texture && !Project.getMultiFileRuleset()) {
 			let tex = Texture.getDefault();
 			mesh.material = tex ? tex.getMaterial() : Canvas.getEmptyMaterial(element.color);
 
@@ -1592,6 +1614,7 @@ BARS.defineActions(function() {
 			let group = getCurrentGroup();
 			if (group) {
 				base_cube.addTo(group)
+				base_cube.scope = group.scope;
 				if (settings.inherit_parent_color.value) base_cube.color = group.color;
 			}
 
@@ -1622,7 +1645,7 @@ BARS.defineActions(function() {
 			unselectAllElements()
 			base_cube.select()
 			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
-			Undo.finishEdit('Add cube', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add cube', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
 
 			Vue.nextTick(function() {

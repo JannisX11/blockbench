@@ -95,6 +95,14 @@ export interface FormatFeatures {
 	 */
 	per_texture_uv_size: boolean
 	/**
+	 * Set how textures wrap in the format by default
+	 */
+	texture_wrap_default: 'limited' | 'repeat' | 'clamp'
+	/**
+	 * Set a texture wrap value per texture
+	 */
+	per_texture_wrap_mode: boolean
+	/**
 	 * Enable a model identifier field in the project settings. Default is true
 	 */
 	model_identifier: boolean
@@ -162,6 +170,10 @@ export interface FormatFeatures {
 	 * Enable billboard elements
 	 */
 	billboards: boolean
+	/**
+	 * Enable bounding box elements
+	 */
+	bounding_boxes: boolean
 	/**
 	 * Enable locators
 	 */
@@ -290,6 +302,7 @@ export type FormatOptions = FormatFeatures & {
 	confidential?: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen?: boolean
+	show_in_new_list?: boolean
 	can_convert_to?: boolean
 	format_page?: FormatPage
 	onFormatPage?(): void
@@ -299,6 +312,7 @@ export type FormatOptions = FormatFeatures & {
 	new?(): boolean
 
 	codec?: Codec
+	animation_codec?: AnimationCodec
 	onActivation?(): void
 	onDeactivation?(): void
 }
@@ -327,6 +341,7 @@ export class ModelFormat implements FormatOptions {
 	cube_size_limiter?: CubeSizeLimiter
 
 	codec?: Codec
+	animation_codec?: AnimationCodec
 	onActivation?(): void
 	onDeactivation?(): void
 
@@ -356,6 +371,7 @@ export class ModelFormat implements FormatOptions {
 		this.cube_size_limiter = data.cube_size_limiter;
 
 		this.codec = data.codec;
+		this.animation_codec = data.animation_codec;
 		this.onSetup = data.onSetup;
 		this.onFormatPage = data.onFormatPage;
 		this.onActivation = data.onActivation;
@@ -430,7 +446,6 @@ export class ModelFormat implements FormatOptions {
 		return this;
 	}
 	new(): boolean {
-		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
 			(BarItems.project_window as Action).click();
 			return true;
@@ -442,6 +457,7 @@ export class ModelFormat implements FormatOptions {
 		Undo.history.empty();
 		Undo.index = 0;
 		Project.export_path = '';
+		Project.export_codec = '';
 		Project.unhandled_root_fields = {};
 
 		var old_format = Blockbench.Format as ModelFormat;
@@ -489,9 +505,7 @@ export class ModelFormat implements FormatOptions {
 					el.addTo(root_group)
 				})
 			}
-			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
-				// @ts-ignore
 				Project.geometry_name = Project.name;
 			}
 		}
@@ -569,6 +583,12 @@ export class ModelFormat implements FormatOptions {
 				b.remove()
 			})
 		}
+		//Billboards
+		if (!this.bounding_boxes && old_format.bounding_boxes) {
+			BoundingBox.all.slice().forEach(b => {
+				b.remove()
+			})
+		}
 
 		//Canvas Limit
 		if (this.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -593,6 +613,12 @@ export class ModelFormat implements FormatOptions {
 			})
 		}
 
+		if (Format.per_texture_wrap_mode == false) {
+			Texture.all.forEach(texture => {
+				texture.wrap_mode = Texture.properties.wrap_mode.getDefault()
+			})
+		}
+
 		//Animation Mode
 		if (!this.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
@@ -614,7 +640,6 @@ export class ModelFormat implements FormatOptions {
 	}
 	delete() {
 		delete Formats[this.id];
-		// @ts-ignore
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
@@ -628,6 +653,8 @@ new Property(ModelFormat, 'boolean', 'single_texture');
 new Property(ModelFormat, 'boolean', 'single_texture_default');
 new Property(ModelFormat, 'boolean', 'per_group_texture');
 new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
+new Property(ModelFormat, 'enum', 'texture_wrap_default', {default: 'limited', values: ['limited', 'repeat', 'clamp']});
+new Property(ModelFormat, 'boolean', 'per_texture_wrap_mode');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
 new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
 new Property(ModelFormat, 'boolean', 'parent_model_id');
@@ -645,6 +672,7 @@ new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'splines');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'billboards');
+new Property(ModelFormat, 'boolean', 'bounding_boxes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
@@ -672,7 +700,15 @@ new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
 
-Object.assign(window, {
+const global = {
 	ModelFormat,
 	Formats
-});
+};
+declare global {
+	const ModelFormat: typeof global.ModelFormat
+	type ModelFormat = import('./format').ModelFormat
+	const Format: ModelFormat
+	const Formats: Record<string, ModelFormat>
+}
+
+Object.assign(window, global);

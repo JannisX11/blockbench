@@ -1,5 +1,5 @@
 import { Canvas } from "../preview/canvas";
-import { autoFixMeshEdit } from "./mesh_editing";
+import { autoFixMeshEdit } from "./mesh/auto_fix";
 
 export const Vertexsnap = {
 	step1: true,

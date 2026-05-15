@@ -276,7 +276,7 @@ BARS.defineActions(() => {
 	
 	new Action('calculate_vertex_weights', {
 		icon: 'accessibility',
-		condition: () => Mesh.selected[0]?.getArmature(),
+		condition: () => !!Mesh.selected[0]?.getArmature(),
 		click(e) {
 			let armature_bones: ArmatureBone[] = [];
 			let meshes: Mesh[] = [];

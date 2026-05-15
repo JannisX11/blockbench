@@ -12,7 +12,6 @@ export const Clipbench = {
 		texture: 'texture',
 		layer: 'layer',
 		outliner: 'outliner',
-		texture_selection: 'texture_selection',
 		image: 'image',
 	},
 	type_icons: {
@@ -30,16 +29,13 @@ export const Clipbench = {
 		if (text) {
 			return Clipbench.types.text;
 		}
-		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
-			return Clipbench.types.texture_selection;
-		}
 		if (Modes.display) {
 			return Clipbench.types.display_slot
 		}
 		if (Animator.open && Prop.active_panel == 'animations') {
 			return Clipbench.types.animation
 		}
-		if (Animator.open && Timeline.animators.length && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
+		if (Animator.open && (Timeline.animators.length || p == 'timeline') && (Timeline.selected.length || mode === 2) && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if (Modes.edit && p == 'preview' && Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length && (mode !== 2 || Clipbench.vertices)) {
@@ -72,16 +68,13 @@ export const Clipbench = {
 		if (!Project) {
 			return Clipbench.types.image;
 		}
-		if (Painter.selection.canvas && Toolbox.selected.id == 'copy_paste_tool') {
-			return Clipbench.types.texture_selection;
-		}
 		if (Modes.display) {
 			return Clipbench.types.display_slot
 		}
 		if (Animator.open && Prop.active_panel == 'animations') {
 			return Clipbench.types.animation
 		}
-		if (Animator.open && Timeline.animators.length && ['keyframe', 'timeline', 'preview'].includes(p)) {
+		if (Animator.open && (Timeline.animators.length || p == 'timeline') && ['keyframe', 'timeline', 'preview'].includes(p)) {
 			return Clipbench.types.keyframe
 		}
 		if (Modes.edit && p == 'preview') {
@@ -110,7 +103,7 @@ export const Clipbench = {
 						}
 					})).show('mouse');
 				})
-			} else {
+			} else if (options[0]) {
 				return options[0]
 			}
 		}
@@ -125,6 +118,9 @@ export const Clipbench = {
 		}
 		if (p == 'outliner' && Modes.edit) {
 			return Clipbench.types.outliner;
+		}
+		if (isApp && clipboard.readText()) {
+			return Clipbench.types.text;
 		}
 	},
 	copy(event, cut) {
@@ -191,10 +187,8 @@ export const Clipbench = {
 
 		switch (await Clipbench.getPasteType()) {
 			case 'text':
-				Clipbench.setText(window.getSelection()+'');
-				break;
-			case 'texture_selection':
-				UVEditor.addPastingOverlay();
+				let text = isApp ? clipboard.readText() : await navigator.clipboard.readText();
+				Blockbench.dispatchEvent('paste_text', {text});
 				break;
 			case 'display_slot':
 				DisplayMode.paste();
@@ -335,7 +329,7 @@ export const Clipbench = {
 				if (obj.children) {
 					let copy = new Group(obj).addTo(parent).init();
 					new_groups.push(copy);
-					copy.old_name = copy.name;
+					copy.temp_data.old_name = copy.name;
 					copy.createUniqueName();
 					Property.resetUniqueValues(Group, copy);
 

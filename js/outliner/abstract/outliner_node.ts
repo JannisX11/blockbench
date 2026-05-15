@@ -8,9 +8,14 @@ export abstract class OutlinerNode {
 	uuid: UUID
 	export: boolean
 	locked: boolean
+	scope: number
 	parent: (OutlinerNode & OutlinerNodeParentTraits) | 'root'
 	selected: boolean
-	declare old_name?: string
+	visibility?: boolean
+	readonly _static: {
+		properties: any
+		temp_data: Record<string, any>
+	}
 	declare children?: OutlinerNode[]
 	declare menu?: Menu
 	declare type: string
@@ -28,6 +33,12 @@ export abstract class OutlinerNode {
 		this.uuid = uuid || guid()
 		this.export = true;
 		this.locked = false;
+		this.scope = 0;
+		
+		this._static = Object.freeze({
+			properties: {},
+			temp_data: {},
+		});
 	}
 	/**
 	 * Initializes the node. This should always be called when creating nodes that will be used in the outliner.
@@ -78,7 +89,7 @@ export abstract class OutlinerNode {
 		if (index < 0) {
 			arr.push(this)
 		} else {
-			arr.splice(index + index_modifier, 0, this)
+			arr.splice(index + (index_modifier??0), 0, this)
 		}
 		return this;
 	}
@@ -137,6 +148,16 @@ export abstract class OutlinerNode {
 			return this.parent.children;
 		}
 	}
+	getAllAncestors(): OutlinerNode[] {
+		let list: OutlinerNode[] = [];
+		let parent = this.parent;
+		while (parent instanceof OutlinerNode) {
+			if (list.includes(parent)) break;
+			list.push(parent);
+			parent = parent.parent;
+		}
+		return list;
+	}
 	showContextMenu(event) {
 		if (this.locked) return this;
 		if (!this.selected) {
@@ -187,6 +208,9 @@ export abstract class OutlinerNode {
 	get scene_object(): THREE.Object3D {
 		return Project.nodes_3d[this.uuid];
 	}
+	get temp_data(): Record<string, any> {
+		return this._static.temp_data;
+	}
 	getDepth() {
 		var d = 0;
 		function it(p) {
@@ -214,23 +238,25 @@ export abstract class OutlinerNode {
 	 * Marks the name of the group or element in the outliner for renaming.
 	 */
 	rename() {
-		this.showInOutliner()
-		var obj = $('#'+this.uuid+' > div.outliner_object > input.cube_name')
-		obj.attr('disabled', 'false');
-		obj.select()
-		obj.focus()
-		obj.addClass('renaming')
-		Blockbench.addFlag('renaming')
-		this.old_name = this.name
+		this.showInOutliner();
+		let node = document.getElementById(this.uuid);
+		let input_element = node?.querySelector('div.outliner_object > input.cube_name') as HTMLInputElement;
+		if (!input_element) return this;
+		input_element.removeAttribute('disabled');
+		input_element.classList.add('renaming');
+		input_element.select();
+		input_element.focus();
+		Blockbench.addFlag('renaming');
+		this.temp_data.old_name = this.name;
 		return this;
 	}
 	/**
 	 * Saves the changed name of the element by creating an undo point and making the name unique if necessary.
 	 */
 	saveName(save: boolean = true): this {
-		if (save !== false && this.name.trim().length > 0 && this.name != this.old_name) {
+		if (save !== false && this.name.trim().length > 0 && this.name != this.temp_data.old_name) {
 			let name = this.name.trim();
-			this.name = this.old_name;
+			this.name = this.temp_data.old_name;
 			if (this instanceof OutlinerElement) {
 				Undo.initEdit({elements: [this], mirror_modeling: false});
 			} else if (this instanceof Group) {
@@ -246,14 +272,14 @@ export abstract class OutlinerNode {
 			}
 			this.name = name
 			this.sanitizeName();
-			delete this.old_name
+			delete this.temp_data.old_name
 			if (Condition(this.getTypeBehavior('unique_name'))) {
 				this.createUniqueName()
 			}
 			Undo.finishEdit('Rename element')
 		} else {
-			this.name = this.old_name
-			delete this.old_name
+			this.name = this.temp_data.old_name
+			delete this.temp_data.old_name
 		}
 		return this;
 	}
@@ -276,12 +302,12 @@ export abstract class OutlinerNode {
 	/**
 	 * Create a unique name for the group or element by adding a number at the end or increasing it.
 	 */
-	createUniqueName(others?: OutlinerNode[]): string | false {
+	createUniqueName(additional?: OutlinerNode[]): string | false {
 		if (!Condition(this.getTypeBehavior('unique_name'))) return;
 		var scope = this;
-		var others = (this.constructor as typeof OutlinerNode).all.slice();
-		if (others && others.length) {
-			others.forEach(g => {
+		let others = (this.constructor as typeof OutlinerNode).all.filter(node => node.scope == this.scope);
+		if (additional && additional.length) {
+			additional.forEach(g => {
 				others.safePush(g)
 			})
 		}
@@ -305,7 +331,7 @@ export abstract class OutlinerNode {
 		}
 		return false;
 	}
-	isIconEnabled(toggle) {
+	isIconEnabled(toggle): true {
 		if (typeof toggle.getState == 'function') {
 			return toggle.getState(this);
 		} else if (this[toggle.id] !== undefined) {
@@ -314,10 +340,10 @@ export abstract class OutlinerNode {
 			return true;
 		}
 	}
-	matchesFilter(search_term_lowercase) {
+	matchesFilter(search_term_lowercase: string): boolean {
 		if (this.name.toLowerCase().includes(search_term_lowercase)) return true;
 		if ('children' in this) {
-			return this.children.find(child => child.matchesFilter(search_term_lowercase));
+			return this.children.some(child => child.matchesFilter(search_term_lowercase));
 		}
 		return false;
 	}
@@ -382,3 +408,11 @@ export abstract class OutlinerNode {
 	}
 }
 
+const global = {
+	OutlinerNode
+}
+declare global {
+	type OutlinerNode = import('./outliner_node').OutlinerNode
+	const OutlinerNode: typeof global.OutlinerNode
+}
+Object.assign(window, global);

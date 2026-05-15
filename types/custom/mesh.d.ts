@@ -39,7 +39,7 @@ declare class MeshFace extends Face {
 	 * @param normalize If true, the values will be normalized.
 	 * @param alt_tri On quads, if true, this will return the normal of the second tri instead of the first
 	 */
-	getNormal(normalize: boolean, alt_tri?: boolean): ArrayVector3
+	getNormal(normalize: boolean = false, alt_tri?: boolean): ArrayVector3
 	/**
 	 * Calculates which pixels the UV face occupies, and returns them as a map
 	 */
@@ -62,8 +62,13 @@ declare class MeshFace extends Face {
 	invert(): void
 	/**
 	 * Returns whether the face is selected
+	 * @param face_key Optional face key of the face, the method runs faster if this is provided
 	 */
-	isSelected(): boolean
+	isSelected(face_key?: string): boolean
+	/**
+	 * Returns true if the face is concave
+	 */
+	isConcave(): boolean
 	/**
 	 * Returns the vertices of a quad in an order that creates a convex quad shape if possible. If the face has less than 4 vertices, it just returns the vertices in original order.
 	 */
@@ -125,6 +130,7 @@ declare class Mesh extends OutlinerElement {
 	seams: {
 		[vkey: string]: MeshSeamValue
 	}
+	vertice_list: ArrayVector3[]
 	armature: string
 
 	extend(options: Partial<MeshOptions>): this

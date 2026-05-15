@@ -28,6 +28,7 @@ interface UndoAspects {
 	 * Set to true to include the image content of the specified textures
 	 */
 	bitmap?: boolean
+	layers?: TextureLayer[]
 	settings?: {}
 	uv_mode?: boolean
 	animations?: _Animation[]
@@ -36,6 +37,7 @@ interface UndoAspects {
 	display_slots?: string[]
 	exploded_view?: boolean
 	mirror_modeling?: false
+	uv_only?: boolean
 }
 interface UndoSelectionAspects {
 	texture_selection?: boolean
@@ -136,7 +138,7 @@ declare class UndoSystem {
 	/**
 	 * Cancels an event before it was finished and reset the project to the state before
 	 */
-	cancelEdit(): void
+	cancelEdit(revert_changes?: boolean = false): void
 	/**
 	 * Add keyframes to the current edit that were indirectly removed by moving other keyframes to their position
 	 * @param keyframes

@@ -205,7 +205,7 @@ export class Billboard extends OutlinerElement {
 			value = texture;
 		}
 		this.faces.front.texture = value;
-		if (selected.indexOf(this) === 0) {
+		if (Outliner.selected.indexOf(this) === 0) {
 			UVEditor.loadData()
 		}
 		this.preview_controller.updateFaces(this);
@@ -230,7 +230,7 @@ export class Billboard extends OutlinerElement {
 		if (axis == 2) return;
 		if (negative) val = -val;
 
-		let before = this.old_size != undefined ? this.old_size : this.size[axis];
+		let before = this.temp_data.old_size != undefined ? this.temp_data.old_size : this.size[axis];
 		if (before instanceof Array) before = before[axis];
 		let modify = val instanceof Function ? val : n => (n+val);
 
@@ -457,7 +457,7 @@ new NodePreviewController(Billboard, {
 		} else if (Project.view_mode === 'uv') {
 			mesh.material = Canvas.uvHelperMaterial
 
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
 		} else if (Format.single_texture) {
@@ -763,7 +763,7 @@ BARS.defineActions(function() {
 			unselectAllElements()
 			new_billboard.select()
 			Canvas.updateView({elements: [new_billboard], element_aspects: {transform: true, geometry: true, faces: true}})
-			Undo.finishEdit('Add billboard', {outliner: true, elements: selected, selection: true});
+			Undo.finishEdit('Add billboard', {outliner: true, elements: Outliner.selected, selection: true});
 			Blockbench.dispatchEvent( 'add_billboard', {object: new_billboard} )
 
 			Vue.nextTick(function() {

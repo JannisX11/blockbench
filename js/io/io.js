@@ -1,8 +1,15 @@
+import { shell } from "../native_apis";
+
 //Import
 export function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		{
+			extensions: Texture.getAllExtensions,
+			propagate: true,
+			readtype: 'image',
+			condition: () => !Dialog.open
+		},
 		function(files, event) {
 			loadImages(files, event)
 		}
@@ -71,7 +78,10 @@ export function loadModelFile(file, args) {
 
 	function loadIfCompatible(codec, type, content) {
 		if (codec.load_filter && codec.load_filter.type == type) {
-			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
+			let extensions = typeof codec.load_filter.extensions == 'function'
+				? codec.load_filter.extensions()
+				: codec.load_filter.extensions ?? [];
+			if (extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
 				if (existing_tab && !codec.multiple_per_file) {
 					existing_tab.select();
 				} else {
@@ -98,6 +108,7 @@ export function loadModelFile(file, args) {
 		let success = loadIfCompatible(Codecs[id], 'json', model);
 		if (success) return;
 	}
+	unsupportedFileFormatMessage(file.path);
 }
 
 export async function loadImages(files, event) {
@@ -269,6 +280,40 @@ export async function loadImages(files, event) {
 	}
 }
 
+export function unsupportedFileFormatMessage(file_path) {
+	let extension = pathToExtension(file_path).toLowerCase();
+	let supported_plugins = Plugins.all.filter(plugin => {
+		return plugin.contributes?.open_extensions?.includes(extension);
+	})
+	let commands = {};
+	for (let plugin of supported_plugins) {
+		commands[plugin.id] = {
+			icon: (!plugin.icon || plugin.icon.match(/\.(svg|png)/)) ? 'extension' : plugin.icon,
+			text: tl('message.invalid_format.install_plugin', [plugin.title])
+		}
+	}
+	if (isApp && file_path.match(/[\\\/]/)) {
+		commands.open_in_default_program = {
+			icon: 'open_in_new',
+			text: 'message.unsupported_file_extension.open_in_default_program'
+		}
+	}
+	Blockbench.showMessageBox({
+		translateKey: 'unsupported_file_extension',
+		message: tl('message.unsupported_file_extension.message', ['`' + pathToName(file_path, true) + '`']),
+		commands,
+	}, (plugin_id) => {
+		if (plugin_id == 'open_in_default_program') {
+			return shell.openPath(file_path);
+		}
+		let plugin = plugin_id && supported_plugins.find(p => p.id == plugin_id);
+		if (plugin) {
+			BarItems.plugins_window.click();
+			Plugins.dialog.content_vue.selectPlugin(plugin);
+		}
+	})
+}
+
 //Extruder
 export const Extruder = {
 	dialog: new Dialog({
@@ -372,9 +417,11 @@ export const Extruder = {
 
 		//Scale Index
 		var scale_i = 1;
-		scale_i = 16 / Extruder.width;
-		let uv_scale_x = Project.texture_width / Extruder.width;
-		let uv_scale_y = Project.texture_height / Extruder.height;
+		if (Format.cube_size_limiter && !Format.integer_size) {
+			scale_i = 16 / Extruder.width;
+		}
+		let uv_scale_x = Project.getUVWidth(texture) / Extruder.width;
+		let uv_scale_y = Project.getUVHeight(texture) / Extruder.height;
 
 		function isOpaquePixel(px_x, px_y) {
 			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
@@ -538,9 +585,14 @@ BARS.defineActions(function() {
 				startpath,
 				multiple: true
 			}, function(files) {
-				files.forEach(file => {
-					loadModelFile(file);
-				})
+				let image_extensions = Texture.getAllExtensions();
+				if (files.allAre(file => image_extensions.includes(pathToExtension(file.name).toLowerCase()))) {
+					loadImages(files);
+				} else {
+					files.forEach(file => {
+						loadModelFile(file);
+					});
+				}
 			})
 		}
 	})
@@ -564,6 +616,16 @@ BARS.defineActions(function() {
 					})
 				}
 			}, {placeholder: 'https://blckbn.ch/123abc'});
+		}
+	})
+	Blockbench.on('drop_text', ({text}) => {
+		if (text && text.startsWith('https://blckbn.ch/')) {
+			let code = text.replace(/\/$/, '').split('/').last();
+			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+				Codecs.project.load(model, {path: ''});
+			}).fail(error => {
+				Blockbench.showQuickMessage('message.invalid_link')
+			})
 		}
 	})
 	new Action('extrude_texture', {
@@ -591,10 +653,10 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 's', ctrl: true}),
 		condition: () => Project,
 		click: async function(event) {
+			let export_codec = Codecs[Project.export_codec] ?? Format?.codec;
 			if (isApp) {
 				await saveTextures()
 				if (Format) {
-					let export_codec = Format.codec;
 					if (Project.save_path) {
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
@@ -717,6 +779,7 @@ Object.assign(window, {
 	loadModelFile,
 	loadImages,
 	Extruder,
+	unsupportedFileFormatMessage,
 	compileJSON,
 	autoParseJSON,
 })

@@ -1249,7 +1249,7 @@ BARS.defineActions(function() {
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',
-		condition: () => (typeof EyeDropper == 'function'),
+		condition: () => (typeof EyeDropper == 'function' && Blockbench.platform != 'linux'),
 		click: async function () {
 			if (Blockbench.platform == 'win32') {
 				// workaround for https://github.com/electron/electron/issues/27980

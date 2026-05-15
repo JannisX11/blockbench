@@ -1,0 +1,1541 @@
+/**
+ * original author: arodic / https://github.com/arodic
+ * modified for Blockbench by jannisx11
+ */
+
+import { PointerTarget } from "../../interface/pointer_target";
+import { getRotationObjects } from "../transform";
+import { TransformerModule } from "./transform_modules";
+
+ ( function () {
+
+	'use strict';
+
+
+	class GizmoMaterial extends THREE.MeshBasicMaterial {
+		constructor(parameters) {
+			super()
+
+			this.depthTest = false;
+			this.depthWrite = false;
+			this.side = THREE.FrontSide;
+			this.transparent = true;
+			this.gizmoSelected = false;
+			this.selectedColor = new THREE.Color(0xffffff);
+	
+			this.setValues( parameters );
+	
+			if (typeof parameters.color === "function") { // allows us to dynamically set oldColor
+				this.oldColor = this.color = parameters.color();
+				this.getOriginalColor = parameters.color;
+			}
+			else {
+				this.oldColor = this.color = parameters.color;
+			}
+			this.oldOpacity = this.opacity;
+
+			this.highlight = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					//this.color.r *= 1.2;
+					//this.color.g *= 1.2;
+					//this.color.b *= 1.2;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+	
+				}
+	
+			};
+			this.select = function( selected ) {
+				
+				if ( selected ) {
+
+					this.color = this.selectedColor;
+					this.opacity = 1;
+
+				} else {
+
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+
+				}
+
+			};
+			this.highlightSelected = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.selectedColor;
+					this.opacity = this.oldOpacity;
+	
+				}
+
+			};
+		}
+		// Can be changed to determine color based on outside logic
+		getOriginalColor() {
+			return this.oldColor;
+		}
+	}
+	
+	class GizmoLineMaterial extends THREE.LineBasicMaterial {
+		constructor(parameters) {
+			super()
+
+			this.depthTest = false;
+			this.depthWrite = false;
+			this.transparent = true;
+			this.linewidth = 1;
+			this.gizmoSelected = false;
+			this.selectedColor = new THREE.Color(0xffffff);
+	
+			this.setValues( parameters );
+			
+			if (typeof parameters.color === "function") { // allows us to dynamically set oldColor
+				this.oldColor = this.color = parameters.color();
+				this.getOriginalColor = parameters.color;
+			}
+			else {
+				this.oldColor = this.color = parameters.color;
+			}
+			this.oldOpacity = this.opacity;
+	
+			this.highlight = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+	
+				}
+	
+			};
+			this.select = function( selected ) {
+				
+				if ( selected ) {
+
+					this.color = new THREE.Color(0xffffff);
+					this.opacity = 1;
+
+				} else {
+
+					this.color = this.getOriginalColor();
+					this.opacity = this.oldOpacity;
+
+				}
+
+			};
+			this.highlightSelected = function( highlighted ) {
+	
+				if ( highlighted ) {
+	
+					this.color = gizmo_colors.gizmo_hover;
+					this.opacity = 1;
+	
+				} else {
+	
+					this.color = this.selectedColor;
+					this.opacity = this.oldOpacity;
+	
+				}
+
+			};
+		}
+		// Can be changed to determine color based on outside logic
+		getOriginalColor() {
+			return this.oldColor;
+		}
+	}
+
+	var pickerMaterial = new GizmoMaterial( { visible: false, transparent: false, side: THREE.DoubleSide } );
+
+	THREE.TransformGizmo = class extends THREE.Object3D {
+		constructor() {
+
+			super();
+
+			this.init = function () {
+
+				this.handles = new THREE.Object3D();
+				this.pickers = new THREE.Object3D();
+				this.planes = new THREE.Object3D();
+
+				this.add( this.handles );
+				this.add( this.pickers );
+				this.add( this.planes );
+
+				//// PLANES
+
+				var planeGeometry = new THREE.PlaneGeometry( 50, 50, 2, 2 );
+				var planeMaterial = new THREE.MeshBasicMaterial( { visible: false, side: THREE.DoubleSide } );
+
+				var planes = {
+					"XY":   new THREE.Mesh( planeGeometry, planeMaterial ),
+					"YZ":   new THREE.Mesh( planeGeometry, planeMaterial ),
+					"XZ":   new THREE.Mesh( planeGeometry, planeMaterial ),
+					"XYZE": new THREE.Mesh( planeGeometry, planeMaterial )
+				};
+
+				this.activePlane = planes[ "XYZE" ];
+
+				planes[ "YZ" ].rotation.set( 0, Math.PI / 2, 0 );
+				planes[ "XZ" ].rotation.set( - Math.PI / 2, 0, 0 );
+
+				for ( var i in planes ) {
+
+					planes[ i ].name = i;
+					this.planes.add( planes[ i ] );
+					this.planes[ i ] = planes[ i ];
+
+				}
+
+				//// HANDLES AND PICKERS
+
+				var setupGizmos = function( gizmoMap, parent ) {
+
+					for ( var name in gizmoMap ) {
+
+						for ( i = gizmoMap[ name ].length; i --; ) {
+
+							var object = gizmoMap[ name ][ i ][ 0 ];
+							var position = gizmoMap[ name ][ i ][ 1 ];
+							var rotation = gizmoMap[ name ][ i ][ 2 ];
+							var scale = gizmoMap[ name ][ i ][ 3 ];
+
+							if (object.name.length === 0) {
+								object.name = name;
+							}
+							object.renderDepth = 999
+
+							if ( position ) object.position.set( position[ 0 ], position[ 1 ], position[ 2 ] );
+							if ( rotation ) object.rotation.set( rotation[ 0 ], rotation[ 1 ], rotation[ 2 ] );
+							if ( scale ) {
+								object.scale.set( scale[ 0 ], scale[ 1 ], scale[ 2 ] );
+							}
+
+							parent.add( object );
+
+						}
+
+					}
+
+				};
+
+				setupGizmos( this.handleGizmos, this.handles );
+				setupGizmos( this.pickerGizmos, this.pickers );
+
+				// reset Transformations
+
+				this.traverse( function ( child ) {
+
+					if ( child instanceof THREE.Mesh ) {
+
+						child.updateMatrix();
+
+						var tempGeometry = child.geometry.clone();
+						tempGeometry.applyMatrix4( child.matrix );
+						child.geometry = tempGeometry;
+
+						child.position.set( 0, 0, 0 );
+						child.rotation.set( 0, 0, 0 );
+						child.scale.set( 1, 1, 1 );
+
+					}
+
+				} );
+
+			};
+
+			this.highlight = function ( axis ) {
+
+				var axis_letter = typeof axis === 'string' && axis.substr(-1).toLowerCase();
+
+				this.traverse( function( child ) {
+
+					if ( child.material && child.material.highlight ) {
+
+						if ( child.name === axis && axis_letter && (child.scale[axis_letter] < 5 || axis == 'E') ) {
+
+							child.material.highlight( true );
+
+						} else {
+
+							child.material.highlight( false );
+
+						}
+
+					}
+
+				} );
+
+			};
+		}
+		get dragging() {
+			return PointerTarget.active == PointerTarget.types.gizmo_transform;
+		}
+	};
+
+	THREE.TransformGizmo.prototype.update = function ( rotation, eye ) {
+
+		var vec1 = new THREE.Vector3( 0, 0, 0 );
+		var vec2 = new THREE.Vector3( 0, 1, 0 );
+		var lookAtMatrix = new THREE.Matrix4();
+		let inv;
+		if (this instanceof THREE.TransformGizmoScale) {
+			inv = this.getWorldQuaternion(new THREE.Quaternion()).invert();
+		}
+
+		this.traverse(child => {
+
+			if ( child.name.search( "E" ) !== - 1 ) {
+
+				child.quaternion.setFromRotationMatrix( lookAtMatrix.lookAt( eye, vec1, vec2 ) );
+				if (this instanceof THREE.TransformGizmoScale) {
+					child.quaternion.premultiply(inv);
+				}
+
+			} else if (
+				this instanceof THREE.TransformGizmoRotate &&
+				(child.name.search( "X" ) !== - 1 || child.name.search( "Y" ) !== - 1 || child.name.search( "Z" ) !== - 1)
+			) {
+
+				child.quaternion.setFromEuler( rotation );
+
+			}
+
+		} );
+	};
+
+	THREE.TransformGizmoTranslate = class extends THREE.TransformGizmo {
+		constructor() {
+
+			super();
+			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.07, 0.2, 12, 1, false );
+
+			let pickerCylinderGeo = new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false );
+
+			var lineXGeometry = new THREE.BufferGeometry();
+			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
+			lineXGeometry.name = 'gizmo_x'
+
+			var lineYGeometry = new THREE.BufferGeometry();
+			lineYGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
+			lineYGeometry.name = 'gizmo_y'
+
+			var lineZGeometry = new THREE.BufferGeometry();
+			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
+			lineZGeometry.name = 'gizmo_z'
+
+			this.handleGizmos = {
+				X: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.r } ) ), [ 1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Line( lineXGeometry, new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ]
+				],
+				Y: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.g } ) ), [ 0, 1, 0 ] ],
+					[	new THREE.Line( lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g } ) ) ]
+				],
+				Z: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, 1 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Line( lineZGeometry, new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ]
+				]
+			};
+
+			this.pickerGizmos = {
+				X: [
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]
+				],
+				Y: [
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0.6, 0 ] ]
+				],
+				Z: [
+					[ new THREE.Mesh( pickerCylinderGeo, pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ]
+				]
+			};
+
+			this.setActivePlane = function ( axis, eye ) {
+
+				var tempMatrix = new THREE.Matrix4();
+				eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
+
+				if ( axis === "X" ) {
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
+				}
+
+				if ( axis === "Y" ) {
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+
+				if ( axis === "Z" ) {
+					this.activePlane = this.planes[ "XZ" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+			};
+
+			this.init();
+		}
+	};
+
+	THREE.TransformGizmoScale = class extends THREE.TransformGizmo {
+		constructor() {
+
+			super();
+			//var arrowGeometry = new THREE.Geometry();
+			var arrowGeometry = new THREE.BoxGeometry( 0.15, 0.06, 0.15 );
+
+			var lineXGeometry = new THREE.BufferGeometry();
+			lineXGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  1, 0, 0 ], 3 ) );
+
+			var lineYGeometry = new THREE.BufferGeometry();
+			lineYGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 1, 0 ], 3 ) );
+
+			var lineZGeometry = new THREE.BufferGeometry();
+			lineZGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0,  0, 0, 1 ], 3 ) );
+
+			let planeGeo = new THREE.PlaneGeometry( 0.3, 0.3 );
+			let planePickerGeo = new THREE.PlaneGeometry( 0.4, 0.4 );
+
+			let plane_offset = 0.3;
+			
+			var CircleGeometry = function ( radius, facing, arc ) {
+
+				var geometry = new THREE.BufferGeometry();
+				var vertices = [];
+				let points = 16;
+				arc = arc ? arc : 1;
+				
+				for ( var i = 0; i <= points * arc; ++ i ) {
+
+					if ( facing === 'x' ) vertices.push( 0, Math.cos( i / (points/2) * Math.PI ) * radius, Math.sin( i / (points/2) * Math.PI ) * radius );
+					if ( facing === 'y' ) vertices.push( Math.cos( i / (points/2) * Math.PI ) * radius, 0, Math.sin( i / (points/2) * Math.PI ) * radius );
+					if ( facing === 'z' ) vertices.push( Math.sin( i / (points/2) * Math.PI ) * radius, Math.cos( i / (points/2) * Math.PI ) * radius, 0 );
+
+				}
+
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+				return geometry;
+
+			};
+
+			this.handleGizmos = {
+				X: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.r } ) ), [ 1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Line( lineXGeometry, new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ],
+
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.r } ) ), [ -1, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Line( lineXGeometry, new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ -1, 0, 0 ] ]
+				],
+				Y: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.g } ) ), [ 0, 1, 0 ] ],
+					[ new THREE.Line( lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g} ) ) ],
+
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.g } ) ), [ 0, -1, 0 ] ],
+					[ new THREE.Line(lineYGeometry, new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, -1, 0 ] ]
+				],
+				Z: [
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, 1 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Line( lineZGeometry, new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
+
+					[ new THREE.Mesh( arrowGeometry, new GizmoMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Line( lineZGeometry, new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0, 0, -1 ] ]
+				],
+				YZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.r, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ],
+				],
+				XZ: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.g, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ],
+				],
+				XY: [
+					[ new THREE.Mesh( planeGeo, new GizmoMaterial( { color: gizmo_colors.b, side: THREE.DoubleSide, opacity: 0.5 } ) ), [ plane_offset, plane_offset, 0 ] ],
+				],
+				E: [
+					[ new THREE.Line( new CircleGeometry( 0.13, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
+				],
+			};
+			this.handleGizmos.X[2][0].name = 'NX'
+			this.handleGizmos.X[3][0].name = 'NX'
+			this.handleGizmos.Y[2][0].name = 'NY'
+			this.handleGizmos.Y[3][0].name = 'NY'
+			this.handleGizmos.Z[2][0].name = 'NZ'
+			this.handleGizmos.Z[3][0].name = 'NZ'
+
+			this.pickerGizmos = {
+				X: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0.6, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ -0.6, 0, 0 ], [ 0, 0, Math.PI / 2 ] ]
+				],
+				Y: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0.6, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, -0.6, 0 ], [Math.PI / 1, 0, 0 ] ]
+				],
+				Z: [
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, 0.6 ], [ Math.PI / 2, 0, 0 ] ],
+					[ new THREE.Mesh( new THREE.CylinderGeometry( 0.2, 0, 1, 4, 1, false ), pickerMaterial ), [ 0, 0, -0.6 ], [ - Math.PI / 2, 0, 0 ] ]
+				],
+				XY: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, plane_offset, 0 ] ]
+				],
+				YZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ 0, plane_offset, plane_offset ], [ 0, Math.PI / 2, 0 ] ]
+				],
+				XZ: [
+					[ new THREE.Mesh( planePickerGeo, pickerMaterial ), [ plane_offset, 0, plane_offset ], [ - Math.PI / 2, 0, 0 ] ]
+				],
+				E: [[ new THREE.Mesh( new THREE.SphereGeometry( 0.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+			};
+			this.pickerGizmos.X[1][0].name = 'NX'
+			this.pickerGizmos.Y[1][0].name = 'NY'
+			this.pickerGizmos.Z[1][0].name = 'NZ'
+
+			this.setActivePlane = function ( axis, eye ) {
+
+				var tempMatrix = new THREE.Matrix4();
+				eye.applyMatrix4( tempMatrix.copy( tempMatrix.extractRotation( this.planes[ "XY" ].matrixWorld ) ).invert() );
+
+				if ( axis === "X" || axis === "NX" || axis == 'XZ' ) {
+
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.y ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "XZ" ];
+				}
+				if ( axis === "Y" || axis === "NY" || axis == 'YZ' ) {
+
+					this.activePlane = this.planes[ "XY" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.z ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+				if ( axis === "Z" || axis === "NZ" || axis == 'YZ' ) {
+
+					this.activePlane = this.planes[ "XZ" ];
+					if ( Math.abs( eye.x ) > Math.abs( eye.y ) ) this.activePlane = this.planes[ "YZ" ];
+				}
+				if ( axis === "E" ) {
+
+					this.activePlane = this.planes[ "XYZE" ];
+				}
+			};
+			this.init();
+		}
+	};
+
+	THREE.TransformGizmoRotate = class extends THREE.TransformGizmo {
+		constructor() {
+
+			super();
+			var CircleGeometry = function ( radius, facing, arc ) {
+
+				var geometry = new THREE.BufferGeometry();
+				var vertices = [];
+				arc = arc ? arc : 1;
+
+				for ( var i = 0; i <= 64 * arc; ++ i ) {
+
+					if ( facing === 'x' ) vertices.push( 0, Math.cos( i / 32 * Math.PI ) * radius, Math.sin( i / 32 * Math.PI ) * radius );
+					if ( facing === 'y' ) vertices.push( Math.cos( i / 32 * Math.PI ) * radius, 0, Math.sin( i / 32 * Math.PI ) * radius );
+					if ( facing === 'z' ) vertices.push( Math.sin( i / 32 * Math.PI ) * radius, Math.cos( i / 32 * Math.PI ) * radius, 0 );
+
+				}
+
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+				return geometry;
+
+			};
+
+			this.handleGizmos = {
+
+				X: [
+					[ new THREE.Line( new CircleGeometry( 1, 'x', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ) ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.r } ) ), [ 0, 0, 0.98 ], null, [ 1, 4, 1 ] ],
+				],
+				Y: [
+					[ new THREE.Line( new CircleGeometry( 1, 'y', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ) ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.g } ) ), [ 0, 0, 0.98 ], null, [ 4, 1, 1 ] ],
+				],
+				Z: [
+					[ new THREE.Line( new CircleGeometry( 1, 'z', 0.5 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ) ],
+					[ new THREE.Mesh( new THREE.OctahedronGeometry( 0.06, 0 ), new GizmoLineMaterial( { color: gizmo_colors.b } ) ), [ 0.98, 0, 0 ], null, [ 1, 4, 1 ] ],
+				],
+
+				E: [
+					[ new THREE.Line( new CircleGeometry( 1.2, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.outline } ) ) ]
+				],
+				XYZE: [[ new THREE.Line( new CircleGeometry( 1, 'z', 1 ), new GizmoLineMaterial( { color: gizmo_colors.grid } ) ) ]]
+
+			};
+
+			this.pickerGizmos = {
+
+				X: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, - Math.PI / 2, - Math.PI / 2 ] ]],
+				Y: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ Math.PI / 2, 0, 0 ] ]],
+				Z: [[ new THREE.Mesh( new THREE.TorusGeometry( 1, 0.12, 4, 12, Math.PI ), pickerMaterial ), [ 0, 0, 0 ], [ 0, 0, - Math.PI / 2 ] ]],
+				E: [[ new THREE.Mesh( new THREE.TorusGeometry( 1.2, 0.12, 2, 24 ), pickerMaterial ) ]],
+
+			};
+
+			this.setActivePlane = function ( axis ) {
+
+				if ( axis === "E" ) this.activePlane = this.planes[ "XYZE" ];
+
+				if ( axis === "X" ) this.activePlane = this.planes[ "YZ" ];
+
+				if ( axis === "Y" ) this.activePlane = this.planes[ "XZ" ];
+
+				if ( axis === "Z" ) this.activePlane = this.planes[ "XY" ];
+
+			};
+
+			this.update = function ( rotation, eye2 ) {
+
+				THREE.TransformGizmo.prototype.update.apply( this, arguments );
+
+				var tempMatrix = new THREE.Matrix4();
+				var worldRotation = new THREE.Euler( 0, 0, 1 );
+				var tempQuaternion = new THREE.Quaternion();
+				var unitX = new THREE.Vector3( 1, 0, 0 );
+				var unitY = new THREE.Vector3( 0, 1, 0 );
+				var unitZ = new THREE.Vector3( 0, 0, 1 );
+				var quaternionX = new THREE.Quaternion();
+				var quaternionY = new THREE.Quaternion();
+				var quaternionZ = new THREE.Quaternion();
+				var eye = eye2.clone();
+
+				worldRotation.copy( this.planes[ "XY" ].rotation );
+				tempQuaternion.setFromEuler( worldRotation );
+
+				tempMatrix.makeRotationFromQuaternion( tempQuaternion ).copy( tempMatrix ).invert();
+				eye.applyMatrix4( tempMatrix );
+
+				this.traverse( function( child ) {
+
+
+					tempQuaternion.setFromEuler( worldRotation );
+
+
+					if ( child.name === "X" ) {
+
+						quaternionX.setFromAxisAngle( unitX, Math.atan2( - eye.y, eye.z ) );
+						tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionX );
+						child.quaternion.copy( tempQuaternion );
+
+					}
+
+					if ( child.name === "Y" ) {
+
+						quaternionY.setFromAxisAngle( unitY, Math.atan2( eye.x, eye.z ) );
+						tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionY );
+						child.quaternion.copy( tempQuaternion );
+
+					}
+
+					if ( child.name === "Z" ) {
+
+						quaternionZ.setFromAxisAngle( unitZ, Math.atan2( eye.y, eye.x ) );
+						tempQuaternion.multiplyQuaternions( tempQuaternion, quaternionZ );
+						child.quaternion.copy( tempQuaternion );
+
+					}
+
+				} );
+
+			};
+
+			this.init();
+		}
+	};
+
+	// Commented out bits were part of an abandoned attempt at a handle tilt Gizmo.
+	// (similar to rotate gizmo, but on a single axis along the spline)
+	THREE.TransformGizmoSplineHandle = class extends THREE.TransformGizmo {
+		constructor(data) {
+			super();
+			var arrowGeometry = new THREE.CylinderGeometry( 0, 0.1125, 0.3, 12, 1 );
+			let jointGeometry = new THREE.BoxGeometry( 0.15, 0.15, 0.15 );
+			let ctrlGeometry = new THREE.BoxGeometry( 0.075, 0.075, 0.15 );
+			let jointPickerGeometry = new THREE.BoxGeometry( 0.3, 0.3, 0.3 );
+			let ctrlPickerGeometry = new THREE.BoxGeometry( 0.225, 0.225, 0.3 );
+
+			function getHandleColor() {
+				let colors = {
+					"free": gizmo_colors.spline_handle_free,
+					"mirrored": gizmo_colors.spline_handle_mirrored,
+					"aligned": gizmo_colors.spline_handle_aligned,
+				}
+					
+				return colors[!BarItems.spline_handle_mode ? "aligned" : BarItems.spline_handle_mode.value];
+			}
+			this.spline = data.uuid;
+			this.handle = data.hKey;
+			this.joint = data.joint;
+			this.ctrl1 = data.ctrl1;
+			this.ctrl2 = data.ctrl2;
+			this.vKeyJoint = data.vKeyJoint;
+			this.vKeyCtrl1 = data.vKeyCtrl1;
+			this.vKeyCtrl2 = data.vKeyCtrl2;
+			this.handleEuler = OutlinerNode.uuids[this.spline].getHandleEuler(this.handle);
+			this.arrowEuler = OutlinerNode.uuids[this.spline].getHandleEuler(this.handle, new THREE.Euler(Math.PI / 2, 0, Math.PI / 2, "ZXY"));
+			
+			// if (!handlePropertiesEdit) { 
+			let lineCtrl1Geometry = new THREE.BufferGeometry();
+			let lineCtrl2Geometry = new THREE.BufferGeometry();
+			lineCtrl1Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl1 ], 3 ) );
+			lineCtrl2Geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ ...this.joint, ...this.ctrl2 ], 3 ) );
+			
+			let mat = () => new GizmoMaterial( { color: () => getHandleColor() } );
+			let lineMat = () => new GizmoLineMaterial( { color: () => getHandleColor()} );
+			let c1Angle = data.c1Arrow === true ? this.arrowEuler.c1 : this.handleEuler.c1;
+			let c2Angle = data.c2Arrow === true ? this.arrowEuler.c2 : this.handleEuler.c2;
+
+			this.handleGizmos = {
+				C1: [
+					[ new THREE.Mesh( data.c1Arrow ? arrowGeometry : ctrlGeometry, mat() ), this.ctrl1, c1Angle],
+					[ new THREE.Line( lineCtrl1Geometry, lineMat() ) ],
+				],
+				C2: [
+					[ new THREE.Mesh( data.c2Arrow ? arrowGeometry : ctrlGeometry, mat() ), this.ctrl2, c2Angle],
+					[ new THREE.Line( lineCtrl2Geometry, lineMat() ) ],
+				],
+				J: [
+					[ new THREE.Mesh( jointGeometry, mat() ), this.joint, this.handleEuler.combined ]
+				]
+			};
+
+			this.pickerGizmos = {
+				C1: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl1, this.handleEuler.c1 ] ],
+				C2: [ [ new THREE.Mesh( ctrlPickerGeometry, pickerMaterial ), this.ctrl2, this.handleEuler.c2 ] ],
+				J: [ [ new THREE.Mesh( jointPickerGeometry, pickerMaterial ), this.joint, this.handleEuler.combined ] ]
+			};
+
+			this.positionDebugHit = function(newPos) {
+				this.handleGizmos["DEBUG_PICKER"][0][0].position.set( newPos.x, newPos.y, newPos.z );
+			}
+			this.setHandleScale = function() {
+
+				// What's below might be a little dirty, need to see if it can be improved
+				// I'm essentially doing a second init(), but only for scaling. Since I can't affort to scale the entire Gizmo object
+				for (let name in this.handleGizmos) {
+					if (name === "DEBUG_PICKER") continue;
+					let object = this.handleGizmos[name][0][0];
+					let position = this.handleGizmos[name][0][1];
+					let scale = this.getScale(position);
+
+					object.geometry.center();
+					object.scale.set(scale, scale, scale);
+					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
+				}
+
+				for (let name in this.pickerGizmos) {
+					let object = this.pickerGizmos[name][0][0];
+					let position = this.pickerGizmos[name][0][1];
+					let scale = this.getScale(position);
+
+					object.geometry.center();
+					object.scale.set(scale, scale, scale);
+					object.geometry.translate(position[0] / scale, position[1] / scale, position[2] / scale);
+				}
+			};
+			// Gets the scale for each point of this handle, 
+			// using the same scaling as regular transform gizmos.
+			this.getScale = function(pointPos) {
+				let splineNode = OutlinerNode.uuids[this.spline]
+				let splineMesh = splineNode.mesh;
+
+				let jointPos = splineMesh.localToWorld(pointPos.V3_toThree());
+				return Transformer.camera.preview.calculateControlScale(jointPos) * settings.control_size.value * 0.74;
+			}
+			// Get any matches in the spline selection
+			this.verifySelection = function() {
+				let selection = Project.spline_selection[this.spline]?.vertices || [];
+				let ctrl1Selected = selection.includes(this.vKeyCtrl1);       
+				let jointSelected = selection.includes(this.vKeyJoint);
+				let ctrl2Selected = selection.includes(this.vKeyCtrl2);
+				return { "C1": ctrl1Selected, "C2": ctrl2Selected, "J": jointSelected }
+			}
+
+			this.highlight = function(axis) {
+				for (let name in this.handleGizmos) {
+					let point = this.handleGizmos[name];
+					let object = point[0][0];
+					
+					// Get line of this handle if it exists
+					let line = false;
+					if (point.length == 2) {
+						line = point[1][0];
+					}
+
+					if ( object.material && object.material.highlight ) {
+						if (this.verifySelection()[name]) {
+							if (name == axis) {
+								object.material.highlight(true);
+								if (line) line.material.highlight(true);
+							} else {
+								object.material.highlightSelected(false);
+								if (line) line.material.highlightSelected(false);
+							}
+						} else {
+							if (name == axis) {
+							   object.material.highlight(true);
+							   if (line) line.material.highlight(true);
+						   } else {
+							   object.material.highlight(false);
+							   if (line) line.material.highlight(false);
+						   }
+						}
+					}
+				}
+			}
+			this.select = function() {
+				for (let name in this.handleGizmos) {
+					let point = this.handleGizmos[name];
+					let object = point[0][0];
+
+					// Get line of this handle if it exists
+					let line = false;
+					if (point.length == 2) {
+						line = point[1][0];
+					}
+					
+					if (object.material && object.material.select ) {
+						if (this.verifySelection()[name]) {
+							object.material.select(true);
+							if (line) line.material.select(true);
+						}
+						else {
+							object.material.select(false);
+							if (line) line.material.select(false);
+						}
+					}
+				}
+			}
+
+			this.init();
+		}
+	};
+
+	THREE.SplineGizmoController = class extends THREE.Object3D {
+		constructor( cam, domElement ) {
+			super();
+			domElement = ( domElement !== undefined ) ? domElement : document;
+			this.camera = cam;
+			this.spline_handles = [];
+			this.spline = null;
+			this.handleMode = null;
+
+			this.reportStatus = function() { // Debug only
+				console.log({
+					"Gizmos": this.spline_handles,
+					"Previous Handle Mode": this.handleMode,
+					"Previous Spline": this.spline,
+					"Scope Axis": Transformer.axis
+				});
+			}
+			this.getCurrent = function() {
+				let gizmo = this.spline_handles[this.spline_handle_index];
+				return gizmo;
+			}
+			this.changeHandleMode = function(newMode) {
+				if ((newMode === "handles") && newMode !== this.handleMode) {
+					this.remove(...this.spline_handles);
+					this.spline_handles.empty();
+					this.refreshGizmos();
+				}
+				this.handleMode = newMode;
+				this.updateAllGizmoTransforms();
+			}
+			this.refreshGizmos = function(scope) {
+				let spline = SplineMesh.selected[0];
+
+				// Dispose of previous gizmos
+				this.clear();
+	
+				// Create new Gizmos
+				for (let hKey in spline.handles) {
+					let data = {};
+					data.joint = spline.vertices[spline.handles[hKey].joint];
+					data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
+					data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
+					data.vKeyJoint = spline.handles[hKey].joint;
+					data.vKeyCtrl1 = spline.handles[hKey].control1;
+					data.vKeyCtrl2 = spline.handles[hKey].control2;
+					data.uuid = spline.uuid;
+					data.hKey = hKey
+					data.c1Arrow = hKey == spline.getFirstHandle().key;
+					data.c2Arrow = hKey == spline.getLastHandle().key;
+
+					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
+				}
+	
+				// Add new Gizmos to parent
+				this.add(...this.spline_handles);
+				this.traverse((kid) => {
+					kid.renderOrder = 999;
+				});
+
+				if (scope) scope.attach(spline);
+				this.spline = spline;
+			}
+			this.tryAssignIndex = function(object) {
+				// if (object) console.log(object.constructor) // see which object we're hitting
+				if (object instanceof THREE.TransformGizmoSplineHandle) {
+					this.spline_handle_index = this.spline_handles.indexOf(object);
+				}
+			}
+			this.tryHighlight = function(axis) {
+				let accu = false;
+				let matches = [];
+				this.spline_handles.forEach(gizmo => {
+					let idMatch = (this.spline_handle_index == this.spline_handles.indexOf(gizmo));
+					if (idMatch) {
+						gizmo.highlight( axis, );
+						matches.push(this.spline_handles.indexOf(gizmo))
+					}
+					accu ||= idMatch;
+				});
+				// console.log(`Attempting hilight on ${axis}, ${accu?`matched ids: ${matches}`:"no ID match"}`) // see if our loop managed to highlight anything
+			}
+			this.trySelect = function() {
+				this.spline_handles.forEach(gizmo => {
+					gizmo.select();
+				});
+			}
+			this.selectSplinePoints = function(scope) {
+				let gizmo = this.getCurrent();
+				let spline = OutlinerNode.uuids[gizmo.spline];
+				let handle = OutlinerNode.uuids[gizmo.spline].handles[gizmo.handle];
+				let selected = selectSplinePoints(spline, handle, scope.axis);
+
+				if (selected) {
+					this.trySelect();
+				}
+				
+				updateSelection();
+				scope.updateSelection();
+				scope.update();
+
+				this.updateAllGizmoTransforms();
+				// this.reportStatus();
+			}
+			this.verifyValidity = function() {
+				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object" || !Modes.edit) {
+					this.clear();
+				}
+			}
+			this.clear = function() {
+				this.remove(...this.spline_handles);
+				this.spline_handles.empty();
+			}
+			this.interesct = function(pointer, intersectMethod) {
+				let result = false;
+				
+				for (let gizmo of this.spline_handles) {
+					result ||= intersectMethod( pointer, gizmo.pickers.children );
+				}
+
+				return result;
+			}
+			this.hideOtherGizmos = function(gizmoDict, selectionMode) {
+				if (BarItems.spline_selection_mode && this.spline_handles.length) {
+					for ( var type in gizmoDict ) {
+						let spline = this.spline_handles[0].spline;
+						let cond = BarItems.spline_selection_mode.value === "object" || (OutlinerNode.uuids[spline].getSelectedVertices().length > 0);
+
+						gizmoDict[type].visible = (type === selectionMode) && cond;
+					}
+				}
+			}
+			this.updateAllGizmoTransforms = function() {
+				this.spline_handles.forEach((gizmo) => {
+					this.updateGizmoTransform(gizmo);
+				})
+			}
+			// Spline Gizmos are treated as having no transform by default, 
+			// so they need to be oriented and positioned over their splines to work.
+			this.updateGizmoTransform = function(gizmo) {
+				let { vec1, euler1, quat1 } = Reusable;
+				let splineNode = OutlinerNode.uuids[gizmo.spline]
+				let splineMesh = splineNode.mesh;
+            	let splineMeshQuat = splineMesh.getWorldQuaternion(quat1);
+				
+        		vec1.set(0, 0, 0)
+            	vec1.applyQuaternion(splineMeshQuat);
+            	vec1.add(THREE.fastWorldPosition(splineMesh, Reusable.vec2));
+				euler1.setFromQuaternion(splineMeshQuat);
+
+				gizmo.setHandleScale();
+				gizmo.position.copy(vec1);
+				gizmo.rotation.copy(euler1);
+			}
+		}
+	};
+
+	THREE.TransformControls = class extends THREE.Object3D {
+		constructor( cam, domElement ) {
+
+			super();
+
+			domElement = ( domElement !== undefined ) ? domElement : document;
+
+			this.camera = cam
+			this.elements = [];
+			this.visible = false;
+			this.space = "world";
+			this.size = 1;
+			this.axis = null;
+			this.hoverAxis = null;
+			this.direction = true;
+			this.last_valid_position = new THREE.Vector3();
+			this.rotation_selection = new THREE.Euler();
+
+			this.firstLocation = [0,0,0]
+
+
+			var scope = this;
+
+			var _mode = "translate";
+			var _dragging = false;
+			var _gizmo = {
+
+				"translate": new THREE.TransformGizmoTranslate(),
+				"scale": new THREE.TransformGizmoScale(),
+				"rotate": new THREE.TransformGizmoRotate(),
+				"stretch": new THREE.TransformGizmoScale()
+			};
+
+			for ( var type in _gizmo ) {
+
+				var gizmoObj = _gizmo[ type ];
+
+				gizmoObj.visible = ( type === _mode );
+				this.add( gizmoObj );
+
+			}
+			this.pivot_marker = new THREE.Mesh(
+				new THREE.IcosahedronGeometry(0.08),
+				new THREE.MeshBasicMaterial()
+			)
+			this.pivot_marker.material.depthTest = false;
+			this.pivot_marker.material.depthWrite = false;
+			this.pivot_marker.material.side = THREE.FrontSide;
+			this.pivot_marker.material.transparent = true;
+			this.pivot_marker.material.color = gizmo_colors.outline;
+			this.children[0].add(this.pivot_marker)
+
+			//Adjust GIzmos
+			this.traverse((kid) => {
+				kid.renderOrder = 999
+			})
+			this.children[2].children[0].children[6].renderOrder -= 9
+			this.children[2].scale.set(0.8, 0.8, 0.8)
+
+			//Vars
+				var changeEvent = { type: "change" };
+				var mouseDownEvent = { type: "mouseDown" };
+				var mouseUpEvent = { type: "mouseUp", mode: _mode };
+				var objectChangeEvent = { type: "objectChange" };
+
+				var ray = new THREE.Raycaster();
+				var pointerVector = new THREE.Vector2();
+
+				var point = new THREE.Vector3();
+				var originalPoint = new THREE.Vector3();
+				var offset = new THREE.Vector3();
+				var scale = 1;
+				var eye = new THREE.Vector3();
+
+				var tempMatrix = new THREE.Matrix4();
+				var originalValue = null;
+				var previousValue = 0;
+
+				var worldPosition = new THREE.Vector3();
+				var worldRotation = new THREE.Euler();
+				var camPosition = new THREE.Vector3();
+
+
+			this.attach = function ( object ) {
+				if (Canvas.show_gizmos == false) return;
+				this.elements.safePush(object);
+				this.visible = true;
+			};
+
+			this.detach = function () {
+				this.elements.length = 0
+				this.visible = false;
+				this.axis = null;
+				this.hoverAxis = null;
+				SplineGizmos.verifyValidity();
+			};
+			this.setMode = function ( mode ) {
+				if (mode === 'hidden') {
+					return;
+				}
+				_mode = mode||_mode;
+				if ( _mode === "scale" ) scope.space = "local";
+				for ( var type in _gizmo ) {
+					_gizmo[ type ].visible = (type === _mode) && (BarItems.spline_selection_mode.value == 'object' || Project.spline_selection.length);
+				}
+				if (mode == 'translate') {
+					this.pivot_marker.visible = Toolbox.selected.visible = Toolbox.selected.id == 'pivot_tool';
+				}
+
+				this.update();
+				scope.dispatchEvent( changeEvent );
+			};
+			this.setSize = function ( size ) {
+
+				scope.size = size;
+				this.update();
+				scope.dispatchEvent( changeEvent );
+			};
+			this.setSpace = function ( space ) {
+				scope.space = space;
+				this.update();
+				scope.dispatchEvent(changeEvent);
+			};
+			this.getScale = function() {
+
+				Transformer.camera.updateMatrixWorld();
+				camPosition.setFromMatrixPosition( Transformer.camera.matrixWorld );
+
+				return Transformer.camera.preview.calculateControlScale(worldPosition) * settings.control_size.value * 0.74;
+			}
+			this.setScale = function(sc) {
+				Transformer.scale.set(sc,sc,sc)
+			}
+			this.update = function (object) {
+				var scope = Transformer;
+
+				if (!object) {
+					object = this.rotation_ref;
+				}
+				if (scope.elements.length == 0) {
+					this.detach()
+				}
+				this.getWorldPosition(worldPosition)
+				this.setScale(this.getScale());
+
+				_gizmo.rotate.children[0].children[6].visible = !(Format && Format.rotation_limit && Modes.edit);
+
+				// Origin
+				let scale = scope.camera.preview.calculateControlScale(Canvas.pivot_marker.getWorldPosition(new THREE.Vector3())) * settings.origin_size.value * 0.2;
+				Canvas.pivot_marker.scale.set( scale, scale, scale );
+				if (Canvas.pivot_marker.base_scale) {
+					Canvas.pivot_marker.scale.multiply(Canvas.pivot_marker.base_scale);
+				}
+				
+				// Update Eye Position
+				if ( scope.camera instanceof THREE.PerspectiveCamera ) {
+					eye.copy( camPosition ).sub( worldPosition ).normalize();
+				} else if ( scope.camera instanceof THREE.OrthographicCamera ) {
+					eye.copy( camPosition ).normalize();
+				}
+
+				if (scope.elements.length == 0) return;
+
+				if (object) {
+					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
+					if (Toolbox.selected.transformerMode === 'rotate') {
+						_gizmo[ _mode ].update( worldRotation, eye );
+						this.rotation.set(0, 0, 0);
+					} else if (Toolbox.selected.transformerMode === 'scale' || Toolbox.selected.transformerMode === 'stretch') {
+						_gizmo[ _mode ].update( worldRotation, eye );
+						object.getWorldQuaternion(this.rotation)
+					} else {
+						object.getWorldQuaternion(this.rotation)
+					}
+					if (this.rotation_selection.x || this.rotation_selection.y || this.rotation_selection.z) {
+						let q = Reusable.quat1.setFromEuler(this.rotation_selection);
+						this.quaternion.multiply(q);
+						worldRotation.setFromQuaternion(this.quaternion);
+					}
+
+				} else {
+					worldRotation.set(0, 0, 0);
+					this.rotation.set(0, 0, 0);
+					_gizmo[ _mode ].update( worldRotation, eye );
+				}
+				_gizmo[ _mode ].highlight( scope.axis );
+
+				SplineGizmos.updateAllGizmoTransforms();
+				SplineGizmos.tryAssignIndex(scope.lastGizmoIntersected);
+				SplineGizmos.tryHighlight(scope.axis);
+				SplineGizmos.trySelect();
+				SplineGizmos.hideOtherGizmos(_gizmo, _mode);
+			};
+			this.fadeInControls = function(frames) {
+				if (!frames || typeof frames !== 'number') frames = 10
+				var scope = Transformer;
+				scale = this.getScale()
+				var old_scale = Transformer.scale.x
+				var diff = (scale - old_scale) / frames
+
+				var i = 0;
+				var interval = setInterval(function() {
+					i++;
+					Transformer.setScale(old_scale + i*diff)
+					if (i >= frames) {
+						clearInterval(interval)
+					}
+				}, 16)
+			}
+			this.setCanvas = function(canvas) {
+				if (this.canvas) {
+					this.canvas.removeEventListener( "mousedown", onPointerDown );
+					this.canvas.removeEventListener( "touchstart", onPointerDown );
+
+					this.canvas.removeEventListener( "mousemove", onPointerHover );
+					this.canvas.removeEventListener( "touchmove", onPointerHover );
+
+				}
+				this.canvas = canvas;
+				this.canvas.addEventListener( "mousedown", onPointerDown, false );
+				this.canvas.addEventListener( "touchstart", onPointerDown, {passive: true} );
+
+				this.canvas.addEventListener( "mousemove", onPointerHover, false );
+				this.canvas.addEventListener( "touchmove", onPointerHover, {passive: true} );
+
+			}
+			this.setCanvas(domElement)
+			this.simulateMouseDown = function(e) {
+				onPointerDown(e)
+			}
+
+			this.updateSelection = function() {
+				this.elements.empty()
+				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
+					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
+						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
+							SplineGizmos.refreshGizmos(scope);
+						} else if (Outliner.selected.length) {
+							Outliner.selected.forEach(element => {
+								if (
+									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
+									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
+									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
+								) {
+									scope.attach(element);
+								}
+							})
+						} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
+							scope.attach(Group.first_selected)
+						} else {
+							this.update()
+							return this;
+						}
+					}
+					this.center()
+				}
+				SplineGizmos.verifyValidity();
+				this.update()
+				return this;
+			}
+			Object.defineProperty(this, 'dragging', {
+				get() {
+					return PointerTarget.active == PointerTarget.types.gizmo_transform;
+				}
+			})
+			this.center = function() {
+				delete Transformer.rotation_ref;
+				if (!scope.dragging) Transformer.rotation_selection.set(0, 0, 0);
+
+				let module = TransformerModule.active;
+				if (module) {
+					module.updateGizmo({});
+					Transformer.update();
+				}
+			}
+			this.cancelMovement = function(event, keep_changes = false) {
+				onPointerUp(event, keep_changes);
+				let module = TransformerModule.active;
+				if (module) {
+					module.dispatchCancel({
+						event,
+						keep_changes
+					});
+				}
+			}
+			function extendTransformLineOnAxis(long, axis) {
+				let axisNumber = getAxisNumber(axis);
+				if (typeof axisNumber !== 'number') return;
+				let main_gizmo = _gizmo[_mode].children[0];
+
+				switch (Toolbox.selected.transformerMode) {
+					default:
+						var line = main_gizmo.children[axisNumber*2];
+						break;
+					case 'scale':
+					case 'stretch':
+						var line = main_gizmo.children[(axisNumber*2 + (scope.direction?1:0)) * 2];
+						break;
+					case 'rotate':
+						var line = Canvas.pivot_marker;
+						break;
+				}
+				line.scale[axis] = long ? 20000 : 1;
+				if (Toolbox.selected.transformerMode !== 'rotate') {
+					line.position[axis] = long ? -10000 : ((scope.direction || (Toolbox.selected.transformerMode !== 'scale' && Toolbox.selected.transformerMode !== 'stretch'))?0:-1);
+				} else {
+					line.base_scale[axis] = long ? 20000 : 1;
+				}
+			}
+			function extendTransformLine(long) {
+				let axis = scope.axis.substr(-1).toLowerCase();
+				let axis2 = scope.axis.length == 2 && scope.axis[0] != 'N' && scope.axis[0].toLowerCase();
+
+				extendTransformLineOnAxis(long, axis);
+				if (axis2) extendTransformLineOnAxis(long, axis2);
+
+				_gizmo[ _mode ].highlight( scope.axis );
+			}
+
+			function onPointerHover( event ) {
+
+				if ( scope.elements.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
+
+				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
+				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
+
+				if (_dragging === true) return;
+				scope.hoverAxis = null;
+
+				if ( intersect ) {
+					scope.hoverAxis = intersect.object.name;
+					scope.lastGizmoIntersected = intersect.object.parent.parent;
+
+					SplineGizmos.tryAssignIndex(scope.lastGizmoIntersected);
+					SplineGizmos.tryHighlight(scope.hoverAxis);
+
+					event.preventDefault();
+				}
+				if ( scope.axis !== scope.hoverAxis ) {
+					scope.axis = scope.hoverAxis;
+					scope.update();
+					scope.dispatchEvent( changeEvent );
+				}
+			}
+			function onPointerDown( event ) {
+				
+				document.addEventListener( "mouseup", onPointerUp, false );
+
+				if ( scope.elements.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
+				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
+				if ( pointer.button === 0 || pointer.button === undefined ) {
+
+					var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
+					if ( intersect ) {
+						scope.was_clicked = true;
+						if ( scope.axis == "C1" || scope.axis == "C2" || scope.axis == "J" ) {
+							// Spline Gizmos cannot and should not trigger draggin states.
+							PointerTarget.endTarget();
+							
+							SplineGizmos.selectSplinePoints(scope);
+							SplineGizmos.hideOtherGizmos(_gizmo, _mode);
+							
+							event.preventDefault();
+							event.stopPropagation();
+							scope.dispatchEvent( mouseDownEvent );
+		
+							scope.axis = intersect.object.name;
+							scope.update();
+							
+							_dragging = false;
+							return;
+						}
+						PointerTarget.requestTarget(PointerTarget.types.gizmo_transform);
+						document.addEventListener( "touchend", onPointerUp, {passive: true} );
+						document.addEventListener( "touchcancel", onPointerUp, {passive: true} );
+						document.addEventListener( "touchleave", onPointerUp, {passive: true} );
+
+						document.addEventListener( "mousemove", onPointerMove, false );
+						document.addEventListener( "touchmove", onPointerMove, {passive: true} );
+
+						Transformer.getWorldPosition(worldPosition)
+						//if (scope.camera.axis && (scope.hoverAxis && scope.hoverAxis.toLowerCase() === scope.camera.axis) === (_mode !== 'rotate')) return;
+						event.preventDefault();
+						event.stopPropagation();
+						scope.dispatchEvent( mouseDownEvent );
+
+						scope.axis = intersect.object.name;
+						scope.update();
+						eye.copy( camPosition ).sub( worldPosition ).normalize();
+						_gizmo[ _mode ].setActivePlane( scope.axis, eye );
+						var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
+
+						scope.last_valid_position.copy(scope.position)
+
+						if (Toolbox.selected.id === 'resize_tool' || Toolbox.selected.id === 'stretch_tool') {
+							scope.direction = scope.axis.substr(0, 1) !== 'N'
+						}
+
+						if ( planeIntersect ) {
+							offset.copy( planeIntersect.point );
+							if (TransformerModule.active) {
+								TransformerModule.active.dispatchPointerDown({event});
+							}
+							if (Toolbox.selected.id !== 'pivot_tool') {
+								Canvas.outlineObjects(Outliner.selected);
+							}
+							extendTransformLine(true);
+						}
+						_dragging = true;
+					}
+				}
+			}
+			function onPointerMove( event ) {
+
+				if ( scope.elements.length == 0 || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
+
+				scope.orbit_controls.hasMoved = true
+				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
+				var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
+				if (!planeIntersect) return;
+
+				event.stopPropagation();
+
+				let module = TransformerModule.active;
+				var axis = ((scope.direction == false && scope.axis.length == 2) ? scope.axis[1] : scope.axis[0]).toLowerCase();
+				var axisNumber = getAxisNumber(axis)
+				var rotate_normal;
+				var axisB, axisNumberB;
+				var angle;
+
+				if (scope.axis.length == 2 && scope.axis[0] !== 'N') {
+					axisB = scope.axis[1].toLowerCase()
+					axisNumberB = getAxisNumber(axisB)
+				}
+
+				point.copy( planeIntersect.point );
+
+				if (Toolbox.selected.transformerMode !== 'rotate') {
+					point.sub( offset );
+					if (!Modes.display) {
+						point.removeEuler(worldRotation)
+					}
+
+				} else {
+
+					point.sub( worldPosition );
+					point.removeEuler(worldRotation);
+
+					if (scope.axis == 'E') {
+						let matrix = new THREE.Matrix4().copy(_gizmo[ _mode ].activePlane.matrix).invert();
+						point.applyMatrix4(matrix)
+						angle = Math.radToDeg( Math.atan2( point.y, point.x ) )
+						rotate_normal = Preview.selected.camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1);
+
+					} else {
+						var rotations = [
+							Math.atan2( point.z, point.y ),
+							Math.atan2( point.x, point.z ),
+							Math.atan2( point.y, point.x )
+						]
+						angle = Math.radToDeg( rotations[axisNumber] )
+					}
+				}
+
+				if (module) {
+					module.dispatchMove({
+						event,
+						point,
+						axis,
+						axis_number: axisNumber,
+						second_axis: axisB,
+						second_axis_number: axisNumberB,
+						rotate_normal,
+						direction: scope.direction ? 1 : -1,
+						angle
+					});
+				}
+				
+				scope.dispatchEvent( changeEvent );
+				scope.dispatchEvent( objectChangeEvent );
+			}
+			function onPointerUp( event, keep_changes = true ) {
+				//event.preventDefault(); // Prevent MouseEvent on mobile
+				document.removeEventListener( "mouseup", onPointerUp );
+				PointerTarget.endTarget();
+				scope.was_clicked = false;
+
+				document.removeEventListener( "mousemove", onPointerMove );
+				document.removeEventListener( "touchmove", onPointerMove );
+				document.removeEventListener( "touchend", onPointerUp );
+				document.removeEventListener( "touchcancel", onPointerUp );
+				document.removeEventListener( "touchleave", onPointerUp );
+
+				if (scope.axis == "C1" && scope.axis == "C2" && scope.axis == "J") {
+					onPointerHover( event );
+				}
+
+				if ( event.button !== undefined && event.button !== 0 && event.button !== 2 ) return;
+
+				if ( _dragging && scope.axis !== null ) {
+
+					mouseUpEvent.mode = _mode;
+					scope.dispatchEvent( mouseUpEvent );
+					scope.orbit_controls.stopMovement();
+					Canvas.outlines.children.length = 0;
+					originalValue = null;
+
+					extendTransformLine(false);
+
+					Blockbench.setCursorTooltip();
+					let module = TransformerModule.active;
+					if (module) {
+						module.dispatchEnd({
+							event,
+							keep_changes
+						});
+					}
+
+					if (module?.has_changed && Blockbench.startup_count <= 1 && !Blockbench.hasFlag('size_modifier_message')) {
+						Blockbench.addFlag('size_modifier_message');
+						setTimeout(() => {
+							Blockbench.showToastNotification({
+								text: 'message.size_modifiers',
+								expire: 10000
+							});
+						}, 5000);
+					}
+				}
+				_dragging = false;
+
+				if ( 'TouchEvent' in window && event instanceof TouchEvent ) {
+					// Force "rollover"
+					scope.axis = null;
+					scope.update();
+					scope.dispatchEvent( changeEvent );
+				} else {
+					onPointerHover( event );
+				}
+			}
+			function intersectObjects( pointer, objects ) {
+
+				var rect = scope.canvas.getBoundingClientRect();
+				var x = ( pointer.clientX - rect.left ) / rect.width;
+				var y = ( pointer.clientY - rect.top ) / rect.height;
+
+				pointerVector.set( ( x * 2 ) - 1, - ( y * 2 ) + 1 );
+				ray.setFromCamera( pointerVector, scope.camera );
+
+				var intersections = ray.intersectObjects( objects, true );
+				return intersections[ 0 ] ? intersections[ 0 ] : false;
+			}
+			this.dispatchPointerHover = onPointerHover;
+		}
+	};
+
+}() );

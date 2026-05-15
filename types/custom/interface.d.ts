@@ -1,25 +1,10 @@
 /// <reference types="./blockbench"/>
 
-interface ResizeLineOptions {
-	condition?: ConditionResolvable
-	horizontal?: boolean
-	position(): void
-	get(): void
-	set(): void
-}
-declare class ResizeLine {
-	constructor(id: string, options: ResizeLineOptions)
-
-	id: string
-	horizontal: boolean
-	condition?: ConditionResolvable
-	width: number
-	get(): void
-	set(): void
-	node: HTMLElement
-	update(): void
-	setPosition(data: { top?: number; bottom?: number; left?: number; right?: number }): void
-}
+/**
+ * Update the size of everything in the UI after the window has been resized or other UI size changes have happeped
+ * @param event 
+ */
+declare function resizeWindow(event?: Event): void
 
 declare namespace Interface {
 	function createElement(
@@ -34,6 +19,7 @@ declare namespace Interface {
 		quad_view_x: number
 		quad_view_y: number
 		timeline_head: number
+		start_screen_width: number
 		left_bar: string[]
 		right_bar: string[]
 	}
@@ -41,10 +27,12 @@ declare namespace Interface {
 	let right_bar_width: number
 	let top_panel_height: number
 	let bottom_panel_height: number
+	let default_data: any
 	function getTopPanel(): Panel
 	function getBottomPanel(): Panel
-	function getLeftPanels(): Panel[]
-	function getRightPanels(): Panel[]
+	function getLeftPanels(in_order: boolean = true): Panel[]
+	function getRightPanels(in_order: boolean = true): Panel[]
+	function getModeData(): any
 	const Resizers: {
 		left: ResizeLine
 		right: ResizeLine
@@ -53,11 +41,14 @@ declare namespace Interface {
 		top: ResizeLine
 		bottom: ResizeLine
 		timeline_head: ResizeLine
+		start_screen_width: ResizeLine
+		[id: string]: ResizeLine
 	}
 	const status_bar: {
 		menu: Menu
 		vue: Vue.Component
 	}
+	let tab_bar: Vue
 	const Panels: {
 		[key: string]: Panel
 	}
@@ -67,6 +58,8 @@ declare namespace Interface {
 
 	function addSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
 	function removeSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
+
+	function definePanels(callback: () => void): void
 
 	const center_screen: HTMLElement
 	const page_wrapper: HTMLElement

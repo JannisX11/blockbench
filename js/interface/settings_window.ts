@@ -1,8 +1,10 @@
 import { Blockbench } from "../api";
+import { markerColors } from "../marker_colors";
 import { ipcRenderer } from "../native_apis";
 import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
 import { Dialog } from "./dialog";
+import { MenuItem } from "./menu";
 import { Setting, SettingsProfile } from "./settings";
 
 BARS.defineActions(() => {
@@ -24,7 +26,6 @@ BARS.defineActions(() => {
 		icon: 'folder',
 		category: 'blockbench',
 		click: function () {
-			// @ts-ignore for now
 			Blockbench.import({
 				resource_id: 'config',
 				extensions: ['bbsettings'],
@@ -72,9 +73,6 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	let title_bar = document.getElementById('settings_title_bar');
-	BarItems.import_settings.toElement(title_bar);
-	BarItems.export_settings.toElement(title_bar);
 })
 
 onVueSetup(function() {
@@ -186,7 +184,7 @@ onVueSetup(function() {
 							this.profile.openDialog();
 						}}
 					)
-					// @ts-ignore
+					// @ts-expect-error
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
 				},
 				profileButtonPress(this: SettingsDialogVueData) {

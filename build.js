@@ -13,6 +13,8 @@ const options = commandLineArgs([
     {name: 'target', type: String},
     {name: 'watch', type: Boolean},
     {name: 'serve', type: Boolean},
+    {name: 'host', type: String},
+    {name: 'port', type: Number},
     {name: 'analyze', type: Boolean},
 ])
 
@@ -81,11 +83,16 @@ const config = {
     minify,
     outfile: './dist/bundle.js',
     mainFields: ['module', 'main'],
+    logLevel: 'info',
+    logOverride: {
+        'commonjs-variable-in-esm': 'silent'
+    },
     external: [
         'electron',
     ],
     loader: {
-        '.bbtheme': 'text'
+        '.bbtheme': 'text',
+        '.png': 'dataurl'
     },
     plugins: [
         conditionalImportPlugin(2, {
@@ -99,7 +106,7 @@ const config = {
         }),
         conditionalImportPlugin(1, {
             filter: /desktop/,
-            file: isApp ? 'desktop.js' : 'web.js'
+            file: isApp ? 'desktop.ts' : 'web.ts'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         vuePlugin(),
@@ -115,14 +122,11 @@ if (options.watch || options.serve) {
     if (isApp) {
         await ctx.watch({});
     } else {
-        const host = 'localhost';
-        const port = 3001;
         await ctx.serve({
             servedir: import.meta.dirname,
-            host,
-            port
+            host: options.host,
+            port: options.port
         });
-        console.log(`Hosting app at http://${host}:${port}`)
     }
 } else {
     if (options.analyze) config.metafile = true;

@@ -3,6 +3,9 @@ import StateMemory from "../util/state_memory"
 import { OutlinerNode } from "./abstract/outliner_node"
 import { OutlinerElement } from "./abstract/outliner_element"
 import { radToDeg } from "three/src/math/MathUtils"
+import { PointerTarget } from "../interface/pointer_target"
+import { markerColors } from "../marker_colors"
+import { ScopeColors } from "../multi_file_editing"
 
 export const Outliner = {
 	ROOT: 'root',
@@ -18,6 +21,9 @@ export const Outliner = {
 	},
 	set selected(val) {
 		console.warn('You cannot modify this')
+	},
+	get nodes() {
+		return Project.groups.concat(Project.elements);
 	},
 	buttons: {
 		visibility: {
@@ -82,6 +88,35 @@ export const Outliner = {
 				}
 			}
 		},
+	},
+
+	isNodeDisplayed(node) {
+		for (let rule of Outliner.node_display_rules) {
+			let result = rule.test(node);
+			if (result == false) return false;
+		}
+		return true;
+	},
+	node_display_rules: [
+		{
+			id: 'mode_hidden_types',
+			test(node) {
+				if (Mode.selected?.hidden_node_types?.length) {
+					return !Mode.selected.hidden_node_types.includes(node.type);
+				}
+				return true;
+			}
+		},
+		{
+			id: 'search',
+			test(node) {
+				if (Outliner.vue._data.options.search_term == '') return true;
+				return node.matchesFilter(Outliner.vue.search_term_lowercase);
+			}
+		},
+	],
+	updateNodeDisplayRules() {
+		Outliner.vue.options.update_conditions++;
 	},
 
 	toJSON() {
@@ -185,19 +220,6 @@ Object.defineProperty(window, 'selected', {
 		console.warn('You cannot modify this')
 	}
 });
-//Colors
-export const markerColors = [
-	{pastel: "#A2EBFF", standard: "#58C0FF", id: 'light_blue'},
-	{pastel: "#FFF899", standard: "#F4D714", id: 'yellow'},
-	{pastel: "#F1BB75", standard: "#EC9218", id: 'orange'},
-	{pastel: "#FF9B97", standard: "#FA565D", id: 'red'},
-	{pastel: "#C5A6E8", standard: "#B55AF8", id: 'purple'},
-	{pastel: "#A6C8FF", standard: "#4D89FF", id: 'blue'},
-	{pastel: "#7BFFA3", standard: "#00CE71", id: 'green'},
-	{pastel: "#BDFFA6", standard: "#AFFF62", id: 'lime'},
-	{pastel: "#FFA5D5", standard: "#F96BC5", id: 'pink'},
-	{pastel: "#E0E9FB", standard: "#C7D5F6", id: 'silver'}
-]
 
 
 export class NodePreviewController extends EventSystem {
@@ -370,8 +392,10 @@ export function parseGroups(...args) {
 };
 
 // Dropping
-export function moveOutlinerSelectionTo(item, target, event, order, adjust_position) {
+export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
+	let event = options.event
 	let duplicate = event.altKey || Pressing.overrides.alt;
+	let adjust_position_viable = false;
 	if (item.children instanceof Array && target instanceof OutlinerNode && target.parent) {
 		var is_parent = false;
 		function iterate(g) {
@@ -409,19 +433,19 @@ export function moveOutlinerSelectionTo(item, target, event, order, adjust_posit
 		return;
 	}
 	if (duplicate) {
-		Undo.initEdit({elements: [], outliner: true, selection: true})
+		Undo.initEdit({elements: [], outliner: true, selection: true}, options.amended);
 		Outliner.selected.empty();
 	} else {
 		Undo.initEdit({
 			outliner: true,
 			selection: true,
-			elements: adjust_position ? Outliner.selected : undefined,
-			groups: adjust_position ? Group.selected : undefined,
-		})
+			elements: options.adjust_position ? Outliner.selected : undefined,
+			groups: options.adjust_position ? Group.all.filter(g => g.selected) : null,
+		}, options.amended);
 	}
-	function updatePosRecursive(item) {
+	function updateTransformRecursive(item) {
 		if (item.children && item.children.length) {
-			item.children.forEach(updatePosRecursive)
+			item.children.forEach(updateTransformRecursive)
 		}
 		if (item.preview_controller?.updateTransform) {
 			item.preview_controller.updateTransform(item);
@@ -432,65 +456,53 @@ export function moveOutlinerSelectionTo(item, target, event, order, adjust_posit
 	}
 	let matrix1 = new THREE.Matrix4();
 	let matrix2 = new THREE.Matrix4();
+	let matrix_world = new THREE.Matrix4();
 	function place(obj) {
 		let scene_object = obj.scene_object;
 		let old_parent = obj.parent;
 
 		scene_object.updateMatrix();
 		matrix2.copy(scene_object.matrix);
+		matrix_world.copy(scene_object.matrixWorld);
 
 		if (!order) {
 			obj.addTo(target)
 		} else {
 			obj.sortInBefore(target, order == 1 ? 1 : undefined);
 		}
-		updatePosRecursive(obj);
+		updateTransformRecursive(obj);
 
-		if (adjust_position) {
+		if (old_parent != obj.parent && !adjust_position_viable) {
+			scene_object.updateMatrixWorld(true);
+			let elements1 = scene_object.matrixWorld.elements;
+			let elements2 = matrix_world.elements;
+			if (elements1.some((v, i) => !Math.epsilon(v, elements2[i], 0.00001))) {
+				adjust_position_viable = true;
+			}
+		}
+
+		if (options.adjust_position) {
 
 			// Calculate matrix
 			scene_object.parent.updateMatrixWorld(true);
 			matrix1.copy(scene_object.parent.matrixWorld).invert();
-			matrix1.multiply(old_parent.scene_object.matrixWorld);
+			if (old_parent instanceof OutlinerNode) matrix1.multiply(old_parent.scene_object.matrixWorld);
 			matrix2.premultiply(matrix1);
 
 			let position_change = Reusable.vec1;
-			let rotation_change = new THREE.Euler(0, 0, 0, scene_object.order);
+			let quaternion = Reusable.quat1;
 			let scale_change = Reusable.vec2;
-			matrix2.decompose(position_change, rotation_change, scale_change);
+			matrix2.decompose(position_change, quaternion, scale_change);
 
-			// Todo: Fix rotation
-			rotation_change.x -= scene_object.rotation.x;
-			rotation_change.y -= scene_object.rotation.y;
-			rotation_change.z -= scene_object.rotation.z;
-
-
-			let absolute_position = Format.bone_rig &&
-				obj.parent instanceof OutlinerNode &&
-				obj.parent.getTypeBehavior('parent') &&
-				obj.parent.getTypeBehavior('use_absolute_position');
-			if (absolute_position) {
-				position_change.x += obj.parent.origin[0];
-				position_change.y += obj.parent.origin[1];
-				position_change.z += obj.parent.origin[2];
-			}
-
-			if (obj.getTypeBehavior('movable')) {
-				let arr = position_change.toArray();
-
-				if (obj.from && obj.to) {
-					arr.V3_subtract(obj.origin);
-					obj.from.V3_add(arr);
-					obj.to.V3_add(arr);
-					obj.origin.V3_add(arr);
-				} else if (obj.position) {
-					obj.position.V3_set(arr);
-				}
-			}
+			changeNodeLocalPosition(obj, position_change);
+			
 			if (obj.getTypeBehavior('rotatable')) {
-				obj.rotation.V3_add(rotation_change.toArray().map(radToDeg));
+				let new_rotation = Reusable.euler1;
+				new_rotation.setFromQuaternion(quaternion, scene_object.rotation.order);
+				obj.rotation.V3_set(new_rotation.toArray().map(radToDeg));
 			}
-			updatePosRecursive(obj);
+			updateTransformRecursive(obj);
+
 		}
 	}
 	items.forEach(function(item) {
@@ -503,7 +515,7 @@ export function moveOutlinerSelectionTo(item, target, event, order, adjust_posit
 				} else {
 					var cube = item.duplicate()
 					place(cube)
-					selected.safePush(cube)
+					Outliner.selected.safePush(cube)
 				}
 			} else {
 				place(item)
@@ -513,22 +525,30 @@ export function moveOutlinerSelectionTo(item, target, event, order, adjust_posit
 	if (Format.bone_rig) {
 		Canvas.updateAllBones()
 	}
+	updateSelection();
 	if (duplicate) {
-		updateSelection()
-		Undo.finishEdit('Duplicate selection', {elements: selected, outliner: true, selection: true, groups: Group.selected})
+		Undo.finishEdit('Duplicate selection', {elements: Outliner.selected, outliner: true, selection: true, groups: Group.selected})
 	} else {
-		Transformer.updateSelection()
 		Undo.finishEdit('Move elements in outliner')
 	}
+	return adjust_position_viable;
+}
+let move_outliner_options = {
+	adjust_position: false
 }
 export function moveOutlinerSelectionAmend(item, target, event, order) {
-	moveOutlinerSelectionTo(item, target, event, order, true);
+	let open_amend = moveOutlinerSelectionTo(item, target, order, {event, ...move_outliner_options});
 
-	if (target instanceof Collection == false) {
+	if (open_amend) {
 		Undo.amendEdit({
-			adjust_position: {type: 'checkbox', value: false, label: 'Preserve World Transform'},
+			adjust_position: {type: 'checkbox', value: move_outliner_options.adjust_position, label: 'edit.reparent_selection.adjust_position'},
 		}, form => {
-			moveOutlinerSelectionTo(item, target, event, order, form.adjust_position);
+			moveOutlinerSelectionTo(item, target, order, {
+				amended: true,
+				event,
+				adjust_position: form.adjust_position,
+			});
+			move_outliner_options.adjust_position = form.adjust_position;
 		})
 	}
 }
@@ -633,7 +653,7 @@ export function stopRenameOutliner(save) {
 	}
 }
 export function toggleElementProperty(key) {
-	let affected = selected.filter(element => element[key] != undefined);
+	let affected = Outliner.selected.filter(element => element[key] != undefined);
 	if (!affected.length) return;
 	var state = affected[0][key];
 	if (typeof state === 'number') {
@@ -671,7 +691,7 @@ SharedActions.add('rename', {
 });
 SharedActions.add('delete', {
 	subject: 'outliner',
-	condition: () => ((Modes.edit || Modes.paint) && (selected.length || Group.first_selected)),
+	condition: () => ((Modes.edit || Modes.paint) && (Outliner.selected.length || Group.first_selected)),
 	priority: -1,
 	run() {
 		let list = Outliner.selected.slice();
@@ -754,6 +774,7 @@ SharedActions.add('duplicate', {
 							let orig_animator = animation.animators[all_original[i].uuid];
 							if (!orig_animator) continue;
 							let new_animator = animation.getBoneAnimator(all_new[i]);
+							if (!new_animator) continue;
 		
 							new_animator.extend(orig_animator);
 							for (let kf of orig_animator.keyframes) {
@@ -851,6 +872,7 @@ BARS.defineActions(function() {
 			'add_armature_bone',
 			'add_locator',
 			'add_null_object',
+			'add_bounding_box',
 			'add_texture_mesh',
 		]),
 		click(event) {
@@ -1054,7 +1076,7 @@ BARS.defineActions(function() {
 				},
 				onConfirm(formData) {
 					if (formData.mode == 'new' || formData.mode == 'in_selection') {
-						selected.empty();
+						Outliner.selected.empty();
 					}
 					let selected_groups = Group.multi_selected;
 					if (selected_groups.length) {
@@ -1093,17 +1115,17 @@ BARS.defineActions(function() {
 						}
 						if (Math.random() > formData.random/100) return;
 						if (formData.mode == 'remove') {
-							selected.remove(obj);
+							Outliner.selected.remove(obj);
 						} else {
-							selected.safePush(obj);
+							Outliner.selected.safePush(obj);
 						}
 					})
 					updateSelection()
 					if (options && options.returnResult) {
-						options.returnResult({elements: selected, groups: selected_groups});
+						options.returnResult({elements: Outliner.selected, groups: selected_groups});
 
-					} else if (selected.length) {
-						selected[0].showInOutliner()
+					} else if (Outliner.selected.length) {
+						Outliner.selected[0].showInOutliner()
 					}
 				}
 			}).show()
@@ -1117,7 +1139,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i'}),
 		condition: {modes: ['edit', 'paint']},
 		click() {
-			if (Painter.painting) return;
+			if (PointerTarget.hasMinPriority(2)) return;
 			let enabled = !Project.only_hidden_elements;
 
 			if (Project.only_hidden_elements) {
@@ -1153,13 +1175,14 @@ Interface.definePanels(function() {
 				:element_type="node.type"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
+				:style="{'--color-scope': getScopeColor(node)}"
 				:title="node.title"
 				@dblclick.stop.self="!node.locked && renameOutliner(node)"
 			>` +
 				//Opener
 				
 				`<i
-					v-if="node.children && node.children.length > 0 && (!options.hidden_types.length || node.children.some(node => !options.hidden_types.includes(node.type)))"
+					v-if="node.children && node.children.some(isNodeDisplayed)"
 					@click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa"
 					:class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'
 				></i>
@@ -1201,19 +1224,13 @@ Interface.definePanels(function() {
 				return limitNumber(this.depth, 0, (this.width-100) / 16);
 			},
 			visible_children() {
-				let filtered = this.node.children;
-				if (this.options.search_term) {
-					let search_term_lowercase = this.options.search_term.toLowerCase();
-					filtered = this.node.children.filter(child => child.matchesFilter(search_term_lowercase));
-				}
-				if (!this.options.hidden_types.length) {
-					return filtered;
-				} else {
-					return filtered.filter(node => !this.options.hidden_types.includes(node.type));
-				}
+				return this.options.update_conditions && this.node.children.filter(Outliner.isNodeDisplayed);
 			}
 		},
 		methods: {
+			isNodeDisplayed(node) {
+				return Outliner.isNodeDisplayed(node)
+			},
 			nodeClass: function (node) {
 				if (node.isOpen) {
 					return node.openedIcon || node.icon;
@@ -1255,6 +1272,10 @@ Interface.definePanels(function() {
 				} else {
 					return text + value;
 				}
+			},
+			getScopeColor(node) {
+				if (!node.scope) return '';
+				return ScopeColors[(node.scope-1) % ScopeColors.length];
 			},
 			doubleClickIcon(node) {
 				if (node.children && node.children.length) {
@@ -1332,8 +1353,8 @@ Interface.definePanels(function() {
 				options: {
 					width: 300,
 					show_advanced_toggles: StateMemory.advanced_outliner_toggles,
-					hidden_types: [],
-					search_term: ''
+					update_conditions: 1,
+					search_term: '',
 				}
 			}},
 			methods: {
@@ -1349,7 +1370,6 @@ Interface.definePanels(function() {
 				dragToggle(e1) {
 					let [original] = eventTargetToNode(e1.target);
 					let affected = [];
-					let affected_groups = [];
 					let key = e1.target.getAttribute('toggle');
 					let previous_values = {};
 					let value = original[key];
@@ -1357,7 +1377,7 @@ Interface.definePanels(function() {
 					value = (typeof value == 'number') ? (value+1) % 3 : !value;
 
 					if (!toggle_config) return;
-					if (!Condition(toggle_config.condition, selected[0])) return;
+					if (!Condition(toggle_config.condition, Outliner.selected[0])) return;
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -1376,7 +1396,6 @@ Interface.definePanels(function() {
 								
 							} else if (!affected.includes(node) && (!node.locked || key == 'locked' || key == 'visibility')) {
 								let new_affected = [node];
-								if (node instanceof Group) affected_groups.push(node);
 								if (node.forEachChild) {
 									if (toggle_config.change_children != false) {
 										node.forEachChild(node => {
@@ -1407,7 +1426,7 @@ Interface.definePanels(function() {
 							})
 							Undo.initEdit({
 								elements: affected.filter(node => node instanceof OutlinerElement),
-								groups: affected_groups,
+								groups: affected.filter(node => node instanceof Group),
 								mirror_modeling: false
 							})
 							affected.forEach(node => {
@@ -1591,13 +1610,11 @@ Interface.definePanels(function() {
 				}
 			},
 			computed: {
+				search_term_lowercase() {
+					return this.options.search_term.toLowerCase();
+				},
 				filtered_root() {
-					if (!this.options.search_term) {
-						return this.root;
-					} else {
-						let search_term_lowercase = this.options.search_term.toLowerCase();
-						return this.root.filter(node => node.matchesFilter(search_term_lowercase))
-					}
+					return this.root.filter(Outliner.isNodeDisplayed)
 				}
 			},
 			template: `
@@ -1662,7 +1679,6 @@ Interface.definePanels(function() {
 
 Object.assign(window, {
 	Outliner,
-	markerColors,
 	OutlinerNode,
 	OutlinerElement,
 	NodePreviewController,

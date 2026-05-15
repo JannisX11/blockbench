@@ -283,7 +283,7 @@ BARS.defineActions(function() {
 							project.geometry_name.toLowerCase().includes(search_input)
 						) {
 							list.push({
-								name: project.getDisplayName(),
+								name: project.getDisplayName(true),
 								icon: project.format.icon,
 								description: project.path,
 								keybind_label: Modes.options[project.mode].name,

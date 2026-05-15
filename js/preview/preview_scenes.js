@@ -1,3 +1,6 @@
+
+import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
+import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
 
 export class PreviewScene {
@@ -315,7 +318,43 @@ export class PreviewModel {
 		return this;
 	}
 	delete() {
-		delete PreviewModel.models[id];
+		delete PreviewModel.models[this.id];
+	}
+
+	static generateModelFromProject() {
+		let cubes = Cube.all.map(cube => {
+			let from = cube.from.slice();
+			let to = cube.to.slice();
+			adjustFromAndToForInflateAndStretch(from, to, cube);
+			let data = {
+				"position": from,
+				"size": to.V3_subtract(from),
+				"origin": undefined,
+				"rotation": undefined,
+				"faces": {}
+			}
+			if (cube.rotation.allEqual(0) == false) {
+				data.rotation = cube.rotation.slice();
+				data.origin = cube.origin.slice();
+			}
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture == null) continue;
+				data.faces[fkey] = new oneLiner({
+					uv: face.uv.slice()
+				})
+			}
+			return data;
+		});
+		let texture = Texture.getDefault();
+		let texture_size = [
+			Project.getUVWidth(texture),
+			Project.getUVHeight(texture),
+		]
+		return compileJSON({
+			texture_size,
+			cubes
+		});
 	}
 }
 PreviewModel.models = {};

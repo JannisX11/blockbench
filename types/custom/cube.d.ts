@@ -124,25 +124,6 @@ declare class Cube extends OutlinerElement {
 interface FaceOptions {
 	texture?: Texture | UUID | false
 }
-declare class Face {
-	constructor()
-	texture: UUID | false | undefined
-
-	getTexture(): Texture | undefined
-	/**
-	 * Returns a 2D rectangle around the UV face
-	 */
-	getBoundingRect(): any
-	reset(): void
-	/**
-	 * Returns a save copy of the face, ready for serialization
-	 */
-	getSaveCopy(): any
-	/**
-	 * Get a copy for undo tracking
-	 */
-	getUndoCopy(): Face
-}
 
 type CubeFaceDirection = 'north' | 'south' | 'east' | 'west' | 'up' | 'down'
 interface CubeFaceOptions extends FaceOptions {
@@ -165,6 +146,6 @@ declare class CubeFace extends Face {
 	material_name: string
 	enabled: boolean
 
-	extend(data: CubeFaceOptions): void
+	extend(data: CubeFaceOptions): this
 	getVertexIndices(): [number, number, number, number]
 }

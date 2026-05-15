@@ -8,8 +8,13 @@
 		"types/generated/global_types.d.ts",
 		"types/custom/uveditor.d.ts"
 	],
+	"plugin": [
+		"typedoc-plugin-missing-exports"
+	],
+	"groupOrder": ["Classes", "*", "Modules"],
 	"readme": "types/documentation.md",
 	"excludeExternals": true,
+	"internalModule": "Internal Types",
 	"name": "Blockbench Reference Docs",
 	"defaultCategory": "custom",
 	"tsconfig": "types/tsconfig.json",

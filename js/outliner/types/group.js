@@ -67,7 +67,7 @@ export class Group extends OutlinerNode {
 	select(event, is_outliner_click) {
 		if (Blockbench.hasFlag('renaming') || this.locked) return this;
 		if (!event) event = true
-		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && selected.length && this.matchesSelection();
+		var allSelected = Group.multi_selected.length == 1 && Group.first_selected === this && Outliner.selected.length && this.matchesSelection();
 		let previous_first_selected = Project.selected_elements[0];
 		let multi_select = (event.ctrlOrCmd || Pressing.overrides.ctrl) && !Modes.animate;
 		let shift_select = (event.shiftKey || Pressing.overrides.shift) && !Modes.animate;
@@ -114,14 +114,19 @@ export class Group extends OutlinerNode {
 		} else {
 			// Fix for #2401
 			if (previous_first_selected && previous_first_selected.isChildOf(this)) {
-				selected.safePush(previous_first_selected);
+				Outliner.selected.safePush(previous_first_selected);
 			}
 			this.children.forEach(function(s) {
 				s.markAsSelected(true)
 			})
 		}
 		if (Animator.open && Animation.selected) {
-			Animation.selected.getBoneAnimator(this).select(true);
+			let ba = Animation.selected.getBoneAnimator(this);
+			if (ba) {
+				ba.select(true);
+			} else {
+				Blockbench.showQuickMessage('The current animation does not target this node');
+			}
 		}
 		updateSelection()
 		return this;
@@ -172,8 +177,8 @@ export class Group extends OutlinerNode {
 		if (Group.multi_selected.length != 1 || this != Group.first_selected) return false;
 		let scope = this;
 		let match = true;
-		for (let i = 0; i < selected.length; i++) {
-			if (!selected[i].isChildOf(scope, 128)) {
+		for (let i = 0; i < Outliner.selected.length; i++) {
+			if (!Outliner.selected[i].isChildOf(scope, 128)) {
 				return false
 			}
 		}
@@ -358,7 +363,7 @@ export class Group extends OutlinerNode {
 	duplicate() {
 		var copy = this.getChildlessCopy(false)
 		delete copy.parent;
-		if (this.getTypeBehavior('unique_name')) copy.old_name = this.name;
+		if (this.getTypeBehavior('unique_name')) copy.temp_data.old_name = this.name;
 		Property.resetUniqueValues(Group, copy);
 		copy.sortInBefore(this, 1).init()
 		if (this.getTypeBehavior('unique_name')) {
@@ -561,7 +566,7 @@ Group.addBehaviorOverride({
 			return Project.selected_groups?.[0]
 		},
 		set(group) {
-			Project.selected_groups.replace([groups]);
+			Project.selected_groups.replace([group]);
 		}
 	})
 
@@ -569,11 +574,17 @@ new Property(Group, 'vector', 'origin', {default() {
 	return Format.centered_grid ? [0, 0, 0] : [8, 8, 8]
 }});
 new Property(Group, 'vector', 'rotation');
+new Property(Group, 'number', 'scope');
 new Property(Group, 'string', 'bedrock_binding', {
 	condition: {formats: ['bedrock']},
 	inputs: {
 		element_panel: {
-			input: {label: 'group.bedrock_binding', description: 'action.edit_bedrock_binding.desc', type: 'text'}
+			input: {label: 'group.bedrock_binding', description: 'action.edit_bedrock_binding.desc', type: 'text'},
+			onChange() {
+				Group.selected.forEach(group => {
+					group.preview_controller.updateTransform(group);
+				});
+			}
 		}
 	}
 });
@@ -617,9 +628,53 @@ new NodePreviewController(Group, {
 
 		this.dispatchEvent('update_transform', {group});
 	},
+	updateVisibility(element) {
+		this.dispatchEvent('update_visibility', {element});
+	},
 	updateTransform(group) {
 		NodePreviewController.prototype.updateTransform.call(this, group);
 		let bone = group.scene_object;
+
+		if (group.scope >= 2 && Project.getMultiFileRuleset()) {
+			if (group.bedrock_binding) {
+				let base = 85000;
+				let bone_names = [];
+				let mapped_binding = group.bedrock_binding.replace(/'(\w+)'/g, (match, name) => {
+					bone_names.push(name.toLowerCase());
+					return base + bone_names.length-1;
+				})
+				let result = Animator.MolangParser.parse(mapped_binding, {
+					"query.item_slot_to_bone_name"(input) {
+						return 85070;
+					}
+				});
+				let bone_name = bone_names[result - base];
+				if (result == 85070) bone_name = 'rightitem';
+				let target_group = bone_name && Group.all.find(g => g.name.length == bone_name.length && g.name.toLowerCase() == bone_name);
+
+				if (target_group) {
+					bone.position.set(group.origin[0], group.origin[1], group.origin[2])
+					if (group.parent instanceof Group) {
+						bone.position.x -= group.parent.origin[0];
+						bone.position.y -= group.parent.origin[1];
+						bone.position.z -= group.parent.origin[2];
+					} else {
+						bone.position.y -= 24;
+					}
+					target_group.mesh.add(bone);
+					bone.updateMatrixWorld();
+				}
+			} else {
+				let name = group.name.toLowerCase();
+				let target_group = Group.all.find(g => g.scope == 1 && g.name.toLowerCase() == name);
+				if (target_group) {
+					target_group.mesh.add(bone);
+					bone.position.set(0, 0, 0);
+					bone.updateMatrixWorld();
+				}
+			}
+		}
+
 		bone.scale.x = bone.scale.y = bone.scale.z = 1;
 		bone.fix_position = bone.position.clone();
 		bone.fix_rotation = bone.rotation.clone();
@@ -630,10 +685,10 @@ new NodePreviewController(Group, {
 export function getCurrentGroup() {
 	if (Group.first_selected) {
 		return Group.first_selected
-	} else if (selected.length) {
-		var g1 = selected[0].parent;
+	} else if (Outliner.selected.length) {
+		var g1 = Outliner.selected[0].parent;
 		if (g1 instanceof Group) {
-			for (var obj of selected) {
+			for (var obj of Outliner.selected) {
 				if (obj.parent !== g1) {
 					return;
 				}
@@ -671,7 +726,8 @@ BARS.defineActions(function() {
 			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
 			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
-				origin: add_group ? add_group.origin : undefined
+				origin: add_group ? add_group.origin : undefined,
+				scope: add_group?.scope
 			})
 			base_group.isOpen = true
 			if (base_group.getTypeBehavior('unique_name')) {
@@ -703,7 +759,7 @@ BARS.defineActions(function() {
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
+		condition: () => Modes.edit && (Outliner.selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
 			Undo.initEdit({outliner: true, groups: []});
@@ -714,7 +770,8 @@ BARS.defineActions(function() {
 			let new_name = add_group?.name;
 			let base_group = new Group({
 				origin: add_group ? add_group.origin : undefined,
-				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name
+				name: ['cube', 'mesh'].includes(new_name) ? undefined : new_name,
+				scope: add_group?.scope
 			})
 			base_group.sortInBefore(add_group);
 			base_group.isOpen = true
@@ -836,6 +893,7 @@ BARS.defineActions(function() {
 						Undo.initEdit({groups: Group.multi_selected});
 						for (let group of Group.multi_selected) {
 							group.bedrock_binding = value;
+							group.preview_controller.updateTransform(group);
 						}
 						Undo.finishEdit('Edit group binding');
 					}

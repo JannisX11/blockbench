@@ -3,6 +3,13 @@
 import type { FSWatcher } from 'fs'
 import type { ShaderMaterial } from 'three'
 
+interface FileFormatOptions {
+	name: string
+	extensions: string[],
+	async encode?(texture: Texture): Uint8Array
+	async decode?(data: Uint8Array, texture: Texture): void
+}
+
 declare global {
 	interface TextureData {
 		path?: string
@@ -24,11 +31,13 @@ declare global {
 		visible?: boolean
 		render_mode?: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides?: 'auto' | 'front' | 'double' | string
+		wrap_mode?: 'limited' | 'repeat' | 'clamp'
 		pbr_channel?: 'color' | 'normal' | 'height' | 'mer'
 		/**
 		 * UUID of the texture group that the texture is in
 		 */
 		group?: string
+		scope?: number
 
 		/**
 		 * Texture animation frame time
@@ -108,10 +117,12 @@ declare global {
 		particle: boolean
 		render_mode: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides: 'auto' | 'front' | 'double' | string
+		wrap_mode: 'limited' | 'repeat' | 'clamp'
 		pbr_channel: 'color' | 'normal' | 'height' | 'mer'
 		use_as_default: boolean
 		/** UUID of the TextureGroup that this texture is in, if set */
 		group: string
+		scope: number
 
 		/** Texture animation frame time */
 		frame_time: number
@@ -221,7 +232,7 @@ declare global {
 		 */
 		load(cb?: () => {}): this
 		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string }): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult): this
 		fromPath(path: string): this
 		/**
 		 * Loads file content **only**.
@@ -381,6 +392,10 @@ declare global {
 
 		static all: Texture[]
 		static getDefault(): Texture
+		static properties: Record<string, Property<any>>
+
+		static file_formats: Record<string, FileFormatOptions>
+		static getAllExtensions(): string[]
 	}
 	/**
 	 * Saves all textures
@@ -506,5 +521,6 @@ declare global {
 		function nextFrame(): void
 		function reset(): void
 		function updateButton(): void
+		function playAnimationFrame(anim_time?: number): void
 	}
 }

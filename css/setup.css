@@ -556,6 +556,7 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
+		border-radius: 5px;
 		resize: none;
 		outline: none;
 		user-select: initial;

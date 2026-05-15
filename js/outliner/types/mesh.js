@@ -413,13 +413,11 @@ export class Mesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
 
-		this._static = {
-			properties: {
-				vertices: {},
-				faces: {},
-				seams: {},
-			}
-		}
+		Object.assign(this._static.properties, {
+			vertices: {},
+			faces: {},
+			seams: {},
+		});
 		Object.freeze(this._static);
 
 		if (!data.vertices) {
@@ -1153,6 +1151,7 @@ new NodePreviewController(Mesh, {
 			})
 			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
 			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
+			element.mesh.frustumCulled = false;
 			return;
 		}
 	},
@@ -1396,6 +1395,7 @@ new NodePreviewController(Mesh, {
 		mesh.geometry.computeBoundingSphere();
 		mesh.vertex_points.geometry.computeBoundingSphere();
 		mesh.outline.geometry.computeBoundingSphere();
+		mesh.frustumCulled = true;
 
 		Mesh.preview_controller.updateHighlight(element);
 		Mesh.preview_controller.updatePixelGrid(element);
@@ -1427,7 +1427,7 @@ new NodePreviewController(Mesh, {
 		} else if (Project.view_mode === 'uv') {
 			mesh.material = Canvas.uvHelperMaterial
 
-		} else if (Format.single_texture && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
+		} else if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2 && Texture.all.find(t => t.render_mode == 'layered')) {
 			mesh.material = Canvas.getLayeredMaterial();
 
 		} else if (Format.single_texture) {

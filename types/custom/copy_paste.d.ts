@@ -1,6 +1,7 @@
 declare global {
     namespace Clipbench {
         let elements: any[];
+        let layer: any;
         enum types {
             text = 'text',
             display_slot = 'display_slot',

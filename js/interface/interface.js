@@ -1,88 +1,10 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
 import { currentwindow } from "../native_apis";
+import { ResizeLine, setupResizeLines } from "./resize_lines";
+import "./status_bar"
 
-export class ResizeLine {
-	constructor(id, data) {
-		var scope = this;
-		if (typeof id == 'object') {
-			data = id;
-			id = data.id;
-		}
-		this.id = id
-		this.horizontal = data.horizontal === true
-		this.position = data.position
-		this.condition = data.condition
-		this.width = 0;
-		this.get = data.get;
-		this.set = data.set;
-		this.reset = data.reset;
-		this.node = document.createElement('div');
-		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
-		this.node.id = 'resizer_'+this.id;
 
-		this.node.addEventListener('pointerdown', event => {
-			this.before = data.get();
-			this.node.classList.add('dragging');
-			let move = (e2) => {
-				let difference = scope.horizontal
-					? e2.clientY - event.clientY
-					: e2.clientX - event.clientX;
-				data.set(scope.before, difference);
-				updateInterface();
-				this.update();
-				Blockbench.setCursorTooltip(Math.round(this.get()));
-			}
-			let stop = (e2) => {
-				document.removeEventListener('pointermove', move, false);
-				document.removeEventListener('pointerup', stop, false);
-				updateInterface()
-				this.update();
-				this.node.classList.remove('dragging');
-				Blockbench.setCursorTooltip();
-			}
-			document.addEventListener('pointermove', move, false);
-			document.addEventListener('pointerup', stop, false);
-		})
-		if (this.reset) {
-			this.node.addEventListener('dblclick', event => {
-				this.reset();
-				updateInterface();
-				this.update();
-			})
-		}
-	}
-	update() {
-		if (BARS.condition(this.condition)) {
-			$(this.node).show()
-			if (this.position) {
-				this.position.call(this, this)
-			}
-		} else {
-			$(this.node).hide()
-		}
-	}
-	setPosition(data) {
-		var jq = $(this.node)
-		jq.css('top', 	data.top 	!== undefined ? data.top+	'px' : '')
-		jq.css('bottom',data.bottom !== undefined ? data.bottom+'px' : '')
-		jq.css('left', 	data.left 	!== undefined ? data.left+	'px' : '')
-		jq.css('right', data.right 	!== undefined ? data.right+	'px' : '')
-
-		if (data.top !== undefined) {
-			jq.css('top', data.top+'px')
-		}
-		if (data.bottom !== undefined && (!this.horizontal || data.top === undefined)) {
-			jq.css('bottom', data.bottom+'px')
-		}
-		if (data.left !== undefined) {
-			jq.css('left', data.left+'px')
-		}
-		if (data.right !== undefined && (this.horizontal || data.left === undefined)) {
-			jq.css('right', data.right+'px')
-		}
-	}
-}
 export const Interface = {
 	default_data: {
 		left_bar_width: 366,
@@ -90,6 +12,7 @@ export const Interface = {
 		quad_view_x: 50,
 		quad_view_y: 50,
 		timeline_head: Blockbench.isMobile ? 140 : 196,
+		start_screen_width: 1000,
 		modes: {},
 	},
 	get left_bar_width() {
@@ -169,186 +92,7 @@ export const Interface = {
 			return Interface.data;
 		}
 	},
-	Resizers: {
-		left: new ResizeLine('left', {
-			condition() {
-				if (Blockbench.isMobile) return false;
-				if (!Prop.show_left_bar) return false;
-				if (!Mode.selected) return false;
-				for (let p of Interface.getLeftPanels(false)) {
-					if (p && BARS.condition(p.condition) && p.slot == 'left_bar') {
-						return true;
-					}
-				}
-			},
-			get() {return Interface.left_bar_width},
-			set(o, diff) {
-				let min = 128;
-				let calculated = limitNumber(o + diff, min, window.innerWidth- 120 - Interface.right_bar_width)
-				Interface.getModeData().left_bar_width = Math.snapToValues(calculated, [Interface.default_data.left_bar_width], 16);
-				
-				if (calculated == min) {
-					Prop.show_left_bar = false;
-					Interface.getModeData().left_bar_width = Interface.default_data.left_bar_width;
-				} else {
-					Prop.show_left_bar = true;
-				}
-			},
-			reset() {
-				Interface.getModeData().left_bar_width = Interface.default_data.left_bar_width;
-				Prop.show_left_bar = true;
-			},
-			position() {
-				this.setPosition({
-					top: 0,
-					bottom: 0,
-					left: Interface.left_bar_width+2
-				})
-			}
-		}),
-		right: new ResizeLine('right', {
-			condition() {
-				if (Blockbench.isMobile) return false;
-				if (!Prop.show_right_bar) return false;
-				if (!Mode.selected) return false;
-				for (let p of Interface.getRightPanels(false)) {
-					if (p && BARS.condition(p.condition) && p.slot == 'right_bar') {
-						return true;
-					}
-				}
-			},
-			get() {return Interface.right_bar_width},
-			set(o, diff) {
-				let min = 128;
-				let calculated = limitNumber(o - diff, min, window.innerWidth- 120 - Interface.left_bar_width);
-				Interface.getModeData().right_bar_width = Math.snapToValues(calculated, [Interface.default_data.right_bar_width], 12);
-				
-				if (calculated == min) {
-					Prop.show_right_bar = false;
-					Interface.getModeData().right_bar_width = Interface.default_data.right_bar_width;
-				} else {
-					Prop.show_right_bar = true;
-				}
-			},
-			reset() {
-				Interface.getModeData().right_bar_width = Interface.default_data.right_bar_width;
-				Prop.show_right_bar = true;
-			},
-			position() {
-				this.setPosition({
-					top: 30,
-					bottom: 0,
-					right: Interface.right_bar_width-2
-				})
-			}
-		}),
-		quad_view_x: new ResizeLine('quad_view_x', {
-			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_horizontal'},
-			get() {return Interface.data.quad_view_x},
-			set(o, diff) {Interface.data.quad_view_x = limitNumber(o + diff/Interface.preview.clientWidth*100, 5, 95)},
-			reset() {
-				Interface.data.quad_view_x = Interface.default_data.quad_view_x;
-			},
-			position() {
-				let p = Interface.preview;
-				if (!p) return;
-				let top = Interface.center_screen.offsetTop;
-				let bottom = window.innerHeight - (p.clientHeight + $(p).offset().top);
-				let left = Interface.left_bar_width + 3 + p.clientWidth*Interface.data.quad_view_x/100;
-				if (Preview.split_screen.mode == 'triple_top') {
-					top = top + p.clientHeight * (Interface.data.quad_view_y/100);
-				} else if (Preview.split_screen.mode == 'triple_bottom') {
-					bottom = bottom + p.clientHeight * (1 - Interface.data.quad_view_y/100);
-				}
-				this.setPosition({top, bottom, left});
-			}
-		}),
-		quad_view_y: new ResizeLine('quad_view_y', {
-			horizontal: true,
-			condition() {return Preview.split_screen.enabled && Preview.split_screen.mode != 'double_vertical'},
-			get() {return Interface.data.quad_view_y},
-			set(o, diff) {
-				Interface.data.quad_view_y = limitNumber(o + diff/Interface.preview.clientHeight*100, 5, 95)
-			},
-			reset() {
-				Interface.data.quad_view_y = Interface.default_data.quad_view_y;
-			},
-			position() {
-				let p = Interface.preview;
-				if (!p) return;
-				let left = Interface.left_bar_width+2;
-				let right = Interface.right_bar_width+2;
-				let top = Interface.center_screen.offsetTop + Interface.preview.clientHeight*Interface.data.quad_view_y/100;
-				if (Preview.split_screen.mode == 'triple_left') {
-					left = left + p.clientWidth * (Interface.data.quad_view_x/100);
-				} else if (Preview.split_screen.mode == 'triple_right') {
-					right = right + p.clientWidth * (1 - Interface.data.quad_view_x/100);
-				}
-				this.setPosition({left, right, top});
-			}
-		}),
-		top: new ResizeLine('top', {
-			horizontal: true,
-			condition() {return !Blockbench.isMobile && Interface.getTopPanel()},
-			get() {
-				let panel = Interface.getTopPanel();
-				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
-			},
-			set(o, diff) {
-				let panel = Interface.getTopPanel();
-				panel.position_data.height = limitNumber(o + diff, 150);
-				if (panel.folded) panel.fold(false);
-				panel.update();
-				if (Interface.getBottomPanel()) Interface.getBottomPanel().update();
-			},
-			position() {this.setPosition({
-				left: Interface.left_bar_width+2,
-				right: Interface.right_bar_width+2,
-				top: this.get() + Interface.center_screen.offsetTop + 4
-			})}
-		}),
-		bottom: new ResizeLine('bottom', {
-			horizontal: true,
-			condition() {return !Blockbench.isMobile && Interface.getBottomPanel()},
-			get() {
-				let panel = Interface.getBottomPanel();
-				return panel.folded ? panel.tab_bar.clientHeight : panel.height;
-			},
-			set(o, diff) {
-				let panel = Interface.getBottomPanel();
-				panel.position_data.height = limitNumber(o - diff, 150);
-				if (panel.folded) panel.fold(false);
-				panel.update();
-				if (Interface.getTopPanel()) Interface.getTopPanel().update();
-			},
-			position() {this.setPosition({
-				left: Interface.left_bar_width+2,
-				right: Interface.right_bar_width+2,
-				top: Interface.work_screen.clientHeight - document.getElementById('status_bar').clientHeight - this.get()
-			})}
-		}),
-		timeline_head: new ResizeLine('timeline_head', {
-			horizontal: false,
-			condition() {return Modes.animate && !Blockbench.isMobile},
-			get() {return Interface.data.timeline_head},
-			set(o, diff) {
-				let value = limitNumber(o + diff, 90, Panels.timeline.node.clientWidth - 40);
-				value = Math.snapToValues(value, [Interface.default_data.timeline_head], 12);
-				Interface.data.timeline_head = Timeline.vue._data.head_width = value;
-			},
-			reset() {
-				Interface.data.timeline_head = Interface.default_data.timeline_head;
-			},
-			position() {
-				let offset = $(Panels.timeline.vue.$el).offset();
-				this.setPosition({
-					left: offset.left + 2 + Interface.data.timeline_head,
-					top: offset.top - Interface.work_screen.offsetTop + 30,
-					bottom: Interface.work_screen.clientHeight - offset.top + Interface.work_screen.offsetTop - Panels.timeline.vue.$el.clientHeight + 10
-				})
-			}
-		})
-	},
+	Resizers: ResizeLine.resizers,
 	CustomElements: {},
 	status_bar: {},
 	Panels: {},
@@ -446,15 +190,8 @@ export function setupInterface() {
 	document.getElementById('center').classList.toggle('checkerboard', settings.preview_checkerboard.value);
 	document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 
+	setupResizeLines()
 	setupPanels()
-	
-	Interface.status_bar.menu = new Menu([
-		'project_window',
-		'open_model_folder',
-		'view_backups',
-		'save',
-		'cancel_gif',
-	])
 	
 	if (Blockbench.isMobile) {
 		setupMobilePanelSelector()
@@ -464,12 +201,6 @@ export function setupInterface() {
 		let panel_selector_bar = document.getElementById('panel_selector_bar');
 		if (panel_selector_bar) panel_selector_bar.remove();
 	}
-
-	for (var key in Interface.Resizers) {
-		var resizer = Interface.Resizers[key]
-		$('#work_screen').append(resizer.node)
-	}
-	//$(document).contextmenu()
 
 	if (Blockbench.isMobile) {
 		document.getElementById('preview').append(
@@ -796,8 +527,13 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
 		input, slider
 	])
+	if (data.readonly) {
+		input.readOnly = true;
+		slider.remove();
+	}
 
 	addEventListeners(slider, 'mousedown touchstart', e1 => {
+		if (data.readonly) return;
 		convertTouchEvent(e1);
 		let last_difference = 0;
 		let move = e2 => {
@@ -827,6 +563,7 @@ Interface.CustomElements.NumericInput = function(id, data) {
 	})
 
 	addEventListeners(input, 'focusout dblclick', () => {
+		if (data.readonly) return;
 		input.value = Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max);
 	})
 	input.addEventListener('input', (event) => {
@@ -882,168 +619,6 @@ Blockbench.setCursorTooltip = function(text) {
 Blockbench.setProgress = function(progress, time = 0, bar) {
 	setProgressBar(bar, progress ?? 0, time);
 };
-
-onVueSetup(function() {
-	Interface.status_bar.vue = new Vue({
-		el: '#status_bar',
-		data: {
-			Prop,
-			isMobile: Blockbench.isMobile,
-			streamer_mode: settings.streamer_mode.value,
-			selection_info: '',
-			Format: null,
-			show_modifier_keys: settings.status_bar_modifier_keys.value,
-			warnings: Validator.warnings,
-			errors: Validator.errors,
-			modifier_keys: {
-				ctrl: [],
-				shift: [],
-				alt: []
-			},
-			modifiers: Blockbench.isTouch && !Blockbench.isMobile && Pressing.overrides,
-			keyboard_menu_in_status_bar: Blockbench.isTouch && !Blockbench.isMobile
-		},
-		methods: {
-			showContextMenu(event) {
-				Interface.status_bar.menu.show(event);
-			},
-			toggleStreamerMode() {
-				ActionControl.select(`setting: ${tl('settings.streamer_mode')}`);
-			},
-			updateSelectionInfo() {
-				let selection_mode = BarItems.selection_mode.value;
-				let spline_selection_mode = BarItems.spline_selection_mode.value;
-				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
-					if (selection_mode == 'face') {
-						let total = 0, selected = 0;
-						Mesh.selected.forEach(mesh => {
-							total += Object.keys(mesh.faces).length;
-							selected += mesh.getSelectedFaces().length;
-						});
-						this.selection_info = tl('status_bar.selection.faces', `${selected} / ${total}`);
-					}
-					if (selection_mode == 'edge') {
-						let total = 0, selected = 0;
-						Mesh.selected.forEach(mesh => {
-							let processed_lines = [];
-							mesh.forAllFaces(face => {
-								let vertices = face.getSortedVertices();
-								vertices.forEach((vkey, i) => {
-									let vkey2 = vertices[i+1] || vertices[0];
-									if (!processed_lines.find(processed => processed.includes(vkey) && processed.includes(vkey2))) {
-										processed_lines.push([vkey, vkey2]);
-										total += 1;
-									}
-								})
-							})
-							selected += mesh.getSelectedEdges().length;
-						})
-						this.selection_info = tl('status_bar.selection.edges', `${selected} / ${total}`);
-					}
-					if (selection_mode == 'vertex') {
-						let total = 0, selected = 0;
-						Mesh.selected.forEach(mesh => total += Object.keys(mesh.vertices).length);
-						Mesh.selected.forEach(mesh => selected += mesh.getSelectedVertices().length);
-						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
-					}
-				} else if (Modes.edit && SplineMesh.selected.length && spline_selection_mode !== 'object') {
-					if (spline_selection_mode == 'handles') {
-						let total = 0, selected = 0;
-						SplineMesh.selected.forEach(spline => total += Object.keys(spline.vertices).length);
-						SplineMesh.selected.forEach(spline => selected += spline.getSelectedVertices().length);
-						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
-					}
-					if (spline_selection_mode == "tilt") {
-						this.selection_info = '';
-					}
-				} else {
-					this.selection_info = '';
-				}
-			},
-			clickModifiers() {
-				ActionControl.select(`setting: ${tl('settings.status_bar_modifier_keys')}`);
-			},
-			openValidator() {
-				Validator.openDialog();
-			},
-			openKeyboardMenu() {
-				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
-			},
-			toggleSidebar: Interface.toggleSidebar,
-			getIconNode: Blockbench.getIconNode,
-			tl
-		},
-		template: `
-			<div id="status_bar" @contextmenu="showContextMenu($event)">
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('left')" title="${tl('status_bar.toggle_sidebar')}">
-					<i class="material-icons">{{Prop.show_left_bar ? 'chevron_left' : 'chevron_right'}}</i>
-				</div>
-				
-				<div class="f_left" v-if="streamer_mode"
-					style="background-color: var(--color-stream); color: var(--color-light);"
-					@click="toggleStreamerMode()"
-					title="${tl('interface.streamer_mode_on')}"
-				>
-					<i class="material-icons">live_tv</i>
-				</div>
-				<div v-if="Format" v-html="getIconNode(Format.icon).outerHTML" v-bind:title="Format.name"></div>
-				<div v-if="Prop.recording" v-html="getIconNode('fiber_manual_record').outerHTML" style="color: var(--color-close)" title="${tl('status_bar.recording')}"></div>
-
-
-				<div id="status_name">
-					{{ Prop.file_name }}
-				</div>
-				<div id="status_message" class="hidden"></div>
-
-				<template v-if="show_modifier_keys && !isMobile">
-					<div class="status_bar_modifier_key" v-if="modifier_keys.ctrl.length" @click="clickModifiers()">
-						<kbd>${tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')}</kbd>
-						<span>{{ tl(modifier_keys.ctrl.last()) }}</span>
-					</div>
-					<div class="status_bar_modifier_key" v-if="modifier_keys.shift.length" @click="clickModifiers()">
-						<kbd>${tl('keys.shift')}</kbd>
-						<span>{{ tl(modifier_keys.shift.last()) }}</span>
-					</div>
-					<div class="status_bar_modifier_key" v-if="modifier_keys.alt.length" @click="clickModifiers()">
-						<kbd>${tl('keys.alt')}</kbd>
-						<span>{{ tl(modifier_keys.alt.last()) }}</span>
-					</div>
-				</template>
-
-				<div class="status_selection_info">{{ selection_info }}</div>
-
-				<div class="f_right" id="validator_status" v-if="warnings.length || errors.length" @click="openValidator()">
-					<span v-if="warnings.length" style="color: var(--color-warning)">{{ warnings.length }}<i class="material-icons">warning</i></span>
-					<span v-if="errors.length" style="color: var(--color-error)">{{ errors.length }}<i class="material-icons">error</i></span>
-				</div>
-
-				<div id="status_bar_tool_controls" v-if="isMobile"></div>
-
-				<div v-if="keyboard_menu_in_status_bar" id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
-					<i class="material-icons">keyboard</i>
-				</div>
-
-				<div class="f_right fps_counter_display" v-if="!isMobile">
-					{{ Prop.fps }} FPS
-				</div>
-
-				<div class="sidebar_toggle_button" v-if="!isMobile" @click="toggleSidebar('right')" title="${tl('status_bar.toggle_sidebar')}">
-					<i class="material-icons">{{Prop.show_right_bar ? 'chevron_right' : 'chevron_left'}}</i>
-				</div>
-
-				<div id="status_progress" v-if="Prop.progress" v-bind:style="{width: Prop.progress*100+'%'}"></div>
-			</div>
-		`
-	})
-
-	Interface.addSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.modifier_keys[key].safePush(text);
-	};
-	Interface.removeSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.modifier_keys[key].remove(text);
-	};
-})
-
 
 BARS.defineActions(function() {
 	

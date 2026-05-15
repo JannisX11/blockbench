@@ -8,11 +8,6 @@ function isStreamerMode(): boolean {
 	return window.settings.streamer_mode.value;
 }
 
-declare class Blockbench {
-	static isTouch: boolean
-	static showMessageBox(options: any): void
-	static showQuickMessage(message: string): void
-}
 
 export namespace Filesystem {
 	export type FileResult = {
@@ -20,6 +15,7 @@ export namespace Filesystem {
 		path: string
 		content?: string | ArrayBuffer
 		browser_file?: File
+		no_file?: boolean
 	}
 
 	/**
@@ -42,7 +38,7 @@ export namespace Filesystem {
 		| 'palette'
 
 	// MARK: Import
-	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
+	export type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
 	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
@@ -181,35 +177,16 @@ export namespace Filesystem {
 				}
 
 				if (readtype === 'image') {
-					//
-					let extension = pathToExtension(file)
-					if (extension === 'tga' && fs.existsSync(file)) {
-						let targa_loader = new Targa()
-						targa_loader.open(file, () => {
-
-							results[i] = {
-								name: pathToName(file, true),
-								path: file,
-								content: targa_loader.getDataURL()
-							}
-						
-							result_count++;
-							if (result_count === files.length) {
-								callback(results)
-							}
-						})
-
-					} else {
-						results[i] = {
-							name: pathToName(file, true),
-							path: file,
-							content: file
-						}
-						result_count++;
-						if (result_count === files.length) {
-							callback(results)
-						}
+					results[i] = {
+						name: pathToName(file, true),
+						path: file,
+						content: file
 					}
+					result_count++;
+					if (result_count === files.length) {
+						callback(results)
+					}
+
 				} else /*text*/ {
 					let data;
 					try {
@@ -255,15 +232,7 @@ export namespace Filesystem {
 				let reader = new FileReader()
 				let local_i = i;
 				reader.onloadend = function() {
-					let result;
-					if (typeof reader.result != 'string' && reader.result.byteLength && pathToExtension(name) === 'tga') {
-						let arr = new Uint8Array(reader.result)
-						let targa_loader = new Targa()
-						targa_loader.load(arr)
-						result = targa_loader.getDataURL()
-					} else {
-						result = reader.result
-					}
+					let result = reader.result;
 					results[local_i] = {
 						name,
 						path: name,
@@ -400,11 +369,12 @@ export namespace Filesystem {
 				options.custom_writer(options.content, file_name)
 				
 			} else {
+				let savetype = typeof options.savetype == 'function' ? options.savetype(file_name) : options.savetype;
 
-				if (options.savetype === 'image') {
+				if (savetype === 'image' && typeof options.content == 'string') {
 					saveAs(options.content, file_name, {})
 
-				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
+				} else if (['zip', 'buffer', 'binary', 'image'].includes(savetype)) {
 					let blob = options.content instanceof Blob
 							 ? options.content
 							 : new Blob([options.content], {type: "octet/stream"});
@@ -507,6 +477,7 @@ export namespace Filesystem {
 			//text or binary
 			let content = options.content;
 			if (content instanceof ArrayBuffer) {
+				// @ts-ignore
 				content = Buffer.from(content);
 			}
 			fs.writeFileSync(file_path, content as string)
@@ -662,33 +633,30 @@ export namespace Filesystem {
 		event.preventDefault()
 		let text = event.dataTransfer.getData('text/plain');
 
-		if (text && text.startsWith('https://blckbn.ch/')) {
-			let code = text.replace(/\/$/, '').split('/').last();
-			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-				Codecs.project.load(model, {path: ''});
-			}).fail(error => {
-				Blockbench.showQuickMessage('message.invalid_link')
-			})
+		if (text) {
+			Blockbench.dispatchEvent('drop_text', {text});
 		}
 
-		forDragHandlers(event, function(handler, el) {
-			let fileNames = event.dataTransfer.files
-
-			let paths: string[] | FileList = [];
+		function getFilePaths(file_names: FileList): string[] {
+			let paths: string[] = [];
 			if (isApp) {
-				for (let file of fileNames) {
-					if ('path' in file) {
-						// @ts-ignore
+				for (let file of file_names) {
+					if ('path' in file && typeof file.path == 'string') {
 						paths.push(file.path)
 					} else if (isApp) {
-						// @ts-ignore
 						let path = webUtils.getPathForFile(file);
 						paths.push(path);
 					}
 				}
 			} else {
-				paths = fileNames;
+				paths = [...file_names] as unknown as string[];
 			}
+			return paths;
+		}
+
+		let handled = false;
+		forDragHandlers(event, function(handler, el) {
+			let paths = getFilePaths(event.dataTransfer.files)
 			if (!paths.length) return;
 
 			let read_options = {
@@ -698,8 +666,16 @@ export namespace Filesystem {
 			}
 			Filesystem.read(paths, read_options, (files) => {
 				handler.cb(files, event)
+				handled = true;
 			})
 		})
+		if (!handled) {
+			let file_path = getFilePaths(event.dataTransfer.files)[0];
+			if (file_path) {
+				unsupportedFileFormatMessage(file_path);
+			}
+
+		}
 	}
 	document.body.ondragenter = function(event) {
 		event.preventDefault()
@@ -748,11 +724,9 @@ export namespace Filesystem {
 				}
 			}
 			let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
-			extensions.includes( pathToExtension(event.dataTransfer.files[0].name).toLowerCase());
 			let name = event.dataTransfer.files[0].name;
-			if (el && extensions.filter(ex => {
-				return name.substr(-ex.length) == ex;
-			}).length) {
+			let name_lower_case = name.toLowerCase();
+			if (el && extensions.find(ext => name_lower_case.endsWith('.'+ext))) {
 				cb(handler, el)
 				break;
 			}
@@ -760,6 +734,8 @@ export namespace Filesystem {
 	}
 }
 
-Object.assign(window, {
+const global = {
 	Filesystem
-})
+};
+// No internal global declaration since it does not work well with namespaces
+Object.assign(window, global);

@@ -297,7 +297,7 @@
 		margin-top: -0.6px;
 	}
 	div#corner_logo img {
-		margin-top: 3px;
+		margin-top: 4px;
 		width: 134px;
 	}
 	@media (max-width:950px)  {
@@ -736,6 +736,9 @@
 		padding: 0 4px;
 		pointer-events: none;
 	}
+	.project_tab label span {
+		color: var(--color-subtle_text);
+	}
 	#tab_bar .project_tab > * {
 		cursor: inherit
 	}
@@ -860,24 +863,23 @@
 	}
 	.toast_notification {
 		position: relative;
+		display: flex;
+		align-items: center;
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
-		min-height: 30px;
-		margin: 2px;
-		padding: 3px 28px 3px 10px;
-		width: calc(100% - 4px);
+		min-height: 34px;
+		margin: 4px;
+		gap: 4px;
+		padding: 5px 5px 5px 10px;
 		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
+		border-radius: 6px;
 	}
-	.toast_notification .icon {
-		float: left;
+	.toast_notification > span {
+		flex-grow: 1;
 	}
 	.toast_close_button {
-		position: absolute;
-		right: 0px;
-		top: 0px;
-		height: 30px;
-		width: 30px;
-		padding: 4px;
+		height: 28px;
+		padding-top: 2px;
 		cursor: pointer;
 	}
 	.toast_close_button:hover {
@@ -947,7 +949,8 @@
 	}
 	#status_bar .sidebar_toggle_button {
 		cursor: pointer;
-		padding: 2px;
+		height: 100%;
+		padding-top: 2px;
 		padding-right: 0;
 		padding-left: 0;
 	}
@@ -1191,10 +1194,13 @@
 		margin: auto;
 		left: 0;
 		right: 0;
-		top: 35px;
+		top: 45px;
 		background-color: var(--color-ui);
 		border: 2px solid var(--color-accent);
 		z-index: 4;
+		padding: 4px;
+		border-radius: 7px;
+		overflow: visible;
 	}
 
 
@@ -1293,7 +1299,7 @@
 	.amend_edit_close_button {
 		position: absolute;
 		right: 0px;
-		top: 0px;
+		top: 6px;
 		height: 30px;
 		width: 30px;
 		padding: 4px;

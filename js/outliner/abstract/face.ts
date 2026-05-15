@@ -21,7 +21,7 @@ export abstract class Face {
 			(this.constructor as typeof Face).properties[key].reset(this);
 		}
 	}
-	extend(data: FaceOptions) {
+	extend(data: FaceOptions): this {
 		for (let key in (this.constructor as typeof Face).properties) {
 			(this.constructor as typeof Face).properties[key].merge(this, data)
 		}
@@ -37,6 +37,11 @@ export abstract class Face {
 		return this;
 	}
 	getTexture(): Texture | undefined | null | false {
+		let event_result = Blockbench.dispatchEvent('get_face_texture', {face: this, element: this.element});
+		if (event_result) {
+			let result = event_result.find(v => v != undefined);
+			if (result) return result;
+		}
 		if (Format.per_group_texture && this.element.parent instanceof Group && this.element.parent.texture) {
 			return Texture.all.find(texture => texture.uuid == (this.element.parent as Group).texture);
 		}
@@ -88,6 +93,11 @@ export abstract class Face {
 	}
 	static properties: Record<string, Property<any>>
 }
-Object.assign(window, {
+const global = {
 	Face,
-});
+};
+declare global {
+	const Face: typeof global.Face
+	type Face = import("./face").Face
+}
+Object.assign(window, global);

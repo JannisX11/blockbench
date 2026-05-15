@@ -16,6 +16,13 @@ export function invertMolang(molang: number|string): number|string {
 		let val = parseFloat(molang);
 		return (-val).toString();
 	}
+
+	if (molang.includes('return ')) {
+		return molang.replace(/return (.+?)(;|$)/g, (match: string, expression: string, end: string) => {
+			return `return ${invertMolang(expression)}${end}`;
+		})
+	}
+
 	let invert = true;
 	let bracket_depth = 0;
 	let last_operator: undefined | string;
@@ -67,7 +74,12 @@ function testInvertMolang(input: string) {
 	}
 }
 
-Object.assign(window, {
+const global = {
 	invertMolang,
 	testInvertMolang
-})
+};
+declare global {
+	const invertMolang: typeof global.invertMolang
+	const testInvertMolang: typeof global.testInvertMolang
+}
+Object.assign(window, global);

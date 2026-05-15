@@ -471,12 +471,4 @@ class CSS3DRenderer {
 
 }
 
-/**
- * Constructor parameters of `CSS3DRenderer`.
- *
- * @typedef {Object} CSS3DRenderer~Parameters
- * @property {DOMElement} [element] - A DOM element where the renderer appends its child-elements.
- * If not passed in here, a new div element will be created.
- **/
-
 export { CSS3DObject, CSS3DSprite, CSS3DRenderer };

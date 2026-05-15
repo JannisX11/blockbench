@@ -1,3 +1,4 @@
+import { isMac } from './keyboard';
 import { BARS } from './toolbars';
 
 
@@ -47,6 +48,13 @@ BARS.defineActions(() => {
 					} else {
 						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
 					}
+					if (keybind_item.sub_keybinds) {
+						for (let key in keybind_item.sub_keybinds) {
+							let value = keys[keybind_item.id + '.' + key];
+							if (!value) continue;
+							keybind_item.sub_keybinds[key].keybind.set(value).save(false);
+						}
+					}
 				})
 				Keybinds.save();
 				TickUpdates.keybind_conflicts = true;
@@ -61,11 +69,23 @@ BARS.defineActions(() => {
 			var keys = {}
 
 			Keybinds.actions.forEach(item => {
-				if (!Keybinds.stored[item.id]) return
-				if (Keybinds.stored[item.id].key == -1) {
-					keys[item.id] = null;
-				} else {
-					keys[item.id] = new oneLiner(Keybinds.stored[item.id])
+				if (Keybinds.stored[item.id]) {
+					if (Keybinds.stored[item.id].key == -1) {
+						keys[item.id] = null;
+					} else {
+						keys[item.id] = new oneLiner(Keybinds.stored[item.id])
+					}
+				}
+				if (item.sub_keybinds) {
+					for (let key in item.sub_keybinds) {
+						let full_key = item.id + '.' + key;
+						if (!Keybinds.stored[full_key]) continue;
+						if (Keybinds.stored[full_key].key == -1) {
+							keys[full_key] = null;
+						} else {
+							keys[full_key] = new oneLiner(Keybinds.stored[full_key])
+						}
+					}
 				}
 			})
 			Blockbench.export({
@@ -76,8 +96,6 @@ BARS.defineActions(() => {
 			})
 		}
 	})
-	BarItems.load_keymap.toElement('#keybinds_title_bar')
-	BarItems.export_keymap.toElement('#keybinds_title_bar')
 })
 
 onVueSetup(function() {
@@ -121,10 +139,10 @@ onVueSetup(function() {
 					always: tl('modifier_actions.always'),
 					ctrl: tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl'),
 					shift: tl('keys.shift'),
-					alt: tl('keys.alt'),
+					alt: tl(isMac ? 'keys.option' : 'keys.alt'),
 					unless_ctrl: tl('modifier_actions.unless', tl(Blockbench.platform == 'darwin' ? 'keys.meta' : 'keys.ctrl')),
 					unless_shift: tl('modifier_actions.unless', tl('keys.shift')),
-					unless_alt: tl('modifier_actions.unless', tl('keys.alt')),
+					unless_alt: tl('modifier_actions.unless', tl(isMac ? 'keys.option' : 'keys.alt')),
 				} 
 			}},
 			methods: {
@@ -180,7 +198,7 @@ onVueSetup(function() {
 					return keybind[keybind.variations[variation_key]];
 				},
 				getVariationText(action, variation) {
-					return tl(action.variations?.[variation]?.name, null, variation);
+					return tl(action.variations?.[variation]?.name, null, action.variations?.[variation]?.name ?? variation);
 				},
 				getVariationDescription(action, variation) {
 					return action.variations?.[variation]?.description ? tl(action.variations[variation].description, null, '') : '';

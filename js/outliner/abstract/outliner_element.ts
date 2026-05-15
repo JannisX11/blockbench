@@ -15,6 +15,7 @@ interface OutlinerElementData {
 
 export abstract class OutlinerElement extends OutlinerNode {
 	allow_mirror_modeling?: boolean
+	declare faces?: Record<string, Face>
 	static animator?: BoneAnimator
 	static isParent: false
 	static all: OutlinerElement[]
@@ -99,20 +100,20 @@ export abstract class OutlinerElement extends OutlinerNode {
 		let number: number | undefined;
 		let matches = copy.name.match(/[0-9]+$/);
 		if (matches) {
-			number = parseInt(number[0])
+			number = parseInt(matches[0]);
 			copy.name = copy.name.split((number).toString()).join((number+1).toString())
 		}
 		if (Condition(this.getTypeBehavior('unique_name'))) {
-			copy.old_name = this.name;
+			copy.temp_data.old_name = this.name;
 		}
 		//Rest
 		let last_selected = this.getParentArray().findLast(el => el.selected || el == this);
 		copy.sortInBefore(last_selected, 1).init();
-		let index = selected.indexOf(this)
+		let index = Outliner.selected.indexOf(this)
 		if (index >= 0) {
-			selected[index] = copy
+			Outliner.selected[index] = copy
 		} else {
-			selected.push(copy)
+			Outliner.selected.push(copy)
 		}
 		Property.resetUniqueValues(this.constructor, copy);
 		if (Condition(copy.getTypeBehavior('unique_name'))) {
@@ -136,7 +137,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 		Undo.initSelection();
 		//Shift
 		var just_selected = [];
-		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && (BarItems.fill_mode as BarSelect<string>).value == 'selected_elements'));
+		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && (BarItems.fill_mode as BarSelect).value == 'selected_elements'));
 		if (
 			event &&
 			allow_multi_select &&
@@ -147,14 +148,14 @@ export abstract class OutlinerElement extends OutlinerNode {
 			var starting_point: boolean;
 			var last_selected = Outliner.selected.last();
 			this.getParentArray().forEach((s, i) => {
-				if (s === last_selected || s === this) {
+				if ((s as OutlinerElement) === last_selected || s === this) {
 					if (starting_point) {
 						starting_point = false
 					} else {
 						starting_point = true
 					}
 					if (s.type !== 'group') {
-						if (!selected.includes(s as OutlinerElement)) {
+						if (!Outliner.selected.includes(s as OutlinerElement)) {
 							s.markAsSelected(true)
 							just_selected.push(s)
 						}
@@ -163,7 +164,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 					}
 				} else if (starting_point) {
 					if (s.type !== 'group') {
-						if (!selected.includes(s as OutlinerElement)) {
+						if (!Outliner.selected.includes(s as OutlinerElement)) {
 							s.markAsSelected(true)
 							just_selected.push(s)
 						}
@@ -278,6 +279,12 @@ export abstract class OutlinerElement extends OutlinerNode {
 		OutlinerElement.types[id] = constructor;
 		constructor.prototype.type = id;
 		if (!constructor.behavior) constructor.behavior = {};
+		
+		if (!constructor.properties?.name) new Property(constructor, 'string', 'name');
+		if (!constructor.properties?.export) new Property(constructor, 'boolean', 'export', {default: true});
+		if (!constructor.properties?.locked) new Property(constructor, 'boolean', 'locked', {default: false});
+		if (!constructor.properties?.scope) new Property(constructor, 'number', 'scope');
+
 		Object.defineProperty(constructor, 'all', {
 			get() {
 				return (Project.elements?.length && Project.elements.find(element => element instanceof constructor))
@@ -317,3 +324,12 @@ Object.defineProperty(OutlinerElement, 'selected', {
 		console.warn('You cannot modify this')
 	}
 })
+
+const global = {
+	OutlinerElement
+}
+declare global {
+	type OutlinerElement = import('./outliner_element').OutlinerElement
+	const OutlinerElement: typeof global.OutlinerElement
+}
+Object.assign(window, global);

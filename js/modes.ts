@@ -27,8 +27,6 @@ interface ModeOptions {
 	onUnselect?(): void
 }
 export class Mode extends KeybindItem {
-	id: string
-	name: string
 	icon: IconString
 	selected: boolean
 	tool: string
@@ -48,7 +46,6 @@ export class Mode extends KeybindItem {
 			data = id;
 			id = data.id;
 		}
-		// @ts-ignore
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
@@ -102,8 +99,6 @@ export class Mode extends KeybindItem {
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
 
-		Outliner.vue.options.hidden_types.replace(this.hidden_node_types);
-
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
 		}
@@ -136,8 +131,8 @@ export class Mode extends KeybindItem {
 		}
 		updateInterface();
 		updateSelection();
+		Outliner.updateNodeDisplayRules();
 		Blockbench.dispatchEvent('select_mode', {mode: this})
-		setTimeout(updateInterfacePanels, 1);
 	}
 	/**Unselects the mode */
 	unselect() {
@@ -219,7 +214,14 @@ onVueSetup(function() {
 	}
 });
 
-Object.assign(window, {
+const global = {
 	Mode,
 	Modes
-});
+};
+declare global {
+	const Modes: typeof global.Modes
+	const Mode: typeof global.Mode
+	type Mode = import('./modes').Mode
+}
+
+Object.assign(window, global);

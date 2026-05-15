@@ -21,6 +21,8 @@ function isComment(line) {
  * @param {string} path 
  */
 function processFile(content, path) {
+	if (content.match(/\ndeclare global {/)) return content;
+
 	// TODO: Handle comments
 	let lines = content.split(/\r?\n/);
 	let output_lines = [];

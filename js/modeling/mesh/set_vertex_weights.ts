@@ -18,7 +18,7 @@ new Action('set_vertex_weights', {
 			return selected_vertices.find(vkey => bone.getVertexWeight(mesh, vkey));
 		});
 
-		// Todo: translations. Add way to configure multiple bones
+		// Todo: Add way to configure multiple bones
 		new Dialog('set_vertex_weights', {
 			title: 'action.set_vertex_weights',
 			form: {

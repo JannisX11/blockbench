@@ -49,17 +49,16 @@ export const AutoBackup = {
 
 				let section = addStartScreenSection('recover_backup', {
 					graphic: {type: 'icon', icon: 'fa-archive'},
-					// @ts-ignore Idk
 					insert_before: 'start_files',
 					text: [
 						{type: 'h3', text: tl('message.recover_backup.title')},
 						{type: 'p', text: tl('message.recover_backup.message')},
-						{type: 'button', text: tl('message.recover_backup.recover'), click: (e) => {
+						{type: 'button', text: tl('message.recover_backup.recover'), click: () => {
 							AutoBackup.recoverAllBackups(true).then(() => {
 								section.delete();
 							});
 						}},
-						{type: 'button', text: tl('dialog.discard'), click: (e) => {
+						{type: 'button', text: tl('dialog.discard'), click: () => {
 							AutoBackup.removeAllBackups();
 							section.delete();
 						}}
@@ -234,6 +233,10 @@ export const AutoBackup = {
 		}
 	}
 }
-Object.assign(window, {
-	AutoBackup,
-})
+const global = {
+	AutoBackup
+};
+declare global {
+	const AutoBackup: typeof global.AutoBackup
+}
+Object.assign(window, global);

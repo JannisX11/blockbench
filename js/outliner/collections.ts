@@ -14,20 +14,23 @@ import { Clipbench } from "../copy_paste";
 import { getFocusedTextInput } from "../interface/keyboard";
 import { tl } from "../languages";
 import { Panel } from "../interface/panels";
-import { Codecs } from "../io/codec";
 import { FormElementOptions } from "../interface/form";
 import { fs } from "../native_apis";
 import { Filesystem } from "../file_system";
 import { loadModelFile } from "../io/io";
 import { OutlinerElement } from "./abstract/outliner_element";
 import { OutlinerNode } from "./abstract/outliner_node";
+import { ScopeColors } from "../multi_file_editing";
 
 export interface CollectionOptions {
 	children?: string[]
 	name?: string
 	export_codec?: string
 	export_path?: string
+	offset?: ArrayVector3
+	model_identifier?: string
 	visibility?: boolean
+	scope?: number
 }
 
 /**
@@ -44,6 +47,8 @@ export class Collection {
 	export_path: string
 	export_codec: string
 	visibility: boolean
+	scope: number
+	saved: boolean
 
 	static properties: Record<string, Property<any>>
 	/**
@@ -114,6 +119,11 @@ export class Collection {
 	 * Get all direct children
 	 */
 	getChildren(): OutlinerNode[] {
+		if (this.scope) {
+			return Outliner.nodes.filter(node => {
+				return node.scope == this.scope && !(node.parent instanceof OutlinerNode && node.parent.scope == this.scope);
+		});
+		}
 		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
 	}
 	add(): this {
@@ -141,10 +151,10 @@ export class Collection {
 	 */
 	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
-			return node && 'visibility' in node && typeof node.visibility == 'boolean';
+			return node && typeof node.visibility == 'boolean';
 		});
-		// @ts-ignore
-		return match ? match.visibility : true;
+		// @ts-inore
+		return match ? ('visibility' in match ? !!match.visibility : true) : true;
 	}
 	/**
 	 * Get all children, including indirect ones
@@ -158,6 +168,11 @@ export class Collection {
 				child.forEachChild(subchild => nodes.safePush(subchild));
 			}
 		}
+		if (this.scope) {
+			for (let node of Outliner.nodes) {
+				if (node.scope == this.scope) nodes.safePush(node);
+			}
+		}
 		return nodes;
 	}
 	/**
@@ -165,6 +180,8 @@ export class Collection {
 	 * @returns {true} if the collection contains the node
 	 */
 	contains(node: OutlinerNode): boolean {
+		if (this.scope && this.scope == node.scope) return true;
+		if (this.children.length == 0) return false;
 		let node_match: OutlinerNode | typeof Outliner.ROOT = node;
 		while (node_match instanceof OutlinerNode) {
 			if (this.children.includes(node_match.uuid)) {
@@ -179,7 +196,7 @@ export class Collection {
 	 * @param event If the alt key is pressed, the result is inverted and the visibility of everything but the collection will be toggled
 	 */
 	toggleVisibility(event: KeyboardEvent | MouseEvent): void {
-		let children = this.getChildren();
+		let children = this.getAllChildren();
 		if (!children.length) return;
 		let groups = [];
 		let elements = [];
@@ -193,9 +210,6 @@ export class Collection {
 		}
 		for (let child of children) {
 			update(child);
-			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
-				child.forEachChild(update);
-			}
 		}
 		if (event.altKey) {
 			// invert selection
@@ -208,7 +222,7 @@ export class Collection {
 		all.forEach(node => {
 			node.visibility = state;
 		})
-		Canvas.updateView({elements, element_aspects: {visibility: true}});
+		Canvas.updateView({elements, element_aspects: {visibility: true}, groups, group_aspects: {visibility: true}});
 		Undo.finishEdit('Toggle collection visibility');
 	}
 	/**
@@ -255,7 +269,6 @@ export class Collection {
 				group: []
 			}
 			for (let child of collection.getChildren()) {
-				// @ts-ignore
 				let type = child.type;
 				if (!types[type]) types[type] = [];
 				types[type].push(child);
@@ -325,7 +338,7 @@ export class Collection {
 						this.selected.empty();
 					},
 					addWithFilter(this: PropertiesComponentData, event) {
-						// @ts-ignore
+						// @ts-expect-error
 						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
 							for (let node of elements.concat(groups)) {
 								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
@@ -369,6 +382,7 @@ export class Collection {
 
 					this.extend(form_data);
 					this.children.replace(vue_data.content.map(node => node.uuid));
+					this.saved = false;
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
 
@@ -402,6 +416,14 @@ export class Collection {
 				Filesystem.readFile([collection.export_path], {readtype: 'text'}, files => {
 					loadModelFile(files[0]);
 				})
+			}
+		},
+		{
+			name: 'menu.animation.open_location',
+			icon: 'folder',
+			condition: (collection: Collection) => (isApp && collection.export_path && fs.existsSync(collection.export_path)),
+			click(collection: Collection) {
+				Filesystem.showFileInFolder(collection.export_path);
 			}
 		},
 		(collection: Collection) => {
@@ -481,6 +503,8 @@ new Property(Collection, 'string', 'model_identifier', {
 		}
 	}
 });
+new Property(Collection, 'number', 'scope');
+new Property(Collection, 'boolean', 'saved', {default: true});
 new Property(Collection, 'string', 'export_codec');
 new Property(Collection, 'string', 'export_path', {
 	condition: (collection: Collection) => (isApp && !!collection.export_codec),
@@ -495,25 +519,35 @@ new Property(Collection, 'string', 'export_path', {
 		}
 	}
 });
+new Property(Collection, 'vector', 'offset', {
+	condition: (collection: Collection) => collection.export_codec && Codecs[collection.export_codec]?.support_offset,
+	inputs: {
+		dialog: {
+			input: {
+				label: 'dialog.collection.offset',
+				type: 'vector',
+				dimensions: 3
+			}
+		}
+	}
+});
 new Property(Collection, 'array', 'children');
 new Property(Collection, 'boolean', 'visibility', {default: false});
 
 Object.defineProperty(Collection, 'all', {
 	get() {
-		// @ts-ignore
 		return Project.collections
 	}
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
-		// @ts-ignore
 		return Project ? Project.collections.filter(c => c.selected) : [];
 	}
 })
 
 SharedActions.add('delete', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		let selected = Collection.selected.slice();
 		Undo.initEdit({collections: selected});
@@ -526,7 +560,7 @@ SharedActions.add('delete', {
 })
 SharedActions.add('duplicate', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		let new_collections = [];
 		Undo.initEdit({collections: new_collections});
@@ -541,7 +575,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('copy', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy());
 	}
@@ -579,7 +613,7 @@ BARS.defineActions(() => {
 	new Action('set_collection_content_to_selection', {
 		icon: 'unarchive',
 		category: 'select',
-		condition: () => Collection.selected.length,
+		condition: () => Collection.selected.length > 0,
 		click() {
 			let collections = Collection.selected;
 			Undo.initEdit({collections});
@@ -593,7 +627,7 @@ BARS.defineActions(() => {
 	new Action('add_to_collection', {
 		icon: 'box_add',
 		category: 'select',
-		condition: () => Collection.selected.length,
+		condition: () => Collection.selected.length > 0,
 		click() {
 			let collections = Collection.selected;
 			Undo.initEdit({collections});
@@ -771,12 +805,20 @@ Interface.definePanels(function() {
 					})
 					updateSelection();
 				},
+				save(collection: Collection) {
+					let codec = Codecs[collection.export_codec];
+					if (!codec) {
+						return Blockbench.showQuickMessage(`Cannot export collection: Unknown codec "${collection.export_codec}"`);
+					}
+					if (collection.export_path) {
+						codec.writeCollection(collection);
+					}
+				},
 				getContentList(collection: Collection) {
 					let types = {
 						group: []
 					}
 					for (let child of collection.getChildren()) {
-						// @ts-ignore
 						let type = child.type;
 						if (!types[type]) types[type] = [];
 						types[type].push(child);
@@ -791,7 +833,11 @@ Interface.definePanels(function() {
 						})
 					}
 					return list;
-				}
+				},
+				getScopeColor(collection: Collection) {
+					if (!collection.scope) return '';
+					return ScopeColors[(collection.scope-1) % ScopeColors.length];
+				},
 			},
 			template: `
 				<ul
@@ -808,6 +854,7 @@ Interface.definePanels(function() {
 						:key="collection.uuid"
 						:uuid="collection.uuid"
 						class="collection"
+						:style="{'--color-scope': getScopeColor(collection)}"
 						@click.stop="collection.clickSelect($event)"
 						@dblclick.stop="collection.propertiesDialog()"
 						@contextmenu.prevent.stop="collection.showContextMenu($event)"
@@ -827,6 +874,15 @@ Interface.definePanels(function() {
 							</ul>
 						</div>
 
+						<div class="in_list_button"
+							v-if="collection.export_codec && collection.export_path"
+							:class="{unclickable: collection.saved}"
+							@click.stop="save(collection)"
+							title="${tl('menu.animation.save')}"
+						>
+							<i v-if="collection.saved" class="material-icons">check_circle</i>
+							<i v-else class="material-icons">save</i>
+						</div>
 						<div class="in_list_button" @click.stop="collection.toggleVisibility($event)" @dblclick.stop>
 							<i v-if="collection.getVisibility()" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
@@ -841,7 +897,11 @@ Interface.definePanels(function() {
 		])
 	})
 })
-
-Object.assign(window, {
+const global = {
 	Collection
-});
+};
+declare global {
+	type Collection = import('./collections').Collection
+	const Collection: typeof global.Collection
+}
+Object.assign(window, global);

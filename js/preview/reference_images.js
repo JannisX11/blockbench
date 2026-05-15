@@ -30,7 +30,7 @@ export class ReferenceImage {
 		for (let key in ReferenceImage.properties) {
 			ReferenceImage.properties[key].reset(this);
 		}
-		this.position.V2_set(window.innerWidth/2, window.innerHeight/2);
+		this.position.V2_set(Interface.preview.clientWidth/2, Interface.preview.clientHeight/2);
 
 		this._modify_nodes = [];
 		this.defaults = data;
@@ -72,9 +72,13 @@ export class ReferenceImage {
 			this.image_is_loaded = true;
 
 			if (this.auto_aspect_ratio) {
-				let original_size = this.size[1];
-				this.size[1] = this.size[0] / this.aspect_ratio;
-				if (original_size != this.size[1]) this.update();
+				let original_size = this.size.slice();
+				if (this.aspect_ratio > 1) {
+					this.size[1] = this.size[0] / this.aspect_ratio;
+				} else {
+					this.size[0] = this.size[1] * this.aspect_ratio;
+				}
+				if (original_size.equals(this.size) == false) this.update();
 
 			} else if (!was_image_loaded) {
 				this.update();
@@ -346,14 +350,25 @@ export class ReferenceImage {
 			this.node.style.clipPath = '';
 
 			if (this.view_mode == 'flat_image') {
-				this.node.style.left = (Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth) - this.size[0]/2) + 'px';
-				this.node.style.top  = (Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight) - this.size[1]/2) + 'px';
+				let position = this.getClampedPosition();
+				this.node.style.left = (position[0] - this.size[0]/2) + 'px';
+				this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
 
 			} else if (this.view_mode == 'billboard') {
 				this.scene_object.discardCopyElements();
 			}
 		}
 		return this;
+	}
+	getClampedPosition() {
+		let edge_limit = [
+			Math.min(0, -this.size[0]/2 + 50),
+			Math.min(0, -this.size[1]/2 + 50)
+		]
+		return [
+			Math.clamp(this.position[0], edge_limit[0], this.node.parentNode.clientWidth - edge_limit[0]),
+			Math.clamp(this.position[1], edge_limit[1], this.node.parentNode.clientHeight - edge_limit[1])
+		];
 	}
 	updateClearMode() {
 		if (this.clear_mode && this.image_is_loaded) {
@@ -402,8 +417,7 @@ export class ReferenceImage {
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
 					if (!this.is_blueprint && this.view_mode == 'flat_image') {
-						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
-						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
+						this.position.replace(this.getClampedPosition());
 					}
 
 					this.update();
@@ -563,8 +577,7 @@ export class ReferenceImage {
 					this.position[1] = original_position[1] + offset[1] / zoom;
 
 					if (!this.is_blueprint && this.view_mode == 'flat_image') {
-						this.position[0] = Math.clamp(this.position[0], 0, this.node.parentNode.clientWidth);
-						this.position[1] = Math.clamp(this.position[1], 0, this.node.parentNode.clientHeight);
+						this.position.replace(this.getClampedPosition());
 					}
 
 					this.update();
@@ -961,9 +974,11 @@ ReferenceImage.updateAll = function() {
 }
 
 StateMemory.init('global_reference_images', 'array');
-StateMemory.global_reference_images.forEach(template => {
-	new ReferenceImage(template).addAsGlobalReference();
-});
+export async function initReferenceImages() {
+	StateMemory.global_reference_images.forEach(template => {
+		new ReferenceImage(template).addAsGlobalReference();
+	});
+}
 
 SharedActions.add('delete', {
 	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
