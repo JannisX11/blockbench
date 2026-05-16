@@ -1,28 +1,74 @@
+import { Filesystem } from "../file_system";
+import { FormResultValue } from "../interface/form";
 import { CSS3DObject } from "../lib/CSS3DRenderer";
 import { clipboard } from "../native_apis";
+import { getAverageRGB } from "../util/util";
 import { Preview } from "./preview";
 
-export class ReferenceImage {
-	constructor(data = {}) {
+export type ReferenceImageViewMode = 'flat_image' | 'billboard';
+export type ReferenceImageLayer = 'background' | 'viewport' | 'float' | 'blueprint';
+export type ReferenceImageScope = 'project' | 'global' | 'built_in';
 
-		this.name = '';
-		this.layer = '';
-		this.scope = '';
-		this.view_mode = 'flat_image';
-		this.is_blueprint = false;
-		this.position = [0, 0];
-		this.size = [0, 0];
-		this.flip_x = false;
-		this.flip_y = false;
-		this.rotation = 0;
-		this.opacity = 0;
-		this.visibility = true;
-		this.sync_to_timeline = true;
-		this.clear_mode = false;
-		this.attached_side = 0;
-		this.source = '';
-		this.modes = [];
-		
+interface ReferenceImageOptions {
+	name?: string
+	layer?: ReferenceImageLayer
+	scope?: string
+	is_blueprint?: boolean
+	view_mode?: ReferenceImageViewMode
+	condition?: ConditionResolvable;
+	position?: ArrayVector2
+	size?: ArrayVector2
+	flip_x?: boolean
+	flip_y?: boolean
+	rotation?: number
+	opacity?: number
+	visibility?: boolean
+	sync_to_timeline?: boolean
+	clear_mode?: boolean
+	attached_side?: string
+	source?: string
+	modes?: string[]
+}
+
+export class ReferenceImage {
+	name: string = '';
+	layer: ReferenceImageLayer = 'background';
+	scope: ReferenceImageScope = 'project';
+	view_mode: ReferenceImageViewMode = 'flat_image';
+	is_blueprint: boolean = false;
+	position: number[] = [0, 0];
+	size: number[] = [0, 0];
+	flip_x: boolean = false;
+	flip_y: boolean = false;
+	rotation: number = 0;
+	opacity: number = 0;
+	visibility: boolean = true;
+	sync_to_timeline: boolean = true;
+	clear_mode: boolean = false;
+	attached_side: string = '';
+	source: string = '';
+	modes: string[] = [];
+	uuid: string;
+	cache_version: number;
+	condition: ConditionResolvable;
+	toolbar: HTMLElement
+	/**@private */
+	_edit_events_initialized?: boolean
+	/**@private */
+	_modify_nodes: any[];
+	removed?: true;
+	defaults: {};
+	dark_background: boolean = false;
+	image_is_loaded: boolean = false;
+	auto_aspect_ratio: boolean = true;
+	is_video: boolean;
+	node: HTMLDivElement;
+	img: HTMLImageElement;
+	video: HTMLVideoElement & {_loading?: boolean};
+	scene_object: CSS3DObject;
+	declare public menu: Menu
+
+	constructor(data: ReferenceImageOptions = {}) {		
 		this.uuid = guid();
 		this.cache_version = 0;
 		this.condition = data.condition;
@@ -35,15 +81,11 @@ export class ReferenceImage {
 		this._modify_nodes = [];
 		this.defaults = data;
 
-		this.dark_background = false;
-		this.image_is_loaded = false;
-		this.auto_aspect_ratio = true;
-
 		this.is_video = false;
 		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
 			this.is_video = true;
 		}
-		this.node = Interface.createElement('div', {class: 'reference_image'});
+		this.node = Interface.createElement('div', {class: 'reference_image'}) as HTMLDivElement;
 		addEventListeners(this.node, 'mousedown touchstart', event => this.select());
 		this.node.addEventListener('contextmenu', event => {
 			this.openContextMenu(event);
@@ -56,8 +98,8 @@ export class ReferenceImage {
 				autoplay: true,
 				loop: true,
 				class: 'image_content'
-			});
-			this.video.muted = 'muted';
+			}) as HTMLVideoElement;
+			this.video.muted = true;
 			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
 			this.node.append(this.video);
 			this.image_is_loaded = true;
@@ -100,7 +142,7 @@ export class ReferenceImage {
 	get source_height() {
 		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
-	extend(data) {
+	extend(data: ReferenceImageOptions) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
 		if (data.layer == 'blueprint') {
@@ -119,8 +161,8 @@ export class ReferenceImage {
 			this.enableBlueprintMode();
 		}
 	}
-	getSaveCopy() {
-		let copy = {};
+	getSaveCopy(): ReferenceImageOptions {
+		let copy: ReferenceImageOptions = {};
 		for (let key in ReferenceImage.properties) {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
@@ -134,13 +176,14 @@ export class ReferenceImage {
 	}
 	resolveCondition() {
 		if (!Condition(this.condition)) return false;
+		// @ts-expect-error
 		if (this.modes.length && !this.modes.includes(Modes.selected.id)) return false;
 		if (this.is_blueprint) {
 			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
 		}
 		return true;
 	}
-	addAsReference(save) {
+	addAsReference(save: boolean = false) {
 		Project.reference_images.push(this);
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
@@ -154,7 +197,7 @@ export class ReferenceImage {
 		if (save) this.save();
 		return this;
 	}
-	addAsGlobalReference(save) {
+	addAsGlobalReference(save: boolean = false) {
 		ReferenceImage.global.push(this);
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
@@ -168,14 +211,14 @@ export class ReferenceImage {
 		if (save) this.save();
 		return this;
 	}
-	addAsBuiltIn(save) {
+	addAsBuiltIn(save: boolean = false) {
 		ReferenceImage.built_in.push(this);
 		this.scope = 'built_in';
 		this.update();
 		if (save) this.save();
 		return this;
 	}
-	select(force) {
+	select(force: boolean = false): this {
 		if (!force && this.selected) return this;
 		if (this.scope == 'built_in') return this;
 		if (ReferenceImage.selected && ReferenceImage.selected != this) {
@@ -188,12 +231,12 @@ export class ReferenceImage {
 		this.update();
 		return this;
 	}
-	unselect() {
+	unselect(): this {
 		if (ReferenceImage.selected == this) ReferenceImage.selected = null;
 		this.update();
 		return this;
 	}
-	get selected() {
+	get selected(): boolean {
 		return ReferenceImage.selected == this;
 	}
 	save() {
@@ -246,7 +289,7 @@ export class ReferenceImage {
 		} else {
 			Canvas.scene.add(this.scene_object);
 			this.node.classList.add('in_scene');
-			this.node.style.zIndex = this.layer == 'background' ? -1 : undefined;
+			this.node.style.zIndex = this.layer == 'background' ? '-1' : undefined;
 		}
 		
 		this.updateTransform();
@@ -254,7 +297,7 @@ export class ReferenceImage {
 		let image_content = this.is_video ? this.video : this.img;
 
 		image_content.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
-		image_content.style.opacity = this.opacity;
+		image_content.style.opacity = this.opacity.toString();
 
 		let transforms = [];
 		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
@@ -264,9 +307,11 @@ export class ReferenceImage {
 
 		let source = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
 		if (this.is_video) {
+			// @ts-expect-error
 			if (this.video.ref_source != source) {
+			// @ts-expect-error
 				this.video.ref_source = source;
-				this.video.firstElementChild.src = source;
+				(this.video.firstElementChild as HTMLSourceElement).src = source;
 				this.video.load();
 			}
 		} else {
@@ -365,9 +410,10 @@ export class ReferenceImage {
 			Math.min(0, -this.size[0]/2 + 50),
 			Math.min(0, -this.size[1]/2 + 50)
 		]
+		let parent = this.node.parentNode as HTMLElement;
 		return [
-			Math.clamp(this.position[0], edge_limit[0], this.node.parentNode.clientWidth - edge_limit[0]),
-			Math.clamp(this.position[1], edge_limit[1], this.node.parentNode.clientHeight - edge_limit[1])
+			Math.clamp(this.position[0], edge_limit[0], parent.clientWidth - edge_limit[0]),
+			Math.clamp(this.position[1], edge_limit[1], parent.clientHeight - edge_limit[1])
 		];
 	}
 	updateClearMode() {
@@ -389,13 +435,13 @@ export class ReferenceImage {
 			let sign_x = direction[1] == 'e' ? 1 : -1;
 			let sign_y = direction[0] == 's' ? 1 : -1;
 			let multiplier = 1 / this.getZoomLevel();
-			addEventListeners(corner, 'mousedown touchstart', e1 => {
+			addEventListeners(corner, 'mousedown touchstart', (e1: MouseEvent) => {
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
 				let original_size = this.size.slice();
 
-				let move = (e2) => {
+				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
 					let offset = [
 						(e2.clientX - e1.clientX) * multiplier,
@@ -437,7 +483,7 @@ export class ReferenceImage {
 		this._modify_nodes.push(...resize_corners);
 
 		let rotate_handle = Interface.createElement('div', {class: 'reference_image_rotate_handle'}, Blockbench.getIconNode('rotate_right'));
-		addEventListeners(rotate_handle, 'mousedown touchstart', e1 => {
+		addEventListeners(rotate_handle, 'mousedown touchstart', (e1: MouseEvent) => {
 			convertTouchEvent(e1);
 
 			let original_rotation = this.rotation;
@@ -448,7 +494,7 @@ export class ReferenceImage {
 			]
 			let initial_angle = null;
 
-			let move = (e2) => {
+			let move = (e2: MouseEvent) => {
 				convertTouchEvent(e2);
 				let angle = Math.radToDeg(Math.atan2(
 					e2.clientY - center[1],
@@ -462,7 +508,7 @@ export class ReferenceImage {
 					this.update();
 				}
 			}
-			let stop = (e2) => {
+			let stop = (e2: MouseEvent) => {
 				convertTouchEvent(e2);
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', stop);
@@ -533,8 +579,7 @@ export class ReferenceImage {
 			self.update().save();
 		});
 		
-		this.opacity_slider = new NumSlider({
-			id: 'slider_reference_image_opacity',
+		new NumSlider('slider_reference_image_opacity', {
 			name: 'reference_image.opacity',
 			private: true,
 			condition: () => true,
@@ -560,14 +605,14 @@ export class ReferenceImage {
 		});
 
 		if (!this._edit_events_initialized) {
-			addEventListeners(this.node, 'mousedown touchstart', e1 => {
-				if (!e1.target.classList.contains('reference_image')) return;
+			addEventListeners(this.node, 'mousedown touchstart', (e1: MouseEvent) => {
+				if (!(e1.target as HTMLElement).classList.contains('reference_image')) return;
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
 				let zoom = this.getZoomLevel();
 
-				let move = (e2) => {
+				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
 					let offset = [
 						(e2.clientX - e1.clientX),
@@ -599,7 +644,7 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	projectMouseCursor(x, y) {
+	projectMouseCursor(x: number, y: number) {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
 		let rect = this.node.getBoundingClientRect();
@@ -631,14 +676,14 @@ export class ReferenceImage {
 		}
 		return false;
 	}
-	openContextMenu(event) {
+	openContextMenu(event: MouseEvent) {
 		this.menu.open(event, this);
 		return this;
 	}
 	reset() {
 		return this;
 	}
-	async delete(force) {
+	async delete(force = false) {
 		if (!force) {
 			let icon;
 			if (this.is_video) {
@@ -764,9 +809,22 @@ export class ReferenceImage {
 		return this;
 	}
 
+	static properties: Record<string, Property> = {};
 	static supported_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif', 'mp4', 'wmv', 'mov'];
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
+
+	declare static all: ReferenceImage[];
+	declare static active: ReferenceImage[];
+	declare static current_project: ReferenceImage[];
+	static selected: ReferenceImage | null = null;
+	static built_in: ReferenceImage[] = [];
+	static global: ReferenceImage[] = [];
+	static updateAll(): void {
+		ReferenceImage.all.forEach(ref => {
+			ref.update();
+		})
+	}
 }
 ReferenceImage.prototype.menu = new Menu([
 	new MenuSeparator('media_controls'),
@@ -948,9 +1006,6 @@ new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
 
-ReferenceImage.selected = null;
-ReferenceImage.built_in = [];
-ReferenceImage.global = [];
 Object.defineProperty(ReferenceImage, 'current_project', {
 	get() {
 		return Project.reference_images || [];
@@ -967,11 +1022,6 @@ Object.defineProperty(ReferenceImage, 'active', {
 	}
 })
 
-ReferenceImage.updateAll = function() {
-	ReferenceImage.all.forEach(ref => {
-		ref.update();
-	})
-}
 
 StateMemory.init('global_reference_images', 'array');
 export async function initReferenceImages() {
@@ -981,7 +1031,8 @@ export async function initReferenceImages() {
 }
 
 SharedActions.add('delete', {
-	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
+	condition: () => (ReferenceImageMode.active && !!ReferenceImage.selected),
+	subject: 'reference_image',
 	priority: 1,
 	run() {
 		ReferenceImage.selected.delete();
@@ -1021,8 +1072,8 @@ Blockbench.on('timeline_pause', () => {
 
 export const ReferenceImageMode = {
 	active: false,
-	toolbar: null,
-	activate() {
+	toolbar: null as Toolbar,
+	activate(): void {
 		ReferenceImageMode.active = true;
 		Interface.work_screen.classList.add('reference_image_mode');
 		Interface.work_screen.append(ReferenceImageMode.toolbar.node);
@@ -1034,7 +1085,7 @@ export const ReferenceImageMode = {
 			}
 		}, 1);
 	},
-	deactivate() {
+	deactivate(): void {
 		ReferenceImageMode.active = false;
 		if (ReferenceImage.selected) ReferenceImage.selected.unselect();
 		Interface.work_screen.classList.remove('reference_image_mode');
@@ -1042,10 +1093,10 @@ export const ReferenceImageMode = {
 		ReferenceImage.updateAll();
 		BARS.updateConditions();
 	},
-	async importReferences(files) {
-		let options = await new Promise(resolve => {
+	async importReferences(files: Filesystem.FileResult[]) {
+		let options: any = await new Promise<Record<string, FormResultValue> | void>((resolve, reject) => {
 			let icon = new Image();
-			icon.src = files[0].content;
+			icon.src = files[0].content as string;
 			icon.classList.add('reference_image_import_preview')
 
 			new Dialog({
@@ -1069,15 +1120,21 @@ export const ReferenceImageMode = {
 				onFormChange(result) {
 					icon.classList.toggle('billboard', result.view_mode == 'billboard');
 				},
-				singleButton: true,
 				onConfirm(result) {
 					resolve(result);
+				},
+				onCancel() {
+					resolve();
 				}
 			}).show();
 		})
+		if (!options) {
+			ReferenceImageMode.deactivate();
+			return;
+		}
 		files.forEach(file => {
 			let ref = new ReferenceImage({
-				source: file.content,
+				source: file.content as string,
 				name: file.name,
 				view_mode: options.view_mode
 			});
@@ -1092,7 +1149,7 @@ export const ReferenceImageMode = {
 			ref.select();
 		})
 	},
-	saveGlobalReferences() {
+	saveGlobalReferences(): void {
 		StateMemory.global_reference_images = ReferenceImage.global.map(ref => ref.getSaveCopy());
 		StateMemory.save('global_reference_images');
 	}
@@ -1125,7 +1182,7 @@ BARS.defineActions(function() {
 				readtype: 'image'
 			}, async function(files) {
 				ReferenceImageMode.importReferences(files);
-			}, 'image', false)
+			});
 		}
 	});
 	new Action('reference_image_from_clipboard', {
@@ -1138,7 +1195,7 @@ BARS.defineActions(function() {
 			if (isApp) {
 				var image = clipboard.readImage().toDataURL();
 				if (image.length > 32) {
-					ReferenceImageMode.importReferences([{content: image, name: 'Pasted'}]);
+					ReferenceImageMode.importReferences([{content: image, name: 'Pasted', path: ''}]);
 				}
 			} else {
 				navigator.clipboard.read().then(content => {
@@ -1146,7 +1203,7 @@ BARS.defineActions(function() {
 						content[0].getType('image/png').then(blob => {
 							let url = URL.createObjectURL(blob);
 							if (image.length > 32) {
-								ReferenceImageMode.importReferences([{content: url, name: 'Pasted'}]);
+								ReferenceImageMode.importReferences([{content: url, name: 'Pasted', path: ''}]);
 							}
 						})
 					}
@@ -1172,7 +1229,8 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: () => ReferenceImageMode.active,
 		click(e) {
-			new Menu('apply_display_preset', this.children(), {searchable: false}).open(e.target, 'wrong context');
+			let menu = new Menu('apply_display_preset', this.children(), {searchable: false});
+			menu.open(e.target as HTMLElement, 'wrong context');
 		},
 		children() {
 			let list = [];
@@ -1206,7 +1264,7 @@ BARS.defineActions(function() {
 										}
 										reference.modes.toggle(key);
 										// Clear invalid modes (uninstalled plugins etc.)
-										reference.modes.forEachReverse((mode) => {
+										reference.modes.forEachReverse((mode: string) => {
 											if (!Modes.options[mode]) reference.modes.remove(mode);
 										})
 										reference.update().save();
@@ -1286,7 +1344,20 @@ Interface.definePanels(function() {
 	})
 })
 
-Object.assign(window, {
+const global = {
 	ReferenceImage,
 	ReferenceImageMode,
-})
+};
+declare global {
+	const ReferenceImage: typeof global.ReferenceImage
+	type ReferenceImage = import('./reference_images').ReferenceImage
+	const ReferenceImageMode: typeof global.ReferenceImageMode
+	interface BarItemRegistry {
+		edit_reference_images: Action
+		add_reference_image: Action
+		reference_image_from_clipboard: Action
+		toggle_all_reference_images: Action
+		reference_image_list: Action
+	}
+}
+Object.assign(window, global);

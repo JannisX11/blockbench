@@ -998,6 +998,5 @@ declare global {
 		layer_to_texture_size: Action
 		merge_layer_down: Action
 		crop_layer_to_selection: Action
-        opacity_slider: NumSlider
     }
 }

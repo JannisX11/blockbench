@@ -183,14 +183,11 @@ declare const Prop = {
 	show_right_bar: boolean,
 }
 declare const Project: ModelProject
-declare const ReferenceImageMode: any
 
 declare function isStringNumber(value: any): boolean
 
 declare function marked(text: string): string
 declare function pureMarked(text: string): string
 
-declare type ReferenceImage = any
-declare const ReferenceImage = any
 declare type SplineMesh = typeof OutlinerElement & Record<string, any>
 declare const SplineMesh: typeof OutlinerElement

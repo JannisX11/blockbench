@@ -227,5 +227,13 @@ BARS.defineActions(() => {
 const global = {SharedActions};
 declare global {
 	const SharedActions: typeof global.SharedActions;
+	interface BarItemRegistry {
+		rename: Action
+		delete: Action
+		duplicate: Action
+		select_all: Action
+		unselect_all: Action
+		invert_selection: Action
+	}
 }
 Object.assign(window, global);

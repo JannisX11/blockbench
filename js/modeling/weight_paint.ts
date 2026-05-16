@@ -261,7 +261,6 @@ Blockbench.on('update_selection', updateWeightPreview);
 
 declare global {
     interface BarItemRegistry {
-        opacity_slider: NumSlider
 		weight_brush: Tool
 		slider_weight_brush_size: NumSlider
 		slider_weight_brush_limit: NumSlider
