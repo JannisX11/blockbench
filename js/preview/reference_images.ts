@@ -303,9 +303,11 @@ export class ReferenceImage {
 		} else {
 			Canvas.scene.add(this.scene_object);
 			this.node.classList.add('in_scene');
-			this.node.style.zIndex = this.layer == 'background' ? '-1' : undefined;
+			let zindex = this.layer == 'background' ? '-1' : '1';
+			this.node.style.zIndex = zindex;
+			if (ReferenceImage.selected) zindex = '1';
 			// Z index currently does not work per element, this is a temporary workaround
-			Preview.selected.css_renderer.domElement.style.zIndex = this.node.style.zIndex;
+			Preview.selected.css_renderer.domElement.style.zIndex = zindex;
 		}
 		
 		this.updateTransform();
@@ -616,9 +618,9 @@ export class ReferenceImage {
 		addButton('rotation', 'reference_image.rotation', '3d_rotation', (event: MouseEvent) => {
 			let snap_sides = {
 				north: [0, 0, 0],
-				east: [0, 90, 0],
+				east: [0, -90, 0],
 				south: [0, 180, 0],
-				west: [0, -90, 0],
+				west: [0, 90, 0],
 				bottom: [-90, 0, 0],
 				top: [90, 0, 0],
 			};
@@ -727,7 +729,7 @@ export class ReferenceImage {
 
 					if (this.view_mode == 'billboard') {
 						let preview = Preview.selected;
-						let control_scale = preview.calculateControlScale(ReferenceImage.selected.scene_object.position);
+						let control_scale = preview.calculateControlScale(this.scene_object.position);
 						let vector = new THREE.Vector3(offset[0], -offset[1], 0).multiplyScalar(control_scale / 14);
 						vector.applyQuaternion(preview.camera.quaternion)
 
@@ -740,11 +742,13 @@ export class ReferenceImage {
 								vector.x = vector.y = 0;
 							}
 						}*/
+						vector.applyQuaternion(this.scene_object.quaternion.clone().invert());
 						if (z_movement) {
 							vector.x = vector.y = 0;
 						} else {
 							vector.z = 0;
 						}
+						vector.applyQuaternion(this.scene_object.quaternion);
 
 						this.billboard_position.replace(original_b_position);
 						this.billboard_position.V3_add(vector);
@@ -827,7 +831,7 @@ export class ReferenceImage {
 	}
 	async delete(force = false) {
 		if (!force) {
-			let icon;
+			let icon: string | HTMLImageElement;
 			if (this.is_video) {
 				icon = 'theaters';
 			} else {
@@ -851,6 +855,7 @@ export class ReferenceImage {
 		}
 		this.save();
 		this.removed = true;
+		if (this.scene_object) this.scene_object.removeFromParent();
 		this.node.remove();
 	}
 	changeLayer(layer: ReferenceImageLayer): this {
@@ -864,6 +869,11 @@ export class ReferenceImage {
 			
 			this.position[0] += (preview_offset.left - workscreen_offset.left) * sign;
 			this.position[1] += (preview_offset.top - workscreen_offset.top) * sign;
+		}
+		if (this.view_mode == 'billboard') {
+			ReferenceImage.active.forEach(ref => {
+				if (ref.view_mode == 'billboard') ref.layer = layer;
+			})
 		}
 		this.layer = layer;
 		return this;

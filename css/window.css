@@ -1099,6 +1099,9 @@
 		pointer-events: none;
 		border-radius: 7px;
 	}
+	.reference_image.in_scene > .image_content {
+		transform: scale(1); /* To ensure video playback controls are clickable */
+	}
 	.reference_image.flip_x > .image_content {
 		transform: scaleX(-1);
 	}
