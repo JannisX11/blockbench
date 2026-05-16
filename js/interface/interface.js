@@ -170,6 +170,7 @@ export function unselectInterface(event) {
 	if (ReferenceImageMode.active &&
 		![event.target, event.target.parentNode, event.target.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode, event.target.parentNode?.parentNode?.parentNode?.parentNode].find(n => n?.classList?.contains('reference_image')) &&
 		!ReferenceImageMode.toolbar.node.contains(event.target) &&
+		!ReferenceImage.selected?.toolbar.contains(event.target) &&
 		!Dialog.open &&
 		!open_menu
 	) {

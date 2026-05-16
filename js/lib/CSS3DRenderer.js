@@ -46,6 +46,7 @@ class CSS3DObject extends Object3D {
 		 */
 		this.element = element;
 		this.element.style.position = 'absolute';
+		this.element.style.transformStyle = 'preserve-3d';
 
 		this.element.setAttribute( 'draggable', false );
 

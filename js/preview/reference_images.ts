@@ -18,6 +18,8 @@ interface ReferenceImageOptions {
 	condition?: ConditionResolvable;
 	position?: ArrayVector2
 	size?: ArrayVector2
+	billboard_position?: ArrayVector3
+	billboard_rotation?: ArrayVector3
 	flip_x?: boolean
 	flip_y?: boolean
 	rotation?: number
@@ -41,6 +43,8 @@ export class ReferenceImage {
 	flip_x: boolean = false;
 	flip_y: boolean = false;
 	rotation: number = 0;
+	billboard_position?: ArrayVector3
+	billboard_rotation?: ArrayVector3
 	opacity: number = 0;
 	visibility: boolean = true;
 	sync_to_timeline: boolean = true;
@@ -49,7 +53,7 @@ export class ReferenceImage {
 	source: string = '';
 	modes: string[] = [];
 	uuid: string;
-	cache_version: number;
+	cache_version: number = 0;
 	condition: ConditionResolvable;
 	toolbar: HTMLElement
 	/**@private */
@@ -61,16 +65,15 @@ export class ReferenceImage {
 	dark_background: boolean = false;
 	image_is_loaded: boolean = false;
 	auto_aspect_ratio: boolean = true;
-	is_video: boolean;
+	is_video: boolean = false;
 	node: HTMLDivElement;
 	img: HTMLImageElement;
-	video: HTMLVideoElement & {_loading?: boolean};
+	video: HTMLVideoElement & {_loading?: boolean, ref_source?: any};
 	scene_object: CSS3DObject;
 	declare public menu: Menu
 
 	constructor(data: ReferenceImageOptions = {}) {		
 		this.uuid = guid();
-		this.cache_version = 0;
 		this.condition = data.condition;
 
 		for (let key in ReferenceImage.properties) {
@@ -81,7 +84,6 @@ export class ReferenceImage {
 		this._modify_nodes = [];
 		this.defaults = data;
 
-		this.is_video = false;
 		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
 			this.is_video = true;
 		}
@@ -107,6 +109,7 @@ export class ReferenceImage {
 			this.node.append(this.img);
 		}
 		this.scene_object = new CSS3DObject(this.node);
+		this.scene_object.scale.set(1/8, 1/8, 1/8);
 
 
 		(this.is_video ? this.video : this.img).onload = () => {
@@ -133,13 +136,13 @@ export class ReferenceImage {
 
 		this.extend(data);
 	}
-	get aspect_ratio() {
+	get aspect_ratio(): number {
 		return this.source_width / this.source_height;
 	}
-	get source_width() {
+	get source_width(): number {
 		return (this.is_video ? this.video.videoWidth : this.img.naturalWidth) || 16;
 	}
-	get source_height() {
+	get source_height(): number {
 		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
 	extend(data: ReferenceImageOptions) {
@@ -290,6 +293,8 @@ export class ReferenceImage {
 			Canvas.scene.add(this.scene_object);
 			this.node.classList.add('in_scene');
 			this.node.style.zIndex = this.layer == 'background' ? '-1' : undefined;
+			// Z index currently does not work per element, this is a temporary workaround
+			Preview.selected.css_renderer.domElement.style.zIndex = this.node.style.zIndex;
 		}
 		
 		this.updateTransform();
@@ -307,9 +312,7 @@ export class ReferenceImage {
 
 		let source = this.source + (this.cache_version ? ('?'+this.cache_version) : '');
 		if (this.is_video) {
-			// @ts-expect-error
 			if (this.video.ref_source != source) {
-			// @ts-expect-error
 				this.video.ref_source = source;
 				(this.video.firstElementChild as HTMLSourceElement).src = source;
 				this.video.load();
@@ -337,16 +340,24 @@ export class ReferenceImage {
 		if (this.selected && !this._modify_nodes.length) {
 			this.setupEditHandles()
 		}
+		if (this.selected) {
+			if (this.view_mode == 'billboard') {
+				Interface.preview.append(this.toolbar);
+			} else {
+				this.node.append(this.toolbar);
+			}
+		}
+
 		// Unselect
 		if (!this.selected && this._modify_nodes.length) {
 			this.node.classList.remove('selected');
 			this._modify_nodes.forEach(node => node.remove());
 			this._modify_nodes.empty();
 		}
-		if (this.selected) {
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
+		if (this.selected && this.toolbar) {
+			this.toolbar.querySelector('.tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
+			this.toolbar.querySelector('.tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
+			this.toolbar.querySelector('.tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
 		}
 		return this;
 	}
@@ -401,6 +412,8 @@ export class ReferenceImage {
 
 			} else if (this.view_mode == 'billboard') {
 				this.scene_object.discardCopyElements();
+				this.scene_object.position.fromArray(this.billboard_position);
+				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
 			}
 		}
 		return this;
@@ -431,15 +444,29 @@ export class ReferenceImage {
 		let self = this;
 		this.node.classList.add('selected');
 		let resize_corners = ['nw', 'ne', 'sw', 'se'].map(direction => {
-			let corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
-			let sign_x = direction[1] == 'e' ? 1 : -1;
-			let sign_y = direction[0] == 's' ? 1 : -1;
-			let multiplier = 1 / this.getZoomLevel();
+			const corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
+			const sign_x = direction[1] == 'e' ? 1 : -1;
+			const sign_y = direction[0] == 's' ? 1 : -1;
+			const multiplier = 1 / this.getZoomLevel();
 			addEventListeners(corner, 'mousedown touchstart', (e1: MouseEvent) => {
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
 				let original_size = this.size.slice();
+				let local_sign_x = sign_x;
+				let local_sign_y = sign_y;
+
+				if (this.view_mode == 'billboard') {
+					let corner_rect = corner.getBoundingClientRect();
+					let ref_rect = this.node.getBoundingClientRect();
+					let ref_center = [Math.lerp(ref_rect.left, ref_rect.right, 0.5), Math.lerp(ref_rect.top, ref_rect.bottom, 0.5)];
+					if ((corner_rect.left > ref_center[0]) != (sign_x == 1)) {
+						local_sign_x *= -1;
+					}
+					if ((corner_rect.top > ref_center[1]) != (sign_y == 1)) {
+						local_sign_y *= -1;
+					}
+				}
 
 				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
@@ -452,14 +479,14 @@ export class ReferenceImage {
 						32 / zoom_level,
 						24 / zoom_level
 					];
-					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, max_size[0]);
+					this.size[0] = Math.max(original_size[0] + offset[0] * local_sign_x, max_size[0]);
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
-						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
+						offset[1] = local_sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
-					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
+					this.size[1] = Math.max(original_size[1] + offset[1] * local_sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
 					if (!this.is_blueprint && this.view_mode == 'flat_image') {
@@ -520,6 +547,13 @@ export class ReferenceImage {
 		this.node.append(rotate_handle);
 		this._modify_nodes.push(rotate_handle);
 
+		let z_move_handle = Interface.createElement('div', {class: 'reference_image_z_handle'}, [
+			Blockbench.getIconNode('north'),
+			Blockbench.getIconNode('south'),
+		]);
+		this.node.append(z_move_handle);
+		this._modify_nodes.push(z_move_handle);
+
 		this.toolbar = Interface.createElement('div', {class: 'reference_image_toolbar'});
 		this.node.append(this.toolbar);
 		this._modify_nodes.push(this.toolbar);
@@ -553,15 +587,13 @@ export class ReferenceImage {
 				background: 'reference_image.layer.background',
 				viewport: 'reference_image.layer.viewport',
 				float: 'reference_image.layer.float',
-				scene: 'reference_image.layer.scene',
 			}
 			let options = Object.keys(layers).map(key => {
-				if (key == 'scene' && Format.image_editor) return;
 				return {
 					name: layers[key],
 					icon: this.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click: () => {
-						this.changeLayer(key);
+						this.changeLayer(key as ReferenceImageLayer);
 						this.update().save();
 					}
 				}
@@ -606,11 +638,15 @@ export class ReferenceImage {
 
 		if (!this._edit_events_initialized) {
 			addEventListeners(this.node, 'mousedown touchstart', (e1: MouseEvent) => {
-				if (!(e1.target as HTMLElement).classList.contains('reference_image')) return;
+				let target_classes = (e1.target as HTMLElement).classList;
+				if (!target_classes.contains('reference_image') && !target_classes.contains('reference_image_z_handle')) return;
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
+				let original_b_position = this.billboard_position.slice();
+				let original_b_rotation = this.billboard_rotation.slice();
 				let zoom = this.getZoomLevel();
+				let z_movement = target_classes.contains('reference_image_z_handle');
 
 				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
@@ -618,11 +654,38 @@ export class ReferenceImage {
 						(e2.clientX - e1.clientX),
 						(e2.clientY - e1.clientY),
 					];
-					this.position[0] = original_position[0] + offset[0] / zoom;
-					this.position[1] = original_position[1] + offset[1] / zoom;
 
-					if (!this.is_blueprint && this.view_mode == 'flat_image') {
-						this.position.replace(this.getClampedPosition());
+					if (this.view_mode == 'billboard') {
+						let preview = Preview.selected;
+						let control_scale = preview.calculateControlScale(ReferenceImage.selected.scene_object.position);
+						let vector = new THREE.Vector3(offset[0], -offset[1], 0).multiplyScalar(control_scale / 14);
+						vector.applyQuaternion(preview.camera.quaternion)
+
+						/*if (e2.ctrlOrCmd || Pressing.overrides.ctrl) {
+							if (Math.abs(vector.x) > Math.abs(vector.y) && Math.abs(vector.x) > Math.abs(vector.z)) {
+								vector.y = vector.z = 0;
+							} else if (Math.abs(vector.y) > Math.abs(vector.z)) {
+								vector.x = vector.z = 0;
+							} else {
+								vector.x = vector.y = 0;
+							}
+						}*/
+						if (z_movement) {
+							vector.x = vector.y = 0;
+						} else {
+							vector.z = 0;
+						}
+
+						this.billboard_position.replace(original_b_position);
+						this.billboard_position.V3_add(vector);
+
+					} else {
+						this.position[0] = original_position[0] + offset[0] / zoom;
+						this.position[1] = original_position[1] + offset[1] / zoom;
+
+						if (!this.is_blueprint) {
+							this.position.replace(this.getClampedPosition());
+						}
 					}
 
 					this.update();
@@ -631,6 +694,7 @@ export class ReferenceImage {
 					convertTouchEvent(e2);
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', stop);
+
 					this.save();
 				}
 				addEventListeners(document, 'mousemove touchmove', move);
@@ -644,8 +708,16 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	projectMouseCursor(x: number, y: number) {
+	projectMouseCursor(x: number, y: number): boolean | ArrayVector2 {
 		if (!this.resolveCondition() || !this.visibility) return false;
+
+		if (this.view_mode == 'billboard') {
+			let pointerevents = this.node.style.pointerEvents;
+			this.node.style.pointerEvents = 'all';
+			let hits = document.elementsFromPoint(x, y);
+			this.node.style.pointerEvents = pointerevents;
+			return hits.includes(this.node);
+		}
 
 		let rect = this.node.getBoundingClientRect();
 		let center = [rect.x + rect.width/2, rect.y + rect.height/2];
@@ -711,7 +783,7 @@ export class ReferenceImage {
 		this.removed = true;
 		this.node.remove();
 	}
-	changeLayer(layer) {
+	changeLayer(layer: ReferenceImageLayer): this {
 		if (layer == this.layer) return;
 
 		if (this.is_blueprint) this.is_blueprint = false;
@@ -726,7 +798,7 @@ export class ReferenceImage {
 		this.layer = layer;
 		return this;
 	}
-	changeScope(new_scope) {
+	changeScope(new_scope: ReferenceImageScope): this {
 		if (new_scope == this.scope) return this;
 
 		switch (this.scope) {
@@ -742,16 +814,17 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	enableBlueprintMode() {
-		if (this.is_blueprint) return;
+	enableBlueprintMode(): this {
+		if (this.is_blueprint) return this;
 		if (Preview.selected?.angle) {
 			this.is_blueprint = true;
 			if (this.layer == 'float') this.changeLayer('viewport');
 			this.attached_side = Preview.selected.angle;
 			this.position.V2_set(0, 0);
 		}
+		return this;
 	}
-	propertiesDialog() {
+	propertiesDialog(): this {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
@@ -768,7 +841,6 @@ export class ReferenceImage {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
 					float: 'reference_image.layer.float',
-					scene: 'reference_image.layer.scene',
 				}},
 				scope: {type: 'select', label: 'reference_image.scope', value: this.scope, options: {
 					project: 'reference_image.scope.project',
@@ -996,6 +1068,8 @@ new Property(ReferenceImage, 'boolean', 'is_blueprint');
 new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
+new Property(ReferenceImage, 'vector', 'billboard_position');
+new Property(ReferenceImage, 'vector', 'billboard_rotation');
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
@@ -1111,6 +1185,11 @@ export const ReferenceImageMode = {
 							billboard: 'reference_image.view_mode.billboard',
 						}
 					},
+					layer: {type: 'select', label: 'reference_image.layer', value: 'background', options: {
+						background: 'reference_image.layer.background',
+						viewport: 'reference_image.layer.viewport',
+						float: 'reference_image.layer.float',
+					}},
 					global: {
 						type: 'checkbox',
 						label: 'message.add_reference_image.globally',

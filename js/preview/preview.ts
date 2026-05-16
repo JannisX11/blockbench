@@ -1776,7 +1776,7 @@ export class Preview {
 	/**
 	 * The last used preview
 	 */
-	static selected = null;
+	static selected: Preview = null;
 	/**
 	 * List of all previews
 	 */
@@ -2585,7 +2585,7 @@ BARS.defineActions(function() {
 					);
 					let height = Math.max(Math.abs(bounds.min.y-center.y), Math.abs(bounds.max.y-center.y));
 					if (Math.abs(height) != Infinity) {
-						let focal_length = preview.camera.getFocalLength();
+						let focal_length = preview.camPers.getFocalLength();
 						let cam_distance = cam_boom.length();
 						let target_distance = Math.max(radius, height) * (focal_length / 10);
 						let zoom_factor = target_distance / cam_distance;

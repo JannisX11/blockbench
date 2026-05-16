@@ -1155,6 +1155,35 @@
 	body.light_mode .reference_image_rotate_handle {
 		text-shadow: none;
 	}
+	.reference_image.in_scene > .reference_image_z_handle {
+		border-radius: 5px;
+		background-color: var(--color-ui);
+		transform: rotateX(90deg);
+		margin: auto;
+		position: absolute;
+		display: flex;
+		flex-direction: column;
+		left: 0;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		width: 30px;
+		height: 60px;
+		border: 1px solid var(--color-border);
+		justify-content: space-between;
+		align-items: center;
+		padding: 3px 0;
+		cursor: n-resize;
+	}
+	.reference_image.in_scene > .reference_image_z_handle:hover {
+		background-color: var(--color-accent);
+	}
+	.reference_image_z_handle * {
+		pointer-events: none;
+	}
+	.reference_image:not(.in_scene) > .reference_image_z_handle {
+		display: none;
+	}
 	.reference_image_toolbar {
 		position: absolute;
 		margin: auto;
@@ -1169,6 +1198,9 @@
 		padding: 4px;
 		border-radius: 6px;
 		margin-bottom: -14px;
+	}
+	#preview > .reference_image_toolbar {
+		margin-bottom: 5px;
 	}
 
 	.reference_image_import_preview {
