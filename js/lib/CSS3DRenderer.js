@@ -243,18 +243,20 @@ class CSS3DRenderer {
 			const fov = camera.projectionMatrix.elements[ 5 ] * _heightHalf;
 			_is_main = is_main;
 
+			let transform_style = '';
+
 			if ( camera.view && camera.view.enabled ) {
 
 				// view offset
-				viewElement.style.transform = `translate( ${ - camera.view.offsetX * ( _width / camera.view.width ) }px, ${ - camera.view.offsetY * ( _height / camera.view.height ) }px )`;
+				transform_style = `translate( ${ - camera.view.offsetX * ( _width / camera.view.width ) }px, ${ - camera.view.offsetY * ( _height / camera.view.height ) }px )`;
 
 				// view fullWidth and fullHeight, view width and height
-				viewElement.style.transform += `scale( ${ camera.view.fullWidth / camera.view.width }, ${ camera.view.fullHeight / camera.view.height } )`;
+				transform_style += `scale( ${ camera.view.fullWidth / camera.view.width }, ${ camera.view.fullHeight / camera.view.height } )`;
 
-			} else {
+			}
 
-				viewElement.style.transform = '';
-
+			if (viewElement.style.transform != transform_style) {
+				viewElement.style.transform = transform_style;
 			}
 
 			if ( scene.matrixWorldAutoUpdate === true ) scene.updateMatrixWorld();

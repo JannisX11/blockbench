@@ -2,7 +2,7 @@ import { Filesystem } from "../file_system";
 import { FormResultValue } from "../interface/form";
 import { CSS3DObject } from "../lib/CSS3DRenderer";
 import { clipboard } from "../native_apis";
-import { getAverageRGB } from "../util/util";
+import { addEventListeners, getAverageRGB } from "../util/util";
 import { Preview } from "./preview";
 
 export type ReferenceImageViewMode = 'flat_image' | 'billboard';
@@ -102,6 +102,11 @@ export class ReferenceImage {
 				class: 'image_content'
 			}) as HTMLVideoElement;
 			this.video.muted = true;
+			addEventListeners(this.node, 'mousedown mousemove', (event: MouseEvent | PointerEvent) => {
+				// Enable pointer events for controls section
+				let from_bottom = this.video.clientHeight - event.offsetY;
+				this.video.style.pointerEvents = from_bottom < 62 ? 'auto' : '';
+			})
 			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
 			this.node.append(this.video);
 			this.image_is_loaded = true;
@@ -317,6 +322,7 @@ export class ReferenceImage {
 				(this.video.firstElementChild as HTMLSourceElement).src = source;
 				this.video.load();
 			}
+			this.video.controls = this.selected;
 		} else {
 			if (this.img.src != source) {
 				this.img.src = source;
@@ -411,6 +417,8 @@ export class ReferenceImage {
 				this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
 
 			} else if (this.view_mode == 'billboard') {
+				this.node.style.left = '0';
+				this.node.style.top  = '0';
 				this.scene_object.discardCopyElements();
 				this.scene_object.position.fromArray(this.billboard_position);
 				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
@@ -568,18 +576,6 @@ export class ReferenceImage {
 				node: node
 			})
 			return node;
-		}
-		
-		if (this.is_video) {
-			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
-				if (this.video.paused) {
-					this.video._loading = false;
-					this.video.play();
-				} else {
-					this.video.pause();
-				}
-				toggle.querySelector('.icon').replaceWith(Blockbench.getIconNode(this.video.paused ? 'play_arrow' : 'pause'))
-			});
 		}
 
 		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
