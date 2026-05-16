@@ -1155,6 +1155,9 @@
 	body.light_mode .reference_image_rotate_handle {
 		text-shadow: none;
 	}
+	.reference_image.in_scene .reference_image_rotate_handle {
+		display: none;
+	}
 	.reference_image.in_scene > .reference_image_z_handle {
 		border-radius: 5px;
 		background-color: var(--color-ui);

@@ -116,10 +116,11 @@ export class ReferenceImage {
 		this.scene_object = new CSS3DObject(this.node);
 		this.scene_object.scale.set(1/8, 1/8, 1/8);
 
-
-		(this.is_video ? this.video : this.img).onload = () => {
+		let onload = () => {
 			let was_image_loaded = this.image_is_loaded;
 			this.image_is_loaded = true;
+
+			if (this.is_video && this.video) this.video.pause();
 
 			if (this.auto_aspect_ratio) {
 				let original_size = this.size.slice();
@@ -134,6 +135,11 @@ export class ReferenceImage {
 				this.update();
 			}
 			this.updateClearMode();
+		}
+		if (this.is_video) {
+			this.video.addEventListener('loadeddata', onload);
+		} else {
+			this.img.onload = onload;
 		}
 		this.img.onerror = () => {
 			this.image_is_loaded = false;
@@ -567,7 +573,7 @@ export class ReferenceImage {
 		this._modify_nodes.push(this.toolbar);
 		
 		// Controls
-		function addButton(id, name, icon, click) {
+		function addButton(id: string, name: string, icon: string, click: (event: MouseEvent) => void) {
 			let node = Interface.createElement('div', {class: 'tool', tool_id: id}, Blockbench.getIconNode(icon));
 			self.toolbar.append(node);
 			node.onclick = click;
@@ -594,7 +600,7 @@ export class ReferenceImage {
 					}
 				}
 			})
-			new Menu(options).open(event.target);
+			new Menu(options).open(event.target as HTMLElement);
 		});
 		
 		addButton('flip_x', tl('action.flip', 'X'), 'icon-mirror_x', () => {
@@ -605,6 +611,74 @@ export class ReferenceImage {
 		addButton('flip_y', tl('action.flip', 'Y'), 'icon-mirror_y', () => {
 			self.flip_y = !self.flip_y;
 			self.update().save();
+		});
+		
+		addButton('rotation', 'reference_image.rotation', '3d_rotation', (event: MouseEvent) => {
+			let snap_sides = {
+				north: [0, 0, 0],
+				east: [0, 90, 0],
+				south: [0, 180, 0],
+				west: [0, -90, 0],
+				bottom: [-90, 0, 0],
+				top: [90, 0, 0],
+			};
+			function getRotationSide(vector: ArrayVector3): string {
+				for (let key in snap_sides) {
+					if (vector.equals(snap_sides[key])) {
+						return key;
+					}
+				}
+				return 'custom';
+			}
+			let dialog = new ConfigDialog('test', {
+				title: 'Rotation',
+				width: 360,
+				form: {
+					side: {
+						label: 'Side',
+						type: 'select',
+						value: getRotationSide(self.billboard_rotation),
+						options: {
+							north: 'direction.north',
+							east: 'direction.east',
+							south: 'direction.south',
+							west: 'direction.west',
+							bottom: 'direction.bottom',
+							top: 'direction.top',
+							custom: 'Custom',
+						}
+					},
+					vector: {
+						label: 'Rotation',
+						type: 'vector',
+						dimensions: 3,
+						step: 2.5,
+						value: self.billboard_rotation,
+					}
+				}
+			}).show();
+
+			dialog.form.addListener('change', ({result, cause, changed_keys}) => {
+				console.log({result, cause, changed_keys})
+				if (changed_keys.includes('side')) {
+					let value = snap_sides[result.side];
+					if (value) {
+						self.billboard_rotation.replace(value as ArrayVector3);
+						dialog.form.setValues({vector: value}, false);
+					}
+				} else {
+					self.billboard_rotation.replace(result.vector as ArrayVector3);
+					let side = getRotationSide(result.vector as ArrayVector3);
+					dialog.form.setValues({side}, false);
+				}
+				self.update().save();
+			})
+
+			let anchor_position = self.toolbar.getBoundingClientRect();
+			let top = anchor_position.top - dialog.object.clientHeight - 4;
+			let left = Math.lerp(anchor_position.left, anchor_position.right, 0.5) - dialog.object.clientWidth/2;
+			dialog.object.style.top = top + 'px';
+			dialog.object.style.left = left + 'px';
 		});
 		
 		new NumSlider('slider_reference_image_opacity', {
@@ -1065,7 +1139,7 @@ new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'vector', 'billboard_position');
-new Property(ReferenceImage, 'vector', 'billboard_rotation');
+new Property(ReferenceImage, 'vector', 'billboard_rotation', {default: [0, 180, 0]});
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');

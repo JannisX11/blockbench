@@ -1074,14 +1074,19 @@ export class ConfigDialog extends Dialog {
 	constructor(id: string, options: ConfigDialogOptions) {
 		super(id, options);
 	}
-	show(anchor: HTMLElement) {
+	show(anchor?: HTMLElement) {
 		super.show()
 		$('#blackout').hide();
 		
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
-			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
-			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30)) + 'px';
+			let left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30));
+			let top = anchor_position.top+anchor.offsetHeight;
+			if (top > (Interface.work_screen.clientHeight - this.object.clientHeight)) {
+				top = anchor_position.top - this.object.clientHeight;
+			}
+			this.object.style.top = top + 'px';
+			this.object.style.left = left + 'px';
 		}
 		return this;
 	}

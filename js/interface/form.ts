@@ -849,7 +849,6 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
 		this.slider = new NumSlider('form_slider_'+this.id, {
 			private: true,
-			// @ts-ignore
 			onChange: () => {
 				this.change();
 			},
@@ -985,7 +984,6 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				value: this.options.value
 			})
 		}
-		// @ts-ignore
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};

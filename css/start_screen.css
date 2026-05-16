@@ -120,6 +120,7 @@
 		display: block;
 		width: 180px;
 		height: 100px;
+		max-width: 100%;
 		margin: auto;
 		pointer-events: none;
 	}
