@@ -1335,6 +1335,8 @@
 	"keybind.preview_drag": "Drag View",
 	"keybind.preview_zoom": "Drag-to-Zoom View",
 	"keybind.preview_scroll_zoom": "Zoom View",
+	"keybind.preview_scroll_pan": "Scroll Pan View",
+	"keybind.preview_scroll_pan.desc": "Use scroll to pan the view, can be used for two-finger panning with trackpads",
 	"keybind.uv_editor_scroll_zoom": "Zoom UV/2D Editor",
 	"keybind.preview_area_select": "Area Select",
 	"keybind.paint_secondary_color": "Paint with Secondary Color",

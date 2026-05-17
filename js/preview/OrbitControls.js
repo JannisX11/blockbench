@@ -699,7 +699,7 @@ constructor ( object, preview ) {
 		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
 		let enabled = keybind.isTriggered(event);
 
-		if (!enabled && !event.ctrlKey && !event.shiftKey && !event.metaKey && Math.abs(event.deltaY) != 100) {
+		if (!enabled && Keybinds.extra.preview_scroll_pan.keybind.isTriggered(event)) {
 			pan( -event.deltaX, -event.deltaY );
 
 			scope.update();

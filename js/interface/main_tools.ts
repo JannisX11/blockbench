@@ -33,6 +33,10 @@ BARS.defineActions(() => {
 		category: 'navigate',
 		keybind: new Keybind({key: 1001})
 	})
+	new KeybindItem('preview_scroll_pan', {
+		description: 'keybind.preview_scroll_pan.desc',
+		category: 'navigate',
+	})
 	new KeybindItem('uv_editor_scroll_zoom', {
 		category: 'navigate',
 		keybind: new Keybind({key: 1001, ctrl: true})
