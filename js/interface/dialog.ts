@@ -884,7 +884,7 @@ type MessageBoxCommandOptions = string |  {
 }
 type MessageBoxCheckbox = string | {
 	value?: boolean
-	condition: ConditionResolvable
+	condition?: ConditionResolvable
 	text: string
 }
 export interface MessageBoxOptions {

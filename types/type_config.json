@@ -18,7 +18,6 @@
 		"outliner/null_object",
 		"outliner/outliner",
 		"outliner/texture_mesh",
-		"preview/preview_scenes",
 		"preview/canvas",
 		"io/codec",
 		"io/io",

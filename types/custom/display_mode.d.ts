@@ -10,6 +10,7 @@ declare const DisplayMode: {
 	display_base: any
 	animate_preview: Preview
 	groundAnimation(): void
+	updateDisplaySkin(): void
 }
 
 declare type DisplaySlotName =

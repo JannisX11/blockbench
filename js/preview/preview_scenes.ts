@@ -3,8 +3,44 @@ import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
 import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
 
+export interface PreviewSceneOptions {
+	name?: string
+	description?: string
+	category?: string
+	web_config?: string
+	require_minecraft_eula?: boolean
+	light_color?: {r: number, g: number, b: number}
+	light_side?: number
+	condition?: ConditionResolvable
+	cubemap?: string[]
+	fog?: {
+		type: 'linear' | 'exponential'
+		color
+		near?: number
+		far?: number
+		density?: number
+	}
+	fov?: number
+	preview_models?: (string | PreviewModel | PreviewModelOptions)[]
+}
+
 export class PreviewScene {
-	constructor(id, data = 0) {
+	id: string
+	loaded: boolean = false;
+	require_minecraft_eula: boolean = false;
+	name: string;
+	description?: string;
+	category: string;
+	light_color: {r: number, g: number, b: number} = {r: 1, g: 1, b: 1};
+	light_side: number = 0;
+	condition: ConditionResolvable;
+	fov: number = null;
+	web_config_path?: string
+	fog?: THREE.Fog | THREE.FogExp2
+	cubemap?: THREE.CubeTexture
+	preview_models = [];
+
+	constructor(id: string, data: PreviewSceneOptions = {}) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
 		this.loaded = false;
@@ -24,7 +60,7 @@ export class PreviewScene {
 
 		PreviewScene.menu_categories[this.category][id] = this.name;
 	}
-	extend(data) {
+	extend(data: PreviewSceneOptions) {
 		this.loaded = data.web_config ? false : true;
 		this.web_config_path = data.web_config;
 		if (data.require_minecraft_eula) this.require_minecraft_eula = true;
@@ -47,6 +83,7 @@ export class PreviewScene {
 					Canvas.updateShading();
 				}
 			});
+			// @ts-expect-error
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -99,6 +136,9 @@ export class PreviewScene {
 		}
 		this.extend(json);
 	}
+	/**
+	 * Selects this preview scene
+	 */
 	async select() {
 		if (this.require_minecraft_eula) {
 			let accepted = await MinecraftEULA.promptUser('preview_scenes');
@@ -109,7 +149,7 @@ export class PreviewScene {
 		}
 		if (PreviewScene.active) PreviewScene.active.unselect();
 
-		Canvas.global_light_color.copy(this.light_color);
+		Canvas.global_light_color.copy(this.light_color as THREE.Color);
 		Canvas.global_light_side = this.light_side;
 		Canvas.scene.background = this.cubemap;
 		Canvas.scene.fog = this.fog;
@@ -128,6 +168,9 @@ export class PreviewScene {
 		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
 		Canvas.updateShading();
 	}
+	/**
+	 * Unselects this preview scene
+	 */
 	unselect() {
 		this.preview_models.forEach(model => {
 			model.disable();
@@ -138,7 +181,7 @@ export class PreviewScene {
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
 		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
-			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
+			Preview.all.forEach(preview => preview.setFOV(settings.fov.value as number));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		Canvas.updateShading();
@@ -148,28 +191,109 @@ export class PreviewScene {
 		delete PreviewScene.scenes[this.id];
 		delete PreviewScene.menu_categories[this.category][this.id];
 	}
-}
-PreviewScene.scenes = {};
-PreviewScene.active = null;
-PreviewScene.select_options = {};
-PreviewScene.source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
-PreviewScene.menu_categories = {
-	main: {
-		none: tl('generic.none')
-	},
-	generic: {
-		_label: 'Generic'
-	},
-	realistic: {
-		_label: 'Realistic'
-	},
-	minecraft: {
-		_label: 'Minecraft'
-	},
-};
 
-export class PreviewModel {
-	constructor(id, data) {
+	/**
+	 * All preview scenes, listed by ID
+	 */
+	static scenes: Record<string, PreviewScene> = {};
+	/**
+	 * The currently active scene
+	 */
+	static active: PreviewScene | null = null;
+	static select_options = {};
+	/**
+	 * The URL to the source repository that scenes are pulled from
+	 */
+	static source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+	static menu_categories: {
+		[category_id: string]: {
+			[id: string]: string
+		}
+	} = {
+		main: {
+			none: tl('generic.none')
+		},
+		generic: {
+			_label: 'Generic'
+		},
+		realistic: {
+			_label: 'Realistic'
+		},
+		minecraft: {
+			_label: 'Minecraft'
+		},
+	};
+
+}
+
+interface PreviewModelCubeTemplate {
+	prefab?: string
+	offset?: ArrayVector3
+	offset_space?: 'block' | 'pixel'
+	position?: ArrayVector3
+	size?: ArrayVector3
+	origin?: ArrayVector3
+	rotation?: ArrayVector3
+	faces?: {
+		north?: { uv: ArrayVector4 }
+		east?: { uv: ArrayVector4 }
+		west?: { uv: ArrayVector4 }
+		south?: { uv: ArrayVector4 }
+		up?: { uv: ArrayVector4 }
+		down?: { uv: ArrayVector4 }
+	}
+}
+type PrefabTemplate = PreviewModelCubeTemplate
+export interface PreviewModelOptions {
+	id?: string
+	condition?: ConditionResolvable
+	cubes?: PreviewModelCubeTemplate[]
+	prefabs?: Record<string, PrefabTemplate>
+	/**
+	 * Source of the model's texture
+	 */
+	texture?: string
+	/**
+	 * Model tint color
+	 */
+	color?: string
+	/**
+	 * Enable shading on the material
+	 */
+	shading?: boolean
+	/**
+	 * THREE.JS material render side
+	 */
+	render_side?: number
+	texture_size?: [number, number]
+	position?: ArrayVector3
+	rotation?: ArrayVector3
+	scale?: ArrayVector3
+	onUpdate?(): void
+}
+export class PreviewModel implements Deletable {
+	id: string
+	condition: ConditionResolvable
+	model_3d: THREE.Object3D
+	onUpdate?: () => void
+	enabled: boolean = false;
+	build_data: {
+		prefabs?: Record<string, PrefabTemplate>,
+		cubes?: PreviewModelCubeTemplate[],
+		texture?: string
+		position?: ArrayVector3
+		rotation?: ArrayVector3
+		scale?: ArrayVector3
+	}
+	color: string
+	shading: boolean
+	render_side: THREE.Side
+	texture_size: ArrayVector2
+	cubes: PreviewModelCubeTemplate[]
+	texture?: string
+	[idkey: string]: any
+
+	constructor(id: string, data: PreviewModelOptions) {
 		PreviewModel.models[id] = this;
 		this.id = id;
 		this.condition = data.condition;
@@ -192,15 +316,24 @@ export class PreviewModel {
 
 		this.buildModel();
 	}
+	/**
+	 * Enables the model in the preview
+	 */
 	enable() {
 		Canvas.scene.add(this.model_3d);
 		this.enabled = true;
 		this.update();
 	}
+	/**
+	 * Disables the model in the preview
+	 */
 	disable() {
 		Canvas.scene.remove(this.model_3d);
 		this.enabled = false;
 	}
+	/**
+	 * Update the appearance and visibility of the model
+	 */
 	update() {
 		if (typeof this.onUpdate == 'function') {
 			this.onUpdate();
@@ -217,7 +350,7 @@ export class PreviewModel {
 		this.model_3d.visible = !!Condition(this.condition);
 	}
 	buildModel() {
-		let tex;
+		let tex: THREE.Texture = undefined;
 		if (this.build_data.texture) {
 			let img = new Image();
 			img.src = this.build_data.texture;
@@ -262,6 +395,7 @@ export class PreviewModel {
 			}
 			mesh.geometry.translate(cube.position[0] + cube.size[0]/2, cube.position[1] + cube.size[1]/2, cube.position[2] + cube.size[2]/2)
 			if (cube.rotation) {
+				// @ts-expect-error
 				mesh.rotation.setFromDegreeArray(cube.rotation)
 			}
 
@@ -285,11 +419,13 @@ export class PreviewModel {
 			}
 
 			let indices = [];
+			// @ts-expect-error
 			mesh.geometry.faces = [];
 			mesh.geometry.clearGroups();
 			Canvas.face_order.forEach((fkey, i) => {
 				if (cube.faces[fkey]) {
 					indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
+					// @ts-expect-error
 					mesh.geometry.faces.push(fkey)
 				}
 			})
@@ -306,11 +442,12 @@ export class PreviewModel {
 					case 'up':		fIndex = 4;		break;
 					case 'down':	fIndex = 6;		break;
 				}
-				mesh.geometry.attributes.uv.array.set(uv_array[0], fIndex*4 + 0);  //0,1
-				mesh.geometry.attributes.uv.array.set(uv_array[1], fIndex*4 + 2);  //1,1
-				mesh.geometry.attributes.uv.array.set(uv_array[2], fIndex*4 + 4);  //0,0
-				mesh.geometry.attributes.uv.array.set(uv_array[3], fIndex*4 + 6);  //1,0
-				mesh.geometry.attributes.uv.needsUpdate = true;
+				let uv_attr = mesh.geometry.attributes.uv;
+				(uv_attr.array as any).set(uv_array[0], fIndex*4 + 0);  //0,1
+				(uv_attr.array as any).set(uv_array[1], fIndex*4 + 2);  //1,1
+				(uv_attr.array as any).set(uv_array[2], fIndex*4 + 4);  //0,0
+				(uv_attr.array as any).set(uv_array[3], fIndex*4 + 6);  //1,0
+				uv_attr.needsUpdate = true;
 			}
 
 			this.model_3d.add(mesh);
@@ -323,8 +460,8 @@ export class PreviewModel {
 
 	static generateModelFromProject() {
 		let cubes = Cube.all.map(cube => {
-			let from = cube.from.slice();
-			let to = cube.to.slice();
+			let from = cube.from.slice() as ArrayVector3;
+			let to = cube.to.slice() as ArrayVector3;
 			adjustFromAndToForInflateAndStretch(from, to, cube);
 			let data = {
 				"position": from,
@@ -356,17 +493,17 @@ export class PreviewModel {
 			cubes
 		});
 	}
-}
-PreviewModel.models = {};
-PreviewModel.getActiveModels = function() {
-	let list = [];
-	for (let id in PreviewModel.models) {
-		let model = PreviewModel.models[id];
-		if (model.enabled) {
-			list.push(model);
+	static models: Record<string, PreviewModel> = {};
+	static getActiveModels = function(): PreviewModel[] {
+		let list = [];
+		for (let id in PreviewModel.models) {
+			let model = PreviewModel.models[id];
+			if (model.enabled) {
+				list.push(model);
+			}
 		}
+		return list;
 	}
-	return list;
 }
 
 new PreviewModel('studio', {
@@ -767,10 +904,10 @@ player_preview_model.updateArmVariant = function(slim) {
 
 StateMemory.init('minecraft_eula_accepted', 'object');
 export const MinecraftEULA = {
-	isAccepted(key) {
+	isAccepted(key: string) {
 		return StateMemory.minecraft_eula_accepted[key];
 	},
-	async promptUser(key) {
+	async promptUser(key: string) {
 		if (MinecraftEULA.isAccepted(key)) {
 			return true;
 		}
@@ -802,7 +939,7 @@ BARS.defineActions(function() {
 		category: 'view',
 		icon: 'nature_people',
 		click(event) {
-			new Menu(this.children).show(event.target);
+			new Menu(this.children).show(event.target as HTMLElement);
 		},
 		children: () => {
 			let list = [];
@@ -846,9 +983,18 @@ BARS.defineActions(function() {
 	})
 })
 
-Object.assign(window, {
+const global = {
 	PreviewScene,
 	PreviewModel,
 	MinecraftEULA,
 	player_preview_model
-})
+};
+declare global {
+	type PreviewScene = import('./preview_scenes').PreviewScene
+	const PreviewScene: typeof global.PreviewScene
+	type PreviewModel = import('./preview_scenes').PreviewModel
+	const PreviewModel: typeof global.PreviewModel
+	const MinecraftEULA: typeof global.MinecraftEULA
+	const player_preview_model: PreviewModel
+}
+Object.assign(window, global);
