@@ -248,6 +248,9 @@ let format = new ModelFormat('image', {
 				TextureGenerator.addBitmap(results, callback);
 			}
 		}).show();
+		setTimeout(() => {
+			UVEditor.vue.centerView();
+		}, 40);
 		return true;
 	},
 	onActivation() {
