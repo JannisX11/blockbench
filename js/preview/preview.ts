@@ -256,6 +256,7 @@ export class Preview {
 		old_selected?: OutlinerElement[]
 		old_mesh_selection?: any
 		old_spline_selection?: any
+		deferred_event?: PointerEvent
 	}
 
 	static_rclick: boolean
@@ -441,6 +442,21 @@ export class Preview {
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
 		addEventListeners(this.canvas, 'pointerdown', (event: PointerEvent) => {
+			// Self-healing: on every genuine pointerdown, clean up any leftover
+			// state from a previous interaction that wasn't properly finalized.
+			if (this.selection.deferred_event || this.selection.sr_stop_f) {
+				if (this.selection.sr_move_f) {
+					removeEventListeners(document, 'mousemove touchmove', this.selection.sr_move_f);
+					delete this.selection.sr_move_f;
+				}
+				if (this.selection.sr_stop_f) {
+					removeEventListeners(document, 'mouseup touchend', this.selection.sr_stop_f);
+					delete this.selection.sr_stop_f;
+				}
+				this.selection.box.remove();
+				this.selection.deferred_event = null;
+				this.selection.activated = false;
+			}
 			this.click(event)
 		}, { passive: false });
 		addEventListeners(this.canvas, 'mousemove touchmove', (event: MouseEvent) => {
@@ -1005,6 +1021,20 @@ export class Preview {
 		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.button === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
 		let _data = is_canvas_click && this.raycast(event);
+
+		// If area-select keybind is triggered, skip normal click processing
+		// and go directly to rectangle drag. This prevents the initial
+		// mouse-down from selecting an element before the drag begins.
+		// Exception: if deferred_event is already set, we're replaying a click — process normally.
+		if (!this.selection.deferred_event &&
+			Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
+			if (_data) {
+				this.selection.click_target = _data as RaycastResult;
+			}
+			this.startSelRect(event);
+			return true;
+		}
+
 		if (_data) {
 			let data = _data as RaycastResult;
 			this.selection.click_target = data;
@@ -1317,7 +1347,8 @@ export class Preview {
 				Blockbench.dispatchEvent('canvas_click', data)
 			}
 
-			if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
+			if (!this.selection.deferred_event &&
+				Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
 				this.startSelRect(event)
 			}
 			
@@ -1327,7 +1358,8 @@ export class Preview {
 			Toolbox.selected.onCanvasClick({event, type: 'none'});
 		}
 
-		if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
+		if (!this.selection.deferred_event &&
+			Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
 			this.startSelRect(event)
 		} else {
 			return false;
@@ -1597,8 +1629,18 @@ export class Preview {
 	//Selection Rectangle
 	startSelRect(event: PointerEvent) {
 		if (this.selection.sr_move_f) return;
+		const scope = this;
+
+		// Saving event and reset activated to state before selectElements check
+		this.selection.deferred_event = event;
+		this.selection.activated = false;
+		this.selection.start_x = event.offsetX+0
+		this.selection.start_y = event.offsetY+0
+		this.selection.client_x = event.clientX+0
+		this.selection.client_y = event.clientY+0
+
 		if (Toolbox.selected.selectElements == false) return;
-		var scope = this;
+
 		if (Modes.edit) {
 			this.selection.sr_move_f = function(event) { scope.moveSelRect(event)}
 			this.selection.sr_stop_f = function(event) { scope.stopSelRect(event)}
@@ -1606,14 +1648,8 @@ export class Preview {
 			addEventListeners(document, 'mouseup touchend', 	this.selection.sr_stop_f)
 		}
 
-		this.selection.start_x = event.offsetX+0
-		this.selection.start_y = event.offsetY+0
-		this.selection.client_x = event.clientX+0
-		this.selection.client_y = event.clientY+0
-
 		if (Modes.edit && event.pointerType !== 'touch') {
 			this.node.append(this.selection.box)
-			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
 			this.selection.old_spline_selection = JSON.parse(JSON.stringify(Project.spline_selection));
@@ -1687,8 +1723,17 @@ export class Preview {
 		delete this.selection.sr_move_f;
 		delete this.selection.sr_stop_f;
 		this.selection.box.remove();
-		this.selection.activated = false;
-		Undo.finishSelection('Area select');
+
+		// If rectangle was never activated (no drag), replay as a normal click
+		if (!this.selection.activated && this.selection.deferred_event) {
+			const deferred = this.selection.deferred_event;
+			this.click(deferred);
+			this.selection.deferred_event = null;
+		} else {
+			this.selection.activated = false;
+			this.selection.deferred_event = null;
+			Undo.finishSelection('Area select');
+		}
 	}
 	// Background
 	loadBackground() {
