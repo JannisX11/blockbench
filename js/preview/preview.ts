@@ -330,7 +330,7 @@ export class Preview {
 		this.angle = null;
 		this.camPers = new THREE.PerspectiveCamera(settings.fov.value as number, 16 / 9, settings.camera_near_plane.value as number||1, 30000);
 		// @ts-expect-error
-		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
+		this.camOrtho = new THREE.OrthographicCamera(-131072, 131072, -131072, 131072, -131072, 131072);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
 		this.camOrtho.zoom = 0.5
@@ -539,6 +539,13 @@ export class Preview {
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
 		this.mouse.y = - ((event.clientY - canvas_offset.top) / this.height) * 2 + 1;
 		this.raycaster.setFromCamera( this.mouse, this.camera );
+
+		// Fix for orthographic: use near plane as ray origin instead of camera plane,
+		// so that rays can reach geometry both in front of and behind the camera.
+		if (this.isOrtho) {
+			this.raycaster.ray.origin.set(this.mouse.x, this.mouse.y, -1).unproject(this.camera);
+			this.raycaster.far = this.camOrtho.far - this.camOrtho.near;
+		}
 
 		var objects = []
 		Outliner.elements.forEach(element => {

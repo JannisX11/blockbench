@@ -1531,6 +1531,12 @@ import { TransformerModule } from "./transform_modules";
 				pointerVector.set( ( x * 2 ) - 1, - ( y * 2 ) + 1 );
 				ray.setFromCamera( pointerVector, scope.camera );
 
+				// Fix for orthographic: use near plane as ray origin instead of camera plane
+				if (scope.camera && scope.camera.isOrthographicCamera) {
+					ray.ray.origin.set(pointerVector.x, pointerVector.y, -1).unproject(scope.camera);
+					ray.far = scope.camera.far - scope.camera.near;
+				}
+
 				var intersections = ray.intersectObjects( objects, true );
 				return intersections[ 0 ] ? intersections[ 0 ] : false;
 			}
