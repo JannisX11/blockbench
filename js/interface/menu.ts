@@ -48,6 +48,14 @@ export interface CustomMenuItem {
 	click?(context?: any, event?: Event): void
 }
 export type MenuItem = CustomMenuItem | Action | BarSelect | MenuSeparator | string | ((context: any) => MenuItem)
+
+interface EventPosition { clientX: number; clientY: number }
+
+function isEventPosition(obj: unknown): obj is EventPosition {
+	const ep = obj as EventPosition;
+	return typeof ep?.clientX === 'number'
+		&& typeof ep?.clientY === 'number';
+}
 type ResolvedMenuItem = CustomMenuItem | Action | BarSelect
 type MenuParentItem = (CustomMenuItem | Action | BarSelect)
 type MenuOpenPositionAnchor = MouseEvent | HTMLElement | 'mouse';
@@ -655,7 +663,7 @@ export class Menu implements Deletable {
 		}
 		let window_height = window.innerHeight - top_gap;
 
-		if (position instanceof Event && position.clientX !== undefined) {
+		if (isEventPosition(position)) {
 			var offset_left = position.clientX
 			var offset_top  = position.clientY+1
 
