@@ -858,7 +858,7 @@ BARS.defineActions(() => {
 		click() {
 			let value_before = toggle.value;
 			toggle.value = true;
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			Undo.finishEdit('Applied mirror modeling');
 			toggle.value = value_before;
 		}

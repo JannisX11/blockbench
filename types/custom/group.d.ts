@@ -24,7 +24,7 @@ interface GroupOptions {
 declare class Group extends OutlinerNode {
 	constructor(options: Partial<GroupOptions> | string)
 	/**
-	 * Returns the selected groups
+	 * Returns the directly selected groups
 	 * @Note This only includes directly selected groups, not groups that are selected because the parent is selected
 	 */
 	static selected: Group[]
