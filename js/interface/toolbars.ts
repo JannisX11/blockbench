@@ -526,7 +526,8 @@ export const BARS = {
 			children: [
 				'slider_pos_x',
 				'slider_pos_y',
-				'slider_pos_z'
+				'slider_pos_z',
+				'position_slider_per_element'
 			]
 		})
 		Toolbars.element_size = new Toolbar({

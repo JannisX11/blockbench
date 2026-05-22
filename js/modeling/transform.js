@@ -292,8 +292,7 @@ export function centerElements(axis, update) {
 }
 
 //Move
-export function moveElementsInSpace(difference, axis) {
-	let space = getEditTransformSpace();
+export function moveElementsInSpace(difference, axis, space = getEditTransformSpace()) {
 	let groups;
 	if (Format.bone_rig && Group.first_selected && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
 		groups = Group.multi_selected;
@@ -833,7 +832,36 @@ BARS.defineActions(function() {
 		category: 'edit'
 	})
 
+	function getParentTransformSpace() {
+		if (Format.bone_rig && Group.first_selected && Group.first_selected.matchesSelection()) {
+			if (Group.first_selected.parent instanceof Group) {
+				return Group.first_selected.parent;
+			} else {
+				return 0;
+			}
+		}
+		let bone = 0;
+		if (Outliner.selected.length) {
+			bone = Outliner.selected[0].parent;
+		} else if (Group.first_selected && Group.first_selected.parent instanceof Group) {
+			bone = Group.first_selected.parent;
+		}
+		for (var el of Outliner.selected) {
+			if (el.parent !== bone) {
+				bone = 0;
+				break;
+			}
+		}
+		return bone instanceof OutlinerNode ? bone : 0;
+	}
 	function moveOnAxis(modify, axis) {
+		if (toggle_pos_per_element.value == false) {
+			let old_value = getPos(axis);
+			let new_value = modify(old_value);
+			moveElementsInSpace(new_value - old_value, axis, getParentTransformSpace());
+			updateSelection();
+			return;
+		}
 		Outliner.selected.forEach(function(obj, i) {
 			let space_offset = 0;
 			if (settings.local_position_values.value &&
@@ -887,6 +915,9 @@ BARS.defineActions(function() {
 		TickUpdates.selection = true;
 	}
 	function getPos(axis) {
+		if (toggle_pos_per_element.value == false && Group.first_selected) {
+			return Group.first_selected.origin[axis];
+		}
 		let element = Outliner.selected[0];
 		let value = 0;
 		if ((element instanceof Mesh || element instanceof SplineMesh) && element.getSelectedVertices().length) {
@@ -910,71 +941,73 @@ BARS.defineActions(function() {
 		}
 		return value;
 	}
-	new NumSlider('slider_pos_x', {
-		name: tl('action.slider_pos', ['X']),
-		description: tl('action.slider_pos.desc', ['X']),
-		color: 'x',
+	const slider_pos_common_options = {
 		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
+		condition: () => (Outliner.selected.length && Modes.edit),
 		getInterval: getSpatialInterval,
-		get: function() {
-			return getPos(0);
-		},
-		change: function(modify) {
-			moveOnAxis(modify, 0)
-		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected})
+			Undo.initEdit({
+				elements: Outliner.selected,
+				groups: toggle_pos_per_element.value ? [] : Group.all.filter(g => g.selected)
+			})
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element position')
 			autoFixMeshEdit()
 		}
+	}
+	new NumSlider('slider_pos_x', {
+		name: tl('action.slider_pos', ['X']),
+		description: tl('action.slider_pos.desc', ['X']),
+		color: 'x',
+		get() {
+			return getPos(0);
+		},
+		change(modify) {
+			moveOnAxis(modify, 0)
+		},
+		...slider_pos_common_options
 	}) 
 	new NumSlider('slider_pos_y', {
 		name: tl('action.slider_pos', ['Y']),
 		description: tl('action.slider_pos.desc', ['Y']),
 		color: 'y',
-		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
-		getInterval: getSpatialInterval,
-		get: function() {
+		get() {
 			return getPos(1);
 		},
-		change: function(modify) {
+		change(modify) {
 			moveOnAxis(modify, 1)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change element position')
-			autoFixMeshEdit()
-		}
+		...slider_pos_common_options
 	}) 
 	new NumSlider('slider_pos_z', {
 		name: tl('action.slider_pos', ['Z']),
 		description: tl('action.slider_pos.desc', ['Z']),
 		color: 'z',
-		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
-		getInterval: getSpatialInterval,
-		get: function() {
+		get() {
 			return getPos(2);
 		},
-		change: function(modify) {
+		change(modify) {
 			moveOnAxis(modify, 2)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change element position')
-			autoFixMeshEdit()
-		}
+		...slider_pos_common_options
 	})
 	let slider_vector_pos = [BarItems.slider_pos_x, BarItems.slider_pos_y, BarItems.slider_pos_z];
 	slider_vector_pos.forEach(slider => slider.slider_vector = slider_vector_pos);
+
+	let toggle_pos_per_element = new Toggle('position_slider_per_element', {
+		icon: 'shuffle',
+		default: false,
+		category: 'transform',
+		condition: slider_pos_common_options.condition,
+		onChange() {
+			if (Condition(BarItems.slider_pos_x.condition)) {
+				BarItems.slider_pos_x.update();
+				BarItems.slider_pos_y.update();
+				BarItems.slider_pos_z.update();
+			}
+		}
+	})
 
 
 	function resizeOnAxis(modify, axis) {

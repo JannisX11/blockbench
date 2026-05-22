@@ -1345,6 +1345,8 @@
 
 	"action.slider_pos": "Position %0",
 	"action.slider_pos.desc": "Move elements on the %0 axis",
+	"action.position_slider_per_element": "Move Individual Positions",
+	"action.position_slider_per_element.desc": "When enabled, using the position sliders changes individual positions per element. When disabled, the whole selection moves in the selected transform space.",
 	"action.slider_size": "Size %0",
 	"action.slider_size.desc": "Resize elements on the %0 axis",
 	"action.slider_inflate": "Inflate",
