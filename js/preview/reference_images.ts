@@ -114,7 +114,12 @@ export class ReferenceImage {
 			this.node.append(this.img);
 		}
 		this.scene_object = new CSS3DObject(this.node);
-		this.scene_object.scale.set(1/8, 1/8, 1/8);
+		switch (Format.forward_direction) {
+			case '-z': this.billboard_rotation[1] = 180; this.billboard_position[2] = Format.block_size; break;
+			case '+z': this.billboard_rotation[1] = 0; this.billboard_position[2] = -Format.block_size; break;
+			case '-x': this.billboard_rotation[1] = -90; this.billboard_position[0] = Format.block_size; break;
+			case '+x': this.billboard_rotation[1] = 90; this.billboard_position[0] = -Format.block_size; break;
+		}
 
 		let onload = () => {
 			let was_image_loaded = this.image_is_loaded;
@@ -430,6 +435,8 @@ export class ReferenceImage {
 				this.scene_object.discardCopyElements();
 				this.scene_object.position.fromArray(this.billboard_position);
 				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
+				let scale = Format.block_size / 128;
+				this.scene_object.scale.set(scale, scale, scale);
 			}
 		}
 		return this;
@@ -1149,7 +1156,7 @@ new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
 new Property(ReferenceImage, 'vector', 'billboard_position');
-new Property(ReferenceImage, 'vector', 'billboard_rotation', {default: [0, 180, 0]});
+new Property(ReferenceImage, 'vector', 'billboard_rotation');
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');

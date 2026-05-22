@@ -2039,7 +2039,7 @@
 	"action.edit_reference_images": "Edit Reference Images",
 	"action.edit_reference_images.desc": "Turn on reference image mode to add or edit reference images and blueprints",
 	"action.add_reference_image": "Add Reference Image",
-	"action.reference_image_from_clipboard": "Reference Image from Clipboard",
+	"action.reference_image_from_clipboard": "Paste Reference Image",
 	"action.toggle_all_reference_images": "Hide/Show All Reference Images",
 	"action.toggle_all_reference_images.desc": "Toggle the visibility of all reference images at once",
 	"action.reference_image_list": "Reference Images",
