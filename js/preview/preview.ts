@@ -535,35 +535,36 @@ export class Preview {
 	}
 	raycast(event: MouseEvent, options = Toolbox.selected.raycast_options || {}): false | RaycastResult {
 		convertTouchEvent(event);
-		var canvas_offset = $(this.canvas).offset()
+		let canvas_offset = this.canvas.getBoundingClientRect();
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
 		this.mouse.y = - ((event.clientY - canvas_offset.top) / this.height) * 2 + 1;
 		this.raycaster.setFromCamera( this.mouse, this.camera );
 
 		var objects = []
 		Outliner.elements.forEach(element => {
-			if (element.visibility === false || element.locked === true || (element.mesh && element.mesh.visible == false)) return;
-			if (element.mesh && 'geometry' in element.mesh) {
-				objects.push(element.mesh);
+			let mesh = element.mesh;
+			if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
+			if (mesh && 'geometry' in mesh) {
+				objects.push(mesh);
 				if (Modes.edit && element.selected) {
+					// @ts-expect-error
+					if (mesh.vertex_points && (mesh.vertex_points.visible || options.vertices)) {
 						// @ts-expect-error
-					if (element.mesh.vertex_points && (element.mesh.vertex_points.visible || options.vertices)) {
-						// @ts-expect-error
-						objects.push(element.mesh.vertex_points);
+						objects.push(mesh.vertex_points);
 					}
-					if (element instanceof Mesh && ((element.mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
-						objects.push(element.mesh.outline);
+					if (element instanceof Mesh && ((mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
+						objects.push(mesh.outline);
 					}
 				} else if (element instanceof SplineMesh && 'render_mode' in element && element.render_mode !== "mesh") {
 					// @ts-expect-error
-					objects.push(element.mesh.pathLine);
+					objects.push(mesh.pathLine);
 				}
 			} else if (element instanceof Locator) {
 				// @ts-expect-error
-				objects.push(element.mesh.sprite);
+				objects.push(mesh.sprite);
 			} else if (element instanceof ArmatureBone) {
 				if (Toolbox.selected.id == 'weight_brush' && !(event.altKey || Pressing.overrides.alt)) return;
-				objects.push(element.mesh.children[0]);
+				objects.push(mesh.children[0]);
 			}
 		})
 		for (let group of Group.multi_selected) {
@@ -2558,7 +2559,7 @@ BARS.defineActions(function() {
 		click(event) {
 			if (!Project) return;
 			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
-			if (Prop.active_panel == 'uv') {
+			if (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover')) {
 				UVEditor.focusOnSelection(zoom)
 
 			} else {

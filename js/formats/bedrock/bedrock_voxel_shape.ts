@@ -189,7 +189,32 @@ BARS.defineActions(function() {
 						size: bb.size()
 					}
 				});
-				if (type == 'selection_box') box_data.length = 1;
+				if (type == 'selection_box') {
+					let { origin, size } = box_data[0];
+					let minX = origin[0];
+					let minY = origin[1];
+					let minZ = origin[2];
+					let maxX = origin[0] + size[0];
+					let maxY = origin[1] + size[1];
+					let maxZ = origin[2] + size[2];
+					for (let i = 1; i < box_data.length; i++) {
+						const { origin, size } = box_data[i];
+						minX = Math.min(minX, origin[0]);
+						minY = Math.min(minY, origin[1]);
+						minZ = Math.min(minZ, origin[2]);
+						maxX = Math.max(maxX, origin[0] + size[0]);
+						maxY = Math.max(maxY, origin[1] + size[1]);
+						maxZ = Math.max(maxZ, origin[2] + size[2]);
+					}
+					box_data = [{
+						origin: [minX, minY, minZ],
+						size: [
+							maxX - minX,
+							maxY - minY,
+							maxZ - minZ
+						]
+					}]
+				};
 				let data = box_data as any;
 				if (box_data.length == 1 && box_data[0].origin.equals([-8, 0, -8]) && box_data[0].size.equals([16, 16, 16])) {
 					data = true;

@@ -519,11 +519,11 @@ function changeNodeLocalPosition(obj, vector) {
 	if ('forEachChild' in obj && obj.getTypeBehavior('use_absolute_position')) {
 		let difference = position_arr.slice().V3_subtract(obj.origin);
 		obj.forEachChild(child => {
-			if (child instanceof Mesh) {
+			/*if (child instanceof Mesh) {
 				for (let vkey in child.vertices) {
 					child.vertices[vkey].V3_add(difference);
 				}
-			}
+			}*/
 			if (child.from) child.from.V3_add(difference);
 			if (child.to) child.to.V3_add(difference);
 			if (child.origin) child.origin.V3_add(difference);
@@ -1641,7 +1641,7 @@ BARS.defineActions(function() {
 		color: 'x',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			centerElements(0, true);
 			Undo.finishEdit('Center selection on X axis')
 		}
@@ -1652,7 +1652,7 @@ BARS.defineActions(function() {
 		color: 'y',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			centerElements(1, true);
 			Undo.finishEdit('Center selection on Y axis')
 		}
@@ -1663,7 +1663,7 @@ BARS.defineActions(function() {
 		color: 'z',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			centerElements(2, true);
 			Undo.finishEdit('Center selection on Z axis')
 		}
@@ -1672,7 +1672,7 @@ BARS.defineActions(function() {
 		icon: 'filter_center_focus',
 		category: 'transform',
 		click() {
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			centerElements(0, false);
 			centerElements(2, true);
 			Undo.finishEdit('Center selection')

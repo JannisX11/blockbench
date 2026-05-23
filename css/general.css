@@ -31,11 +31,13 @@
 		background-color: var(--color-back);
 		height: 18px;
 		margin-top: 12px;
+		border-radius: 10px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
 		width: calc(100% * var(--progress));
+		border-radius: inherit;
 	}
 	.accent_color {
 		color: var(--color-accent);
@@ -693,7 +695,10 @@
 	}
 	.tool.side_menu_tool i.icon.action_more_options {
 		display: inline-block;
-		width: 19px;
+		width: 20px;
+		height: 100%;
+		margin-top: 0;
+		padding-top: 4px;
 		color: var(--color-text);
 		margin-left: 0;
 	}
@@ -708,6 +713,7 @@
 		text-align: center;
 		width: 100%;
 		margin-top: 0px;
+		padding-top: 0px;
 	}
 
 /*(Context-)Menu*/

@@ -1301,6 +1301,11 @@ var codec = new Codec('bedrock', {
 			texture_width:  Project.texture_width || 16,
 			texture_height: Project.texture_height || 16,
 		}
+
+		if (options.collection) {
+
+		}
+
 		var bones = []
 
 		var groups = getAllGroups();

@@ -299,7 +299,7 @@ export class Group extends OutlinerNode {
 		}
 		this.remove(false);
 		if (undo) {
-			all_groups.empty();
+			all_groups.remove(this);
 			Undo.finishEdit('Resolve group');
 		}
 		return array;
@@ -909,19 +909,22 @@ BARS.defineActions(function() {
 		condition: {modes: ['edit'], method: () => Group.first_selected},
 		click() {
 			let all_elements = [];
+			let all_groups = [];
 			for (let group of Group.multi_selected) {
+				all_groups.push(group);
 				group.forEachChild(obj => {
 					if (obj instanceof Group == false) {
 						all_elements.safePush(obj);
+					} else {
+						all_groups.push(obj);
 					}
 				})
 			}
-			let affected_groups = Group.multi_selected.slice();
-			Undo.initEdit({outliner: true, elements: all_elements, groups: affected_groups})
-			for (let group of affected_groups) {
+			Undo.initEdit({outliner: true, elements: all_elements, groups: all_groups})
+			for (let group of Group.multi_selected.slice()) {
 				group.resolve(false);
+				all_groups.remove(group);
 			}
-			affected_groups.empty();
 			Undo.finishEdit('Resolve group');
 		}
 	})

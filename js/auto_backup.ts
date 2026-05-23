@@ -118,7 +118,12 @@ export const AutoBackup = {
 
 				// Confirm selection
 				if (confirm_selection && projects.length > 1) {
-					let form: Record<string, FormElementOptions | '_'> = {};
+					let form: Record<string, FormElementOptions | '_'> = {
+						info: {
+							text: '⚠ Recovering models is only a backup. Please remember to always save your work to your device.',
+							type: 'info'
+						}
+					};
 					let keys: UUID[] = [];
 
 					projects.sort((a, b) => (b.date??0) - (a.date??0));
@@ -154,7 +159,7 @@ export const AutoBackup = {
 					}
 					
 					projects = await new Promise<ProjectSave[]>((resolve, reject) => {
-						new Dialog({
+						let dialog = new Dialog({
 							id: 'recover_backup',
 							title: 'message.recover_backup.title',
 							form,
@@ -170,6 +175,10 @@ export const AutoBackup = {
 								resolve(to_open);
 							}
 						}).show();
+						let content = dialog.object.querySelector('.dialog_content') as HTMLElement;
+						if (content) {
+							content.style.maxHeight = (window.innerHeight - 150) + 'px';
+						}
 					})
 				}
 
