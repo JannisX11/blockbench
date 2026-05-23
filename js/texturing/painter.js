@@ -153,6 +153,8 @@ export const Painter = {
 				if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 					return;
 				}
+				if (BarItems.brush_lock_mode.value == 'element' && Painter.current.element !== data.element) return;
+				if (BarItems.brush_lock_mode.value == 'face') return;
 				Painter.current.x = x
 				Painter.current.y = y
 				Painter.current.face = data.face
@@ -2977,6 +2979,15 @@ BARS.defineActions(function() {
 			sample: true
 		}
 	})
+	new BarSelect('brush_lock_mode', {
+		category: 'paint',
+		condition: () => Toolbox && Toolbox.selected.brush,
+		options: {
+			none: true,
+			element: true,
+			face: true
+		}
+	})
 	new BarSelect('selection_tool_operation_mode', {
 		category: 'paint',
 		condition: {tools: ['selection_tool']},
@@ -3076,6 +3087,7 @@ BARS.defineActions(function() {
 	new Action('expand_texture_selection', {
 		icon: 'settings_overscan',
 		category: 'paint',
+		condition: {modes: ['paint'], selected: {texture: true}},
 		click() {
 			expand_texture_selection_dialog.show();
 		}
