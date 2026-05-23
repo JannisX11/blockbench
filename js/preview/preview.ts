@@ -469,6 +469,12 @@ export class Preview {
 		addEventListeners(this.canvas, 'mouseenter', (event: MouseEvent) => {
 			this.controls.hasMoved = true
 		}, false);
+		addEventListeners(this.canvas, 'mouseleave', (event: MouseEvent) => {
+			if (Painter.screen_space_brush_cursor) {
+				Painter.screen_space_brush_cursor.remove();
+				delete Painter.screen_space_brush_cursor;
+			}
+		}, false)
 
 		Preview.all.push(this);
 	}
@@ -1340,10 +1346,13 @@ export class Preview {
 			Canvas.updateCubeHighlights(data && data.element);
 		}
 
+		let brush_cursor_3d = Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d');
+		let use_screen_projection = Toolbox.selected.brush?.screen_space && (BarItems.screen_space_brush_projection as Toggle).value;
+
 		brush_cursor:
-		if (Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d')) {
+		if (brush_cursor_3d && !use_screen_projection) {
 			if (!data) {
-				scene.remove(Canvas.brush_outline);
+				Canvas.scene.remove(Canvas.brush_outline);
 				break brush_cursor;
 			}
 			if (!data.element.faces) break brush_cursor;
@@ -1352,10 +1361,10 @@ export class Preview {
 			if ('texelToLocalMatrix' in face == false) return;
 			let texture = face.getTexture();
 			if (!texture) {
-				scene.remove(Canvas.brush_outline);
+				Canvas.scene.remove(Canvas.brush_outline);
 				break brush_cursor;
 			}
-			scene.add(Canvas.brush_outline);
+			Canvas.scene.add(Canvas.brush_outline);
 
 			let intersect = data.intersects[0];
 			let world_quaternion = intersect.object.getWorldQuaternion(Reusable.quat1)
@@ -1412,11 +1421,39 @@ export class Preview {
 			}
 			Canvas.brush_outline.matrix = brush_matrix;
 		}
+
+		screen_space_brush_cursor:
+		if (brush_cursor_3d && use_screen_projection) {
+			Painter.screen_space_brush_cursor ??= Interface.createElement('div', {
+				id: 'viewport_brush_outline',
+				class: 'brush_outline'
+			});
+			Painter.screen_space_brush_cursor.classList.toggle('circle', BarItems.brush_shape.value == 'circle');
+			Painter.screen_space_brush_cursor.style.left = event.offsetX + 'px';
+			Painter.screen_space_brush_cursor.style.top = event.offsetY + 'px';
+			this.node.append(Painter.screen_space_brush_cursor);
+			if (data && data.face) {
+				let pixel_density = 1;
+				let face = data.element.faces[data.face];
+				let texture = face?.getTexture();
+				if (texture) {
+					pixel_density = texture.width/texture.getUVWidth();
+				}
+				let r = BarItems.slider_brush_size.get()/2;
+				let screen_radius = (13.4 / this.calculateControlScale(data.intersects[0].point)) * (r / pixel_density);
+				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius.toString());
+			}
+
+		} else if (Painter.screen_space_brush_cursor) {
+			Painter.screen_space_brush_cursor.remove();
+			delete Painter.screen_space_brush_cursor;
+		}
 		
 		if (Toolbox.selected.onCanvasMouseMove) {
 			if (!data) data = this.raycast(event);
 			Toolbox.selected.onCanvasMouseMove(data);
 		}
+		// Hover helpers
 		if (Condition(BarItems.selection_mode.condition) && Mesh.hasAny() && data && data.element instanceof Mesh) {
 			if (BarItems.selection_mode.value == 'edge' && data.type == 'line' && data.vertices) {
 				let pos_1 = Reusable.vec1.fromArray(data.element.vertices[data.vertices[0]]);
