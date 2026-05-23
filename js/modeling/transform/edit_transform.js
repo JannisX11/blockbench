@@ -6,7 +6,7 @@ function displayDistance(number) {
 }
 
 export function getEditTransformSpace() {
-	if (!selected.length && (!Group.first_selected || !Format.bone_rig)) return;
+	if (!Outliner.selected.length && (!Group.first_selected || !Format.bone_rig)) return;
 
 	let input_space;
 	switch (Toolbox.selected.id) {
@@ -17,20 +17,20 @@ export function getEditTransformSpace() {
 
 	if (Toolbox.selected == BarItems.rotate_tool && Format.rotation_limit) return 2;
 
-	if (input_space == 'local' && selected.length && selected[0].getTypeBehavior('rotatable') && (!Format.bone_rig || !Group.first_selected)) {
+	if (input_space == 'local' && Outliner.selected.length && Outliner.selected[0].getTypeBehavior('rotatable') && (!Format.bone_rig || !Group.first_selected)) {
 		let is_local = true;
 		if (Format.bone_rig) {
-			for (var el of selected) {
-				if (el.parent !== selected[0].parent) {
+			for (var el of Outliner.selected) {
+				if (el.parent !== Outliner.selected[0].parent) {
 					is_local = false;
 					break;
 				}
 			}
 		}
 		if (is_local) {
-			for (var el of selected) {
-				if (el.rotation !== selected[0].rotation &&
-				!(el.rotation instanceof Array && el.rotation.equals(selected[0].rotation))
+			for (var el of Outliner.selected) {
+				if (el.rotation !== Outliner.selected[0].rotation &&
+				!(el.rotation instanceof Array && el.rotation.equals(Outliner.selected[0].rotation))
 				) {
 					is_local = false;
 					break;
@@ -217,9 +217,9 @@ new TransformerModule('edit', {
 		if (tool_id === 'resize_tool' || tool_id === 'stretch_tool') {
 			Outliner.selected.forEach(function(obj) {
 				if (obj instanceof Mesh || obj instanceof SplineMesh) {
-					obj.oldVertices = {};
+					obj.temp_data.oldVertices = {};
 					for (let key in obj.vertices) {
-						obj.oldVertices[key] = obj.vertices[key].slice();
+						obj.temp_data.oldVertices[key] = obj.vertices[key].slice();
 					}
 				} else if (obj.getTypeBehavior('resizable')) {
 					obj.temp_data.old_size = typeof obj.size == 'function' ? obj.size() : obj.size.slice();

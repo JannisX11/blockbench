@@ -5,16 +5,56 @@ import { ConfigDialog } from '../interface/dialog';
 import { toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
 import { Pressing } from '../misc';
+import { CSS3DRenderer } from '../lib/CSS3DRenderer';
 import { PointerTarget } from '../interface/pointer_target';
+import { unselectInterface } from '../interface/interface';
+import { sameMeshEdge } from '../modeling/mesh/util';
 
-window.scene = null;
-window.main_preview = null;
-window.MediaPreview = null;
-window.Sun = null;
-window.lights = null;
+interface AnglePreset {
+	name?: string
+	id?: string
+	color?: string
+	condition?: ConditionResolvable
+	default?: true
+	position: ArrayVector3
+	target?: ArrayVector3
+	rotation?: ArrayVector3
+	projection: 'unset' | 'orthographic' | 'perspective'
+	zoom?: number
+	focal_length?: number
+	fov?: number
+	aspect_ratio?: number
+	locked_angle?: number
+}
+
+type PreviewAnnotation = {
+	node: HTMLElement
+	object: THREE.Object3D
+}
+export type RaycastResult = {
+	type: 'element' | 'keyframe' | 'vertex' | 'cube' | 'line' | 'none'
+	event: PointerEvent | MouseEvent | TouchEvent
+	cube?: Cube
+	intersects?: THREE.Intersection[]
+	intersect?: THREE.Intersection
+	face?: string
+	vertex?: any
+	vertices?: [string, string]
+	keyframe?: _Keyframe
+	vertex_index?: number
+	element?: OutlinerElement
+}
+
+type SplitScreenMode = 'single'|'double_horizontal'|'double_vertical'|'quad'|'triple_left'|'triple_right'|'triple_top'|'triple_bottom'
+
+
+let main_preview: Preview = null;
+let MediaPreview: Preview = null;
+
+const NormalY = new THREE.Vector3(0, 1, 0);
 
 var framespersecond = 0;
-const canvas_scenes = {};
+const canvas_scenes: Record<string, ReferenceImage> = {};
 export const three_grid = new THREE.Object3D();
 export const gizmo_colors = {
 	r: new THREE.Color(),
@@ -157,16 +197,81 @@ export const DefaultCameraPresets = [
 		zoom: 0.5,
 		default: true
 	}
-]
+] as AnglePreset[]
 
+interface PreviewOptions {
+	id: string
+	antialias?: boolean
+	offscreen?: boolean
+}
+/**
+ * Previews are 3D viewports, that can either be used as a viewport for the user, or as an offscreen view to record media.
+ */
 export class Preview {
-	constructor(options = 0) {
+	id: string
+	canvas: HTMLCanvasElement
+	height: number
+	width: number
+	aspect_ratio?: number
+	node: HTMLElement
+	label: HTMLLabelElement
+	/**
+	 * True if the preview is in orthographic camera mode
+	 */
+	isOrtho: boolean
+	/**
+	 * Angle, when in a specific side view
+	 */
+	angle: null | string
+	default_angle: AnglePreset
+	camPers: THREE.PerspectiveCamera
+	camOrtho: THREE.OrthographicCamera & {axis: string, backgroundHandle: any}
+	controls: any
+	annotations: Record<string, PreviewAnnotation>
+	offscreen?: boolean
+	renderer: THREE.WebGLRenderer
+	css_renderer?: CSS3DRenderer
+	background: {
+		name: string
+		image: any
+		size: number
+		x: number
+		y: number
+		lock: boolean
+	}
+	side_view_target: THREE.Vector3
+	raycaster: THREE.Raycaster
+	orbit_gizmo?: OrbitGizmo
+	selection: {
+		box: HTMLElement,
+		frustum: THREE.Frustum
+		activated: boolean
+		start_x: number
+		start_y: number
+		client_x: number
+		client_y: number
+		sr_move_f?: any
+		sr_stop_f?: any
+		click_target?: RaycastResult
+		old_selected?: OutlinerElement[]
+		old_mesh_selection?: any
+		old_spline_selection?: any
+	}
+
+	static_rclick: boolean
+	rclick_cooldown: any
+	event_start?: ArrayVector2
+
+	mouse: THREE.Vector2
+
+	constructor(options: PreviewOptions) {
 		var scope = this;
 		if (options && options.id) {
 			this.id = options.id
 		}
 		//Node
-		this.canvas = document.createElement('canvas')
+		this.canvas = document.createElement('canvas');
+		// @ts-expect-error
 		this.canvas.preview = this;
 		this.height = 0;
 		this.width = 0;
@@ -183,19 +288,19 @@ export class Preview {
 		/*menu.querySelector('.preview_reference_menu').onclick = (event) => {
 			BarItems.edit_reference_images.trigger();
 		}*/
-		menu.querySelector('.preview_main_menu').onclick = (event) => {
+		(menu.querySelector('.preview_main_menu') as HTMLElement).onclick = (event) => {
 			this.menu.open(menu, this);
 		}
-		menu.querySelector('.preview_view_options').onclick = (event) => {
+		(menu.querySelector('.preview_view_options') as HTMLElement).onclick = (event) => {
 			ViewOptionsDialog.show(menu);
 			let preview_rect = Interface.preview.getBoundingClientRect();
 			ViewOptionsDialog.object.style.left = 'auto';
 			ViewOptionsDialog.object.style.right = (window.innerWidth-preview_rect.right) + 'px';
 		}
-		menu.querySelector('.preview_fullscreen_button').onclick = (event) => {
+		(menu.querySelector('.preview_fullscreen_button') as HTMLElement).onclick = (event) => {
 			this.fullscreen();
 		}
-		menu.querySelector('.preview_view_mode_menu').onclick = (event) => {
+		(menu.querySelector('.preview_view_mode_menu') as HTMLElement).onclick = (event) => {
 			BarItems.view_mode.open(event);
 		}
 		BarItem.prototype.addLabel(false, {
@@ -223,11 +328,13 @@ export class Preview {
 		this.offscreen = !!options.offscreen;
 		this.isOrtho = false;
 		this.angle = null;
-		this.camPers = new THREE.PerspectiveCamera(settings.fov.value, 16 / 9, settings.camera_near_plane.value||1, 30000);
+		this.camPers = new THREE.PerspectiveCamera(settings.fov.value as number, 16 / 9, settings.camera_near_plane.value as number||1, 30000);
+		// @ts-expect-error
 		this.camOrtho = new THREE.OrthographicCamera(-600,  600, -400, 400, -200, 20000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
 		this.camOrtho.zoom = 0.5
+		// @ts-expect-error
 		this.camPers.preview = this.camOrtho.preview = this;
 		for (var i = 4; i <= 6; i++) {
 			this.camPers.layers.enable(i);
@@ -239,8 +346,8 @@ export class Preview {
 		this.controls.minDistance = 1;
 		this.controls.maxDistance = 3960;
 		this.controls.enableKeys = false;
-		this.controls.zoomSpeed = settings.viewport_zoom_speed.value / 100 * 1.5;
-		this.controls.rotateSpeed = settings.viewport_rotate_speed.value / 100;
+		this.controls.zoomSpeed = (settings.viewport_zoom_speed.value as number) / 100 * 1.5;
+		this.controls.rotateSpeed = (settings.viewport_rotate_speed.value as number) / 100;
 		this.controls.onUpdate(() => {
 			if (this.angle != null) {
 				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
@@ -251,30 +358,9 @@ export class Preview {
 
 		//Annotations
 		this.annotations = {};
-		this.updateAnnotations = function() {
-			for (var key in scope.annotations) {
-				var tag = scope.annotations[key];
-				if (tag.object.visible) {
-					var pos = tag.object.toScreenPosition(scope.camera, scope.canvas);
-					tag.node.style.setProperty('left', pos.x+'px');
-					tag.node.style.setProperty('top', pos.y+'px');
-				}
-			}
-		}
 		this.controls.onUpdate(() => setTimeout(() => {
 			scope.updateAnnotations();
 		}, 6))
-		this.addAnnotation = function(key, tag) {
-			scope.annotations[key] = tag;
-			$(tag.node).insertBefore(scope.canvas);
-			scope.updateAnnotations();
-		}
-		this.removeAnnotation = function(key) {
-			if (scope.annotations[key]) {
-				$(scope.annotations[key].node).detach();
-				delete scope.annotations[key];
-			}
-		}
 
 		this.default_angle = DefaultCameraPresets[0];
 
@@ -293,7 +379,7 @@ export class Preview {
 		try {
 			this.renderer = new THREE.WebGLRenderer({
 				canvas: this.canvas,
-				antialias: typeof options.antialias == 'boolean' ? options.antialias : Settings.get('antialiasing'),
+				antialias: typeof options.antialias == 'boolean' ? options.antialias : Settings.get('antialiasing') as boolean,
 				alpha: true,
 				preserveDrawingBuffer: true
 			});
@@ -302,10 +388,11 @@ export class Preview {
 			error_element.innerHTML = `Error creating WebGL context. Try to update your ${isApp ? 'graphics drivers' : 'web browser'}.`
 
 			if (isApp) {
+				// @ts-expect-error
 				window.restartWithoutHardwareAcceleration = function() {
 
 					ipcRenderer.send('edit-launch-setting', {key: 'hardware_acceleration', value: false});
-					settings.hardware_acceleration = false;
+					settings.hardware_acceleration.value = false;
 					Settings.saveLocalStorages();
 
 					electron.app.relaunch()
@@ -332,33 +419,57 @@ export class Preview {
 		this.renderer.setSize(500, 400);
 		this.updateToneMapping();
 
-		this.selection = {
-			box: $('<div id="selection_box" class="selection_rectangle"></div>'),
-			frustum: new THREE.Frustum()
+		if (!options.offscreen) {
+			this.css_renderer = new CSS3DRenderer({domElement: this.node});
+			this.css_renderer.setSize(500, 400);
+			this.node.append(this.css_renderer.domElement);
+			this.css_renderer.domElement.classList.add('preview_css_renderer_canvas')
 		}
-		this.label = Interface.createElement('label', {class: 'preview_perspective_label'});
+
+		this.selection = {
+			box: Interface.createElement('div', {id: 'selection_box', class: 'selection_rectangle'}),
+			frustum: new THREE.Frustum(),
+			activated: false,
+			start_x: 0,
+			start_y: 0,
+			client_x: 0,
+			client_y: 0,
+		}
+		this.label = Interface.createElement('label', {class: 'preview_perspective_label'}) as HTMLLabelElement;
 		this.node.append(this.label);
 
 		this.raycaster = new THREE.Raycaster();
 		this.mouse = new THREE.Vector2();
-		addEventListeners(this.canvas, 'pointerdown',			event => { this.click(event)}, { passive: false })
-		addEventListeners(this.canvas, 'mousemove touchmove', 	event => {
+		addEventListeners(this.canvas, 'pointerdown', (event: PointerEvent) => {
+			this.click(event)
+		}, { passive: false });
+		addEventListeners(this.canvas, 'mousemove touchmove', (event: MouseEvent) => {
 			if (!this.static_rclick) return;
 			convertTouchEvent(event);
 			let threshold = 7;
 			if (!this.event_start || !Math.epsilon(this.event_start[0], event.clientX, threshold) || !Math.epsilon(this.event_start[1], event.clientY, threshold)) {
 				this.static_rclick = false;
 			}
-		}, false)
-		addEventListeners(this.canvas, 'mousemove touchmove',	event => {
+		}, false);
+		addEventListeners(this.canvas, 'mousemove touchmove', (event: MouseEvent) => {
 			if (PointerTarget.active == PointerTarget.types.global_drag_slider) return;
 			this.mousemove(event)
-		}, false)
-		addEventListeners(this.canvas, 'mouseup touchend',		event => { this.mouseup(event)}, false)
-		addEventListeners(this.canvas, 'dblclick', 				event => { if (settings.double_click_switch_tools.value) Toolbox.toggleTransforms(event); }, false)
-		addEventListeners(this.canvas, 'mouseenter touchstart', event => { this.occupyTransformer(event)}, false)
-		addEventListeners(this.canvas, 'mouseenter',			event => { this.controls.hasMoved = true}, false)
-		addEventListeners(this.canvas, 'mouseleave',			event => {
+		}, false);
+		addEventListeners(this.canvas, 'mouseup touchend', (event: MouseEvent) => {
+			this.mouseup(event)
+		}, false);
+		addEventListeners(this.canvas, 'dblclick', (event: MouseEvent) => {
+			if (settings.double_click_switch_tools.value) {
+				Toolbox.toggleTransforms(event);
+			}
+		}, false);
+		addEventListeners(this.canvas, 'mouseenter touchstart', (event: MouseEvent) => {
+			this.occupyTransformer(event)
+		}, false);
+		addEventListeners(this.canvas, 'mouseenter', (event: MouseEvent) => {
+			this.controls.hasMoved = true
+		}, false);
+		addEventListeners(this.canvas, 'mouseleave', (event: MouseEvent) => {
 			if (Painter.screen_space_brush_cursor) {
 				Painter.screen_space_brush_cursor.remove();
 				delete Painter.screen_space_brush_cursor;
@@ -367,8 +478,11 @@ export class Preview {
 
 		Preview.all.push(this);
 	}
-	//Render
-	resize(width, height) {
+	// MARK: Render
+	/**
+	 * Set a size of the preview in pixels. With no arguments, and if the preview node is connected to the DOM, it will adjust to the size of the parent element
+	 */
+	resize(width?: number, height?: number) {
 		if (this.canvas.isConnected && this !== MediaPreview) {
 			this.height = this.node.parentElement.clientHeight;
 			this.width  = this.node.parentElement.clientWidth;
@@ -404,10 +518,11 @@ export class Preview {
 			this.camOrtho.updateProjectionMatrix();
 		}
 		this.renderer.setSize(this.width, this.height);
+		if (this.css_renderer) this.css_renderer.setSize(this.width, this.height);
 
 		if (this.canvas.isConnected) {
 			this.renderer.setPixelRatio(window.devicePixelRatio);
-			if (window.Transformer) {
+			if ("Transformer" in window) {
 				Transformer.update()
 			}
 		}
@@ -420,12 +535,11 @@ export class Preview {
 			case 'reinhard': this.renderer.toneMapping = THREE.ReinhardToneMapping; break;
 			case 'cineon': this.renderer.toneMapping = THREE.CineonToneMapping; break;
 			case 'aces_filmic': this.renderer.toneMapping = THREE.ACESFilmicToneMapping; break;
-			case 'agx': this.renderer.toneMapping = THREE.AgXToneMapping; break;
-			case 'neutral': this.renderer.toneMapping = THREE.NeutralToneMapping; break;
+			//case 'agx': this.renderer.toneMapping = THREE.AgXToneMapping; break;
+			//case 'neutral': this.renderer.toneMapping = THREE.NeutralToneMapping; break;
 		}
 	}
-	raycast(event, options = Toolbox.selected.raycast_options) {
-		if (!options) options = 0;
+	raycast(event: MouseEvent, options = Toolbox.selected.raycast_options || {}): false | RaycastResult {
 		convertTouchEvent(event);
 		let canvas_offset = this.canvas.getBoundingClientRect();
 		this.mouse.x = ((event.clientX - canvas_offset.left) / this.width) * 2 - 1;
@@ -436,19 +550,23 @@ export class Preview {
 		Outliner.elements.forEach(element => {
 			let mesh = element.mesh;
 			if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
-			if (mesh && mesh.geometry) {
+			if (mesh && 'geometry' in mesh) {
 				objects.push(mesh);
 				if (Modes.edit && element.selected) {
+					// @ts-expect-error
 					if (mesh.vertex_points && (mesh.vertex_points.visible || options.vertices)) {
+						// @ts-expect-error
 						objects.push(mesh.vertex_points);
 					}
 					if (element instanceof Mesh && ((mesh.outline.visible && BarItems.selection_mode.value == 'edge') || options.edges)) {
 						objects.push(mesh.outline);
 					}
-				} else if (element instanceof SplineMesh && element.render_mode !== "mesh") {
+				} else if (element instanceof SplineMesh && 'render_mode' in element && element.render_mode !== "mesh") {
+					// @ts-expect-error
 					objects.push(mesh.pathLine);
 				}
 			} else if (element instanceof Locator) {
+				// @ts-expect-error
 				objects.push(mesh.sprite);
 			} else if (element instanceof ArmatureBone) {
 				if (Toolbox.selected.id == 'weight_brush' && !(event.altKey || Pressing.overrides.alt)) return;
@@ -456,10 +574,12 @@ export class Preview {
 			}
 		})
 		for (let group of Group.multi_selected) {
+			// @ts-expect-error
 			if (group.mesh.vertex_points) objects.push(group.mesh.vertex_points);
 		}
 		if (Animator.open && settings.motion_trails.value && Group.first_selected) {
 			Animator.motion_trail.children.forEach(object => {
+				// @ts-expect-error
 				if (object.isKeyframe === true) {
 					objects.push(object)
 				}
@@ -470,14 +590,17 @@ export class Preview {
 
 		let depth_offset = Preview.selected.calculateControlScale(intersects[0].point);
 		for (let intersect of intersects) {
+			// @ts-expect-error
 			if (intersect.object.isLine) {
 				intersect.distance -= depth_offset;
+				// @ts-expect-error
 			} else if (intersect.object.isPoints) {
 				intersect.distance -= depth_offset * 1.4;
 			}
 		}
 		if (Toolbox.selected.id == 'vertex_snap_tool') {
 			intersects.sort((a, b) => {
+				// @ts-expect-error
 				if (a.object.isPoints != b.object.isPoints) return a.object.isPoints ? -100 : 100;
 				return a.distance - b.distance;
 			});
@@ -491,6 +614,7 @@ export class Preview {
 		}
 		if ((settings.seethrough_outline.value && BarItems.selection_mode.value == 'edge')) {
 			let all_intersects = intersects;
+			// @ts-expect-error
 			intersects = intersects.filter(a => a.object.isLine);
 			if (intersects.length == 0) intersects = all_intersects;
 		}
@@ -504,6 +628,7 @@ export class Preview {
 				element = OutlinerNode.uuids[intersect_object.name];
 				if (element.getTypeBehavior('cube_faces')) {
 					if (element.getTypeBehavior('select_faces')) {
+						// @ts-expect-error
 						face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
 					} else {
 						face = Object.keys(element.faces)[0];
@@ -563,7 +688,9 @@ export class Preview {
 				face,
 				element
 			}
+			// @ts-expect-error
 		} else if (intersect_object.isKeyframe) {
+			// @ts-expect-error
 			let uuid = intersect_object.keyframeUUIDs[intersect.index];
 			let keyframe = Timeline.keyframes.find(kf => kf.uuid == uuid);
 			return {
@@ -573,9 +700,11 @@ export class Preview {
 				keyframe: keyframe
 			}
 		} else if (intersect_object.type == 'Points') {
-			var element = OutlinerNode.uuids[intersect_object.element_uuid];
+			// @ts-expect-error
+			var element = OutlinerNode.uuids[intersect_object.element_uuid] as OutlinerElement;
 			let vertex = element instanceof Mesh
 				? Object.keys(element.vertices)[intersect.index]
+				// @ts-expect-error
 				: intersect_object.vertices[intersect.index];
 			return {
 				event,
@@ -587,8 +716,9 @@ export class Preview {
 				vertex_index: intersect.index,
 			}
 		} else if (intersect_object.type == 'LineSegments') {
-			var element = OutlinerNode.uuids[intersect_object.parent.name];
-			let vertices = [];
+			let element = OutlinerNode.uuids[intersect_object.parent.name] as OutlinerElement;
+			let vertices;
+			// @ts-expect-error
 			if (!(element instanceof SplineMesh)) vertices = intersect_object.vertex_order.slice(intersect.index, intersect.index+2);
 			return {
 				event,
@@ -601,20 +731,19 @@ export class Preview {
 		}
 	}
 	render() {
-		this.controls.update()
-		this.renderer.render(
-			Canvas.scene,
-			this.camera
-		)
+		this.controls.update();
+		this.renderer.render(Canvas.scene, this.camera);
+		if (this.css_renderer) {
+			this.css_renderer.render(Canvas.scene, this.camera, this == Preview.selected);
+		}
 	}
-	//Camera
-	get camera() {
+	// MARK: Camera
+	get camera(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
-	setProjectionMode(ortho, toggle) {
-
+	setProjectionMode(orthographic: boolean, toggle?: boolean): this {
 		let position = this.camera.position;
-		this.isOrtho = !!ortho;
+		this.isOrtho = !!orthographic;
 		this.resize()
 		this.controls.object = this.camera;
 		this.camera.position.copy(position);
@@ -639,7 +768,7 @@ export class Preview {
 		}
 		return this;
 	}
-	setFOV(fov) {
+	setFOV(fov: number): void {
 		this.camPers.fov = fov;
 		this.camPers.updateProjectionMatrix();
 	}
@@ -648,7 +777,7 @@ export class Preview {
 		this.setProjectionMode(false)
 		return this;
 	}
-	setLockedAngle(angle) {
+	setLockedAngle(angle?: number): this {
 		if (typeof angle === 'string' && this.isOrtho) {
 
 			this.angle = angle
@@ -717,12 +846,12 @@ export class Preview {
 		ReferenceImage.updateAll();
 		return this;
 	}
-	setDefaultAnglePreset(preset) {
+	setDefaultAnglePreset(preset: AnglePreset) {
 		this.default_angle = preset;
 		this.loadAnglePreset(preset);
 		return this;
 	}
-	loadAnglePreset(preset) {
+	loadAnglePreset(preset: AnglePreset): this {
 		if (!preset) return;
 		this.camera.position.fromArray(preset.position);
 		if (preset.target) {
@@ -750,15 +879,18 @@ export class Preview {
 		if (!this.isOrtho) {
 			if (typeof preset.focal_length == 'number') {
 				// Only used for display mode and similar presets
-				this.camera.setFocalLength(preset.focal_length);
+				this.camPers.setFocalLength(preset.focal_length);
 			} else {
-				this.setFOV(preset.fov ?? Settings.get('fov'));
+				this.setFOV(preset.fov ?? Settings.get('fov') as number);
 			}
 		}
 		this.setLockedAngle(preset.locked_angle)
 		return this;
 	}
-	newAnglePreset() {
+	/**
+	 * Opens a dialog to create and save a new angle preset
+	 */
+	newAnglePreset(): this {
 		let scope = this;
 		let position = scope.camera.position.toArray();
 		let target = scope.controls.target.toArray();
@@ -793,7 +925,7 @@ export class Preview {
 			},
 			onFormChange(form) {
 				if (form.rotation_mode !== rotation_mode) {
-					rotation_mode = form.rotation_mode;
+					rotation_mode = form.rotation_mode as string;
 					if (form.rotation_mode == 'rotation') {
 						this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target).map(trimFloatNumber)});
 					} else {
@@ -805,7 +937,7 @@ export class Preview {
 
 				if (!formResult.name) return;
 
-				let preset = {
+				let preset: AnglePreset = {
 					name: formResult.name,
 					projection: formResult.projection,
 					position: formResult.position,
@@ -813,9 +945,9 @@ export class Preview {
 				}
 				if (scope.isOrtho) preset.zoom = scope.camOrtho.zoom;
 
-				let presets = localStorage.getItem('camera_presets');
+				let presets: AnglePreset[];
 				try {
-					presets = JSON.parse(presets)||[]
+					presets = JSON.parse(localStorage.getItem('camera_presets'))||[]
 				} catch (err) {
 					presets = [];
 				}
@@ -829,7 +961,7 @@ export class Preview {
 		return this;
 	}
 	//Orientation
-	getFacingDirection() {
+	getFacingDirection(): 'north' | 'south' | 'east' | 'west' {
 		var vec = new THREE.Vector3()
 		this.controls.object.getWorldDirection(vec)
 		vec.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4).ceil()
@@ -848,7 +980,7 @@ export class Preview {
 				break;
 		}
 	}
-	getFacingHeight() {
+	getFacingHeight(): 'up' | 'middle' | 'down' {
 		var y = this.controls.object.getWorldDirection(new THREE.Vector3()).y
 		if (y > 0.5) {
 			return 'up'
@@ -859,10 +991,10 @@ export class Preview {
 		}
 	}
 	//Controls
-	click(event) {
+	click(event?: PointerEvent) {
 		//event.preventDefault();
 		$(':focus').blur();
-		if (open_menu) open_menu.hide();
+		if (Menu.open) Menu.open.hide();
 		unselectInterface(event);
 		convertTouchEvent(event);
 		Preview.selected = this;
@@ -879,8 +1011,9 @@ export class Preview {
 		if (Transformer.hoverAxis !== null) return;
 		let is_canvas_click = Keybinds.extra.preview_select.keybind.key == event.which || event.button === 0 || (Modes.paint && Keybinds.extra.paint_secondary_color.keybind.isTriggered(event));
 
-		var data = is_canvas_click && this.raycast(event);
-		if (data) {
+		let _data = is_canvas_click && this.raycast(event);
+		if (_data) {
+			let data = _data as RaycastResult;
 			this.selection.click_target = data;
 
 			let multi_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'multi_select');
@@ -907,7 +1040,12 @@ export class Preview {
 				group_select = false;
 			}
 
-			if (Toolbox.selected.selectElements && Modes.selected.selectElements && (data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))) {
+			if (
+				Toolbox.selected.selectElements &&
+				Modes.selected instanceof Mode &&
+				Modes.selected.selectElements &&
+				(data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))
+			) {
 				Undo.initSelection();
 				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh' && data.element.type != 'spline') {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
@@ -918,10 +1056,12 @@ export class Preview {
 					}
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
-				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
-					event = 0;
+				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && (BarItems.fill_mode as BarSelect).value == 'selected_elements')) {
+					// @ts-expect-error
+					event = {};
 				}
 				if (data.element.parent instanceof OutlinerNode && (data.element instanceof Mesh == false || data.element instanceof SplineMesh == false || select_mode == 'object') && (
+					// @ts-expect-error
 					(Animator.open && !data.element.constructor.animator) ||
 					group_select ||
 					(!Format.rotate_cubes && Format.bone_rig && ['rotate_tool', 'pivot_tool'].includes(Toolbox.selected.id))
@@ -935,7 +1075,8 @@ export class Preview {
 					// Select clicked first so selected face is registered properly
 					data.element.markAsSelected();
 
-					if (multi_select) {
+					if (multi_select && 'multiSelect' in node_to_select) {
+						// @ts-expect-error
 						node_to_select.multiSelect();
 					} else {
 						node_to_select.select(event);
@@ -992,14 +1133,14 @@ export class Preview {
 								selected_faces.safePush(fkey);
 							});
 						} else {
-							let face_vkeys = data.element.faces[data.face].vertices;
+							let face_vkeys = mesh.faces[data.face].vertices;
 							
 							if (multi_select || group_select) {
 								if (selected_faces.includes(data.face)) {
-									let selected_faces = data.element.getSelectedFaces();
+									let selected_faces = mesh.getSelectedFaces();
 									let vkeys_to_remove = face_vkeys.filter(vkey => {
 										return !selected_faces.find(fkey => {
-											return fkey !== data.face && data.element.faces[fkey].vertices.includes(vkey)
+											return fkey !== data.face && mesh.faces[fkey].vertices.includes(vkey)
 										})
 									})
 									if (vkeys_to_remove.length == 0) vkeys_to_remove.push(face_vkeys[0]);
@@ -1068,6 +1209,7 @@ export class Preview {
 				Undo.finishSelection('Select from viewport');
 
 			} else if (Animator.open && data.type == 'keyframe') {
+				// @ts-expect-error Keyframe name conflict
 				if (data.keyframe instanceof Keyframe) {
 					Undo.initSelection({timeline: true});
 					data.keyframe.select(event).callPlayhead();
@@ -1076,13 +1218,14 @@ export class Preview {
 				}
 
 			} else if (data.type == 'vertex' && Toolbox.selected.id !== 'vertex_snap_tool') {
+				let mesh = data.element as Mesh;
 				Undo.initSelection();
-				let list = data.element.getSelectedVertices(true);
-				let edges;
-				let faces;
+				let list = mesh.getSelectedVertices(true);
+				let edges: MeshEdge[];
+				let faces: string[];
 
-				edges = data.element.getSelectedEdges(true);
-				faces = data.element.getSelectedEdges(true);
+				edges = mesh.getSelectedEdges(true);
+				faces = mesh.getSelectedFaces(true);
 
 				if (multi_select || group_select) {
 					list.toggle(data.vertex);
@@ -1098,10 +1241,11 @@ export class Preview {
 
 			} else if (data.type == 'line') {
 
+				let mesh = data.element as Mesh;
 				Undo.initSelection();
-				let vertices = data.element.getSelectedVertices(true);
-				let edges = data.element.getSelectedEdges(true);
-				let faces = data.element.getSelectedFaces(true);
+				let vertices = mesh.getSelectedVertices(true);
+				let edges = mesh.getSelectedEdges(true);
+				let faces = mesh.getSelectedFaces(true);
 
 				if (multi_select || group_select) {
 					let index = edges.findIndex(edge => sameMeshEdge(edge, data.vertices))
@@ -1120,7 +1264,6 @@ export class Preview {
 				}
 				if (loop_select) {
 					
-					let mesh = data.element;
 					let start_face;
 					for (let fkey in mesh.faces) {
 						let face = mesh.faces[fkey];
@@ -1188,7 +1331,7 @@ export class Preview {
 			return true;
 		}
 		if (is_canvas_click && typeof Toolbox.selected.onCanvasClick === 'function') {
-			Toolbox.selected.onCanvasClick({event})
+			Toolbox.selected.onCanvasClick({event, type: 'none'});
 		}
 
 		if (Keybinds.extra.preview_area_select.keybind.isTriggered(event)) {
@@ -1197,14 +1340,14 @@ export class Preview {
 			return false;
 		}
 	}
-	mousemove(event) {
+	mousemove(event: MouseEvent) {
 		let data = this.raycast(event);
 		if (Settings.get('highlight_cubes')) {
-			updateCubeHighlights(data && data.element);
+			Canvas.updateCubeHighlights(data && data.element);
 		}
 
 		let brush_cursor_3d = Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d');
-		let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
+		let use_screen_projection = Toolbox.selected.brush?.screen_space && (BarItems.screen_space_brush_projection as Toggle).value;
 
 		brush_cursor:
 		if (brush_cursor_3d && !use_screen_projection) {
@@ -1215,6 +1358,7 @@ export class Preview {
 			if (!data.element.faces) break brush_cursor;
 			if (data.element instanceof SplineMesh && data.element.render_mode !== "mesh") break brush_cursor;
 			let face = data.element.faces[data.face];
+			if ('texelToLocalMatrix' in face == false) return;
 			let texture = face.getTexture();
 			if (!texture) {
 				Canvas.scene.remove(Canvas.brush_outline);
@@ -1245,6 +1389,7 @@ export class Preview {
 			}
 
 			// Position
+			// @ts-expect-error TODO: Add type
 			let brush_matrix = face.texelToLocalMatrix([x * uv_factor_x, y * uv_factor_y], [uv_factor_x, uv_factor_y], [truncated_x * uv_factor_x, truncated_y * uv_factor_y]);
 			let brush_coord = new THREE.Vector3().setFromMatrixPosition(brush_matrix);
 			intersect.object.localToWorld(brush_coord);
@@ -1296,7 +1441,7 @@ export class Preview {
 				}
 				let r = BarItems.slider_brush_size.get()/2;
 				let screen_radius = (13.4 / this.calculateControlScale(data.intersects[0].point)) * (r / pixel_density);
-				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius);
+				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius.toString());
 			}
 
 		} else if (Painter.screen_space_brush_cursor) {
@@ -1345,6 +1490,7 @@ export class Preview {
 		} else if (SplineMesh.hasAny() && data && data.element instanceof SplineMesh) { 
 			// Highlight meshless splines
 			if (data.type == 'line' && data.element.render_mode == "path") {
+				// @ts-expect-error
 				let path = data.element.mesh.pathLine;
 				let array = [];
 				let pos_attr = path.geometry.getAttribute("position").array.slice();
@@ -1371,7 +1517,7 @@ export class Preview {
 			if (Canvas.hover_helper_vertex.parent) Canvas.hover_helper_vertex.parent.remove(Canvas.hover_helper_vertex);
 		}
 	}
-	mouseup(event) {
+	mouseup(event: MouseEvent) {
 		this.showContextMenu(event);
 		if (settings.canvas_unselect.value &&
 			(event.which === 1 || event.which === 3 || event instanceof TouchEvent) &&
@@ -1389,7 +1535,7 @@ export class Preview {
 		}
 		return this;
 	}
-	raycastMouseCoords(x,y) {
+	raycastMouseCoords(x: number, y: number) {
 		var scope = this;
 		var canvas_offset = $(scope.canvas).offset()
 		scope.mouse.x = ((x - canvas_offset.left) / scope.width) * 2 - 1;
@@ -1413,7 +1559,7 @@ export class Preview {
 			y: vector.y
 		};
 	}
-	showContextMenu(event) {
+	showContextMenu(event: MouseEvent): this {
 		Prop.active_panel = 'preview';
 		if (this.static_rclick && (event.which === 3 || (event.type == 'touchend' && this.rclick_cooldown == true))) {
 			var data = this.raycast(event)
@@ -1421,13 +1567,13 @@ export class Preview {
 			
 			let click_result;
 			if (typeof Toolbox.selected.onCanvasRightClick === 'function') {
-				click_result = Toolbox.selected.onCanvasRightClick(data || {event});
+				click_result = Toolbox.selected.onCanvasRightClick(data || {event, type: 'none'});
 			}
 			if (click_result == false) {
-			} else if (Toolbox.selected.selectElements && Modes.selected.selectElements && data && data.element && !Modes.animate) {
+			} else if (Toolbox.selected.selectElements && Modes.selected instanceof Mode && Modes.selected.selectElements && data && data.element && !Modes.animate) {
 				data.element.showContextMenu(event);
 
-			} else if (data.type == 'keyframe') {
+			} else if (data && data.type == 'keyframe') {
 				data.keyframe.showContextMenu(event);
 
 			} else {
@@ -1438,7 +1584,7 @@ export class Preview {
 		delete this.rclick_cooldown;
 		return this;
 	}
-	occupyTransformer(event) {
+	occupyTransformer(event?: MouseEvent | TouchEvent): this {
 		if (this.offscreen || Transformer.dragging) return this;
 
 		let update = Transformer.canvas != this.canvas;
@@ -1448,7 +1594,7 @@ export class Preview {
 			Transformer.setCanvas(this.canvas);
 			Preview.selected.controls.updateSceneScale();
 		}
-		if (event && event.pointerType == 'touch') {
+		if (event instanceof TouchEvent) {
 			Transformer.simulateMouseDown(event);
 		}
 		return this;
@@ -1459,20 +1605,43 @@ export class Preview {
 		} else {
 			var scaleVector = new THREE.Vector3();
 			var scale = scaleVector.subVectors(position, this.camera.position).length() / 4;
-			scale *= this.camera.fov / this.height;
+			scale *= this.camPers.fov / this.height;
 			return scale;
 		}
 	}
+	// Annotations
+	updateAnnotations() {
+		for (let key in this.annotations) {
+			let tag = this.annotations[key];
+			if (tag.object.visible) {
+				// @ts-expect-error custom function, not typed
+				let pos = tag.object.toScreenPosition(this.camera, this.canvas);
+				tag.node.style.setProperty('left', pos.x+'px');
+				tag.node.style.setProperty('top', pos.y+'px');
+			}
+		}
+	}
+	addAnnotation(key: string, tag: PreviewAnnotation): void {
+		this.annotations[key] = tag;
+		$(tag.node).insertBefore(this.canvas);
+		this.updateAnnotations();
+	}
+	removeAnnotation(key): void {
+		if (this.annotations[key]) {
+			$(this.annotations[key].node).detach();
+			delete this.annotations[key];
+		}
+	}
 	//Selection Rectangle
-	startSelRect(event) {
-		if (this.sr_move_f) return;
+	startSelRect(event: PointerEvent) {
+		if (this.selection.sr_move_f) return;
 		if (Toolbox.selected.selectElements == false) return;
 		var scope = this;
 		if (Modes.edit) {
-			this.sr_move_f = function(event) { scope.moveSelRect(event)}
-			this.sr_stop_f = function(event) { scope.stopSelRect(event)}
-			addEventListeners(document, 'mousemove touchmove', 	this.sr_move_f)
-			addEventListeners(document, 'mouseup touchend', 	this.sr_stop_f)
+			this.selection.sr_move_f = function(event) { scope.moveSelRect(event)}
+			this.selection.sr_stop_f = function(event) { scope.stopSelRect(event)}
+			addEventListeners(document, 'mousemove touchmove', 	this.selection.sr_move_f)
+			addEventListeners(document, 'mouseup touchend', 	this.selection.sr_stop_f)
 		}
 
 		this.selection.start_x = event.offsetX+0
@@ -1481,7 +1650,7 @@ export class Preview {
 		this.selection.client_y = event.clientY+0
 
 		if (Modes.edit && event.pointerType !== 'touch') {
-			$(this.node).append(this.selection.box)
+			this.node.append(this.selection.box)
 			this.selection.activated = false;
 			this.selection.old_selected = Outliner.selected.slice();
 			this.selection.old_mesh_selection = JSON.parse(JSON.stringify(Project.mesh_selection));
@@ -1492,7 +1661,7 @@ export class Preview {
 		}
 
 	}
-	moveSelRect(event) {
+	moveSelRect(event: MouseEvent) {
 		var scope = this;
 		convertTouchEvent(event);
 
@@ -1503,11 +1672,11 @@ export class Preview {
 			Math.clamp(this.selection.start_x + (event.clientX - this.selection.client_x), -2, this.width),
 			Math.clamp(this.selection.start_y + (event.clientY - this.selection.client_y), -2, this.height),
 		)
-		this.selection.box.css('left', c.ax+'px')
-		this.selection.box.css('top',  c.ay+'px')
+		this.selection.box.style.left = c.ax+'px';
+		this.selection.box.style.top =  c.ay+'px';
 
-		this.selection.box.css('width', c.x+'px')
-		this.selection.box.css('height',c.y+'px')
+		this.selection.box.style.width = c.x+'px';
+		this.selection.box.style.height =c.y+'px';
 
 		if (c.x + c.y > 40) {
 			this.selection.activated = true
@@ -1516,17 +1685,17 @@ export class Preview {
 		//Select
 		if (!this.selection.activated) return;
 		
-		let rect_start = [c.ax, c.ay];
-		let rect_end = [c.bx, c.by];
+		let rect_start: ArrayVector2 = [c.ax, c.ay];
+		let rect_end: ArrayVector2 = [c.bx, c.by];
 		let extend_selection = (event.shiftKey || Pressing.overrides.shift) ||
 				((event.ctrlOrCmd || Pressing.overrides.ctrl) && !Keybinds.extra.preview_area_select.keybind.ctrl && !Keybinds.extra.preview_area_select.keybind.meta)
 		let selection_mode = BarItems.selection_mode.value;
-		let spline_selection_mode = BarItems.spline_selection_mode.value;
+		let spline_selection_mode = (BarItems.spline_selection_mode as BarSelect).value;
 
 		let widthHalf = 0.5 * this.canvas.width / window.devicePixelRatio;
 		let heightHalf = 0.5 * this.canvas.height / window.devicePixelRatio;
 
-		function projectPoint(vector) {
+		function projectPoint(vector: THREE.Vector3): ArrayVector2 {
 			vector.project(scope.camera);
 			return [
 				 ( vector.x * widthHalf ) + widthHalf,
@@ -1536,7 +1705,7 @@ export class Preview {
 
 		unselectAllElements()
 		Outliner.elements.forEach((element) => {
-			let isSelected;
+			let isSelected: boolean;
 			let select_in_object_mode = (element instanceof Mesh == false || selection_mode == 'object') && (element instanceof SplineMesh == false || spline_selection_mode == "object");
 			if (extend_selection && this.selection.old_selected.includes(element) && select_in_object_mode) {
 				isSelected = true
@@ -1551,11 +1720,11 @@ export class Preview {
 		TickUpdates.selection = true;
 	}
 	stopSelRect(event) {
-		removeEventListeners(document, 'mousemove touchmove', this.sr_move_f);
-		removeEventListeners(document, 'mouseup touchend',	this.sr_stop_f);
-		delete this.sr_move_f;
-		delete this.sr_stop_f;
-		this.selection.box.detach()
+		removeEventListeners(document, 'mousemove touchmove', this.selection.sr_move_f);
+		removeEventListeners(document, 'mouseup touchend',	this.selection.sr_stop_f);
+		delete this.selection.sr_move_f;
+		delete this.selection.sr_stop_f;
+		this.selection.box.remove();
 		this.selection.activated = false;
 		Undo.finishSelection('Area select');
 	}
@@ -1567,7 +1736,7 @@ export class Preview {
 		console.warn('Preview.updateBackground() is no longer supported')
 	}
 	//Misc
-	copyView(preview) {
+	copyView(preview: Preview) {
 		this.setProjectionMode(preview.isOrtho);
 		// Update camera
 		this.controls.unlinked = preview.controls.unlinked;
@@ -1575,22 +1744,25 @@ export class Preview {
 		this.camera.position.copy(preview.camera.position);
 		this.camera.quaternion.copy(preview.camera.quaternion);
 		if (this.isOrtho) {
-			this.camera.zoom = preview.camera.zoom;
-			this.camera.top = preview.camera.top;
-			this.camera.bottom = preview.camera.bottom;
-			this.camera.right = preview.camera.right;
-			this.camera.left = preview.camera.left;
+			this.camOrtho.zoom = preview.camOrtho.zoom;
+			this.camOrtho.top = preview.camOrtho.top;
+			this.camOrtho.bottom = preview.camOrtho.bottom;
+			this.camOrtho.right = preview.camOrtho.right;
+			this.camOrtho.left = preview.camOrtho.left;
 			let ratio = this.width / this.height;
-			let current_ratio = (this.camera.right - this.camera.left) / (this.camera.top - this.camera.bottom);
-			this.camera.right *= ratio / current_ratio;
-			this.camera.left *= ratio / current_ratio;
+			let current_ratio = (this.camOrtho.right - this.camOrtho.left) / (this.camOrtho.top - this.camOrtho.bottom);
+			this.camOrtho.right *= ratio / current_ratio;
+			this.camOrtho.left *= ratio / current_ratio;
 			this.camOrtho.updateProjectionMatrix();
 		} else {
 			this.setFOV(preview.camPers.fov);
 		}
 	}
-	screenshot(options, cb) {
-		return Screencam.screenshotPreview(this, options, cb);
+	/**
+	 * Take a screenshot of the current view of the preview
+	 */
+	screenshot(options: ScreenshotOptions, callback: ScreenshotReturn): void {
+		return Screencam.screenshotPreview(this, options, callback);
 	}
 	fullscreen() {
 		if (Preview.selected) {
@@ -1604,10 +1776,10 @@ export class Preview {
 		wrapper.append(this.node)
 		$('#preview').append(wrapper)
 
-		this.node.querySelectorAll('.one_is_enough').forEach(child => {
+		this.node.querySelectorAll('.one_is_enough').forEach((child: HTMLElement) => {
 			child.style.display = 'block';
 		})
-		this.node.querySelectorAll('.quad_view_only').forEach(child => {
+		this.node.querySelectorAll('.quad_view_only').forEach((child: HTMLElement) => {
 			child.style.display = 'none';
 		})
 		
@@ -1639,174 +1811,190 @@ export class Preview {
 		}
 		Preview.all.remove(this);
 	}
-	static selected = null;
-}
-	Preview.prototype.menu = new Menu([
-		'screenshot_model',
-		new MenuSeparator('references'),
-		'add_reference_image',
-		'reference_image_from_clipboard',
-		'toggle_all_reference_images',
-		'edit_reference_images',
-		'preview_scene',
-		{
-			icon: 'icon-player',
-			name: 'settings.display_skin',
-			condition: () => ((Modes.display && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
-			click: function() {
-			
-				changeDisplaySkin()
-			}
-		},
-		new MenuSeparator('controls'),
-		'focus_on_selection',
-		{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
-			preview.newAnglePreset()
-		}},
-		{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
-			let children = []
-			let presets = localStorage.getItem('camera_presets')
-			presets = (presets && autoParseJSON(presets, false)) || [];
-			let all_presets = [
-				DefaultCameraPresets[0], '_',
-				...DefaultCameraPresets.slice(1, 7), '_',
-				...DefaultCameraPresets.slice(7, 11), '_',
-				...DefaultCameraPresets.slice(11).filter(preset => Condition(preset.condition)), '_',
-				...presets
-			];
-
-			all_presets.forEach(preset => {
-				if (typeof preset == 'string') {
-					children.push('_'); return;
-				}
-				let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'far.fa-dot-circle' : 'far.fa-circle'); 
-				children.push({
-					name: preset.name,
-					color: preset.color,
-					id: preset.name,
-					preset,
-					icon,
-					click: () => {
-						preview.loadAnglePreset(preset)
-					},
-					children: !preset.default && [
-						{icon: 'edit', name: 'menu.preview.angle.edit', click() {
-							editCameraPreset(preset, presets);
-						}},
-						{icon: 'delete', name: 'generic.delete', click() {
-							presets.remove(preset);
-							localStorage.setItem('camera_presets', JSON.stringify(presets));
-						}}
-					]
-				})
-			})
-
-			return children;
-		}},
-		{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
-			preview.setProjectionMode(!preview.isOrtho, true);
-		}},
-		new MenuSeparator('interface'),
-		'split_screen',
-		{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
-			preview.fullscreen();
-		}}
-	])
-
-Preview.all = [];
-Preview.split_screen = {
-	enabled: false,
-	mode: 'single',
-	before: null,
-
-	previews: [],
-	lazyLoadPreview(index, camera_preset) {
-		let preview = Preview.split_screen.previews[index];
-		if (!preview) {
-			if (index == 0) {
-				preview = main_preview;
-			} else {
-				preview = new Preview({id: `split_screen_${index}`});
-			}
-			if (camera_preset) {
-				preview.setDefaultAnglePreset(camera_preset);
-			}
-			Preview.split_screen.previews[index] = preview;
-		}
-		return preview;
-	},
+	/**
+	 * The last used preview
+	 */
+	static selected: Preview = null;
+	/**
+	 * List of all previews
+	 */
+	static all: Preview[] = [];
 
 	/**
-	 * 
-	 * @param {'single'|'double_horizontal'|'double_vertical'|'quad'|'triple_left'|'triple_right'|'triple_top'|'triple_bottom'} mode 
-	 * @returns 
+	 * Utility regarding split screen preview mode
 	 */
-	setMode(mode = 'single') {
-		Preview.split_screen.mode = mode;
-		if (mode == 'single') {
-			Preview.split_screen.enabled = false;
-			Interface.preview.setAttribute('split_screen_mode', null);
-			Preview.selected.fullscreen();
+	static split_screen = {
+		/**
+		 * Whether the split screen is enabled
+		 */
+		enabled: false,
+		/**
+		 * The current split screen mode
+		 */
+		mode: 'single',
+		before: null,
+
+		previews: [] as Preview[],
+		lazyLoadPreview(index: number, camera_preset?: AnglePreset): Preview {
+			let preview = Preview.split_screen.previews[index];
+			if (!preview) {
+				if (index == 0) {
+					preview = main_preview as Preview;
+				} else {
+					preview = new Preview({id: `split_screen_${index}`});
+				}
+				if (camera_preset) {
+					preview.setDefaultAnglePreset(camera_preset);
+				}
+				Preview.split_screen.previews[index] = preview;
+			}
+			return preview;
+		},
+		/**
+		 * Set a split screen mode
+		 */
+		setMode(mode: SplitScreenMode = 'single') {
+			Preview.split_screen.mode = mode;
+			if (mode == 'single') {
+				Preview.split_screen.enabled = false;
+				Interface.preview.setAttribute('split_screen_mode', null);
+				Preview.selected.fullscreen();
+				updateInterface()
+				ReferenceImage.updateAll();
+				return;
+			}
+			Preview.split_screen.enabled = true;
+
+			$('#preview .single_canvas_wrapper').remove();
+			$('#preview .split_screen_wrapper').remove();
+
+			let previews;
+			if (mode.startsWith('double')) {
+				previews = [
+					Preview.split_screen.lazyLoadPreview(0),
+					Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[5]),
+				];
+
+			} else if (mode.startsWith('triple')) {
+				previews = [
+					Preview.split_screen.lazyLoadPreview(0),
+					Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[3]),
+					Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[5]),
+				];
+
+			} else if (mode == 'quad') {
+				previews = [
+					Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[1]),
+					Preview.split_screen.lazyLoadPreview(0),
+					Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[3]),
+					Preview.split_screen.lazyLoadPreview(3, DefaultCameraPresets[5]),
+				];
+			}
+			previews.forEach((preview, i) => {
+				let wrapper = Interface.createElement('div', {class: `split_screen_wrapper split_screen_wrapper_${i}`}, preview.node);
+				wrapper.style.gridArea = `preview_${i}`
+				Interface.preview.append(wrapper);
+
+				preview.node.querySelectorAll('.quad_view_only').forEach(child => {
+					child.style.display = 'block';
+				})
+				if (preview !== main_preview) {
+					preview.node.querySelectorAll('.one_is_enough').forEach(child => {
+						child.style.display = 'none';
+					})
+				}
+			})
+			Interface.preview.setAttribute('split_screen_mode', mode);
+		
 			updateInterface()
 			ReferenceImage.updateAll();
-			return;
+		},
+		/**
+		 * Update the size of the split screens
+		 */
+		updateSize() {
+			Interface.preview.style.setProperty('--split-x', Math.roundTo(Interface.data.quad_view_x, 2) + '%');
+			Interface.preview.style.setProperty('--split-y', Math.roundTo(Interface.data.quad_view_y, 2) + '%');
 		}
-		Preview.split_screen.enabled = true;
-
-		$('#preview .single_canvas_wrapper').remove();
-		$('#preview .split_screen_wrapper').remove();
-
-		let previews;
-		if (mode.startsWith('double')) {
-			previews = [
-				Preview.split_screen.lazyLoadPreview(0),
-				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[5]),
-			];
-
-		} else if (mode.startsWith('triple')) {
-			previews = [
-				Preview.split_screen.lazyLoadPreview(0),
-				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[3]),
-				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[5]),
-			];
-
-		} else if (mode == 'quad') {
-			previews = [
-				Preview.split_screen.lazyLoadPreview(1, DefaultCameraPresets[1]),
-				Preview.split_screen.lazyLoadPreview(0),
-				Preview.split_screen.lazyLoadPreview(2, DefaultCameraPresets[3]),
-				Preview.split_screen.lazyLoadPreview(3, DefaultCameraPresets[5]),
-			];
-		}
-		previews.forEach((preview, i) => {
-			let wrapper = Interface.createElement('div', {class: `split_screen_wrapper split_screen_wrapper_${i}`}, preview.node);
-			wrapper.style.gridArea = `preview_${i}`
-			Interface.preview.append(wrapper);
-
-			preview.node.querySelectorAll('.quad_view_only').forEach(child => {
-				child.style.display = 'block';
-			})
-			if (preview !== main_preview) {
-				preview.node.querySelectorAll('.one_is_enough').forEach(child => {
-					child.style.display = 'none';
-				})
-			}
-		})
-		Interface.preview.setAttribute('split_screen_mode', mode);
-	
-		updateInterface()
-		ReferenceImage.updateAll();
-	},
-	updateSize() {
-		Interface.preview.style.setProperty('--split-x', Math.roundTo(Interface.data.quad_view_x, 2) + '%');
-		Interface.preview.style.setProperty('--split-y', Math.roundTo(Interface.data.quad_view_y, 2) + '%');
 	}
+	declare public menu: Menu
 }
+Preview.prototype.menu = new Menu([
+	'screenshot_model',
+	new MenuSeparator('references'),
+	'add_reference_image',
+	'reference_image_from_clipboard',
+	'toggle_all_reference_images',
+	'edit_reference_images',
+	'preview_scene',
+	{
+		icon: 'icon-player',
+		name: 'settings.display_skin',
+		condition: () => ((Modes.display && displayReferenceObjects.active.id === 'player') || Project.bedrock_animation_mode == 'attachable_third'),
+		click: function() {
+		
+			changeDisplaySkin()
+		}
+	},
+	new MenuSeparator('controls'),
+	'focus_on_selection',
+	{icon: 'add_a_photo', name: 'menu.preview.save_angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, click(preview) {
+		preview.newAnglePreset()
+	}},
+	{id: 'angle', icon: 'videocam', name: 'menu.preview.angle', condition(preview) {return !ReferenceImageMode.active && !Modes.display}, children: function(preview) {
+		let children = []
+		let presets: AnglePreset[] = (localStorage.getItem('camera_presets') && autoParseJSON(localStorage.getItem('camera_presets'), false)) || [];
+		let all_presets = [
+			DefaultCameraPresets[0], '_',
+			...DefaultCameraPresets.slice(1, 7), '_',
+			...DefaultCameraPresets.slice(7, 11), '_',
+			...DefaultCameraPresets.slice(11).filter(preset => Condition(preset.condition)), '_',
+			...presets
+		];
+
+		all_presets.forEach(preset => {
+			if (typeof preset == 'string') {
+				children.push('_'); return;
+			}
+			let icon = typeof preset.locked_angle ? 'videocam' : (preset.locked_angle == preview.angle ? 'far.fa-dot-circle' : 'far.fa-circle'); 
+			children.push({
+				name: preset.name,
+				color: preset.color,
+				id: preset.name,
+				preset,
+				icon,
+				click: () => {
+					preview.loadAnglePreset(preset)
+				},
+				children: !preset.default && [
+					{icon: 'edit', name: 'menu.preview.angle.edit', click() {
+						editCameraPreset(preset, presets);
+					}},
+					{icon: 'delete', name: 'generic.delete', click() {
+						presets.remove(preset);
+						localStorage.setItem('camera_presets', JSON.stringify(presets));
+					}}
+				]
+			})
+		})
+
+		return children;
+	}},
+	{icon: (preview) => (preview.isOrtho ? 'check_box' : 'check_box_outline_blank'), name: 'menu.preview.orthographic', click: function(preview) {
+		preview.setProjectionMode(!preview.isOrtho, true);
+	}},
+	new MenuSeparator('interface'),
+	'split_screen',
+	{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
+		preview.fullscreen();
+	}}
+])
+
 
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
 	if (Blockbench.isTouch) scale *= 1.5;
-	scale *= (settings.selection_tolerance.value / 10);
+	scale *= (settings.selection_tolerance.value as number / 10);
 	Preview.all.forEach(preview => {
 		if (preview.canvas.isConnected) {
 			preview.raycaster.params.Points.threshold = scale * 0.8;
@@ -1816,6 +2004,18 @@ Blockbench.on('update_camera_position', e => {
 })
 
 StateMemory.init('viewport_background_color', 'string');
+interface PreviewOptionsFormResult {
+	background: string
+	custom_background_color: any
+	preview_scene: string
+	shading: boolean
+	grids: boolean
+	ground_plane: boolean
+	pixel_grid: boolean
+	painting_grid: boolean
+	show_gizmos: boolean
+	[key: string]: any
+}
 export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 	title: 'dialog.preview_options.title',
 	width: 320,
@@ -1873,7 +2073,7 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 			show_gizmos: Canvas.show_gizmos,
 		});
 	},
-	onFormChange(result) {
+	onFormChange(result: PreviewOptionsFormResult) {
 		let preview_scene_id = PreviewScene.active ? PreviewScene.active.id : 'none';
 		if (preview_scene_id != result.preview_scene) {
 			if (result.preview_scene == 'none') {
@@ -1943,7 +2143,7 @@ export function editCameraPreset(preset, presets) {
 		},
 		onFormChange(form) {
 			if (form.rotation_mode !== rotation_mode) {
-				rotation_mode = form.rotation_mode;
+				rotation_mode = form.rotation_mode as string;
 				if (form.rotation_mode == 'rotation') {
 					this.setFormValues({rotation: cameraTargetToRotation(form.position, form.target)});
 				} else {
@@ -1972,7 +2172,11 @@ export function editCameraPreset(preset, presets) {
 
 
 export class OrbitGizmo {
-	constructor(preview, options = {}) {
+	preview: Preview
+	node: HTMLDivElement
+	lines: Record<axisLetter, SVGPathElement>
+	sides: Record<string, {opposite: string, axis: axisLetter, sign: 1|-1, label?: string, node?: HTMLDivElement}>
+	constructor(preview: Preview, options = {}) {
 		let scope = this;
 		this.preview = preview;
 		this.node = document.createElement('div');
@@ -2015,7 +2219,7 @@ export class OrbitGizmo {
 					preset = structuredClone(preset);
 					preset.position.V3_add(this.preview.camera.position);
 					if (preset.position.allAre(v => Math.abs(v) < 1)) {
-						preset.position = original_preset.position.slice();
+						preset.position = original_preset.position.slice() as ArrayVector3;
 					}
 					delete preset.locked_angle;
 				}
@@ -2025,10 +2229,10 @@ export class OrbitGizmo {
 		}
 
 		// Interact
-		addEventListeners(this.node, 'mousedown touchstart', e1 => {
-			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled || (scope.preview.force_locked_angle && scope.preview.locked_angle !== null)) return;
+		addEventListeners(this.node, 'mousedown touchstart', (e1: TouchEvent & MouseEvent) => {
+			if ((!scope.preview.controls.enableRotate && scope.preview.angle == null) || !scope.preview.controls.enabled) return;
 			convertTouchEvent(e1);
-			let last_event = e1;
+			let last_event: TouchEvent & MouseEvent = e1;
 			let move_calls = 0;
 
 			let started = false;
@@ -2041,7 +2245,7 @@ export class OrbitGizmo {
 				}
 			}
 
-			function move(e2) {
+			function move(e2: TouchEvent & MouseEvent) {
 				convertTouchEvent(e2);
 				if (!started && Math.pow(e2.clientX - e1.clientX, 2) + Math.pow(e2.clientY - e1.clientY, 2) > 12) {
 					start()
@@ -2055,7 +2259,7 @@ export class OrbitGizmo {
 					move_calls++;
 				}
 			}
-			function off(e2) {
+			function off(e2: TouchEvent & MouseEvent) {
 				if (document.exitPointerLock) document.exitPointerLock()
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', off);
@@ -2069,7 +2273,7 @@ export class OrbitGizmo {
 			this.preview.setProjectionMode(!this.preview.isOrtho, true);
 		})
 
-		this.preview.controls.onUpdate(e => this.update(e));
+		this.preview.controls.onUpdate(e => this.update());
 
 		this.update();
 	}
@@ -2119,7 +2323,7 @@ window.addEventListener("gamepadconnected", function(event) {
 	let interval = setInterval(() => {
 		let gamepad = navigator.getGamepads()[event.gamepad.index];
 		let preview = Preview.selected;
-		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || gamepad.axes.allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
+		if (!document.hasFocus() || !preview || !gamepad || !gamepad.axes || !gamepad.connected || (gamepad.axes as number[]).allEqual(0) || gamepad.axes.find(v => isNaN(v)) != undefined) return;
 
 		if (is_space_mouse) {
 			let offset = new THREE.Vector3(
@@ -2138,9 +2342,9 @@ window.addEventListener("gamepadconnected", function(event) {
 				gamepad.axes[3] / -40,
 				gamepad.axes[5] / -40,
 			];
-			camera_diff.applyAxisAngle(THREE.NormalY, axes[1]);
+			camera_diff.applyAxisAngle(NormalY, axes[1]);
 			let tilt_axis = new THREE.Vector3().copy(camera_diff).normalize();
-			tilt_axis.applyAxisAngle(THREE.NormalY, Math.PI/2);
+			tilt_axis.applyAxisAngle(NormalY, Math.PI/2);
 			tilt_axis.y = 0;
 			camera_diff.applyAxisAngle(tilt_axis, axes[0]);
 
@@ -2153,8 +2357,8 @@ window.addEventListener("gamepadconnected", function(event) {
 			let drift_threshold = 0.2;
 			let axes = gamepad.axes.map(v => Math.abs(v) > drift_threshold ? v - drift_threshold * Math.sign(v) : 0);
 			let camera_matrix = preview.camera.matrixWorld;
-			let rotate_speed = settings.viewport_rotate_speed.value / 100;
-			let zoom_speed = settings.viewport_zoom_speed.value / 100;
+			let rotate_speed = (settings.viewport_rotate_speed.value as number) / 100;
+			let zoom_speed = (settings.viewport_zoom_speed.value as number) / 100;
 
 			if (axes[0]) preview.controls.rotateLeft(Math.signedPow(axes[0]) / 8 * rotate_speed);
 			if (axes[1]) preview.controls.rotateUp(Math.signedPow(axes[1]) / 8 * rotate_speed);
@@ -2182,23 +2386,7 @@ window.addEventListener("gamepadconnected", function(event) {
 	})
 });
 
-//Init/Update
-export function initCanvas() {
-	
-	//Objects
-	window.scene = Canvas.scene = new THREE.Scene();
-	scene.name = 'scene'
-
-	Canvas.outlines = new THREE.Object3D();
-	Canvas.outlines.name = 'outline_group'
-	Canvas.scene.add(Canvas.outlines)
-	Canvas.gizmos.push(Canvas.outlines)
-
-		/*monitor: new ReferenceImage({
-			condition: () => Modes.display && display_slot == 'gui',
-			name: tl('display.reference.monitor')
-		}).addAsBuiltIn(),*/
-
+export function setupPreviews() {
 	canvas_scenes.inventory_nine = new ReferenceImage({
 		condition: () => Modes.display && displayReferenceObjects.active?.id == 'inventory_nine',
 		name: tl('display.reference.inventory_nine'),
@@ -2234,29 +2422,17 @@ export function initCanvas() {
 
 	MediaPreview = new Preview({id: 'media', offscreen: true});
 	Screencam.NoAAPreview = new Preview({id: 'no_aa_media', offscreen: true, antialias: false});
-
 	main_preview = new Preview({id: 'main'}).fullscreen();
 
-	//TransformControls
-	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas);
-	window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
-	Transformer.setSize(0.5);
-	scene.add(Transformer);
-	scene.add(SplineGizmos);
-	Canvas.gizmos.push(Transformer);
-	Canvas.gizmos.push(SplineGizmos);
-	main_preview.occupyTransformer()
-
-
-	Canvas.setup();
-	CustomTheme.updateColors();
-	resizeWindow();
+	Preview.selected = main_preview;
+	Object.assign(window, {MediaPreview, main_preview});
 }
+
 let last_animation_timestamp = performance.now();
 export function animate() {
 	requestAnimationFrame( animate );
 	if (!settings.background_rendering.value && !document.hasFocus() && !document.querySelector('#preview:hover')) return;
-	if (performance.now() < last_animation_timestamp + 1000 / settings.fps_limit.value - 1) return;
+	if (performance.now() < last_animation_timestamp + 1000 / (settings.fps_limit.value as number) - 1) return;
 
 	last_animation_timestamp = performance.now();
 
@@ -2284,84 +2460,9 @@ export function animate() {
 	if (TextureAnimator.isPlaying) {
 		TextureAnimator.playAnimationFrame();
 	}
-	Blockbench.dispatchEvent('render_frame');
+	Blockbench.dispatchEvent('render_frame', {});
 }
 
-export function updateShading() {
-	Canvas.updateLayeredTextures();
-	Canvas.scene.remove(lights);
-	let settings_brightness = settings.brightness.value/50;
-	Sun.intensity = settings_brightness;
-	let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
-
-	lights.add(Sun);
-	if (view_mode == 'material') {
-
-		let light = Canvas.material_light;
-		if (!light) {
-			Canvas.material_light = light = new THREE.DirectionalLight();
-		}
-		light.color.copy(Canvas.global_light_color);
-		light.intensity = 0.7 * settings_brightness;
-
-		Canvas.scene.add(light);
-		switch (Canvas.global_light_side) {
-			case 0: light.position.set(60, 100, 20); break;
-			case 1: light.position.set(-10, 20, 100); break;
-			case 2: light.position.set(10, 20, -100); break;
-			case 3: light.position.set(100, 20, -10); break;
-			case 4: light.position.set(-100, 20, 10); break;
-			case 5: light.position.set(20, -100, 0); break;
-		}
-
-		scene.add(Sun);
-		Sun.intensity *= 0.5;
-
-		TextureGroup.all.forEach(tg => {
-			if (tg.is_material) tg.updateMaterial();
-		})
-
-	} else {
-		if (settings.shading.value === true) {
-			Sun.intensity *= 0.5;
-			let parent = scene;
-			parent.add(lights);
-			lights.position.copy(parent.position).multiplyScalar(-1);
-		} else {
-			Canvas.scene.add(Sun);
-		}
-		if (Canvas.material_light) {
-			Canvas.scene.remove(Canvas.material_light);
-		}
-		Texture.all.forEach(tex => {
-			let material = tex.getMaterial();
-			if (!material.uniforms) return;
-			material.uniforms.SHADE.value = settings.shading.value;
-			material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
-			material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
-		})
-		Canvas.emptyMaterials.forEach(material => {
-			material.uniforms.SHADE.value = settings.shading.value;
-			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-		})
-		Canvas.coloredSolidMaterials.forEach(material => {
-			material.uniforms.SHADE.value = settings.shading.value;
-			material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-		})
-	}
-	Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
-	Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
-	Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
-	Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
-	Blockbench.dispatchEvent('update_scene_shading');
-}
-export function updateCubeHighlights(hover_cube, force_off) {
-	Outliner.elements.forEach(element => {
-		if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
-			element.preview_controller.updateHighlight(element, hover_cube, force_off);
-		}
-	})
-}
 
 setInterval(function() {
 	Prop.fps = framespersecond;
@@ -2384,7 +2485,7 @@ BARS.defineActions(function() {
 			normal: {name: true, icon: 'fa-square-caret-up', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('normal')))},
 			vertex_weight: {name: true, icon: 'weight', condition: () => ArmatureBone.all.length && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('vertex_weight'))},
 			weighted_bone_colors: {name: true, icon: 'weight', condition: () => ArmatureBone.all.length && (!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('weighted_bone_colors'))},
-			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.find(tg => tg.is_material))},
+			material: {name: true, icon: 'pages', condition: () => ((!Toolbox.selected.allowed_view_modes || Toolbox.selected.allowed_view_modes.includes('material')) && TextureGroup.all.some(tg => tg.is_material))},
 		},
 		onChange() {
 			let previous_view_mode = Project.view_mode;
@@ -2492,7 +2593,7 @@ BARS.defineActions(function() {
 			rotate_only: {name: 'action.focus_on_selection.rotate_only'},
 			zoom: {name: 'action.focus_on_selection.zoom'}
 		},
-		click(event = 0) {
+		click(event) {
 			if (!Project) return;
 			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
 			if (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover')) {
@@ -2522,7 +2623,7 @@ BARS.defineActions(function() {
 					);
 					let height = Math.max(Math.abs(bounds.min.y-center.y), Math.abs(bounds.max.y-center.y));
 					if (Math.abs(height) != Infinity) {
-						let focal_length = preview.camera.getFocalLength();
+						let focal_length = preview.camPers.getFocalLength();
 						let cam_distance = cam_boom.length();
 						let target_distance = Math.max(radius, height) * (focal_length / 10);
 						let zoom_factor = target_distance / cam_distance;
@@ -2644,10 +2745,8 @@ BARS.defineActions(function() {
 	})
 })
 
-
-Object.assign(window, {
-	scene,
-	Sun,
+const global = {
+	main_preview,
 	three_grid,
 	gizmo_colors,
 	DefaultCameraPresets,
@@ -2655,7 +2754,41 @@ Object.assign(window, {
 	ViewOptionsDialog,
 	editCameraPreset,
 	OrbitGizmo,
-	initCanvas,
-	updateShading,
-	updateCubeHighlights,
-});
+};
+declare global {
+	type Preview = import('./preview').Preview
+	const Preview: typeof global.Preview
+	type OrbitGizmo = import('./preview').OrbitGizmo
+	const OrbitGizmo: typeof global.OrbitGizmo
+	const three_grid: typeof global.three_grid
+	const gizmo_colors: typeof global.gizmo_colors
+	const DefaultCameraPresets: typeof global.DefaultCameraPresets
+	const ViewOptionsDialog: typeof global.ViewOptionsDialog
+	const editCameraPreset: typeof global.editCameraPreset
+	const updateShading: () => void
+
+	let MediaPreview: Preview
+	function animate(): void
+
+	interface BarItemRegistry {
+		view_mode: BarSelect
+		preview_checkerboard: Toggle
+		uv_checkerboard: Toggle
+		toggle_shading: Toggle
+		toggle_all_grids: Toggle
+		toggle_ground_plane: Toggle
+		toggle_motion_trails: Toggle
+		pixel_grid: Toggle
+		split_screen: BarSelect
+		focus_on_selection: Action
+		toggle_camera_projection: Action
+		camera_initial: Action
+		camera_top: Action
+		camera_bottom: Action
+		camera_south: Action
+		camera_north: Action
+		camera_east: Action
+		camera_west: Action
+	}
+}
+Object.assign(window, global);

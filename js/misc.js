@@ -199,7 +199,7 @@ export function updateSelection(options = {}) {
 	BarItems.cube_counter.update();
 	updateNslideValues();
 	Interface.status_bar.vue.updateSelectionInfo();
-	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
+	if (settings.highlight_cubes.value || (Mesh.all[0])) Canvas.updateCubeHighlights();
 	if (Toolbox.selected.id == 'seam_tool' && Mesh.selected[0]) {
 		let value;
 		let selected_edges = Mesh.selected[0].getSelectedEdges();

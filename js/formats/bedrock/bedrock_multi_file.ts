@@ -5,7 +5,6 @@ import { skin_presets } from "../minecraft/skin";
 import { Filesystem } from "../../file_system";
 import { Animation } from "../../animations/animation";
 import { InputFormConfig } from "../../interface/form";
-// @ts-ignore
 import PlayerTexture from './../../../assets/player_skin.png'
 import { splitCube } from "../../modeling/mesh/knife_tool";
 

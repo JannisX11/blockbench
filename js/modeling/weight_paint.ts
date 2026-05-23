@@ -2,7 +2,7 @@ import { Blockbench } from '../api';
 import { THREE } from '../lib/libs';
 import { Armature } from '../outliner/types/armature';
 import { ArmatureBone } from '../outliner/types/armature_bone';
-import { Preview } from '../preview/preview';
+import { Preview, RaycastResult } from '../preview/preview';
 import { symmetrizeArmature } from './mirror_modeling';
 
 type CanvasClickData = RaycastResult
@@ -39,7 +39,7 @@ const raycaster = new THREE.Raycaster();
 function updateScreenSpaceVertexPositions(mesh: Mesh) {
 	if (screen_space_vertex_positions) return screen_space_vertex_positions;
 
-	const depth_check = (BarItems.weight_brush_xray as Toggle).value == false;
+	const depth_check = BarItems.weight_brush_xray.value == false;
 	let vec = new THREE.Vector3();
 	raycaster.ray.origin.setFromMatrixPosition(Preview.selected.camera.matrixWorld);
 	let raycasts = 0;
@@ -74,7 +74,6 @@ new Tool('weight_brush', {
 	category: 'tools',
 	cursor: 'crosshair',
 	toolbar: 'weight_brush',
-	// @ts-ignore
 	transformerMode: 'hidden',
 	selectElements: false,
 	modes: ['edit'],
@@ -175,7 +174,7 @@ new Tool('weight_brush', {
 				target_average_x += mesh.vertices[vkey][0];
 				affected_vkeys.add(vkey);
 			}
-			if ((BarItems.mirror_modeling as Toggle).value) {
+			if (BarItems.mirror_modeling.value) {
 				let mesh2 = symmetrizeArmature(armature, mesh, affected_vkeys);
 				if (mesh2) Mesh.preview_controller.updateGeometry(mesh2);
 			}
@@ -260,3 +259,13 @@ function updateWeightPreview() {
 	}
 }
 Blockbench.on('update_selection', updateWeightPreview);
+
+declare global {
+    interface BarItemRegistry {
+		weight_brush: Tool
+		slider_weight_brush_size: NumSlider
+		slider_weight_brush_limit: NumSlider
+		weight_brush_xray: Toggle
+		weight_brush_blend_mode: BarSelect
+    }
+}

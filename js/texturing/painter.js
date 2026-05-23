@@ -98,7 +98,7 @@ export const Painter = {
 				var ctx = Painter.getCanvas(references.last().img).getContext('2d');
 				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
 				if (settings.pick_color_opacity.value) {
-					let opacity = Math.floor(color.getAlpha()*256);
+					let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 100.4));
 					for (let id in BarItems) {
 						let tool = BarItems[id];
 						if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
@@ -155,6 +155,8 @@ export const Painter = {
 				if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 					return;
 				}
+				if (BarItems.brush_lock_mode.value == 'element' && Painter.current.element !== data.element) return;
+				if (BarItems.brush_lock_mode.value == 'face') return;
 				Painter.current.x = x
 				Painter.current.y = y
 				Painter.current.face = data.face
@@ -466,7 +468,7 @@ export const Painter = {
 		var color = tinycolor(ColorPanel.get(use_2nd_color)).toRgb();
 		var size = BarItems.slider_brush_size.get();
 		let softness = BarItems.slider_brush_softness.get()/100;
-		let max_opacity = BarItems.slider_brush_opacity.get()/255;
+		let max_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 		let b_opacity = max_opacity;
 		let tool = Toolbox.selected;
 		let matrix_id = Painter.current.element
@@ -559,7 +561,7 @@ export const Painter = {
 	},
 	useFilltool(texture, ctx, x, y, area) {
 		let color = tinycolor(ColorPanel.get()).toRgb();
-		let b_opacity = BarItems.slider_brush_opacity.get()/255;
+		let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 		let fill_mode = BarItems.fill_mode.get()
 		let blend_mode = BarItems.blend_mode.value;
 		let {element, offset} = Painter.current;
@@ -1038,7 +1040,7 @@ export const Painter = {
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
 			let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
-			let b_opacity = BarItems.slider_brush_opacity.get()/255;
+			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
 			let hollow = shape.substr(-1) == 'h';
@@ -1210,7 +1212,7 @@ export const Painter = {
 		Painter.brushChanges = true;
 
 		texture.edit(function(canvas) {
-			let b_opacity = BarItems.slider_brush_opacity.get()/255;
+			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 			let {ctx, offset} = Painter.current;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
@@ -1322,7 +1324,7 @@ export const Painter = {
 		}
 		// Set color
 		if (settings.pick_color_opacity.value) {
-			let opacity = Math.floor(color.getAlpha()*256);
+			let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 101));
 			for (let id in BarItems) {
 				let tool = BarItems[id];
 				if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
@@ -1856,6 +1858,7 @@ export const Painter = {
 	},
 	openBrushOptions() {
 		let current_preset = 0;
+		let opacity_range = settings.opacity_range.value == '255' ? 256 : 100;
 		let dialog = new Dialog({
 			id: 'brush_options',
 			title: 'menu.brush_presets.dialog',
@@ -1983,7 +1986,7 @@ export const Painter = {
 				opacity: {
 					label: 'action.slider_brush_opacity',
 					description: 'action.slider_brush_opacity.desc', type: 'number',
-					value: 255, min: 0, max: 255,
+					value: opacity_range, min: 0, max: opacity_range,
 					toggle_enabled: true,
 					toggle_default: true
 				},
@@ -3191,6 +3194,15 @@ BARS.defineActions(function() {
 			sample: true
 		}
 	})
+	new BarSelect('brush_lock_mode', {
+		category: 'paint',
+		condition: () => Toolbox && Toolbox.selected.brush,
+		options: {
+			none: true,
+			element: true,
+			face: true
+		}
+	})
 	new BarSelect('selection_tool_operation_mode', {
 		category: 'paint',
 		condition: {tools: ['selection_tool']},
@@ -3290,6 +3302,7 @@ BARS.defineActions(function() {
 	new Action('expand_texture_selection', {
 		icon: 'settings_overscan',
 		category: 'paint',
+		condition: {modes: ['paint'], selected: {texture: true}},
 		click() {
 			expand_texture_selection_dialog.show();
 		}
@@ -3504,18 +3517,28 @@ BARS.defineActions(function() {
 		condition: () => (Toolbox && ((Toolbox.selected.brush?.opacity == true) || ['color_picker', 'fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id))),
 		tool_setting: 'brush_opacity',
 		settings: {
-			min: 0, max: 255, default: 255,
-			gesture_speed: 4,
+			min: 0,
+			get max() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get default() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get gesture_speed() {return settings.opacity_range.value == '255' ? 4 : 1},
 			show_bar: true,
 			interval: function(event) {
-				if (event.shiftKey && event.ctrlOrCmd) {
-					return 1;
-				} else if (event.shiftKey) {
-					return 4;
-				} else if (event.ctrlOrCmd) {
-					return 1;
+				if (settings.opacity_range.value == '255') {
+					if (event.shiftKey && event.ctrlOrCmd) {
+						return 1;
+					} else if (event.shiftKey) {
+						return 4;
+					} else if (event.ctrlOrCmd) {
+						return 1;
+					} else {
+						return 8;
+					}
 				} else {
-					return 8;
+					if (event.shiftKey || event.ctrlOrCmd) {
+						return 1;
+					} else {
+						return 2;
+					}
 				}
 			}
 		}

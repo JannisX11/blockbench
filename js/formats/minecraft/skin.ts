@@ -153,7 +153,6 @@ export const codec = new Codec('skin_model', {
 			let cubes = []
 			for (let obj of g.children) {
 				if (obj.export && obj instanceof Cube) {
-					// @ts-ignore
 					let template = Codecs.bedrock.compileCube(obj, g);
 					cubes.push(template)
 				}
@@ -261,7 +260,7 @@ export const codec = new Codec('skin_model', {
 		}
 		if (data.camera_angle) {
 			// @ts-ignore
-			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
+			Preview.selected.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
 		}
 		Canvas.updateAllBones()
 		Canvas.updateVisibility()
@@ -798,7 +797,6 @@ BARS.defineActions(function() {
 	})
 })
 
-// @ts-ignore
 Interface.definePanels(function() {
 	new Panel('skin_pose', {
 		icon: 'icon-player',

@@ -299,5 +299,8 @@ const global = {
 declare global {
 	const openDevTools: typeof global.openDevTools
 	const SystemInfo: typeof global.SystemInfo
+	interface Window {
+		SystemInfo: typeof global.SystemInfo | null
+	}
 }
 Object.assign(window, global);

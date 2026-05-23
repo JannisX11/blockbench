@@ -31,7 +31,7 @@ export const MirrorModeling = {
 	},
 	createClone(original: OutlinerElement, undo_aspects: UndoAspects) {
 		// Create or update clone
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let center = Format.centered_grid ? 0 : 8;
 		let mirror_element = MirrorModeling.cached_elements[original.uuid]?.counterpart;
@@ -271,7 +271,7 @@ interface MirrorModelingElementTypeOptions {
 
 
 Blockbench.on('init_edit', (args) => {
-	if (!(BarItems.mirror_modeling as Toggle).value) return;
+	if (!BarItems.mirror_modeling.value) return;
 	let aspects = args.aspects as UndoAspects;
 
 	MirrorModeling.initial_transformer_position = Transformer.position.x;
@@ -336,7 +336,7 @@ Blockbench.on('init_edit', (args) => {
 	}
 })
 Blockbench.on('finish_edit', ({aspects}) => {
-	if (!(BarItems.mirror_modeling as Toggle).value) return;
+	if (!BarItems.mirror_modeling.value) return;
 
 	if (aspects.elements && aspects.mirror_modeling != false) {
 		aspects.elements = aspects.elements.slice();
@@ -548,7 +548,7 @@ MirrorModeling.registerElementType(Mesh, {
 	createLocalSymmetry(mesh: Mesh, cached_data) {
 		// Create or update clone
 		let edit_side = cached_data?.edit_side || MirrorModeling.getEditSide();
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 		let mirror_uv = options.mirror_uv;
 		let pre_part_connections = cached_data?.pre_part_connections;
 
@@ -719,7 +719,7 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	},
 	createLocalSymmetry(element: ArmatureBone, cached_data) {
 		let edit_side = MirrorModeling.getEditSide();
-		let options = (BarItems.mirror_modeling as Toggle).tool_config.options;
+		let options = BarItems.mirror_modeling.tool_config.options;
 	},
 	updateCounterpart(original: ArmatureBone, counterpart: ArmatureBone, context: any) {
 		// Update vertex weights on off-centered bones
@@ -729,12 +729,14 @@ MirrorModeling.registerElementType(ArmatureBone, {
 	}
 })
 MirrorModeling.registerElementType(Billboard, {
+	// @ts-expect-error
 	isCentered(element: Billboard, {center}) {
 		if (Math.roundTo(element.position[0], 3) != center) return false;
 		if (!MirrorModeling.isParentTreeSymmetrical(element, {center})) return false;
 		//if (Math.roundTo(element.rotation[1], 3) || Math.roundTo(element.rotation[2], 3)) return false;
 		return true;
 	},
+	// @ts-expect-error
 	getMirroredElement(element: Billboard, {center}) {
 		let e = 0.01;
 		let symmetry_axes = [0];
@@ -757,6 +759,7 @@ MirrorModeling.registerElementType(Billboard, {
 		}
 		return false;
 	},
+	// @ts-expect-error
 	maintainUV(element: Billboard, original_data) {
 		element.extend({
 			faces: original_data.faces,
@@ -844,7 +847,6 @@ BARS.defineActions(() => {
 	})
 	Blockbench.on('update_selection', () => {
 		if (!Condition(allow_toggle.condition)) return;
-		// @ts-ignore
 		let disabled = Outliner.selected.find(el => el.allow_mirror_modeling === false);
 		if (allow_toggle.value != !disabled) {
 			allow_toggle.value = !disabled;
@@ -858,7 +860,7 @@ BARS.defineActions(() => {
 		click() {
 			let value_before = toggle.value;
 			toggle.value = true;
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			Undo.finishEdit('Applied mirror modeling');
 			toggle.value = value_before;
 		}
@@ -870,5 +872,9 @@ const global = {
 };
 declare global {
 	const MirrorModeling: typeof global.MirrorModeling
+	interface BarItemRegistry {
+		mirror_modeling: Toggle
+		apply_mirror_modeling: Action
+	}
 }
 Object.assign(window, global);

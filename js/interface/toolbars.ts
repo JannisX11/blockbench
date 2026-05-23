@@ -1,15 +1,105 @@
-import { Filesystem } from "../file_system";
-import { currentwindow, ipcRenderer } from "../native_apis";
 
-export const Toolbars = {};
+
+/**
+ * Toolbars are UI elements that are usually constantly displayed on screen, e. g inside a panel, and can hold any number of BarItems, including Actions, Tools, BarSelects etc.
+ * Toolbars are made to be customized by users
+ * @module
+ */
+
+/**
+ * Registry of all toolbars
+ */
+export interface ToolbarRegistry {
+	tools: Toolbar
+	main_tools: Toolbar
+	element_position: Toolbar
+	element_size: Toolbar
+	element_stretch: Toolbar
+	element_origin: Toolbar
+	element_rotation: Toolbar
+	brush: Toolbar
+	vertex_snap: Toolbar
+	seam_tool: Toolbar
+	weight_brush: Toolbar
+	outliner: Toolbar
+	reference_images: Toolbar
+	animations: Toolbar
+	collections: Toolbar
+	texturelist: Toolbar
+	layers: Toolbar
+	uv_editor: Toolbar
+	display: Toolbar
+	keyframe: Toolbar
+	timeline: Toolbar
+	color_picker: Toolbar
+	palette: Toolbar
+	skin_pose: Toolbar
+	[id: string]: Toolbar
+}
+export const Toolbars: Record<string, Toolbar> = {};
+
+export interface ToolbarOptions {
+	id?: string
+	name?: string
+	/**
+	 * If true, the toolbar will display a label abovee
+	 */
+	label?: boolean
+	condition?: ConditionResolvable
+	/**
+	 * If true, the toolbar will only take as much width as needed
+	 */
+	narrow?: boolean
+	vertical?: boolean
+	/**
+	 * If true, the toolbar will not wrap into new line, and will instead display an overflow button in case of overflow
+	 */
+	no_wrap?: boolean
+	/**
+	 * If true, add the toolbar automatically to it's designated spot in the UI
+	 * @deprecated
+	 */
+	default_place?: boolean
+	/**
+	 * Default content of the toolbar. Separators are available, where _ = separator, + = spaces, # = line break
+	 */
+	children: ('_' | '+' | '#' | string | BarItem)[]
+}
 
 export class Toolbar {
-	constructor(id, data) {
+	id: string
+	name: string
+	label: boolean
+	label_node: HTMLElement
+	condition: ConditionResolvable
+	children: (BarItem | string)[]
+	no_wrap: boolean
+	narrow: boolean
+	vertical: boolean
+	default_place: boolean
+	default_children: (BarItem | string)[]
+	/*private*/
+	positionLookup: any
+	/*private*/
+	condition_cache: any
+	/*private*/
+	previously_enabled: any
+	/*private*/
+	postload: any
+	node: HTMLElement
+
+	constructor(id: string, data: ToolbarOptions)
+	/**
+	 * Legacy constructor
+	 * @deprecated
+	 */
+	constructor(data: ToolbarOptions)
+	constructor(id: string | ToolbarOptions, data?: ToolbarOptions) {
 		if (!data) {
-			data = id;
+			data = id as ToolbarOptions;
 			id = data.id
 		}
-		this.id = id;
+		this.id = id as string;
 		this.name = data.name && tl(data.name);
 		this.label = !!data.label;
 		this.label_node = null;
@@ -52,7 +142,8 @@ export class Toolbar {
 				let content = this.node.querySelector('.content');
 				if (!content) return;
 				let menu_items = [];
-				for (let tool of content.childNodes) {
+				for (let _tool of content.childNodes) {
+					let tool = _tool as HTMLElement;
 					if (tool.offsetTop) {
 						let item = BarItems[tool.getAttribute('toolbar_item')];
 						if (!item) continue;
@@ -65,8 +156,8 @@ export class Toolbar {
 
 			let updateOverflow = () => {
 				if (!this.node.isConnected) return;
-				if (Toolbar.open_overflow_popup) return;
-				let show = this.node.querySelector('.content')?.lastElementChild?.offsetTop > 12;
+				let last_child = this.node.querySelector('.content')?.lastElementChild as HTMLElement;
+				let show = last_child?.offsetTop > 12;
 				toolbar_overflow_button.style.display = show ? 'block' : 'none';
 			}
 			updateOverflow();
@@ -88,7 +179,7 @@ export class Toolbar {
 	 * @param {object} data Data used to build the toolbar
 	 * @param {boolean} force If true, customization data will be ignored. Used when resetting toolbar
 	 */
-	build(data, force) {
+	build(data, force: boolean = false) {
 		var scope = this;
 		//Items
 		this.children.length = 0;
@@ -146,9 +237,10 @@ export class Toolbar {
 		this.condition_cache.empty();
 		return this;
 	}
-	contextmenu(event) {
+	contextmenu(event: MouseEvent) {
 		var offset = $(this.node).find('.toolbar_menu').offset()
 		if (offset) {
+			// @ts-expect-error
 			event = {
 				clientX: offset.left+7,
 				clientY: offset.top+28,
@@ -156,13 +248,13 @@ export class Toolbar {
 		}
 		this.menu.open(event, this);
 	}
-	editMenu() {
+	editMenu(): this {
 		BARS.editing_bar = this;
 		BARS.dialog.show();
 		BARS.dialog.content_vue.currentBar = this.children;
 		return this;
 	}
-	add(action, position) {
+	add(action: BarItem, position?: number): this {
 		if (action instanceof BarItem && this.children.includes(action)) return this;
 		if (position === undefined) position = this.children.length
 		if (typeof action === 'object' && action.uniqueNode && action.toolbars.length) {
@@ -178,13 +270,13 @@ export class Toolbar {
 		this.update().save();
 		return this;
 	}
-	remove(action, update = true) {
+	remove(action: BarItem | string, update: boolean = true): this {
 		var i = this.children.length-1;
 		while (i >= 0) {
 			var item = this.children[i]
-			if (item === action || item.id === action) {
-				item.toolbars.remove(this)
-				this.children.splice(i, 1)
+			if (item instanceof BarItem && (item === action || item.id === action)) {
+				item.toolbars.remove(this);
+				this.children.splice(i, 1);
 				if (update != false) this.update(true).save();
 				return this;
 			}
@@ -192,7 +284,7 @@ export class Toolbar {
 		}
 		return this;
 	}
-	update(force) {
+	update(force: boolean = false): this {
 		var scope = this;
 
 		let enabled = Condition(this.condition);
@@ -289,7 +381,7 @@ export class Toolbar {
 		}
 		return this;
 	}
-	toPlace(place) {
+	toPlace(place: string) {
 		if (!place) place = this.id
 		$('div.toolbar_wrapper.'+place+' > .toolbar').detach()
 		$('div.toolbar_wrapper.'+place).append(this.node)
@@ -306,7 +398,7 @@ export class Toolbar {
 		})
 		BARS.stored[this.id] = arr;
 		let identical_to_default = this.default_children.length == arr.length && this.default_children.allAre((item, i) => {
-			return arr[i] == item || (typeof arr[i] == 'string' && arr[i].startsWith(item));
+			return arr[i] == item || (typeof item == 'string' && item.startsWith(item));
 		})
 		if (identical_to_default) {
 			delete BARS.stored[this.id];
@@ -328,6 +420,7 @@ export class Toolbar {
 		this.save();
 		return this;
 	}
+	declare public menu: Menu
 }
 Toolbar.prototype.menu = new Menu([
 		{name: 'menu.toolbar.edit', icon: 'edit', click: function(bar) {
@@ -345,388 +438,11 @@ export const BARS = {
 	editing_bar: undefined,
 	action_definers: [],
 	condition: Condition,
-	defineActions(definer) {
+	dialog: null as Dialog,
+	defineActions(definer: () => void) {
 		BARS.action_definers.push(definer)
 	},
 	setupActions() {
-		//Extras
-			new KeybindItem('preview_select', {
-				category: 'navigate',
-				keybind: new Keybind({key: Blockbench.isTouch ? 0 : 1},
-					{multi_select: 'ctrl', group_select: 'shift', loop_select: 'alt'}
-				),
-				variations: {
-					multi_select: {name: 'keybind.preview_select.multi_select'},
-					group_select: {name: 'keybind.preview_select.group_select'},
-					loop_select: {name: 'keybind.preview_select.loop_select'},
-				}
-			})
-			new KeybindItem('preview_rotate', {
-				category: 'navigate',
-				keybind: new Keybind({key: 1})
-			})
-			new KeybindItem('preview_drag', {
-				category: 'navigate',
-				keybind: new Keybind({key: 3})
-			})
-			new KeybindItem('preview_zoom', {
-				category: 'navigate',
-				keybind: new Keybind({key: 1, shift: true})
-			})
-			new KeybindItem('preview_scroll_zoom', {
-				category: 'navigate',
-				keybind: new Keybind({key: 1001})
-			})
-			new KeybindItem('uv_editor_scroll_zoom', {
-				category: 'navigate',
-				keybind: new Keybind({key: 1001, ctrl: true})
-			})
-			new KeybindItem('preview_area_select', {
-				category: 'navigate',
-				keybind: new Keybind({key: 1, ctrl: true, shift: null})
-			})
-
-			new KeybindItem('confirm', {
-				category: 'navigate',
-				keybind: new Keybind({key: 13})
-			})
-			new KeybindItem('cancel', {
-				category: 'navigate',
-				keybind: new Keybind({key: 27})
-			})
-
-		//Tools
-			new Tool('move_tool', {
-				icon: 'icon-gizmo',
-				category: 'tools',
-				selectFace: true,
-				transformerMode: 'translate',
-				animation_channel: 'position',
-				toolbar: 'main_tools',
-				transform_toolbar: 'element_position',
-				alt_tool: 'resize_tool',
-				modes: ['edit', 'display', 'animate', 'pose'],
-				keybind: new Keybind({key: 'v'}),
-			})
-			new Tool('resize_tool', {
-				icon: 'open_with',
-				category: 'tools',
-				selectFace: true,
-				transformerMode: 'scale',
-				animation_channel: 'scale',
-				toolbar: 'main_tools',
-				transform_toolbar: 'element_size',
-				alt_tool: 'move_tool',
-				modes: ['edit', 'display', 'animate'],
-				keybind: new Keybind({key: 's'}),
-				onSelect() {
-					if (Modes.edit) {
-						if (Mesh.selected.length) {
-							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-						} else {
-							Interface.addSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-						}
-					}
-				},
-				onUnselect() {
-					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_one_side');
-					Interface.removeSuggestedModifierKey('alt', 'modifier_actions.resize_both_sides');
-				}
-			})
-			new Tool('rotate_tool', {
-				icon: 'sync',
-				category: 'tools',
-				selectFace: true,
-				transformerMode: 'rotate',
-				animation_channel: 'rotation',
-				toolbar: 'main_tools',
-				transform_toolbar: 'element_rotation',
-				alt_tool: 'pivot_tool',
-				modes: ['edit', 'display', 'animate', 'pose'],
-				keybind: new Keybind({key: 'r'}),
-			})
-			new Tool('pivot_tool', {
-				icon: 'gps_fixed',
-				category: 'tools',
-				selectFace: true,
-				transformerMode: 'translate',
-				toolbar: 'main_tools',
-				transform_toolbar: 'element_origin',
-				alt_tool: 'rotate_tool',
-				modes: ['edit', 'animate'],
-				keybind: new Keybind({key: 'p'}),
-			})
-			new Tool('vertex_snap_tool', {
-				icon: 'icon-vertexsnap',
-				transformerMode: 'hidden',
-				toolbar: 'vertex_snap',
-				category: 'tools',
-				selectElements: true,
-				cursor: 'copy',
-				modes: ['edit'],
-				condition: {modes: ['edit']},
-				keybind: new Keybind({key: 'x'}),
-				onCanvasClick(data) {
-					Vertexsnap.canvasClick(data)
-				},
-				onSelect: function() {
-					Blockbench.addListener('update_selection', Vertexsnap.select)
-					Vertexsnap.select()
-				},
-				onUnselect: function() {
-					Vertexsnap.clearVertexGizmos()
-					Vertexsnap.step1 = true
-					Blockbench.removeListener('update_selection', Vertexsnap.select)
-				}
-			})
-			new Tool('stretch_tool', {
-				icon: 'expand',
-				category: 'tools',
-				condition: {features: ['stretch_cubes'], modes: ['edit']},
-				selectFace: true,
-				transformerMode: 'stretch',
-				toolbar: 'main_tools',
-				transform_toolbar: 'element_stretch',
-				alt_tool: 'resize_tool',
-				modes: ['edit'],
-				keybind: new Keybind({key: 's', alt: true}),
-			})
-
-			let swap_tools = new Action('swap_tools', {
-				icon: 'swap_horiz',
-				category: 'tools',
-				condition: {modes: ['edit', 'paint', 'display'], project: true},
-				keybind: new Keybind({key: 32}),
-				click: function () {
-					if (BarItems[Toolbox.selected.alt_tool] && Condition(BarItems[Toolbox.selected.alt_tool].condition)) {
-						BarItems[Toolbox.selected.alt_tool].select()
-					}
-				}
-			})
-			swap_tools.addSubKeybind('hold', 'action.swap_tools.hold', new Keybind({key: 18}), () => {});
-			
-			new Action('set_element_marker_color', {
-				name: 'menu.cube.color',
-				icon: 'color_lens',
-				condition: () => Outliner.selected.find(el => el.getTypeBehavior('marker_color')) || Group.selected.length,
-				click(e) {
-					new Menu('set_element_marker_color', this.children()).open(e.target);
-				},
-				children() {
-					return markerColors.map((color, i) => {return {
-						icon: 'bubble_chart',
-						color: color.standard,
-						name: color.name || 'cube.color.'+color.id,
-						click() {
-							let elements = Outliner.selected.filter(el => el.getTypeBehavior('marker_color'))
-							let groups = Group.all.filter(g => g.selected);
-							Undo.initEdit({elements, groups})
-							elements.concat(groups).forEach(el => {
-								el.setColor(i);
-							})
-							Undo.finishEdit('Set marker color');
-						}
-					}});
-				}
-			})
-			new Action('randomize_marker_colors', {
-				icon: 'fa-shuffle',
-				category: 'edit',
-				condition: {modes: ['edit' ], project: true},
-				click: function() {
-					let randomColor = function() { return Math.floor(Math.random() * markerColors.length)}
-					let elements = Outliner.selected.filter(element => element.getTypeBehavior('marker_color'))
-					Undo.initEdit({outliner: true, elements: elements, selection: true, groups: Group.all.filter(g => g.selected)})
-					Group.all.forEach(group => {
-						if (group.selected) {
-							let lastColor = group.color
-							// Ensure chosen group color is never the same as before
-							do group.color = randomColor();
-							while (group.color === lastColor)
-						}
-					})
-					elements.forEach(element => {
-						let lastColor = element.color
-						// Ensure chosen element color is never the same as before
-						do element.setColor(randomColor())
-						while (element.color === lastColor)
-					})
-					Undo.finishEdit('Change marker color')
-				}
-			})
-
-		//File
-			new Action('new_window', {
-				icon: 'open_in_new',
-				category: 'file',
-				condition: isApp,
-				click: function () {
-					ipcRenderer.send('new-window');
-				}
-			})
-			new Action('open_model_folder', {
-				icon: 'folder_open',
-				category: 'file',
-				condition: () => {return isApp && (Project.save_path || Project.export_path)},
-				click: function () {
-					Filesystem.showFileInFolder(Project.export_path || Project.save_path);
-				}
-			})
-			new Action('reload', {
-				icon: 'refresh',
-				category: 'file',
-				condition: isApp,
-				click: function () {
-					if (Blockbench.hasFlag('dev') || confirm(tl('message.close_warning.web'))) {
-						Blockbench.reload()
-					}
-				}
-			})
-
-		//Edit Generic
-			let find_replace_dialog = new Dialog({
-				id: 'find_replace',
-				title: 'action.find_replace',
-				form: {
-					target: {label: 'dialog.find_replace.target', type: 'select', options: {
-						element_names: 'dialog.find_replace.target.element_names',
-						group_names: 'dialog.find_replace.target.group_names',
-						animation_names: 'dialog.find_replace.target.animation_names',
-						keyframe_values: 'dialog.find_replace.target.keyframe_values',
-					}},
-					find: {label: 'dialog.find_replace.find', type: 'text'},
-					replace: {label: 'dialog.find_replace.replace', type: 'text'},
-					regex: {label: 'dialog.find_replace.regex', type: 'checkbox', value: false},
-				},
-				onConfirm(form) {
-					if (!form.find) return;
-					function replace(name) {
-						if (form.regex) {
-							let regex = new RegExp(form.find, 'g');
-							return name.replace(regex, form.replace);
-						} else {
-							return name.split(form.find).join(form.replace);
-						}
-					}
-					if (form.target == 'element_names') {
-						let elements = (Outliner.selected.length ? Outliner.selected : Outliner.elements);
-						Undo.initEdit({elements});
-						elements.forEach(element => {
-							element.name = replace(element.name);
-							element.sanitizeName();
-							if (Condition(element.getTypeBehavior('unique_name'))) {
-								element.createUniqueName();
-							}
-						})
-					}
-					if (form.target == 'group_names') {
-						let groups = Group.first_selected ? Group.all.filter(g => g.selected) : Group.all;
-						Undo.initEdit({groups});
-						groups.forEach(group => {
-							group.name = replace(group.name);
-							group.sanitizeName();
-							if (Condition(group.getTypeBehavior('unique_name'))) {
-								group.createUniqueName();
-							}
-						})
-					}
-					if (form.target == 'animation_names') {
-						let animations = Animation.all;
-						Undo.initEdit({animations});
-						animations.forEach(animation => {
-							animation.name = replace(animation.name);
-							animation.createUniqueName();
-						})
-					}
-					if (form.target == 'keyframe_values') {
-						let keyframes = [];
-						if (Timeline.selected.length) {
-							keyframes = Timeline.selected;
-						} else if (Animation.selected) {
-							for (let key in Animation.selected.animators) {
-								keyframes.push(...Animation.selected.animators[key].keyframes);
-							}
-						}
-						Undo.initEdit({keyframes});
-						keyframes.forEach(keyframe => {
-							keyframe.data_points.forEach(datapoint => {
-								if (datapoint.x != undefined) datapoint.x = replace(datapoint.x.toString());
-								if (datapoint.y != undefined) datapoint.y = replace(datapoint.y.toString());
-								if (datapoint.z != undefined) datapoint.z = replace(datapoint.z.toString());
-
-								if (datapoint.effect) datapoint.effect = replace(datapoint.effect);
-								if (datapoint.locator) datapoint.locator = replace(datapoint.locator);
-								if (datapoint.script) datapoint.script = replace(datapoint.script);
-							})
-						})
-					}
-					Undo.finishEdit('Find/replace')
-				}
-			})
-			new Action('find_replace', {
-				icon: 'find_replace',
-				category: 'edit',
-				click: function () {
-					find_replace_dialog.show();
-				}
-			})
-
-
-		//Settings
-			new Action('open_dev_tools', {
-				name: 'menu.help.developer.dev_tools',
-				icon: 'fas.fa-tools',
-				condition: isApp,
-				work_in_dialog: true,
-				keybind: new Keybind({ctrl: true, shift: true, key: 'i'}),
-				click: () => {
-					currentwindow.toggleDevTools();
-				}
-			})
-			
-
-		//View
-			new Action('fullscreen', {
-				icon: 'fullscreen',
-				category: 'view',
-				condition: isApp,
-				work_in_dialog: true,
-				keybind: new Keybind({key: 122}),
-				click: function () {
-					currentwindow.setFullScreen(!currentwindow.isFullScreen())
-				}
-			})
-			new Action('zoom_in', {
-				icon: 'zoom_in',
-				category: 'view',
-				work_in_dialog: true,
-				click: function () {setZoomLevel('in')}
-			})
-			new Action('zoom_out', {
-				icon: 'zoom_out',
-				category: 'view',
-				work_in_dialog: true,
-				click: function () {setZoomLevel('out')}
-			})
-			new Action('zoom_reset', {
-				icon: 'zoom_out_map',
-				category: 'view',
-				work_in_dialog: true,
-				click: function () {setZoomLevel('reset')}
-			})
-			new Action('toggle_sidebars', {
-				icon: 'view_array',
-				category: 'view',
-				condition: () => !Blockbench.isMobile && Mode.selected && !Mode.selected.hide_sidebars,
-				keybind: new Keybind({key: 'b', ctrl: true}),
-				click: function () {
-					let status = !Prop.show_left_bar;
-					Prop.show_left_bar = status;
-					Prop.show_right_bar = status;
-					resizeWindow();
-				}
-			})
-
 		BARS.action_definers.forEach((definer) => {
 			if (typeof definer === 'function') {
 				definer()
@@ -810,7 +526,8 @@ export const BARS = {
 			children: [
 				'slider_pos_x',
 				'slider_pos_y',
-				'slider_pos_z'
+				'slider_pos_z',
+				'position_slider_per_element'
 			]
 		})
 		Toolbars.element_size = new Toolbar({
@@ -929,12 +646,12 @@ export const BARS = {
 			]
 		})
 
-		window.Toolbox = Toolbars.tools;
+		window.Toolbox = Toolbars.tools as ToolboxToolbar;
 		Toolbox.toggleTransforms = function() {
 			if (Toolbox.selected.id === 'move_tool') {
-				BarItems['resize_tool'].select();
+				BarItems.resize_tool.select();
 			} else if (Toolbox.selected.id === 'resize_tool') {
-				BarItems['move_tool'].select()
+				BarItems.move_tool.select()
 			}
 		}
 		BarItems.move_tool.select()
@@ -951,6 +668,10 @@ export const BARS = {
 			}
 		}
 
+		type VueDraggableEvent = {
+			oldIndex: number
+			newIndex: number
+		}
 		BARS.dialog = new Dialog({
 			id: 'toolbar_edit',
 			title: 'dialog.toolbar_edit.title',
@@ -1024,12 +745,12 @@ export const BARS = {
 					}
 				},
 				methods: {
-					sort(event) {
+					sort(event: VueDraggableEvent) {
 						var item = this.currentBar.splice(event.oldIndex, 1)[0]
 						this.currentBar.splice(event.newIndex, 0, item)
 						this.update();
 					},
-					drop(event) {
+					drop(event: VueDraggableEvent) {
 						var scope = this;
 						$('#bar_items_current .tooltip').css('display', '')
 						setTimeout(() => {
@@ -1046,13 +767,13 @@ export const BARS = {
 					update() {
 						BARS.editing_bar.update(true).save();
 					},
-					addItem(item) {
-						if (item.type === 'separator') {
+					addItem(item: BarItem | {type: 'separator', separator_code: any}) {
+						if (item.type === 'separator' && item instanceof BarItem == false) {
 							item = item.separator_code;
 						}
 						BARS.editing_bar.add(item);
 					},
-					openContextMenu(item, event) {
+					openContextMenu(item, event: MouseEvent) {
 						new Menu([
 							{
 								name: 'generic.remove',
@@ -1065,7 +786,7 @@ export const BARS = {
 							}
 						]).open(event)
 					},
-					getSpacerTitle(char) {
+					getSpacerTitle(char: string) {
 						switch (char) {
 							case '_': return this.separators[0].name;
 							case '+': return this.separators[1].name;
@@ -1119,8 +840,25 @@ export const BARS = {
 	}
 }
 
-Object.assign(window, {
+type ToolboxToolbar = Toolbar & {
+	selected: Tool
+	original: any
+	toggleTransforms(event?: MouseEvent): void
+}
+
+const global = {
 	Toolbar,
 	BARS,
 	Toolbars,
-})
+};
+declare global {
+	type Toolbar = import('./toolbars').Toolbar
+	const Toolbar: typeof global.Toolbar
+	const Toolbars: ToolbarRegistry
+	const BARS: typeof global.BARS
+	const Toolbox: ToolboxToolbar
+	interface Window {
+		Toolbox: ToolboxToolbar
+	}
+}
+Object.assign(window, global);

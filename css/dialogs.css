@@ -196,7 +196,7 @@
 		box-sizing: content-box;
 	}
 	.dialog label.name_space_left {
-		min-width: 140px;
+		min-width: 100px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;

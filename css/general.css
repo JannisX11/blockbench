@@ -151,6 +151,12 @@
 	.preview > canvas {
 		background-repeat: no-repeat;
 	}
+	.preview > .preview_css_renderer_canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+	}
 	div.preview.fixed_ratio {
 		display: flex;
 	}

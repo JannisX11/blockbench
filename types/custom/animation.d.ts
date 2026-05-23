@@ -64,7 +64,7 @@ declare class _Animation extends AnimationItem {
 	save(): this | undefined
 	select(): this | undefined
 	setLength(length?: number): void
-	createUniqueName(references: _Animation[]): any
+	createUniqueName(references?: _Animation[]): any
 	setScopeFromAnimators(): number | undefined
 	rename(): this
 	togglePlayingState(state: any): any
@@ -254,3 +254,4 @@ declare class TimelineMarker {
 	color: number
 	time: number
 }
+declare const WinterskyScene: Wintersky.Scene

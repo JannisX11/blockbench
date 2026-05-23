@@ -38,8 +38,8 @@ const StateMemory = {
 	get(key: string): string|number|[]|boolean|any {
 		return StateMemory[key];
 	}
-}
-export default StateMemory;
+};
+export default StateMemory as (typeof global.StateMemory) & Record<string, any>;
 
 const global = {
 	StateMemory

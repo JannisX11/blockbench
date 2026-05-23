@@ -74,6 +74,7 @@ declare namespace Canvas {
 	const bones: {
 		[uuid: UUID]: THREE.Object3D
 	}
+	let outlines: THREE.Object3D
 	/**
 	 * Main scene, shared across all tabs
 	 */
@@ -108,12 +109,16 @@ declare namespace Canvas {
 	const ground_plane: THREE.Mesh
 	const brush_outline: THREE.Mesh
 
-	const show_gizmos: boolean
+	let show_gizmos: boolean
+	let ground_animation: boolean
 
 	const global_light_color: THREE.Color
-	const global_light_side: number
+	let global_light_side: number
 
 	const face_order: ['east', 'west', 'up', 'down', 'south', 'north']
+
+	const hover_helper_line: THREE.LineSegments
+	const hover_helper_vertex: THREE.Points
 
 	/**
 	 * Raycast on the currently selected preview
@@ -129,6 +134,8 @@ declare namespace Canvas {
 	function clear(): void
 	function buildGrid(): void
 	function updateShading(): void
+	function updateViewMode(): void
+	function updateCubeHighlights(hover_cube: OutlinerElement, force_off?: boolean): void
 	/**
 	 * Updates selected aspects of the preview
 	 * @param options
@@ -188,7 +195,7 @@ declare namespace Canvas {
 	/**
 	 * Update the position of the origin / pivot point gizmo
 	 */
-	function updateOrigin(): boolean
+	function updatePivotMarker(): boolean
 	/**
 	 * Update the position and shape of the specified cube
 	 * @param cube Cube to update
@@ -229,12 +236,14 @@ declare namespace Canvas {
 	 * Calculate the size of the model, in the currently displayed shape. Returns [width, height] in blockbench units
 	 */
 	function getModelSize(): [number, number]
+	function getSelectionBounds(): THREE.Box3
 }
 
 /**
  * Marks a specific aspect of the interface to be updated in the next tick. Useful to avoid an update function getting called multiple times in the same task.
  */
 declare namespace TickUpdates {
+	private function Run(): void
 	let interface: undefined | true
 	let outliner: undefined | true
 	let selection: undefined | true
@@ -268,6 +277,13 @@ interface NodePreviewControllerOptions {
 	updatePaintingGrid?(element: OutlinerNode): void
 	updateHighlight?(element: OutlinerNode, ...args: any[]): void
 	[key: string]: any
+}
+interface ViewportRectangleOverlapContext {
+	projectPoint: (vector: THREE.Vector3) => ArrayVector2
+	extend_selection: boolean
+	rect_start: ArrayVector2
+	rect_end: ArrayVector2
+	preview: Preview
 }
 declare class NodePreviewController {
 	constructor(
@@ -304,4 +320,5 @@ declare class NodePreviewController {
 	updateFaces(instance: OutlinerNode): void
 	updatePaintingGrid(instance: OutlinerNode): void
 	updateHighlight(instance: OutlinerNode, ...args: any[]): void
+	viewportRectangleOverlap(element: OutlinerNode, context: ViewportRectangleOverlapContext)
 }
