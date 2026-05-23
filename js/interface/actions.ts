@@ -652,6 +652,10 @@ export interface BrushOptions {
 	 */
 	opacity: boolean
 	/**
+	 * Enable the toggle for screen space when this tool is selected
+	 */
+	screen_space: boolean
+	/**
 	 * When the brush size is an even number, offset the snapping by half a pixel so that even size brush strokes can be correctly centered
 	 */
 	offset_even_radius: boolean

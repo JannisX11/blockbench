@@ -11,6 +11,7 @@ declare namespace Painter {
 	const lock_alpha: boolean
 	const erase_mode: boolean
 	const default_brush_presets: any[]
+	let screen_space_brush_cursor: HTMLElement
 
 	function edit(
 		texture: Texture,
