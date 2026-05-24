@@ -157,7 +157,7 @@ function setupSettings() {
 	new Setting('undo_selections',			{category: 'edit', value: false});
 	new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 	new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
-		Canvas.updateCubeHighlights();
+		Canvas.updateElementHighlights();
 	}});
 	new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {

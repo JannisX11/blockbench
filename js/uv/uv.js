@@ -3367,6 +3367,7 @@ Interface.definePanels(function() {
 					menu.open(event.target);
 				},
 				selectFace(element, key, event, keep_selection, support_dragging) {
+					setActivePanel('uv');
 					let selected_faces = UVEditor.getSelectedFaces(element, true);
 					let synced_faces = false;
 					if (!element) {

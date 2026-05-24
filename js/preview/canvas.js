@@ -422,7 +422,7 @@ export const Canvas = {
 		Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 		Blockbench.dispatchEvent('update_scene_shading');
 	},
-	updateCubeHighlights(hover_cube, force_off) {
+	updateElementHighlights(hover_cube, force_off) {
 		Outliner.elements.forEach(element => {
 			if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
 				element.preview_controller.updateHighlight(element, hover_cube, force_off);
@@ -471,7 +471,7 @@ export const Canvas = {
 		if (Modes.display && Canvas.ground_animation) {
 			Canvas.ground_animation = false
 		}
-		Canvas.updateCubeHighlights(null, true);
+		Canvas.updateElementHighlights(null, true);
 
 		try {
 			cb()
@@ -486,7 +486,7 @@ export const Canvas = {
 		if (Modes.display && ground_anim_before) {
 			Canvas.ground_animation = ground_anim_before
 		}
-		Canvas.updateCubeHighlights();
+		Canvas.updateElementHighlights();
 	},
 
 	/**

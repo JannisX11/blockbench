@@ -135,7 +135,7 @@ declare namespace Canvas {
 	function buildGrid(): void
 	function updateShading(): void
 	function updateViewMode(): void
-	function updateCubeHighlights(hover_cube: OutlinerElement, force_off?: boolean): void
+	function updateElementHighlights(hover_element: OutlinerElement, force_off?: boolean): void
 	/**
 	 * Updates selected aspects of the preview
 	 * @param options

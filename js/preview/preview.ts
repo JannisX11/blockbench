@@ -991,6 +991,7 @@ export class Preview {
 		if (Menu.open) Menu.open.hide();
 		unselectInterface(event);
 		convertTouchEvent(event);
+		setActivePanel('preview');
 		Preview.selected = this;
 		this.static_rclick = event.which === 3 || event.pointerType == 'touch';
 		if (this.static_rclick) {
@@ -1337,7 +1338,7 @@ export class Preview {
 	mousemove(event: MouseEvent) {
 		let data = this.raycast(event);
 		if (Settings.get('highlight_cubes')) {
-			Canvas.updateCubeHighlights(data && data.element);
+			Canvas.updateElementHighlights(data && data.element);
 		}
 
 		brush_cursor:

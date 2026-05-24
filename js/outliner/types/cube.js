@@ -1419,8 +1419,31 @@ new NodePreviewController(Cube, {
 			!force_off
 		) ? 1 : 0;
 
-		if (mesh.geometry.attributes.highlight.array[0] != highlighted) {
-			mesh.geometry.attributes.highlight.array.set(Array(mesh.geometry.attributes.highlight.count).fill(highlighted));
+		if (mesh.geometry.attributes.highlight.array[0] != highlighted || !hover_cube) {
+			let array = Array(mesh.geometry.attributes.highlight.count).fill(highlighted);
+			if (element.selected && !element.box_uv && Panel.selected?.id == 'uv') {
+				let selected_faces = UVEditor.getSelectedFaces(element);
+				if (selected_faces.includes('east')) {
+					array.fill(2, 0, 4);
+				}
+				if (selected_faces.includes('west')) {
+					array.fill(2, 4, 8);
+				}
+				if (selected_faces.includes('up')) {
+					array.fill(2, 8, 12);
+				}
+				if (selected_faces.includes('down')) {
+					array.fill(2, 12, 16);
+				}
+				if (selected_faces.includes('south')) {
+					array.fill(2, 16, 20);
+				}
+				if (selected_faces.includes('north')) {
+					array.fill(2, 20, 24);
+				}
+				console.log(array)
+			}
+			mesh.geometry.attributes.highlight.array.set(array);
 			mesh.geometry.attributes.highlight.needsUpdate = true;
 		}
 
