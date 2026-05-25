@@ -81,7 +81,7 @@ export function initializeDesktopApp() {
 		let action = new Action('dev_mode_reload', {
 			name: 'Reload',
 			icon: 'refresh',
-			color: '#76f39b',
+			color: 'var(--color-update)',
 			click() {
 				Blockbench.reload();
 			}

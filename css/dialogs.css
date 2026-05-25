@@ -1675,6 +1675,10 @@
 		background-color: #ff3467;
 		color: #000000;
 	}
+	.plugin_tag_list li.plugin_tag_update {
+		background-color: var(--color-update);
+		color: #000000;
+	}
 	.no_plugin_message {
 		text-align: center;
 		margin-top: 30px;

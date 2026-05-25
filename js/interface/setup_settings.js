@@ -299,6 +299,7 @@ function setupSettings() {
 	new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 	new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
+	new Setting('automatic_plugin_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
 	
 	//Export

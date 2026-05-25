@@ -696,6 +696,8 @@
 	"dialog.plugins.install": "Install",
 	"dialog.plugins.uninstall": "Uninstall",
 	"dialog.plugins.reload": "Reload",
+	"dialog.plugins.update": "Update",
+	"dialog.plugins.update_available": "Update Available",
 	"dialog.plugins.none_installed": "No plugins installed",
 	"dialog.plugins.none_available": "No plugins available",
 	"dialog.plugins.offline": "No internet connection",
@@ -1308,6 +1310,8 @@
 	"settings.automatic_updates.desc": "Automatically download new versions and keep Blockbench up-to-date",
 	"settings.update_to_prereleases": "Update to Pre-releases",
 	"settings.update_to_prereleases.desc": "Automatically update to Blockbench beta versions to test new features. Pre-release versions can be unstable, don't enable this option if you rely on Blockbench for work or other important projects.",
+	"settings.automatic_plugin_updates": "Automatic Plugin Updates",
+	"settings.automatic_plugin_updates.desc": "Automatically update plugins to keep them up-to-date",
 	"settings.hardware_acceleration": "Hardware Acceleration",
 	"settings.hardware_acceleration.desc": "Outsource rendering tasks to the graphics card",
 

@@ -215,32 +215,33 @@ export class Plugin {
 	contributors: string[]
 	version: string
 	variant: PluginVariant
-	min_version: string
-	max_version: string
-	deprecation_note: string
+	min_version: string = '';
+	max_version: string = '';
+	deprecation_note: string = '';
 	path: string
-	website: string
+	website: string = '';
 	repository: string
 	bug_tracker: string
-	source: PluginSource
-	creation_date: string|number
+	source: PluginSource = 'store';
+	creation_date: number = 0
 	/**
 	 * Can be used to specify which features a plugin adds. This allows Blockbench to be aware of and suggest even plugins that are not installed.
 	 */
 	contributes?: {
 		formats?: string[]
 		open_extensions?: string[]
-	}
-	await_loading: boolean
-	has_changelog: boolean
-	changelog: null|PluginChangelog
-	about_fetched: boolean
-	changelog_fetched: boolean
-	disabled: boolean
-	new_repository_format: boolean
-	cache_version: number
+	} = {};
+	await_loading: boolean = false;
+	has_changelog: boolean = false;
+	changelog: null|PluginChangelog = null;
+	about_fetched: boolean = false;
+	changelog_fetched: boolean = false;
+	update_available: false | string = false;
+	disabled: boolean = false;
+	new_repository_format: boolean = false;
+	cache_version: number = 0;
 	menu: Menu
-	details: null|PluginDetails
+	details: null|PluginDetails = null;
 	uuid: UUID
 
 	onload?: () => void
@@ -263,22 +264,6 @@ export class Plugin {
 		this.contributors = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
-		this.min_version = '';
-		this.max_version = '';
-		this.deprecation_note = '';
-		this.website = '';
-		this.source = 'store';
-		this.creation_date = 0;
-		this.contributes = {};
-		this.await_loading = false;
-		this.has_changelog = false;
-		this.changelog = null;
-		this.details = null;
-		this.about_fetched = false;
-		this.changelog_fetched = false;
-		this.disabled = false;
-		this.new_repository_format = false;
-		this.cache_version = 0;
 
 		this.extend(data)
 
@@ -444,6 +429,8 @@ export class Plugin {
 	async download(first = false) {
 		let response = await this.installDependencies(first);
 		if (response == false) return;
+
+		this.update_available = false;
 
 		var scope = this;
 		function register() {
@@ -654,6 +641,25 @@ export class Plugin {
 		} else if (this.source == 'url') {
 			this.loadFromURL(this.path, false)
 		}
+
+		this.fetchAbout(true);
+		if (had_changelog && this.has_changelog) {
+			this.fetchChangelog(true);
+		}
+
+		return this;
+	}
+	installUpdate() {
+		this.cache_version++;
+		this.unload()
+		this.tags.empty();
+		this.contributors.empty();
+		this.dependencies.empty();
+		this.details = null;
+		let had_changelog = this.changelog_fetched;
+		this.changelog_fetched = false;
+
+		this.download();
 
 		this.fetchAbout(true);
 		if (had_changelog && this.has_changelog) {
@@ -1055,6 +1061,7 @@ export async function loadInstalledPlugins() {
 	}
 	const install_promises = [];
 	const online_access = Plugins.json instanceof Object && navigator.onLine;
+	const allow_updates = settings.automatic_plugin_updates.value;
 
 	// Setup offers from store
 	if (online_access) {
@@ -1129,15 +1136,27 @@ export async function loadInstalledPlugins() {
 					plugin.installed = true;
 					if (installation.disabled) plugin.disabled = true;
 
-					if (isApp && (
-						(installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version)) ||
-						(plugin.min_version && Blockbench.isOlderThan(plugin.min_version))
-					)) {
-						// Get from file
-						let promise = plugin.load(false);
-						install_promises.push(promise);
+					if (isApp) {
+						let up_to_date = installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version);
+						let update_unsupported = plugin.min_version && Blockbench.isOlderThan(plugin.min_version);
+						let update_available = !up_to_date && !update_unsupported;
+
+						if (update_available && allow_updates) {
+							// Update
+							let promise = plugin.download();
+							if (plugin.await_loading) {
+								install_promises.push(promise);
+							}
+						} else {
+							if (update_available && !allow_updates) {
+								plugin.update_available = plugin.version;
+							}
+							// Get from local file
+							let promise = plugin.load(false);
+							install_promises.push(promise);
+						}
 					} else {
-						// Update
+						// Web app always loads from web
 						let promise = plugin.download();
 						if (plugin.await_loading) {
 							install_promises.push(promise);
@@ -1227,43 +1246,46 @@ BARS.defineActions(function() {
 			computed: {
 				plugin_search() {
 					let search_name = this.search_term.toUpperCase();
+					let plugins: Plugin[] = this.items;
 					if (search_name) {
-						let filtered = this.items.filter(item => {
+						let filtered = plugins.filter(item => {
 							return (
 								item.id.toUpperCase().includes(search_name) ||
 								item.title.toUpperCase().includes(search_name) ||
 								item.description.toUpperCase().includes(search_name) ||
 								item.author.toUpperCase().includes(search_name) ||
-								item.tags.find(tag => tag.toUpperCase().includes(search_name))
+								item.tags.find(tag => tag.toUpperCase().includes(search_name)) ||
+								item.update_available && search_name.includes('UPDATE_AVAILABLE')
 							)
 						});
 						let installed = filtered.filter(p => p.installed);
 						let not_installed = filtered.filter(p => !p.installed);
 						return installed.concat(not_installed);
 					} else {
-						return this.items.filter(item => {
+						return plugins.filter(item => {
 							return (this.tab == 'installed') == item.installed;
 						})
 					}
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
-					this.items.forEach(plugin => {
+					let plugins: Plugin[] = this.items;
+					plugins.forEach(plugin => {
 						if (!plugin.installed) return;
 						tags.safePush(...plugin.tags)
 					})
 					let rows = tags.map(tag => {
-						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
+						let filtered = plugins.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
 						return {
 							title: tag,
-							plugins,
+							plugins: filtered,
 						}
 					}).filter(row => row.plugins.length > 2);
 					//rows.sort((a, b) => a.plugins.length - b.plugins.length);
 					rows.sort(() => Math.random() - 0.5);
 
 					let cutoff = Date.now() - (3_600_000 * 24 * 28);
-					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
+					let new_plugins = plugins.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
 					if (new_plugins.length) {
 						new_plugins.sort((a, b) => a.creation_date - b.creation_date);
 						let new_row = {
@@ -1624,6 +1646,7 @@ BARS.defineActions(function() {
 								<div class="description">{{ plugin.description }}</div>
 								<ul class="plugin_tag_list">
 									<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+									<li v-if="plugin.update_available" class="plugin_tag_update" :key="'update_available'" @click="search_term = 'update_available';">${tl('dialog.plugins.update_available')}</li>
 								</ul>
 							</li>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
@@ -1662,6 +1685,14 @@ BARS.defineActions(function() {
 							</div>
 
 							<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+								<button type="button" @click="selected_plugin.installUpdate()"
+									v-if="selected_plugin.installed && selected_plugin.update_available"
+									style="color: var(--color-update);"
+									:title="tl('dialog.plugins.update_available') + ': ' + selected_plugin.update_available"
+								>
+									<i class="material-icons icon">update</i>
+									<span>${tl('dialog.plugins.update')}</span>
+								</button>
 								<button type="button" v-if="selected_plugin.installed" @click="selected_plugin.toggleDisabled()">
 									<i class="material-icons icon">bedtime</i>
 									<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
@@ -1682,6 +1713,7 @@ BARS.defineActions(function() {
 
 							<ul class="plugin_tag_list">
 								<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+								<li v-if="selected_plugin.update_available" class="plugin_tag_update" :key="'update_available'" @click="search_term = 'update_available';">${tl('dialog.plugins.update_available')}</li>
 							</ul>
 
 							<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
