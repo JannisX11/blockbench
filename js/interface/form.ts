@@ -188,6 +188,7 @@ export class InputForm extends EventSystem {
 	}
 	buildForm() {
 		let jq_node = $(this.node);
+		this.deleteFormElements();
 		jq_node.empty();
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
@@ -205,6 +206,16 @@ export class InputForm extends EventSystem {
 			jq_node.append(bar);
 		}
 		this.updateLabelWidth();
+	}
+	deleteFormElements() {
+		for (let form_id in this.form_data) {
+			this.form_data[form_id].delete();
+		}
+		this.form_data = {};
+	}
+	delete() {
+		this.deleteFormElements();
+		this.node.remove();
 	}
 	updateLabelWidth(ignore_hidden: boolean = false) {
 		this.max_label_width = 0;
@@ -331,6 +342,8 @@ export class FormElement extends EventSystem {
 	}
 	getDefault(): any {
 		return null;
+	}
+	delete() {
 	}
 	change() {
 		this.dispatchEvent('change', {changed_keys: [this.id]});
@@ -973,6 +986,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 };
 FormElement.types.color = class FormElementColor extends FormElement {
 	colorpicker: ColorPicker
+	owns_colorpicker: boolean = false
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.colorpicker) this.colorpicker = this.options.colorpicker;
@@ -986,6 +1000,7 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				private: true,
 				value: this.options.value
 			})
+			this.owns_colorpicker = true;
 		}
 		// @ts-ignore
 		this.colorpicker.onChange = function() {
@@ -1004,6 +1019,11 @@ FormElement.types.color = class FormElementColor extends FormElement {
 	}
 	getDefault() {
 		return '#ffffff';
+	}
+	delete() {
+		if (this.owns_colorpicker && this.colorpicker) {
+			this.colorpicker.delete();
+		}
 	}
 };
 FormElement.types.checkbox = class FormElementCheckbox extends FormElement {

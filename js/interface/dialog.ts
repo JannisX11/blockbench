@@ -25,6 +25,7 @@ type DialogLineOptions = (
 )
 
 function buildForm(dialog: Dialog) {
+	dialog.form?.delete();
 	dialog.form = new InputForm(dialog.form_config);
 	let dialog_content = $(dialog.object).find('.dialog_content');
 	dialog_content.append(dialog.form.node);
@@ -520,7 +521,11 @@ export class Dialog {
 		this.hide();
 	}
 	build() {
-		if (this.object) this.object.remove();
+		if (this.object) {
+			this.form?.delete();
+			delete this.form;
+			this.object.remove();
+		}
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog';
 		this.object.id = this.id;
@@ -778,6 +783,8 @@ export class Dialog {
 		return this;
 	}
 	delete() {
+		this.form?.delete();
+		delete this.form;
 		$(this.object).remove()
 		if (this.content_vue) {
 			this.content_vue.$destroy();
