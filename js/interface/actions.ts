@@ -1,6 +1,8 @@
 import MolangParser from "molangjs";
 import { isMac, Keybinds } from "./keyboard";
 import tinycolor from "tinycolor2";
+import { RaycastResult } from "../preview/preview";
+import { MenuItem } from "./menu";
 
 type ActionEventName =
 	| 'delete'
@@ -15,7 +17,8 @@ type ActionEventName =
 	| 'open'
 	| 'modify_color'
 
-export const BarItems: Record<string, BarItem> = {};
+export const BarItems: any = {};
+
 
 //Bars
 type SubKeybind = {
@@ -25,6 +28,7 @@ type SubKeybind = {
 	trigger: (event: Event) => void
 }
 export interface KeybindItemOptions {
+	id?: string
 	name?: string
 	description?: string
 	category?: string
@@ -67,7 +71,7 @@ export abstract class BarItem extends EventSystem {
 	id: string
 	name: string
 	description: string
-	icon?: IconString | (() => IconString)
+	icon?: IconString | ((context?: any) => IconString)
 	category?: string
 	color?: string
 	condition: ConditionResolvable
@@ -314,7 +318,7 @@ export class KeybindItem {
 	variations?: {
 		[key: string]: { name: string; description?: string }
 	}
-	constructor(id: string, data: KeybindItemOptions & {id: string}) {
+	constructor(id: string, data: KeybindItemOptions) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
@@ -405,7 +409,6 @@ export class Action extends BarItem {
 	constructor(id: string, data: ActionSpecificOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		super(id, data)
@@ -649,6 +652,10 @@ export interface BrushOptions {
 	 */
 	opacity: boolean
 	/**
+	 * Enable the toggle for screen space when this tool is selected
+	 */
+	screen_space: boolean
+	/**
 	 * When the brush size is an even number, offset the snapping by half a pixel so that even size brush strokes can be correctly centered
 	 */
 	offset_even_radius: boolean
@@ -723,7 +730,7 @@ export interface BrushOptions {
 interface ToolSpecificOptions {
 	selectFace?: boolean
 	selectElements?: boolean
-	transformerMode?: 'translate' | 'hidden' | ''
+	transformerMode?: 'translate' | 'scale' | 'rotate' | 'stretch' | 'hidden' | ''
 	cursor?: string,
 	animation_channel?: string
 	toolbar?: string
@@ -740,7 +747,7 @@ interface ToolSpecificOptions {
 	onCanvasClick?(raycast_data: RaycastResult): void
 	onSelect?(): void
 	onUnselect?(): void
-	onCanvasMouseMove?(raycast_data: RaycastResult)
+	onCanvasMouseMove?(raycast_data: RaycastResult | false)
 	onCanvasRightClick?(raycast_data: RaycastResult)
 	onTextureEditorClick?(raycast_data: RaycastResult)
 }
@@ -757,7 +764,6 @@ export class Tool extends Action implements ToolSpecificOptions {
 	constructor(id: string, data: ToolOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		// @ts-expect-error
@@ -990,13 +996,13 @@ export abstract class Widget extends BarItem {
 		this.type = 'widget';
 	}
 }
-type NumSliderOptions = WidgetOptions & {
+export type NumSliderOptions = WidgetOptions & {
 	private?: boolean
 	settings?: {
 		default?: number
 		min?: number
 		max?: number
-		interval?: number
+		interval?: number | (() => number)
 		step?: number
 		show_bar?: boolean
 		limit?: boolean
@@ -1150,7 +1156,7 @@ export class NumSlider extends Widget {
 			this.node.classList.add('is_colored');
 		}
 
-		//this.addLabel(data.label);
+		this.addLabel();
 
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {
@@ -1473,6 +1479,8 @@ export class NumSlider extends Widget {
 		if (typeof value === 'string') {
 			value = parseFloat(value)
 		}
+		if (this.settings?.min) value = Math.max(value, this.settings.min);
+		if (this.settings?.max) value = Math.min(value, this.settings.max);
 		if (trim === false) {
 			this.value = value
 		} else if (typeof value === 'number') {
@@ -1658,7 +1666,7 @@ export class BarSlider extends Widget {
 type BarSelectPropertyFormat = string | boolean | {
 	name: string | true
 	condition?: ConditionResolvable
-	icon?: string
+	icon?: IconString
 }
 interface BarSelectOptions extends WidgetOptions {
 	value?: string
@@ -2027,7 +2035,6 @@ export class ColorPicker extends Widget {
 }
 
 
-
 const global = {
 	BarItem,
 	KeybindItem,
@@ -2066,7 +2073,10 @@ declare global {
 	const BarText: typeof global.BarText
 	type ColorPicker = import('./actions').ColorPicker
 	const ColorPicker: typeof global.ColorPicker
-	const BarItems: typeof global.BarItems
+	const BarItems: BarItemRegistry
+    interface BarItemRegistry {
+		[key: string]: BarItem
+	}
 }
 Object.assign(window, global);
 

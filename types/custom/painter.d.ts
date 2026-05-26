@@ -11,6 +11,7 @@ declare namespace Painter {
 	const lock_alpha: boolean
 	const erase_mode: boolean
 	const default_brush_presets: any[]
+	let screen_space_brush_cursor: HTMLElement
 
 	function edit(
 		texture: Texture,
@@ -30,6 +31,7 @@ declare namespace Painter {
 	function getMirrorElement(element: OutlinerElement, symmetry_axes: number[]): void
 	function updateNslideValues(): void
 	function getBlendModeCompositeOperation(blend_mode?: string): GlobalCompositeOperation
+	function getCanvasToolPixelCoords(uv_point: {x: number, y: number}, texture: Texture): ArrayVector2
 	function getCanvas(texture: Texture): HTMLCanvasElement
 	function copyCanvas(original_canvas: HTMLCanvasElement): HTMLCanvasElement
 	function scanCanvas(
@@ -40,7 +42,7 @@ declare namespace Painter {
 		h: number,
 		cb: ((px: number, py: number, color: [r: number, g: number, b: number, a: number]) => [number, number, number, number] | void)
 	): void
-	function getPixelColor(ctx: CanvasRenderingContext2D, x: number, y: number): void
+	function getPixelColor(ctx: CanvasRenderingContext2D, x: number, y: number): tinycolor
 	function modifyCanvasSection(
 		ctx: CanvasRenderingContext2D,
 		x: number,
@@ -68,3 +70,34 @@ declare namespace Painter {
 	function openBrushOptions(): void
 	function loadBrushPreset(preset: any): void
 }
+
+	declare interface BarItemRegistry {
+		paint_secondary_color: KeybindItem
+		pan_tool: Tool
+		brush_tool: Tool
+		copy_brush: Tool
+		fill_tool: Tool
+		eraser: Tool
+		color_picker: Tool
+		draw_shape_tool: Tool
+		gradient_tool: Tool
+		move_layer_tool: Tool
+		brush_shape: BarSelect
+		draw_shape_type: BarSelect
+		blend_mode: BarSelect
+		fill_mode: BarSelect
+		copy_brush_mode: BarSelect
+		selection_tool_operation_mode: BarSelect
+		expand_texture_selection: Action
+		mirror_painting: Toggle
+		color_erase_mode: Toggle
+		lock_alpha: Toggle
+		painting_grid: Toggle
+		image_tiled_view: Toggle
+		image_onion_skin_view: Toggle
+		slider_brush_size: NumSlider
+		slider_brush_softness: NumSlider
+		slider_brush_opacity: NumSlider
+		pixel_perfect_drawing: Toggle
+		slider_color_select_threshold: NumSlider
+	}

@@ -14,7 +14,6 @@ function setupSettings() {
 	new Setting('username', {value: '', type: 'text'});
 	new Setting('streamer_mode', {value: false, onChange() {
 		StartScreen.vue._data.redact_names = settings.streamer_mode.value;
-		// @ts-ignore
 		Interface.status_bar.vue.$data.streamer_mode = settings.streamer_mode.value;
 		updateStreamerModeNotification();
 	}});
@@ -119,8 +118,8 @@ function setupSettings() {
 		reinhard: 'Reinhard',
 		cineon: 'Cineon',
 		aces_filmic: 'ACES Filmic',
-		agx: 'AgX',
-		neutral: 'Neutral',
+		// agx: 'AgX',
+		// neutral: 'Neutral',
 	}, onChange() {
 		for (let preview of Preview.all) {
 			preview.updateToneMapping();
@@ -158,7 +157,7 @@ function setupSettings() {
 	new Setting('undo_selections',			{category: 'edit', value: false});
 	new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 	new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
-		updateCubeHighlights();
+		Canvas.updateCubeHighlights();
 	}});
 	new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
@@ -201,7 +200,15 @@ function setupSettings() {
 	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
 	new Setting('paint_through_transparency',		{category: 'paint', value: true});
 	new Setting('paint_side_restrict',				{category: 'paint', value: true});
+	new Setting('opacity_range',					{category: 'paint', value: '255', type: 'select', options: {
+		'255': '0-255',
+		'100': '0-100%',
+	}, onChange(value) {
+		BarItems.slider_brush_opacity.update();
+		BarItems.layer_opacity.update();
+	}});
 	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
+	new Setting('projected_brush_sample_rate',		{category: 'paint', type: 'number', value: 4, min: 2});
 	new Setting('paint_with_stylus_only',			{category: 'paint', value: false});
 	new Setting('brush_opacity_modifier',			{category: 'paint', value: 'none', type: 'select', options: {
 		'pressure': tl('settings.brush_modifier.pressure'),
@@ -292,6 +299,7 @@ function setupSettings() {
 	new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 	new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
+	new Setting('automatic_plugin_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
 	
 	//Export

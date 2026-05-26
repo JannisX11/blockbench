@@ -183,10 +183,10 @@ export class TextureLayer extends TextureLayerItem {
 	 */
 	select() {
 		super.select();
-		(BarItems.layer_opacity as NumSlider).update();
-		(BarItems.layer_blend_mode as BarSelect).set(this.blend_mode);
+		BarItems.layer_opacity.update();
+		BarItems.layer_blend_mode.set(this.blend_mode);
 		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
-			(BarItems.selection_tool as Tool).select();
+			BarItems.selection_tool.select();
 		}
 	}
 	getUndoCopy(image_data: boolean): any {
@@ -440,19 +440,21 @@ export class TextureLayer extends TextureLayerItem {
 		TextureLayer.properties.blend_mode.enum_values.forEach(mode => {
 			blend_mode_options[mode] = `action.blend_mode.${mode}`
 		});
+		let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
 		let dialog = new Dialog({
 			id: 'layer_properties',
 			title: `${this.name} (${this.width}x${this.height})`,
 			form: {
 				name: {label: 'generic.name', value: this.name},
-				opacity: {label: 'action.layer_opacity', type: 'range', value: this.opacity},
+				opacity: {label: 'action.layer_opacity', type: 'range', value: Math.round(this.opacity / 100 * opacity_range), min: 0, max: opacity_range},
 				blend_mode: {label: 'action.blend_mode', type: 'select', value: this.blend_mode, options: blend_mode_options},
 			},
 			onConfirm: form_data => {
 				dialog.hide().delete();
+				form_data.opacity = form_data.opacity / opacity_range * 100;
 				if (
 					form_data.name != this.name
-					|| form_data.opacity != this.opacity
+					|| !Math.epsilon(form_data.opacity, this.opacity, 0.2)
 					|| form_data.blend_mode != this.blend_mode
 				) {
 					Undo.initEdit({layers: [this]});
@@ -460,6 +462,7 @@ export class TextureLayer extends TextureLayerItem {
 					this.texture.updateChangesAfterEdit();
 					Blockbench.dispatchEvent('edit_layer_properties', {layer: this});
 					Undo.finishEdit('Edit layer properties');
+					(BarItems.layer_opacity as NumSlider).update();
 				}
 			},
 			onCancel() {
@@ -647,9 +650,10 @@ SharedActions.add('duplicate', {
 		let original = texture.getActiveLayer();
 		let copy = original.getUndoCopy(true);
 		copy.name += '-copy';
-		Undo.initEdit({textures: [texture]});
+		Undo.initEdit({textures: [texture], bitmap: true});
 		let layer = new TextureLayer(copy, texture);
 		layer.addForEditing();
+		texture.updateLayerChanges(true);
 		Undo.finishEdit('Duplicate layer');
 	}
 })
@@ -815,18 +819,24 @@ BARS.defineActions(() => {
 		category: 'layers',
 		condition: () => Modes.paint && Texture.selected && Texture.selected.layers_enabled && !!Texture.selected.getActiveLayer(),
 		settings: {
-			min: 0, max: 100, default: 100,
+			min: 0,
+			get max() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get default() {return settings.opacity_range.value == '255' ? 255 : 100},
 			show_bar: true
 		},
 		getInterval(event) {
 			return 1;
 		},
 		get() {
-			return Texture.selected.getActiveLayer().opacity;
+			let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
+			let value = Texture.selected.getActiveLayer().opacity ?? 100;
+			return Math.roundTo(value / 100 * opacity_range, 0);
 		},
 		change(modify) {
+			let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
 			let layer = Texture.selected.getActiveLayer();
-			layer.opacity = Math.clamp(modify(layer.opacity), 0, 100);
+			let new_value = modify(layer.opacity / 100 * opacity_range);
+			layer.opacity = Math.roundTo(Math.clamp(new_value / opacity_range * 100, 0, 100), 4);
 			Texture.selected.updateLayerChanges();
 		},
 		onBefore() {
@@ -1088,7 +1098,7 @@ Interface.definePanels(function() {
 					if (!texture) return;
 					if (!texture.selected) texture.select();
 					if (!texture.layers_enabled) {
-						(BarItems.enable_texture_layers as Action).trigger();
+						BarItems.enable_texture_layers.trigger();
 					}
 				}
 			},
@@ -1166,5 +1176,17 @@ declare global {
 	type TextureLayer = import('./layers').TextureLayer
 	const TextureLayerGroup: typeof global.TextureLayerGroup
 	type TextureLayerGroup = import('./layers').TextureLayerGroup
+    interface BarItemRegistry {
+		layer_opacity: NumSlider
+		layer_blend_mode: BarSelect
+		selection_tool: Tool
+		create_empty_layer: Action
+		import_layer: Action
+		enable_texture_layers: Action
+		disable_texture_layers: Action
+		layer_to_texture_size: Action
+		merge_layer_down: Action
+		crop_layer_to_selection: Action
+    }
 }
 Object.assign(window, global);

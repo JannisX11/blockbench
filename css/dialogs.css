@@ -196,7 +196,7 @@
 		box-sizing: content-box;
 	}
 	.dialog label.name_space_left {
-		min-width: 140px;
+		min-width: 100px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;
@@ -1673,6 +1673,10 @@
 	}
 	.plugin_tag_list li.plugin_tag_deprecated {
 		background-color: #ff3467;
+		color: #000000;
+	}
+	.plugin_tag_list li.plugin_tag_update {
+		background-color: var(--color-update);
 		color: #000000;
 	}
 	.no_plugin_message {

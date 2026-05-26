@@ -42,10 +42,12 @@ import "./interface/keybinding"
 import "./interface/settings"
 import "./interface/about"
 import "./interface/action_control"
+import "./interface/toolbars"
+import "./interface/main_tools"
 import "./copy_paste"
 import "./undo"
 
-import './desktop.js';
+import './desktop.ts';
 
 import "./interface/setup_settings"
 import "./interface/settings_window"
@@ -80,6 +82,7 @@ import "./modeling/mirror_modeling"
 import "./modeling/spline_editing"
 import "./modeling/weight_paint"
 import "./modeling/generate_bounding_box"
+import "./find_replace"
 import "./texturing/textures"
 import "./texturing/layers"
 import "./texturing/texture_groups"

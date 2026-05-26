@@ -1128,6 +1128,7 @@
 	}
 	.texture_layer > label {
 		flex-grow: 1;
+		overflow: hidden;
 	}
 	.texture_layer i.toggle_disabled {
 		color: var(--color-subtle_text);
@@ -1781,7 +1782,7 @@
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
-		justify-content: flex-end;
+		justify-content: flex-start;
 	}
 	.drag_hover[order]::before {
 		z-index: 7;
@@ -2461,7 +2462,7 @@ span.controller_state_section_info {
 	#uv_texture_grid path.bold_grid {
 		stroke-width: 0.86px;
 	}
-	div#uv_brush_outline {
+	div.brush_outline {
 		border: 2px solid white;
 		width: calc(var(--radius) * 2px);
 		height: calc(var(--radius) * 2px);
@@ -2472,7 +2473,7 @@ span.controller_state_section_info {
 		mix-blend-mode: difference;
 		z-index: 1;
 	}
-	div#uv_brush_outline.circle {
+	div.brush_outline.circle {
 		border-radius: 50%;
 	}
 	div#uv_copy_brush_outline {

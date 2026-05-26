@@ -36,8 +36,8 @@ interface CodecOptions {
 	support_partial_export?: boolean
 	support_offset?: boolean
 	load_filter?: {
-		extensions: string[]
-		type: 'json' | 'text'
+		extensions: string[] | (() => string[])
+		type: 'json' | 'text' | 'image'
 		condition?: ConditionResolvable
 	}
 	/**

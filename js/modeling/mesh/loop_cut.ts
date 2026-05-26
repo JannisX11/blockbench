@@ -1,3 +1,5 @@
+type SpacingOption = 'proportional' | 'even_start' | 'even_end';
+
 new Action('loop_cut', {
 	icon: 'carpenter',
 	category: 'edit',
@@ -29,16 +31,26 @@ new Action('loop_cut', {
 		}
 		let length = getLength();
 
-		function runEdit(amended?: boolean, offset?: number, direction = 0, cuts = 1) {
+		function runEdit(
+			amended?: boolean,
+			offset?: number,
+			direction = 0,
+			cuts = 1,
+			spacing: SpacingOption = 'proportional'
+		) {
+			console.log({offset, direction, length});
 			Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 			if (offset == undefined) offset = length / (cuts+1);
 			Mesh.selected.forEach(mesh => {
+				let mesh_vertices = mesh.vertices;
+				let mesh_faces = mesh.faces;
 				let selected_vertices = mesh.getSelectedVertices();
-				let selected_faces = mesh.getSelectedFaces().map(fkey => mesh.faces[fkey]);
+				let selected_faces = mesh.getSelectedFaces().map(fkey => mesh_faces[fkey]);
 				let start_face: MeshFace;
 				let start_face_quality = 1;
-				for (let fkey in mesh.faces) {
-					let face = mesh.faces[fkey];
+
+				for (let fkey in mesh_faces) {
+					let face = mesh_faces[fkey];
 					if (face.vertices.length < 2) continue;
 					let vertices = face.vertices.filter(vkey => selected_vertices.includes(vkey))
 					if (vertices.length > start_face_quality) {
@@ -50,18 +62,33 @@ new Action('loop_cut', {
 				let processed_faces: MeshFace[] = [start_face];
 				let center_vertices_map = {};
 
-				function getCenterVertex(vertices: string[], ratio: number) {
+				function getCenterVertex(vertices: string[], ratio: number): string {
 					let edge_key = vertices.slice().sort().join('.');
 					let existing_key = center_vertices_map[edge_key];
 					if (existing_key) return existing_key;
 
-					let vector = mesh.vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh.vertices[vertices[1]][i], ratio)) as ArrayVector3;
+					let vector = mesh_vertices[vertices[0]].map((v, i) => Math.lerp(v, mesh_vertices[vertices[1]][i], ratio)) as ArrayVector3;
 					let [vkey] = mesh.addVertices(vector);
 					center_vertices_map[edge_key] = vkey;
 					return vkey;
 				}
+				function getRatio(edge: MeshEdge, cut_no: number): number {
+					let ratio = 0;
+					if (spacing == 'proportional') {
+						ratio = offset/length;
+					} else {
+						let delta = mesh_vertices[edge[0]].slice().V3_subtract(mesh_vertices[edge[1]]);
+						let edge_length = Reusable.vec2.fromArray(delta).length();
+						ratio = Math.clamp(offset / edge_length, 0, 1);
+						if (spacing == 'even_end') ratio = 1-ratio;
+					}
+					if (cuts > 1) {
+						ratio = 1 - (1 / (cuts + 1 - cut_no) * ratio * 2);
+					}
+					return ratio;
+				}
 
-				function splitFace(face: MeshFace, side_vertices: string[], double_side: boolean, cut_no: number) {
+				function splitFace(face: MeshFace, side_vertices: MeshEdge, double_side: boolean, cut_no: number) {
 					processed_faces.push(face);
 					let sorted_vertices = face.getSortedVertices();
 
@@ -70,26 +97,24 @@ new Action('loop_cut', {
 
 					if (face.vertices.length == 4) {
 
-						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+						let opposite_vertices = sorted_vertices.filter(vkey => !side_vertices.includes(vkey)) as MeshEdge;
 						let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
 						if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
 
-						let ratio = offset/length;
-						if (cuts > 1) {
-							ratio = 1 - (1 / (cuts + 1 - cut_no) * ratio * 2);
-						}
+						let ratio_1 = getRatio(side_vertices, cut_no);
+						let ratio_2 = getRatio(opposite_vertices, cut_no);
 						let center_vertices = [
-							getCenterVertex(side_vertices, ratio),
-							getCenterVertex(opposite_vertices, ratio)
+							getCenterVertex(side_vertices, ratio_1),
+							getCenterVertex(opposite_vertices, ratio_2)
 						]
 
-						let c1_uv_coords = [
-							Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio),
-							Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio),
+						let c1_uv_coords: ArrayVector2 = [
+							Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio_1),
+							Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio_1),
 						];
-						let c2_uv_coords = [
-							Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], ratio),
-							Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], ratio),
+						let c2_uv_coords: ArrayVector2 = [
+							Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], ratio_2),
+							Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], ratio_2),
 						];
 
 						let new_face = new MeshFace(mesh, face).extend({
@@ -119,8 +144,8 @@ new Action('loop_cut', {
 
 						if (cut_no != 0) return;
 						// Find next (and previous) face
-						for (let fkey in mesh.faces) {
-							let ref_face = mesh.faces[fkey];
+						for (let fkey in mesh_faces) {
+							let ref_face = mesh_faces[fkey];
 							if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 							let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
 							if (vertices.length >= 2) {
@@ -130,13 +155,13 @@ new Action('loop_cut', {
 						}
 
 						if (double_side) {
-							for (let fkey in mesh.faces) {
-								let ref_face = mesh.faces[fkey];
+							for (let fkey in mesh_faces) {
+								let ref_face = mesh_faces[fkey];
 								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 								let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
 								if (vertices.length >= 2) {
 									let ref_sorted_vertices = ref_face.getSortedVertices();
-									let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+									let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey)) as MeshEdge;
 									
 									if (ref_opposite_vertices.length == 2) {
 										splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4, 0);
@@ -154,27 +179,25 @@ new Action('loop_cut', {
 							// Split tri from edge to edge
 
 							let opposed_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
-							let opposite_vertices = [side_vertices[direction % side_vertices.length], opposed_vertex];
+							let opposite_vertices: MeshEdge = [side_vertices[direction % side_vertices.length], opposed_vertex];
 
 							let opposite_index_diff = sorted_vertices.indexOf(opposite_vertices[0]) - sorted_vertices.indexOf(opposite_vertices[1]);
 							if (opposite_index_diff == 1 || opposite_index_diff < -2) opposite_vertices.reverse();
 
-							let ratio = offset/length;
-							if (cuts > 1) {
-								ratio = 1 - (1 / (cuts + 1 - cut_no) * ratio * 2);
-							}
+							let ratio_1 = getRatio(side_vertices, cut_no);
+							let ratio_2 = getRatio(opposite_vertices, cut_no);
 							let center_vertices = [
-								getCenterVertex(side_vertices, ratio),
-								getCenterVertex(opposite_vertices, ratio)
+								getCenterVertex(side_vertices, ratio_1),
+								getCenterVertex(opposite_vertices, ratio_2)
 							]
 
-							let c1_uv_coords = [
-								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio),
-								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio),
+							let c1_uv_coords: ArrayVector2 = [
+								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio_1),
+								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio_1),
 							];
-							let c2_uv_coords = [
-								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], ratio),
-								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], ratio),
+							let c2_uv_coords: ArrayVector2 = [
+								Math.lerp(face.uv[opposite_vertices[0]][0], face.uv[opposite_vertices[1]][0], ratio_2),
+								Math.lerp(face.uv[opposite_vertices[0]][1], face.uv[opposite_vertices[1]][1], ratio_2),
 							];
 
 							let other_quad_vertex = side_vertices.find(vkey => !opposite_vertices.includes(vkey));
@@ -211,8 +234,8 @@ new Action('loop_cut', {
 
 							if (cut_no != 0) return;
 							// Find next (and previous) face
-							for (let fkey in mesh.faces) {
-								let ref_face = mesh.faces[fkey];
+							for (let fkey in mesh_faces) {
+								let ref_face = mesh_faces[fkey];
 								if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 								let vertices = ref_face.vertices.filter(vkey => opposite_vertices.includes(vkey))
 								if (vertices.length >= 2) {
@@ -222,13 +245,13 @@ new Action('loop_cut', {
 							}
 
 							if (double_side) {
-								for (let fkey in mesh.faces) {
-									let ref_face = mesh.faces[fkey];
+								for (let fkey in mesh_faces) {
+									let ref_face = mesh_faces[fkey];
 									if (ref_face.vertices.length < 3 || processed_faces.includes(ref_face)) continue;
 									let vertices = ref_face.vertices.filter(vkey => side_vertices.includes(vkey))
 									if (vertices.length >= 2) {
 										let ref_sorted_vertices = ref_face.getSortedVertices();
-										let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey));
+										let ref_opposite_vertices = ref_sorted_vertices.filter(vkey => !side_vertices.includes(vkey)) as MeshEdge;
 										
 										if (ref_opposite_vertices.length == 2) {
 											splitFace(ref_face, ref_opposite_vertices, ref_face.vertices.length == 4, 0);
@@ -240,13 +263,10 @@ new Action('loop_cut', {
 						} else {
 							let opposite_vertex = sorted_vertices.find(vkey => !side_vertices.includes(vkey));
 
-							let ratio = offset/length;
-							if (cuts > 1) {
-								ratio = 1 - (1 / (cuts + 1 - cut_no) * ratio * 2);
-							}
+							let ratio = getRatio(side_vertices, cut_no);
 							let center_vertex = getCenterVertex(side_vertices, ratio);
 
-							let c1_uv_coords = [
+							let c1_uv_coords: ArrayVector2 = [
 								Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio),
 								Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio),
 							];
@@ -281,7 +301,7 @@ new Action('loop_cut', {
 						}
 						let center_vertex = getCenterVertex(side_vertices, ratio);
 
-						let c1_uv_coords = [
+						let c1_uv_coords: ArrayVector2 = [
 							Math.lerp(face.uv[side_vertices[0]][0], face.uv[side_vertices[1]][0], ratio),
 							Math.lerp(face.uv[side_vertices[0]][1], face.uv[side_vertices[1]][1], ratio),
 						];
@@ -321,7 +341,7 @@ new Action('loop_cut', {
 				let start_edge = [start_vertices[direction % start_vertices.length], start_vertices[(direction+1) % start_vertices.length]];
 				if (start_edge.length == 1) start_edge.splice(0, 0, start_vertices[0]);
 
-				splitFace(start_face, start_edge, start_face.vertices.length == 4 || direction > 2, 0);
+				splitFace(start_face, start_edge as MeshEdge, start_face.vertices.length == 4 || direction > 2, 0);
 
 				selected_vertices.empty();
 				for (let key in center_vertices_map) {
@@ -339,6 +359,11 @@ new Action('loop_cut', {
 			cuts: {type: 'num_slider', value: 1, label: 'edit.loop_cut.cuts', min: 0, max: 16},
 			offset: {type: 'num_slider', value: length/2, label: 'edit.loop_cut.offset', min: 0, /*max: length,*/ interval_type: 'position'},
 			unit: {type: 'inline_select', label: 'edit.loop_cut.unit', options: {size: 'edit.loop_cut.unit.size_units', percent: 'edit.loop_cut.unit.percent'}},
+			spacing: {type: 'select', label: 'edit.loop_cut.spacing', options: {
+				proportional: 'edit.loop_cut.spacing.proportional',
+				even_start: 'edit.loop_cut.spacing.even_start',
+				even_end: 'edit.loop_cut.spacing.even_end',
+			}},
 		}, (form, form_options) => {
 			let direction = form.direction || 0;
 			length = getLength(direction);
@@ -354,7 +379,7 @@ new Action('loop_cut', {
 				saved_direction = direction;
 			}
 			
-			runEdit(true, offset, direction, form.cuts);
+			runEdit(true, offset, direction, form.cuts, form.spacing as SpacingOption);
 		})
 	}
 })

@@ -8,6 +8,9 @@ declare const DisplayMode: {
 	display_slot: string
 	display_area: any
 	display_base: any
+	animate_preview: Preview
+	groundAnimation(): void
+	updateDisplaySkin(): void
 }
 
 declare type DisplaySlotName =
@@ -99,7 +102,7 @@ declare const displayReferenceObjects: {
 		inventory_full: refModel<'inventory_full'>
 		hud: refModel<'hud'>
 	}
-	active: refModel<keyof typeof displayReferenceObjects.refmodels> | ''
+	active: refModel<keyof typeof displayReferenceObjects.refmodels>
 	/* Clears the active display model */
 	clear(): void
 	bar(buttons: any): void
@@ -135,3 +138,5 @@ declare class refModel<ID extends string> {
 	buildFrameTopInvisible(): void
 	updateBasePosition(): void
 }
+
+declare function changeDisplaySkin(): void

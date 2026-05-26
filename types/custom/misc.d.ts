@@ -86,6 +86,7 @@ interface BlockbenchEventMap {
 	unselect_mode: { mode: Mode }
 	change_active_panel: any
 	resize_window: {event?: Event}
+	change_view_mode: {view_mode: string, previous_view_mode: string}
 	press_key: {input_in_focus?: HTMLElement, event: KeyboardEvent, capture: () => void}
 	select_format: {format: ModelFormat, project: ModelProject}
 	convert_format: {format: ModelFormat, old_format: ModelFormat}
@@ -146,7 +147,7 @@ interface BlockbenchEventMap {
 
 type BlockbenchEventName = keyof BlockbenchEventMap
 
-type IconString = string
+type IconString = string | HTMLElement
 
 declare const osfs: '\\' | '/'
 
@@ -155,13 +156,14 @@ declare function updateSelection(): void
 declare var LZUTF8: any
 
 declare function unselectAllElements(exceptions?: OutlinerNode[]): void
-declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
 declare function getRescalingFactor(angle: number): number
 /**
  * Get the world-space center of the selection
  * @param all If true, calculate the center of all elements instead of just selected
  */
 declare function getSelectionCenter(all: boolean = false): ArrayVector3
+declare function getSpatialInterval(event?: Event): number;
+declare function getRotationInterval(event?: Event): number;
 
 declare const Pressing: {
 	shift: boolean
@@ -174,26 +176,18 @@ declare const Pressing: {
 	}
 }
 
-type RecentProjectData = {
-	name: string
-	path: string
-	icon: string
-	day: number
-	favorite: boolean
-	textures?: string[]
-	animation_files?: string[]
-}
-declare const recent_projects: RecentProjectData[]
-
 declare const Prop = {
-	active_panel: string
+	active_panel: string,
+	fps: number,
+	show_left_bar: boolean,
+	show_right_bar: boolean,
 }
 declare const Project: ModelProject
-
-declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
-declare function getRescalingFactor(angle: number): number
 
 declare function isStringNumber(value: any): boolean
 
 declare function marked(text: string): string
 declare function pureMarked(text: string): string
+
+declare type SplineMesh = typeof OutlinerElement & Record<string, any>
+declare const SplineMesh: typeof OutlinerElement

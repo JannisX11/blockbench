@@ -15,6 +15,7 @@ export namespace Filesystem {
 		path: string
 		content?: string | ArrayBuffer
 		browser_file?: File
+		no_file?: boolean
 	}
 
 	/**
@@ -37,7 +38,7 @@ export namespace Filesystem {
 		| 'palette'
 
 	// MARK: Import
-	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
+	export type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
 	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
@@ -640,11 +641,9 @@ export namespace Filesystem {
 			let paths: string[] = [];
 			if (isApp) {
 				for (let file of file_names) {
-					if ('path' in file) {
-						// @ts-ignore
+					if ('path' in file && typeof file.path == 'string') {
 						paths.push(file.path)
 					} else if (isApp) {
-						// @ts-ignore
 						let path = webUtils.getPathForFile(file);
 						paths.push(path);
 					}

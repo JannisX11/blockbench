@@ -1,5 +1,5 @@
 /**
- * Toolbars and related things
+ * Keybindings and action control
  */
 /// <reference types="./blockbench"/>
 
@@ -8,7 +8,7 @@ declare global {
 		/**
 		 * Main key, can be a numeric keycode or a lower case character
 		 */
-		key: number | string
+		key?: number | string
 		ctrl?: boolean
 		shift?: boolean
 		alt?: boolean
@@ -42,6 +42,7 @@ declare global {
 		ctrl?: boolean
 		shift?: boolean
 		alt?: boolean
+		meta?: boolean
 		variations?: {
 			[key: string]: ModifierKey
 		}
@@ -115,75 +116,6 @@ declare global {
 		static no_overlap(k1: KeybindItem, k2: KeybindItem): boolean
 	}
 
-
-	class MenuSeparator {
-		constructor(id?: string, label?: string)
-		id: string
-		menu_node: HTMLLIElement
-		label?: string
-		menu_node?: HTMLElement
-	}
-
-	interface ToolbarOptions {
-		id?: string
-		name?: string
-		/**
-		 * If true, the toolbar will display a label abovee
-		 */
-		label?: boolean
-		condition?: ConditionResolvable
-		/**
-		 * If true, the toolbar will only take as much width as needed
-		 */
-		narrow?: boolean
-		vertical?: boolean
-		/**
-		 * Default content of the toolbar. Separators are available, where _ = separator, + = spaces, # = line break
-		 */
-		children: ('_' | '+' | '#' | string | BarItem)[]
-	}
-	export class Toolbar {
-		id: string
-		name: string
-		label: boolean
-		label_node: HTMLElement
-		condition: ConditionResolvable
-		children: (BarItem | string)[]
-		no_wrap: boolean
-		narrow: boolean
-		vertical: boolean
-		default_children: (BarItem | string)[]
-		/*private*/ positionLookup: any
-		/*private*/ condition_cache: any
-		/*private*/ previously_enabled: any
-		/*private*/ postload: any
-		/*private*/ menu: any
-		node: HTMLElement
-		constructor(id: string, data: ToolbarOptions)
-		constructor(data: ToolbarOptions)
-		build(data: any, force: any): this
-		contextmenu(event: Event): void
-		editMenu(): this
-		add(action: any, position?: number): this
-		remove(action: BarItem, update: boolean = false): this
-		update(): this
-		toPlace(place: any): this
-		save(): this
-		reset(): this
-		condition(): boolean
-	}
-	export namespace BARS {
-		const stored: {}
-		const editing_bar: undefined | Toolbar
-		const action_definers: (() => void)[]
-		const condition: any
-		function defineActions(definer: any): void
-		function setupActions(): void
-		function setupToolbars(): void
-		function setupVue(): void
-		function updateConditions(): void
-		function updateToolToolbar(): void
-	}
 	/**
 	 * A dialog-based interface to search and trigger actions and other things
 	 */
@@ -210,12 +142,9 @@ declare global {
 		const structure: any
 		function save(): void
 		function reset(): void
+		function loadKeymap(id: string, from_start_screen: boolean = false): true | void
 	}
-	class _ToolToolbar extends Toolbar {
-		selected: Tool
-		original: any
-	}
-	const Toolbox: _ToolToolbar
+	const Vertexsnap: any
 }
 
 export {}

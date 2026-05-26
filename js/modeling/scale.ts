@@ -214,7 +214,6 @@ export namespace ModelScaler {
 					obj.vertices[key].V3_set(before.vertices[key]);
 				}
 			}
-			// @ts-ignore
 			delete obj.temp_data.before;
 			if (obj instanceof Cube && obj.box_uv) {
 				obj.preview_controller.updateUV(obj)

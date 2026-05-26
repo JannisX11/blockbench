@@ -6,7 +6,7 @@ import { EventSystem } from "../util/event_system"
 import { getStringWidth, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
-type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+type ReadType = Filesystem.ReadType;
 interface FileResult {
 	name: string
 	path: string
@@ -845,13 +845,10 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		let getInterval = this.options.getInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'position') getInterval = getSpatialInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
 		this.slider = new NumSlider('form_slider_'+this.id, {
 			private: true,
-			// @ts-ignore
 			onChange: () => {
 				this.change();
 			},
@@ -987,7 +984,6 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				value: this.options.value
 			})
 		}
-		// @ts-ignore
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};

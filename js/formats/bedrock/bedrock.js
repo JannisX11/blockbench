@@ -1301,6 +1301,11 @@ var codec = new Codec('bedrock', {
 			texture_width:  Project.texture_width || 16,
 			texture_height: Project.texture_height || 16,
 		}
+
+		if (options.collection) {
+
+		}
+
 		var bones = []
 
 		var groups = getAllGroups();
@@ -1578,7 +1583,7 @@ var block_format = new ModelFormat({
 		]
 	},
 	node_name_regex: '\\w.-',
-	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
+	show_on_start_screen: true,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,

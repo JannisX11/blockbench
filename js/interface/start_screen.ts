@@ -1,5 +1,5 @@
 import { Filesystem } from "../file_system";
-import { ModelLoader } from "../io/model_loader";
+import { ModelLoader, ModelLoaderOptions } from "../io/model_loader";
 import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
 import { pureMarked } from "../util/util";
@@ -7,38 +7,61 @@ import VersionUtil from '../util/version_util';
 
 export const StartScreen = {
 	loaders: {},
+	vue: null as null | (Vue & any),
 	open() {
-		Interface.tab_bar.openNewTab();
-		MenuBar.mode_switcher_button.classList.add('hidden');
-	}
+		(Interface.tab_bar as any).openNewTab();
+		MenuBar.mode_switcher_button?.classList.add('hidden');
+	},
+	updateThumbnails(model_paths?: string[]) {
+		StartScreen.vue.updateThumbnails(model_paths);
+	},
+	addSection: addStartScreenSection
 };
 
+interface StartScreenTextSegment {
+	text: string
+	type?: string
+	list?: string[]
+	click?: () => void
+}
+interface StartScreenFeature {
+	image: string
+	title: string
+	/**
+	 * Markdown supported text
+	 */
+	text: string
+}
+export interface StartScreenSection {
+	graphic?: {
+		type: 'icon' | string
+		icon?: string
+		source?: string
+		width?: number
+		height?: number
+		aspect_ratio?: number
+		/**
+		 * Markdown string
+		 */
+		description?: string
+		text_color?: string
+	}
+	text?: StartScreenTextSegment[]
+	layout?: 'vertical' | 'horizontal'
+	features?: StartScreenFeature[]
+	closable?: boolean
+	click?: Function
+	color?: string
+	text_color?: string
+	last?: boolean
+	insert_after?: string
+	insert_before?: string
+}
+
 /**
- * 
- * @param {string} id Identifier
- * @param {object} data 
- * @param {object} data.graphic
- * @param {'icon'|string} data.graphic.type
- * @param {string} [data.graphic.icon]
- * @param {string} [data.graphic.source]
- * @param {number} [data.graphic.width]
- * @param {number} [data.graphic.height]
- * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
- * @param {string} [data.graphic.description] Markdown string
- * @param {string} [data.graphic.text_color]
- * @param {Array.<{text: String, {type}: [String], [list]: Array.String, {click}: [Function]}>} data.text
- * @param {'vertical'|'horizontal'} data.layout
- * @param {Array} data.features
- * @param {boolean} data.closable
- * @param {Function} data.click
- * @param {string} data.color
- * @param {string} data.text_color
- * @param {boolean} data.last
- * @param {string} data.insert_after
- * @param {string} data.insert_before
- * @returns 
+ * Adds a section to the start screen
  */
-export function addStartScreenSection(id, data) {
+export function addStartScreenSection(id: string, data: StartScreenSection) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
@@ -170,10 +193,33 @@ onVueSetup(async function() {
 
 	let slideshow_timer = 0;
 
+	interface StartScreenComponentData {
+		formats: typeof Formats
+		loaders: typeof ModelLoader.loaders
+		selected_format_id: string
+		viewed_format: null | ModelFormat | ModelLoader
+		recent: RecentProjectData[]
+		list_type: string,
+		redact_names: boolean
+		redacted: string
+		search_term: string
+		isApp: boolean,
+		mobile_layout: boolean
+		thumbnails: Record<string, string>,
+		getIconNode: typeof Blockbench.getIconNode,
+		slideshow: {
+			source: string
+			description: string
+		}[],
+		show_splash_screen: boolean
+		slideshow_selected: number
+		slideshow_last: any
+		slideshow_autoplay: boolean
+	}
 	StartScreen.vue = new Vue({
 		el: '#start_screen',
 		components: {},
-		data: {
+		data() {return {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
@@ -210,7 +256,7 @@ onVueSetup(async function() {
 			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
-		},
+		} as StartScreenComponentData},
 		methods: {
 			getDate(p) {
 				if (p.day) {
@@ -233,7 +279,7 @@ onVueSetup(async function() {
 					loadModelFile(files[0]);
 				})
 			},
-			updateThumbnails(model_paths) {
+			updateThumbnails(model_paths?: string[]) {
 				this.recent.forEach(project => {
 					if (model_paths && !model_paths.includes(project.path)) return;
 					let hash = project.path.hashCode().toString().replace(/^-/, '0');
@@ -246,12 +292,12 @@ onVueSetup(async function() {
 				})
 				this.$forceUpdate();
 			},
-			setListType(type) {
+			setListType(this: StartScreenComponentData, type) {
 				this.list_type = type;
 				StateMemory.start_screen_list_type = type;
 				StateMemory.save('start_screen_list_type')
 			},
-			recentProjectContextMenu(recent_project, event) {
+			recentProjectContextMenu(recent_project: RecentProjectData, event) {
 				let menu = new Menu('recent_project', [
 					{
 						id: 'favorite',
@@ -281,7 +327,7 @@ onVueSetup(async function() {
 				])
 				menu.show(event);
 			},
-			toggleProjectFavorite(recent_project) {
+			toggleProjectFavorite(this: StartScreenComponentData, recent_project: RecentProjectData) {
 				recent_project.favorite = !recent_project.favorite;
 				if (recent_project.favorite) {
 					recent_projects.remove(recent_project);
@@ -313,7 +359,7 @@ onVueSetup(async function() {
 				}
 				return categories;
 			},
-			loadFormat(format_entry) {
+			loadFormat(this: StartScreenComponentData, format_entry) {
 				this.selected_format_id = format_entry.id;
 				if (format_entry.onFormatPage) format_entry.onFormatPage();
 				Vue.nextTick(() => {
@@ -326,23 +372,23 @@ onVueSetup(async function() {
 					}
 				})
 			},
-			confirmSetupScreen(format_entry) {
+			confirmSetupScreen(this: StartScreenComponentData, format_entry) {
 				this.selected_format_id = '';
 				if (format_entry.onStart) format_entry.onStart();
 				if (typeof format_entry.new == 'function') format_entry.new();
 			},
 
-			getBackground(url) {
+			getBackground(url: string) {
 				return `url("${url}")`
 			},
-			setSlide(index) {
+			setSlide(index: number) {
 				this.slideshow_last = this.slideshow_selected;
 				this.slideshow_selected = index;
 				setTimeout(() => this.slideshow_last = null, 500);
 				slideshow_timer = 0;
 			},
 
-			openLink(link) {
+			openLink(this: StartScreenComponentData, link: string) {
 				Blockbench.openLink(link);
 			},
 			pureMarked,
@@ -382,7 +428,7 @@ onVueSetup(async function() {
 			new ResizeLine('start_screen_width', {
 				horizontal: false,
 				parent_element: start_screen_element,
-				condition: () => start_screen_element.clientWidth > 1000 && Interface.tab_bar.new_tab.selected,
+				condition: () => start_screen_element.clientWidth > 1000 && (Interface.tab_bar as any).new_tab.selected,
 				get: () => Interface.data.start_screen_width,
 				set(o, diff) {
 					let value = Math.clamp(o + diff*2, 700, start_screen_element.clientWidth);
@@ -552,7 +598,10 @@ onVueSetup(async function() {
 		`
 	})
 
-	Blockbench.on('construct_format delete_format', () => {
+	Blockbench.on('construct_format', () => {
+		StartScreen.vue.$forceUpdate();
+	})
+	Blockbench.on('delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
 });
@@ -660,7 +709,7 @@ documentReady.then(() => {
 					return style;
 				},
 				openThemes() {
-					BarItems.theme_window.click();
+					(BarItems.theme_window as Action).click();
 				}
 			},
 			watch: {
@@ -705,9 +754,12 @@ documentReady.then(() => {
 	}
 	Interface.Resizers.start_screen_width.update();
 })
-Promise.all([news_call, documentReady]).then((data) => {
-	if (!data || !data[0]) return;
-	data = data[0];
+Promise.all([news_call, documentReady]).then((results) => {
+	if (!results || !results[0]) return;
+	let data = results[0] as {
+		new_version: StartScreenSection,
+		psa?: StartScreenSection & {version?: string}
+	};
 
 	//Update Screen
 	if (Blockbench.hasFlag('after_update') && data.new_version) {
@@ -725,7 +777,7 @@ Promise.all([news_call, documentReady]).then((data) => {
 		(function() {
 			if (typeof data.psa.version == 'string') {
 				if (data.psa.version.includes('-')) {
-					limits = data.psa.version.split('-');
+					let limits = data.psa.version.split('-');
 					if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
 					if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
 				} else {
@@ -739,7 +791,12 @@ Promise.all([news_call, documentReady]).then((data) => {
 })
 
 
-Object.assign(window, {
+const global = {
 	StartScreen,
 	addStartScreenSection,
-});
+};
+declare global {
+	const StartScreen: typeof global.StartScreen
+	const addStartScreenSection: typeof global.addStartScreenSection
+}
+Object.assign(window, global);

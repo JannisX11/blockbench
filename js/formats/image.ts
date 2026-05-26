@@ -1,3 +1,6 @@
+import { Filesystem } from "../file_system";
+import { GIFEnc } from "../lib/libs";
+import { TextureGenerator } from "../texturing/texture_generator";
 import { applyPalette, quantize } from "../util/gif";
 
 let codec = new Codec('image', {
@@ -8,7 +11,7 @@ let codec = new Codec('image', {
 		type: 'image',
 		extensions: Texture.getAllExtensions
 	},
-	load(files, path, resolution) {
+	load(files: (Filesystem.FileResult & {uuid: string})[], path, resolution) {
 		if (files instanceof Array == false) files = [files];
 		if (typeof path === 'object') {
 			files = [path];
@@ -34,7 +37,7 @@ let codec = new Codec('image', {
 			if (file.uuid) {
 				texture = new Texture(file, file.uuid).load();
 			} else if (typeof file == 'string') {
-				if (file.startsWith('data:image/png')) {
+				if ((file as string).startsWith('data:image/png')) {
 					texture = new Texture({name: 'image'}).fromDataURL(file);
 				} else {
 					texture = new Texture().fromPath(file);
@@ -200,7 +203,8 @@ let format = new ModelFormat('image', {
 		]
 	},
 	new() {
-		newProject(this);
+		let success = newProject(this);
+		if (success == false) return false;
 		let callback = () => {
 			setTimeout(() => {
 				Undo.history.empty();
@@ -244,6 +248,10 @@ let format = new ModelFormat('image', {
 				TextureGenerator.addBitmap(results, callback);
 			}
 		}).show();
+		setTimeout(() => {
+			UVEditor.vue.centerView();
+		}, 40);
+		return true;
 	},
 	onActivation() {
 		Interface.preview.classList.add('image_mode');
@@ -266,12 +274,11 @@ let format = new ModelFormat('image', {
 codec.format = format;
 
 BARS.defineActions(function() {
-	codec.export_action = new Action({
-		id: 'export_image',
+	codec.export_action = new Action('export_image', {
 		icon: 'panorama',
 		category: 'file',
-		condition: () => Format == format && Texture.all.length,
-		click: function () {
+		condition: () => Format == format && Texture.all.length > 0,
+		click() {
 			codec.export();
 		}
 	})

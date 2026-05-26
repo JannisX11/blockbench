@@ -52,7 +52,7 @@ export class BoundingBox extends OutlinerElement {
 		Outliner.buttons.visibility,
 	];
 
-	visibility: boolean
+	visibility: boolean = true
 	color: number
 	function: BoundingBoxFunction[]
 
@@ -384,11 +384,8 @@ new NodePreviewController(BoundingBox, {
 		)
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
-		// @ts-ignore
 		mesh.type = 'bounding_box';
-		// @ts-ignore
 		mesh.isElement = true;
-		// @ts-ignore
 		mesh.no_export = true;
 		mesh.visible = element.visibility;
 		mesh.renderOrder = 100;

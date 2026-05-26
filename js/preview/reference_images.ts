@@ -1,28 +1,79 @@
+import { Filesystem } from "../file_system";
+import { FormResultValue } from "../interface/form";
+import { CSS3DObject } from "../lib/CSS3DRenderer";
 import { clipboard } from "../native_apis";
+import { addEventListeners, getAverageRGB } from "../util/util";
 import { Preview } from "./preview";
 
-export class ReferenceImage {
-	constructor(data = {}) {
+export type ReferenceImageViewMode = 'flat_image' | 'billboard';
+export type ReferenceImageLayer = 'background' | 'viewport' | 'float' | 'blueprint';
+export type ReferenceImageScope = 'project' | 'global' | 'built_in';
 
-		this.name = '';
-		this.layer = '';
-		this.scope = '';
-		this.is_blueprint = false;
-		this.position = [0, 0];
-		this.size = [0, 0];
-		this.flip_x = false;
-		this.flip_y = false;
-		this.rotation = 0;
-		this.opacity = 0;
-		this.visibility = true;
-		this.sync_to_timeline = true;
-		this.clear_mode = false;
-		this.attached_side = 0;
-		this.source = '';
-		this.modes = [];
-		
+interface ReferenceImageOptions {
+	name?: string
+	layer?: ReferenceImageLayer
+	scope?: string
+	is_blueprint?: boolean
+	view_mode?: ReferenceImageViewMode
+	condition?: ConditionResolvable;
+	position?: ArrayVector2
+	size?: ArrayVector2
+	billboard_position?: ArrayVector3
+	billboard_rotation?: ArrayVector3
+	flip_x?: boolean
+	flip_y?: boolean
+	rotation?: number
+	opacity?: number
+	visibility?: boolean
+	sync_to_timeline?: boolean
+	clear_mode?: boolean
+	attached_side?: string
+	source?: string
+	modes?: string[]
+}
+
+export class ReferenceImage {
+	name: string = '';
+	layer: ReferenceImageLayer = 'background';
+	scope: ReferenceImageScope = 'project';
+	view_mode: ReferenceImageViewMode = 'flat_image';
+	is_blueprint: boolean = false;
+	position: number[] = [0, 0];
+	size: number[] = [0, 0];
+	flip_x: boolean = false;
+	flip_y: boolean = false;
+	rotation: number = 0;
+	billboard_position?: ArrayVector3
+	billboard_rotation?: ArrayVector3
+	opacity: number = 0;
+	visibility: boolean = true;
+	sync_to_timeline: boolean = true;
+	clear_mode: boolean = false;
+	attached_side: string = '';
+	source: string = '';
+	modes: string[] = [];
+	uuid: string;
+	cache_version: number = 0;
+	condition: ConditionResolvable;
+	toolbar: HTMLElement
+	/**@private */
+	_edit_events_initialized?: boolean
+	/**@private */
+	_modify_nodes: any[];
+	removed?: true;
+	defaults: {};
+	dark_background: boolean = false;
+	image_is_loaded: boolean = false;
+	auto_aspect_ratio: boolean = true;
+	is_video: boolean = false;
+	node: HTMLDivElement;
+	img: HTMLImageElement;
+	video: HTMLVideoElement & {_loading?: boolean, ref_source?: any};
+	scene_object: CSS3DObject;
+	declare public menu: Menu
+
+	constructor(data: ReferenceImageOptions = {}) {		
 		this.uuid = guid();
-		this.cache_version = 0;
 		this.condition = data.condition;
 
 		for (let key in ReferenceImage.properties) {
@@ -33,15 +84,10 @@ export class ReferenceImage {
 		this._modify_nodes = [];
 		this.defaults = data;
 
-		this.dark_background = false;
-		this.image_is_loaded = false;
-		this.auto_aspect_ratio = true;
-
-		this.is_video = false;
 		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
 			this.is_video = true;
 		}
-		this.node = Interface.createElement('div', {class: 'reference_image'});
+		this.node = Interface.createElement('div', {class: 'reference_image'}) as HTMLDivElement;
 		addEventListeners(this.node, 'mousedown touchstart', event => this.select());
 		this.node.addEventListener('contextmenu', event => {
 			this.openContextMenu(event);
@@ -54,19 +100,32 @@ export class ReferenceImage {
 				autoplay: true,
 				loop: true,
 				class: 'image_content'
-			});
-			this.video.muted = 'muted';
+			}) as HTMLVideoElement;
+			this.video.muted = true;
+			addEventListeners(this.node, 'mousedown mousemove', (event: MouseEvent | PointerEvent) => {
+				// Enable pointer events for controls section
+				let from_bottom = this.video.clientHeight - event.offsetY;
+				this.video.style.pointerEvents = from_bottom < 62 ? 'auto' : '';
+			})
 			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
 			this.node.append(this.video);
 			this.image_is_loaded = true;
 		} else {
 			this.node.append(this.img);
 		}
+		this.scene_object = new CSS3DObject(this.node);
+		switch (Format.forward_direction) {
+			case '-z': this.billboard_rotation[1] = 180; this.billboard_position[2] = Format.block_size; break;
+			case '+z': this.billboard_rotation[1] = 0; this.billboard_position[2] = -Format.block_size; break;
+			case '-x': this.billboard_rotation[1] = -90; this.billboard_position[0] = Format.block_size; break;
+			case '+x': this.billboard_rotation[1] = 90; this.billboard_position[0] = -Format.block_size; break;
+		}
 
-
-		(this.is_video ? this.video : this.img).onload = () => {
+		let onload = () => {
 			let was_image_loaded = this.image_is_loaded;
 			this.image_is_loaded = true;
+
+			if (this.is_video && this.video) this.video.pause();
 
 			if (this.auto_aspect_ratio) {
 				let original_size = this.size.slice();
@@ -82,22 +141,27 @@ export class ReferenceImage {
 			}
 			this.updateClearMode();
 		}
+		if (this.is_video) {
+			this.video.addEventListener('loadeddata', onload);
+		} else {
+			this.img.onload = onload;
+		}
 		this.img.onerror = () => {
 			this.image_is_loaded = false;
 		}
 
 		this.extend(data);
 	}
-	get aspect_ratio() {
+	get aspect_ratio(): number {
 		return this.source_width / this.source_height;
 	}
-	get source_width() {
+	get source_width(): number {
 		return (this.is_video ? this.video.videoWidth : this.img.naturalWidth) || 16;
 	}
-	get source_height() {
+	get source_height(): number {
 		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
-	extend(data) {
+	extend(data: ReferenceImageOptions) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
 		if (data.layer == 'blueprint') {
@@ -116,8 +180,8 @@ export class ReferenceImage {
 			this.enableBlueprintMode();
 		}
 	}
-	getSaveCopy() {
-		let copy = {};
+	getSaveCopy(): ReferenceImageOptions {
+		let copy: ReferenceImageOptions = {};
 		for (let key in ReferenceImage.properties) {
 			if (this[key] != ReferenceImage.properties[key].default) ReferenceImage.properties[key].copy(this, copy);
 		}
@@ -131,13 +195,14 @@ export class ReferenceImage {
 	}
 	resolveCondition() {
 		if (!Condition(this.condition)) return false;
+		// @ts-expect-error
 		if (this.modes.length && !this.modes.includes(Modes.selected.id)) return false;
 		if (this.is_blueprint) {
 			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
 		}
 		return true;
 	}
-	addAsReference(save) {
+	addAsReference(save: boolean = false) {
 		Project.reference_images.push(this);
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
@@ -151,7 +216,7 @@ export class ReferenceImage {
 		if (save) this.save();
 		return this;
 	}
-	addAsGlobalReference(save) {
+	addAsGlobalReference(save: boolean = false) {
 		ReferenceImage.global.push(this);
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
@@ -165,14 +230,14 @@ export class ReferenceImage {
 		if (save) this.save();
 		return this;
 	}
-	addAsBuiltIn(save) {
+	addAsBuiltIn(save: boolean = false) {
 		ReferenceImage.built_in.push(this);
 		this.scope = 'built_in';
 		this.update();
 		if (save) this.save();
 		return this;
 	}
-	select(force) {
+	select(force: boolean = false): this {
 		if (!force && this.selected) return this;
 		if (this.scope == 'built_in') return this;
 		if (ReferenceImage.selected && ReferenceImage.selected != this) {
@@ -185,12 +250,12 @@ export class ReferenceImage {
 		this.update();
 		return this;
 	}
-	unselect() {
+	unselect(): this {
 		if (ReferenceImage.selected == this) ReferenceImage.selected = null;
 		this.update();
 		return this;
 	}
-	get selected() {
+	get selected(): boolean {
 		return ReferenceImage.selected == this;
 	}
 	save() {
@@ -218,21 +283,36 @@ export class ReferenceImage {
 		if (!Interface.preview || this.removed) return this;
 		let shown = this.resolveCondition();
 		if (!shown) {
-			this.node.remove();
+			if (this.node) this.node.remove();
+			if (this.scene_object) Canvas.scene.remove(this.scene_object);
 			return this;
 		}
 
 		this.node.setAttribute('reference_layer', this.layer);
-		switch (this.layer) {
-			case 'background':
-			case 'viewport': {
-				Interface.preview.querySelector('.clamped_reference_images').append(this.node);
-				break;
+		if (this.view_mode == 'flat_image') {
+			Canvas.scene.remove(this.scene_object);
+			this.node.classList.remove('in_scene');
+			this.node.style.zIndex = '';
+
+			switch (this.layer) {
+				case 'background':
+				case 'viewport': {
+					Interface.preview.querySelector('.clamped_reference_images').append(this.node);
+					break;
+				}
+				case 'float': default: {
+					Interface.work_screen.append(this.node);
+					break;
+				}
 			}
-			case 'float': default: {
-				Interface.work_screen.append(this.node);
-				break;
-			}
+		} else {
+			Canvas.scene.add(this.scene_object);
+			this.node.classList.add('in_scene');
+			let zindex = this.layer == 'background' ? '-1' : '1';
+			this.node.style.zIndex = zindex;
+			if (ReferenceImage.selected) zindex = '1';
+			// Z index currently does not work per element, this is a temporary workaround
+			Preview.selected.css_renderer.domElement.style.zIndex = zindex;
 		}
 		
 		this.updateTransform();
@@ -240,7 +320,7 @@ export class ReferenceImage {
 		let image_content = this.is_video ? this.video : this.img;
 
 		image_content.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
-		image_content.style.opacity = this.opacity;
+		image_content.style.opacity = this.opacity.toString();
 
 		let transforms = [];
 		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
@@ -252,9 +332,10 @@ export class ReferenceImage {
 		if (this.is_video) {
 			if (this.video.ref_source != source) {
 				this.video.ref_source = source;
-				this.video.firstElementChild.src = source;
+				(this.video.firstElementChild as HTMLSourceElement).src = source;
 				this.video.load();
 			}
+			this.video.controls = this.selected;
 		} else {
 			if (this.img.src != source) {
 				this.img.src = source;
@@ -278,16 +359,24 @@ export class ReferenceImage {
 		if (this.selected && !this._modify_nodes.length) {
 			this.setupEditHandles()
 		}
+		if (this.selected) {
+			if (this.view_mode == 'billboard') {
+				Interface.preview.append(this.toolbar);
+			} else {
+				this.node.append(this.toolbar);
+			}
+		}
+
 		// Unselect
 		if (!this.selected && this._modify_nodes.length) {
 			this.node.classList.remove('selected');
 			this._modify_nodes.forEach(node => node.remove());
 			this._modify_nodes.empty();
 		}
-		if (this.selected) {
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
-			this.node.querySelector('div.reference_image_toolbar .tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
+		if (this.selected && this.toolbar) {
+			this.toolbar.querySelector('.tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
+			this.toolbar.querySelector('.tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
+			this.toolbar.querySelector('.tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
 		}
 		return this;
 	}
@@ -296,7 +385,7 @@ export class ReferenceImage {
 		return preview ? preview.camOrtho.zoom * 2 : 1;
 	}
 	updateTransform() {
-		if (!this.node.isConnected) return this;
+		if (!(this.node.isConnected || this.view_mode == 'billboard')) return;
 		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
@@ -318,7 +407,7 @@ export class ReferenceImage {
 				
 			pos_x += (this.position[0] * zoom) - (this.size[0] * zoom) / 2;
 			pos_y += (this.position[1] * zoom) - (this.size[1] * zoom) / 2;
-	
+
 			this.node.style.width = (this.size[0] * zoom) + 'px';
 			this.node.style.height = (this.size[1] * zoom) + 'px';
 			this.node.style.left = pos_x + 'px';
@@ -333,10 +422,22 @@ export class ReferenceImage {
 		} else {
 			this.node.style.width = this.size[0] + 'px';
 			this.node.style.height = this.size[1] + 'px';
-			let position = this.getClampedPosition();
-			this.node.style.left = (position[0] - this.size[0]/2) + 'px';
-			this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
 			this.node.style.clipPath = '';
+
+			if (this.view_mode == 'flat_image') {
+				let position = this.getClampedPosition();
+				this.node.style.left = (position[0] - this.size[0]/2) + 'px';
+				this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
+
+			} else if (this.view_mode == 'billboard') {
+				this.node.style.left = '0';
+				this.node.style.top  = '0';
+				this.scene_object.discardCopyElements();
+				this.scene_object.position.fromArray(this.billboard_position);
+				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
+				let scale = Format.block_size / 128;
+				this.scene_object.scale.set(scale, scale, scale);
+			}
 		}
 		return this;
 	}
@@ -345,9 +446,10 @@ export class ReferenceImage {
 			Math.min(0, -this.size[0]/2 + 50),
 			Math.min(0, -this.size[1]/2 + 50)
 		]
+		let parent = this.node.parentNode as HTMLElement;
 		return [
-			Math.clamp(this.position[0], edge_limit[0], this.node.parentNode.clientWidth - edge_limit[0]),
-			Math.clamp(this.position[1], edge_limit[1], this.node.parentNode.clientHeight - edge_limit[1])
+			Math.clamp(this.position[0], edge_limit[0], parent.clientWidth - edge_limit[0]),
+			Math.clamp(this.position[1], edge_limit[1], parent.clientHeight - edge_limit[1])
 		];
 	}
 	updateClearMode() {
@@ -365,17 +467,31 @@ export class ReferenceImage {
 		let self = this;
 		this.node.classList.add('selected');
 		let resize_corners = ['nw', 'ne', 'sw', 'se'].map(direction => {
-			let corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
-			let sign_x = direction[1] == 'e' ? 1 : -1;
-			let sign_y = direction[0] == 's' ? 1 : -1;
-			let multiplier = 1 / this.getZoomLevel();
-			addEventListeners(corner, 'mousedown touchstart', e1 => {
+			const corner = Interface.createElement('div', {class: 'reference_image_resize_corner '+direction});
+			const sign_x = direction[1] == 'e' ? 1 : -1;
+			const sign_y = direction[0] == 's' ? 1 : -1;
+			const multiplier = 1 / this.getZoomLevel();
+			addEventListeners(corner, 'mousedown touchstart', (e1: MouseEvent) => {
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
 				let original_size = this.size.slice();
+				let local_sign_x = sign_x;
+				let local_sign_y = sign_y;
 
-				let move = (e2) => {
+				if (this.view_mode == 'billboard') {
+					let corner_rect = corner.getBoundingClientRect();
+					let ref_rect = this.node.getBoundingClientRect();
+					let ref_center = [Math.lerp(ref_rect.left, ref_rect.right, 0.5), Math.lerp(ref_rect.top, ref_rect.bottom, 0.5)];
+					if ((corner_rect.left > ref_center[0]) != (sign_x == 1)) {
+						local_sign_x *= -1;
+					}
+					if ((corner_rect.top > ref_center[1]) != (sign_y == 1)) {
+						local_sign_y *= -1;
+					}
+				}
+
+				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
 					let offset = [
 						(e2.clientX - e1.clientX) * multiplier,
@@ -386,17 +502,17 @@ export class ReferenceImage {
 						32 / zoom_level,
 						24 / zoom_level
 					];
-					this.size[0] = Math.max(original_size[0] + offset[0] * sign_x, max_size[0]);
+					this.size[0] = Math.max(original_size[0] + offset[0] * local_sign_x, max_size[0]);
 					this.position[0] = original_position[0] + offset[0] / 2, 0;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
-						offset[1] = sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
+						offset[1] = local_sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
-					this.size[1] = Math.max(original_size[1] + offset[1] * sign_y, max_size[1]);
+					this.size[1] = Math.max(original_size[1] + offset[1] * local_sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
-					if (!this.is_blueprint) {
+					if (!this.is_blueprint && this.view_mode == 'flat_image') {
 						this.position.replace(this.getClampedPosition());
 					}
 
@@ -417,7 +533,7 @@ export class ReferenceImage {
 		this._modify_nodes.push(...resize_corners);
 
 		let rotate_handle = Interface.createElement('div', {class: 'reference_image_rotate_handle'}, Blockbench.getIconNode('rotate_right'));
-		addEventListeners(rotate_handle, 'mousedown touchstart', e1 => {
+		addEventListeners(rotate_handle, 'mousedown touchstart', (e1: MouseEvent) => {
 			convertTouchEvent(e1);
 
 			let original_rotation = this.rotation;
@@ -428,7 +544,7 @@ export class ReferenceImage {
 			]
 			let initial_angle = null;
 
-			let move = (e2) => {
+			let move = (e2: MouseEvent) => {
 				convertTouchEvent(e2);
 				let angle = Math.radToDeg(Math.atan2(
 					e2.clientY - center[1],
@@ -442,7 +558,7 @@ export class ReferenceImage {
 					this.update();
 				}
 			}
-			let stop = (e2) => {
+			let stop = (e2: MouseEvent) => {
 				convertTouchEvent(e2);
 				removeEventListeners(document, 'mousemove touchmove', move);
 				removeEventListeners(document, 'mouseup touchend', stop);
@@ -454,12 +570,19 @@ export class ReferenceImage {
 		this.node.append(rotate_handle);
 		this._modify_nodes.push(rotate_handle);
 
+		let z_move_handle = Interface.createElement('div', {class: 'reference_image_z_handle'}, [
+			Blockbench.getIconNode('north'),
+			Blockbench.getIconNode('south'),
+		]);
+		this.node.append(z_move_handle);
+		this._modify_nodes.push(z_move_handle);
+
 		this.toolbar = Interface.createElement('div', {class: 'reference_image_toolbar'});
 		this.node.append(this.toolbar);
 		this._modify_nodes.push(this.toolbar);
 		
 		// Controls
-		function addButton(id, name, icon, click) {
+		function addButton(id: string, name: string, icon: string, click: (event: MouseEvent) => void) {
 			let node = Interface.createElement('div', {class: 'tool', tool_id: id}, Blockbench.getIconNode(icon));
 			self.toolbar.append(node);
 			node.onclick = click;
@@ -468,18 +591,6 @@ export class ReferenceImage {
 				node: node
 			})
 			return node;
-		}
-		
-		if (this.is_video) {
-			let toggle = addButton('toggle_playback', 'reference_image.toggle_playback', this.video.paused ? 'play_arrow' : 'pause', () => {
-				if (this.video.paused) {
-					this.video._loading = false;
-					this.video.play();
-				} else {
-					this.video.pause();
-				}
-				toggle.querySelector('.icon').replaceWith(Blockbench.getIconNode(this.video.paused ? 'play_arrow' : 'pause'))
-			});
 		}
 
 		addButton('layer', 'reference_image.layer', 'flip_to_front', (event) => {
@@ -493,12 +604,12 @@ export class ReferenceImage {
 					name: layers[key],
 					icon: this.layer == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click: () => {
-						this.changeLayer(key);
+						this.changeLayer(key as ReferenceImageLayer);
 						this.update().save();
 					}
 				}
 			})
-			new Menu(options).open(event.target);
+			new Menu(options).open(event.target as HTMLElement);
 		});
 		
 		addButton('flip_x', tl('action.flip', 'X'), 'icon-mirror_x', () => {
@@ -511,8 +622,75 @@ export class ReferenceImage {
 			self.update().save();
 		});
 		
-		this.opacity_slider = new NumSlider({
-			id: 'slider_reference_image_opacity',
+		addButton('rotation', 'reference_image.rotation', '3d_rotation', (event: MouseEvent) => {
+			let snap_sides = {
+				north: [0, 0, 0],
+				east: [0, -90, 0],
+				south: [0, 180, 0],
+				west: [0, 90, 0],
+				bottom: [-90, 0, 0],
+				top: [90, 0, 0],
+			};
+			function getRotationSide(vector: ArrayVector3): string {
+				for (let key in snap_sides) {
+					if (vector.equals(snap_sides[key])) {
+						return key;
+					}
+				}
+				return 'custom';
+			}
+			let dialog = new ConfigDialog('test', {
+				title: 'Rotation',
+				width: 360,
+				form: {
+					side: {
+						label: 'Side',
+						type: 'select',
+						value: getRotationSide(self.billboard_rotation),
+						options: {
+							north: 'direction.north',
+							east: 'direction.east',
+							south: 'direction.south',
+							west: 'direction.west',
+							bottom: 'direction.bottom',
+							top: 'direction.top',
+							custom: 'Custom',
+						}
+					},
+					vector: {
+						label: 'Rotation',
+						type: 'vector',
+						dimensions: 3,
+						step: 2.5,
+						value: self.billboard_rotation,
+					}
+				}
+			}).show();
+
+			dialog.form.addListener('change', ({result, cause, changed_keys}) => {
+				console.log({result, cause, changed_keys})
+				if (changed_keys.includes('side')) {
+					let value = snap_sides[result.side];
+					if (value) {
+						self.billboard_rotation.replace(value as ArrayVector3);
+						dialog.form.setValues({vector: value}, false);
+					}
+				} else {
+					self.billboard_rotation.replace(result.vector as ArrayVector3);
+					let side = getRotationSide(result.vector as ArrayVector3);
+					dialog.form.setValues({side}, false);
+				}
+				self.update().save();
+			})
+
+			let anchor_position = self.toolbar.getBoundingClientRect();
+			let top = anchor_position.top - dialog.object.clientHeight - 4;
+			let left = Math.lerp(anchor_position.left, anchor_position.right, 0.5) - dialog.object.clientWidth/2;
+			dialog.object.style.top = top + 'px';
+			dialog.object.style.left = left + 'px';
+		});
+		
+		new NumSlider('slider_reference_image_opacity', {
 			name: 'reference_image.opacity',
 			private: true,
 			condition: () => true,
@@ -538,24 +716,57 @@ export class ReferenceImage {
 		});
 
 		if (!this._edit_events_initialized) {
-			addEventListeners(this.node, 'mousedown touchstart', e1 => {
-				if (!e1.target.classList.contains('reference_image')) return;
+			addEventListeners(this.node, 'mousedown touchstart', (e1: MouseEvent) => {
+				let target_classes = (e1.target as HTMLElement).classList;
+				if (!target_classes.contains('reference_image') && !target_classes.contains('reference_image_z_handle')) return;
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
+				let original_b_position = this.billboard_position.slice();
+				let original_b_rotation = this.billboard_rotation.slice();
 				let zoom = this.getZoomLevel();
+				let z_movement = target_classes.contains('reference_image_z_handle');
 
-				let move = (e2) => {
+				let move = (e2: MouseEvent) => {
 					convertTouchEvent(e2);
 					let offset = [
 						(e2.clientX - e1.clientX),
 						(e2.clientY - e1.clientY),
 					];
-					this.position[0] = original_position[0] + offset[0] / zoom;
-					this.position[1] = original_position[1] + offset[1] / zoom;
 
-					if (!this.is_blueprint) {
-						this.position.replace(this.getClampedPosition());
+					if (this.view_mode == 'billboard') {
+						let preview = Preview.selected;
+						let control_scale = preview.calculateControlScale(this.scene_object.position);
+						let vector = new THREE.Vector3(offset[0], -offset[1], 0).multiplyScalar(control_scale / 14);
+						vector.applyQuaternion(preview.camera.quaternion)
+
+						/*if (e2.ctrlOrCmd || Pressing.overrides.ctrl) {
+							if (Math.abs(vector.x) > Math.abs(vector.y) && Math.abs(vector.x) > Math.abs(vector.z)) {
+								vector.y = vector.z = 0;
+							} else if (Math.abs(vector.y) > Math.abs(vector.z)) {
+								vector.x = vector.z = 0;
+							} else {
+								vector.x = vector.y = 0;
+							}
+						}*/
+						vector.applyQuaternion(this.scene_object.quaternion.clone().invert());
+						if (z_movement) {
+							vector.x = vector.y = 0;
+						} else {
+							vector.z = 0;
+						}
+						vector.applyQuaternion(this.scene_object.quaternion);
+
+						this.billboard_position.replace(original_b_position);
+						this.billboard_position.V3_add(vector);
+
+					} else {
+						this.position[0] = original_position[0] + offset[0] / zoom;
+						this.position[1] = original_position[1] + offset[1] / zoom;
+
+						if (!this.is_blueprint) {
+							this.position.replace(this.getClampedPosition());
+						}
 					}
 
 					this.update();
@@ -564,6 +775,7 @@ export class ReferenceImage {
 					convertTouchEvent(e2);
 					removeEventListeners(document, 'mousemove touchmove', move);
 					removeEventListeners(document, 'mouseup touchend', stop);
+
 					this.save();
 				}
 				addEventListeners(document, 'mousemove touchmove', move);
@@ -577,8 +789,16 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	projectMouseCursor(x, y) {
+	projectMouseCursor(x: number, y: number): boolean | ArrayVector2 {
 		if (!this.resolveCondition() || !this.visibility) return false;
+
+		if (this.view_mode == 'billboard') {
+			let pointerevents = this.node.style.pointerEvents;
+			this.node.style.pointerEvents = 'all';
+			let hits = document.elementsFromPoint(x, y);
+			this.node.style.pointerEvents = pointerevents;
+			return hits.includes(this.node);
+		}
 
 		let rect = this.node.getBoundingClientRect();
 		let center = [rect.x + rect.width/2, rect.y + rect.height/2];
@@ -609,16 +829,16 @@ export class ReferenceImage {
 		}
 		return false;
 	}
-	openContextMenu(event) {
+	openContextMenu(event: MouseEvent) {
 		this.menu.open(event, this);
 		return this;
 	}
 	reset() {
 		return this;
 	}
-	async delete(force) {
+	async delete(force = false) {
 		if (!force) {
-			let icon;
+			let icon: string | HTMLImageElement;
 			if (this.is_video) {
 				icon = 'theaters';
 			} else {
@@ -642,9 +862,10 @@ export class ReferenceImage {
 		}
 		this.save();
 		this.removed = true;
+		if (this.scene_object) this.scene_object.removeFromParent();
 		this.node.remove();
 	}
-	changeLayer(layer) {
+	changeLayer(layer: ReferenceImageLayer): this {
 		if (layer == this.layer) return;
 
 		if (this.is_blueprint) this.is_blueprint = false;
@@ -656,10 +877,15 @@ export class ReferenceImage {
 			this.position[0] += (preview_offset.left - workscreen_offset.left) * sign;
 			this.position[1] += (preview_offset.top - workscreen_offset.top) * sign;
 		}
+		if (this.view_mode == 'billboard') {
+			ReferenceImage.active.forEach(ref => {
+				if (ref.view_mode == 'billboard') ref.layer = layer;
+			})
+		}
 		this.layer = layer;
 		return this;
 	}
-	changeScope(new_scope) {
+	changeScope(new_scope: ReferenceImageScope): this {
 		if (new_scope == this.scope) return this;
 
 		switch (this.scope) {
@@ -675,16 +901,17 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	enableBlueprintMode() {
-		if (this.is_blueprint) return;
+	enableBlueprintMode(): this {
+		if (this.is_blueprint) return this;
 		if (Preview.selected?.angle) {
 			this.is_blueprint = true;
 			if (this.layer == 'float') this.changeLayer('viewport');
 			this.attached_side = Preview.selected.angle;
 			this.position.V2_set(0, 0);
 		}
+		return this;
 	}
-	propertiesDialog() {
+	propertiesDialog(): this {
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
@@ -693,6 +920,10 @@ export class ReferenceImage {
 					value: this.source,
 					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
 				},
+				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, options: {
+					flat_image: 'reference_image.view_mode.flat_image',
+					billboard: 'reference_image.view_mode.billboard',
+				}},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -708,7 +939,7 @@ export class ReferenceImage {
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
-				is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
+				//is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -716,7 +947,8 @@ export class ReferenceImage {
 				let clear_mode_before = this.clear_mode;
 				this.extend({
 					source: result.source,
-					is_blueprint: result.is_blueprint,
+					//is_blueprint: result.is_blueprint,
+					view_mode: result.view_mode,
 					position: result.position,
 					size: result.size,
 					rotation: result.rotation,
@@ -736,9 +968,22 @@ export class ReferenceImage {
 		return this;
 	}
 
+	static properties: Record<string, Property> = {};
 	static supported_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif', 'mp4', 'wmv', 'mov'];
 	static image_extensions = ['png', 'jpg', 'jpeg', 'bmp', 'tiff', 'tif', 'gif'];
 	static video_extensions = ['mp4', 'wmv', 'mov'];
+
+	declare static all: ReferenceImage[];
+	declare static active: ReferenceImage[];
+	declare static current_project: ReferenceImage[];
+	static selected: ReferenceImage | null = null;
+	static built_in: ReferenceImage[] = [];
+	static global: ReferenceImage[] = [];
+	static updateAll(): void {
+		ReferenceImage.all.forEach(ref => {
+			ref.update();
+		})
+	}
 }
 ReferenceImage.prototype.menu = new Menu([
 	new MenuSeparator('media_controls'),
@@ -769,14 +1014,14 @@ ReferenceImage.prototype.menu = new Menu([
 	{
 		id: 'sync_to_timeline',
 		name: 'reference_image.sync_to_timeline',
-		condition: () => Format.animation_mode,
+		condition: (ref) => ref.is_video && Format.animation_mode,
 		icon: (ref) => ref.sync_to_timeline,
 		click(ref) {
 			ref.sync_to_timeline = !ref.sync_to_timeline;
 			ref.update().save();
 		}
 	},
-	{
+	/*{
 		id: 'blueprint',
 		name: 'reference_image.blueprint',
 		icon: (ref) => ref.is_blueprint,
@@ -788,7 +1033,7 @@ ReferenceImage.prototype.menu = new Menu([
 			}
 			ref.update().save();
 		}
-	},
+	},*/
 	{
 		id: 'clear_mode',
 		name: 'reference_image.clear_mode',
@@ -804,6 +1049,29 @@ ReferenceImage.prototype.menu = new Menu([
 				ref.unselect();
 				setTimeout(() => ref.select(), 400);
 			}
+		}
+	},
+	{
+		name: 'reference_image.view_mode',
+		icon: 'pin_end',
+		children: (reference) => {
+			let view_mode = {
+				flat_image: 'reference_image.view_mode.flat_image',
+				billboard: 'reference_image.view_mode.billboard',
+			}
+			let children = [];
+			for (let key in view_mode) {
+				children.push({
+					id: key,
+					name: view_mode[key],
+					icon: reference.view_mode == key ? 'far.fa-dot-circle' : 'far.fa-circle',
+					click() {
+						reference.view_mode = key;
+						reference.update().save();
+					}
+				})
+			}
+			return children;
 		}
 	},
 	{
@@ -884,8 +1152,11 @@ new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
 new Property(ReferenceImage, 'string', 'layer', {default: 'background'});
 new Property(ReferenceImage, 'string', 'scope', {default: 'global'});
 new Property(ReferenceImage, 'boolean', 'is_blueprint');
+new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
+new Property(ReferenceImage, 'vector', 'billboard_position');
+new Property(ReferenceImage, 'vector', 'billboard_rotation');
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
@@ -896,9 +1167,6 @@ new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');
 
-ReferenceImage.selected = null;
-ReferenceImage.built_in = [];
-ReferenceImage.global = [];
 Object.defineProperty(ReferenceImage, 'current_project', {
 	get() {
 		return Project.reference_images || [];
@@ -915,11 +1183,6 @@ Object.defineProperty(ReferenceImage, 'active', {
 	}
 })
 
-ReferenceImage.updateAll = function() {
-	ReferenceImage.all.forEach(ref => {
-		ref.update();
-	})
-}
 
 StateMemory.init('global_reference_images', 'array');
 export async function initReferenceImages() {
@@ -929,7 +1192,8 @@ export async function initReferenceImages() {
 }
 
 SharedActions.add('delete', {
-	condition: () => ReferenceImageMode.active && ReferenceImage.selected,
+	condition: () => (ReferenceImageMode.active && !!ReferenceImage.selected),
+	subject: 'reference_image',
 	priority: 1,
 	run() {
 		ReferenceImage.selected.delete();
@@ -969,8 +1233,8 @@ Blockbench.on('timeline_pause', () => {
 
 export const ReferenceImageMode = {
 	active: false,
-	toolbar: null,
-	activate() {
+	toolbar: null as Toolbar,
+	activate(): void {
 		ReferenceImageMode.active = true;
 		Interface.work_screen.classList.add('reference_image_mode');
 		Interface.work_screen.append(ReferenceImageMode.toolbar.node);
@@ -982,7 +1246,7 @@ export const ReferenceImageMode = {
 			}
 		}, 1);
 	},
-	deactivate() {
+	deactivate(): void {
 		ReferenceImageMode.active = false;
 		if (ReferenceImage.selected) ReferenceImage.selected.unselect();
 		Interface.work_screen.classList.remove('reference_image_mode');
@@ -990,34 +1254,68 @@ export const ReferenceImageMode = {
 		ReferenceImage.updateAll();
 		BARS.updateConditions();
 	},
-	async importReferences(files) {
-		let save_mode = await new Promise(resolve => {
+	async importReferences(files: Filesystem.FileResult[]) {
+		let options: any = await new Promise<Record<string, FormResultValue> | void>((resolve, reject) => {
 			let icon = new Image();
-			icon.src = files[0].content;
-			Blockbench.showMessageBox({
+			icon.src = files[0].content as string;
+			icon.classList.add('reference_image_import_preview')
+
+			new Dialog({
+				id: 'add_reference_image',
 				title: 'action.add_reference_image',
-				message: 'message.add_reference_image.message',
-				icon,
-				commands: {
-					project: 'message.add_reference_image.project',
-					app: 'message.add_reference_image.app',
+				lines: [icon],
+				form: {
+					view_mode: {
+						type: 'inline_select',
+						options: {
+							flat_image: 'reference_image.view_mode.flat_image',
+							billboard: 'reference_image.view_mode.billboard',
+						}
+					},
+					layer: {type: 'select', label: 'reference_image.layer', value: 'background', options: {
+						background: 'reference_image.layer.background',
+						viewport: 'reference_image.layer.viewport',
+						float: 'reference_image.layer.float',
+					}},
+					global: {
+						type: 'checkbox',
+						label: 'message.add_reference_image.globally',
+						value: false
+					},
+				},
+				onFormChange(result) {
+					icon.classList.toggle('billboard', result.view_mode == 'billboard');
+				},
+				onConfirm(result) {
+					resolve(result);
+				},
+				onCancel() {
+					resolve();
 				}
-			}, resolve)
+			}).show();
 		})
+		if (!options) {
+			ReferenceImageMode.deactivate();
+			return;
+		}
 		files.forEach(file => {
-			let ref = new ReferenceImage({source: file.content, name: file.name});
+			let ref = new ReferenceImage({
+				source: file.content as string,
+				name: file.name,
+				view_mode: options.view_mode
+			});
 			if (Format.image_editor) {
 				ref.layer = 'viewport';
 			}
-			if (save_mode == 'project') {
-				ref.addAsReference(true);
-			} else {
+			if (options.global) {
 				ref.addAsGlobalReference(true);
+			} else {
+				ref.addAsReference(true);
 			}
 			ref.select();
 		})
 	},
-	saveGlobalReferences() {
+	saveGlobalReferences(): void {
 		StateMemory.global_reference_images = ReferenceImage.global.map(ref => ref.getSaveCopy());
 		StateMemory.save('global_reference_images');
 	}
@@ -1050,7 +1348,7 @@ BARS.defineActions(function() {
 				readtype: 'image'
 			}, async function(files) {
 				ReferenceImageMode.importReferences(files);
-			}, 'image', false)
+			});
 		}
 	});
 	new Action('reference_image_from_clipboard', {
@@ -1063,7 +1361,7 @@ BARS.defineActions(function() {
 			if (isApp) {
 				var image = clipboard.readImage().toDataURL();
 				if (image.length > 32) {
-					ReferenceImageMode.importReferences([{content: image, name: 'Pasted'}]);
+					ReferenceImageMode.importReferences([{content: image, name: 'Pasted', path: ''}]);
 				}
 			} else {
 				navigator.clipboard.read().then(content => {
@@ -1071,7 +1369,7 @@ BARS.defineActions(function() {
 						content[0].getType('image/png').then(blob => {
 							let url = URL.createObjectURL(blob);
 							if (image.length > 32) {
-								ReferenceImageMode.importReferences([{content: url, name: 'Pasted'}]);
+								ReferenceImageMode.importReferences([{content: url, name: 'Pasted', path: ''}]);
 							}
 						})
 					}
@@ -1097,7 +1395,8 @@ BARS.defineActions(function() {
 		category: 'view',
 		condition: () => ReferenceImageMode.active,
 		click(e) {
-			new Menu('apply_display_preset', this.children(), {searchable: false}).open(e.target, 'wrong context');
+			let menu = new Menu('apply_display_preset', this.children(), {searchable: false});
+			menu.open(e.target as HTMLElement, 'wrong context');
 		},
 		children() {
 			let list = [];
@@ -1131,7 +1430,7 @@ BARS.defineActions(function() {
 										}
 										reference.modes.toggle(key);
 										// Clear invalid modes (uninstalled plugins etc.)
-										reference.modes.forEachReverse((mode) => {
+										reference.modes.forEachReverse((mode: string) => {
 											if (!Modes.options[mode]) reference.modes.remove(mode);
 										})
 										reference.update().save();
@@ -1211,7 +1510,20 @@ Interface.definePanels(function() {
 	})
 })
 
-Object.assign(window, {
+const global = {
 	ReferenceImage,
 	ReferenceImageMode,
-})
+};
+declare global {
+	const ReferenceImage: typeof global.ReferenceImage
+	type ReferenceImage = import('./reference_images').ReferenceImage
+	const ReferenceImageMode: typeof global.ReferenceImageMode
+	interface BarItemRegistry {
+		edit_reference_images: Action
+		add_reference_image: Action
+		reference_image_from_clipboard: Action
+		toggle_all_reference_images: Action
+		reference_image_list: Action
+	}
+}
+Object.assign(window, global);

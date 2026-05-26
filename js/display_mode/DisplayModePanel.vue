@@ -159,6 +159,7 @@ export default {
 	}},
 	watch: {
 		pose_angle(value) {
+			if (!displayReferenceObjects.active) return;
 			displayReferenceObjects.active.pose_angles[DisplayMode.display_slot] = value;
 			if (displayReferenceObjects.active.updateBasePosition) displayReferenceObjects.active.updateBasePosition();
 		},

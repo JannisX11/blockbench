@@ -1,3 +1,5 @@
+import { InputFormConfig } from "./interface/form";
+
 Blockbench.queries = {};
 
 let query_string = location.search || location.hash;
@@ -43,15 +45,15 @@ addEventListener('popstate', e => {
 	if (open_interface) {
 		if (typeof open_interface.cancel == 'function') {
 			open_interface.cancel(event);
-		} else if (typeof open_interface == 'string' && open_dialog) {
-			$('dialog#'+open_dialog).find('.cancel_btn:not([disabled])').trigger('click');
+		} else if (typeof open_interface == 'string' && Dialog.open) {
+			$(Dialog.open.object).find('.cancel_btn:not([disabled])').trigger('click');
 		}
 		
-	} else if (Interface.tab_bar.new_tab.visible) {
-		Interface.tab_bar.new_tab.close()
+	} else if (Interface.tab_bar.$data.new_tab.visible) {
+		Interface.tab_bar.$data.new_tab.close()
 		
-	} else if (open_menu) {
-		open_menu.hide()
+	} else if (Menu.open) {
+		Menu.open.hide()
 
 	} else if (Undo && Undo.index) {
 		Undo.undo()
@@ -72,18 +74,18 @@ try {
 }
 
 export async function loadInfoFromURL() {
-	if (Blockbench.queries.session) {
+	if (typeof Blockbench.queries.session == 'string') {
 		EditSession.token = Blockbench.queries.session;
-		BarItems.edit_session.click();
+		(BarItems.edit_session as Action).click();
 	}
 
-	if (Blockbench.queries.plugins) {
+	if (Blockbench.queries.plugins && typeof Blockbench.queries.plugins == 'string') {
 		let plugin_ids = Blockbench.queries.plugins.split(/,/);
 		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
 								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
 		if (plugins.length) {
-			await new Promise(resolve => {
-				let form = {
+			await new Promise<void>(resolve => {
+				let form: InputFormConfig = {
 					info: {type: 'info', text: 'dialog.load_plugins_from_query.text'}
 				}
 				plugins.forEach(plugin => {
@@ -103,7 +105,7 @@ export async function loadInfoFromURL() {
 						})
 						await Promise.all(promises);
 						resolve();
-					},
+					} as any,
 					onCancel() {
 						resolve();
 					}
@@ -130,8 +132,10 @@ export async function loadInfoFromURL() {
 		};
 		switch (Blockbench.queries.loadtype) {
 			case 'minecraft_skin': {
-				Formats.skin.setup_dialog.show();
-				Formats.skin.setup_dialog.setFormValues({
+				// @ts-expect-error
+				let dialog = Formats.skin.setup_dialog as Dialog;
+				dialog.show();
+				dialog.setFormValues({
 					texture: file
 				})
 				break;
@@ -154,12 +158,12 @@ window.onbeforeunload = function() {
 	if (unsaved_projects) {
 		return 'Unsaved Changes';
 	} else {
-		Blockbench.dispatchEvent('before_closing')
+		Blockbench.dispatchEvent('before_closing', {});
 		if (Project.EditSession) Project.EditSession.quit()
 	}
 }
 
-// Match exports to desktop.js
+// Match exports to desktop.ts
 const NULL = null;
 export {
 	NULL as recent_projects,

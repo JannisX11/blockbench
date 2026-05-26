@@ -1,4 +1,5 @@
 import { ModelLoader } from "../io/model_loader";
+import { Menu } from "./menu"
 import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
 
 export class BarMenu extends Menu {
@@ -271,7 +272,8 @@ export const MenuBar = {
 			'select_window',
 			'select_all',
 			'unselect_all',
-			'invert_selection'
+			'invert_selection',
+			'expand_texture_selection'
 		], {icon: 'edit'})
 		new BarMenu('transform', [
 			'scale',
@@ -364,6 +366,20 @@ export const MenuBar = {
 			'crop_texture_to_selection'
 		], {
 			icon: 'image',
+			condition: {modes: ['paint']}
+		})
+
+		new BarMenu('paint', [
+			new MenuSeparator('options'),
+			'mirror_painting',
+			'color_erase_mode',
+			'lock_alpha',
+			'painting_grid',
+			'pixel_perfect_drawing',
+			'brush_lock_mode',
+			new MenuSeparator('operations'),
+		], {
+			icon: 'fa-paint-brush',
 			condition: {modes: ['paint']}
 		})
 

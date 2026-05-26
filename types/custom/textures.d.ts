@@ -232,7 +232,7 @@ declare global {
 		 */
 		load(cb?: () => {}): this
 		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string }): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult): this
 		fromPath(path: string): this
 		/**
 		 * Loads file content **only**.
@@ -395,6 +395,7 @@ declare global {
 		static properties: Record<string, Property<any>>
 
 		static file_formats: Record<string, FileFormatOptions>
+		static getAllExtensions(): string[]
 	}
 	/**
 	 * Saves all textures
@@ -520,5 +521,6 @@ declare global {
 		function nextFrame(): void
 		function reset(): void
 		function updateButton(): void
+		function playAnimationFrame(anim_time?: number): void
 	}
 }
