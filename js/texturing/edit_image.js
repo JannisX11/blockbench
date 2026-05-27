@@ -875,8 +875,8 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.flip(0, true);
+			if (TextureLayer.selected) {
+				TextureLayer.selected.flip(0, true);
 				return;
 			}
 			let textures = getTextures();

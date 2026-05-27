@@ -22,6 +22,7 @@ export abstract class TextureLayerItem {
 	uuid: UUID
 	parent_uuid: string | UUID
 	multi_selected: boolean
+	visible: boolean
 	public type = 'layer'
 	declare menu?: Menu
 
@@ -101,6 +102,19 @@ export abstract class TextureLayerItem {
 			Undo.finishEdit('Remove layer');
 		}
 	}
+
+	static solveLayerOrder(list: TextureLayerItem[]) {
+		for (let item of list.slice()) {
+			let parent = item.parent;
+			if (!parent) continue;
+			let index = list.indexOf(item);
+			let p_index = list.indexOf(parent);
+			if (p_index < index) {
+				list.splice(index, 1);
+				list.splice(p_index, 0, item);
+			}
+		}
+	}
 }
 
 /**
@@ -121,7 +135,6 @@ export class TextureLayer extends TextureLayerItem {
 	 */
 	scale: ArrayVector2
 	opacity: number
-	visible: boolean
 	blend_mode: LayerBlendMode
 
 	public type = 'pixel_layer'
@@ -193,6 +206,7 @@ export class TextureLayer extends TextureLayerItem {
 		let copy: any = {};
 		copy.texture = this.texture.uuid;
 		copy.uuid = this.uuid;
+		copy.type = this.type;
 		for (let key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
@@ -205,6 +219,7 @@ export class TextureLayer extends TextureLayerItem {
 	}
 	getSaveCopy(): any {
 		let copy: any = {};
+		copy.type = this.type;
 		for (let key in TextureLayer.properties) {
 			TextureLayer.properties[key].copy(this, copy);
 		}
@@ -561,6 +576,7 @@ export class TextureLayerGroup extends TextureLayerItem {
 	getUndoCopy(): TextureLayerGroupData {
 		let data: any = {
 			texture: this.texture.uuid,
+			type: this.type,
 			name: this.name,
 			uuid: this.uuid,
 			folded: this.folded
@@ -574,18 +590,45 @@ export class TextureLayerGroup extends TextureLayerItem {
 	getSaveCopy() {
 		return this.getUndoCopy();
 	}
+	getAllChildren(): TextureLayerItem[] {
+		let list = [];
+		for (let layer of this.texture.layers) {
+			if (layer.parent_uuid != this.uuid || layer == this) continue;
+			list.safePush(layer);
+			if (layer instanceof TextureLayerGroup) {
+				list.safePush(...layer.getAllChildren());
+			}
+		}
+		return list;
+	}
 	/**
 	 * Selects the layer
 	 */
 	select(multi_select?: boolean) {
+		super.select(multi_select);
 		let children = this.children;
-		if (!multi_select) {
-			this.texture.layers.forEach(layer => layer.multi_selected = false);
-		}
 		for (let child of children) {
-			child.select(true);
+			child.multi_selected = true;
 		}
-		this.multi_selected = true;
+	}
+	/**
+	 * Toggle layer groupvisibility. This creates an undo point
+	 */
+	toggleVisibility(): this {
+		let layers = this.getAllChildren();
+		let first = layers.find(layer => 'toggleVisibility' in layer) as TextureLayer;
+		if (!first) return;
+		Undo.initEdit({layers});
+		let value = !first.visible;
+		for (let layer of layers) {
+			if ('visible' in layer) {
+				layer.visible = value;
+			}
+		}
+		this.visible = value;
+		this.texture.updateChangesAfterEdit();
+		Undo.finishEdit('Toggle layer visibility');
+		return this;
 	}
 	/**
 	 * Open the properties dialog
@@ -619,6 +662,7 @@ export class TextureLayerGroup extends TextureLayerItem {
 new Property(TextureLayerGroup, 'string', 'name', {default: 'layer'});
 new Property(TextureLayerGroup, 'boolean', 'folded');
 new Property(TextureLayerGroup, 'string', 'parent_uuid');
+new Property(TextureLayerGroup, 'boolean', 'visible', {default: true});
 
 
 SharedActions.add('delete', {
@@ -921,31 +965,23 @@ Interface.definePanels(function() {
 		props: {
 			layer: TextureLayer
 		},
-		template: '<div class="layer_icon_wrapper"></div>',
+		template: '<div class="layer_icon_wrapper checkerboard"></div>',
 		mounted() {
 			this.$el.append(this.layer.canvas);
 		}
 	})
-	function eventTargetToLayer(target, texture) {
+	function eventTargetToLayer(target: Element, texture: Texture): [TextureLayerItem, Element] | [] {
 		let target_node = target;
 		let i = 0;
 		while (target_node && target_node.classList && !target_node.classList.contains('texture_layer')) {
 			if (i < 3 && target_node) {
-				target_node = target_node.parentNode;
+				target_node = target_node.parentNode as Element;
 				i++;
 			} else {
 				return [];
 			}
 		}
-		return [texture.layers.find(layer => layer.uuid == target_node.attributes.layer_id.value), target_node];
-	}
-	function getOrder(loc, obj) {
-		if (!obj) {
-			return;
-		} else {
-			if (loc <= 20) return -1;
-			return 1;
-		}
+		return [texture.layers.find(layer => layer.uuid == target_node.getAttribute('layer_id')), target_node];
 	}
 	new Panel('layers', {
 		icon: 'layers',
@@ -996,13 +1032,23 @@ Interface.definePanels(function() {
 					let texture = Texture.selected;
 					if (!texture) return;
 					let [layer] = eventTargetToLayer(e1.target, texture);
-					if (!layer || layer.locked) return;
+					if (!layer) return;
 
 					let active = false;
-					let helper;
+					let helper: HTMLDivElement;
 					let timeout;
-					let drop_target, drop_target_node, order;
+					let drop_target: TextureLayerItem;
+					let drop_target_node: Element;
+					let target_is_list = false;
+					let order;
 					let last_event = e1;
+
+					function getOrder(loc: number, obj: TextureLayerItem, height: number = 40) {
+						if (!obj) return;
+						if (loc < height*0.3) return -1;
+						if (loc > height*0.7) return 1;
+						return 0;
+					}
 
 					function move(e2) {
 						convertTouchEvent(e2);
@@ -1040,19 +1086,27 @@ Interface.definePanels(function() {
 							// drag
 							$('.drag_hover').removeClass('drag_hover');
 							$('.texture_layer[order]').attr('order', null);
+							target_is_list = false;
 
 							let target = document.elementFromPoint(e2.clientX, e2.clientY);
 							[drop_target, drop_target_node] = eventTargetToLayer(target, texture);
 							if (drop_target) {
 								let location = e2.clientY - $(drop_target_node).offset().top;
-								order = getOrder(location, drop_target)
-								drop_target_node.setAttribute('order', order)
+								order = getOrder(location, drop_target, drop_target_node.clientHeight);
+							} else if (target?.id == 'layers_list') {
+								drop_target = texture.layers[0];
+								drop_target_node = document.querySelector(`.texture_layer[layer_id="${drop_target.uuid}"]`);
+								order = 1;
+								target_is_list = true;
+							}
+							if (drop_target_node) {
+								drop_target_node.setAttribute('order', order);
 								drop_target_node.classList.add('drag_hover');
 							}
 						}
 						last_event = e2;
 					}
-					function off(e2) {
+					function off(e2: MouseEvent) {
 						if (helper) helper.remove();
 						removeEventListeners(document, 'mousemove touchmove', move);
 						removeEventListeners(document, 'mouseup touchend', off);
@@ -1060,24 +1114,52 @@ Interface.definePanels(function() {
 						$('.texture_layer[order]').attr('order', null);
 						if (Blockbench.isTouch) clearTimeout(timeout);
 
+						function layerIsChildOf(child_layer: TextureLayerItem, parent_layer: TextureLayerItem): boolean {
+							let parent = child_layer.parent;
+							let i = 0;
+							while (parent) {
+								if (parent == parent_layer || parent == child_layer) return true;
+								parent = parent.parent;
+								i++;
+								if (i > 20) break;
+							}
+							return false;
+						}
+
 						if (active && !Menu.open) {
 							convertTouchEvent(e2);
-							let target = document.elementFromPoint(e2.clientX, e2.clientY);
-							let [target_layer] = eventTargetToLayer(target, texture);
-							if (!target_layer || target_layer == layer ) return;
+							let target_layer = drop_target;
+							if (!target_layer || target_layer == layer || layerIsChildOf(target_layer, layer) ) return;
 
 							let index = texture.layers.indexOf(target_layer);
 
 							if (index == -1) return;
 							if (texture.layers.indexOf(layer) < index) index--;
 							if (order == -1) index++;
-							if (texture.layers[index] == layer) return;
+							if (texture.layers[index] == layer && order) return;
 							
 							Undo.initEdit({textures: [texture]});
 
 							texture.layers.remove(layer);
 							texture.layers.splice(index, 0, layer);
 
+							if (order == 0) {
+								if (target_layer instanceof TextureLayerGroup) {
+									layer.parent_uuid = target_layer.uuid;
+								} else {
+									let group = new TextureLayerGroup({name: 'Layer Group'}, texture);
+									group.parent_uuid = layer.parent_uuid;
+									texture.layers.splice(index, 0, group);
+									layer.parent_uuid = group.uuid;
+									target_layer.parent_uuid = group.uuid;
+								}
+							} else if (target_is_list) {
+								layer.parent_uuid = '';
+							} else {
+								layer.parent_uuid = target_layer.parent_uuid;
+							}
+
+							TextureLayerItem.solveLayerOrder(texture.layers);
 							texture.updateChangesAfterEdit();
 							Undo.finishEdit('Reorder layers');
 						}

@@ -1094,7 +1094,7 @@
 		box-sizing: border-box;
 		align-items: center;
 		gap: 6px;
-		margin-left: calc(var(--indentation) * 20px);
+		padding-left: calc(8px + var(--indentation) * 20px)
 	}
 	.texture_layer:first-child {
 		margin-bottom: auto;
@@ -1138,7 +1138,7 @@
 		margin-top: 1px;
 	}
 	.texture_layer.drag_hover[order]::before {
-		left: -6px;
+		left: 0;
 	}
 	#layers_list > .activate_layers_button {
 		display: flex;
