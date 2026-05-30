@@ -2677,6 +2677,7 @@
 	"reference_image.scope.global": "All projects",
 	"reference_image.enabled_modes": "Enabled in Modes",
 	"reference_image.sync_to_timeline": "Sync To Timeline",
+	"reference_image.cull_backface": "Hide Backside",
 	"reference_image.toggle_playback": "Play/Pause",
 
 	"codec.common.encoding": "Encoding",

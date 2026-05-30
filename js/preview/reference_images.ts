@@ -26,6 +26,7 @@ interface ReferenceImageOptions {
 	opacity?: number
 	visibility?: boolean
 	sync_to_timeline?: boolean
+	cull_backface?: boolean
 	clear_mode?: boolean
 	attached_side?: string
 	source?: string
@@ -48,6 +49,7 @@ export class ReferenceImage {
 	opacity: number = 0;
 	visibility: boolean = true;
 	sync_to_timeline: boolean = true;
+	cull_backface: boolean = false;
 	clear_mode: boolean = false;
 	attached_side: string = '';
 	source: string = '';
@@ -308,6 +310,7 @@ export class ReferenceImage {
 		} else {
 			Canvas.scene.add(this.scene_object);
 			this.node.classList.add('in_scene');
+			this.scene_object.backface_culling = this.cull_backface;
 			let zindex = this.layer == 'background' ? '-1' : '1';
 			this.node.style.zIndex = zindex;
 			if (ReferenceImage.selected) zindex = '1';
@@ -377,6 +380,7 @@ export class ReferenceImage {
 			this.toolbar.querySelector('.tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
 			this.toolbar.querySelector('.tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
 			this.toolbar.querySelector('.tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
+			(this.toolbar.querySelector('.tool[tool_id=rotation]') as HTMLElement).style.display = this.view_mode == 'billboard' ? 'block' : 'none';
 		}
 		return this;
 	}
@@ -933,12 +937,14 @@ export class ReferenceImage {
 					project: 'reference_image.scope.project',
 					global: 'reference_image.scope.global',
 				}},
-				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position},
+				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode == 'flat_image'},
+				billboard_position: {type: 'vector', label: 'reference_image.position', dimensions: 3, value: this.billboard_position, condition: (form) => form.view_mode == 'billboard'},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
+				cull_backface: {type: 'checkbox', label: 'reference_image.cull_backface', value: this.cull_backface, condition: (form) => form.view_mode == 'billboard'},
 				//is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
@@ -950,11 +956,13 @@ export class ReferenceImage {
 					//is_blueprint: result.is_blueprint,
 					view_mode: result.view_mode,
 					position: result.position,
+					billboard_position: result.billboard_position,
 					size: result.size,
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
 					visibility: result.visibility,
 					sync_to_timeline: result.sync_to_timeline,
+					cull_backface: result.cull_backface,
 					clear_mode: result.clear_mode,
 				});
 				this.changeLayer(result.layer);
@@ -1163,6 +1171,7 @@ new Property(ReferenceImage, 'number', 'rotation');
 new Property(ReferenceImage, 'number', 'opacity', {default: 1});
 new Property(ReferenceImage, 'boolean', 'visibility', {default: true});
 new Property(ReferenceImage, 'boolean', 'sync_to_timeline', {default: true});
+new Property(ReferenceImage, 'boolean', 'cull_backface', {default: false});
 new Property(ReferenceImage, 'boolean', 'clear_mode');
 new Property(ReferenceImage, 'string', 'attached_side', {default: 'north'});
 new Property(ReferenceImage, 'string', 'source');

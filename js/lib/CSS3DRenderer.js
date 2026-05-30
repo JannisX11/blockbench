@@ -58,6 +58,13 @@ class CSS3DObject extends Object3D {
 		 */
 		this.copy_elements = [];
 
+		/**
+		 * Whether the back side of the object is culled
+		 *
+		 * @type {boolean}
+		 */
+		this.backface_culling = false;
+
 		this.addEventListener( 'removed', function () {
 
 			this.traverse( function ( object ) {
@@ -397,7 +404,14 @@ class CSS3DRenderer {
 
 			if ( object.isCSS3DObject ) {
 
-				const visible = ( object.layers.test( camera.layers ) === true );
+				let visible = ( object.layers.test( camera.layers ) === true );
+
+				if (visible && object.backface_culling) {
+					let camera_in_object_space = object.worldToLocal(Reusable.vec3.copy(camera.position));
+					if (camera_in_object_space.z < 0) {
+						visible = false;
+					}
+				}
 
 				let element = object.element;
 
