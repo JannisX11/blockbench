@@ -32,7 +32,12 @@ interface ToastNotificationOptions {
 	 * Method to run on click. 
 	 * @returns Return `true` to close toast
 	 */
-	click?: (event: Event) => boolean
+	click?: (event: Event) => boolean | void
+	/**
+	 * Method to run on close via the close button. 
+	 * @returns Return `falce` to cancel the close
+	 */
+	onClose?: (event: Event) => boolean | void
 }
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
@@ -179,6 +184,10 @@ export const Blockbench = {
 		close_button.innerHTML = '<i class="material-icons">clear</i>';
 		close_button.className = 'toast_close_button';
 		close_button.addEventListener('click', (event) => {
+			if (options.onClose) {
+				let result = options.onClose(event);
+				if (result == false) return;
+			}
 			notification.remove();
 		})
 		notification.append(close_button);

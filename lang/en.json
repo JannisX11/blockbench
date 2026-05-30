@@ -2018,6 +2018,8 @@
 	"action.view_mode.material": "Material Preview",
 	"action.preview_scene": "Preview Scene",
 	"action.preview_scene.desc": "Change the model preview scene",
+	"action.preview_models": "Preview Models",
+	"action.preview_models.desc": "Select and edit reference models",
 	"action.screenshot_model": "Screenshot Model",
 	"action.screenshot_model.desc": "Take a cropped screenshot of the model from the current angle",
 	"action.advanced_screenshot": "Advanced Screenshot...",
@@ -2878,5 +2880,9 @@
 	"preview_scene.minecraft_ocean": "Ocean",
 	"preview_scene.minecraft_coral_reef": "Coral Reef",
 	"preview_scene.minecraft_lush_cave": "Lush Cave",
-	"preview_scene.minecraft_deep_dark": "Deep Dark"
+	"preview_scene.minecraft_deep_dark": "Deep Dark",
+
+	"preview_model.transform": "Transform",
+	"preview_model.reset_transform": "Reset Transform",
+	"preview_model.minecraft_player": "Minecraft Player"
 }

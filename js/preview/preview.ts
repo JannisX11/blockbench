@@ -1927,6 +1927,7 @@ Preview.prototype.menu = new Menu([
 	'toggle_all_reference_images',
 	'edit_reference_images',
 	'preview_scene',
+	'preview_models',
 	{
 		icon: 'icon-player',
 		name: 'settings.display_skin',

@@ -1,4 +1,5 @@
 
+import { CustomMenuItem } from "../interface/menu";
 import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
 import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
@@ -246,6 +247,7 @@ interface PreviewModelCubeTemplate {
 type PrefabTemplate = PreviewModelCubeTemplate
 export interface PreviewModelOptions {
 	id?: string
+	name?: string
 	condition?: ConditionResolvable
 	cubes?: PreviewModelCubeTemplate[]
 	prefabs?: Record<string, PrefabTemplate>
@@ -273,6 +275,7 @@ export interface PreviewModelOptions {
 }
 export class PreviewModel implements Deletable {
 	id: string
+	name: string
 	condition: ConditionResolvable
 	model_3d: THREE.Object3D
 	onUpdate?: () => void
@@ -296,6 +299,7 @@ export class PreviewModel implements Deletable {
 	constructor(id: string, data: PreviewModelOptions) {
 		PreviewModel.models[id] = this;
 		this.id = id;
+		this.name = data.name ? tl(data.name) : '';
 		this.condition = data.condition;
 		this.model_3d = new THREE.Object3D();
 		this.onUpdate = data.onUpdate;
@@ -504,9 +508,11 @@ export class PreviewModel implements Deletable {
 		}
 		return list;
 	}
+	static transform_model: PreviewModel | null = null;
 }
 
 new PreviewModel('studio', {
+	name: 'preview_scene.studio',
 	texture: './assets/preview_scenes/studio.png',
 	texture_size: [64, 64],
 	shading: false,
@@ -642,6 +648,7 @@ new PreviewScene('minecraft_end', {
 
 
 export const player_preview_model = new PreviewModel('minecraft_player', {
+	name: 'preview_model.minecraft_player',
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
 	position: [30, 0, 8],
@@ -965,23 +972,125 @@ BARS.defineActions(function() {
 					})
 				}
 			}
-			list.push(new MenuSeparator('individual_objects'));
-			list.push({
-				name: 'Minecraft Player',
-				icon: player_preview_model.enabled ? 'check_box' : 'check_box_outline_blank',
-				click() {
-					if (!player_preview_model.enabled) {
-						player_preview_model.enable();
-					} else {
-						player_preview_model.disable();
-					}
-				}
-			})
+			return list;
+
+		}
+	})
+	new Action('preview_models', {
+		category: 'view',
+		icon: 'park',
+		click(event) {
+			new Menu(this.children).show(event.target as HTMLElement);
+		},
+		children: () => {
+			let list = [];
+			for (let id in PreviewModel.models) {
+				let model = PreviewModel.models[id];
+				list.push({
+					name: (model.name || id),
+					icon: model.enabled ? 'check_box' : 'check_box_outline_blank',
+					click() {
+						if (!model.enabled) {
+							model.enable();
+						} else {
+							model.disable();
+						}
+					},
+					children: [
+						{
+							name: 'preview_model.transform',
+							icon: 'control_camera',
+							click() {
+								PreviewModel.transform_model = model;
+								Transformer.updateSelection();
+								Blockbench.showToastNotification({
+									text: 'transform',
+									icon: 'control_camera',
+									click() {
+										PreviewModel.transform_model = null;
+										Transformer.updateSelection();
+										return true;
+									},
+									onClose() {
+										PreviewModel.transform_model = null;
+										Transformer.updateSelection();
+									}
+								});
+							}
+						},
+						{
+							name: 'preview_model.reset_transform',
+							icon: 'reset_settings',
+							click() {
+								// TODO: Implementation
+							}
+
+						}
+					] as CustomMenuItem[]
+				})
+			}
 			return list;
 
 		}
 	})
 })
+
+new TransformerModule('preview_model', {
+	priority: 3,
+	condition: () => PreviewModel.transform_model != undefined,
+	updateGizmo() {
+		let model = PreviewModel.transform_model;
+		let channel = Toolbox.selected.animation_channel;
+
+		model.model_3d.getWorldPosition(Transformer.position);
+		Transformer.position.sub(Canvas.scene.position);
+		let local = channel != 'position';
+		Transformer.rotation_ref = local ? model.model_3d : Canvas.scene;
+		return true;
+	},
+	calculateOffset(context) {
+		let {point, axis, angle, event} = context;
+		let channel = Toolbox.selected.animation_channel
+		let value = point[axis];
+		let interval = 1;
+		
+		if (channel == 'rotation') {
+			value = angle;
+			interval = getRotationInterval(event)
+		} else if (channel == 'position') {
+			interval = getSpatialInterval(context.event);
+			
+		} else if (channel == 'scale') {
+			value *= context.direction * 0.1;
+			interval = getSpatialInterval(context.event);
+			interval *= 0.1;
+		}
+		value = Math.round(value/interval)*interval;
+
+		return value;
+	},
+	onMove(context) {
+		let {point, axis, axis_number, value} = context;
+		let model = PreviewModel.transform_model;
+		let channel = Toolbox.selected.animation_channel
+
+		let difference = value - (this.previous_value||0);
+
+		if (channel == 'position') {
+			model.model_3d.position[axis] += difference;
+		} else if (channel == 'rotation') {
+			model.model_3d.rotation[axis] += Math.degToRad(difference);
+		} else {
+			model.model_3d.scale[axis] += difference;
+		}
+
+		Blockbench.setCursorTooltip(trimFloatNumber(value - this.initial_value));
+		Transformer.center()
+
+	},
+	onEnd(context) {
+	},
+});
 
 const global = {
 	PreviewScene,

@@ -536,6 +536,7 @@ export const MenuBar = {
 			new MenuSeparator('references'),
 			'bedrock_animation_mode',
 			'preview_scene',
+			'preview_models',
 			'edit_reference_images',
 			new MenuSeparator('model'),
 			'hide_everything_except_selection',
