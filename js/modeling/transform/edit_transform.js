@@ -78,90 +78,116 @@ new TransformerModule('edit', {
 	priority: 1,
 	condition: () => Modes.id === 'edit' || Modes.id === 'pose' || Toolbox.selected.id == 'pivot_tool',
 	updateGizmo() {
-		if (Transformer.visible) {
-			let rotation_tool = false;
-			let rotation_object;
-			switch (Toolbox.selected.id) {
-				case 'rotate_tool': {
-					rotation_tool = true;
-					rotation_object = getRotationObjects();
+		let attached_nodes = [];
+
+		if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
+			if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
+				if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
+					SplineGizmos.refreshGizmos(Transformer);
+				} else if (Outliner.selected.length) {
+					Outliner.selected.forEach(element => {
+						if (
+							(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
+							((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
+							(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
+						) {
+							attached_nodes.push(element);
+						}
+					})
+				} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
+					attached_nodes = [Group.first_selected];
+				}
+			}
+		}
+		if (!attached_nodes.length) return false;
+
+
+		if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.first_selected)) {
+			var center = getSelectionCenter()
+			Transformer.position.fromArray(center)
+			return false;
+		}
+
+
+		let rotation_tool = false;
+		let rotation_object;
+		switch (Toolbox.selected.id) {
+			case 'rotate_tool': {
+				rotation_tool = true;
+				rotation_object = getRotationObjects();
+				break;
+			}
+			case 'pivot_tool': {
+				rotation_tool = true;
+				rotation_object = getPivotObjects();
+				break;
+			}
+			case 'move_tool': {
+				if (Group.selected.length) rotation_object = Group.selected;
+			}
+		}
+		if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
+			let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
+			rotation_object = undefined;
+			for (let obj of arr) {
+				if (obj.visibility !== false) {
+					rotation_object = obj;
 					break;
 				}
-				case 'pivot_tool': {
-					rotation_tool = true;
-					rotation_object = getPivotObjects();
-					break;
-				}
-				case 'move_tool': {
-					if (Group.selected.length) rotation_object = Group.selected;
-				}
 			}
-			if (rotation_object instanceof Array || (!rotation_object && !rotation_tool)) {
-				let arr = rotation_object instanceof Array ? rotation_object : Outliner.selected;
-				rotation_object = undefined;
-				for (let obj of arr) {
-					if (obj.visibility !== false) {
-						rotation_object = obj;
-						break;
-					}
-				}
-			}
-			if (!rotation_object) {
-				Transformer.detach();
-				return;
-			}
-			Transformer.rotation_object = rotation_object;
-			
-			//Center
-			if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
-				if ((rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' &&
-					Project.mesh_selection[rotation_object.uuid] && (
-						Project.mesh_selection[rotation_object.uuid].vertices.length > 0 ||
-						Project.mesh_selection[rotation_object.uuid].edges.length > 0 ||
-						Project.mesh_selection[rotation_object.uuid].faces.length > 0
-					)) || 
-					(rotation_object instanceof SplineMesh && Toolbox.selected.id === 'rotate_tool' &&
-					Project.spline_selection[rotation_object.uuid] && 
-					Project.spline_selection[rotation_object.uuid].vertices.length > 0)
-				) {
-					Transformer.position.copy(rotation_object.getWorldCenter())
-				} else if (rotation_object.mesh) {
-					rotation_object.mesh.getWorldPosition(Transformer.position);
-				} else {
-					Transformer.position.copy(rotation_object.getWorldCenter());
-				}
-				Transformer.position.sub(scene.position);
+		}
+		if (!rotation_object) {
+			return false;
+		}
+		Transformer.rotation_object = rotation_object;
+		
+		//Center
+		if (Toolbox.selected.id === 'rotate_tool' || Toolbox.selected.id === 'pivot_tool') {
+			if ((rotation_object instanceof Mesh && Toolbox.selected.id === 'rotate_tool' &&
+				Project.mesh_selection[rotation_object.uuid] && (
+					Project.mesh_selection[rotation_object.uuid].vertices.length > 0 ||
+					Project.mesh_selection[rotation_object.uuid].edges.length > 0 ||
+					Project.mesh_selection[rotation_object.uuid].faces.length > 0
+				)) || 
+				(rotation_object instanceof SplineMesh && Toolbox.selected.id === 'rotate_tool' &&
+				Project.spline_selection[rotation_object.uuid] && 
+				Project.spline_selection[rotation_object.uuid].vertices.length > 0)
+			) {
+				Transformer.position.copy(rotation_object.getWorldCenter())
+			} else if (rotation_object.mesh) {
+				rotation_object.mesh.getWorldPosition(Transformer.position);
 			} else {
-				var center = getSelectionCenter()
-				Transformer.position.fromArray(center)
+				Transformer.position.copy(rotation_object.getWorldCenter());
 			}
-
-			let space = getEditTransformSpace();
-			//Rotation
-			if (space >= 2 || Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id == 'stretch_tool') {
-				Transformer.rotation_ref = (Group.first_selected && Format.bone_rig) ? Group.first_selected.mesh : (selected[0] && selected[0].mesh);
-				if (space === 3 && Mesh.selected[0]) {
-					let rotation = Mesh.selected[0].getSelectionRotation();
-					if (rotation && !Transformer.dragging) Transformer.rotation_selection.copy(rotation);
-				}
-				if (space === 3 && SplineMesh.selected[0]) {
-					if (SplineMesh.selected[0].getSelectedHandles(true).length) {
-						let handle = SplineMesh.selected[0].getSelectedHandles(true)[0];
-						let euler_arr = SplineMesh.selected[0].getHandleEuler(handle).combined;
-
-						let rotation = euler_arr.V3_toEuler();
-						if (rotation && !Transformer.dragging) Transformer.rotation_selection.copy(rotation);
-					}
-				}
-			
-			} else if (space instanceof OutlinerNode && space.getTypeBehavior('parent')) {
-				Transformer.rotation_ref = space.mesh;
-
-			}
-		} else if (Toolbox.selected.id == 'vertex_snap_tool' && (Outliner.selected.length || Group.first_selected)) {
+			Transformer.position.sub(scene.position);
+		} else {
 			var center = getSelectionCenter()
 			Transformer.position.fromArray(center)
 		}
+
+		let space = getEditTransformSpace();
+		//Rotation
+		if (space >= 2 || Toolbox.selected.id == 'resize_tool' || Toolbox.selected.id == 'stretch_tool') {
+			Transformer.rotation_ref = (Group.first_selected && Format.bone_rig) ? Group.first_selected.mesh : (selected[0] && selected[0].mesh);
+			if (space === 3 && Mesh.selected[0]) {
+				let rotation = Mesh.selected[0].getSelectionRotation();
+				if (rotation && !Transformer.dragging) Transformer.rotation_selection.copy(rotation);
+			}
+			if (space === 3 && SplineMesh.selected[0]) {
+				if (SplineMesh.selected[0].getSelectedHandles(true).length) {
+					let handle = SplineMesh.selected[0].getSelectedHandles(true)[0];
+					let euler_arr = SplineMesh.selected[0].getHandleEuler(handle).combined;
+
+					let rotation = euler_arr.V3_toEuler();
+					if (rotation && !Transformer.dragging) Transformer.rotation_selection.copy(rotation);
+				}
+			}
+		
+		} else if (space instanceof OutlinerNode && space.getTypeBehavior('parent')) {
+			Transformer.rotation_ref = space.mesh;
+
+		}
+		return true;
 	},
 	calculateOffset(context) {
 		let {point, axis, angle, second_axis, event} = context;

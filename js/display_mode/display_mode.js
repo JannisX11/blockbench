@@ -1441,8 +1441,6 @@ new TransformerModule('display', {
 
 		let transformer_mode = Toolbox.selected.transformerMode;
 
-		Transformer.attach(display_base)
-
 		display_base.getWorldPosition(Transformer.position);
 		Transformer.position.sub(scene.position);
 

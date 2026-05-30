@@ -886,7 +886,7 @@ import { TransformerModule } from "./transform_modules";
 					kid.renderOrder = 999;
 				});
 
-				if (scope) scope.attach(spline);
+				// if (scope) scope.attach(spline);
 				this.spline = spline;
 			}
 			this.tryAssignIndex = function(object) {
@@ -991,7 +991,6 @@ import { TransformerModule } from "./transform_modules";
 			domElement = ( domElement !== undefined ) ? domElement : document;
 
 			this.camera = cam
-			this.elements = [];
 			this.visible = false;
 			this.space = "world";
 			this.size = 1;
@@ -1067,12 +1066,14 @@ import { TransformerModule } from "./transform_modules";
 
 
 			this.attach = function ( object ) {
+				return;
 				if (Canvas.show_gizmos == false) return;
 				this.elements.safePush(object);
 				this.visible = true;
 			};
 
 			this.detach = function () {
+				return;
 				this.elements.length = 0
 				this.visible = false;
 				this.axis = null;
@@ -1122,9 +1123,6 @@ import { TransformerModule } from "./transform_modules";
 				if (!object) {
 					object = this.rotation_ref;
 				}
-				if (scope.elements.length == 0) {
-					this.detach()
-				}
 				this.getWorldPosition(worldPosition)
 				this.setScale(this.getScale());
 
@@ -1144,7 +1142,7 @@ import { TransformerModule } from "./transform_modules";
 					eye.copy( camPosition ).normalize();
 				}
 
-				if (scope.elements.length == 0) return;
+				if (!this.visible) return;
 
 				if (object) {
 					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
@@ -1215,32 +1213,8 @@ import { TransformerModule } from "./transform_modules";
 			}
 
 			this.updateSelection = function() {
-				this.elements.empty()
-				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
-					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
-							SplineGizmos.refreshGizmos(scope);
-						} else if (Outliner.selected.length) {
-							Outliner.selected.forEach(element => {
-								if (
-									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
-									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
-								) {
-									scope.attach(element);
-								}
-							})
-						} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
-							scope.attach(Group.first_selected)
-						} else {
-							this.update()
-							return this;
-						}
-					}
-					this.center()
-				}
 				SplineGizmos.verifyValidity();
-				this.update()
+				this.center()
 				return this;
 			}
 			Object.defineProperty(this, 'dragging', {
@@ -1254,7 +1228,11 @@ import { TransformerModule } from "./transform_modules";
 
 				let module = TransformerModule.active;
 				if (module) {
-					module.updateGizmo({});
+					let result = module.updateGizmo({});
+					this.visible = result !== false && Canvas.show_gizmos;
+					if (!this.visible) {
+						this.axis = this.hoverAxis = null;
+					}
 					Transformer.update();
 				}
 			}
@@ -1304,7 +1282,7 @@ import { TransformerModule } from "./transform_modules";
 
 			function onPointerHover( event ) {
 
-				if ( scope.elements.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
+				if ( !scope.visible || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
@@ -1331,7 +1309,7 @@ import { TransformerModule } from "./transform_modules";
 				
 				document.addEventListener( "mouseup", onPointerUp, false );
 
-				if ( scope.elements.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
+				if ( !scope.visible || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
@@ -1397,7 +1375,7 @@ import { TransformerModule } from "./transform_modules";
 			}
 			function onPointerMove( event ) {
 
-				if ( scope.elements.length == 0 || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
+				if ( !scope.visible || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 				scope.orbit_controls.hasMoved = true
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;

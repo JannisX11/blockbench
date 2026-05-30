@@ -20,15 +20,15 @@ interface TransformContextEnd extends TransformContext {
 interface TransformerModuleOptions {
 	priority: number
 	condition: ConditionResolvable
-	use_condition: ConditionResolvable
+	use_condition?: ConditionResolvable
 
 	updateGizmo: (this: TransformerModule) => void
-	onPointerDown: (this: TransformerModule, context: TransformContext) => void
+	onPointerDown?: (this: TransformerModule, context: TransformContext) => void
 	calculateOffset: (this: TransformerModule, context: TransformContextMove) => number
-	onStart: (this: TransformerModule, context: TransformContextMove) => void
-	onMove: (this: TransformerModule, context: TransformContextMove) => void
-	onEnd: (this: TransformerModule, context: TransformContextEnd) => void
-	onCancel: (this: TransformerModule, context: TransformContextEnd) => void
+	onStart?: (this: TransformerModule, context: TransformContextMove) => void
+	onMove?: (this: TransformerModule, context: TransformContextMove) => void
+	onEnd?: (this: TransformerModule, context: TransformContextEnd) => void
+	onCancel?: (this: TransformerModule, context: TransformContextEnd) => void
 }
 export interface TransformerModule extends TransformerModuleOptions {}
 

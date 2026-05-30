@@ -836,7 +836,7 @@ export const BARS = {
 			}
 		}
 		// On mobile, the variable height of the top toolbar can shift the UI
-		TickUpdates.interface = true;
+		if (Blockbench.isMobile) TickUpdates.interface = true;
 	}
 }
 
