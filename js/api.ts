@@ -6,39 +6,12 @@ import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
 import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
+import { ToastNotification, ToastNotificationOptions } from "./interface/toast_notification";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
 
 
-interface ToastNotificationOptions {
-	/**
-	 * Text message
-	 */
-	text: string
-	/**
-	 * Blockbench icon string
-	 */
-	icon?: IconString
-	/**
-	 * Expire time in miliseconds
-	 */
-	expire?: number
-	/**
-	 * Background color, accepts any CSS color string
-	 */
-	color?: string
-	/**
-	 * Method to run on click. 
-	 * @returns Return `true` to close toast
-	 */
-	click?: (event: Event) => boolean | void
-	/**
-	 * Method to run on close via the close button. 
-	 * @returns Return `falce` to cancel the close
-	 */
-	onClose?: (event: Event) => boolean | void
-}
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
 // const previous_data = window.Blockbench as {};
@@ -170,56 +143,7 @@ export const Blockbench = {
 	},
 
 	showToastNotification(options: ToastNotificationOptions) {
-		let notification = document.createElement('li');
-		notification.className = 'toast_notification';
-		if (options.icon) {
-			let icon = Blockbench.getIconNode(options.icon);
-			notification.append(icon);
-		}
-		let text = document.createElement('span');
-		text.innerText = tl(options.text);
-		notification.append(text);
-
-		let close_button = document.createElement('div');
-		close_button.innerHTML = '<i class="material-icons">clear</i>';
-		close_button.className = 'toast_close_button';
-		close_button.addEventListener('click', (event) => {
-			if (options.onClose) {
-				let result = options.onClose(event);
-				if (result == false) return;
-			}
-			notification.remove();
-		})
-		notification.append(close_button);
-
-		if (options.color) {
-			notification.style.backgroundColor = options.color;
-		}
-		if (typeof options.click == 'function') {
-			notification.addEventListener('click', (event) => {
-				if (event.target == close_button || (event.target as HTMLElement).parentElement == close_button) return;
-				let result = options.click(event);
-				if (result == true) {
-					notification.remove();
-				}
-			})
-			notification.style.cursor = 'pointer';
-		}
-
-		if (options.expire) {
-			setTimeout(() => {
-				notification.remove();
-			}, options.expire);
-		}
-
-		document.getElementById('toast_notification_list').append(notification);
-
-		function deletableToast(node: HTMLElement) {
-			this.delete = function() {
-				node.remove();
-			}
-		}
-		return new deletableToast(notification);
+		return new ToastNotification(options.id, options);
 	},
 	setCursorTooltip(text?: string): void {},
 	setProgress(progress: number, time: number = 0, bar?: string): void {},
