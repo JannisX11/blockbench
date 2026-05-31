@@ -235,6 +235,10 @@ export function updateSelection(options = {}) {
 	Blockbench.dispatchEvent('update_selection');
 }
 export function unselectAllElements(exceptions) {
+	if (PreviewModel.transform_model) {
+		PreviewModel.transform_model = null;
+		ToastNotification.notifications.preview_model_transform?.delete();
+	}
 	Project.selected_elements.slice().forEach(obj => {
 		if (exceptions instanceof Array && exceptions.includes(obj)) return;
 		obj.unselect()

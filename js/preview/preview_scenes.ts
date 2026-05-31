@@ -106,6 +106,7 @@ export class PreviewScene {
 			this.preview_models = data.preview_models.map(model => {
 				if (typeof model == 'string') return PreviewModel.models[model];
 				if (model instanceof PreviewModel == false && typeof model == 'object') {
+					if (!model.name) model.name = this.name;
 					model = new PreviewModel(model.id || this.id, model);
 				}
 				return model;
@@ -121,13 +122,15 @@ export class PreviewScene {
 			console.error(response);
 			Blockbench.showQuickMessage('message.preview_scene_load_failed', 2000);
 		}
-		let json = await response.json();
-		function convertURL(url) {
+		let json = await response.json() as PreviewSceneOptions;
+		function convertURL(url: string) {
 			return `${repo}/${url}`;
 		}
 		if (json.preview_models) {
 			json.preview_models.forEach(model => {
-				if (model.texture) model.texture = convertURL(model.texture);
+				if (typeof model == 'object' && model.texture) {
+					model.texture = convertURL(model.texture);
+				}
 			})
 		}
 		if (json.cubemap instanceof Array) {
@@ -226,6 +229,8 @@ export class PreviewScene {
 	};
 
 }
+
+StateMemory.init('preview_model_customization', 'object');
 
 interface PreviewModelCubeTemplate {
 	prefab?: string
@@ -339,19 +344,40 @@ export class PreviewModel implements Deletable {
 	 * Update the appearance and visibility of the model
 	 */
 	update() {
+		let custom_data = StateMemory.preview_model_customization?.[this.id];
+
+		if (custom_data?.position instanceof Array) {
+			this.model_3d.position.fromArray(custom_data.position);
+		} else {
+			if (this.build_data.position) {
+				this.model_3d.position.fromArray(this.build_data.position);
+			} else {
+				this.model_3d.position.set(0, 0, 0);
+			}
+			let offset = Format.centered_grid ? 0 : 8;
+			this.model_3d.position.x += offset;
+			this.model_3d.position.z += offset;
+		}
+		if (custom_data?.rotation instanceof Array) {
+			this.model_3d.rotation.fromArray(custom_data.rotation.map((v: number) => Math.degToRad(v)));
+		} else if (this.build_data.rotation) {
+			this.model_3d.rotation.fromArray(this.build_data.rotation.map(v => Math.degToRad(v)));
+		} else {
+			this.model_3d.rotation.set(0, 0, 0);
+		}
+		if (custom_data?.scale instanceof Array) {
+			this.model_3d.scale.fromArray(custom_data.scale);
+		} else if (this.build_data.scale) {
+			this.model_3d.scale.fromArray(this.build_data.scale);
+		} else {
+			this.model_3d.scale.set(1, 1, 1);
+		}
+
+		this.model_3d.visible = !!Condition(this.condition);
+
 		if (typeof this.onUpdate == 'function') {
 			this.onUpdate();
 		}
-		if (this.build_data.position) {
-			this.model_3d.position.fromArray(this.build_data.position);
-		} else {
-			this.model_3d.position.set(0, 0, 0);
-		}
-		let offset = Format.centered_grid ? 0 : 8;
-		this.model_3d.position.x += offset;
-		this.model_3d.position.z += offset;
-
-		this.model_3d.visible = !!Condition(this.condition);
 	}
 	buildModel() {
 		let tex: THREE.Texture = undefined;
@@ -651,7 +677,7 @@ export const player_preview_model = new PreviewModel('minecraft_player', {
 	name: 'preview_model.minecraft_player',
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
-	position: [30, 0, 8],
+	position: [22, 0, 0],
 	rotation: [0, 20, 0],
 	scale: [0.9375, 0.9375, 0.9375],
 	onUpdate() {
@@ -996,33 +1022,22 @@ BARS.defineActions(function() {
 							model.disable();
 						}
 					},
-					children: [
+					children: model.enabled == false ? undefined : [
 						{
 							name: 'preview_model.transform',
 							icon: 'control_camera',
 							click() {
 								PreviewModel.transform_model = model;
 								Transformer.updateSelection();
-								Blockbench.showToastNotification({
-									text: 'transform',
-									icon: 'control_camera',
-									click() {
-										PreviewModel.transform_model = null;
-										Transformer.updateSelection();
-										return true;
-									},
-									onClose() {
-										PreviewModel.transform_model = null;
-										Transformer.updateSelection();
-									}
-								});
 							}
 						},
 						{
 							name: 'preview_model.reset_transform',
 							icon: 'reset_settings',
 							click() {
-								// TODO: Implementation
+								delete StateMemory.preview_model_customization[model.id];
+								StateMemory.save('preview_model_customization');
+								model.update();
 							}
 
 						}
@@ -1076,12 +1091,23 @@ new TransformerModule('preview_model', {
 
 		let difference = value - (this.previous_value||0);
 
+		let data = StateMemory.preview_model_customization;
+		let model_data = data[model.id];
+		if (!model_data) model_data = data[model.id] = {};
+
 		if (channel == 'position') {
 			model.model_3d.position[axis] += difference;
+			model_data.position = model.model_3d.position.toArray();
 		} else if (channel == 'rotation') {
 			model.model_3d.rotation[axis] += Math.degToRad(difference);
+			model_data.rotation = [
+				Math.radToDeg(model.model_3d.rotation.x),
+				Math.radToDeg(model.model_3d.rotation.y),
+				Math.radToDeg(model.model_3d.rotation.z),
+			];
 		} else {
 			model.model_3d.scale[axis] += difference;
+			model_data.scale = model.model_3d.scale.toArray();
 		}
 
 		Blockbench.setCursorTooltip(trimFloatNumber(value - this.initial_value));
@@ -1089,6 +1115,7 @@ new TransformerModule('preview_model', {
 
 	},
 	onEnd(context) {
+		StateMemory.save('preview_model_customization');
 	},
 });
 
