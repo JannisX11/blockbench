@@ -6,6 +6,8 @@
  * @module
  */
 
+import { MenuOpenPositionAnchor } from './menu'
+
 /**
  * Registry of all toolbars
  */
@@ -238,15 +240,15 @@ export class Toolbar {
 		return this;
 	}
 	contextmenu(event: MouseEvent) {
-		var offset = $(this.node).find('.toolbar_menu').offset()
+		let offset = $(this.node).find('.toolbar_menu').offset();
+		let position: MenuOpenPositionAnchor = event;
 		if (offset) {
-			// @ts-expect-error
-			event = {
+			position = {
 				clientX: offset.left+7,
 				clientY: offset.top+28,
 			}
 		}
-		this.menu.open(event, this);
+		this.menu.open(position, this);
 	}
 	editMenu(): this {
 		BARS.editing_bar = this;

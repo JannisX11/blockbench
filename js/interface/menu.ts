@@ -50,7 +50,7 @@ export interface CustomMenuItem {
 export type MenuItem = CustomMenuItem | Action | BarSelect | MenuSeparator | string | ((context: any) => MenuItem)
 type ResolvedMenuItem = CustomMenuItem | Action | BarSelect
 type MenuParentItem = (CustomMenuItem | Action | BarSelect)
-type MenuOpenPositionAnchor = MouseEvent | HTMLElement | 'mouse';
+export type MenuOpenPositionAnchor = MouseEvent | HTMLElement | {clientX: number, clientY: number} | 'mouse';
 export interface MenuOptions {
 	onOpen?(position: MenuOpenPositionAnchor, context?: any): void
 	onClose?(): void
@@ -655,7 +655,7 @@ export class Menu implements Deletable {
 		}
 		let window_height = window.innerHeight - top_gap;
 
-		if (position instanceof Event && position.clientX !== undefined) {
+		if (typeof position == 'object' && 'clientX' in position) {
 			var offset_left = position.clientX
 			var offset_top  = position.clientY+1
 
