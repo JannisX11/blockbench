@@ -314,7 +314,6 @@ export class NodePreviewController extends EventSystem {
 	}
 	updateVisibility(element) {
 		element.mesh.visible = element.visibility;
-
 		this.dispatchEvent('update_visibility', {element});
 	}
 	updateSelection(element) {
@@ -580,7 +579,6 @@ export function canAddOutlinerSelectionTo(target, clicked_on) {
 	if (clicked_on instanceof OutlinerElement && !clicked_on.selected) {
 		nodes_to_move = [clicked_on];
 	} else {
-		if (target.selected) return false;
 		nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
 	}
 	return canAddOutlinerNodesTo(nodes_to_move, target);
