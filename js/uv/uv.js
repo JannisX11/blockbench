@@ -4234,9 +4234,10 @@ Interface.definePanels(function() {
 						left = (left + offset) * pixel_size;
 						top =  (top + offset) * pixel_size;
 						//size
-						var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
+						let dimensions = Painter.getBrushDimensions();
 						return {
-							'--radius': radius,
+							'--width': (dimensions[0]/2) * pixel_size,
+							'--height': (dimensions[1]/2) * pixel_size,
 							left: left+'px',
 							top: top+'px'
 						}
@@ -4252,9 +4253,10 @@ Interface.definePanels(function() {
 						let left = (this.copy_brush_source.x + offset) * pixel_size;
 						let top =  (this.copy_brush_source.y + offset) * pixel_size;
 						//size
-						var radius = (this.copy_brush_source.size/2) * pixel_size;
+						let dimensions = Painter.getBrushDimensions(this.copy_brush_source.size);
 						return {
-							'--radius': radius,
+							'--width': (dimensions[0]/2) * pixel_size,
+							'--height': (dimensions[1]/2) * pixel_size,
 							left: left+'px',
 							top: top+'px'
 						}

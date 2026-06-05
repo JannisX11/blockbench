@@ -549,6 +549,7 @@ export const Painter = {
 					client_y: Painter.current.client_mouse_y ?? event.clientY,
 				}, run_per_pixel);
 			} else {
+				size = Painter.getBrushDimensions();
 				if (shape == 'square') {
 					Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
 				} else if (shape == 'circle') {
@@ -558,6 +559,15 @@ export const Painter = {
 
 		}
 		ctx.restore();
+	},
+	getBrushDimensions(size = BarItems.slider_brush_size.get()) {
+		let aspect_ratio = BarItems.slider_brush_aspect_ratio.get();
+		let dimensions = [size, size];
+		if (aspect_ratio) {
+			let index = aspect_ratio < 0 ? 0 : 1;
+			dimensions[index] = Math.round(size / (Math.abs(aspect_ratio)+1));
+		}
+		return dimensions;
 	},
 	useFilltool(texture, ctx, x, y, area) {
 		let color = tinycolor(ColorPanel.get()).toRgb();
@@ -1498,6 +1508,7 @@ export const Painter = {
 		BarItems.slider_brush_size.update()
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
+		BarItems.slider_brush_aspect_ratio.update()
 		BarItems.slider_color_select_threshold.update()
 	},
 	getBlendModeCompositeOperation(input = BarItems.blend_mode.value) {
@@ -1624,13 +1635,19 @@ export const Painter = {
 		ctx.putImageData(arr, x - offset[0], y - offset[1]);
 	},
 	editCircle(ctx, x, y, r, soft, editPx) {
-		r = Math.round(r+1)/2;
-		let pixel_roundness_factor = 1 + 1 / (r+3);
+		let w, h;
+		if (r instanceof Array) {
+			w = Math.round(r[0]+1)/2;
+			h = Math.round(r[1]+1)/2;
+		} else {
+			w = h = Math.round(r+1)/2;
+		}
+		console.log({r, w, h});
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
 		let r_1 = r%1;
-		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
 				(
@@ -1655,14 +1672,19 @@ export const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let distance = Math.sqrt(v_px*v_px + v_py*v_py)
+			let r_max = Math.max(w, h);
+			let distance = Math.sqrt(
+				(v_px / (w/r_max))**2 +
+				(v_py / (h/r_max))**2
+			);
+			let pixel_roundness_factor = 1 + 1 / (r_max+3);
 			let pos_on_gradient;
-			if (soft*r != 0) {
-				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+			if (soft*r_max != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r_max) / (soft*r_max), 0, 1)
 				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
 				distance *= pixel_roundness_factor;
-				pos_on_gradient = Math.floor(distance/r);
+				pos_on_gradient = Math.floor(distance/r_max);
 			}
 
 			let opacity = Math.clamp(1-pos_on_gradient, 0, 1);
@@ -1683,12 +1705,18 @@ export const Painter = {
 		});
 	},
 	editSquare(ctx, x, y, r, soft, editPx) {
-		r = Math.round(r+1)/2;
+		let w, h;
+		if (r instanceof Array) {
+			w = Math.round(r[0]+1)/2;
+			h = Math.round(r[1]+1)/2;
+		} else {
+			w = h = Math.round(r+1)/2;
+		}
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
 		let r_1 = r%1;
-		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
 				(
@@ -1713,13 +1741,17 @@ export const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let distance = Math.max(Math.abs(v_px), Math.abs(v_py));
+			let r_max = Math.max(w, h);
+			let distance = Math.max(
+				Math.abs(v_px) / (w/r_max),
+				Math.abs(v_py) / (h/r_max)
+			);
 			let pos_on_gradient;
-			if (soft*r != 0) {
-				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+			if (soft*r_max != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r_max) / (soft*r_max), 0, 1)
 				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
-				pos_on_gradient = Math.floor(distance/r)
+				pos_on_gradient = Math.floor(distance/r_max)
 			}
 
 			let opacity = limitNumber(1-pos_on_gradient, 0, 1)
@@ -2621,6 +2653,7 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			aspect_ratio: true,
 			offset_even_radius: true,
 			pixel_perfect: true,
 			screen_space: true,
@@ -2752,22 +2785,26 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			aspect_ratio: true,
 			offset_even_radius: true,
 			screen_space: true,
 			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 					let size = BarItems.slider_brush_size.get();
+					let aspect_ratio = BarItems.slider_brush_aspect_ratio.get();
 					copy_source = {
 						data: Painter.getCanvas(texture).getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
 						width: texture.width,
 						height: texture.height,
 						size,
+						aspect_ratio,
 						x,
 						y,
 					}
 					UVEditor.vue.copy_brush_source = {
 						x, y,
 						size,
+						aspect_ratio,
 						texture: texture.uuid
 					}
 					Preview.all.forEach(preview => {
@@ -2788,7 +2825,13 @@ BARS.defineActions(function() {
 			},
 			changePixel(px, py, pxcolor, local_opacity, {opacity,x, y, texture}) {
 				let a = opacity * local_opacity;
-				let mode = BarItems.copy_brush_mode.value
+				let mode = BarItems.copy_brush_mode.value;
+				let size = copy_source.size;
+				let sizes = [size, size];
+				if (copy_source.aspect_ratio) {
+					let index = copy_source.aspect_ratio < 0 ? 0 : 1;
+					sizes[index] = Math.round(size / (Math.abs(copy_source.aspect_ratio)+1));
+				}
 
 				let source_pos;
 				if (mode == 'copy') {
@@ -2797,14 +2840,13 @@ BARS.defineActions(function() {
 						Math.round(copy_source.y + (py - stroke_start_pos[1])),
 					]
 				} else if (mode == 'pattern') {
-					let size = copy_source.size;
 					let grid_start = [
-						copy_source.x - size/2,
-						copy_source.y - size/2,
+						copy_source.x - sizes[0]/2,
+						copy_source.y - sizes[1]/2,
 					]
 					source_pos = [
-						Math.floor(grid_start[0] + ((px + size*200 - (grid_start[0] % size)) % size)),
-						Math.floor(grid_start[1] + ((py + size*200 - (grid_start[1] % size)) % size)),
+						Math.floor(grid_start[0] + ((px + sizes[0]*200 - (grid_start[0] % sizes[0])) % sizes[0])),
+						Math.floor(grid_start[1] + ((py + sizes[1]*200 - (grid_start[1] % sizes[1])) % sizes[1])),
 					]
 				} else {
 					source_pos = [
@@ -3539,6 +3581,24 @@ BARS.defineActions(function() {
 					} else {
 						return 2;
 					}
+				}
+			}
+		}
+	})
+	new NumSlider('slider_brush_aspect_ratio', {
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.aspect_ratio == true))),
+		tool_setting: 'brush_aspect_ratio',
+		category: 'paint',
+		settings: {
+			min: -16, max: 16, interval: 0.1, default: 0,
+		},
+		onChange(value, event) {
+			if (event instanceof PointerEvent) {
+				// Update preview outline
+				if (UVEditor.vue._data.mouse_coords.active) {
+					UVEditor.vue.$forceUpdate();
+				} else {
+					Preview.selected.mousemove(event);
 				}
 			}
 		}

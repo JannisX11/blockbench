@@ -2456,9 +2456,9 @@ span.controller_state_section_info {
 	}
 	div.brush_outline {
 		border: 2px solid white;
-		width: calc(var(--radius) * 2px);
-		height: calc(var(--radius) * 2px);
-		margin: calc(var(--radius) * -1px);
+		width: calc(var(--width) * 2px);
+		height: calc(var(--height) * 2px);
+		margin: calc(var(--height) * -1px) calc(var(--width) * -1px);
 		position: absolute;
 		pointer-events: none;
 		touch-action: none;
@@ -2470,9 +2470,9 @@ span.controller_state_section_info {
 	}
 	div#uv_copy_brush_outline {
 		border: 2px dashed white;
-		width: calc(var(--radius) * 2px);
-		height: calc(var(--radius) * 2px);
-		margin: calc(var(--radius) * -1px);
+		width: calc(var(--width) * 2px);
+		height: calc(var(--height) * 2px);
+		margin: calc(var(--height) * -1px) calc(var(--width) * -1px);
 		position: absolute;
 		pointer-events: none;
 		touch-action: none;
@@ -2493,7 +2493,7 @@ span.controller_state_section_info {
 		width: 16px;
 	}
 	div#uv_brush_line_preview {
-		margin: calc(var(--radius) * 1px - 2px);
+		margin: calc(var(--height) * 1px - 2px) calc(var(--width) * 1px - 2px);
 		position: relative;
 		height: 2px;
 		transform-origin: left;

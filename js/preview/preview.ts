@@ -1399,7 +1399,8 @@ export class Preview {
 			}
 
 			// Size
-			let scale = new THREE.Vector3(BarItems.slider_brush_size.get(), BarItems.slider_brush_size.get(), 1);
+			let size = Painter.getBrushDimensions();
+			let scale = new THREE.Vector3(size[0], size[1], 1);
 			brush_matrix.scale(scale);
 
 			brush_matrix.multiplyMatrices(intersect.object.matrixWorld, brush_matrix);
@@ -1439,9 +1440,12 @@ export class Preview {
 				if (texture) {
 					pixel_density = texture.width/texture.getUVWidth();
 				}
-				let r = BarItems.slider_brush_size.get()/2;
+				let brush_size = BarItems.slider_brush_size.get();
+				let r = brush_size/2;
 				let screen_radius = (13.4 / this.calculateControlScale(data.intersects[0].point)) * (r / pixel_density);
 				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius.toString());
+				//let size = Painter.getBrushDimensions(brush_size);
+				//Painter.screen_space_brush_cursor.style.setProperty('--aspect-ratio', (size[0]/size[1]).toString());
 			}
 
 		} else if (Painter.screen_space_brush_cursor) {
