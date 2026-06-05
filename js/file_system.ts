@@ -641,11 +641,11 @@ export namespace Filesystem {
 			let paths: string[] = [];
 			if (isApp) {
 				for (let file of file_names) {
-					if ('path' in file && typeof file.path == 'string') {
-						paths.push(file.path)
-					} else if (isApp) {
+					if ('path' in file && typeof file.path == 'string' && file.path) {
+						paths.push(file.path);
+					} else {
 						let path = webUtils.getPathForFile(file);
-						paths.push(path);
+						if (path) paths.push(path);
 					}
 				}
 			} else {
@@ -656,7 +656,7 @@ export namespace Filesystem {
 
 		let handled = false;
 		forDragHandlers(event, function(handler, el) {
-			let paths = getFilePaths(event.dataTransfer.files)
+			let paths = getFilePaths(event.dataTransfer.files);
 			if (!paths.length) return;
 
 			let read_options = {
