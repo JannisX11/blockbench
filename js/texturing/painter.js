@@ -1642,11 +1642,11 @@ export const Painter = {
 		} else {
 			w = h = Math.round(r+1)/2;
 		}
-		console.log({r, w, h});
+		let r_max = Math.max(w, h);
+		let r_1 = r_max%1;
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
-		let r_1 = r%1;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
@@ -1672,7 +1672,6 @@ export const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let r_max = Math.max(w, h);
 			let distance = Math.sqrt(
 				(v_px / (w/r_max))**2 +
 				(v_py / (h/r_max))**2
@@ -1712,10 +1711,11 @@ export const Painter = {
 		} else {
 			w = h = Math.round(r+1)/2;
 		}
+		let r_max = Math.max(w, h);
+		let r_1 = r_max%1;
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
-		let r_1 = r%1;
 		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
@@ -1741,7 +1741,6 @@ export const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let r_max = Math.max(w, h);
 			let distance = Math.max(
 				Math.abs(v_px) / (w/r_max),
 				Math.abs(v_py) / (h/r_max)
