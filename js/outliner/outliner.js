@@ -314,6 +314,7 @@ export class NodePreviewController extends EventSystem {
 	}
 	updateVisibility(element) {
 		element.mesh.visible = element.visibility;
+
 		this.dispatchEvent('update_visibility', {element});
 	}
 	updateSelection(element) {
