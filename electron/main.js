@@ -160,14 +160,16 @@ function createWindow(second_instance, options = {}) {
 	}
 	
 	if (options.maximize !== false) win.maximize()
-	win.show()
 
-	var index_path = path.join(__dirname, './../index.html')
-	win.loadURL(url.format({
+	let index_path = path.join(__dirname, './../index.html')
+	let url_path = url.format({
 		pathname: index_path,
 		protocol: 'file:',
 		slashes: true
-	}))
+	});
+	win.loadURL(url_path).finally(() => {
+		win.show();
+	});
 	win.on('closed', () => {
 		win = null;
 		all_wins.splice(all_wins.indexOf(win), 1);
