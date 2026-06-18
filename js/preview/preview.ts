@@ -2795,5 +2795,9 @@ declare global {
 		camera_east: Action
 		camera_west: Action
 	}
+	interface BlockbenchEventMap {
+		canvas_select: RaycastResult
+		canvas_click: RaycastResult
+	}
 }
 Object.assign(window, global);

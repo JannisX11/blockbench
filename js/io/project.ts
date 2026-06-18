@@ -476,7 +476,7 @@ export class ModelProject {
 			if (isApp) {
 				updateRecentProjectData();
 			}
-			Blockbench.dispatchEvent('close_project', {on_quit: true});
+			Blockbench.dispatchEvent('close_project', {project: this, on_quit: true});
 
 		} catch (err) {
 			console.error(err);

@@ -24,50 +24,52 @@ interface BlockbenchEventMap {
 	display_animation_frame: {in_loop: true}
 	display_default_pose: {reduced_updates: boolean}
 	interpolate_keyframes: {animator: BoneAnimator, t: number, time: number, use_quaternions: boolean, keyframe_before: _Keyframe, keyframe_after: _Keyframe}
-	before_closing: any
-	create_session: any
-	join_session: any
-	quit_session: any
-	send_session_data: any
-	receive_session_data: any
-	user_joins_session: any
-	user_leaves_session: any
-	process_chat_message: any
+	before_closing: {}
+	create_session: {peer: Peer, token: string}
+	join_session: {conn: DataConnection}
+	quit_session: {}
+	send_session_data: {type: string, data: any}
+	receive_session_data: {type: string, data: any}
+	user_joins_session: EditSession.Client
+	user_leaves_session: EditSession.Client
+	process_chat_message: {text: string, color: string}
 	loaded_plugin: { plugin: BBPlugin }
 	unloaded_plugin: { plugin: BBPlugin }
 	installed_plugin: { plugin: BBPlugin }
 	uninstalled_plugin: { plugin: BBPlugin }
-	update_settings: any
+	update_settings: {}
 	update_project_settings: Record<string, any>
 	save_project: {model: any, options?: any}
 	load_project: {model: any, path: string}
-	new_project: any
-	reset_project: any
-	close_project: any
-	saved_state_changed: any
-	save_model_action: any
-	add_cube: any
-	add_mesh: any
-	add_group: any
-	add_texture_mesh: any
-	add_armature: any
-	add_armature_bone: any
-	add_bounding_box: any
-	group_elements: any
-	update_selection: any
-	compile_bedrock_animations: any
-	load_animation: any
-	load_animation_controller: any
-	update_keyframe_selection: any
-	select_all: any
-	added_to_selection: any
-	invert_selection: any
-	canvas_select: any
-	canvas_click: any
+	new_project: {project: ModelProject}
+	close_project: {project: ModelProject, on_quit?: boolean}
+	saved_state_changed: {project: ModelProject, saved: boolean}
+	add_cube: {object: Cube}
+	add_mesh: {object: Mesh}
+	add_group: {object: Group}
+	add_texture_mesh: {object: TextureMesh}
+	add_armature: {object: Armature}
+	add_armature_bone: {object: ArmatureBone}
+	add_bounding_box: {object: BoundingBox}
+	group_elements: {object: Group}
+	update_selection: void
+	compile_bedrock_animation: {animation: Animation, json: any}
+	load_animation: {animation: Animation, json: any}
+	load_animation_controller: {animation_controller: AnimationController, json: any}
+	update_keyframe_selection: void
+	select_all: {}
+	added_to_selection: {added: OutlinerElement[]}
+	invert_selection: {}
 	change_texture_path: {texture: Texture}
 	add_texture: {texture: Texture}
-	generate_texture_template: any
-	update_texture_selection: any
+	generate_texture_template: {
+		options: Record<string, any>
+		elements: OutlinerElement[]
+		texture: Texture
+		resolution_multiplier: number
+		data: {face_list: any, box_uv_templates: any}
+	}
+	update_texture_selection: void
 	init_edit: {aspects: UndoAspects, amended: boolean, save: UndoSave}
 	finish_edit: {aspects: UndoAspects, message: string}
 	finished_edit: {aspects: UndoAspects, message: string} | {remote: true}
@@ -81,10 +83,10 @@ interface BlockbenchEventMap {
 	create_undo_save: {save: UndoSave, aspects: UndoAspects}
 	drop_text: { text: string }
 	paste_text: { text: string }
-	change_color: any
+	change_color: {color: string, secondary?: boolean}
 	select_mode: { mode: Mode }
 	unselect_mode: { mode: Mode }
-	change_active_panel: any
+	change_active_panel: {last_panel: Panel, panel: Panel}
 	resize_window: {event?: Event}
 	change_view_mode: {view_mode: string, previous_view_mode: string}
 	press_key: {input_in_focus?: HTMLElement, event: KeyboardEvent, capture: () => void}
@@ -94,21 +96,21 @@ interface BlockbenchEventMap {
 	delete_format: {format: ModelFormat}
 	select_project: { project: ModelProject }
 	unselect_project: { project: ModelProject }
-	setup_project: any
-	update_project_resolution: any
-	merge_project: any
-	display_model_stats: any
+	setup_project: {project: ModelProject}
+	update_project_resolution: {project: ModelProject}
+	merge_project: {model: any, path: string}
+	display_model_stats: {stats: {label: string, value: number | string}[]}
 	update_view: UpdateViewOptions
 	update_camera_position: {preview: Preview}
-	render_frame: any
-	construct_model_loader: any
-	delete_model_loader: any
-	update_recent_project_data: any
-	update_recent_project_thumbnail: any
-	load_from_recent_project_data: any
+	render_frame: {}
+	construct_model_loader: {loader: ModelLoader}
+	delete_model_loader: {loader: ModelLoader}
+	update_recent_project_data: {data: RecentProjectData}
+	update_recent_project_thumbnail: {data: RecentProjectData, thumbnail: string}
+	load_from_recent_project_data: {data: RecentProjectData}
 	edit_animation_properties: {animation: _Animation}
-	select_preview_scene: any
-	unselect_preview_scene: any
+	select_preview_scene: {scene: PreviewScene}
+	unselect_preview_scene: {scene: PreviewScene}
 	select_animation: {animation: _Animation}
 	remove_animation: {animations: _Animation[]}
 	compile_bedrock_animation_controller_state: {state: AnimationControllerState, json: any}
@@ -120,29 +122,29 @@ interface BlockbenchEventMap {
 	compile_bedrock_animation_controller: {state: AnimationController, json: any}
 	add_animation_controller: {state: AnimationController}
 	edit_animation_controller_properties: {state: AnimationController}
-	timeline_play: any
-	timeline_pause: any
-	unselect_interface: any
-	reset_layout: any
+	timeline_play: {}
+	timeline_pause: {}
+	unselect_interface: {event: Event}
+	reset_layout: {}
 	update_pressed_modifier_keys: {
 		before: {shift: boolean, alt: boolean, ctrl: boolean}
 		now: {shift: boolean, alt: boolean, ctrl: boolean}
 		event: KeyboardEvent
 	}
 	open_bar_menu: {menu: BarMenu}
-	unselect_all: any
+	unselect_all: {}
 	get_face_texture: {face: Face, element: OutlinerElement}
-	quick_save_model: any
-	save_editor_state: any
-	load_editor_state: any
-	select_no_project: any
-	flip_node_name: any
+	quick_save_model: {}
+	save_editor_state: { project: ModelProject }
+	load_editor_state: { project: ModelProject }
+	select_no_project: {}
+	flip_node_name: {pairs: Record<string, string>, node: OutlinerNode, axis: axisNumber, original_name?: string}
 	update_scene_shading: any
 	edit_layer_properties: {layer: TextureLayer}
 	select_texture: {texture: Texture, event: Event}
 	compile_texture_mcmeta: {mcmeta: any}
-	register_element_type: any
-	edit_collection_properties: any
+	register_element_type: {id: string, constructor: any}
+	edit_collection_properties: {collection: Collection}
 }
 
 type BlockbenchEventName = keyof BlockbenchEventMap

@@ -565,7 +565,7 @@ WinterskyScene.global_options.parent_mode = 'entity';
 
 Prism.languages.molang['function-name'] = /\b(?!\d)(math\.\w+|button)(?=[\t ]*\()/i;
 
-Blockbench.on('reset_project', () => {
+Blockbench.on('close_project', () => {
 	for (let path in Animator.particle_effects) {
 		let effect = Animator.particle_effects[path];
 		if (isApp && effect.watcher) {
