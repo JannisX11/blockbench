@@ -90,5 +90,7 @@ declare class _Keyframe {
 		data_points: KeyframeDataPoint[]
 	}
 }
+declare type BBKeyframe = _Keyframe;
+declare const BBKeyframe = _Keyframe;
 
 declare function updateKeyframeSelection(): void

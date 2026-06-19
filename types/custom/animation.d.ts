@@ -119,7 +119,8 @@ declare class _Animation extends AnimationItem {
 	menu: Menu
 	file_menu: Menu
 }
-
+declare type BBAnimation = _Animation
+declare const BBAnimation = _Animation
 interface MolangAutoCompletionItem {
 	text: string
 	label: string | undefined

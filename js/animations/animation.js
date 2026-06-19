@@ -650,6 +650,7 @@ export class Animation extends AnimationItem {
 		dialog.show();
 	}
 }
+export const BBAnimation = Animation;
 	Object.defineProperty(Animation, 'all', {
 		get() {
 			return Project.animations || [];
@@ -2072,4 +2073,4 @@ Interface.definePanels(function() {
 	})
 })
 
-Object.assign(window, {AnimationItem, Animation});
+Object.assign(window, {AnimationItem, Animation, BBAnimation});

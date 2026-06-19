@@ -1647,6 +1647,7 @@ Interface.definePanels(function() {
 Object.assign(window, {
 	KeyframeDataPoint,
 	Keyframe,
+	BBKeyframe: Keyframe,
 	updateKeyframeValue,
 	updateKeyframeSelection,
 	selectAllKeyframes,
