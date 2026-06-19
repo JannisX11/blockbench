@@ -174,7 +174,7 @@ export function updateRecentProjects() {
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()));
 }
-export function addRecentProject(data: RecentProjectData) {
+export function addRecentProject(data: Partial<RecentProjectData>) {
 	var i = recent_projects.length-1;
 	let former_entry: RecentProjectData;
 	while (i >= 0) {
