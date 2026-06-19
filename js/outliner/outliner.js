@@ -1007,14 +1007,16 @@ BARS.defineActions(function() {
 		icon: 'drive_file_move',
 		category: 'edit',
 		searchable: true,
-		children(element) {
+		children(context) {
+			let element = context instanceof OutlinerNode ? context : Outliner.selected[0] ?? Group.first_selected;
+			if (!element) return;
 			let nodes = [...getAllGroups(), ...Outliner.elements].filter(g => canAddOutlinerSelectionTo(g));
 			let menu_list = nodes.map(node => {
 				return {
 					name: node.name,
 					icon: node.icon,
 					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
-					click(event) {
+					click(context, event) {
 						moveOutlinerSelectionAmend(element, node, event);
 						element.showInOutliner();
 					}
@@ -1024,7 +1026,7 @@ BARS.defineActions(function() {
 				menu_list.splice(0, 0, {
 					name: 'Root',
 					icon: 'list_alt',
-					click(event) {
+					click(context, event) {
 						moveOutlinerSelectionAmend(element, undefined, event);
 					}
 				});
@@ -1032,7 +1034,7 @@ BARS.defineActions(function() {
 			return menu_list;
 		},
 		click(event) {
-			new Menu('move_to_group', this.children(this), {searchable: true}).open(event.target, this)
+			new Menu('move_to_group', this.children(), {searchable: true}).open(event.target, this)
 		}
 	})
 	new Action('sort_outliner', {
