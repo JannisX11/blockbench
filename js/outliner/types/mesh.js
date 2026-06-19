@@ -7,6 +7,7 @@ export class MeshFace extends Face {
 		this.mesh = mesh;
 		this.uv = {};
 		this.texture = false;
+		this.element = mesh;
 		if (data) {
 			this.extend(data);
 		}

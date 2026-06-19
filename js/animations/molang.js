@@ -1,4 +1,5 @@
 import { isStringNumber } from "../util/math_util"
+import { EffectAnimator } from "./timeline_animators"
 
 Animator.MolangParser.context = {}
 Animator.MolangParser.global_variables = {
@@ -237,7 +238,11 @@ new ValidatorCheck('molang_syntax', {
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character')
 			}
-			if (clear_string.endsWith(';') && !clear_string.includes('return ')) {
+			if (
+				clear_string.endsWith(';') &&
+				!clear_string.includes('return ') &&
+				!(instance instanceof Keyframe && instance.animator instanceof EffectAnimator)
+			) {
 				issues.push('Complex expression with no return value. Remove the semicolon or add a return statement')
 			}
 			if (
