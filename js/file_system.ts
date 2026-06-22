@@ -312,7 +312,7 @@ export namespace Filesystem {
 
 		} else {
 
-			console.warn('Picking directories is currently not supported in the web app');
+			console.warn('Picking directories is only supported in the desktop fork.');
 
 		}
 	}
@@ -341,7 +341,7 @@ export namespace Filesystem {
 		resource_id?: string
 	}
 	/**
-	 * Open a file save dialog to let the user pick a location and name to save a file. On the web app, this might save the file directoy into the downloads folder depending on browser settings.
+	 * Open a file save dialog to let the user pick a location and name to save a file.
 	 * @param options Export options
 	 * @param callback Callback to run once the file is saved
 	 * @returns 
@@ -383,8 +383,6 @@ export namespace Filesystem {
 					let type = 'text/plain;charset=utf-8';
 					if (file_name.endsWith('json')) {
 						type = 'application/json;charset=utf-8';
-					} else if (file_name.endsWith('bbmodel')) {
-						type = 'model/vnd.blockbench.bbmodel';
 					}
 					let blob = new Blob([options.content], {type});
 					saveAs(blob, file_name, {autoBOM: true})

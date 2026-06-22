@@ -8,3 +8,4 @@ electron-builder.env
 node_modules/
 workbox-*.js
 service_worker.js
+.resources/

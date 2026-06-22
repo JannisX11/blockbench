@@ -139,7 +139,7 @@ function setupSettings() {
 	new Setting('volume', 							{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
 	new Setting('audio_scrubbing',					{category: 'preview', value: true});
 	new Setting('save_view_per_tab',				{category: 'preview', value: true});
-	new Setting('display_skin',						{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
+	new Setting('display_skin',						{category: 'preview', value: false, type: 'click', icon: 'icon-player', condition: false, click: function() { changeDisplaySkin() }});
 
 	new Setting('viewport_rotate_speed',	{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
 		Preview.all.forEach(viewport => viewport.controls.rotateSpeed = value / 100)
@@ -167,7 +167,6 @@ function setupSettings() {
 	new Setting('local_position_values',	{category: 'edit', value: false});
 	new Setting('transform_cube_from_center',{category: 'edit', value: false});
 	new Setting('deactivate_size_limit',	{category: 'edit', value: false});
-	new Setting('modded_entity_integer_size',{category:'edit', value: true});
 	new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
 	new Setting('preview_paste_behavior',	{category: 'edit', value: 'always_ask', type: 'select', options: {
 		'always_ask': tl('settings.preview_paste_behavior.always_ask'),
@@ -261,15 +260,6 @@ function setupSettings() {
 	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
 	new Setting('create_rename', 					{category: 'defaults', value: false});
 	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
-	new Setting('default_bedrock_format',			{category: 'defaults', type: 'select', value: 'entity', options: {
-		entity: 'format.bedrock',
-		block: 'format.bedrock_block',
-	}});
-	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
-		latest: 'Latest',
-		'1.21.6': '1.21.6 - 1.21.10',
-		'1.9.0': '1.9 - 1.21.5',
-	}});
 	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
 	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
 		linear: 'action.keyframe_interpolation.linear',
@@ -311,17 +301,7 @@ function setupSettings() {
 	new Setting('embed_textures', 		{category: 'export', value: true});
 	new Setting('minify_bbmodel', 		{category: 'export', value: true});
 	new Setting('export_empty_groups',	{category: 'export', value: true});
-	new Setting('export_groups', 		{category: 'export', value: true});
-	new Setting('java_export_pivots', 	{category: 'export', value: true});
-	new Setting('optifine_save_default_texture',{category: 'export', value: true});
-	new Setting('obj_face_export_mode',	{category: 'export', value: 'both', type: 'select', options: {
-		both: tl('settings.obj_face_export_mode.both'),
-		tris: tl('settings.obj_face_export_mode.tris'),
-		quads: tl('settings.obj_face_export_mode.quads'),
-	}});
 	new Setting('animation_sample_rate',{category: 'export', value: 24, type: 'number', min: 1, max: 640});
-	new Setting('model_export_scale',	{category: 'export', value: 16, type: 'number', min: 0.0001, max: 4096});
-	new Setting('sketchfab_token', 		{category: 'export', value: '', type: 'password'});
 	new Setting('credit', 				{category: 'export', value: 'Made with Blockbench', type: 'text'});
 
 	Blockbench.onUpdateTo('5.0.0', () => {
@@ -389,4 +369,3 @@ export function updateStreamerModeNotification() {
 }
 setupSettings();
 setupSettingsProfiles();
-

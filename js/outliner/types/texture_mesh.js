@@ -346,7 +346,8 @@ BARS.defineActions(function() {
 		id: 'add_texture_mesh',
 		icon: 'fa-puzzle-piece',
 		category: 'edit',
-		condition: () => (Modes.edit && Format.texture_meshes),
+		// TODO: Keep disabled until Vintage Story has a clear non-cuboid texture mesh requirement.
+		condition: false,
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

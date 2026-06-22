@@ -93,7 +93,7 @@ export abstract class OutlinerNode {
 		return this;
 	}
 	addTo(target?: OutlinerNode | 'root', index: number = -1): this {
-		//Resolve Group Argument
+		// Normalize the target argument for root-level insertion.
 		if (!target) {
 			target = 'root'
 		} else if (target !== 'root') {

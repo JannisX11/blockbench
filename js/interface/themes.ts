@@ -197,13 +197,6 @@ export class CustomTheme {
 				},
 				page: 'select',
 				actions: [
-					{
-						name: 'layout.documentation',
-						icon: 'fa-book',
-						click() {
-							Blockbench.openLink('https://www.blockbench.net/wiki/blockbench/themes');
-						}
-					},
 					'import_theme',
 					'export_theme',
 				],

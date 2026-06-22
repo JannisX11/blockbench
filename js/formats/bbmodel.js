@@ -99,13 +99,13 @@ function processCompatibility(model) {
 }
 
 var codec = new Codec('project', {
-	name: 'Blockbench Project',
-	extension: 'bbmodel',
+	name: 'Vintage Bench JSON Model',
+	extension: 'json',
 	remember: true,
 	support_partial_export: true,
 	load_filter: {
 		type: 'json',
-		extensions: ['bbmodel']
+		extensions: ['json']
 	},
 	load(model, file) {
 		if (!model || !model.meta) {
@@ -437,7 +437,7 @@ var codec = new Codec('project', {
 		for (var key in ModelProject.properties) {
 			ModelProject.properties[key].merge(Project, model)
 		}
-		if (path && path != 'backup.bbmodel') {
+		if (path && path != 'backup.json') {
 			Project.name = pathToName(path, false);
 		}
 
@@ -873,21 +873,21 @@ BARS.defineActions(function() {
 		condition: isApp ? (() => Project && Project.save_path) : false,
 		click: function () {
 			saveTextures(true);
-			let projectTailRegex = /\.bbmodel$/;
-			let projectVerRegex = /([0-9]+)\.bbmodel$/;
+			let projectTailRegex = /\.json$/;
+			let projectVerRegex = /([0-9]+)\.json$/;
 			let projectVerMatch = projectVerRegex.exec(Project.save_path);
 
 			let file_path;
 			if (projectVerMatch) {
 				let projectVer = parseInt(projectVerMatch[1]); // Parse & store project ver int (capturing group 1)
-				file_path = Project.save_path.replace(projectVerRegex, `${projectVer + 1}.bbmodel`);
+				file_path = Project.save_path.replace(projectVerRegex, `${projectVer + 1}.json`);
 			} else {
-				file_path = Project.save_path.replace(projectTailRegex, "_1.bbmodel");
+				file_path = Project.save_path.replace(projectTailRegex, "_1.json");
 			}
 			let original_file_path = file_path;
 			let i = 1;
 			while (fs.existsSync(file_path) && i < 100) {
-				file_path = original_file_path.replace(projectTailRegex, `_alt_${i == 1 ? '' : i}.bbmodel`);
+				file_path = original_file_path.replace(projectTailRegex, `_alt_${i == 1 ? '' : i}.json`);
 				i++;
 			}
 			codec.write(codec.compile(), file_path);
@@ -904,69 +904,6 @@ BARS.defineActions(function() {
 			codec.export()
 		}
 	})
-	new Action('export_legacy_project', {
-		icon: 'save',
-		name: 'Export Legacy Project',
-		description: 'Export bbmodel file for Blockbench 4',
-		category: 'file',
-		condition: () => Project,
-		click: function () {
-			saveTextures(true);
-			let model = codec.compile({raw: true});
-			model.meta.format_version = '4.10';
-			function compileGroups(undo, lut) {
-				var result = []
-				function iterate(array, save_array) {
-					var i = 0;
-					for (var element of array) {
-						if (element.type === 'group') {
-							var obj = element.compile(undo)
-		
-							if (element.children.length > 0) {
-								iterate(element.children, obj.children)
-							}
-							save_array.push(obj)
-						} else {
-							if (undo) {
-								save_array.push(element.uuid)
-							} else {
-								var index = elements.indexOf(element)
-								if (index >= 0) {
-									save_array.push(index)
-								}
-							}
-						}
-						i++;
-					}
-				}
-				iterate(Outliner.root, result);
-				return result;
-			}
-			model.outliner = compileGroups(true);
-			delete model.groups;
-			for (let anim of (model.animations??[])) {
-				for (let animator_id in anim.animators) {
-					for (let kf of (anim.animators[animator_id].keyframes??[])) {
-						for (let dp of (kf.data_points??[])) {
-							if ((kf.channel == 'rotation' || kf.channel == 'position') && dp.x) dp.x = invertMolang(dp.x);
-							if (kf.channel == 'rotation' && dp.y) dp.y = invertMolang(dp.y);
-						}
-					}
-				}
-			}
-
-			let content = compileJSON(model, {small: Settings.get('minify_bbmodel')});
-			Blockbench.export({
-				resource_id: 'model',
-				type: codec.name,
-				extensions: [codec.extension],
-				name: codec.fileName(),
-				startpath: codec.startPath(),
-				content,
-			}, path => codec.afterDownload(path))
-		}
-	})
-
 	new Action('import_project', {
 		icon: 'icon-blockbench_file',
 		category: 'file',

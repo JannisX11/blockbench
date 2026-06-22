@@ -1,62 +1,61 @@
-# Blockbench
+# Vintage Bench
 
-Blockbench is a free and open source model editor for low-poly models with pixel art textures.
-Models can be exported into standardized formats, to be shared, rendered, 3D-printed, or used in game engines. There are also multiple dedicated formats for Minecraft Java and Bedrock Edition with format-specific features. 
+Vintage Bench is a modified fork of [Blockbench](https://github.com/JannisX11/blockbench) focused on becoming a Vintage Story cuboid JSON model editor.
 
-Blockbench features a modern and beginner friendly interface, but also offers lots of customization and advanced features for experienced 3D artists. Plugins can extend the functionality of the program even further.
+This first cleanup pass keeps the desktop cuboid editor usable while removing hosted web/PWA paths and user-facing Minecraft, Bedrock, mesh, and legacy project workflows. The current project serializer still uses the stable internal Blockbench project payload, but save/open defaults now use `.json` as the external project extension.
 
-Website and download: [blockbench.net](https://www.blockbench.net)
+Vintage Bench is not affiliated with, endorsed by, or sponsored by the original Blockbench project or by the owners or developers of Vintage Story.
 
+## Setup
 
-![Interface](https://web.blockbench.net/content/front_page_app.png)
+Install dependencies:
 
+```sh
+npm install
+```
 
+Build the desktop bundle:
 
-## Contribution
+```sh
+npm run build-electron
+```
 
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.MD)
+Run the Electron desktop app:
 
-Check out the [Contribution Guidelines](CONTRIBUTING.md).
-
-
-
-## Launching Blockbench
-
-To launch Blockbench from source, you can clone the repository, navigate to the correct branch and launch the program in development mode using the instructions below.
-If you just want to use the latest version, please download the app from the website.
-
-### Setup Repository
-* Install [NodeJS](https://nodejs.org/en/).
-* Then install all dependencies via
-`npm install`
-
-
-### Run in Electron
-Use this command or press Ctrl + Shift + B to launch Blockbench in Electron:
-
-`npm run dev`
-
-To enable debugging in VS Code, switch to the **Run & Debug** tab, select the **"Debug Renderer"** configuration, and press the green arrow button to launch.
-Now you can set breakpoints and debug inside VSCode.
-
-
-### Run the web app
-Use this command to launch the web app locally:
-
-`npm run serve`
-
-Now you can open the web app in your browser under http://localhost:3000
-
-
-## Plugins
-
-Blockbench supports Javascript-based plugins. Learn more about creating plugins on [https://www.blockbench.net/wiki/docs/plugin](https://www.blockbench.net/wiki/docs/plugin).
-
-
+```sh
+npm run dev
+```
 
 ## License
 
-* The Blockbench source-code is licensed under the GPL license version 3. See `LICENSE.MD`.
-* Modifications to the source code can be made under the terms of that license.
-* Blockbench plugins (external scripts) and themes (theme files to customize the design) that interact with the Blockbench API are an exception. Plugins and themes can be created and/or published as open source, proprietary or paid software.
-* All assets created with Blockbench (models, textures, animations, screenshots etc.) are your own!
+Vintage Bench is a modified fork of Blockbench.
+
+The original Blockbench source code is licensed under the GNU General Public License version 3. Vintage Bench is distributed under the GNU General Public License version 3 as a modified version of Blockbench.
+
+See [LICENSE.MD](./LICENSE.MD) for the full GPL-3.0 license text.
+
+Original Blockbench copyright notices are retained from the original project and its contributors. Vintage Bench modifications are Copyright (C) 2026 P1nkOblivion.
+
+Source code for this fork is available at:
+
+https://github.com/p1nkoblivion/VintageBench
+
+Vintage Bench is provided WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See also:
+
+- [NOTICE](./NOTICE)
+- [SOURCE_CODE.md](./SOURCE_CODE.md)
+- [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+
+## User-Created Assets
+
+Models, textures, animations, screenshots, and other assets created with Vintage Bench are owned by their creators. Using Vintage Bench does not automatically license user-created assets under GPL-3.0.
+
+## Next Major Work
+
+- Implement a real Vintage Story shape JSON codec.
+- Replace display presets with Vintage Story-calibrated presets.
+- Implement Vintage Story shelf display sections and slots.
+- Revisit any internal mesh compatibility code once legacy loading requirements are clearer.

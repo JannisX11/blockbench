@@ -300,7 +300,7 @@ export class Group extends OutlinerNode {
 		this.remove(false);
 		if (undo) {
 			all_groups.remove(this);
-			Undo.finishEdit('Resolve group');
+			Undo.finishEdit('Flatten hierarchy');
 		}
 		return array;
 	}
@@ -492,7 +492,6 @@ Group.addBehaviorOverride({
 	Group.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
-		'edit_bedrock_binding',
 		'set_element_marker_color',
 		"randomize_marker_colors",
 		{name: 'menu.cube.texture', icon: 'collections', condition: () => Format.per_group_texture, children(context) {
@@ -527,7 +526,6 @@ Group.addBehaviorOverride({
 		'add_all_to_timeline',
 		'add_locator',
 		new MenuSeparator('manage'),
-		'resolve_group',
 		'rename',
 		'delete'
 	]);
@@ -815,117 +813,6 @@ BARS.defineActions(function() {
 			Group.all.forEach(function(g) {
 				g.isOpen = true;
 			})
-		}
-	})
-	new Action('edit_bedrock_binding', {
-		icon: 'fa-paperclip',
-		category: 'edit',
-		condition: () => Format.bone_binding_expression && Group.first_selected,
-		click: function() {
-
-			let dialog = new Dialog({
-				id: 'edit_bedrock_binding',
-				title: 'action.edit_bedrock_binding',
-				resizable: 'x',
-				component: {
-					components: {VuePrismEditor},
-					data: {
-						binding: Group.first_selected.bedrock_binding,
-					},
-					methods: {
-						showPresetMenu(event) {
-							new Menu([
-								{
-									name: 'Item Slot',
-									icon: 'build',
-									click: () => {
-										this.binding = 'q.item_slot_to_bone_name(c.item_slot)';
-									}
-								},
-								{
-									name: 'Right Hand',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'rightitem\'';
-									}
-								},
-								{
-									name: 'Left Hand',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'leftitem\'';
-									}
-								},
-								{
-									name: 'Body',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'body\'';
-									}
-								},
-								{
-									name: 'Head',
-									icon: 'build',
-									click: () => {
-										this.binding = '\'head\'';
-									}
-								}
-							]).show(event.target);
-						},
-						autocomplete(text, position) {
-							if (Settings.get('autocomplete_code') == false) return [];
-							let test = MolangAutocomplete.BedrockBindingContext.autocomplete(text, position);
-							return test;
-						}
-					},
-					template: 
-						`<div class="dialog_bar">
-							<vue-prism-editor class="molang_input" v-model="binding" language="molang" :autocomplete="autocomplete" :line-numbers="false" style="width: calc(100% - 36px); display: inline-block;" />
-							<i class="tool material-icons" style="vertical-align: top; padding: 3px; float: none;" @click="showPresetMenu($event)">menu</i>
-						</div>`
-				},
-				onConfirm: form_data => {
-					dialog.hide().delete();
-					let value = dialog.component.data.binding.replace(/\n/g, '');
-					if (
-						value != Group.first_selected.bedrock_binding
-					) {
-						Undo.initEdit({groups: Group.multi_selected});
-						for (let group of Group.multi_selected) {
-							group.bedrock_binding = value;
-							group.preview_controller.updateTransform(group);
-						}
-						Undo.finishEdit('Edit group binding');
-					}
-				},
-				onCancel() {
-					dialog.hide().delete();
-				}
-			}).show();
-		}
-	})
-	new Action('resolve_group', {
-		icon: 'fa-leaf',
-		condition: {modes: ['edit'], method: () => Group.first_selected},
-		click() {
-			let all_elements = [];
-			let all_groups = [];
-			for (let group of Group.multi_selected) {
-				all_groups.push(group);
-				group.forEachChild(obj => {
-					if (obj instanceof Group == false) {
-						all_elements.safePush(obj);
-					} else {
-						all_groups.push(obj);
-					}
-				})
-			}
-			Undo.initEdit({outliner: true, elements: all_elements, groups: all_groups})
-			for (let group of Group.multi_selected.slice()) {
-				group.resolve(false);
-				all_groups.remove(group);
-			}
-			Undo.finishEdit('Resolve group');
 		}
 	})
 })

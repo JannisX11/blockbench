@@ -1,9 +1,9 @@
 
-Welcome to the reference documentation for Blockbench!
+Welcome to the reference documentation for Vintage Bench!
 
-This documentation is automatically generated from the comments and typescript types of the latest Blockbench release.
+This documentation is automatically generated from the comments and TypeScript types of the current Vintage Bench source tree.
 
-The documentation is mainly intended for plugin creators. You can find guides on how to get started with plugin development on the Blockbench wiki: [Creating a Plugin - Blockbench Wiki](https://www.blockbench.net/wiki/docs/plugin)
+The documentation is mainly intended for plugin creators. TODO: replace this with Vintage Bench-specific plugin guidance after the format cleanup settles.
 
 ### Navigation
 

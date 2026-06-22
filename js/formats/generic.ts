@@ -1,21 +1,15 @@
 new ModelFormat('free', {
 	icon: 'icon-format_free',
 	category: 'general',
-	target: ['Godot', 'Unity', 'Unreal Engine', 'Sketchfab', 'Blender', tl('format.free.info.3d_printing')],
+	name: 'Generic Model',
+	description: 'Cuboid-based JSON model for the Vintage Bench cleanup base.',
+	target: ['Vintage Story JSON'],
 	format_page: {
 		content: [
 			{type: 'h3', text: tl('mode.start.format.informations')},
-			{text: `* ${tl('format.free.info.meshes')}
-					* ${tl('format.free.info.limitation')}`.replace(/\t+/g, '')
-			},
-			{type: 'h3', text: tl('mode.start.format.resources')},
-			{text: `* [Low-Poly Modeling Tutorial](https://www.youtube.com/watch?v=WbyCbA1c8BM)`}
+			{text: 'Cuboid editing base for Vintage Bench. TODO: replace Blockbench project serialization with a proper Vintage Story shape JSON codec.'}
 		]
 	},
-	meshes: true,
-	billboards: true,
-	armature_rig: true,
-	splines: true,
 	rotate_cubes: true,
 	bone_rig: true,
 	centered_grid: true,
@@ -23,9 +17,9 @@ new ModelFormat('free', {
 	per_texture_uv_size: true,
 	per_texture_wrap_mode: true,
 	uv_rotation: true,
+	display_mode: true,
 	animation_mode: true,
 	per_animator_rotation_interpolation: true,
 	animated_textures: true,
 	locators: true,
-	pbr: true,
 })

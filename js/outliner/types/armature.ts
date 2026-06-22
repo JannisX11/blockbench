@@ -293,7 +293,8 @@ BARS.defineActions(function() {
 	new Action('add_armature', {
 		icon: 'accessibility',
 		category: 'edit',
-		condition: () => Modes.edit && Project.format?.armature_rig,
+		// TODO: Keep armature creation disabled until Vintage Story hierarchy needs are defined.
+		condition: false,
 		click: function () {
 			Undo.initEdit({outliner: true, elements: []});
 			let add_to_node: OutlinerNode | typeof Outliner.ROOT = Outliner.selected.last() || Group.first_selected;

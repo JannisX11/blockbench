@@ -39,7 +39,7 @@ export class CanvasFrame {
 	async loadFromURL(url: string) {
 		let img = new Image()
 		if (!isApp && url.startsWith('https')) {
-			img.crossOrigin = "blockbench.net";
+			img.crossOrigin = "anonymous";
 		}
 		img.src = url.replace(/#/g, '%23');
 		await new Promise<void>((resolve, reject) => {

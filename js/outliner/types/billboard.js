@@ -743,7 +743,8 @@ BARS.defineActions(function() {
 		id: 'add_billboard',
 		icon: 'bookmark_add',
 		category: 'edit',
-		condition: {features: ['billboards'], modes: ['edit']},
+		// TODO: Revisit only if Vintage Story needs billboard-style helper elements.
+		condition: false,
 		click: function () {
 			
 			Undo.initEdit({outliner: true, elements: [], selection: true});

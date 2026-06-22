@@ -880,16 +880,10 @@ BARS.defineActions(function() {
 		icon: 'add_2',
 		condition: {modes: ['edit']},
 		side_menu: new Menu([
-			'add_mesh',
 			'add_cube',
-			'add_spline',
-			'add_billboard',
-			'add_armature',
-			'add_armature_bone',
 			'add_locator',
 			'add_null_object',
 			'add_bounding_box',
-			'add_texture_mesh',
 		]),
 		click(event) {
 			let fallback = this.side_menu.structure.map(id => BarItems[id]).find(x => Condition(x.condition));

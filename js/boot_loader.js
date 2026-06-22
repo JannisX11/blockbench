@@ -46,7 +46,7 @@ if (isApp === false) {
 	if (navigator.appVersion.indexOf("Mac") != -1) 	 Blockbench.operating_system = 'MacOS';
 	if (navigator.appVersion.indexOf("Linux") != -1) Blockbench.operating_system = 'Linux';
 	if (['proprietary_edge', 'internet_explorer'].includes(Blockbench.browser)) {
-		alert(capitalizeFirstLetter(Blockbench.browser)+' does not support Blockbench')
+		alert(capitalizeFirstLetter(Blockbench.browser)+' does not support Vintage Bench')
 	}
 	$('.local_only').remove()
 } else {
@@ -61,9 +61,9 @@ loadThemes()
 initReferenceImages()
 
 console.log(`Three.js r${THREE.REVISION}`)
-console.log('%cBlockbench ' + Blockbench.version + (isApp
+console.log('%cVintage Bench ' + Blockbench.version + (isApp
 	? (' Desktop (' + Blockbench.operating_system + ', ' + SystemInfo.arch +')')
-	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
+	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + ')')),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
 Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0) + 1;
@@ -81,45 +81,7 @@ if (isApp) {
 	updateRecentProjects()
 }
 
-if (!isApp) {
-	async function registerSW() {
-		if ('serviceWorker' in navigator) {
-			try {
-				await navigator.serviceWorker.register('./service_worker.js');
-			} catch (err) {
-				console.log(err)
-			}
-		}
-	}
-	registerSW();
-}
-
-if (!Blockbench.isWeb || !Blockbench.isPWA) {
-	$.ajaxSetup({ cache: false });
-}
-
-if (Blockbench.startup_count == 1) {
-	try {
-		jQuery.ajax({
-			url: 'https://blckbn.ch/api/event/new_installation',
-			type: 'POST',
-			data: {}
-		})
-	} catch (err) {
-		console.error(err);
-	}
-}
-if (Blockbench.startup_count == 3) {
-	try {
-		jQuery.ajax({
-			url: 'https://blckbn.ch/api/event/recurring_user',
-			type: 'POST',
-			data: {}
-		})
-	} catch (err) {
-		console.error(err);
-	}
-}
+$.ajaxSetup({ cache: false });
 
 Blockbench.on('before_closing', (event) => {
 	if (!Blockbench.hasFlag('no_localstorage_saving')) {

@@ -9,7 +9,7 @@ declare global {
 		uuid?: string
 		name?: string
 		/**
-		 * Relative path to the file's directory, used by some formats such as Java Block/Item
+		 * Relative path to the file's directory, used by some JSON formats.
 		 * */
 		folder?: string
 		namespace?: string
@@ -18,7 +18,7 @@ declare global {
 		 * */
 		id?: string
 		/**
-		 * Whether the texture is used for the models particle system. Used by some formats such as Java Block/Item
+		 * Whether the texture is used for the model's particle texture slot in formats that support it.
 		 * */
 		particle?: boolean
 		visible?: boolean
@@ -101,12 +101,12 @@ declare global {
 		uuid: UUID
 		path?: string
 		name: string
-		/** Relative path to the file's directory, used by some formats such as Java Block/Item*/
+		/** Relative path to the file's directory, used by some JSON formats. */
 		folder: string
 		namespace: string
 		/** Texture ID or key, used by some formats. By default this is a number that increases with every texture that is added */
 		id: string
-		/** Whether the texture is used for the models particle system. Used by some formats such as Java Block/Item */
+		/** Whether the texture is used for the model's particle texture slot in formats that support it. */
 		particle: boolean
 		render_mode: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides: 'auto' | 'front' | 'double' | string
@@ -216,7 +216,7 @@ declare global {
 		 */
 		stopWatcher(): void
 		/**
-		 * Generate the Java Block/Item folder property from the file path
+		 * Generate the texture folder property from the file path.
 		 */
 		generateFolder(): void
 		/**
@@ -232,7 +232,7 @@ declare global {
 		 *
 		 * Does not read `png.mcmeta`, or attempt to overwrite an existing texture in the project with the same name.
 		 *
-		 * Used internally when loading `.bbmodel` files
+		 * Used internally when loading project files.
 		 * @param path
 		 */
 		loadContentFromPath(path: string): this

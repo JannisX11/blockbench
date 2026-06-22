@@ -568,7 +568,8 @@ BARS.defineActions(function() {
 		icon: 'humerus',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], selected: {mesh: false, spline: false}, method: () => ((ArmatureBone.hasSelected() || Armature.hasSelected()))},
+		// TODO: Keep armature bone creation disabled until Vintage Story hierarchy needs are defined.
+		condition: false,
 		click: function () {
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;

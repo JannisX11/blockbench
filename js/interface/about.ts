@@ -1,9 +1,7 @@
-import VersionUtil from '../util/version_util'
-
 BARS.defineActions(() => {
 	new Action('about_window', {
 		name: tl('dialog.settings.about') + '...',
-		description: `Blockbench ${Blockbench.version}`,
+		description: `Vintage Bench ${Blockbench.version}`,
 		icon: 'info',
 		category: 'blockbench',
 		click: function () {
@@ -11,27 +9,6 @@ BARS.defineActions(() => {
 				isApp,
 				version_label: Blockbench.version
 			};
-			jQuery.ajax({
-				url: 'https://api.github.com/repos/JannisX11/blockbench/releases/latest',
-				cache: false,
-				type: 'GET',
-				success(release) {
-					let releaseVersion = release.tag_name.replace(/^v/, '');
-					let display_version = VersionUtil.format(Blockbench.version);
-					switch (VersionUtil.compare(Blockbench.version, releaseVersion)) {
-						case 1:
-							data.version_label = `${display_version} (Pre-release)`;
-							break;
-						case 0:
-							data.version_label = `${display_version} (${tl('about.version.up_to_date')}😄)`;
-							break;
-						case -1:
-							data.version_label = `${display_version} (${tl('about.version.update_available', [releaseVersion])})`;
-							break;
-					}
-				},
-				error(err) {}
-			})
 
 			new Dialog({
 				id: 'about',
@@ -49,58 +26,19 @@ BARS.defineActions(() => {
 					template: `
 						<div>
 							<div class="blockbench_logo" id="about_page_title">
-								<img src="assets/logo_text_white.svg" alt="Blockbench" width="340px">
+								<h1>Vintage Bench</h1>
 							</div>
 							<p>Version <span>{{ version_label }}</span></p>
 
-							<div class="socials">
-								<a class="open-in-browser" href="https://blockbench.net">
-									<i class="icon icon-blockbench_inverted" style="transform: scale(1.3);"></i>
-									<label>Website</label>
-								</a>
-								<a class="open-in-browser" href="https://bsky.app/profile/blockbench.net">
-									<i class="icon fab fa-bluesky" style="color: #208bfe;"></i>
-									<label>Bluesky</label>
-								</a>
-								<a class="open-in-browser" href="https://twitter.com/blockbench">
-									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
-									<label>Twitter</label>
-								</a>
-								<a class="open-in-browser" href="http://discord.blockbench.net">
-									<i class="icon fab fa-discord" style="color: #5865F2;"></i>
-									<label>Discord</label>
-								</a>
-								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
-									<i class="icon fab fa-youtube"></i>
-									<label>YouTube</label>
-								</a>
-								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
-									<i class="icon fab fa-github" style="color: #dddddd;"></i>
-									<label>GitHub</label>
-								</a>
-								<a class="open-in-browser" href="https://blockbench.net/wiki">
-								<i class="icon material-icons">menu_book</i>
-									<label>Wiki</label>
-								</a>
-							</div>
+							<p>Vintage Story-focused fork cleanup base.</p>
+							<p style="color: var(--color-subtle_text);">This build keeps the desktop cuboid editor while removing user-facing Minecraft, Bedrock, mesh, and hosted web workflows. Proper Vintage Story JSON import/export is still TODO.</p>
 
-							<p>Created by Jannis Petersen</p>
-							<p style="color: var(--color-subtle_text);">A free and open-source low-poly model editor. To make 3D art easy and accessible for everyone.
-								For all who enjoy stylized 3D art. For game developers, students, content creators, and for the Minecraft community.</p>
-
-							<h4>SPECIAL THANKS TO</h4>
-							<ul class="multi_column_list special_thanks_mentions">
-								<li>Mojang Studios</li>
-								<li>All contributors</li>
-								<li>The community moderators</li>
-								<li>All donators</li>
-								<li>All translators</li>
-								<li>Wacky</li>
-								<li>Ewan Howell and Lukas</li>
-								<li>SirBenet</li>
-								<li>Sultan Taha and Kanno</li>
-								<li>The Blockbench Community</li>
-							</ul>
+							<h4>FORK NOTICE</h4>
+							<p>Vintage Bench is a modified fork of Blockbench. Original Blockbench copyright notices are retained from the original project and its contributors.</p>
+							<p>Vintage Bench modifications Copyright (C) 2026 P1nkOblivion.</p>
+							<p>Licensed under the GNU General Public License version 3. This program comes with ABSOLUTELY NO WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.</p>
+							<p>Source code: <a class="open-in-browser" href="https://github.com/p1nkoblivion/VintageBench">github.com/p1nkoblivion/VintageBench</a></p>
+							<p>Vintage Bench is not affiliated with, endorsed by, or sponsored by the original Blockbench project or by the owners or developers of Vintage Story.</p>
 
 							<h4>FRAMEWORKS, LIBRARIES, AND ICONS</h4>
 
@@ -138,8 +76,7 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/JannisX11/wintersky">Wintersky</a></li>
 							</ul>
 
-							<p style="margin-top: 20px">Released under the <a class="open-in-browser" href="https://github.com/JannisX11/blockbench/blob/master/LICENSE.MD">GPL 3.0 license</a></p>
-							<p><a class="open-in-browser" href="https://www.blockbench.net/privacy-policy">Privacy Policy</a></p>
+							<p style="margin-top: 20px">Released under the GPL 3.0 license. See LICENSE.MD.</p>
 
 						</div>`
 				}

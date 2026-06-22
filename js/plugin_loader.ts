@@ -133,7 +133,7 @@ interface PluginOptions {
 	 */
 	tags?: [string, string?, string?]
 	/**
-	 * Where the plugin can be installed. Desktop refers to the electron app, web refers to the web app and PWA
+	 * Where the plugin can be installed. Vintage Bench only supports the desktop app in this fork.
 	 */
 	variant: 'both' | 'desktop' | 'web'
 	/**

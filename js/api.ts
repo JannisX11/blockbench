@@ -46,7 +46,7 @@ export const Blockbench = {
 	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
 	get isPWA() {
-		return 'standalone' in navigator || window.matchMedia('(display-mode: standalone)').matches;
+		return false;
 	},
 	version: appVersion,
 	operating_system: '',

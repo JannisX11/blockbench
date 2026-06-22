@@ -144,13 +144,11 @@ export const MenuBar = {
 				}
 			},
 			'open_model',
-			'open_from_link',
 			'new_window',
 			new MenuSeparator('project'),
 			'save_project',
 			'save_project_as',
 			'save_project_incremental',
-			'convert_project',
 			'close_project',
 			new MenuSeparator('import_export'),
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', condition: () => Format && !Format.pose_mode, children: [
@@ -179,36 +177,9 @@ export const MenuBar = {
 						return projects;
 					}
 				},
-				'import_project',
-				'import_java_block_model',
-				'import_optifine_part',
-				'import_bedrock_attachable',
-				'import_bedrock_voxel_shape',
-				'import_obj',
-				'extrude_texture'
-			]},
-			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', condition: () => Project, children: [
-				'export_blockmodel',
-				'export_bedrock',
-				'export_entity',
-				'export_bedrock_voxel_shape',
-				'export_class_entity',
-				'export_optifine_full',
-				'export_optifine_part',
-				'export_minecraft_skin',
-				'export_image',
-				'export_gltf',
-				'export_obj',
-				'export_fbx',
-				'export_stl',
-				'export_collada',
-				'export_legacy_project',
-				'export_modded_animations',
-				'upload_sketchfab',
-				'share_model',
+				'import_project'
 			]},
 			'export_over',
-			'export_asset_archive',
 			new MenuSeparator('options'),
 			{name: 'menu.file.preferences', id: 'preferences', icon: 'tune', children: [
 				'settings_window',
@@ -263,7 +234,6 @@ export const MenuBar = {
 			'unlock_everything',
 			'delete',
 			'apply_mirror_modeling',
-			new MenuSeparator('mesh_specific'),
 			new MenuSeparator('editing_mode'),
 			'proportional_editing',
 			'mirror_modeling',
@@ -307,34 +277,6 @@ export const MenuBar = {
 			icon: 'open_with',
 			condition: {modes: ['edit']},
 		})
-		new BarMenu('mesh', [
-			new MenuSeparator('geometry'),
-			'extrude_mesh_selection',
-			'inset_mesh_selection',
-			'loop_cut',
-			'create_face',
-			'invert_face',
-			'switch_face_crease',
-			'merge_vertices',
-			'dissolve_edges',
-			'solidify_mesh_selection',
-			'set_vertex_weights',
-			new MenuSeparator('element'),
-			'apply_mesh_rotation',
-			'split_mesh',
-			'merge_meshes',
-		], {icon: 'fa-gem', condition: {selected: {mesh: true}, modes: ['edit']}})
-
-		new BarMenu('skin', [
-			new MenuSeparator('view'),
-			'custom_skin_poses',
-			'add_custom_skin_pose',
-			new MenuSeparator('edit'),
-			'toggle_skin_layer',
-			'explode_skin_model',
-			'convert_minecraft_skin_variant',
-		], {icon: 'icon-player', condition: {formats: ['skin']}})
-
 		new BarMenu('uv', UVEditor.menu.structure, {
 			condition: {modes: ['edit']},
 			icon: 'photo_size_select_large',
@@ -466,14 +408,7 @@ export const MenuBar = {
 			'swap_tools',
 			'action_control',
 			new MenuSeparator('tools'),
-			'predicate_overrides',
-			'convert_to_mesh',
-			'auto_set_cullfaces',
 			'remove_blank_faces',
-			'generate_voxel_shapes',
-			'generate_bedrock_block_box',
-			'generate_bedrock_entity_box',
-			'slice_bedrock_multiblock',
 		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
@@ -518,7 +453,6 @@ export const MenuBar = {
 			'pixel_grid',
 			'painting_grid',
 			new MenuSeparator('references'),
-			'bedrock_animation_mode',
 			'preview_scene',
 			'edit_reference_images',
 			new MenuSeparator('model'),
@@ -535,27 +469,11 @@ export const MenuBar = {
 		new BarMenu('help', [
 			new MenuSeparator('search'),
 			{name: 'menu.help.search_action', description: BarItems.action_control.description, keybind: BarItems.action_control.keybind, id: 'search_action', icon: 'search', click: ActionControl.select},
-			new MenuSeparator('links'),
-			{name: 'menu.help.quickstart', id: 'quickstart', icon: 'fas.fa-directions', click: () => {
-				Blockbench.openLink('https://blockbench.net/quickstart/');
-			}},
-			{name: 'menu.help.discord', id: 'discord', icon: 'fab.fa-discord', condition: () => (!settings.classroom_mode.value), click: () => {
-				Blockbench.openLink('http://discord.blockbench.net');
-			}},
-			{name: 'menu.help.wiki', id: 'wiki', icon: 'menu_book', click: () => {
-				Blockbench.openLink('https://blockbench.net/wiki/');
-			}},
-			{name: 'menu.help.report_issue', id: 'report_issue', icon: 'bug_report', click: () => {
-				Blockbench.openLink('https://github.com/JannisX11/blockbench/issues');
-			}},
 			new MenuSeparator('backups'),
 			'view_backups',
 			new MenuSeparator('about'),
 			{name: 'menu.help.developer', id: 'developer', icon: 'fas.fa-wrench', children: [
 				'reload_plugins',
-				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
-					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
-				}},
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
 					let error_messages = window.ErrorLog.map((error) => {
@@ -588,25 +506,6 @@ export const MenuBar = {
 				}},
 				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
 					ModelProject.all.forEach(project => project.locked = false);
-				}},
-				{
-					name: 'Uncorrupt Mesh',
-					id: 'uncorrupt_mesh',
-					icon: 'build',
-					condition: () => Mesh.hasSelected(),
-					click() {
-						uncorruptMesh();
-					}
-				},
-				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
-					if('caches' in window){
-						caches.keys().then((names) => {
-							names.forEach(async (name) => {
-								await caches.delete(name)
-							})
-						})
-					}
-					window.location.reload(true)
 				}},
 				'reload',
 			]},

@@ -782,20 +782,9 @@ export const BARS = {
 				'rotation_space',
 				'transform_pivot_space',
 				'selection_mode',
-				'spline_selection_mode',
-				'spline_handle_mode',
-				'slider_spline_handle_tilt',
-				'slider_spline_handle_size',
 				'animation_controller_preview_mode',
 				'slider_animation_controller_speed',
-				'bedrock_animation_mode',
-				'load_on_bedrock_player',
 				'lock_motion_trail',
-				'extrude_mesh_selection',
-				'inset_mesh_selection',
-				'loop_cut',
-				'create_face',
-				'invert_face',
 				'_',
 				'mirror_modeling',
 				'mirror_animating',
@@ -906,8 +895,6 @@ export const BARS = {
 			children: [
 				'vertex_snap_mode',
 				'selection_mode',
-				'spline_selection_mode',
-				'spline_handle_mode',
 			]
 		})
 		Toolbars.seam_tool = new Toolbar({

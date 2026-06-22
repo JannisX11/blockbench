@@ -191,19 +191,19 @@ onVueSetup(async function() {
 			slideshow: [
 				{
 					source: "./assets/splash_art/1.webp",
-					description: "Splash Art 1st Place by [AnzSama](https://contests.blockbench.net/artists/726636243785613372) & [C-on](https://contests.blockbench.net/artists/768854550744137800)",
+					description: "",
 				},
 				{
 					source: "./assets/splash_art/2.webp",
-					description: "Splash Art 2nd Place by [Wanwin](https://contests.blockbench.net/artists/402502582360080384) & [Flok](https://contests.blockbench.net/artists/445419542664183808)",
+					description: "",
 				},
 				{
 					source: "./assets/splash_art/3.webp",
-					description: "Splash Art 3rd Place by [eag](https://contests.blockbench.net/artists/662458608281190410)",
+					description: "",
 				},
 				{
 					source: "./assets/splash_art/4.webp",
-					description: "Splash Art 4th Place by [ultramarine digital art](https://contests.blockbench.net/artists/646162973060235277)",
+					description: "",
 				}
 			],
 			show_splash_screen: (Blockbench.hasFlag('after_update') || settings.always_show_splash_art.value),
@@ -417,13 +417,9 @@ onVueSetup(async function() {
 								<li class="format_category">
 									<label>${tl('mode.start.info')}</label>
 									<ul>
-										<li class="format_entry start_screen_link" @click="openLink('https://blockbench.net/quickstart')">
+										<li class="format_entry start_screen_link">
 											<span class="icon_wrapper f_left"><i class="material-icons">help</i></span>
-											<label>${tl('menu.help.quickstart')}</label>
-										</li>
-										<li class="format_entry start_screen_link" @click="openLink('https://blockbench.net/wiki')">
-											<span class="icon_wrapper f_left"><i class="material-icons">menu_book</i></span>
-											<label>Blockbench Wiki</label>
+											<label>Vintage Story JSON work is TODO in a later pass.</label>
 										</li>
 									</ul>
 								</li>
@@ -533,61 +529,7 @@ onVueSetup(async function() {
 
 
 (function() {
-	/*$.getJSON('./content/news.json').then(data => {
-		addStartScreenSection('new_version', data.new_version)
-	})*/
-
-	var news_call = $.ajax({
-		cache: false,
-		url: 'https://web.blockbench.net/content/news.json',
-		dataType: 'json'
-	});
 	documentReady.then(() => {
-
-		//Bluesky
-		let bsky_ad;
-		Blockbench.onUpdateTo('4.12.2', () => {
-			//Bluesky
-			if (!settings.classroom_mode.value) {
-				bsky_ad = true;
-				addStartScreenSection('bluesky_link', {
-					color: 'rgb(32, 139, 254);',
-					text_color: '#ffffff',
-					graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
-					text: [
-						{type: 'h3', text: 'Blockbench on Bluesky'},
-						{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
-					],
-					last: true
-				})
-			}
-		})
-		if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
-			bsky_ad = true;
-			addStartScreenSection('bluesky_link', {
-				color: 'rgb(32, 139, 254);',
-				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
-				text: [
-					{type: 'h3', text: 'Blockbench on Bluesky'},
-					{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
-				],
-				last: true
-			})
-		}
-		//Discord
-		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
-			addStartScreenSection('discord_link', {
-				color: '#5865F2',
-				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-discord'},
-				text: [
-					{type: 'h2', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
-				],
-				last: true
-			})
-		}
 
 		// Quick Setup
 		if (Blockbench.startup_count <= 1) {

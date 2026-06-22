@@ -3,10 +3,8 @@ import { ProportionalEdit } from './mesh/proportional_edit';
 import './mesh/set_vertex_weights'
 import './mesh/loop_cut'
 import './mesh/knife_tool'
-import './mesh/add_mesh'
 import './mesh/seam_tool'
 import './mesh/merge_split'
-import './mesh/import_obj'
 import { autoFixMeshEdit } from './mesh/auto_fix'
 import { sameMeshEdge } from './mesh/util';
 import { PointerTarget } from '../interface/pointer_target';

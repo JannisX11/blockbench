@@ -1,0 +1,28 @@
+Vintage Bench
+
+Vintage Bench is a modified fork of Blockbench.
+
+Original project:
+Blockbench
+https://github.com/JannisX11/blockbench
+
+Original Blockbench copyright notices are retained from the original project
+and its contributors. The original Blockbench source code is licensed under
+the GNU General Public License version 3. See LICENSE.MD for the full license
+text.
+
+Vintage Bench modifications:
+Copyright (C) 2026 P1nkOblivion
+
+This fork modifies Blockbench for Vintage Story-focused cuboid model editing.
+The first cleanup pass removes or disables user-facing Minecraft-specific
+formats, Bedrock-specific workflows, mesh-modeling features, and hosted web
+application behavior while preserving the desktop cuboid editing base.
+
+Vintage Bench is distributed as a modified version of Blockbench under the
+GNU General Public License version 3. This program is distributed WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+A PARTICULAR PURPOSE.
+
+Vintage Bench is not affiliated with, endorsed by, or sponsored by the
+original Blockbench project or by the owners or developers of Vintage Story.

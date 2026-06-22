@@ -612,7 +612,7 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 });
 new Property(ModelProject, 'string', 'java_block_version', {
 	label: 'dialog.project.java_block_version',
-	default: () => settings.default_java_block_version.value == 'latest' ? '1.21.11' : settings.default_java_block_version.value,
+	default: '1.21.11',
 	condition: {formats: ['java_block']},
 	options: {
 		'1.9.0': '1.9 - 1.21.5',
@@ -697,14 +697,12 @@ ModelProject.prototype.menu = new Menu([
 	new MenuSeparator('manage'),
 	'open_model_folder',
 	'duplicate_project',
-	'convert_project',
 	'close_project',
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
 	'save_project_incremental',
 	'export_over',
-	'share_model',
 	new MenuSeparator('overview'),
 	'tab_overview',
 ])
@@ -1237,55 +1235,6 @@ BARS.defineActions(function() {
 			Project.name = copyfyName(Project.name);
 
 			Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
-		}
-	})
-	new Action('convert_project', {
-		icon: 'fas.fa-file-import',
-		category: 'file',
-		condition: () => Project && (!Project.EditSession || Project.EditSession.hosting),
-		click: function () {
-
-			var options = {};
-			for (var key in Formats) {
-				let format = Formats[key]
-				if (key !== Format.id && format.can_convert_to) {
-					options[key] = format.name;
-				}
-			}
-
-			var dialog = new Dialog({
-				id: 'convert_project',
-				title: 'dialog.convert_project.title',
-				width: 540,
-				form: {
-					text1:		{type: 'info', text: 'dialog.convert_project.text1'},
-					text2:		{type: 'info', text: 'dialog.convert_project.text2'},
-					text3:		{type: 'info', text: 'dialog.convert_project.text3'},
-					current: 	{type: 'info', label: 'dialog.convert_project.current_format', text: Format.name || '-'},
-					format:  	{
-						label: 'data.format',
-						type: 'select',
-						options,
-					},
-					create_copy: {type: 'checkbox', label: 'dialog.convert_project.create_copy', value: true}
-				},
-				onConfirm: function(formResult) {
-					var format = Formats[formResult.format]
-					if (!format || format == Format) return;
-					
-					if (formResult.create_copy) {
-						let selected_texture_uuid = Texture.selected?.uuid
-						let model = Codecs.project.compile({raw: true});
-						setupProject(Format)
-						Codecs.project.parse(model, '');
-						if (Project.name) Project.name += ' - Converted';
-						Texture.all.find(t => t.uuid == selected_texture_uuid)?.select();
-					}
-					
-					format.convertTo()
-				}
-			})
-			dialog.show()
 		}
 	})
 	new Action('switch_tabs', {

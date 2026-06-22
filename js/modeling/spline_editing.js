@@ -271,7 +271,8 @@ BARS.defineActions(function() {
 	new Action('add_spline', {
 		icon: 'fa-bezier-curve',
 		category: 'edit',
-		condition: {modes: ['edit'], method: () => (Format.splines)},
+		// TODO: Re-evaluate splines only if Vintage Story support needs a non-cuboid helper object.
+		condition: false,
 		click: function () {
 			add_spline_dialog.show();
 		}

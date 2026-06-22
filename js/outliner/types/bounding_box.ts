@@ -24,9 +24,6 @@ export class BoundingBox extends OutlinerElement {
 	public icon = 'activity_zone';
 	public menu = new Menu([
 		...Outliner.control_menu_group,
-		new MenuSeparator('export'),
-		'generate_bedrock_block_box',
-		'generate_bedrock_entity_box',
 		new MenuSeparator('settings'),
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return markerColors.map((color, i) => {return {

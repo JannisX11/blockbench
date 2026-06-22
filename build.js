@@ -63,7 +63,12 @@ function createJsonPlugin(ext_suffix, namespace) {
     };
 };
 
-const isApp = options.target == 'electron';
+if (options.target && options.target !== 'electron') {
+    throw new Error('Vintage Bench only supports the desktop Electron build target in this cleanup pass.');
+}
+options.target = 'electron';
+
+const isApp = true;
 const dev_mode = options.watch || options.serve;
 const minify = !dev_mode;
 
@@ -106,7 +111,7 @@ const config = {
         }),
         conditionalImportPlugin(1, {
             filter: /desktop/,
-            file: isApp ? 'desktop.js' : 'web.js'
+            file: 'desktop.js'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         vuePlugin(),

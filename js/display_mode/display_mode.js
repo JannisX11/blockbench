@@ -158,11 +158,6 @@ display_presets = [
 				rotation: [ 0, -90, 25 ],
 				translation: [ 1.13, 3.2, 1.13],
 				scale: [ 0.68, 0.68, 0.68 ]
-			},
-			fixed: {
-				rotation: [ 0, 180, 0 ],
-				translation: [ 0, 0, 0 ],
-				scale: [ 1, 1, 1 ],
 			}
 		}
 	},
@@ -176,11 +171,6 @@ display_presets = [
 			rotation: [ 0, 0, 0 ],
 			translation: [ 0, 3, 0],
 			scale:[ 0.25, 0.25, 0.25 ]
-		},
-		fixed: {
-			rotation: [ 0, 0, 0 ],
-			translation: [ 0, 0, 0],
-			scale:[ 0.5, 0.5, 0.5 ]
 		},
 		thirdperson_righthand: {
 			rotation: [ 75, 45, 0 ],
@@ -334,50 +324,9 @@ export class refModel {
 					}
 				}
 				break;
-			case 'armor_stand_small':
-				this.updateBasePosition = function() {
-					let display_slot = DisplayMode.display_slot;
-					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
-					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-3, 6, -1, -90, 0, 0, 0.5, 0.5, 0.5)
-					} else if (display_slot === 'head') {
-						setDisplayArea(0, 14.5, 0, 0, 0, 0, 0.4635, 0.4635, 0.4635)
-					}
-				}
-				break;
-			case 'fox':
-				this.updateBasePosition = function() {
-					setDisplayArea(0, 0, -6, 90, 180, 0, 1, 1, 1);
-				}
-				break;
 			case 'block':
 				this.updateBasePosition = function() {
 					setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
-				}
-				break;
-			case 'zombie':
-				this.updateBasePosition = function() {
-					let display_slot = DisplayMode.display_slot;
-					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(-10, 18, -6, -90, 90, 90, 1, 1, 1)
-					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-10, 18, 6, -90, 90, 90, 1, 1, 1)
-					} else if (display_slot === 'head') {
-						setDisplayArea(0, 22, 0, 0, 90, 0, 0.625, 0.625, 0.625)
-					}
-				}
-				break;
-			case 'baby_zombie':
-				this.updateBasePosition = function() {
-					let display_slot = DisplayMode.display_slot;
-					if (display_slot === 'thirdperson_righthand') {
-						setDisplayArea(-5, 6, -3, -90, 90, 90, 0.5, 0.5, 0.5)
-					} else if (display_slot === 'thirdperson_lefthand') {
-						setDisplayArea(-5, 6, 3, -90, 90, 90, 0.5, 0.5, 0.5)
-					} else if (display_slot === 'head') {
-						setDisplayArea(0, 8.5, 0, 0, 90, 0, 0.4635, 0.4635, 0.4635)
-					}
 				}
 				break;
 			case 'monitor':
@@ -389,26 +338,6 @@ export class refModel {
 			case 'flower_pot':
 				this.updateBasePosition = function() {
 					setDisplayArea(0, 12, 0, 0, 0, 0, 1, 1, 1)
-				}
-				break;
-			case 'frame':
-				this.updateBasePosition = function() {
-					setDisplayArea(8, 8, -1, 0, 0, 0, 0.5, 0.5, 0.5)
-				}
-				break;
-			case 'frame_invisible':
-				this.updateBasePosition = function() {
-					setDisplayArea(8, 8, 0.0, 0, 0, 0, 0.5, 0.5, 0.5)
-				}
-				break;
-			case 'frame_top':
-				this.updateBasePosition = function() {
-					setDisplayArea(8, 1, 8, 90, 0, 0, 0.5, 0.5, 0.5)
-				}
-				break;
-			case 'frame_top_invisible':
-				this.updateBasePosition = function() {
-					setDisplayArea(8, 0, 8, 90, 0, 0, 0.5, 0.5, 0.5)
 				}
 				break;
 			case 'shelf_left':
@@ -474,12 +403,6 @@ export class refModel {
 					}
 				}
 				break;
-			case 'shelf_center':
-				this.updateBasePosition = function() {
-					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
-					setDisplayArea(8, yPos, 12, 0, 180, 0, 0.25, 0.25, 0.25)
-				}
-				break;
 			case 'shelf_right':
 				this.updateBasePosition = function() {
 					let yPos = 7.75 + (Project.shelf_align_bottom ? -1.75 : 0);
@@ -492,13 +415,6 @@ export class refModel {
 					setDisplayArea(side*4.2, -4.9+24, 25, -20, -19, -8, 1,1,1)
 				}
 				break;
-			case 'crossbow':
-				this.updateBasePosition = function() {
-					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
-					setDisplayArea(side*-1.2, -6.75+24, 23, 0, side*10, 0, 1, 1, 1)
-				}
-				break;
-				
 			case 'eating':
 				this.updateBasePosition = function() {
 					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
@@ -506,13 +422,6 @@ export class refModel {
 						side*-1.7, -6.1+24, 23.4,
 						-92, side*100, side*119,
 						0.8, 0.8, 0.8)
-				}
-				break;
-			case 'tooting':
-				this.updateBasePosition = function() {
-					var side = DisplayMode.display_slot.includes('left') ? -1 : 1;
-					//setDisplayArea(side*-0.6, 19.8, 23.8, 31.5, side*22, -11, 1, 1, 1)
-					setDisplayArea(side == 1 ? -2.7 : 2.1, 20.1, Format.id.includes('bedrock') ? 24.5 : 25.6, 36, side*21.5, side*-12, 1, 1, 1)
 				}
 				break;
 		}
@@ -646,7 +555,7 @@ export class refModel {
 		DisplayMode.vue.reference_model = this.id;
 
 		if (DisplayMode.display_slot == 'ground') {
-			Canvas.ground_animation = this.id != 'fox';
+			Canvas.ground_animation = true;
 		}
 		
 		ReferenceImage.updateAll()
@@ -658,26 +567,9 @@ export const displayReferenceObjects = {
 			icon: 'icon-player',
 			models: [DisplayReferences.display_player]
 		}),
-		zombie: new refModel('zombie', {
-			icon: 'icon-zombie',
-			models: [DisplayReferences.zombie]
-		}),
 		armor_stand: new refModel('armor_stand', {
 			icon: 'icon-armor_stand',
 			models: [DisplayReferences.armor_stand]
-		}),
-		baby_zombie: new refModel('baby_zombie', {
-			icon: 'icon-baby_zombie',
-			models: [DisplayReferences.baby_zombie]
-		}),
-		armor_stand_small: new refModel('armor_stand_small', {
-			icon: 'icon-armor_stand_small',
-			models: [DisplayReferences.armor_stand_small]
-		}),
-		fox: new refModel('fox', {
-			icon: 'pets',
-			condition: {formats: ['java_block']},
-			models: [DisplayReferences.fox]
 		}),
 		monitor: new refModel('monitor', {
 			icon: 'fa-asterisk',
@@ -687,41 +579,17 @@ export const displayReferenceObjects = {
 			icon: 'icon-bow',
 			models: [DisplayReferences.monitor]
 		}),
-		crossbow: new refModel('crossbow', {
-			icon: 'icon-crossbow',
-			models: [DisplayReferences.monitor]
-		}),
 		eating: new refModel('eating', {
 			icon: 'fa-apple-whole',
-			models: [DisplayReferences.monitor]
-		}),
-		tooting: new refModel('tooting', {
-			icon: 'fa-bullhorn',
 			models: [DisplayReferences.monitor]
 		}),
 		block: new refModel('block', {
 			icon: 'fa-cube',
 			models: [DisplayReferences.block]
 		}),
-		frame: new refModel('frame', {
-			icon: 'filter_frames',
-			models: [DisplayReferences.frame_block, DisplayReferences.frame]
-		}),
 		flower_pot: new refModel('flower_pot', {
 			icon: 'potted_plant',
 			models: [DisplayReferences.flower_pot]
-		}),
-		frame_invisible: new refModel('frame_invisible', {
-			icon: 'visibility_off',
-			models: [DisplayReferences.frame_block]
-		}),
-		frame_top: new refModel('frame_top', {
-			icon: 'filter_frames',
-			models: [DisplayReferences.frame_top_block, DisplayReferences.frame_top]
-		}),
-		frame_top_invisible: new refModel('frame_top_invisible', {
-			icon: 'visibility_off',
-			models: [DisplayReferences.frame_top_block]
 		}),
 		shelf: new refModel('shelf', {
 			icon: 'table_view',
@@ -729,10 +597,6 @@ export const displayReferenceObjects = {
 		}),
 		shelf_left: new refModel('shelf_left', {
 			icon: 'keyboard_arrow_left',
-			models: [DisplayReferences.shelf]
-		}),
-		shelf_center: new refModel('shelf_center', {
-			icon: 'remove',
 			models: [DisplayReferences.shelf]
 		}),
 		shelf_right: new refModel('shelf_right', {
@@ -804,7 +668,6 @@ export const displayReferenceObjects = {
 		gui: 0,
 		head: 0,
 		embedded: 0,
-		fixed: 0,
 		on_shelf: 0,
 	},
 	slots: [
@@ -816,7 +679,6 @@ export const displayReferenceObjects = {
 		'gui',
 		'head',
 		'embedded',
-		'fixed',
 		'on_shelf',
 	]
 }
@@ -1087,7 +949,7 @@ DisplayMode.loadThirdRight = function() {	//Loader
 		position: [-44, 40, -44],
 		target: [0, 14, 0]
 	})
-	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
+	displayReferenceObjects.bar(['player', 'armor_stand'])
 }
 DisplayMode.loadThirdLeft = function() {	//Loader
 	loadDisp('thirdperson_lefthand')
@@ -1097,7 +959,7 @@ DisplayMode.loadThirdLeft = function() {	//Loader
 		position: [-44, 40, -44],
 		target: [0, 14, 0]
 	})
-	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
+	displayReferenceObjects.bar(['player', 'armor_stand'])
 }
 export function getOptimalFocalLength() {
 	if (display_preview.camera.aspect > 1.7) {
@@ -1117,7 +979,7 @@ DisplayMode.loadFirstRight = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'eating']);
 	$('.single_canvas_wrapper').append('<div class="display_crosshair"></div>')
 }
 DisplayMode.loadFirstLeft = function() {	//Loader
@@ -1129,7 +991,7 @@ DisplayMode.loadFirstLeft = function() {	//Loader
 	})
 	display_preview.controls.enabled = false
 	if (display_preview.orbit_gizmo) display_preview.orbit_gizmo.hide();
-	displayReferenceObjects.bar(['monitor', 'bow', 'crossbow', 'tooting', 'eating']);
+	displayReferenceObjects.bar(['monitor', 'bow', 'eating']);
 	$('.single_canvas_wrapper').append('<div class="display_crosshair"></div>')
 }
 DisplayMode.loadHead = function() {		//Loader
@@ -1138,7 +1000,7 @@ DisplayMode.loadHead = function() {		//Loader
 		position: [-30, 40, -30],
 		target: [0, 22, 0]
 	})
-	displayReferenceObjects.bar(['player', 'zombie', 'baby_zombie', 'armor_stand', 'armor_stand_small'])
+	displayReferenceObjects.bar(['player', 'armor_stand'])
 }
 DisplayMode.loadGUI = function() {		//Loader
 	loadDisp('gui')
@@ -1164,15 +1026,7 @@ DisplayMode.loadGround = function() {		//Loader
 	setDisplayArea(8, 4, 8, 0, 0, 0, 1, 1, 1)
 	Canvas.ground_animation = true;
 	ground_timer = 0
-	displayReferenceObjects.bar(['block', 'fox'])
-}
-DisplayMode.loadFixed = function() {		//Loader
-	loadDisp('fixed')
-	display_preview.loadAnglePreset({
-		position: [-24, 18, -50],
-		target: [0, 1, -5]
-	})
-	displayReferenceObjects.bar(['frame', 'frame_invisible', 'frame_top', 'frame_top_invisible'])
+	displayReferenceObjects.bar(['block'])
 }
 DisplayMode.loadEmbedded = function() {		//Loader
 	loadDisp('embedded')
@@ -1188,7 +1042,8 @@ DisplayMode.loadShelf = function() {		//Loader
 		position: [-30, 25, -30],
 		target: [0, 8, 0]
 	})
-	displayReferenceObjects.bar(['shelf', 'shelf_left', 'shelf_center', 'shelf_right'])
+	// TODO: Replace with Vintage Story shelf display sections: left/right and top/bottom, 2 slots each.
+	displayReferenceObjects.bar(['shelf', 'shelf_left', 'shelf_right'])
 	BarItems.shelf_alignment.set(Project.shelf_align_bottom ? 'bottom' : 'top');
 }
 DisplayMode.updateShelfAlignment = function() {
@@ -1225,9 +1080,6 @@ DisplayMode.load = function(slot) {
 		break;
 		case 'embedded':
 		DisplayMode.loadEmbedded()
-		break;
-		case 'fixed':
-		DisplayMode.loadFixed()
 		break;
 		case 'on_shelf':
 		DisplayMode.loadShelf()
@@ -1595,7 +1447,6 @@ BARS.defineActions(function() {
 					head: {type: 'checkbox', label: 'display.slot.head', value: true},
 					ground: {type: 'checkbox', label: 'display.slot.ground', value: true},
 					embedded: {type: 'checkbox', label: 'display.slot.embedded', value: true},
-					fixed: {type: 'checkbox', label: 'display.slot.frame', value: true},
 					on_shelf: {type: 'checkbox', label: 'display.slot.on_shelf', value: true},
 					gui: {type: 'checkbox', label: 'display.slot.gui', value: true},
 				},

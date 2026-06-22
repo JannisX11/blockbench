@@ -126,8 +126,7 @@ export async function loadImages(files, event) {
 
 	// Options
 	if (event == undefined) {
-		// When using "Open with > Blockbench", ensure these are listed first
-		options.edit = null;
+		// Vintage Bench does not expose the removed standalone image editor or skin project formats.
 	}
 	if (Project && texture_li && texture_li.length) {
 		replace_texture = Texture.all.findInArray('uuid', texture_li.attr('texid'))
@@ -142,16 +141,9 @@ export async function loadImages(files, event) {
 		if (Modes.paint && Texture.selected) {
 			options.layer = 'message.load_images.add_layer';
 		}
-		if (Modes.edit && (!Project.box_uv || Format.optional_box_uv)) {
-			options.extrude_with_cubes = 'dialog.extrude.title';
-		}
 	}
-	options.edit = 'message.load_images.edit_image';
 	if (Project) {
 		options.reference_image = 'data.reference_image';
-	}
-	if (img.naturalHeight == img.naturalWidth && [64, 128].includes(img.naturalWidth)) {
-		options.minecraft_skin = 'format.skin';
 	}
 	if (Project && Condition(Panels.textures.condition)) {
 		if (Format.image_editor) {
@@ -210,19 +202,6 @@ export async function loadImages(files, event) {
 			}).last().select();
 			ReferenceImageMode.activate();
 			
-		} else if (method == 'edit') {
-			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
-			
-		} else if (method == 'minecraft_skin') {
-			Formats.skin.setup_dialog.show();
-			Formats.skin.setup_dialog.setFormValues({
-				texture_source: 'upload_texture',
-				texture_file: files[0]
-			})
-
-		} else if (method == 'extrude_with_cubes') {
-			Extruder.dialog.show();
-			Extruder.drawImage(files[0]);
 		}
 	}
 
@@ -236,18 +215,12 @@ export async function loadImages(files, event) {
 			texture: 'library_add',
 			layer: 'new_window',
 			reference_image: 'wallpaper',
-			edit: 'draw',
-			minecraft_skin: 'icon-player',
-			extrude_with_cubes: 'eject',
 		};
 		let categories = {
 			replace_texture: 'message.load_images.category.add_to_project',
 			texture: 'message.load_images.category.add_to_project',
 			layer: 'message.load_images.category.add_to_project',
 			reference_image: 'message.load_images.category.add_to_project',
-			edit: 'message.load_images.category.new_project',
-			minecraft_skin: 'message.load_images.category.new_project',
-			extrude_with_cubes: 'message.load_images.category.add_to_project',
 		}
 		let commands = {};
 		for (let id in options) {
@@ -596,56 +569,6 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	new Action('open_from_link', {
-		icon: 'link',
-		category: 'file',
-		click() {
-			Blockbench.textPrompt('action.open_from_link', '', link => {
-				if (link.match(/https:\/\/blckbn.ch\//) || link.length == 4 || link.length == 6) {
-					let code = link.replace(/\/$/, '').split('/').last();
-					$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-						Codecs.project.load(model, {path: ''});
-					}).fail(error => {
-						Blockbench.showQuickMessage('message.invalid_link')
-					})
-				} else {
-					$.getJSON(link, (model) => {
-						Codecs.project.load(model, {path: ''});
-					}).fail(error => {
-						Blockbench.showQuickMessage('message.invalid_link')
-					})
-				}
-			}, {placeholder: 'https://blckbn.ch/123abc'});
-		}
-	})
-	Blockbench.on('drop_text', ({text}) => {
-		if (text && text.startsWith('https://blckbn.ch/')) {
-			let code = text.replace(/\/$/, '').split('/').last();
-			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-				Codecs.project.load(model, {path: ''});
-			}).fail(error => {
-				Blockbench.showQuickMessage('message.invalid_link')
-			})
-		}
-	})
-	new Action('extrude_texture', {
-		icon: 'eject',
-		category: 'file',
-		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
-		click() {
-			Blockbench.import({
-				resource_id: 'texture',
-				extensions: ['png'],
-				type: 'PNG Texture',
-				readtype: 'image'
-			}, (files) => {
-				if (files.length) {
-					Extruder.dialog.show();
-					Extruder.drawImage(files[0]);
-				}
-			})
-		}
-	})
 	// Smart Save
 	new Action('export_over', {
 		icon: 'save',
@@ -742,36 +665,6 @@ BARS.defineActions(function() {
 			Blockbench.dispatchEvent('quick_save_model', {});
 		}
 	})
-	if (!isApp) {
-		new Action('export_asset_archive', {
-			icon: 'archive',
-			category: 'file',
-			condition: _ => Format && Format.codec,
-			click: function() {
-				var archive = new JSZip();
-				var content = Format.codec.compile()
-				var name = `${Format.codec.fileName()}.${Format.codec.extension}`
-				archive.file(name, content)
-				Texture.all.forEach(tex => {
-					if (tex.mode === 'bitmap') {
-						archive.file(pathToName(tex.name) + '.png', tex.source.replace('data:image/png;base64,', ''), {base64: true});
-					}
-				})
-				archive.generateAsync({type: 'blob'}).then(content => {
-					Blockbench.export({
-						type: 'Zip Archive',
-						extensions: ['zip'],
-						name: 'assets',
-						startpath: Project.export_path,
-						content: content,
-						savetype: 'zip'
-					})
-					Project.saved = true;
-				})
-			}
-		})
-	}
-
 })
 
 Object.assign(window, {
