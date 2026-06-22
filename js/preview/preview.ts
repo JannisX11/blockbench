@@ -1715,7 +1715,8 @@ export class Preview {
 				isSelected = true
 
 			} else if (element.visibility != false && element.preview_controller?.viewportRectangleOverlap) {
-				isSelected = element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
+				isSelected = this.selection.click_target?.element == element ||
+					element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
 			}
 			if (isSelected) {
 				element.markAsSelected();
