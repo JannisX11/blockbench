@@ -75,6 +75,7 @@ export async function wait(delay) {
 		setTimeout(resolve, delay);
 	})
 }
+export function silentReject() {}
 
 export function pureMarked(input) {
 	let dom = marked(input);
