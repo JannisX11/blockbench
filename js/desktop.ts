@@ -342,7 +342,7 @@ const ImageEditorPresets = {
 		paths: {
 			win32: 'C:\\Program Files\\Aseprite\\Aseprite.exe',
 			darwin: '/Applications/Aseprite.app',
-			linux: '/usr/share/applications//aseprite.desktop',
+			linux: '/usr/share/applications/aseprite.desktop',
 		}
 	},
 	pixieditor: {
@@ -350,7 +350,7 @@ const ImageEditorPresets = {
 		paths: {
 			win32: 'C:\\Program Files\\PixiEditor\\PixiEditor.exe',
 			darwin: '/Applications/PixiEditor.app',
-			linux: '/usr/share/applications//pixieditor.desktop',
+			linux: '/usr/share/applications/pixieditor.desktop',
 		}
 	},
 	ps: {
@@ -358,7 +358,7 @@ const ImageEditorPresets = {
 		paths: {
 			win32: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2026\\Photoshop.exe',
 			darwin: '/Applications/Adobe Photoshop 2026/Adobe Photoshop 2026.app',
-			linux: '/usr/share/applications//photoshop.desktop'
+			linux: '/usr/share/applications/photoshop.desktop'
 		}
 	},
 	gimp: {
@@ -366,7 +366,7 @@ const ImageEditorPresets = {
 		paths: {
 			win32: 'C:\\Program Files\\GIMP 3\\bin\\gimp-3.exe',
 			darwin: '/Applications/Gimp-3.app',
-			linux: '/usr/share/applications//gimp.desktop',
+			linux: '/usr/share/applications/gimp.desktop',
 		}
 	},
 	pdn: {
