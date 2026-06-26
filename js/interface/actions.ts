@@ -2020,6 +2020,10 @@ export class ColorPicker extends Widget {
 		// @ts-expect-error
 		this.jq.spectrum('cancel');
 	}
+	delete() {
+		this.jq.spectrum('destroy');
+		super.delete();
+	}
 	confirm() {
 		this.jq.spectrum('hide');
 	}
@@ -2079,4 +2083,3 @@ declare global {
 	}
 }
 Object.assign(window, global);
-
