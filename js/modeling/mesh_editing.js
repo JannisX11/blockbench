@@ -9,6 +9,7 @@ import './mesh/merge_split'
 import './mesh/import_obj'
 import { autoFixMeshEdit } from './mesh/auto_fix'
 import { sameMeshEdge } from './mesh/util';
+import { getSpatialInterval } from './transform';
 
 export function uncorruptMesh() {
 	for (let mesh of Mesh.selected) {
@@ -520,7 +521,6 @@ BARS.defineActions(function() {
 					}
 				}
 			})
-			UVEditor.setAutoSize(null, true, faces_to_autouv);
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
@@ -699,7 +699,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], selected: {mesh: true}, method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length)},
 		click() {
-			function runEdit(amended, extend = 1, direction_mode, even_extend) {
+			function runEdit(amended, extend = getSpatialInterval(), direction_mode, even_extend) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -840,40 +840,108 @@ BARS.defineActions(function() {
 					}))
 					Project.mesh_selection[mesh.uuid].vertices.replace(new_vertices);
 
-					// Move Faces
+					// Pre-compute ALL UVs before modifying any face (faces are still unmodified)
+					const vec1 = new THREE.Vector3();
+					// Reusable vectors for side quad UV pre-computation
+					const _ova = new THREE.Vector3(), _ovb = new THREE.Vector3(), _ovc = new THREE.Vector3();
+					const _ouva = new THREE.Vector2(), _ouvb = new THREE.Vector2(), _ouvc = new THREE.Vector2();
+					const _fn = new THREE.Vector3(), _ed = new THREE.Vector3(), _ip = new THREE.Vector3();
+					const _poa = new THREE.Vector3(), _pob = new THREE.Vector3();
+					const _pna = new THREE.Vector3(), _pnb = new THREE.Vector3();
+					const _ext = new THREE.Vector3(), _prb = new THREE.Vector3();
+					const _tuv = new THREE.Vector2();
+					const face_old_uvs = new Map()
+					const face_orig_keys = new Map()
+					const face_new_uvs = new Map()
+					const face_side_data = new Map()  // face -> [{a, b, orig_a, orig_b, uv_a, uv_b}, ...]
 					selected_faces.forEach(face => {
-						face.vertices.forEach((key, index) => {
-							face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
-							let uv = face.uv[key];
-							delete face.uv[key];
-							face.uv[face.vertices[index]] = uv;
+						// Save original vertex keys
+						let orig_keys = [...face.vertices]
+						face_orig_keys.set(face, orig_keys)
+						let old_uvs = {...face.uv}
+						face_old_uvs.set(face, old_uvs)
+						// Cap face UVs: project new vertex positions onto old face plane
+						const cap_uvs = {}
+						for (const vertex_key of face.vertices) {
+							const new_vertex_key = new_vertices[original_vertices.indexOf(vertex_key)];
+							cap_uvs[new_vertex_key] = face.localToUV(vec1.fromArray(mesh.vertices[new_vertex_key]));
+						}
+						face_new_uvs.set(face, cap_uvs)
+						// Side quad UVs: pre-compute using old face data
+						const side_quads = []
+						let sorted = face.getSortedVertices();
+						if (sorted.length < 2) { face_side_data.set(face, side_quads); return; }
+						// Old-face triangle for UV projection
+						let tri = [orig_keys[0], orig_keys[1], orig_keys[2]];
+						_ova.fromArray(mesh.vertices[tri[0]]);
+						_ovb.fromArray(mesh.vertices[tri[1]]);
+						_ovc.fromArray(mesh.vertices[tri[2]]);
+						_ouva.fromArray(old_uvs[tri[0]]);
+						_ouvb.fromArray(old_uvs[tri[1]]);
+						_ouvc.fromArray(old_uvs[tri[2]]);
+						_fn.crossVectors(_ovb.clone().sub(_ova), _ovc.clone().sub(_ova)).normalize();
+						function oldFaceUV(world_pos, target) {
+							return THREE.Triangle.getUV(world_pos, _ova, _ovb, _ovc, _ouva, _ouvb, _ouvc, target);
+						}
+						sorted.forEach((orig_a, i) => {
+							let orig_b = sorted[i+1] || sorted[0];
+							if (sorted.length == 2 && i) return;
+							if (selected_faces.find(f => f != face && f.vertices.includes(orig_a) && f.vertices.includes(orig_b))) return;
+							// orig_a/orig_b are old keys (face unmodified); map to new keys
+							let a = new_vertices[original_vertices.indexOf(orig_a)]
+							let b = new_vertices[original_vertices.indexOf(orig_b)]
+							_poa.fromArray(mesh.vertices[orig_a]);
+							_pob.fromArray(mesh.vertices[orig_b]);
+							_ed.copy(_pob).sub(_poa).normalize();
+							_ip.crossVectors(_ed, _fn);
+							// Vertex a: decompose ext_vec, rotate normal into face plane
+							_pna.fromArray(mesh.vertices[a]);
+							_ext.copy(_pna).sub(_poa);
+							let n_a = _ext.dot(_fn);
+							_prb.copy(_poa)
+								.add(_ext).addScaledVector(_fn, -n_a)
+								.addScaledVector(_ip, n_a);
+							let uv_a = oldFaceUV(_prb, _tuv).toArray();
+							// Vertex b
+							_pnb.fromArray(mesh.vertices[b]);
+							_ext.copy(_pnb).sub(_pob);
+							let n_b = _ext.dot(_fn);
+							_prb.copy(_pob)
+								.add(_ext).addScaledVector(_fn, -n_b)
+								.addScaledVector(_ip, n_b);
+							let uv_b = oldFaceUV(_prb, _tuv).toArray();
+							side_quads.push({a, b, orig_a, orig_b, uv_a, uv_b});
 						})
+						face_side_data.set(face, side_quads)
 					})
 
-					// Create extra quads on sides
+					// Now modify faces using pre-computed cap UVs
+					selected_faces.forEach(face => {
+						let cap_uvs = face_new_uvs.get(face)
+						face.vertices.forEach((key, index) => {
+							const new_vertex_key = new_vertices[original_vertices.indexOf(key)];
+							face.vertices[index] = new_vertex_key;
+							delete face.uv[key];
+							face.uv[new_vertex_key] = cap_uvs[new_vertex_key];
+						});
+					})
+
+					// Create side quads from pre-computed data
 					let remaining_vertices = new_vertices.slice();
 					selected_faces.forEach((face, face_index) => {
-						let vertices = face.getSortedVertices();
-						vertices.forEach((a, i) => {
-							let b = vertices[i+1] || vertices[0];
-							if (vertices.length == 2 && i) return; // Only create one quad when extruding line
-							if (selected_faces.find(f => f != face && f.vertices.includes(a) && f.vertices.includes(b))) return;
-
+						let old_uvs = face_old_uvs.get(face)
+						let side_quads = face_side_data.get(face)
+						side_quads.forEach(q => {
 							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
-								vertices: [
-									b,
-									a,
-									original_vertices[new_vertices.indexOf(a)],
-									original_vertices[new_vertices.indexOf(b)],
-								]
+								vertices: [q.b, q.a, q.orig_a, q.orig_b],
+								uv: {[q.a]: q.uv_a, [q.b]: q.uv_b, [q.orig_a]: old_uvs[q.orig_a], [q.orig_b]: old_uvs[q.orig_b]}
 							});
 							let [face_key] = mesh.addFaces(new_face);
 							new_face_keys.push(face_key);
-							remaining_vertices.remove(a);
-							remaining_vertices.remove(b);
+							remaining_vertices.remove(q.a);
+							remaining_vertices.remove(q.b);
 						})
-
-						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
+						if (face.getSortedVertices().length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
 
 					// Create Faces for extruded edges
@@ -893,10 +961,16 @@ BARS.defineActions(function() {
 							edge.reverse();
 						}
 						let [a, b] = edge.map(vkey => new_vertices[original_vertices.indexOf(vkey)]);
-						let [c, d] = edge;
-						let new_face = new MeshFace(mesh, face).extend({
-							vertices: [a, b, c, d]
-						});
+							let [c, d] = edge;
+							let new_face = new MeshFace(mesh, face).extend({
+								vertices: [a, b, c, d],
+								uv: {
+									[a]: face.localToUV(vec1.fromArray(mesh.vertices[a])),
+									[b]: face.localToUV(vec1.fromArray(mesh.vertices[b])),
+									[c]: face.uv[c],
+									[d]: face.uv[d]
+								}
+							});
 						if (new_face.getAngleTo(face) > 90) {
 							new_face.invert();
 						}
@@ -931,8 +1005,6 @@ BARS.defineActions(function() {
 							edge[i] = new_vertices[original_vertices.indexOf(vkey)];
 						});
 					})
-
-					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
 				Undo.finishEdit('Extrude mesh selection');
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
@@ -940,7 +1012,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				extend: {type: 'num_slider', value: 1, label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
+				extend: {type: 'num_slider', value: getSpatialInterval(), label: 'edit.extrude_mesh_selection.extend', interval_type: 'position'},
 				direction_mode: {type: 'select', label: 'edit.extrude_mesh_selection.direction', options: {
 					outwards: 'edit.extrude_mesh_selection.direction.outwards',
 					average: 'edit.extrude_mesh_selection.direction.average',
@@ -962,7 +1034,7 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedFaces().length)},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = getSpatialInterval()) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 
 				Mesh.selected.forEach(mesh => {
@@ -1111,8 +1183,6 @@ BARS.defineActions(function() {
 
 						if (vertices.length == 2) delete mesh.faces[selected_face_keys[face_index]];
 					})
-
-					UVEditor.setAutoSize(null, true, new_face_keys);
 				})
 				Undo.finishEdit('Solidify mesh selection');
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
@@ -1120,7 +1190,7 @@ BARS.defineActions(function() {
 			runEdit();
 
 			Undo.amendEdit({
-				thickness: {type: 'num_slider', value: 1, label: 'edit.solidify_mesh_selection.thickness', interval_type: 'position'},
+				thickness: {type: 'num_slider', value: getSpatialInterval(), label: 'edit.solidify_mesh_selection.thickness', interval_type: 'position'},
 			}, form => {
 				runEdit(true, form.thickness);
 			})
@@ -1132,6 +1202,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'i', shift: true}),
 		condition: {modes: ['edit'], features: ['meshes'], method: () => (Mesh.selected[0] && Mesh.selected[0].getSelectedVertices().length >= 3)},
 		click() {
+			const vec1 = new THREE.Vector3();
 			function runEdit(amended, offset = 50) {
 				Undo.initEdit({elements: Mesh.selected, selection: true}, amended);
 				Mesh.selected.forEach(mesh => {
@@ -1181,12 +1252,24 @@ BARS.defineActions(function() {
 	
 					// Move Faces
 					selected_faces.forEach(face => {
-						face.vertices.forEach((key, index) => {
-							face.vertices[index] = new_vertices[original_vertices.indexOf(key)];
-							let uv = face.uv[key];
-							delete face.uv[key];
-							face.uv[face.vertices[index]] = uv;
-						})
+						// Calculate new UVs for new vertex positions before modifying face.
+						const new_uvs = {}
+						for (const vertex_key of face.vertices) {
+							const new_vertex_key = new_vertices[original_vertices.indexOf(vertex_key)];
+							const new_vertex_position = mesh.vertices[new_vertex_key];
+							new_uvs[new_vertex_key] = face.localToUV(vec1.fromArray(new_vertex_position));
+						}
+						// Save original UVs before modification (needed for side quads)
+						const old_uvs = {...face.uv}
+						// Modify face after calculating UVs
+						face.vertices.forEach((vertex_key, index) => {
+							const new_vertex_key = new_vertices[original_vertices.indexOf(vertex_key)];
+							face.vertices[index] = new_vertex_key;
+							delete face.uv[vertex_key];
+							face.uv[new_vertex_key] = new_uvs[new_vertex_key];
+						});
+						// Attach saved data for side quad creation
+						face._old_uvs = old_uvs
 					})
 	
 					// Create extra quads on sides
@@ -1207,8 +1290,8 @@ BARS.defineActions(function() {
 							let new_face_uv = {
 								[a]: face.uv[a],
 								[b]: face.uv[b],
-								[new_face_vertices[2]]: face.uv[a],
-								[new_face_vertices[3]]: face.uv[b],
+								[new_face_vertices[2]]: face._old_uvs[original_vertices[new_vertices.indexOf(a)]],
+								[new_face_vertices[3]]: face._old_uvs[original_vertices[new_vertices.indexOf(b)]],
 							};
 							let new_face = new MeshFace(mesh, mesh.faces[selected_face_keys[face_index]]).extend({
 								vertices: new_face_vertices,
@@ -1235,8 +1318,6 @@ BARS.defineActions(function() {
 						}
 						delete mesh.vertices[b];
 					})
-					UVEditor.setAutoSize(null, true, modified_face_keys);
-
 				})
 				Undo.finishEdit('Extrude mesh selection')
 				Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
