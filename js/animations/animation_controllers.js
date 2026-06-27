@@ -2094,9 +2094,9 @@ Interface.definePanels(() => {
 											<label>${tl('timeline.pre_effect_script')}</label>
 											<vue-prism-editor
 												class="molang_input animation_controller_text_input tab_target"
-												v-model="state.particles[i].script"
+												v-model="state.particles[i].pre_effect_script"
 												language="molang"
-												@contextmenu.stop="openMolangContextMenu($event, state, state.particles[i], 'script')"
+												@contextmenu.stop="openMolangContextMenu($event, state, state.particles[i], 'pre_effect_script')"
 												:autocomplete="autocomplete"
 												:ignoreTabKey="true"
 												:line-numbers="false"
