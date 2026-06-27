@@ -9,6 +9,8 @@ export const animation_codec = new AnimationCodec('bedrock_animation_controller'
 		var json = file.json || autoParseJSON(file.content, {file_path: file.path});
 		let path = file.path;
 		let new_animations = [];
+		let new_sounds = {};
+		let new_particles = {};
 		if (!json) return new_animations;
 		if (typeof json.animations === 'object') {
 			return AnimationCodec.codecs.bedrock.loadFile(file, animation_filter);
@@ -23,12 +25,43 @@ export const animation_codec = new AnimationCodec('bedrock_animation_controller'
 					path,
 					states: a.states,
 					initial_state: a.initial_state || (a.states?.default ? 'default' : undefined)
-				}).add()
+				}).add();
+
+				for (let state of controller.states) {
+					for (let sound of state.sounds) {
+						new_sounds[sound.effect] ??= [];
+						new_sounds[sound.effect].push(sound);
+					}
+					for (let particle of state.particles) {
+						new_particles[particle.effect] ??= [];
+						new_particles[particle.effect].push(particle);
+					}
+				}
 				if (!Animation.selected && !AnimationController.selected && Animator.open) {
 					controller.select();
 				}
 				new_animations.push(controller)
 				Blockbench.dispatchEvent('load_animation_controller', {animation_controller: controller, json});
+			}
+			if (Project.BedrockEntityManager) {
+				for (let short_name in new_particles) {
+					let path_result = Project.BedrockEntityManager.getParticleFile(short_name);
+					if (path_result) {
+						let effect = Animator.loadParticleEmitter(path_result, fs.readFileSync(path_result, 'utf-8'));
+						delete effect.config.preview_texture;
+						for (let entry of new_particles[short_name]) {
+							entry.file = path_result;
+						}
+					}
+				}
+				for (let short_name in new_sounds) {
+					let path_result = Project.BedrockEntityManager.getSoundFile(short_name);
+					if (path_result && fs.existsSync(path_result)) {
+						for (let entry of new_sounds[short_name]) {
+							entry.file = path_result;
+						}
+					}
+				}
 			}
 		}
 		return new_animations

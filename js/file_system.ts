@@ -507,11 +507,11 @@ export namespace Filesystem {
 	 * Find a file in a directory based on content within the file, optionally optimized via file name match
 	 * @param {string[]} base_directories List of base directory paths to search in
 	 */
-	export function findFileFromContent(
+	export function findFileFromContent<T = any>(
 		base_directories: string[],
 		options: FindFileOptions,
-		check_file: (path: string, content: string|object) => boolean
-	) {
+		check_file: (path: string, content: string|object) => T
+	): T | undefined {
 		let deprioritized_files = [];
 
 		function checkFile(path) {

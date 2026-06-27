@@ -333,6 +333,43 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			})
 		}
 	}
+	getParticleFile(short_name) {
+		let particle_id = this.client_entity?.description?.particle_effects?.[short_name];
+		if (!particle_id) return;
+		let particle_dir = PathModule.join(this.root_path, 'particles');
+		let no_namespace = particle_id.replace(/^.+:/, '');
+		return Filesystem.findFileFromContent(
+			[particle_dir],
+			{
+				filter_regex: /\.json$/i,
+				priority_regex: new RegExp(no_namespace, 'i'),
+				recursive: true,
+				json: true,
+				read_file: true,
+			},
+			(path, content) => {
+				if (content?.particle_effect?.description?.identifier == particle_id) {
+					return path;
+				}
+			}
+		);
+	}
+	getSoundFile(short_name) {
+		let sound_id = this.client_entity?.description?.sound_effects?.[short_name];
+		if (!sound_id) return;
+		let sound_dir = PathModule.join(this.root_path, 'sounds');
+		try {
+			let sound_file_content = fs.readFileSync(PathModule.join(sound_dir, 'sound_definitions.json'), 'utf-8');
+			let content = autoParseJSON(sound_file_content, false);
+			let entry = content.sound_definitions[sound_id];
+			if (!entry?.sounds) return;
+			let name = typeof entry.sounds[0] == 'string' ? entry.sounds[0] : entry.sounds[0].name;
+			if (!name.match(/\.\w+$/)) name += '.ogg';
+			return PathModule.join(sound_dir, '..', name);
+		} catch (err) {
+			console.error(err);
+		}
+	}
 	findEntityTexture(mob, return_path, externalDataLoader) {
 		if (!mob) return;
 		var textures = {
