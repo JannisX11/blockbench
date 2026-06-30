@@ -26,6 +26,7 @@ export const Plugins = {
 	installed: [] as PluginInstallation[],
 	json: undefined,
 	download_stats: {} as Record<string, number>,
+	update_info: undefined as Record<string, {version: string, created: number, updated: number}> | undefined,
 	/**
 	 * All loaded plugins, including plugins from the store that are not installed
 	 */
@@ -1030,6 +1031,17 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 
 			resolve();
 			Plugins.loading_promise = null;
+			
+			$.ajax({
+				cache: false,
+				url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/updates.json',
+				timeout: 2_000,
+				dataType: 'json',
+				success(data) {
+					Plugins.update_info = data;
+					resolve();
+				}
+			});
 		},
 		error(response, type) {
 			console.error('Could not connect to plugin server:', type, response)
@@ -1225,6 +1237,13 @@ BARS.defineActions(function() {
 				BarItems.load_plugin_from_url.toElement(bar);
 				menu_action.toElement(bar);
 				actions_setup = true;
+
+				
+				for (let plugin of Plugins.all) {
+					if (!plugin.creation_date && Plugins.update_info?.[plugin.id]) {
+						plugin.creation_date = Plugins.update_info[plugin.id].created;
+					}
+				}
 			}
 		},
 		component: {
@@ -1273,9 +1292,10 @@ BARS.defineActions(function() {
 					plugins.forEach(plugin => {
 						if (!plugin.installed) return;
 						tags.safePush(...plugin.tags)
-					})
+					});
+					let suggestable_plugins = plugins.filter(plugin => !plugin.installed && !plugin.tags.includes('Deprecated'));
 					let rows = tags.map(tag => {
-						let filtered = plugins.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
+						let filtered = suggestable_plugins.filter(plugin => plugin.tags.includes(tag)).slice(0, 12);
 						return {
 							title: tag,
 							plugins: filtered,
@@ -1285,7 +1305,7 @@ BARS.defineActions(function() {
 					rows.sort(() => Math.random() - 0.5);
 
 					let cutoff = Date.now() - (3_600_000 * 24 * 28);
-					let new_plugins = plugins.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
+					let new_plugins = suggestable_plugins.filter(plugin => plugin.creation_date > cutoff);
 					if (new_plugins.length) {
 						new_plugins.sort((a, b) => a.creation_date - b.creation_date);
 						let new_row = {
@@ -1293,6 +1313,23 @@ BARS.defineActions(function() {
 							plugins: new_plugins.slice(0, 12)
 						}
 						rows.splice(0, 0, new_row);
+					}
+
+					// Recently updated
+					if (Plugins.update_info) {
+						let updated_plugins = suggestable_plugins.filter(plugin => {
+							if (new_plugins.includes(plugin)) return false;
+							let updated_date = Plugins.update_info[plugin.id]?.updated;
+							return updated_date > cutoff;
+						});
+						if (updated_plugins.length) {
+							updated_plugins.sort((a, b) => a.creation_date - b.creation_date);
+							let new_row = {
+								title: 'Recently Updated',
+								plugins: updated_plugins.slice(0, 12)
+							}
+							rows.splice(0, 0, new_row);
+						}
 					}
 
 					return rows.slice(0, 3);
