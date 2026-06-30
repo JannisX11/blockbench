@@ -1611,6 +1611,10 @@ BARS.defineActions(function() {
 					//Element Types
 					return types;
 				},
+				loadImageIcon(event: Event) {
+					let img = event.target as HTMLImageElement;
+					img.style.imageRendering = img.naturalWidth < 48 ? '' : 'auto';
+				},
 
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
@@ -1634,7 +1638,7 @@ BARS.defineActions(function() {
 							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
-										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 										<dynamic-icon v-else :icon="plugin.icon" />
 									</div>
 									<div>
@@ -1668,7 +1672,7 @@ BARS.defineActions(function() {
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}" @contextmenu="selected_plugin.showContextMenu($event)">
 							<div class="plugin_browser_page_titlebar" :class="{disabled_plugin: selected_plugin.disabled}">
 								<div class="plugin_icon_area">
-									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
+									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 									<dynamic-icon v-else :icon="selected_plugin.icon" />
 								</div>
 								<div>
@@ -1900,7 +1904,7 @@ BARS.defineActions(function() {
 							<ul>
 								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)" class="elevated">
 									<div class="plugin_icon_area">
-										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 										<dynamic-icon v-else :icon="plugin.icon" />
 									</div>
 									<div class="title"><span>{{ plugin.title || plugin.id }}</span></div>
