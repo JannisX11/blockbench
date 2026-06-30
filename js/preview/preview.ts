@@ -1200,8 +1200,75 @@ export class Preview {
 						}
 						selectFace(start_face, data.face);
 
-					} else if (data.element instanceof Mesh && ['edge', 'vertex'].includes(select_mode)) {
-						data.element.select()
+					} else if (data.element instanceof Mesh && (select_mode === 'edge' || select_mode === 'vertex')) {
+						// Face-click in edge/vertex mode → snap to nearest edge/vertex
+						if (!data.element.selected) data.element.select(event);
+						const mesh = data.element;
+						const face = mesh.faces[data.face];
+						if (face) {
+							const click_point = data.intersects[0].point;
+
+							if (select_mode === 'vertex') {
+								let closest_vkey = null;
+								let closest_dist_sq = Infinity;
+								for (const vkey of face.vertices) {
+									const dist_sq = mesh.mesh.localToWorld(Reusable.vec1.fromArray(mesh.vertices[vkey])).distanceToSquared(click_point);
+									if (dist_sq < closest_dist_sq) {
+										closest_dist_sq = dist_sq;
+										closest_vkey = vkey;
+									}
+								}
+								if (closest_vkey) {
+									const vertices = mesh.getSelectedVertices(true);
+									const edges = mesh.getSelectedEdges(true);
+									const faces = mesh.getSelectedFaces(true);
+									if (multi_select || group_select) {
+										vertices.toggle(closest_vkey);
+									} else {
+										unselectOtherNodes();
+										vertices.replace([closest_vkey]);
+										edges.empty();
+										faces.empty();
+									}
+								}
+
+							} else if (select_mode === 'edge') {
+								let closest_edge = null;
+								let closest_dist_sq = Infinity;
+								const segment = new THREE.Line3();
+								for (const edge of face.getEdges()) {
+									const [vkey_a, vkey_b] = edge;
+									segment.set(
+										mesh.mesh.localToWorld(Reusable.vec1.fromArray(mesh.vertices[vkey_a])),
+										mesh.mesh.localToWorld(Reusable.vec2.fromArray(mesh.vertices[vkey_b])));
+									const dist_sq = click_point.distanceToSquared(segment.closestPointToPoint(click_point, true, Reusable.vec3));
+									if (dist_sq < closest_dist_sq) {
+										closest_dist_sq = dist_sq;
+										closest_edge = edge;
+									}
+								}
+								if (closest_edge) {
+									const vertices = mesh.getSelectedVertices(true);
+									const edges = mesh.getSelectedEdges(true);
+									const faces = mesh.getSelectedFaces(true);
+									if (multi_select || group_select) {
+										const index = edges.findIndex(edge => sameMeshEdge(edge, closest_edge));
+										if (index >= 0) {
+											vertices.remove(...closest_edge);
+											edges.splice(index, 1);
+										} else {
+											edges.push(closest_edge);
+											vertices.safePush(...closest_edge);
+										}
+									} else {
+										unselectOtherNodes();
+										faces.empty();
+										edges.splice(0, Infinity, closest_edge);
+										vertices.replace(closest_edge);
+									}
+								}
+							}
+						}
 					} else if (Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements') {
 						if (!data.element.selected) {
 							data.element.select(event)
