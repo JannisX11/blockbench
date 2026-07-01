@@ -1164,12 +1164,6 @@ BARS.defineActions(function() {
 						}
 						Project.texture_width = texture_width;
 						Project.texture_height = texture_height;
-						if (Format.per_texture_uv_size) {
-							Texture.all.forEach(tex => {
-								tex.uv_width = texture_width;
-								tex.uv_height = texture_height;
-							});
-						}
 
 						if (Format.optional_box_uv) Project.box_uv = box_uv;
 						Canvas.updateAllUVs()
