@@ -94,6 +94,11 @@ export class Keyframe {
 				KeyframeDataPoint.properties[key].merge(this.data_points[0], data)
 			}
 		}
+		if (this.channel == 'scale' && this.uniform &&
+			this.data_points.some(d => (d.x != d.y || d.x != d.z))
+		) {
+			this.uniform = false;
+		}
 		return this;
 	}
 	get(axis, data_point = 0) {
