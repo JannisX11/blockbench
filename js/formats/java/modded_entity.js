@@ -419,6 +419,34 @@ function askToSaveProject() {
 	})
 }
 
+function convertPositionsFromLocalToGlobal(/** @type {Group} */ parent, offset=[0, 0, 0], seenElements=new WeakSet()) {
+	if (parent == null) return;
+	if (seenElements.has(parent)) {
+		// Circular reference detection
+		// There are already checks elsewhere that prevent circular groups, but it doesn't hurt to be extra safe
+		console.warn('Circular reference detected when converting group "%s" (uuid %s) to global coordinates.', parent.name, parent.uuid);
+		return;
+	}
+	
+	seenElements.add(parent);
+
+	const newParentOrigin = Array.from(parent.origin).V3_add(offset);
+	parent.transferOrigin(newParentOrigin);
+
+	parent.children.forEach(child => {
+		if (child instanceof Cube) {
+			child.from.V3_add(offset);
+			child.to.V3_add(offset);
+			// Set the cube's origin to the parent's origin
+			// Cubes never get their origin set otherwise (so we're not losing any information), and this makes "Resolve Group" more accurate
+			child.origin.V3_set(newParentOrigin);
+		} else if(child instanceof Group) {
+			// Recursively adjust child groups as well
+			convertPositionsFromLocalToGlobal(child, newParentOrigin, seenElements)
+		}
+	})
+}
+
 var codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
@@ -702,6 +730,8 @@ var codec = new Codec('modded_entity', {
 			match,
 			last_uv;
 
+		// Add all groups and cubes in local coordinates
+		// We will apply parent transformations in the next step
 		lines.forEach(line => {
 			if (scope == 0) {
 				if (/^public class/.test(line)) {
@@ -770,32 +800,36 @@ var codec = new Codec('modded_entity', {
 				} else
 				
 				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
+					/** @type {Group} */
 					var bone = bones[match[0]]
 					if (bone) {
-						bone.extend({origin: [-match[1], 24-match[2], match[3]]});
+						// Don't explode the model by reapplying the origin multiple times
+						bone.children.forEach(cube => {
+							if (cube instanceof Cube) {
+								cube.from[0] -= bone.origin[0]; cube.to[0] -= bone.origin[0];
+								cube.from[1] -= bone.origin[1]; cube.to[1] -= bone.origin[1];
+								cube.from[2] -= bone.origin[2]; cube.to[2] -= bone.origin[2];
+							}
+						});
+						
+						bone.extend({origin: [-match[1], -match[2], match[3]]});
+
 						bone.children.forEach(cube => {
 							if (cube instanceof Cube) {
 								cube.from[0] += bone.origin[0]; cube.to[0] += bone.origin[0];
-								cube.from[1] += bone.origin[1]-24; cube.to[1] += bone.origin[1]-24;
+								cube.from[1] += bone.origin[1]; cube.to[1] += bone.origin[1];
 								cube.from[2] += bone.origin[2]; cube.to[2] += bone.origin[2];
 							}
-						})
+						});
 					}
 				} else
 				
 				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
 					var child = bones[match[1]], parent = bones[match[0]];
 					child.addTo(parent);
-					child.origin.V3_add(parent.origin)
-					child.origin[1] -= 24;
 
-					child.children.forEach(cube => {
-						if (cube instanceof Cube) {
-							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
-							cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
-							cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
-						}
-					})
+					// We'll adjust the position of all cubes in the next step
+					// For now, we don't want any unnecessary confusion in the coordinate system
 				} else
 				
 				//Cubes
@@ -949,6 +983,15 @@ var codec = new Codec('modded_entity', {
 				}
 			}
 		})
+		
+		// All the cubes and groups are in local coordinates right now, we need to turn that into global coordinates
+		/** @type {Array<Group>} */
+		let rootElements = Object.values(bones).filter(bone => bone.parent == 'root');
+		rootElements.forEach(bone => {
+			// Root elements need to have 24 added to their origin y
+			convertPositionsFromLocalToGlobal(bone, [0, 24, 0])
+		})
+
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
