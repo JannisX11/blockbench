@@ -1565,7 +1565,7 @@ new NodePreviewController(Mesh, {
 				if (selected_vertices.includes(key)) {
 					color = white;
 				} else {
-					color = gizmo_colors.grid;
+					color = gizmo_colors.wireframe_selectable;
 				}
 				colors.push(color.r, color.g, color.b);
 			}
@@ -1592,7 +1592,7 @@ new NodePreviewController(Mesh, {
 		if (!Modes.edit) selection_mode = 'object';
 		mesh.outline.vertex_order.forEach((key, i) => {
 			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
-			let color = gizmo_colors.grid;
+			let color = gizmo_colors.wireframe_selectable;
 			let selected;
 			switch (selection_mode) {
 				case 'object': {

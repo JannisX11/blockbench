@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Di chuyển các phần tử đã chọn trở lại so với góc camera hiện tại",
 	"layout.color.wireframe": "Khung xương",
 	"layout.color.wireframe.desc": "Xem các dòng khung xương",
+	"layout.color.wireframe_selectable": "Khung xương có thể chọn",
+	"layout.color.wireframe_selectable.desc": "Các cạnh và đỉnh không được chọn của lưới đang hoạt động trong chế độ chỉnh sửa",
 	"action.add_animation": "Thêm hoạt ảnh",
 	"action.add_animation.desc": "Tạo một hoạt ảnh trống",
 	"action.load_animation_file": "Nhập hoạt ảnh",

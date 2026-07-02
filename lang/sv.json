@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Flytta de valda kuberna bakåt relativt till den nuvarande kameravinkeln",
 	"layout.color.wireframe": "Wireframe",
 	"layout.color.wireframe.desc": "Visa wireframe linjer",
+	"layout.color.wireframe_selectable": "Valbar wireframe",
+	"layout.color.wireframe_selectable.desc": "Omarkerade kanter och hörn av det aktiva nätet i redigeringsläge",
 	"action.add_animation": "Lägg till animation",
 	"action.add_animation.desc": "Skapa en tom animation",
 	"action.load_animation_file": "Importera animationer",

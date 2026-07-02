@@ -977,6 +977,8 @@
 	"layout.color.grid.desc": "3D preview grid",
 	"layout.color.wireframe": "Wireframe",
 	"layout.color.wireframe.desc": "Wireframe view lines",
+	"layout.color.wireframe_selectable": "Selectable Wireframe",
+	"layout.color.wireframe_selectable.desc": "Unselected edges and vertices of the active mesh in edit mode",
 	"layout.color.text": "Text",
 	"layout.color.text.desc": "Normal text",
 	"layout.color.light": "Light",

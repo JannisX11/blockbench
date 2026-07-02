@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Beweeg de geselecteerde kubussen naar achteren ten opzichte van de huidige camera hoek",
 	"layout.color.wireframe": "Wireframe",
 	"layout.color.wireframe.desc": "Wireframe bekijk lijnen",
+	"layout.color.wireframe_selectable": "Selecteerbare wireframe",
+	"layout.color.wireframe_selectable.desc": "Niet-geselecteerde randen en hoekpunten van de actieve mesh in bewerkingsmodus",
 	"action.add_animation": "Voeg Animatie Toe",
 	"action.add_animation.desc": "Maak een blanco animatie",
 	"action.load_animation_file": "Import Animatie",
