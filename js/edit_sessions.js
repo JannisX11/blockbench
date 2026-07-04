@@ -216,7 +216,12 @@ export class EditSession {
 			action: entry.action,
 			time: entry.time || Date.now()
 		}
-		this.sendAll('edit', JSON.stringify(new_entry))
+		this.sendAll('edit', JSON.stringify(new_entry, (key, value) => {
+			if (key == 'image_data' && typeof value == 'object' && value.data instanceof Uint8ClampedArray) {
+				return {data: Array.from(value.data)};
+			}
+			return value;
+		}))
 	}
 	receiveData(tag) {
 		if (Blockbench.hasFlag('log_session')) {
