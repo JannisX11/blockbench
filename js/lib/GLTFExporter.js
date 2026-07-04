@@ -147,6 +147,7 @@ GLTFExporter.prototype = {
 		var buffers = [];
 		var pending = [];
 		var nodeMap = new Map();
+		var skeletonMap = new Map();
 		var skins = [];
 		var extensionsUsed = {};
 		var cachedData = {
@@ -1756,43 +1757,51 @@ GLTFExporter.prototype = {
 
 			if ( skeleton === undefined ) return null;
 
-			var rootJoint = object.skeleton.bones[ 0 ];
+			var rootJoint = skeleton.bones[ 0 ];
 
 			if ( rootJoint === undefined ) return null;
 
-			var joints = [];
-			var inverseBindMatrices = new Float32Array( skeleton.bones.length * 16 );
+			let skinJSON = skeletonMap.get(skeleton);
 
-			let v = new Vector3();
+			if (!skinJSON) {
 
-			for ( var i = 0; i < skeleton.bones.length; ++ i ) {
+				var joints = [];
+				var inverseBindMatrices = new Float32Array( skeleton.bones.length * 16 );
 
-				joints.push( nodeMap.get( skeleton.bones[ i ] ) );
+				let v = new Vector3();
 
-				let boneInverse = skeleton.boneInverses[ i ].clone();
-				v.setFromMatrixPosition( boneInverse );
-				v.multiplyScalar( options.scale_factor );
-				boneInverse.setPosition( v );
+				for ( var i = 0; i < skeleton.bones.length; ++ i ) {
 
-				boneInverse.toArray( inverseBindMatrices, i * 16 );
+					joints.push( nodeMap.get( skeleton.bones[ i ] ) );
 
+					let boneInverse = skeleton.boneInverses[ i ].clone();
+					v.setFromMatrixPosition( boneInverse );
+					v.multiplyScalar( options.scale_factor );
+					boneInverse.setPosition( v );
+
+					boneInverse.toArray( inverseBindMatrices, i * 16 );
+
+				}
+
+				if ( outputJSON.skins === undefined ) {
+
+					outputJSON.skins = [];
+
+				}
+
+				skinJSON = {
+
+					inverseBindMatrices: processAccessor( new BufferAttribute( inverseBindMatrices, 16 ) ),
+					joints: joints,
+					skeleton: nodeMap.get( rootJoint )
+
+				};
+				outputJSON.skins.push( skinJSON );
+
+				skeletonMap.set( skeleton, skinJSON );
 			}
 
-			if ( outputJSON.skins === undefined ) {
-
-				outputJSON.skins = [];
-
-			}
-
-			outputJSON.skins.push( {
-
-				inverseBindMatrices: processAccessor( new BufferAttribute( inverseBindMatrices, 16 ) ),
-				joints: joints,
-				skeleton: nodeMap.get( rootJoint )
-
-			} );
-
-			var skinIndex = node.skin = outputJSON.skins.length - 1;
+			var skinIndex = node.skin = outputJSON.skins.indexOf( skinJSON );
 
 			return skinIndex;
 
