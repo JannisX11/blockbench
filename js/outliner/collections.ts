@@ -102,7 +102,7 @@ export class Collection {
 				if (node instanceof Group) {
 					node.multiSelect();
 				} else {
-					Outliner.selected.safePush(node);
+					node.markAsSelected(true);
 				}
 			}
 			i++;
@@ -280,7 +280,7 @@ export class Collection {
 					list.push({
 						name: node.name,
 						uuid: node.uuid,
-						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+						icon: key == 'group' ? Group.prototype.icon : types[key][0].icon
 					})
 				}
 			}
@@ -833,7 +833,7 @@ Interface.definePanels(function() {
 						list.push({
 							count: types[key].length == 1 ? '' : types[key].length,
 							name: types[key].length == 1 ? types[key][0].name : '',
-							icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+							icon: key == 'group' ? Group.prototype.icon : types[key][0].icon
 						})
 					}
 					return list;
