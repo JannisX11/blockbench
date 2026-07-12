@@ -1754,7 +1754,7 @@
 		z-index: 5;
 	}
 	#timeline_vue.graph_editor li.animator > div {
-		width: fit-content !important;
+		width: fit-content;
 		background-color: var(--color-ui);
 	}
 	.channel_head {

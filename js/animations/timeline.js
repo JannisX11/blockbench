@@ -1782,7 +1782,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<div class="animator_channel_bar"
-									v-bind:style="{width: (size*length + head_width)+'px'}"
+									v-bind:style="graph_editor_open ? {} : {width: (size*length + head_width)+'px'}"
 									v-for="(channel_options, channel) in animator.channels"
 									v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition, animator) && (!channels.hide_empty || animator[channel].length)"
 								>

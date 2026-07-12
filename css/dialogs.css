@@ -246,7 +246,7 @@
 		margin-right: auto;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
-		display: none !important;
+		display: none;
 	}
 	.dialog_bar .form_overlay_tools {
 		position: absolute;
@@ -504,7 +504,8 @@
 	}
 	@media (max-device-width: 640px) {
 		dialog {
-			width: 100% !important;
+			min-width: 100%;
+			max-width: 100%;
 		}
 		dialog .dialog_content, dialog .dialog_bar.button_bar {
 			margin: 12px;
@@ -2323,7 +2324,7 @@
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,
 	dialog#brush_options:not(.preset_selected) hr {
-		display: none !important;
+		display: none;
 	}
 	ul#brush_preset_bar {
 		display: flex;

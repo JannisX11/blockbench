@@ -304,11 +304,12 @@
 			display: block;
 		}
 		#start_screen > content > section > div.start_screen_right {
-			width: 100% !important;
+			width: 100%;
 			float: none;
 		}
 		#start_screen > content > section > div.start_screen_left {
-			width: 100% !important;
+			min-width: 100%;
+			max-width: 100%;
 			float: none;
 		}
 		#start_screen .start_screen_features > li,
