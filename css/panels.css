@@ -243,7 +243,7 @@
 		flex-grow: 0;
 	}
 	.panel_container.folded > .panel {
-		display: none !important;
+		display: none;
 	}
 	.panel_container.fixed_height {
 		flex-grow: 0;
@@ -1197,7 +1197,7 @@
 		color: var(--color-light);
 	}
 	.in_list_button.unclickable {
-		color: var(--color-subtle_text) !important;
+		color: var(--color-subtle_text);
 		pointer-events: none;
 	}
 
@@ -2773,7 +2773,7 @@ span.controller_state_section_info {
 	}
 	.cube_uv_face.unselected > div,
 	.cube_box_uv.unselected > div {
-		border-color: var(--color-uv-unselected) !important;
+		border-color: var(--color-uv-unselected);
 	}
 
 	.uv_resize_side {

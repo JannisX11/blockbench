@@ -17,7 +17,7 @@
 		float: left;
 	}
 	.f_right {
-		float: right !important;
+		float: right;
 	}
 	.i_b {
 		display: inline-block;

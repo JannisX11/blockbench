@@ -803,8 +803,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 	div.nslide_arrow {
 		position: absolute;
@@ -831,8 +831,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 
 	input.toggle_panel {
