@@ -1132,8 +1132,20 @@
 		max-width: none;
 		pointer-events: none;
 	}
+	dialog#about div.socials a i.fa-bluesky {
+		color: #208bfe;
+	}
+	dialog#about div.socials a i.fa-twitter {
+		color: #1ea6ff;
+	}
+	dialog#about div.socials a i.fa-discord {
+		color: #5865F2;
+	}
+	dialog#about div.socials a i.fa-github {
+		color: #dddddd;
+	}
 	dialog#about div.socials a:hover i {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	dialog#about div.socials a label {
 		color: var(--color-subtle_text);
