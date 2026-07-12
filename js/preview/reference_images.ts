@@ -295,6 +295,7 @@ export class ReferenceImage {
 			Canvas.scene.remove(this.scene_object);
 			this.node.classList.remove('in_scene');
 			this.node.style.zIndex = '';
+			this.node.style.transform = '';
 
 			switch (this.layer) {
 				case 'background':
@@ -417,11 +418,15 @@ export class ReferenceImage {
 			this.node.style.left = pos_x + 'px';
 			this.node.style.top  = pos_y + 'px';
 
-			let offset_top = preview.node.offsetTop - this.node.offsetTop;
-			let offset_right = preview.node.clientWidth + preview.node.offsetLeft - this.node.offsetLeft;
-			let offset_bottom = preview.node.clientHeight + preview.node.offsetTop - this.node.offsetTop;
-			let offset_left = preview.node.offsetLeft - this.node.offsetLeft;
-			this.node.style.clipPath = `rect(${offset_top}px ${offset_right}px ${offset_bottom}px ${offset_left}px) view-box`;
+			if (this.selected) {
+				this.node.style.clipPath = '';
+			} else {
+				let offset_top = preview.node.offsetTop - this.node.offsetTop;
+				let offset_right = preview.node.clientWidth + preview.node.offsetLeft - this.node.offsetLeft;
+				let offset_bottom = preview.node.clientHeight + preview.node.offsetTop - this.node.offsetTop;
+				let offset_left = preview.node.offsetLeft - this.node.offsetLeft;
+				this.node.style.clipPath = `rect(${offset_top}px ${offset_right}px ${offset_bottom}px ${offset_left}px) view-box`;
+			}
 
 		} else {
 			this.node.style.width = this.size[0] + 'px';
