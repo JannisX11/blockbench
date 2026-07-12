@@ -506,7 +506,7 @@
 	}
 	button:hover {
 		background: var(--color-accent);
-		color: var(--color-accent_text) !important;
+		color: var(--color-accent_text);
 	}
 	button:focus {
 	    text-decoration: underline;
@@ -517,7 +517,7 @@
     	text-decoration: underline;
 	}
 	button.minor:hover {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	button > i {
 		pointer-events: none;

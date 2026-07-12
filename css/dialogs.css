@@ -60,13 +60,14 @@
 		border-width: var(--size);
 		border-style: solid;
 		border-color: var(--color-button);
-		border-top-color: transparent !important;
-		border-left-color: transparent !important;
+		border-top-color: transparent;
+		border-left-color: transparent;
 		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
-		border-color: var(--color-accent);
+		border-right-color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
 	}
 	.dialog_sidebar_menu_button {
 		height: 100%;
@@ -1571,21 +1572,6 @@
 	.plugin_compatibility_issue > .icon,
 	.plugin_deprecation_note > .icon {
 		vertical-align: text-bottom;
-	}
-	#plugin_list > li button {
-		min-width: 100px;
-		width: auto;
-		height: 36px;
-		float: right;
-		padding: 4px;
-		margin-left: -1px;
-		margin-top: 6px;
-		color: var(--color-text);
-		transition: width 100ms ease-in;
-	}
-	#plugin_list > li button > i {
-		float: left;
-		margin-top: 2px;
 	}
 	#plugin_list > li .title {
 		font-size: 1.34em;
