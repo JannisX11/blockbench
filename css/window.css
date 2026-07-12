@@ -409,11 +409,11 @@
 			"center"
 			"status_bar"
 			"panel_selector";
-		grid-template-columns: auto !important;
+		grid-template-columns: auto;
 		position: relative;
 	}
 	body.is_mobile.is_landscape #work_screen {
-		grid-template-columns: auto 48px !important;
+		grid-template-columns: auto 48px;
 		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height);
 		grid-template-areas: 
 			"toolbar panel_selector"
@@ -422,7 +422,7 @@
 		position: relative;
 	}
 	body.is_mobile.is_landscape.mobile_sidebar_left #work_screen {
-		grid-template-columns: 48px auto !important;
+		grid-template-columns: 48px auto;
 		grid-template-areas: 
 			"panel_selector toolbar"
 			"panel_selector center"

@@ -1267,24 +1267,26 @@ export function updateInterfacePanels() {
 	if (!Blockbench.isMobile) {
 		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
 		Interface.right_bar.style.display = Prop.show_right_bar ? 'flex' : 'none';
-	}
 
-	Interface.work_screen.style.setProperty(
-		'grid-template-columns',
-		Interface.left_bar_width+'px auto '+ Interface.right_bar_width +'px'
-	)
+		Interface.work_screen.style.setProperty(
+			'grid-template-columns',
+			Interface.left_bar_width+'px auto '+ Interface.right_bar_width +'px'
+		)
+	}
 	for (var key in Interface.Panels) {
 		var panel: Panel = Panels[key];
 		panel.update();
 	}
-	var left_width = Interface.left_bar.querySelector('.panel_container:not(.hidden)') ? Interface.left_bar_width : 0;
-	var right_width = Interface.right_bar.querySelector('.panel_container:not(.hidden)') ? Interface.right_bar_width : 0;
+	if (!Blockbench.isMobile) {
+		var left_width = Interface.left_bar.querySelector('.panel_container:not(.hidden)') ? Interface.left_bar_width : 0;
+		var right_width = Interface.right_bar.querySelector('.panel_container:not(.hidden)') ? Interface.right_bar_width : 0;
 
-	if (!left_width || !right_width) {
-		Interface.work_screen.style.setProperty(
-			'grid-template-columns',
-			left_width+'px auto '+ right_width +'px'
-		)
+		if (!left_width || !right_width) {
+			Interface.work_screen.style.setProperty(
+				'grid-template-columns',
+				left_width+'px auto '+ right_width +'px'
+			)
+		}
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
