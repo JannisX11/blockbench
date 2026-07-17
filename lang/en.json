@@ -1361,6 +1361,8 @@
 	"action.slider_stretch.desc": "Stretches cubes multiplicatively on the %0 axis without changing the UV",
 	"action.slider_rotation": "Rotation %0",
 	"action.slider_rotation.desc": "Rotate elements on the %0 axis",
+	"action.origin_slider_direct_values": "Move Pivot Values Directly",
+	"action.origin_slider_direct_values.desc": "When enabled, pivot sliders will move the pivot point directly, affecting the position of the object. When disabled, positions get adjusted automatically.",
 	"action.slider_origin": "Pivot %0",
 	"action.slider_origin.desc": "Move pivot on the %0 axis",
 	"action.slider_spline_resolution": "Spline Resolution %0",

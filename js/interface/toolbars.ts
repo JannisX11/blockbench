@@ -563,7 +563,8 @@ export const BARS = {
 				'slider_origin_x',
 				'slider_origin_y',
 				'slider_origin_z',
-				'origin_to_geometry'
+				'origin_to_geometry',
+				'origin_slider_direct_values',
 			]
 		})
 		Toolbars.element_rotation = new Toolbar({
