@@ -112,7 +112,7 @@ export const MirrorModeling = {
 						match = mirror_group;
 					}
 					if (match instanceof Group) {
-						let before_snapshot = match.getSaveCopy();
+						let before_snapshot = match != mirror_group ? match.getSaveCopy() : undefined;
 						MirrorModeling.insertGroupIntoUndo(match, undo_aspects, before_snapshot);
 					} else {
 						MirrorModeling.insertElementIntoUndo(match as OutlinerElement, undo_aspects);
@@ -234,7 +234,7 @@ export const MirrorModeling = {
 	},
 	insertGroupIntoUndo(group: Group, undo_aspects: UndoAspects, before_snapshop?: any) {
 		// pre
-		if (!Undo.current_save.groups) Undo.current_save.groups = [];
+		Undo.current_save.groups ??= [];
 		if (before_snapshop) {
 			if (!Undo.current_save.groups.find((g: any) => g.uuid == before_snapshop.uuid)) {
 				Undo.current_save.groups.push(before_snapshop);
@@ -245,7 +245,7 @@ export const MirrorModeling = {
 
 		// post
 		if (!before_snapshop) undo_aspects.outliner = true;
-		if (!undo_aspects.groups) undo_aspects.groups = [];
+		undo_aspects.groups ??= [];
 		if (!undo_aspects.groups.includes(group)) {
 			// Must be new array so we don't accidentally change the undo input array
 			undo_aspects.groups = [...undo_aspects.groups, group];
@@ -858,7 +858,7 @@ BARS.defineActions(() => {
 		click() {
 			let value_before = toggle.value;
 			toggle.value = true;
-			Undo.initEdit({elements: Outliner.selected, groups: Group.selected});
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)});
 			Undo.finishEdit('Applied mirror modeling');
 			toggle.value = value_before;
 		}

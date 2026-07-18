@@ -228,7 +228,7 @@ BARS.defineActions(function() {
 
 						},
 						error: function(response) {
-							let error_text = 'dialog.share_model.failed' + ' - ' + response.status;
+							let error_text = tl('dialog.share_model.failed') + ' - ' + response.status;
 							if (response.status == 413) {
 								if (ReferenceImage.current_project.length && formResult.reference_images) {
 									error_text = 'dialog.share_model.too_large_references';

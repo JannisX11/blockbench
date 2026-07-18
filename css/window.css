@@ -8,6 +8,9 @@
 	position: absolute;
 	z-index: 250;
 }
+#loading_error_message > div {
+	margin: 8px 0;
+}
 
 @layer base {
 /*Layout*/

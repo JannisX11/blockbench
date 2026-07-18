@@ -722,7 +722,7 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit,
 		keybind: new Keybind({key: 'g', ctrl: true}),
 		click: function () {
-			Undo.initEdit({outliner: true, groups: []});
+			Undo.initEdit({outliner: true, groups: [], selection: true});
 			let lowest_selected = Outliner.selected.concat(Group.multi_selected).filter(n => !n.parent?.selected);
 			var add_group = lowest_selected.find(s => s instanceof Group) || lowest_selected[0];
 			var base_group = new Group({
@@ -733,7 +733,12 @@ BARS.defineActions(function() {
 			if (base_group.getTypeBehavior('unique_name')) {
 				base_group.createUniqueName()
 			}
-			if (add_group?.getTypeBehavior('child_types')?.includes('group') == false) add_group = undefined;
+
+			if (add_group?.children && add_group?.getTypeBehavior('child_types')?.includes('group') == false) {
+				add_group = undefined;
+			} else if (add_group?.parent instanceof OutlinerNode && add_group.parent.getTypeBehavior('child_types')?.includes('group') == false) {
+				add_group = undefined;
+			}
 
 			if (lowest_selected.length >= 2 && add_group) {
 				base_group.sortInBefore(add_group, 1);
@@ -745,7 +750,7 @@ BARS.defineActions(function() {
 			}
 
 			base_group.init().select()
-			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group], selection: true});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -762,11 +767,16 @@ BARS.defineActions(function() {
 		condition: () => Modes.edit && (Outliner.selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
-			Undo.initEdit({outliner: true, groups: []});
-			let add_group = Group.first_selected
+			let add_group = Group.first_selected;
 			if (!add_group && Outliner.selected.length) {
 				add_group = Outliner.selected.last()
 			}
+			if (add_group?.parent instanceof OutlinerNode &&
+				add_group.parent.getTypeBehavior('child_types')?.includes('group') == false
+			) {
+				return;
+			}
+			Undo.initEdit({outliner: true, groups: [], selection: true});
 			let new_name = add_group?.name;
 			let base_group = new Group({
 				origin: add_group ? add_group.origin : undefined,
@@ -786,7 +796,7 @@ BARS.defineActions(function() {
 				s.preview_controller.updateTransform(s);
 			})
 			base_group.select()
-			Undo.finishEdit('Add group', {outliner: true, groups: [base_group]});
+			Undo.finishEdit('Add group', {outliner: true, groups: [base_group], selection: true});
 			Vue.nextTick(function() {
 				updateSelection()
 				if (settings.create_rename.value) {
@@ -896,6 +906,7 @@ BARS.defineActions(function() {
 							group.preview_controller.updateTransform(group);
 						}
 						Undo.finishEdit('Edit group binding');
+						updateSelection();
 					}
 				},
 				onCancel() {

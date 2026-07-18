@@ -147,18 +147,21 @@ export const Outliner = {
 		return result;
 	},
 	loadJSON(array, add_to_project) {
+		const handled = new Set();
 		function iterate(array, save_array, addGroup) {
 			for (let item of array) {
 				if (typeof item === 'string') {
 
 					let obj = OutlinerNode.uuids[item];
 					if (obj) {
+						handled.add(item);
 						obj.removeFromParent();
 						save_array.push(obj);
 						obj.parent = addGroup;
 					}
 				} else {
 					let obj = OutlinerNode.uuids[item.uuid];
+					handled.add(item.uuid);
 
 					// Legacy group support
 					if (item && item.name != undefined) {
@@ -202,6 +205,20 @@ export const Outliner = {
 			})
 		}
 		iterate(array, Outliner.root, 'root');
+
+		// Add unhandled nodes to outliner end
+		if (!add_to_project) {
+			let all = Group.all.concat(Outliner.elements);
+			if (all.length != handled.size) {
+				console.warn('Potential outliner mismatch detected:', `${all.length} vs ${handled.size}`);
+				for (let node of Group.all.concat(Outliner.elements)) {
+					if (handled.has(node.uuid)) continue;
+					Outliner.root.push(node);
+					node.parent = Outliner.ROOT;
+					console.warn('Existing element missing in outliner. Adding to root instead.', node);
+				}
+			}
+		}
 	}
 }
 Object.defineProperty(window, 'elements', {
@@ -580,7 +597,6 @@ export function canAddOutlinerSelectionTo(target, clicked_on) {
 	if (clicked_on instanceof OutlinerElement && !clicked_on.selected) {
 		nodes_to_move = [clicked_on];
 	} else {
-		if (target.selected) return false;
 		nodes_to_move = Outliner.selected.concat(Group.selected).filter(element => element.parent == 'root' || element.parent.selected != true);
 	}
 	return canAddOutlinerNodesTo(nodes_to_move, target);
@@ -990,14 +1006,16 @@ BARS.defineActions(function() {
 		icon: 'drive_file_move',
 		category: 'edit',
 		searchable: true,
-		children(element) {
+		children(context) {
+			let element = context instanceof OutlinerNode ? context : Outliner.selected[0] ?? Group.first_selected;
+			if (!element) return;
 			let nodes = [...getAllGroups(), ...Outliner.elements].filter(g => canAddOutlinerSelectionTo(g));
 			let menu_list = nodes.map(node => {
 				return {
 					name: node.name,
 					icon: node.icon,
 					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
-					click(event) {
+					click(context, event) {
 						moveOutlinerSelectionAmend(element, node, event);
 						element.showInOutliner();
 					}
@@ -1007,7 +1025,7 @@ BARS.defineActions(function() {
 				menu_list.splice(0, 0, {
 					name: 'Root',
 					icon: 'list_alt',
-					click(event) {
+					click(context, event) {
 						moveOutlinerSelectionAmend(element, undefined, event);
 					}
 				});
@@ -1015,7 +1033,7 @@ BARS.defineActions(function() {
 			return menu_list;
 		},
 		click(event) {
-			new Menu('move_to_group', this.children(this), {searchable: true}).open(event.target, this)
+			new Menu('move_to_group', this.children(), {searchable: true}).open(event.target, this)
 		}
 	})
 	new Action('sort_outliner', {

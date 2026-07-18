@@ -242,11 +242,19 @@ export class Preview {
 		this.controls.zoomSpeed = settings.viewport_zoom_speed.value / 100 * 1.5;
 		this.controls.rotateSpeed = settings.viewport_rotate_speed.value / 100;
 		this.controls.onUpdate(() => {
+			ReferenceImage.active.forEach(ref => {
+				if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
+					ref.updateTransform()
+				}
+			})
+			if (Transformer.visible) Transformer.update()
+
 			if (this.angle != null) {
 				if (this.camOrtho.axis != 'x') this.side_view_target.x = this.controls.target.x;
 				if (this.camOrtho.axis != 'y') this.side_view_target.y = this.controls.target.y;
 				if (this.camOrtho.axis != 'z') this.side_view_target.z = this.controls.target.z;
 			}
+			Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview});
 		})
 
 		//Annotations
@@ -626,7 +634,7 @@ export class Preview {
 		}
 		if (!this.offscreen) {
 			this.setLockedAngle();
-			this.controls.updateSceneScale();
+			this.controls.update();
 		}
 		if (this == Preview.selected) {
 			this.occupyTransformer();
@@ -881,7 +889,7 @@ export class Preview {
 			let group_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'group_select');
 			let loop_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'loop_select');
 
-			if (Toolbox.selected.paintTool) {
+			if (Toolbox.selected.paintTool || Toolbox.selected.id == 'knife_tool') {
 				multi_select = group_select = loop_select = false;
 			}
 
@@ -1409,7 +1417,7 @@ export class Preview {
 		Transformer.orbit_controls = this.controls
 		if (update) {
 			Transformer.setCanvas(this.canvas);
-			Preview.selected.controls.updateSceneScale();
+			Preview.selected.controls.update();
 		}
 		if (event && event.pointerType == 'touch') {
 			Transformer.simulateMouseDown(event);
@@ -2109,7 +2117,7 @@ window.addEventListener("gamepadconnected", function(event) {
 
 			preview.controls.target.copy(camera_diff).add(preview.camera.position);
 
-			main_preview.controls.updateSceneScale();
+			Preview.selected.controls.update();
 		} else {
 			if (settings.gamepad_controls.value == false) return;
 			

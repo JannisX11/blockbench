@@ -12,6 +12,7 @@ import pt from '../lang/pt.json';
 import pt_br from '../lang/pt_br.json';
 import ru from '../lang/ru.json';
 import sv from '../lang/sv.json';
+import th from '../lang/th.json';
 import tr from '../lang/tr.json';
 import uk from '../lang/uk.json';
 import vi from '../lang/vi.json';
@@ -34,6 +35,7 @@ export const data: Record<string, Language> = {
 	pt_br: pt_br,
 	ru: ru,
 	sv: sv,
+	th: th,
 	tr: tr,
 	uk: uk,
 	vi: vi,
@@ -106,6 +108,7 @@ export const Language = {
 		pt_br: 'Português (Brasil) - Portuguese (Brazil)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 - Russian',
 		sv: 'Svenska - Swedish',
+		th: 'Thai - ภาษาไทย',
 		tr: 'Türkçe - Turkish',
 		uk: 'Українська - Ukrainian',
 		vi: 'Tiếng việt - Vietnamese',

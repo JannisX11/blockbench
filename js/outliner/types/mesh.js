@@ -7,6 +7,7 @@ export class MeshFace extends Face {
 		this.mesh = mesh;
 		this.uv = {};
 		this.texture = false;
+		this.element = mesh;
 		if (data) {
 			this.extend(data);
 		}
@@ -1182,8 +1183,8 @@ new NodePreviewController(Mesh, {
 		let all_armature_bones = [];
 		let bone_marker_colors;
 		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0] && element.getArmature()) {
-			armature_bone = ArmatureBone.selected[0] ?? ArmatureBone.all[0];
 			all_armature_bones = element.getArmature().getAllBones();
+			armature_bone = ArmatureBone.selected.find(ab => all_armature_bones.includes(ab));
 			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
 		}
 

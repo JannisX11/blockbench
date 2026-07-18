@@ -684,3 +684,8 @@ export const animation_codec = new AnimationCodec('bedrock', {
 		}
 	}
 })
+
+Blockbench.on('edit_animation_properties', ({animation}) => {
+	if (AnimationCodec.getCodec() != animation_codec) return;
+	animation.name = animation.name.trim().replace(/\s+/g, '_');
+});

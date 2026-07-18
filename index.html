@@ -47,6 +47,10 @@
 			if (error_element && !error_element.innerText) {
 				error_element.innerText = `${message}\nIn .${file.split(location.origin).join('')}:${line}`
 			}
+			let version = document.querySelector('#loading_error_version');
+			if (version && window.Blockbench) {
+				version.innerText = Blockbench.version;
+			}
 		}
 		window.factoryResetAndReload = function() {
 			let lang_key = 'menu.help.developer.reset_storage.confirm';
@@ -65,6 +69,7 @@
 		<button onclick="window.Blockbench ? window.Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
+		<div id="loading_error_version" style="color: var(--color-subtle_text);"></div>
 	</div>
 	<script type="module" src="dist/bundle.js"></script>
 

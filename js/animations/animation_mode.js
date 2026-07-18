@@ -352,6 +352,7 @@ export const Animator = {
 	preview(in_loop) {
 		// Reset
 		Animator.showDefaultPose(true);
+		if (!Project) return;
 
 		// Controller
 		if (AnimationController.selected?.selected_state) {
@@ -430,7 +431,7 @@ export const Animator = {
 			})
 			TextureAnimator.update(Texture.all.filter(tex => tex.frameCount > 1));
 		}
-		if (Project) Project.model_3d.scale.set(1, 1, 1);
+		Project.model_3d.scale.set(1, 1, 1);
 		if (Interface.Panels.variable_placeholders.inside_vue.text.match(/^\s*preview\.scale\s*=/mi)) {
 			let scale = Animator.MolangParser.variableHandler('preview.scale');
 			Project.model_3d.scale.x = Project.model_3d.scale.y = Project.model_3d.scale.z = scale;

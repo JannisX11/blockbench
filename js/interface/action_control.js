@@ -45,7 +45,7 @@ export const ActionControl = {
 	cancel() {
 		ActionControl.hide()
 	},
-	trigger(action, e) {
+	trigger(action, event) {
 		if (action.id == 'action_control') {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
@@ -78,14 +78,14 @@ export const ActionControl = {
 			}
 
 		} else {
-			action.trigger(e);
+			action.trigger(event);
 		}
 		if (action instanceof BarItem) {
 			this.addRecentlyUsed(action);
 		}
 	},
-	click(action, e) {
-		ActionControl.trigger(action, e)
+	click(action, event) {
+		ActionControl.trigger(action, event)
 		ActionControl.hide()
 	},
 	handleKeys(e) {
