@@ -376,9 +376,9 @@ BARS.defineActions(function() {
 											let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
 											brightness = Math.max(brightness, 1);
 										
-											image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
-											image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
-											image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
+											image_data.data[i+0] = Math.max(R+1, 1) * (r / brightness) * (rgb / brightness) - 1;
+											image_data.data[i+1] = Math.max(G+1, 1) * (g / brightness) * (rgb / brightness) - 1;
+											image_data.data[i+2] = Math.max(B+1, 1) * (b / brightness) * (rgb / brightness) - 1;
 											image_data.data[i+3] = a;
 										}
 									} else {
