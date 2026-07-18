@@ -2351,6 +2351,13 @@
 		text-align: right;
 		direction: rtl;
 	}
+	dialog#recover_backup .dialog_wrapper,
+	dialog#animation_import .dialog_wrapper,
+	dialog#animation_export .dialog_wrapper {
+		max-height: calc(100vh - 90px);
+		display: flex;
+		flex-direction: column;
+	}
 /* Animation Controller curves */
 	
 	dialog#blend_transition_edit .blend_transition_graph_wrapper {
