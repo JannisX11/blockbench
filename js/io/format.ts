@@ -451,7 +451,9 @@ export class ModelFormat implements FormatOptions {
 	}
 	new(): boolean {
 		if (newProject(this)) {
-			(BarItems.project_window as Action).click();
+			if (Settings.get('new_project_dialog')) {
+				BarItems.project_window.click();
+			}
 			return true;
 		}
 		return false;

@@ -1202,6 +1202,8 @@
 	"settings.default_keyframe_interpolation.desc": "Select the default keyframe interpolation mode",
 	"settings.uniform_keyframe": "Uniform Scale Keyframes",
 	"settings.uniform_keyframe.desc": "Set scale keyframes to uniform scaling by default",
+	"settings.new_project_dialog": "New Project Dialog",
+	"settings.new_project_dialog.desc": "Show the Project dialog when creating a new project",
 
 	"settings.edit_size": "Grid Resolution",
 	"settings.edit_size.desc": "Resolution of the grid that elements snap to",
