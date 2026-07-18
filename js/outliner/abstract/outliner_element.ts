@@ -137,6 +137,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 		//Shift
 		var just_selected = [];
 		let allow_multi_select = (!Modes.paint || (Toolbox.selected.id == 'fill_tool' && (BarItems.fill_mode as BarSelect).value == 'selected_elements'));
+		if (Toolbox.selected.id == 'knife_tool') allow_multi_select = false;
 		if (
 			event &&
 			allow_multi_select &&

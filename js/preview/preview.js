@@ -889,7 +889,7 @@ export class Preview {
 			let group_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'group_select');
 			let loop_select = Keybinds.extra.preview_select.keybind.additionalModifierTriggered(event, 'loop_select');
 
-			if (Toolbox.selected.paintTool) {
+			if (Toolbox.selected.paintTool || Toolbox.selected.id == 'knife_tool') {
 				multi_select = group_select = loop_select = false;
 			}
 
