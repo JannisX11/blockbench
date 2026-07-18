@@ -223,6 +223,10 @@ export interface FormatFeatures {
 	 */
 	animation_grouping: 'by_file' | 'custom' | 'disabled'
 	/**
+	 * Enable molang syntax and validation in animations
+	 */
+	molang: boolean
+	/**
 	 * Enables a folder path per texture that can be set in the texture properties window
 	 */
 	texture_folder: boolean
@@ -689,6 +693,7 @@ new Property(ModelFormat, 'boolean', 'animation_controllers');
 new Property(ModelFormat, 'boolean', 'animation_loop_wrapping');
 new Property(ModelFormat, 'boolean', 'quaternion_interpolation');
 new Property(ModelFormat, 'boolean', 'per_animator_rotation_interpolation');
+new Property(ModelFormat, 'boolean', 'molang', {default: true});
 new Property(ModelFormat, 'boolean', 'image_editor');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});

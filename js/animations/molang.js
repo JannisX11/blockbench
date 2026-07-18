@@ -220,7 +220,7 @@ export function getAllMolangExpressions() {
 }
 
 new ValidatorCheck('molang_syntax', {
-	condition: { features: ['animation_mode'] },
+	condition: { features: ['animation_mode', 'molang'] },
 	update_triggers: ['update_keyframe_selection', 'edit_animation_properties'],
 	run() {
 		let check = this
