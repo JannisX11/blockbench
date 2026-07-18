@@ -906,6 +906,7 @@ BARS.defineActions(function() {
 							group.preview_controller.updateTransform(group);
 						}
 						Undo.finishEdit('Edit group binding');
+						updateSelection();
 					}
 				},
 				onCancel() {
