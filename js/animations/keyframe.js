@@ -1,6 +1,6 @@
 import { markerColors } from "../marker_colors";
 import { clipboard } from "../native_apis";
-import { invertMolang } from "../util/molang";
+import { invertMolang, processMolangReturn } from "../util/molang";
 import { openMolangEditor } from "./molang_editor";
 
 export class KeyframeDataPoint {
@@ -94,6 +94,11 @@ export class Keyframe {
 				KeyframeDataPoint.properties[key].merge(this.data_points[0], data)
 			}
 		}
+		if (this.channel == 'scale' && this.uniform &&
+			this.data_points.some(d => (d.x != d.y || d.x != d.z))
+		) {
+			this.uniform = false;
+		}
 		return this;
 	}
 	get(axis, data_point = 0) {
@@ -140,26 +145,38 @@ export class Keyframe {
 			this.set(axis, value+amount, data_point);
 			return value+amount
 		}
-		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
-		if (start) {
-			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
-			if (number == 0) {
-				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
-				value = value.trim();
-			} else {
-				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
-			}
-		} else {
 
-			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
-			if (end) {
-				var number = (parseFloat( end[0] ) + amount)
-				value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
-			} else {
-				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+		value = processMolangReturn(value, (expression) => {
+			let value = exportMolang(expression);
+			if (!value || value === '0') {
+				return amount;
 			}
-		}
-		value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
+			if (typeof value === 'number') {
+				return value+amount
+			}
+			var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
+			if (start) {
+				var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+				if (number == 0) {
+					value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+					value = value.trim();
+				} else {
+					value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+				}
+			} else {
+
+				var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
+				if (end) {
+					var number = (parseFloat( end[0] ) + amount)
+					value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
+				} else {
+					value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+				}
+			}
+			value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
+			return value;
+		});
+
 		this.set(axis, value, data_point)
 		return value;
 	}

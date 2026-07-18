@@ -1312,7 +1312,7 @@ GLTFExporter.prototype = {
 						}
 
 						// Blockbench: Modify UV mapping for poweroftwo texture conversion
-						if (options.forcePowerOfTwoTextures) {
+						if (options.forcePowerOfTwoTextures && options.embedImages) {
 
 							if (!mesh.geometry) return;
 							let material;

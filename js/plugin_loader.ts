@@ -1021,10 +1021,11 @@ if (isApp) {
 }
 
 Plugins.loading_promise = new Promise((resolve, reject) => {
+	const timeout_seconds = 10;
 	$.ajax({
 		cache: false,
 		url: Plugins.api_path+'.json',
-		timeout: 5_000,
+		timeout: 1_000 * timeout_seconds,
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
@@ -1058,6 +1059,10 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 			}
 		}
 	});
+	setTimeout(() => {
+		if (!Plugins.loading_promise) return;
+		console.warn(`Connecting to plugin API is taking longer than expected. Plugins will not load until a connection is made or the request times out after ${timeout_seconds} seconds.`)
+	}, 3000);
 })
 
 $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {

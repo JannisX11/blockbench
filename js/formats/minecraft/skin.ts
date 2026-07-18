@@ -543,7 +543,15 @@ export const skin_dialog = new Dialog({
 						for (let path of model.external_textures) {
 							let frame = new CanvasFrame();
 							let resource_path = `https://raw.githubusercontent.com/Mojang/bedrock-samples/preview/resource_pack/textures/${path}?raw=true`;
-							frame.loadFromURL(resource_path).then(() => {
+							let load_promise;
+							if (path.endsWith('.tga')) {
+								load_promise = fetch(resource_path)
+									.then(res => res.arrayBuffer())
+									.then(buffer => frame.loadFromTGA(new Uint8Array(buffer)));
+							} else {
+								load_promise = frame.loadFromURL(resource_path);
+							}
+							load_promise.then(() => {
 								let dataUrl = frame.canvas.toDataURL();
 								let texture = new Texture({
 									internal: true,
@@ -7012,7 +7020,7 @@ skin_presets.phantom = {
 	display_name: 'Phantom',
 	model: `{
 		"name": "phantom",
-		"external_textures": ["entity/llama/llama.png"],
+		"external_textures": ["entity/phantom.tga"],
 		"eyes": [
 			[5, 6, 2, 1],
 			[10, 6, 2, 1]

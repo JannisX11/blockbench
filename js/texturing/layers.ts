@@ -85,9 +85,15 @@ export class TextureLayer {
 			TextureLayer.properties[key].merge(this, data)
 		}
 		if (data.image_data) {
+			let image_data = data.image_data;
 			this.canvas.width = data.width || 16;
 			this.canvas.height = data.height || 16;
-			this.ctx.putImageData(data.image_data, 0, 0);
+			if (image_data instanceof ImageData == false) {
+				// Process serialized session data
+				image_data = this.ctx.createImageData(this.canvas.width, this.canvas.height);
+				image_data.data.set(data.image_data.data, 0);
+			}
+			this.ctx.putImageData(image_data, 0, 0);
 
 		} else if (data.data_url) {
 			this.canvas.width = data.width || 16;

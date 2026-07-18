@@ -93,7 +93,11 @@ export class Animation extends AnimationItem {
 						if (element) {
 							animator = this.animators[uuid] = new element.constructor.animator(uuid, this, animator_blueprint.name);
 						}
-						animator.extend(animator_blueprint);
+						if (animator) {
+							animator.extend(animator_blueprint);
+						} else {
+							console.warn(`No matching element was found for the animator with the UUID "${uuid}" of type "${animator_blueprint.type}" in "${this.name}"`, animator_blueprint);
+						}
 					} else {
 						// Bone
 						let uuid = isUUID(key) && key;

@@ -78,13 +78,7 @@ constructor ( object, preview ) {
 	};
 
 	this.updateSceneScale = function() {
-		ReferenceImage.active.forEach(ref => {
-			if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
-				ref.updateTransform()
-			}
-		})
-		if (Transformer.visible) Transformer.update()
-		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
+		scope.update();
 	};
 
 	this.onUpdate = function(call) {
@@ -124,7 +118,6 @@ constructor ( object, preview ) {
 				let auto_rot_angle = getAutoRotationAngle()
 				scope.autoRotateProgress += auto_rot_angle;
 				scope.rotateLeft( auto_rot_angle );
-
 			}
 
 			spherical.theta += sphericalDelta.theta;
@@ -421,8 +414,6 @@ constructor ( object, preview ) {
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMoveDolly( event ) {
@@ -439,7 +430,6 @@ constructor ( object, preview ) {
 		dollyStart.copy( dollyEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMovePan( event ) {
@@ -449,7 +439,6 @@ constructor ( object, preview ) {
 		panStart.copy( panEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseUp( event ) {
@@ -464,7 +453,6 @@ constructor ( object, preview ) {
 			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
-		scope.updateSceneScale();
 
 	}
 
@@ -537,7 +525,6 @@ constructor ( object, preview ) {
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-		scope.updateSceneScale()
 
 	}
 
@@ -576,7 +563,6 @@ constructor ( object, preview ) {
 
 
 		scope.update();
-		scope.updateSceneScale();
 		/*
 		var dx = event.touches[ 0 ].pageX - event.touches[ 1 ].pageX;
 		var dy = event.touches[ 0 ].pageY - event.touches[ 1 ].pageY;
@@ -703,7 +689,6 @@ constructor ( object, preview ) {
 			pan( -event.deltaX, -event.deltaY );
 
 			scope.update();
-			scope.updateSceneScale();
 		}
 
 		if (!enabled) return;

@@ -577,7 +577,7 @@ var codec = new Codec('gltf', {
 					trs: true,
 					binary: options.encoding == 'binary',
 					truncateDrawRange: false,
-					forcePowerOfTwoTextures: true,
+					forcePowerOfTwoTextures: options.embed_textures !== false,
 					scale_factor: 1/options.scale,
 					embedImages: options.embed_textures != false,
 					exportFaceColors: false,

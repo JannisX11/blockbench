@@ -139,12 +139,12 @@ export const Vertexsnap = {
 		if (data.type !== 'vertex' && ['locator', 'null_object'].includes(data.element?.type) == false) return;
 
 		if (Vertexsnap.step1) {
-			Vertexsnap.step1 = false
+			Vertexsnap.step1 = false;
 			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			Vertexsnap.vertex_index = data.vertex_index;
 			Vertexsnap.move_origin = data.vertex instanceof Array ? data.vertex.allEqual(0) : false;
 			Vertexsnap.elements = Outliner.selected.slice();
-			Vertexsnap.groups = Group.multi_selected;
+			Vertexsnap.groups = Group.multi_selected.slice();
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
 				let vertices = data.element.getSelectedVertices(true);
 				vertices.safePush(data.vertex);
@@ -170,7 +170,13 @@ export const Vertexsnap = {
 		return vector;
 	},
 	snap: function(data, options = 0, amended) {
-		Undo.initEdit({elements: Vertexsnap.elements, outliner: !!Vertexsnap.groups.length}, amended);
+		let elements = Vertexsnap.elements.slice();
+		if (Vertexsnap.groups.length) {
+			for (let group of Vertexsnap.groups) {
+				group.forEachChild(child => elements.safePush(child), OutlinerElement);
+			}
+		}
+		Undo.initEdit({elements, groups: Vertexsnap.groups}, amended);
 
 		let mode = BarItems.vertex_snap_mode.get();
 
@@ -313,21 +319,18 @@ export const Vertexsnap = {
 
 		Vertexsnap.clearVertexGizmos()
 		let update_options = {
-			elements: Vertexsnap.elements,
+			elements,
 			element_aspects: {transform: true, geometry: true},
 			selection: true
 		};
 		if (Vertexsnap.groups.length) {
-			update_options.elements = [...update_options.elements];
-			for (let group of Vertexsnap.groups) {
-				Vertexsnap.groups.forEachChild(child => {
-					update_options.elements.safePush(child);
-				}, OutlinerElement);
-			}
 			update_options.groups = Vertexsnap.groups;
 			update_options.group_aspects = {transform: true};
 		}
 		Canvas.updateView(update_options);
+		if (Vertexsnap.groups.length && !Group.first_selected) {
+			Vertexsnap.groups[0].select();
+		}
 		Undo.finishEdit('Use vertex snap');
 		if (Mesh.selected[0]) {
 			let vertices = Vertexsnap.selected_vertices?.[Mesh.selected[0].uuid]?.vertices;
