@@ -311,6 +311,13 @@ new TransformerModule('edit', {
 		} else if (tool_id === 'resize_tool') {
 
 			Outliner.selected.forEach(function(obj, i) {
+				// In vertex/edge selection mode, skip meshes with no selected vertices
+				if ((obj instanceof Mesh || obj instanceof SplineMesh) &&
+					(BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') &&
+					!obj.getSelectedVertices().length) {
+					return;
+				}
+
 				if (obj.getTypeBehavior('resizable')) {
 					let bidirectional = ((event.altKey || Pressing.overrides.alt) && BarItems.swap_tools.keybind.key != 18) !== Mesh.hasSelected();
 

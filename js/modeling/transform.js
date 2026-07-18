@@ -17,6 +17,12 @@ export function getSelectionCenter(all = false) {
 	}
 	elements.forEach(element => {
 		if (element instanceof Group && !Format.bone_rig) return;
+		// In vertex/edge mode, exclude meshes with no selected vertices from center
+		if ((element instanceof Mesh || element instanceof SplineMesh) &&
+			(BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') &&
+			!element.getSelectedVertices().length) {
+			return;
+		}
 		if (element.getWorldCenter) {
 			var pos = element.getWorldCenter();
 			min[0] = Math.min(pos.x, min[0]);	max[0] = Math.max(pos.x, max[0]);
@@ -148,6 +154,12 @@ export function moveElementsRelative(difference, index, event) { //Multiple
 //Rotate
 export function rotateSelected(axis, steps) {
 	let affected = [...Cube.selected, ...Mesh.selected, ...SplineMesh.selected];
+	// In vertex/edge selection mode, only include meshes with selected vertices
+	if (BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') {
+		affected = affected.filter(el =>
+			!(el instanceof Mesh || el instanceof SplineMesh) || el.getSelectedVertices().length
+		);
+	}
 	if (!affected.length) return;
 	Undo.initEdit({elements: affected});
 	if (!steps) steps = 1
@@ -338,6 +350,13 @@ export function moveElementsInSpace(difference, axis, space = getEditTransformSp
 
 		if (el.getTypeBehavior('movable') == false) return;
 		if (!el.getTypeBehavior('use_absolute_position') && el.parent?.selected && el.parent.getTypeBehavior('movable') && !el.parent.getTypeBehavior('use_absolute_position')) {
+			return;
+		}
+
+		// In vertex/edge selection mode, skip meshes with no selected vertices
+		if ((el instanceof Mesh || el instanceof SplineMesh) &&
+			(BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') &&
+			!el.getSelectedVertices().length) {
 			return;
 		}
 
@@ -632,6 +651,13 @@ export function rotateOnAxis(modify, axis, slider) {
 	let space = getEditTransformSpace()
 	if (axis instanceof THREE.Vector3) space = 0;
 	things.forEach(obj => {
+		// In vertex/edge selection mode, skip meshes with no selected vertices
+		if ((obj instanceof Mesh || obj instanceof SplineMesh) &&
+			(BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') &&
+			!obj.getSelectedVertices().length) {
+			return;
+		}
+
 		let mesh = obj.mesh;
 		if (obj instanceof Cube && !Format.bone_rig) {
 			if (obj.origin.allEqual(0)) {
@@ -1012,6 +1038,13 @@ BARS.defineActions(function() {
 
 	function resizeOnAxis(modify, axis) {
 		Outliner.selected.forEach(function(obj, i) {
+			// In vertex/edge selection mode, skip meshes with no selected vertices
+			if ((obj instanceof Mesh || obj instanceof SplineMesh) &&
+				(BarItems.selection_mode?.value === 'vertex' || BarItems.selection_mode?.value === 'edge') &&
+				!obj.getSelectedVertices().length) {
+				return;
+			}
+
 			if (obj.getTypeBehavior('resizable')) {
 				let bidirectional = obj instanceof Mesh;
 				let center = (obj.from && obj.to) && Math.lerp(obj.from[axis], obj.to[axis], 0.5);
