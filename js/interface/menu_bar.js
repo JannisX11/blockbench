@@ -573,6 +573,7 @@ export const MenuBar = {
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
 					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
 				}},
+				'experimental_settings',
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
 					let error_messages = window.ErrorLog.map((error) => {

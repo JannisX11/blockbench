@@ -136,6 +136,10 @@ export interface FormElementOptions {
 	 */
 	linked_ratio?: boolean
 	/**
+	 * Adds a reset button for the input
+	 */
+	reset_button?: boolean
+	/**
 	 * Extra actions that display as icon buttons next to the input
 	 */
 	extra_actions?: {
@@ -375,6 +379,25 @@ export class FormElement extends EventSystem {
 				this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
 			});
 			this.input_toggle = toggle;
+		}
+		if (this.options.reset_button) {
+			let icon = Blockbench.getIconNode('undo');
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: tl('generic.reset')}, icon);
+			extra_action.addEventListener('click', event => {
+				this.setValue(this.options.default ?? this.options.value ?? this.getDefault());
+				this.change();
+			})
+			this.bar.append(extra_action);
+		}
+		for (let action of this.options.extra_actions ?? []) {
+			let icon = Blockbench.getIconNode(action.icon);
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
+			extra_action.addEventListener('click', event => {
+				if (action.click) {
+					action.click(event);
+				}
+			})
+			this.bar.append(extra_action);
 		}
 	}
 	addShareButtons(bar: HTMLElement) {
@@ -947,16 +970,6 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			})
 			updateState();
 			group.append(linked_ratio_toggle)
-		}
-		for (let action of this.options.extra_actions ?? []) {
-			let icon = Blockbench.getIconNode(action.icon);
-			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
-			extra_action.addEventListener('click', event => {
-				if (action.click) {
-					action.click(event);
-				}
-			})
-			group.append(extra_action);
 		}
 	}
 	getValue(): number[] {

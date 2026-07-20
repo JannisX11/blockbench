@@ -1625,6 +1625,8 @@
 	"action.add_plugin.desc": "Install a plugin through Action Control",
 	"action.remove_plugin": "Uninstall Plugin",
 	"action.remove_plugin.desc": "Uninstall a plugin through Action Control",
+	"action.experimental_settings": "Experimental Settings",
+	"action.experimental_settings.desc": "Customize experimental developer settings",
 
 	"action.load_plugin": "Load Plugin from File",
 	"action.load_plugin.desc": "Load a plugin by importing the source file",

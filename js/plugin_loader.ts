@@ -1020,8 +1020,12 @@ if (isApp) {
 	Plugins.path = Plugins.api_path+'/';
 }
 
+ExperimentalSettings.add(
+	'plugin_load_timeout',
+	{type: 'number', label: 'Plugin load timeout', min: 0.5, value: 10}
+);
 Plugins.loading_promise = new Promise((resolve, reject) => {
-	const timeout_seconds = 10;
+	const timeout_seconds = ExperimentalSettings.get('plugin_load_timeout') as number ?? 10;
 	$.ajax({
 		cache: false,
 		url: Plugins.api_path+'.json',
@@ -1036,7 +1040,7 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 			$.ajax({
 				cache: false,
 				url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/updates.json',
-				timeout: 2_000,
+				timeout: timeout_seconds,
 				dataType: 'json',
 				success(data) {
 					Plugins.update_info = data;
