@@ -60,13 +60,14 @@
 		border-width: var(--size);
 		border-style: solid;
 		border-color: var(--color-button);
-		border-top-color: transparent !important;
-		border-left-color: transparent !important;
+		border-top-color: transparent;
+		border-left-color: transparent;
 		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
-		border-color: var(--color-accent);
+		border-right-color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
 	}
 	.dialog_sidebar_menu_button {
 		height: 100%;
@@ -245,7 +246,7 @@
 		margin-right: auto;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
-		display: none !important;
+		display: none;
 	}
 	.dialog_bar .form_overlay_tools {
 		position: absolute;
@@ -503,7 +504,8 @@
 	}
 	@media (max-device-width: 640px) {
 		dialog {
-			width: 100% !important;
+			min-width: 100%;
+			max-width: 100%;
 		}
 		dialog .dialog_content, dialog .dialog_bar.button_bar {
 			margin: 12px;
@@ -1131,8 +1133,20 @@
 		max-width: none;
 		pointer-events: none;
 	}
+	dialog#about div.socials a i.fa-bluesky {
+		color: #208bfe;
+	}
+	dialog#about div.socials a i.fa-twitter {
+		color: #1ea6ff;
+	}
+	dialog#about div.socials a i.fa-discord {
+		color: #5865F2;
+	}
+	dialog#about div.socials a i.fa-github {
+		color: #dddddd;
+	}
 	dialog#about div.socials a:hover i {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	dialog#about div.socials a label {
 		color: var(--color-subtle_text);
@@ -1571,21 +1585,6 @@
 	.plugin_compatibility_issue > .icon,
 	.plugin_deprecation_note > .icon {
 		vertical-align: text-bottom;
-	}
-	#plugin_list > li button {
-		min-width: 100px;
-		width: auto;
-		height: 36px;
-		float: right;
-		padding: 4px;
-		margin-left: -1px;
-		margin-top: 6px;
-		color: var(--color-text);
-		transition: width 100ms ease-in;
-	}
-	#plugin_list > li button > i {
-		float: left;
-		margin-top: 2px;
 	}
 	#plugin_list > li .title {
 		font-size: 1.34em;
@@ -2325,7 +2324,7 @@
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,
 	dialog#brush_options:not(.preset_selected) hr {
-		display: none !important;
+		display: none;
 	}
 	ul#brush_preset_bar {
 		display: flex;

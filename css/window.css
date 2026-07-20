@@ -129,13 +129,13 @@
 	}
 	#preview.image_mode > .single_canvas_wrapper,
 	#preview.image_mode > .split_screen_wrapper {
-		display: none !important;
+		display: none;
 	}
 /* Resizers */
 
 
 	.resizer {
-		position: absolute !important;
+		position: absolute;
 		z-index: 12;
 		opacity: 0;
 		touch-action: none;
@@ -337,7 +337,7 @@
 		background: transparent;
 	}
 	#web_download_button a {
-		text-decoration: none !important;
+		text-decoration: none;
 		height: 100%;
 		width: 100%;
 		padding: 0 12px;
@@ -406,18 +406,18 @@
 	}
 	body.is_mobile #work_screen {
 		display: grid;
-		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height) 38px !important;
+		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height) 38px;
 		grid-template-areas: 
 			"toolbar"
 			"center"
 			"status_bar"
 			"panel_selector";
-		grid-template-columns: auto !important;
+		grid-template-columns: auto;
 		position: relative;
 	}
 	body.is_mobile.is_landscape #work_screen {
-		grid-template-columns: auto 48px !important;
-		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height) !important;
+		grid-template-columns: auto 48px;
+		grid-template-rows: auto minmax(200px, 5000px) var(--status-bar-height);
 		grid-template-areas: 
 			"toolbar panel_selector"
 			"center panel_selector"
@@ -425,7 +425,7 @@
 		position: relative;
 	}
 	body.is_mobile.is_landscape.mobile_sidebar_left #work_screen {
-		grid-template-columns: 48px auto !important;
+		grid-template-columns: 48px auto;
 		grid-template-areas: 
 			"panel_selector toolbar"
 			"panel_selector center"
@@ -1023,7 +1023,7 @@
 		filter: brightness(0.7);
 	}
 	.orbit_gizmo:not(.mouse_active) .orbit_gizmo_side:hover {
-		background-color: var(--color-bright_ui) !important;
+		background-color: var(--color-bright_ui);
 		filter: brightness(1);
 	}
 	div#preview_copy_brush_outline {
@@ -1072,7 +1072,7 @@
 		z-index: 8;
 	}
 	.reference_image:not(.in_scene) {
-		transform: unset !important;
+		transform: unset;
 	}
 	.reference_image.selected[reference_layer=float] > .image_content {
 		box-shadow: 3px 3px 10px rgb(0 0 0 / 70%);
@@ -1091,7 +1091,7 @@
 		z-index: 9;
 		pointer-events: initial;
 		cursor: move;
-		clip-path: none !important;
+		clip-path: none;
 	}
 	.reference_image.selected, .reference_image:hover {
 		outline: 1px solid var(--color-accent);

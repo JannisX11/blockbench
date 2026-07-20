@@ -6,15 +6,15 @@
 		flex-direction: column;
 		position: relative;
 	}
-	.panel_container.hidden {
-		display: none !important;
-	}
 	.panel_container.grow {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
 		height: 40px;
 		min-height: 133px;
+	}
+	.panel_container.hidden {
+		display: none;
 	}
 
 	.panel {
@@ -243,7 +243,7 @@
 		flex-grow: 0;
 	}
 	.panel_container.folded > .panel {
-		display: none !important;
+		display: none;
 	}
 	.panel_container.fixed_height {
 		flex-grow: 0;
@@ -1190,13 +1190,6 @@
 	}
 	.in_list_button {
 		width: 22px;
-		color: var(--color-text);
-	}
-	.in_list_button:hover {
-		color: var(--color-light);
-	}
-	.in_list_button {
-		width: 22px;
 		height: 22px;
 		color: var(--color-text);
 	}
@@ -1204,7 +1197,7 @@
 		color: var(--color-light);
 	}
 	.in_list_button.unclickable {
-		color: var(--color-subtle_text) !important;
+		color: var(--color-subtle_text);
 		pointer-events: none;
 	}
 
@@ -1608,13 +1601,15 @@
 		z-index: 1;
 		pointer-events: none;
 	}
+	#timeline_body .animator_head_bar .keyframe:not(.selected) i {
+		color: #495061;
+	}
 	#timeline_body .animator_head_bar .keyframe i {
 		transform: none;
 		font-size: 6pt;
-		color: #495061;
 	}
 	#panel_timeline .keyframe.selected i {
-		color: var(--color-accent) !important;
+		color: var(--color-accent);
 		z-index: 4;
 	}
 	#panel_timeline .keyframe:hover {
@@ -1759,7 +1754,7 @@
 		z-index: 5;
 	}
 	#timeline_vue.graph_editor li.animator > div {
-		width: fit-content !important;
+		width: fit-content;
 		background-color: var(--color-ui);
 	}
 	.channel_head {
@@ -2632,7 +2627,7 @@ span.controller_state_section_info {
 
 	.face_properties_toggle {
 		width: 32px;
-		flex-grow: 0 !important;
+		flex-grow: 0;
 	}
 	.face_properties_toggle > i {
 		margin: 1px auto;
@@ -2780,7 +2775,7 @@ span.controller_state_section_info {
 	}
 	.cube_uv_face.unselected > div,
 	.cube_box_uv.unselected > div {
-		border-color: var(--color-uv-unselected) !important;
+		border-color: var(--color-uv-unselected);
 	}
 
 	.uv_resize_side {
@@ -2959,7 +2954,7 @@ span.controller_state_section_info {
 		display: flex;
 		height: 28px;
 	}
-	#uv_cube_face_bar li {
+	#uv_cube_face_bar li:not(.face_properties_toggle) {
 		flex-grow: 1;
 		text-align: center;
 		padding: 2px;
@@ -2986,31 +2981,6 @@ span.controller_state_section_info {
 	}
 	#texture_selection_rect.ellipse {
 		border-radius: 50%;
-	}
-	#texture_pasting_overlay {
-		position: absolute;
-		pointer-events: initial !important;
-	}
-	#texture_pasting_overlay canvas {
-		pointer-events: initial !important;
-	}
-	#texture_pasting_overlay::before {
-		content: "";
-		display: block;
-		box-sizing: content-box;
-		position: absolute;
-		border: 1px dashed white;
-		margin: -1px;
-		pointer-events: none;
-		z-index: 6;
-		width: 100%;
-		height: 100%;
-	}
-	#texture_pasting_overlay > canvas {
-		box-shadow: 1px 1px 20px black;
-		cursor: move;
-		z-index: 5;
-		float: left;
 	}
 	.uv_transparent_face {
 		margin: 8px auto auto;
