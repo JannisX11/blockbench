@@ -1216,7 +1216,7 @@ Interface.definePanels(function() {
 				//Opener
 				
 				`<i
-					v-if="node.children && node.children.some(isNodeDisplayed)"
+					v-if="node.children && options.update_conditions && node.children.some(isNodeDisplayed)"
 					@click.stop="node.isOpen = !node.isOpen" class="icon-open-state fa"
 					:class='{"fa-angle-right": !node.isOpen, "fa-angle-down": node.isOpen}'
 				></i>
