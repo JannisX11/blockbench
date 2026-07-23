@@ -1,0 +1,23 @@
+{
+	"include": ["."],
+	"compilerOptions": {
+		"outDir": "./dist/",
+		"noImplicitAny": true,
+		"module": "nodenext",
+		"target": "ES2022",
+		"moduleResolution": "nodenext",
+		"strict": true,
+		"types": ["node"],
+		"resolveJsonModule": true,
+		"allowSyntheticDefaultImports": true,
+		"allowUmdGlobalAccess": true,
+		"allowUnreachableCode": true,
+		"allowImportingTsExtensions": true,
+		"esModuleInterop": true,
+		"noEmit": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"alwaysStrict": true,
+		"baseUrl": "src"
+	}
+}

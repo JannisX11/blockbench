@@ -38,5 +38,8 @@
 		"lib/lzutf8",
 		"lib/VuePrismEditor",
 		"lib/VuePrismEditor.min"
+	],
+	"dontTransform": [
+		"io/model_loader"
 	]
 }
