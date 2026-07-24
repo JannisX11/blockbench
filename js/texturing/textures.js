@@ -2387,8 +2387,6 @@ SharedActions.add('duplicate', {
 	}
 })
 Clipbench.setTexture = function(texture) {
-	//Sets the raw image of the texture
-	if (!isApp) return;
 
 	Clipbench.texture = texture.getSaveCopy();
 	delete Clipbench.texture.path;
@@ -2397,6 +2395,7 @@ Clipbench.setTexture = function(texture) {
 	Clipbench.texture.source = texture.getDataURL();
 
 	if (isApp) {
+		//Sets the raw image of the texture
 		if (texture.mode === 'bitmap') {
 			var img = nativeImage.createFromDataURL(texture.source);
 		} else {
