@@ -290,6 +290,8 @@ export function openDevTools() {
 	currentwindow.webContents.openDevTools();
 }
 
+// @ts-ignore
+window.Settings = {get(arg) {console.error("Settings.get was accessed too early:", arg)}};
 
 const global = {
 	openDevTools,
