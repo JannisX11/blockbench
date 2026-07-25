@@ -1552,8 +1552,6 @@ Interface.definePanels(() => {
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
-					let dragging_range;
-					let previousValue;
 					let is_setup = false;
 					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
 					let original_range = this.getSelectedGraphRange();
@@ -1562,8 +1560,6 @@ Interface.definePanels(() => {
 
 					function setup() {
 						Undo.initEdit({keyframes});
-						dragging_range = [Infinity, 0];
-						previousValue = 0;
 						values_changed = false;
 						Timeline.dragging_keyframes = true;
 						is_setup = true;

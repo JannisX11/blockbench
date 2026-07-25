@@ -576,24 +576,77 @@ export const Painter = {
 				ctx.restore();
 
 			} else if (element instanceof Mesh) {
-				ctx.beginPath();
+				// Rasterize every target face into a coverage mask, then emit merged
+				// horizontal runs once. Emitting one rect per pixel (or per row per face)
+				// explodes into large numbers of canvas subpaths that ctx.fill chokes on
+				// even at small sizes. The mask dedups overlapping faces and the run merge
+				// keeps the canvas path proportional to the filled shape at every size.
+				let canvas_w = ctx.canvas.width, canvas_h = ctx.canvas.height;
+				let mask = new Uint8Array(canvas_w * canvas_h);
+				let changes = false;
+				let bounds_min_x = canvas_w, bounds_min_y = canvas_h, bounds_max_x = -1, bounds_max_y = -1;
+				let mark_run = (x_start, x_end, y) => {
+					if (y < 0 || y >= canvas_h) return;
+					let a = x_start < 0 ? 0 : x_start;
+					let b = x_end >= canvas_w ? canvas_w - 1 : x_end;
+					if (a > b) return;
+					mask.fill(1, y * canvas_w + a, y * canvas_w + b + 1);
+					changes = true;
+					if (a < bounds_min_x) bounds_min_x = a;
+					if (b > bounds_max_x) bounds_max_x = b;
+					if (y < bounds_min_y) bounds_min_y = y;
+					if (y > bounds_max_y) bounds_max_y = y;
+				};
 				for (var fkey in element.faces) {
 					var face = element.faces[fkey];
 					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 					if (face.vertices.length <= 2 || Painter.getTextureToEdit(face.getTexture()) !== texture) continue;
-					
+
+					// Face UV polygon in texture-space pixels (same factors as getOccupationMatrix).
+					let face_texture = face.getTexture();
+					let factor_x = face_texture ? (face_texture.width / face_texture.getUVWidth()) : 1;
+					let factor_y = face_texture ? (face_texture.display_height / face_texture.getUVHeight()) : 1;
+					let vertices = [];
+					for (let vkey of face.getSortedVertices()) {
+						let uv = face.uv[vkey];
+						if (!uv) { vertices = null; break; }
+						vertices.push([uv[0] * factor_x, uv[1] * factor_y]);
+					}
+
+					// Convex faces rasterize by scanline (one span per row); concave or
+					// degenerate faces fall back to the exact per-pixel occupation matrix.
+					if (vertices && Painter.scanlineConvexPolygon(vertices, mark_run)) continue;
+
 					let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
 					Painter.current.face_matrices[element.uuid + fkey] = matrix;
 					for (let x in matrix) {
-						for (let y in matrix[x]) {
-							if (!matrix[x][y]) continue;
-							x = parseInt(x); y = parseInt(y);
-							if (!texture.selection.allow(x, y)) continue;
-							ctx.rect(x, y, 1, 1);
+						let px = parseInt(x), column = matrix[x];
+						for (let y in column) {
+							if (column[y]) mark_run(px, px, parseInt(y));
 						}
 					}
 				}
-				ctx.fill()
+
+				if (changes) {
+					// Emit one rect per contiguous horizontal run of the mask (respecting an
+					// active selection), then fill once. Path size is O(runs), not O(area).
+					let selection = texture.selection;
+					let check_selection = selection && selection.override === null;
+					ctx.beginPath();
+					for (let y = bounds_min_y; y <= bounds_max_y; y++) {
+						let row = y * canvas_w, run = -1;
+						for (let x = bounds_min_x; x <= bounds_max_x + 1; x++) {
+							let filled = x <= bounds_max_x && mask[row + x] && (!check_selection || selection.allow(x, y));
+							if (filled) {
+								if (run < 0) run = x;
+							} else if (run >= 0) {
+								ctx.rect(run, y, x - run, 1);
+								run = -1;
+							}
+						}
+					}
+					ctx.fill();
+				}
 			}
 		}
 
@@ -611,39 +664,86 @@ export const Painter = {
 			}
 
 		} else {
+			// Perf note: this branch handles both the "Same Color" (global) and
+			// "Color Connected" (flood fill) modes. It used to build a nested
+			// object map (map[x][y]) via two separate full-canvas scanCanvas
+			// passes (each doing its own getImageData/putImageData), and the
+			// flood fill pushed duplicate, unvisited-checked neighbor coordinates
+			// as new arrays. On large textures (e.g. 1200x1200+) that caused
+			// multi-second freezes (see JannisX11/blockbench#3487). This does the
+			// same work with a single getImageData/putImageData round trip and
+			// flat typed arrays instead of per-pixel objects/array allocations.
 			let selection = texture.selection;
 			let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
-			let pxcol = [...image_data.data];
-			let map = {}
-			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-				if (pxcol.equals(px) && selection.allow(x, y)) {
-					if (!map[x]) map[x] = {}
-					map[x][y] = true
-				}
-			})
-			var scan_value = true;
-			if (fill_mode === 'color_connected') {
-				let points = [[x, y]];
-				for (let i = 0; i < 1_000_000; i++) {
-					let current_points = points;
-					points = [];
-					for (let [x, y] of current_points) {
-						if (map[x] && map[x][y]) {
-							map[x][y] = false;
-							points.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+			let target_r = image_data.data[0];
+			let target_g = image_data.data[1];
+			let target_b = image_data.data[2];
+			let target_a = image_data.data[3];
+
+			// Mirror scanCanvas's offset/clamping logic so selected texture
+			// layers behave exactly the same as before.
+			let local_x = rect[0];
+			let local_y = rect[1];
+			let scan_x = rect[0];
+			let scan_y = rect[1];
+			if (Painter.current.texture && Painter.current.texture.selected_layer) {
+				local_x -= Painter.current.texture.selected_layer.offset[0];
+				local_y -= Painter.current.texture.selected_layer.offset[1];
+			}
+			if (local_x < 0) { scan_x -= local_x; local_x = 0; }
+			if (local_y < 0) { scan_y -= local_y; local_y = 0; }
+			let scan_w = Math.min(w, ctx.canvas.width - local_x);
+			let scan_h = Math.min(h, ctx.canvas.height - local_y);
+
+			if (scan_w > 0 && scan_h > 0) {
+				let arr = ctx.getImageData(local_x, local_y, scan_w, scan_h);
+				let data = arr.data;
+				let pixel_count = scan_w * scan_h;
+				let matches = new Uint8Array(pixel_count);
+
+				for (let row = 0; row < scan_h; row++) {
+					let py = scan_y + row;
+					let row_offset = row * scan_w;
+					for (let col = 0; col < scan_w; col++) {
+						let i = (row_offset + col) * 4;
+						if (data[i] === target_r && data[i+1] === target_g && data[i+2] === target_b && data[i+3] === target_a) {
+							let px = scan_x + col;
+							if (selection.allow(px, py)) matches[row_offset + col] = 1;
 						}
 					}
-					if (points.length == 0) break;
 				}
-				scan_value = false;
-			}
-			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-				if (map[x] && map[x][y] === scan_value) {
+
+				let fill_flags = matches;
+				if (fill_mode === 'color_connected') {
+					fill_flags = new Uint8Array(pixel_count);
+					let start_col = x - scan_x;
+					let start_row = y - scan_y;
+					if (start_col >= 0 && start_col < scan_w && start_row >= 0 && start_row < scan_h) {
+						let start_idx = start_row * scan_w + start_col;
+						if (matches[start_idx]) {
+							fill_flags[start_idx] = 1;
+							let stack = [start_idx];
+							while (stack.length) {
+								let idx = stack.pop();
+								let col = idx % scan_w;
+								if (col > 0 && matches[idx-1] && !fill_flags[idx-1]) { fill_flags[idx-1] = 1; stack.push(idx-1); }
+								if (col < scan_w-1 && matches[idx+1] && !fill_flags[idx+1]) { fill_flags[idx+1] = 1; stack.push(idx+1); }
+								if (idx-scan_w >= 0 && matches[idx-scan_w] && !fill_flags[idx-scan_w]) { fill_flags[idx-scan_w] = 1; stack.push(idx-scan_w); }
+								if (idx+scan_w < pixel_count && matches[idx+scan_w] && !fill_flags[idx+scan_w]) { fill_flags[idx+scan_w] = 1; stack.push(idx+scan_w); }
+							}
+						}
+					}
+				}
+
+				let changes = false;
+				for (let j = 0; j < pixel_count; j++) {
+					if (!fill_flags[j]) continue;
+					let i = j * 4;
 					var pxcolor = {
-						r: px[0],
-						g: px[1],
-						b: px[2],
-						a: px[3]/255
+						r: data[i],
+						g: data[i+1],
+						b: data[i+2],
+						a: data[i+3]/255
 					}
 					var result_color = pxcolor;
 					if (!Painter.erase_mode) {
@@ -659,13 +759,16 @@ export const Painter = {
 							result_color.a = Math.clamp(result_color.a * (1-b_opacity), 0, 1);
 						}
 					}
-					px[0] = result_color.r
-					px[1] = result_color.g
-					px[2] = result_color.b
-					if (!Painter.lock_alpha) px[3] = result_color.a*255
-					return px;
+					data[i]   = result_color.r;
+					data[i+1] = result_color.g;
+					data[i+2] = result_color.b;
+					if (!Painter.lock_alpha) data[i+3] = result_color.a*255;
+					changes = true;
 				}
-			})
+				if (changes) {
+					ctx.putImageData(arr, local_x, local_y);
+				}
+			}
 		}
 		ctx.globalAlpha = 1.0;
 		ctx.globalCompositeOperation = 'source-over'
@@ -1513,6 +1616,57 @@ export const Painter = {
 		if (changes) {
 			ctx.putImageData(arr, local_x, local_y);
 		}
+	},
+	/**
+	 * Rasterize a convex polygon into horizontal pixel spans by scanlines.
+	 * Cost scales with the polygon's pixel height and edge count, not its area.
+	 * @param {number[][]} vertices Polygon corners as [x, y] in pixel coordinates, in order.
+	 * @param {(x_start: number, x_end: number, y: number) => void} emit_run Called once per row with the inclusive filled span.
+	 * @returns {boolean} True if rasterized; false (without emitting) if the polygon is concave or degenerate, so callers can fall back.
+	 */
+	scanlineConvexPolygon(vertices, emit_run) {
+		let n = vertices.length;
+		if (n < 3) return false;
+		// Reject concave polygons: every consecutive edge turn must share one sign.
+		let sign = 0;
+		for (let i = 0; i < n; i++) {
+			let a = vertices[i], b = vertices[(i + 1) % n], c = vertices[(i + 2) % n];
+			let cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+			if (cross === 0) continue;
+			let cross_sign = cross > 0 ? 1 : -1;
+			if (sign === 0) sign = cross_sign;
+			else if (cross_sign !== sign) return false;
+		}
+		let min_y = Infinity, max_y = -Infinity;
+		for (let v of vertices) { if (v[1] < min_y) min_y = v[1]; if (v[1] > max_y) max_y = v[1]; }
+		for (let y = Math.floor(min_y); y <= Math.ceil(max_y) - 1; y++) {
+			// Widest x-extent of the polygon within the pixel row band [y, y+1]. Rounding
+			// the span outward keeps coverage conservative, matching getOccupationMatrix.
+			let band_top = y, band_bottom = y + 1;
+			let min_x = Infinity, max_x = -Infinity;
+			for (let v of vertices) {
+				if (v[1] >= band_top && v[1] <= band_bottom) {
+					if (v[0] < min_x) min_x = v[0];
+					if (v[0] > max_x) max_x = v[0];
+				}
+			}
+			for (let i = 0; i < n; i++) {
+				let a = vertices[i], b = vertices[(i + 1) % n];
+				if (a[1] === b[1]) continue;
+				for (let edge = 0; edge < 2; edge++) {
+					let cut = edge === 0 ? band_top : band_bottom;
+					if ((a[1] - cut) * (b[1] - cut) > 0) continue;
+					let t = (cut - a[1]) / (b[1] - a[1]);
+					if (t < 0 || t > 1) continue;
+					let x = a[0] + t * (b[0] - a[0]);
+					if (x < min_x) min_x = x;
+					if (x > max_x) max_x = x;
+				}
+			}
+			if (max_x < min_x) continue;
+			emit_run(Math.floor(min_x), Math.ceil(max_x) - 1, y);
+		}
+		return true;
 	},
 	getPixelColor(ctx, x, y) {
 		let {data} = ctx.getImageData(x, y, 1, 1)

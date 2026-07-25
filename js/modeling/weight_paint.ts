@@ -112,6 +112,13 @@ new Tool('weight_brush', {
 
 		let undo_tracked = all_bones;
 		Undo.initEdit({elements: undo_tracked, mirror_modeling: false});
+
+		if (data.element && data.event instanceof PointerEvent && data.event.pointerType == 'touch') {
+			// Prevent rotate navigation on mobile
+			let v = Preview.selected.controls.enableRotate;
+			Preview.selected.controls.enableRotate = false;
+			setTimeout(() => Preview.selected.controls.enableRotate = v, 50);
+		}
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
@@ -124,7 +131,6 @@ new Tool('weight_brush', {
 			if (Math.pow(last_click_pos[0]-click_pos[0], 2) + Math.pow(last_click_pos[1]-click_pos[1], 2) < 30) {
 				return;
 			}
-			if (Preview.selected.controls.hasMoved) return;
 			last_click_pos = click_pos;
 
 			data = data ?? preview.raycast(event) as any;
