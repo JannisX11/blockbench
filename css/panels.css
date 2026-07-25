@@ -2762,6 +2762,7 @@ span.controller_state_section_info {
 		text-align: center;
 		color: var(--color-subtle_text);
 		font-size: 13px;
+		touch-action: none;
 	}
 	.cube_uv_face:hover {
 		border-color: var(--color-uv-hover);
@@ -2775,7 +2776,6 @@ span.controller_state_section_info {
 	}
 	.cube_uv_face.unselected,
 	.cube_box_uv.unselected {
-		pointer-events: none;
 		z-index: 1;
 	}
 	.cube_uv_face.unselected > div,
@@ -2826,6 +2826,7 @@ span.controller_state_section_info {
 	.mesh_uv_face {
 		position: absolute;
 		pointer-events: none;
+		touch-action: none;
 		z-index: 1;
 	}
 	.mesh_uv_face.selected {

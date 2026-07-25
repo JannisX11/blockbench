@@ -3523,13 +3523,17 @@ Interface.definePanels(function() {
 				dragFace(element, face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
+					if (!element.selected) {
+						element.select(event);
+						UVEditor.getSelectedFaces(element, true).empty();
+					}
+
 					let faces_selected_before = UVEditor.getSelectedFaces(element).slice();
 					if (element && face_key) this.selectFace(element, face_key, event, true);
 					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({
 						elements,
 						uv_only: true,
-
 					});
 					let total_diff = [0, 0];
 					let do_move_uv = !!(BarItems.move_texture_with_uv.value && this.texture);
