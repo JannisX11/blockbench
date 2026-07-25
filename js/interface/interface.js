@@ -253,7 +253,7 @@ export function setupInterface() {
 	// iOS long-press contextmenu fix
 	let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
 		(navigator.userAgent.includes("Mac") && "ontouchend" in document);
-	if (isIOS) {
+	if (isIOS && !isApp) {
 		document.addEventListener('touchstart', (e1) => {
 			if (e1.touches.length != 1) return;
 			let pos1 = e1.touches[0];
@@ -272,7 +272,15 @@ export function setupInterface() {
 					event_data.clientX = pos2.clientX;
 					event_data.clientY = pos2.clientY;
 					let new_event = new PointerEvent('contextmenu', event_data);
-					e1.target.dispatchEvent(new_event);
+
+					let target = e1.target;
+					for (let i = 0; i < 5; i++) {
+						if (target instanceof HTMLElement == false) break;
+						target.dispatchEvent(new_event);
+						if (Menu.open) break;
+						if (new_event.cancelBubble == true) break;
+						target = target.parentNode;
+					}
 				}
 			};
 			document.addEventListener('touchend', onEnd);
