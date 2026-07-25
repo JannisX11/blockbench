@@ -73,8 +73,7 @@ export class MenuSeparator {
 		}
 	}
 }
-function handleMenuOverflow(node) {
-	node = node.get(0);
+function handleMenuOverflow(node: HTMLElement) {
 	if (!node) return;
 	function offset(amount) {
 		let top = parseInt(node.style.top);
@@ -94,6 +93,7 @@ function handleMenuOverflow(node) {
 		node.addEventListener('touchstart', e1 => {
 			e1.stopPropagation();
 			convertTouchEvent(e1);
+			// @ts-expect-error
 			let last_y = e1.clientY;
 			let move = e2 => {
 				convertTouchEvent(e2);
@@ -229,7 +229,7 @@ export class Menu implements Deletable {
 			if (el_height > window_height) {
 				childlist.css('margin-top', '0').css('top', '0')
 				childlist.css('top', (-childlist.offset().top + top_gap) + 'px')
-				handleMenuOverflow(childlist);
+				handleMenuOverflow(childlist.get(0));
 
 			} else if (offset.top + el_height > window_height) {
 				childlist.css('margin-top', top_gap-childlist.height() + 'px')
