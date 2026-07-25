@@ -1804,6 +1804,7 @@
 	.plugin_browser_tabbed_page {
 		padding: 8px 24px;
 		overflow-y: auto;
+		max-height: unset;
 	}
 	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
