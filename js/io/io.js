@@ -397,8 +397,8 @@ export const Extruder = {
 		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
 
 		//Undo
-		Undo.initEdit({elements: selected, outliner: true, textures: []})
-		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle()
+		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []})
+		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
 
 		//var ext_x, ext_y;
 		var ctx = Painter.getCanvas(texture).getContext('2d')
@@ -409,11 +409,13 @@ export const Extruder = {
 		c.height = Extruder.ext_img.naturalHeight;
 		ctx.drawImage(Extruder.ext_img, 0, 0)
 		var image_data = ctx.getImageData(0, 0, c.width, c.height).data
+		texture.uv_width = c.width;
+		texture.uv_height = c.height;
 
 		var finished_pixels = {}
 		var cube_nr = 0;
 		var cube_name = texture.name.split('.')[0]
-		selected.empty()
+		Outliner.selected.empty()
 
 		//Scale Index
 		var scale_i = 1;
@@ -540,7 +542,7 @@ export const Extruder = {
 						autouv: 0, box_uv: false,
 						from, to, faces
 					}).init();
-					selected.push(current_cube);
+					Outliner.selected.push(current_cube);
 					cube_nr++;
 				}
 
@@ -550,11 +552,14 @@ export const Extruder = {
 		}
 
 		var group = new Group(cube_name).init().addTo()
-		selected.forEach(function(s) {
+		Outliner.selected.forEach(function(s) {
 			s.addTo(group).init()
 		})
 
-		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
+		Undo.finishEdit(
+			'Add extruded texture',
+			{elements: Outliner.selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
+		)
 	}
 }
 
