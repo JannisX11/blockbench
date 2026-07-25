@@ -242,6 +242,7 @@ export function setupInterface() {
 	let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
 		(navigator.userAgent.includes("Mac") && "ontouchend" in document);
 	if (isIOS) {
+			Blockbench.showQuickMessage('touch fix init', 2000)
 		document.addEventListener('touchstart', (e1) => {
 			if (e1.touches.length != 1) return;
 			let pos1 = e1.touches[0];
@@ -249,9 +250,11 @@ export function setupInterface() {
 
 			let onEnd = (e2) => {
 				document.removeEventListener('touchend', onEnd);
+					Blockbench.showQuickMessage('touch fix e2')
 				let pos2 = e2.changedTouches[0];
 				let delta = Math.pow(pos1.clientX - pos2.clientX, 2) + Math.pow(pos1.clientY - pos2.clientY, 2);
 				if (delta > 50) return;
+					Blockbench.showQuickMessage('touch fix delta', delta)
 				let time_passed = (Date.now() - start_time) / 1000;
 				if (time_passed < 0.5) return;
 
@@ -261,9 +264,11 @@ export function setupInterface() {
 					event_data.clientY = pos2.clientY;
 					let new_event = new PointerEvent('contextmenu', event_data);
 					e1.target.dispatchEvent(new_event);
+					Blockbench.showQuickMessage('touch fix succeeded')
 				}
 			};
 			document.addEventListener('touchend', onEnd);
+			Blockbench.showQuickMessage('touch fix started')
 		});
 	}
 
