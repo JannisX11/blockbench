@@ -1377,7 +1377,6 @@ import { TransformerModule } from "./transform_modules";
 
 				if ( !scope.visible || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
 
-				scope.orbit_controls.hasMoved = true
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
 				if (!planeIntersect) return;

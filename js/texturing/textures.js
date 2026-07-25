@@ -2387,8 +2387,6 @@ SharedActions.add('duplicate', {
 	}
 })
 Clipbench.setTexture = function(texture) {
-	//Sets the raw image of the texture
-	if (!isApp) return;
 
 	Clipbench.texture = texture.getSaveCopy();
 	delete Clipbench.texture.path;
@@ -2397,6 +2395,7 @@ Clipbench.setTexture = function(texture) {
 	Clipbench.texture.source = texture.getDataURL();
 
 	if (isApp) {
+		//Sets the raw image of the texture
 		if (texture.mode === 'bitmap') {
 			var img = nativeImage.createFromDataURL(texture.source);
 		} else {
@@ -2903,7 +2902,7 @@ Interface.definePanels(function() {
 				@mousedown="highlightTexture($event)"
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.propertiesDialog($event)"
-				@mousedown.stop="dragTexture($event)" @touchstart.stop="dragTexture($event)"
+				@mousedown.stop="dragTexture($event)" @touchstart="dragTexture($event)"
 				@contextmenu.prevent.stop="texture.showContextMenu($event)"
 			>
 				<i v-if="texture.getGroup()?.is_material" class="material-icons icon pbr_channel_icon">{{ pbr_channels[texture.pbr_channel].icon }}</i>

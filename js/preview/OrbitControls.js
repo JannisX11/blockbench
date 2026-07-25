@@ -600,13 +600,13 @@ constructor ( object, preview ) {
 		
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
-				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
-					return;
-				}
-				handleMouseDownRotate( event );
+			if ( scope.enableRotate === false ) return;
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
+				return;
+			}
+			handleMouseDownRotate( event );
 
-				state = STATE.ROTATE;
+			state = STATE.ROTATE;
 
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
@@ -766,6 +766,7 @@ constructor ( object, preview ) {
 				if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?
 
 				handleTouchMoveRotate( event );
+				scope.hasMoved = true;
 
 				break;
 
@@ -790,6 +791,7 @@ constructor ( object, preview ) {
 		if ( scope.isEnabled() === false ) return;
 		scope.dispatchEvent( endEvent );
 		state = STATE.NONE;
+		scope.hasMoved = false;
 
 	}
 

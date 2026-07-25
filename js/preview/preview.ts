@@ -350,7 +350,7 @@ export class Preview {
 		this.controls.rotateSpeed = (settings.viewport_rotate_speed.value as number) / 100;
 		this.controls.onUpdate(() => {
 			ReferenceImage.active.forEach(ref => {
-				if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
+				if (ref.is_blueprint && ref.attached_side == this.angle) {
 					ref.updateTransform()
 				}
 			})
@@ -361,7 +361,7 @@ export class Preview {
 				if (this.camOrtho.axis != 'y') this.side_view_target.y = this.controls.target.y;
 				if (this.camOrtho.axis != 'z') this.side_view_target.z = this.controls.target.z;
 			}
-			Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview});
+			Blockbench.dispatchEvent('update_camera_position', {preview: this});
 		})
 
 		//Annotations

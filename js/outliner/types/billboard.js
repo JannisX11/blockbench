@@ -545,10 +545,8 @@ new NodePreviewController(Billboard, {
 	},
 	updateFacingCamera(element) {
 		//let scale = Preview.selected.calculateControlScale(billboard.getWorldPosition());
+		if (element.visibility == false) return;
 		let {mesh} = element;
-		let vec = Reusable.vec1;
-		let dummy_vec = Reusable.vec2;
-		let world_quat_inverse = mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
 		let camera = Preview.selected.camera;
 		switch (element.facing_mode) {
 			case 'lookat': {
@@ -556,6 +554,8 @@ new NodePreviewController(Billboard, {
 				break;
 			}
 			case 'lookat_y': {
+				let vec = Reusable.vec1;
+				let dummy_vec = Reusable.vec2;
 				var v = vec.copy(camera.position);
 				dummy_vec.set(0, 0, 0);
 				mesh.localToWorld(dummy_vec);
@@ -564,11 +564,13 @@ new NodePreviewController(Billboard, {
 				break;
 			}
 			case 'rotate': {
+				let world_quat_inverse = mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
 				mesh.rotation.copy(camera.rotation);
 				mesh.quaternion.premultiply(world_quat_inverse);
 				break;
 			}
 			case 'rotate_y': {
+				let world_quat_inverse = mesh.parent.getWorldQuaternion(Reusable.quat1).invert();
 				mesh.rotation.copy(camera.rotation);
 				mesh.rotation.reorder('YXZ');
 				mesh.rotation.x = mesh.rotation.z = 0;

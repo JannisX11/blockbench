@@ -238,6 +238,34 @@ export function setupInterface() {
 	}
 
 
+	// iOS long-press contextmenu fix
+	let isIOS =  ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) ||
+		(navigator.userAgent.includes("Mac") && "ontouchend" in document);
+	if (isIOS) {
+		document.addEventListener('touchstart', (e1) => {
+			if (e1.touches.length != 1) return;
+			let pos1 = e1.touches[0];
+			let start_time = Date.now();
+
+			let onEnd = (e2) => {
+				document.removeEventListener('touchend', onEnd);
+				let pos2 = e2.changedTouches[0];
+				let delta = Math.pow(pos1.clientX - pos2.clientX, 2) + Math.pow(pos1.clientY - pos2.clientY, 2);
+				if (delta > 50) return;
+				let time_passed = (Date.now() - start_time) / 1000;
+				if (time_passed < 0.5) return;
+
+				if (e1.target instanceof HTMLElement) {
+					let event_data = Object.assign({}, e2);
+					event_data.clientX = pos2.clientX;
+					event_data.clientY = pos2.clientY;
+					let new_event = new PointerEvent('contextmenu', event_data);
+					e1.target.dispatchEvent(new_event);
+				}
+			};
+			document.addEventListener('touchend', onEnd);
+		});
+	}
 
 
 	// Click binds
