@@ -263,16 +263,16 @@ export function setupInterface() {
 				document.removeEventListener('touchend', onEnd);
 				let pos2 = e2.changedTouches[0];
 				let delta = Math.pow(pos1.clientX - pos2.clientX, 2) + Math.pow(pos1.clientY - pos2.clientY, 2);
-				if (delta > 30) return;
+				if (delta > 50) return;
 				let time_passed = (Date.now() - start_time) / 1000;
-				if (time_passed < 0.6) return;
+				if (time_passed < 0.5) return;
 
-				if (e2.target instanceof HTMLElement) {
+				if (e1.target instanceof HTMLElement) {
 					let event_data = Object.assign({}, e2);
 					event_data.clientX = pos2.clientX;
 					event_data.clientY = pos2.clientY;
 					let new_event = new PointerEvent('contextmenu', event_data);
-					e2.target.dispatchEvent(new_event);
+					e1.target.dispatchEvent(new_event);
 				}
 			};
 			document.addEventListener('touchend', onEnd);
