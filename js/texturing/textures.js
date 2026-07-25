@@ -1122,6 +1122,7 @@ export class Texture {
 		return this;
 	}
 	showContextMenu(event) {
+		Blockbench.showQuickMessage('touch fix dispatched')
 		if (this != Texture.selected) this.select()
 		Prop.active_panel = 'textures'
 		this.menu.open(event, this)
@@ -2903,7 +2904,7 @@ Interface.definePanels(function() {
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.propertiesDialog($event)"
 				@mousedown.stop="dragTexture($event)" @touchstart="dragTexture($event)"
-				@contextmenu.prevent.stop="texture.showContextMenu($event)"
+				@contextmenu="texture.showContextMenu($event)"
 			>
 				<i v-if="texture.getGroup()?.is_material" class="material-icons icon pbr_channel_icon">{{ pbr_channels[texture.pbr_channel].icon }}</i>
 				<div class="texture_icon_wrapper">
