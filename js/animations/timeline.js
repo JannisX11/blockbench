@@ -783,6 +783,13 @@ export const Timeline = {
 	])
 }
 
+StateMemory.init("timeline_channels", "object", {
+	rotation: true,
+	position: true,
+	scale: true,
+	hide_empty: false,
+});
+
 Interface.definePanels(() => {
 	function eventTargetToAnimator(target) {
 		let target_node = target;
@@ -867,12 +874,7 @@ Interface.definePanels(() => {
 				onion_skin_selectable: BarItems.animation_onion_skin.value,
 				onion_skin_time: 0,
 
-				channels: {
-					rotation: true,
-					position: true,
-					scale: true,
-					hide_empty: false,
-				}
+				channels: StateMemory.timeline_channels
 			}},
 			computed: {
 				graph_editor_animator() {
@@ -2210,6 +2212,7 @@ BARS.defineActions(function() {
 						icon: channels[id] != false ? on : off,
 						click() {
 							Vue.set(channels, id, channels[id] == false);
+							StateMemory.save('timeline_channels');
 						}
 					})
 				}
@@ -2217,7 +2220,10 @@ BARS.defineActions(function() {
 			return [
 				...menu_list,
 				'_',
-				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
+				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {
+					Vue.set(channels, 'hide_empty', !channels.hide_empty);
+					StateMemory.save('timeline_channels');
+				}},
 			]
 		}
 	})

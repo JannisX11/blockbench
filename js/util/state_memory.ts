@@ -2,7 +2,7 @@ const StateMemory = {
 	/**
 	 * Initialize a memorized property
 	 */
-	init(key: string, type: 'string'|'number'|'boolean'|'object'|'array') {
+	init(key: string, type: 'string'|'number'|'boolean'|'object'|'array', default_value?: any) {
 		let saved: any = localStorage.getItem(`StateMemory.${key}`)
 		if (typeof saved == 'string') {
 			try {
@@ -13,6 +13,8 @@ const StateMemory = {
 		}
 		if ( saved !== null && (typeof saved == type || (type == 'array' && (saved instanceof Array))) ) {
 			StateMemory[key] = saved;
+		} else if (default_value != undefined) {
+			StateMemory[key] = default_value;
 		} else {
 			StateMemory[key] = (() => {switch (type) {
 				case 'string': return ''; break;
@@ -23,7 +25,7 @@ const StateMemory = {
 			}})();
 		}
 	},
-	set(key: string, value) {
+	set(key: string, value: any) {
 		if (StateMemory[key] instanceof Array) {
 			StateMemory[key].replace(value);
 		} else {
