@@ -260,12 +260,10 @@ export function setupInterface() {
 					event_data.clientX = pos2.clientX;
 					event_data.clientY = pos2.clientY;
 					let new_event = new PointerEvent('contextmenu', event_data);
-					Blockbench.showQuickMessage('touch fix succeeded')
 					e1.target.dispatchEvent(new_event);
 				}
 			};
 			document.addEventListener('touchend', onEnd);
-			Blockbench.showQuickMessage('touch fix started')
 		});
 	}
 

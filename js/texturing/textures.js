@@ -1122,7 +1122,6 @@ export class Texture {
 		return this;
 	}
 	showContextMenu(event) {
-		Blockbench.showQuickMessage('touch fix dispatched')
 		if (this != Texture.selected) this.select()
 		Prop.active_panel = 'textures'
 		this.menu.open(event, this)
