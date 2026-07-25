@@ -106,6 +106,8 @@ BARS.defineActions(function() {
 		onConfirm(result) {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
+			const color = Math.floor(Math.random()*markerColors.length);
+
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
@@ -117,6 +119,7 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements, selection: true}, amended);
 				let spline = new SplineMesh({
 					name: result.shape,
+					color,
 					vertices: {},
 					handles: {},
 					curves: {}
