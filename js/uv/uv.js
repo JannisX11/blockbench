@@ -1864,7 +1864,7 @@ export const UVEditor = {
 		{
 			name: 'menu.uv.flip_x',
 			icon: () => (UVEditor.isSelectedFaceMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
-			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			condition: () => Modes.edit && !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
 				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorX(event);
@@ -1874,7 +1874,7 @@ export const UVEditor = {
 		{
 			name: 'menu.uv.flip_y',
 			icon: () => (UVEditor.isSelectedFaceMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
-			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			condition: () => Modes.edit && !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
 				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorY(event);
@@ -2016,7 +2016,7 @@ BARS.defineActions(function() {
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.uv_rotation && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.uv_rotation && Cube.selected.length,
 		min: 0, max: 270, step: 90, width: 80, circular: true,
 		onBefore: () => {
 			let do_move_texture = !!(BarItems.move_texture_with_uv.value && UVEditor.texture);
@@ -2076,7 +2076,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('uv_grid', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		min_width: 68,
 		value: 'auto',
 		options: {
@@ -2096,7 +2096,7 @@ BARS.defineActions(function() {
 	new Action('uv_maximize', {
 		icon: 'zoom_out_map',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2112,7 +2112,7 @@ BARS.defineActions(function() {
 	new Action('uv_turn_mapping', {
 		icon: 'screen_rotation',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2128,7 +2128,7 @@ BARS.defineActions(function() {
 	new Action('uv_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => (UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length,
+		condition: () => Modes.edit && ((UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2144,7 +2144,7 @@ BARS.defineActions(function() {
 	new Action('uv_project_from_view', {
 		icon: 'view_in_ar',
 		category: 'uv',
-		condition: () => (UVEditor.isFaceUV() && Mesh.selected.length),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected.length,
 		click(event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 
@@ -2208,7 +2208,7 @@ BARS.defineActions(function() {
 	new Action('uv_rel_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2224,7 +2224,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_x', {
 		icon: 'icon-mirror_x',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2246,7 +2246,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_y', {
 		icon: 'icon-mirror_y',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2268,7 +2268,7 @@ BARS.defineActions(function() {
 	new Action('uv_rotate_left', {
 		icon: 'rotate_left',
 		category: 'uv',
-		condition: () => Mesh.selected.length,
+		condition: () => Modes.edit && Mesh.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2284,7 +2284,7 @@ BARS.defineActions(function() {
 	new Action('uv_rotate_right', {
 		icon: 'rotate_right',
 		category: 'uv',
-		condition: () => Mesh.selected.length,
+		condition: () => Modes.edit && Mesh.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2300,7 +2300,7 @@ BARS.defineActions(function() {
 	new Action('uv_transparent', {
 		icon: 'clear',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2314,7 +2314,7 @@ BARS.defineActions(function() {
 	new Action('uv_reset', {
 		icon: 'replay',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2330,7 +2330,7 @@ BARS.defineActions(function() {
 	new Action('uv_apply_all', {
 		icon: 'format_color_fill',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		click: function (e) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.applyAll(e)
@@ -2339,7 +2339,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -2359,7 +2359,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2374,7 +2374,7 @@ BARS.defineActions(function() {
 	})
 	new Action('face_tint', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('switchTint', event)
@@ -2383,7 +2383,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
 		getInterval(event) {
 			return 1;
 		},
@@ -2425,7 +2425,7 @@ BARS.defineActions(function() {
 	new Action('merge_uv_vertices', {
 		icon: 'close_fullscreen',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			Mesh.selected.forEach(mesh => {
@@ -2460,7 +2460,7 @@ BARS.defineActions(function() {
 	new Action('connect_uv_faces', {
 		icon: 'move_up',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			Mesh.selected.forEach(mesh => {
@@ -2551,7 +2551,7 @@ BARS.defineActions(function() {
 	new Action('snap_uv_to_pixels', {
 		icon: 'grid_goldenratio',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
 			let elements = UVEditor.getMappableElements();
 			Undo.initEdit({elements, uv_only: true})
@@ -2599,7 +2599,7 @@ BARS.defineActions(function() {
 	new Action('uv_cycle', {
 		icon: 'fa-arrows-spin',
 		category: 'uv',
-		condition: () => Mesh.hasSelected(),
+		condition: () => Modes.edit && Mesh.hasSelected(),
 		click(event) {
 			let elements = Mesh.selected;
 			Undo.initEdit({elements, uv_only: true})
@@ -2625,7 +2625,7 @@ BARS.defineActions(function() {
 	new Action('uv_cycle_invert', {
 		icon: 'fa-group-arrows-rotate',
 		category: 'uv',
-		condition: () => Mesh.hasSelected(),
+		condition: () => Modes.edit && Mesh.hasSelected(),
 		click(event) {
 			let elements = Mesh.selected;
 			Undo.initEdit({elements, uv_only: true})

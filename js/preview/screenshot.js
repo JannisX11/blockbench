@@ -161,7 +161,7 @@ export const Screencam = {
 		part_order: ['form', 'lines'],
 		lines: [
 			Interface.createElement('div', {class: 'advanced_screenshot_preview'}, [
-				Interface.createElement('img')
+				Interface.createElement('img', {class: 'checkerboard'})
 			])
 		],
 		form: {

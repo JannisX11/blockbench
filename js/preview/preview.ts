@@ -2669,10 +2669,11 @@ BARS.defineActions(function() {
 			Preview.split_screen.setMode(this.value);
 		}
 	})
+	let uvEditorActive = () => (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover'));
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
-		condition: () => !Format.image_editor,
+		condition: () => !Format.image_editor && (Modes.edit || !uvEditorActive()),
 		keybind: new Keybind({}, {
 			rotate_only: 'shift',
 			zoom: 'ctrl'
@@ -2684,7 +2685,7 @@ BARS.defineActions(function() {
 		click(event) {
 			if (!Project) return;
 			let zoom = this.keybind.additionalModifierTriggered(event, 'zoom');
-			if (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover')) {
+			if (uvEditorActive()) {
 				UVEditor.focusOnSelection(zoom)
 
 			} else {
