@@ -1051,35 +1051,17 @@ import { TransformerModule } from "./transform_modules";
 				var pointerVector = new THREE.Vector2();
 
 				var point = new THREE.Vector3();
-				var originalPoint = new THREE.Vector3();
 				var offset = new THREE.Vector3();
 				var scale = 1;
 				var eye = new THREE.Vector3();
 
 				var tempMatrix = new THREE.Matrix4();
-				var originalValue = null;
-				var previousValue = 0;
 
 				var worldPosition = new THREE.Vector3();
 				var worldRotation = new THREE.Euler();
 				var camPosition = new THREE.Vector3();
 
 
-			this.attach = function ( object ) {
-				return;
-				if (Canvas.show_gizmos == false) return;
-				this.elements.safePush(object);
-				this.visible = true;
-			};
-
-			this.detach = function () {
-				return;
-				this.elements.length = 0
-				this.visible = false;
-				this.axis = null;
-				this.hoverAxis = null;
-				SplineGizmos.verifyValidity();
-			};
 			this.setMode = function ( mode ) {
 				if (mode === 'hidden') {
 					return;
@@ -1176,7 +1158,6 @@ import { TransformerModule } from "./transform_modules";
 			};
 			this.fadeInControls = function(frames) {
 				if (!frames || typeof frames !== 'number') frames = 10
-				var scope = Transformer;
 				scale = this.getScale()
 				var old_scale = Transformer.scale.x
 				var diff = (scale - old_scale) / frames
@@ -1465,7 +1446,6 @@ import { TransformerModule } from "./transform_modules";
 					scope.dispatchEvent( mouseUpEvent );
 					scope.orbit_controls.stopMovement();
 					Canvas.outlines.children.length = 0;
-					originalValue = null;
 
 					extendTransformLine(false);
 
