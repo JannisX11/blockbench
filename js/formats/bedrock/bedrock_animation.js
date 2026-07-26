@@ -150,6 +150,12 @@ export const animation_codec = new AnimationCodec('bedrock', {
 						'query.distance_from_camera',
 						'query.lod_index',
 						'query.camera_distance_range_lerp',
+						'query.all_animations_finished',
+						'query.any_animation_finished',
+						'query.state_time',
+						'query.is_first_person',
+						'context.is_first_person',
+						'query.get_default_bone_pivot',
 					];
 					function processPlaceholderVariables(text) {
 						if (typeof text !== 'string') return;
