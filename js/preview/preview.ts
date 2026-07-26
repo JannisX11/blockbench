@@ -561,10 +561,12 @@ export class Preview {
 			this.raycaster.far = this.camOrtho.far - this.camOrtho.near;
 		}
 
+		let tool = Toolbox.selected;
 		var objects = []
 		Outliner.elements.forEach(element => {
 			let mesh = element.mesh;
-			if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
+			if (element.visibility === false || (mesh && mesh.visible == false)) return;
+			if (element.locked === true && !tool.click_locked_elements) return;
 			if (mesh && 'geometry' in mesh) {
 				objects.push(mesh);
 				if (Modes.edit && element.selected) {

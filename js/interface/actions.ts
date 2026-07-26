@@ -730,6 +730,7 @@ export interface BrushOptions {
 interface ToolSpecificOptions {
 	selectFace?: boolean
 	selectElements?: boolean
+	click_locked_elements?: boolean
 	transformerMode?: 'translate' | 'scale' | 'rotate' | 'stretch' | 'hidden' | ''
 	cursor?: string,
 	animation_channel?: string
@@ -775,6 +776,7 @@ export class Tool extends Action implements ToolSpecificOptions {
 		this.alt_tool = data.alt_tool;
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
+		this.click_locked_elements = data.click_locked_elements == true;
 		this.cursor = data.cursor;
 		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;

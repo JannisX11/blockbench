@@ -110,7 +110,7 @@ export const Painter = {
 				ColorPanel.set(color, e.button == 2);
 			}
 		}
-		if (!data.intersects || (data.element && data.element.locked)) return;
+		if (!data.intersects || (data.element.locked && !Toolbox.selected.click_locked_elements)) return;
 		var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture())
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
@@ -3135,6 +3135,7 @@ BARS.defineActions(function() {
 		toolbar: 'brush',
 		cursor: 'crosshair',
 		selectFace: true,
+		click_locked_elements: true,
 		transformerMode: 'hidden',
 		paintTool: true,
 		allowed_view_modes: ['textured', 'material'],
