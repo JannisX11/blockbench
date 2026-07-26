@@ -834,6 +834,8 @@
 	"dialog.preview_options.background.solid": "Solid",
 	"dialog.preview_options.background.custom_color": "Custom Color",
 	"dialog.preview_options.show_gizmos": "Show Gizmos",
+	"dialog.preview_options.show_element_markers": "Show Element Markers",
+	"dialog.preview_options.show_element_markers.desc": "Display markers to indicate the position for elements such as bones, null objects, and locators",
 
 	"dialog.input.title": "Input",
 

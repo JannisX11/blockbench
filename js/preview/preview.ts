@@ -2102,6 +2102,7 @@ interface PreviewOptionsFormResult {
 	pixel_grid: boolean
 	painting_grid: boolean
 	show_gizmos: boolean
+	show_element_markers: boolean
 	[key: string]: any
 }
 export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
@@ -2145,6 +2146,7 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 		ground_plane: { label: 'settings.ground_plane', type: 'checkbox', style: 'toggle_switch' },
 		pixel_grid: { label: 'settings.pixel_grid', condition: () => !Modes.paint, type: 'checkbox', style: 'toggle_switch' },
 		painting_grid: { label: 'settings.painting_grid', condition: () => Modes.paint, type: 'checkbox', style: 'toggle_switch' },
+		show_element_markers: { label: 'dialog.preview_options.show_element_markers', type: 'checkbox', style: 'toggle_switch', value: true, description: 'dialog.preview_options.show_element_markers.desc' },
 		show_gizmos: { label: 'dialog.preview_options.show_gizmos', type: 'checkbox', style: 'toggle_switch', value: true },
 	},
 	onOpen() {
@@ -2159,6 +2161,7 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 			pixel_grid: settings.pixel_grid.value,
 			painting_grid: settings.painting_grid.value,
 			show_gizmos: Canvas.show_gizmos,
+			show_element_markers: Canvas.show_element_markers,
 		});
 	},
 	onFormChange(result: PreviewOptionsFormResult) {
@@ -2201,6 +2204,11 @@ export const ViewOptionsDialog = new ConfigDialog('preview_view_options', {
 		if (Canvas.show_gizmos != result.show_gizmos) {
 			Canvas.show_gizmos = result.show_gizmos;
 			updateSelection();
+		}
+		if (Canvas.show_element_markers != result.show_element_markers) {
+			Canvas.show_element_markers = result.show_element_markers;
+			updateSelection();
+			Canvas.updateVisibility();
 		}
 	}
 });

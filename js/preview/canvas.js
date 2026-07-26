@@ -44,6 +44,7 @@ export const Canvas = {
 	pivot_marker: new THREE.Object3D(),
 	gizmos: [],
 	show_gizmos: true,
+	show_element_markers: true,
 	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,

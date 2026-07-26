@@ -110,6 +110,7 @@ declare namespace Canvas {
 	const brush_outline: THREE.Mesh
 
 	let show_gizmos: boolean
+	let show_element_markers: boolean
 	let ground_animation: boolean
 
 	const global_light_color: THREE.Color

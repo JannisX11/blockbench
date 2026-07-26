@@ -529,7 +529,7 @@ new NodePreviewController(ArmatureBone, {
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateVisibility(element: ArmatureBone) {
-		element.mesh.visible = Modes.paint ? false : element.visibility;
+		element.mesh.visible = Canvas.show_element_markers && (Modes.paint ? false : element.visibility);
 
 		this.dispatchEvent('update_visibility', {element});
 	},
