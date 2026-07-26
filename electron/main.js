@@ -60,12 +60,13 @@ function createWindow(second_instance, options = {}) {
 		app.quit()
 		return;
 	}
+	let native_frame = LaunchSettings.get('native_window_frame') === true;
 	let win_options = {
 		icon: 'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: LaunchSettings.get('native_window_frame') === true,
-		titleBarStyle: 'hidden',
+		frame: native_frame,
+		titleBarStyle: native_frame ? 'default' : 'hidden',
 		minWidth: 640,
 		minHeight: 480,
 		width: 1080,

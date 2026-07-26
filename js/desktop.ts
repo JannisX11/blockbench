@@ -51,17 +51,20 @@ export function initializeDesktopApp() {
 
 	settings.interface_scale.onChange(settings.interface_scale.value);
 
-	if (Blockbench.platform == 'darwin') {
-		//Placeholder
-		$('#mac_window_menu').show()
-		currentwindow.on('enter-full-screen', () => {
-			$('#mac_window_menu').hide()
-		})
-		currentwindow.on('leave-full-screen', () => {
+	if (settings.native_window_frame.value != true) {
+		// Window controls
+		if (Blockbench.platform == 'darwin') {
+			//Placeholder
 			$('#mac_window_menu').show()
-		})
-	} else {
-		$('#windows_window_menu').show()
+			currentwindow.on('enter-full-screen', () => {
+				$('#mac_window_menu').hide()
+			})
+			currentwindow.on('leave-full-screen', () => {
+				$('#mac_window_menu').show()
+			})
+		} else {
+			$('#windows_window_menu').show()
+		}
 	}
 	if (Blockbench.platform == 'linux') {
 		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964

@@ -302,6 +302,7 @@ function setupSettings() {
 	new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
 	new Setting('automatic_plugin_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
+	new Setting('native_window_frame', {category: 'application', value: false, requires_restart: true, condition: isApp, launch_setting: true});
 	
 	//Export
 	new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {

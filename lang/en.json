@@ -1316,6 +1316,8 @@
 	"settings.automatic_plugin_updates.desc": "Automatically update plugins to keep them up-to-date",
 	"settings.hardware_acceleration": "Hardware Acceleration",
 	"settings.hardware_acceleration.desc": "Outsource rendering tasks to the graphics card",
+	"settings.native_window_frame": "Native Window Frame",
+	"settings.native_window_frame.desc": "Use a native window frame in the style of the OS",
 
 	"category.navigate": "Navigation",
 	"category.tools": "Tools",
