@@ -48,9 +48,9 @@ export const Animator = {
 		Animator.MolangParser.resetVariables();
 		processVariablePlaceholderText(Project.variable_placeholders);
 
-		scene.add(WinterskyScene.space);
+		Canvas.scene.add(WinterskyScene.space);
 		WinterskyScene.global_options.tick_rate = settings.particle_tick_rate.value;
-		if (settings.motion_trails.value) scene.add(Animator.motion_trail);
+		if (settings.motion_trails.value) Canvas.scene.add(Animator.motion_trail);
 		Animator.motion_trail.no_export = true;
 
 		if (!Animator.timeline_node) {

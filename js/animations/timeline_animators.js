@@ -1045,7 +1045,10 @@ export class EffectAnimator extends GeneralAnimator {
 
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
-				let diff = this.animation.time - kf.time;
+				// Using the timeline time instead of animation to not stop after animation end in some loop modes.
+				// To be changed when implementing separate play times for animations
+				// let diff = this.animation.time - kf.time;
+				let diff = Timeline.time - kf.time;
 				let i = 0;
 				for (let data_point of kf.data_points) {
 					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
@@ -1080,7 +1083,7 @@ export class EffectAnimator extends GeneralAnimator {
 							} else {
 								emitter.parent_mode = 'entity';
 							}
-							scene.add(emitter.global_space);
+							Canvas.scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
 
 						} else if (emitter && emitter.enabled) {
