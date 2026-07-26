@@ -350,7 +350,7 @@ onVueSetup(function() {
 						setting.onChange(setting.value);
 					}
 					if (isApp && setting.launch_setting) {
-						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value});
 					}
 				}
 			}

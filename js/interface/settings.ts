@@ -208,6 +208,9 @@ export class Setting {
 		if (typeof this.onChange == 'function' && this.value !== old_value) {
 			this.onChange(this.value);
 		}
+		if (isApp && this.launch_setting) {
+			ipcRenderer.send('edit-launch-setting', {key: this.id, value: this.value});
+		}
 		Settings.saveLocalStorages();
 	}
 	/**
