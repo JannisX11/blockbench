@@ -540,6 +540,7 @@ export const Painter = {
 			}
 
 			if (Painter.current.use_screen_projection) {
+				face_matrix = null;
 				Painter.projectScreenSpaceBrush(ctx, {
 					x, y, size, texture,
 					softness: softness * 1.8,

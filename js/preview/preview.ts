@@ -1524,12 +1524,12 @@ export class Preview {
 				if (texture) {
 					pixel_density = texture.width/texture.getUVWidth();
 				}
-				let brush_size = BarItems.slider_brush_size.get();
-				let r = brush_size/2;
-				let screen_radius = (13.4 / this.calculateControlScale(data.intersects[0].point)) * (r / pixel_density);
-				Painter.screen_space_brush_cursor.style.setProperty('--radius', screen_radius.toString());
-				//let size = Painter.getBrushDimensions(brush_size);
-				//Painter.screen_space_brush_cursor.style.setProperty('--aspect-ratio', (size[0]/size[1]).toString());
+				let dimensions = Painter.getBrushDimensions();
+				let screen_factor = 13.4 / this.calculateControlScale(data.intersects[0].point);
+				let screen_width = screen_factor * ((dimensions[0]/2) / pixel_density);
+				let screen_height = screen_factor * ((dimensions[1]/2) / pixel_density);
+				Painter.screen_space_brush_cursor.style.setProperty('--width', screen_width.toString());
+				Painter.screen_space_brush_cursor.style.setProperty('--height', screen_height.toString());
 			}
 
 		} else if (Painter.screen_space_brush_cursor) {
@@ -1687,7 +1687,7 @@ export class Preview {
 		}
 		return this;
 	}
-	calculateControlScale(position) {
+	calculateControlScale(position: THREE.Vector3) {
 		if (this.isOrtho) {
 			return 0.35 / this.camera.zoom;
 		} else {
