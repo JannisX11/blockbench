@@ -762,7 +762,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 			color: Group.all.length%markerColors.length
 		}).init()
 		group.createUniqueName();
-		bones[b.name] = group
+		bones[b.name.toLowerCase()] = group
 		if (b.pivot) {
 			group.origin[0] *= -1
 		}
@@ -829,8 +829,9 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 		var parent_group = 'root';
 		if (b.parent) {
-			if (bones[b.parent]) {
-				parent_group = bones[b.parent]
+			let match = bones[b.parent.toLowerCase()];
+			if (match) {
+				parent_group = match;
 			} else {
 				parent_list.forEach(function(ib) {
 					if (ib.name === b.parent) {
