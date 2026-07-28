@@ -483,8 +483,8 @@ var codec = new Codec('gltf', {
 		}
 		
 		try {
-			if (BarItems.view_mode.value !== 'textured') {
-				BarItems.view_mode.set('textured');
+			if (BarItems.view_mode.value !== 'material') {
+				BarItems.view_mode.set('material');
 				BarItems.view_mode.onChange();
 			}
 			if (options.animations !== false) {
