@@ -1205,7 +1205,7 @@ Interface.definePanels(function() {
 		`<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" v-bind:style="{'--indentation': indentation}">` +
 			`<div
 				class="outliner_object"
-				v-bind:class="{ group: node.type === 'group', selected: node.selected }"
+				:class="getOutlinerNodeClasses(node)"
 				:element_type="node.type"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
@@ -1264,6 +1264,13 @@ Interface.definePanels(function() {
 		methods: {
 			isNodeDisplayed(node) {
 				return Outliner.isNodeDisplayed(node)
+			},
+			getOutlinerNodeClasses(node) {
+				let classes = [];
+				if (node.type === 'group') classes.push('group');
+				if (node.selected == true) classes.push('selected');
+				Blockbench.dispatchEvent('get_outliner_node_classes', {node, classes});
+				return classes;
 			},
 			nodeClass: function (node) {
 				if (node.isOpen) {

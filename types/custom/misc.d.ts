@@ -44,6 +44,7 @@ interface BlockbenchEventMap {
 	new_project: {project: ModelProject}
 	close_project: {project: ModelProject, on_quit?: boolean}
 	saved_state_changed: {project: ModelProject, saved: boolean}
+	get_outliner_node_classes: {node: OutlinerNode, classes: string[]}
 	add_cube: {object: Cube}
 	add_mesh: {object: Mesh}
 	add_group: {object: Group}
