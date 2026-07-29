@@ -117,7 +117,6 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://threejs.org">ThreeJS</a></li>
 								<li><a class="open-in-browser" href="https://github.com/lo-th/fullik">Full IK</a></li>
 								<li><a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a></li>
-								<li><a class="open-in-browser" href="https://github.com/stijlbreuk/vue-color-picker-wheel">Vue Color Picker Wheel</a></li>
 								<li><a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a></li>
 								<li><a class="open-in-browser" href="https://github.com/mattdesl/gifenc">gifenc</a></li>
 								<li><a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a></li>

@@ -2,6 +2,7 @@ import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
 import { colorDistance } from "../util/util";
 import ColorPickerNormal from "./ColorPickerNormal.vue";
+import ColorPickerWheel from "./ColorPickerWheel.vue";
 
 //
 StateMemory.init('color_palettes', 'array')
@@ -65,14 +66,13 @@ export const ColorPanel = {
 		ColorPanel.panel.vue.editing_hsv = true;
 		ColorPanel.change({
 			h: ColorPanel.panel.vue._data.hsv.h,
-			s: ColorPanel.panel.vue._data.hsv.s/100,
-			v: ColorPanel.panel.vue._data.hsv.v/100
-		});
+			s: ColorPanel.panel.vue._data.hsv.s,
+			v: ColorPanel.panel.vue._data.hsv.v
+		}, ColorPanel.panel.vue.second_color_selected);
 	},
 	hexToHsv(hex) {
 		var color = new tinycolor(hex);
-		var tc = color.toHsv();
-		return {h: tc.h, s: tc.s*100, v: tc.v*100};
+		return color.toHsv();
 	},
 	addToHistory(color) {
 		color = color.toLowerCase();
@@ -547,7 +547,7 @@ Interface.definePanels(() => {
 			})
 		},
 		component: {
-			components: {ColorPickerNormal},
+			components: {ColorPickerNormal, ColorPickerWheel},
 			data: {
 				width: 100,
 				picker_height: 100,
@@ -641,6 +641,10 @@ Interface.definePanels(() => {
 				changeColor(color, secondary = this.second_color_selected) {
 					this[secondary ? 'second_color' : 'main_color'] = color;
 				},
+				changeHsv(hsv) {
+					this.editing_hsv = true;
+					ColorPanel.change(hsv, this.second_color_selected);
+				},
 				swapColors() {
 					BarItems.swap_colors.click();
 				},
@@ -728,7 +732,7 @@ Interface.definePanels(() => {
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
-						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
+						<color-picker-wheel v-if="picker_type == 'wheel' && width" :hsv="hsv" @input="changeHsv" :width="width" :height="width"></color-picker-wheel>
 						<color-picker-normal v-if="picker_type == 'normal' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-picker-normal>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
@@ -1145,11 +1149,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.panel.vue._data.hsv.s);
+			return Math.round(ColorPanel.panel.vue._data.hsv.s * 100);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.panel.vue._data.hsv.s);
-			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.s * 100);
+			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max) / 100;
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1165,11 +1169,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.panel.vue._data.hsv.v);
+			return Math.round(ColorPanel.panel.vue._data.hsv.v * 100);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.panel.vue._data.hsv.v);
-			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.v * 100);
+			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max) / 100;
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1190,7 +1194,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 1) + hex + ColorPanel.panel.vue.main_color.substring(3);
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 1) + hex + main_color.substring(3);
 		}
 	})
 	let green = new NumSlider('slider_color_green', {
@@ -1207,7 +1212,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 3) + hex + ColorPanel.panel.vue.main_color.substring(5);
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 3) + hex + main_color.substring(5);
 		}
 	})
 	let blue = new NumSlider('slider_color_blue', {
@@ -1224,7 +1230,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 5) + hex;
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 5) + hex;
 		}
 	})
 	let slider_vector_rgb = [red, green, blue];
