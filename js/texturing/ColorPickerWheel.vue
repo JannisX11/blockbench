@@ -130,7 +130,9 @@ export default {
 <style>
 	.wheel_color_picker {
 		position: relative;
-		height: 300px;
+		max-width: var(--size);
+		margin: auto;
+		touch-action: none;
 	}
 	.wheel_color_picker--ring {
 		position: relative;
