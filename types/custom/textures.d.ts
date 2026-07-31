@@ -142,7 +142,7 @@ declare global {
 		 * Whether the texture is multi selected
 		 */
 		multi_selected: boolean
-		selected_layer: TextureLayer | null
+		selected_layer: TextureLayerItem | null
 		show_icon: boolean
 		error: number
 		/** Whether the texture is visible. Used for layered textures mode */
@@ -176,7 +176,7 @@ declare global {
 		 * Texture selection in paint mode
 		 */
 		selection: IntMatrix
-		layers: TextureLayer[]
+		layers: TextureLayerItem[]
 		layers_enabled: boolean
 		/**
 		 * The UUID of the project to sync the texture to

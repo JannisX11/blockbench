@@ -28,7 +28,7 @@ interface UndoAspects {
 	 * Set to true to include the image content of the specified textures
 	 */
 	bitmap?: boolean
-	layers?: TextureLayer[]
+	layers?: TextureLayerItem[]
 	settings?: {}
 	uv_mode?: boolean
 	animations?: _Animation[]

@@ -1969,6 +1969,8 @@
 	"action.create_empty_layer": "Create Empty Layer",
 	"action.import_layer": "Import Layer",
 	"action.import_layer.desc": "Import image files as layers",
+	"action.create_layer_group": "Create Layer Group",
+	"action.resolve_layer_group": "Resolve Layer Group",
 	"action.enable_texture_layers": "Enable Layers",
 	"action.disable_texture_layers": "Disable Layers",
 	"action.layer_opacity": "Layer Opacity",
