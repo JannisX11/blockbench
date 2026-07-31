@@ -252,7 +252,7 @@ export function mirrorSelected(axis) {
 		}
 		Outliner.selected.forEach(function(obj) {
 			if (obj instanceof Mesh) {
-				obj.flipSelection(axis, center, false);
+				obj.flipSelection(axis);
 			} else {
 				obj.flip(axis, center, false);
 			}
@@ -261,6 +261,43 @@ export function mirrorSelected(axis) {
 		Undo.finishEdit('Flip selection')
 		autoFixMeshEdit()
 	}
+}
+export function mirrorSelectedInPlace(axis) {
+	if (!Modes.edit) return;
+	if (!(Outliner.selected.length || Group.first_selected)) return;
+	Undo.initEdit({
+		elements: Outliner.selected,
+		groups: Format.bone_rig ? Group.all.filter(g => g.selected) : undefined,
+		outliner: Format.bone_rig || Group.first_selected,
+		selection: true
+	});
+	if (Format.bone_rig) {
+		for (let group of Group.multi_selected) {
+			function flipGroup(group) {
+				for (let i = 0; i < 3; i++) {
+					if (i !== axis) {
+						group.rotation[i] *= -1
+					}
+				}
+				flipNameOnAxis(group, axis, name => (!Group.all.find(g => g.name == name)), group.temp_data.old_name);
+				Canvas.updateAllBones([group]);
+			}
+			flipGroup(group);
+			group.forEachChild(flipGroup, Group);
+		}
+	}
+	Outliner.selected.forEach(function(obj) {
+		if (obj instanceof Mesh) {
+			obj.flipSelection(axis, obj.origin[axis], false);
+		} else if (obj instanceof Cube) {
+			obj.flip(axis, Math.lerp(obj.from[axis], obj.to[axis], 0.5), false);
+		} else {
+			obj.flip(axis, obj.origin[axis], false);
+		}
+	})
+	updateSelection();
+	Undo.finishEdit('Flip selection in place');
+	autoFixMeshEdit();
 }
 
 //Center
@@ -1625,6 +1662,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_x',
 		color: 'x',
 		category: 'transform',
+		condition: {modes: ['edit', 'animate']},
 		click() {
 			mirrorSelected(0);
 		}
@@ -1634,6 +1672,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_y',
 		color: 'y',
 		category: 'transform',
+		modes: ['edit', 'animate'],
 		click() {
 			mirrorSelected(1);
 		}
@@ -1643,8 +1682,40 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_z',
 		color: 'z',
 		category: 'transform',
+		modes: ['edit', 'animate'],
 		click() {
 			mirrorSelected(2);
+		}
+	})
+
+	new Action('flip_in_place_x', {
+		name: tl('action.flip_in_place', 'X'),
+		icon: 'icon-mirror_x',
+		color: 'x',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(0);
+		}
+	})
+	new Action('flip_in_place_y', {
+		name: tl('action.flip_in_place', 'Y'),
+		icon: 'icon-mirror_y',
+		color: 'y',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(1);
+		}
+	})
+	new Action('flip_in_place_z', {
+		name: tl('action.flip_in_place', 'Z'),
+		icon: 'icon-mirror_z',
+		color: 'z',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(2);
 		}
 	})
 

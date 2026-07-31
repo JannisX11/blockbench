@@ -288,7 +288,10 @@ export const MenuBar = {
 			{name: 'menu.transform.flip', id: 'flip', icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
-				'flip_z'
+				'flip_z',
+				'flip_in_place_x',
+				'flip_in_place_y',
+				'flip_in_place_z'
 			]},
 			{name: 'menu.transform.center', id: 'center', icon: 'filter_center_focus', children: [
 				'center_x',

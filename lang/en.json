@@ -1830,6 +1830,8 @@
 	"action.rotate_ccw.desc": "Rotate the selected elements -90° on the %0 axis",
 	"action.flip": "Flip %0",
 	"action.flip.desc": "Flip the selected elements on the %0 axis",
+	"action.flip_in_place": "Flip in Place %0",
+	"action.flip_in_place.desc": "Flip the selected elements on the %0 axis in its current position",
 	"action.center": "Center %0",
 	"action.center.desc": "Center the selected elements on the %0 axis",
 	"action.center_lateral": "Center Lateral",

@@ -868,23 +868,25 @@ export class Mesh extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 		return this;
 	}
-	flipSelection(axis, center) {
+	flipSelection(axis, center = 0) {
 		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.first_selected;
 		let selected_vertices = this.getSelectedVertices();
-		for (let vkey in this.vertices) {
+		const flip = value => center-value+center;
+		let {vertices, faces} = this;
+		for (let vkey in vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
-				this.vertices[vkey][axis] *= -1;
+				vertices[vkey][axis] *= -1;
 			}
 		}
-		for (let key in this.faces) {
-			let face = this.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 			if (object_mode || face.isSelected(key) || face.vertices.allAre(vkey => selected_vertices.includes(vkey))) {
 				face.invert();
 			}
 		}
 
 		if (object_mode) {
-			this.origin[axis] *= -1;
+			this.origin[axis] = flip(this.origin[axis]);
 			this.rotation.forEach((n, i) => {
 				if (i != axis) this.rotation[i] = -n;
 			})
