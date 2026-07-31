@@ -654,10 +654,15 @@ export class TextureLayerGroup extends TextureLayerItem {
 	 */
 	select(multi_select?: boolean) {
 		super.select(multi_select);
-		let children = this.children;
-		for (let child of children) {
-			child.multi_selected = true;
+
+		let selectChildren = (group: TextureLayerGroup) => {
+			let children = group.children;
+			for (let child of children) {
+				child.multi_selected = true;
+				if (child instanceof TextureLayerGroup) selectChildren(child);
+			}
 		}
+		selectChildren(this);
 	}
 	/**
 	 * Toggle layer groupvisibility. This creates an undo point

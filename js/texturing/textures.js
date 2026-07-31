@@ -1484,7 +1484,7 @@ export class Texture {
 	//Layers
 	getActiveLayer() {
 		if (this.layers_enabled) {
-			return this.selected_layer || this.layers[0];
+			return this.layers.find(l => l instanceof TextureLayer && l.selected) || this.layers[0];
 		}
 	}
 	activateLayers(undo) {
