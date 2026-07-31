@@ -448,17 +448,20 @@ export const Painter = {
 		let ctx = Painter.current.ctx;
 		ctx.save()
 
-		if (!use_screen_projection) {
+		if (use_screen_projection && Toolbox.selected.id !== 'fill_tool') {
+			Painter.useBrush(texture, ctx, x, y, event);
+
+		} else {
 			ctx.beginPath();
 			let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
 			ctx.rect(rect[0], rect[1], w, h)
-		}
 
-		if (Toolbox.selected.id === 'fill_tool') {
-			Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
-		} else {
-			Painter.useBrush(texture, ctx, x, y, event)
+			if (Toolbox.selected.id === 'fill_tool') {
+				Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
+			} else {
+				Painter.useBrush(texture, ctx, x, y, event)
+			}
 		}
 		Painter.editing_area = undefined;
 	},
@@ -1940,18 +1943,17 @@ export const Painter = {
 		]
 		function filterObjects(elements) {
 			let objects = [];
-			elements.forEach(element => {
-				if (!element.faces) return;
+			for (let element of elements) {
+				if (!element._static.properties.faces) continue;
+				if (element.visibility === false || element.locked === true) continue;
 				let mesh = element.mesh;
-				if (element.visibility === false || element.locked === true || (mesh && mesh.visible == false)) return;
-				if (mesh && mesh.geometry) {
-					objects.push(mesh);
-				}
-			});
+				if (!mesh || mesh.visible == false || !mesh.geometry) continue;
+				objects.push(mesh);
+			}
 			return objects;
 		}
 		let objects = filterObjects(Outliner.elements);
-		let detected_elements = [];
+		let detected_objects = [];
 
 		// Calculate brush size on onscreen-pixels
 		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
@@ -1980,8 +1982,7 @@ export const Painter = {
 			let intersect = preview.raycaster.intersectObjects(objects, false)[0];
 			if (!intersect) return;
 		
-			let element = OutlinerNode.uuids[intersect.object.name];
-			detected_elements.safePush(element);
+			detected_objects.safePush(intersect.object);
 
 			let coords = Painter.getCanvasToolPixelCoords(intersect.uv, texture).map(v => Math.floor(v));
 			if (coords[0] < 0 || coords[0] >= texture.width || coords[1] < 0 || coords[1] >= texture.height) return;
@@ -2006,12 +2007,14 @@ export const Painter = {
 		}
 
 		// Raycast from each point (rough first, filter elements, then file with selected elements)
+		raycast([0, 0]);
 		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/rough_samples) {
 			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/rough_samples) {
 				raycast([offset_x, offset_y]);
 			}
 		}
-		objects = filterObjects(detected_elements);
+		if (!detected_objects.length) return;
+		objects = detected_objects;
 		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/samples) {
 			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/samples) {
 				raycast([offset_x, offset_y]);
@@ -2019,6 +2022,7 @@ export const Painter = {
 		}
 
 		// Iterate over affected pixels and modify pixel
+		if (bounds[2] < bounds[0] || bounds[3] < bounds[1]) return; // No pixels
 		Painter.scanCanvas(ctx, bounds[0], bounds[1], bounds[2]-bounds[0]+1, bounds[3]-bounds[1]+1, function (px, py, pixel) {
 			let key = px + '.' + py;
 			if (!pixel_hits[key]) return;
