@@ -2501,7 +2501,11 @@ SharedActions.add('duplicate', {
 			texture.flags.add('temporary_layers');
 			texture.activateLayers(false);
 		}
-		let new_layer = new TextureLayer({name: layer ? (layer.name + ' - copy') : 'selection', offset}, texture);
+		let new_layer = new TextureLayer({
+			name: layer ? (layer.name + ' - copy') : 'selection',
+			parent_uuid: layer?.parent_uuid,
+			offset
+		}, texture);
 		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 		new_layer.setSize(canvas.width, canvas.height);
 		new_layer.ctx.putImageData(image_data, 0, 0);

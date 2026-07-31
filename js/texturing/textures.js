@@ -1537,7 +1537,11 @@ export class Texture {
 			})
 		}
 
-		let new_layer = new TextureLayer({name: 'selection', offset: new_offset}, texture);
+		let new_layer = new TextureLayer({
+			name: 'selection',
+			offset: new_offset,
+			parent_uuid: texture.selected_layer?.parent_uuid,
+		}, texture);
 		new_layer.setSize(copy_canvas.width, copy_canvas.height);
 		new_layer.ctx.drawImage(copy_canvas, 0, 0);
 		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
