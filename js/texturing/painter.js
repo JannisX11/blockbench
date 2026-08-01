@@ -1,5 +1,6 @@
 import { PointerTarget } from "../interface/pointer_target";
 import { clipboard, nativeImage } from "../native_apis";
+import { RenderTargetSnapshot } from "../preview/render_target";
 import { Dynamic2DMap } from "../util/dynamic_2d_map";
 
 StateMemory.init('brush_presets', 'array')
@@ -352,6 +353,7 @@ export const Painter = {
 		delete Painter.current.dynamic_brush_size;
 		delete Painter.current.face_matrices;
 		delete Painter.current.start_event;
+		delete Painter.current.render_target_snapshot;
 
 		Painter.currentPixel = [-1, -1];
 	},
@@ -1638,8 +1640,9 @@ export const Painter = {
 	getCanvasToolPixelCoords(uv_point, texture) {
 		let x = uv_point.x * texture.img.naturalWidth;
 		let y = (1-uv_point.y) * texture.img.naturalHeight;
-		if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+		let brush_config = Toolbox.selected.brush;
+		if (!brush_config || Condition(brush_config.floor_coordinates)) {
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && brush_config?.offset_even_radius ? 0.5 : 0;
 			x = Math.floor(x + offset);
 			y = Math.floor(y + offset);
 		}
@@ -1953,19 +1956,22 @@ export const Painter = {
 			return objects;
 		}
 		let objects = filterObjects(Outliner.elements);
-		let detected_objects = [];
 
 		// Calculate brush size on onscreen-pixels
+		const screen_radius = (13.4 / Painter.current.control_scale) * (r / pixel_density);
+
 		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
 		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
 		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
-		const screen_radius = (13.4 / Painter.current.control_scale) * (r / pixel_density);
-
 		// Calculate sampling resolution
-		let rough_samples = r * 0.6;
-		let samples = r * settings.projected_brush_sample_rate.value;
+		let samples = settings.projected_brush_sample_rate.value;
 
 		const pixel_intensities = {};
+
+
+		Painter.current.render_target_snapshot ??= new RenderTargetSnapshot(preview).takeSnapshot(objects);
+		let snapshot = Painter.current.render_target_snapshot;
+
 		const pixel_hits = {};
 		function raycast(offset) {
 			let screen_distance = args.shape == 'square'
@@ -1975,16 +1981,16 @@ export const Painter = {
 			// Distance in pixel space
 			let distance = (screen_distance / screen_radius) * r;
 
-			preview.mouse.x = ((mouse_canvas_offset[0] + offset[0]) / preview.width) * 2 - 1;
-			preview.mouse.y = - ((mouse_canvas_offset[1] + offset[1]) / preview.height) * 2 + 1;
-			preview.raycaster.setFromCamera( preview.mouse, preview.camera );
-		
-			let intersect = preview.raycaster.intersectObjects(objects, false)[0];
+			let intersect = snapshot.readPixel(
+				mouse_canvas_offset[0] + offset[0], 
+				mouse_canvas_offset[1] + offset[1]
+			);
 			if (!intersect) return;
-		
-			detected_objects.safePush(intersect.object);
 
-			let coords = Painter.getCanvasToolPixelCoords(intersect.uv, texture).map(v => Math.floor(v));
+			let coords = [
+				Math.floor(intersect.uv.x * texture.img.naturalWidth),
+				Math.floor((1-intersect.uv.y) * texture.img.naturalHeight),
+			];
 			if (coords[0] < 0 || coords[0] >= texture.width || coords[1] < 0 || coords[1] >= texture.height) return;
 			bounds[0] = Math.min(bounds[0], coords[0]);
 			bounds[1] = Math.min(bounds[1], coords[1]);
@@ -2005,18 +2011,8 @@ export const Painter = {
 				pixel_hits[key] = (pixel_hits[key]??0) + 1;
 			}
 		}
-
-		// Raycast from each point (rough first, filter elements, then file with selected elements)
-		raycast([0, 0]);
-		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/rough_samples) {
-			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/rough_samples) {
-				raycast([offset_x, offset_y]);
-			}
-		}
-		if (!detected_objects.length) return;
-		objects = detected_objects;
-		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += screen_radius/samples) {
-			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += screen_radius/samples) {
+		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += 2) {
+			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += 2) {
 				raycast([offset_x, offset_y]);
 			}
 		}

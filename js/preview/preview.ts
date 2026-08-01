@@ -2091,6 +2091,7 @@ Blockbench.on('update_camera_position', e => {
 			preview.raycaster.params.Line.threshold = scale * 0.42;
 		}
 	})
+	if (Modes.paint) delete Painter.current.render_target_snapshot;
 })
 
 StateMemory.init('viewport_background_color', 'string');
