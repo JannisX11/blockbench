@@ -37,6 +37,7 @@ export class RenderTargetSnapshot {
 			
 			const mat = PICKING_MATERIAL.clone();
 			mat.uniforms.uMeshId.value = normalized_id;
+			mat.side = (mesh.material instanceof Array ? mesh.material[0] : mesh.material).side;
 			mesh.material = mat;
 
 			preparePickingGeometry(mesh.geometry);
@@ -60,6 +61,7 @@ export class RenderTargetSnapshot {
 		// Restore
 		meshes.forEach((mesh) => {
 			mesh.material = original_materials.get(mesh);
+			mesh.geometry.deleteAttribute('faceIndex');
 		});
 		renderer.setRenderTarget(null);
 		return this;

@@ -1964,14 +1964,11 @@ export const Painter = {
 		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
 		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
 		// Calculate sampling resolution
-		let samples = settings.projected_brush_sample_rate.value;
-
-		const pixel_intensities = {};
-
 
 		Painter.current.render_target_snapshot ??= new RenderTargetSnapshot(preview).takeSnapshot(objects);
 		let snapshot = Painter.current.render_target_snapshot;
 
+		const pixel_intensities = {};
 		const pixel_hits = {};
 		function raycast(offset) {
 			let screen_distance = args.shape == 'square'
@@ -2011,8 +2008,9 @@ export const Painter = {
 				pixel_hits[key] = (pixel_hits[key]??0) + 1;
 			}
 		}
-		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += 2) {
-			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += 2) {
+		const sample_step = ExperimentalSettings.get('projected_brush_sample_rate') ?? 2;
+		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += sample_step) {
+			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += sample_step) {
 				raycast([offset_x, offset_y]);
 			}
 		}
@@ -2328,6 +2326,10 @@ export const Painter = {
 		}
 	]
 }
+ExperimentalSettings.add(
+	'projected_brush_sample_rate',
+	{type: 'number', label: 'Projected Brush sample interval', min: 1, value: 2, step: 1, force_step: true}
+);
 
 export class IntMatrix {
 	constructor(width = 16, height = 16) {
