@@ -1944,21 +1944,24 @@ export const Painter = {
 			args.client_x - canvas_offset.left,
 			args.client_y - canvas_offset.top
 		]
-		function filterObjects(elements) {
-			let objects = [];
-			for (let element of elements) {
-				if (!element._static.properties.faces) continue;
-				if (element.visibility === false || element.locked === true) continue;
-				let mesh = element.mesh;
-				if (!mesh || mesh.visible == false || !mesh.geometry) continue;
-				objects.push(mesh);
-			}
-			return objects;
+
+		let objects = [];
+		let elements = Outliner.elements;
+		const lock_mode = BarItems.brush_lock_mode.value;
+		if ((lock_mode == 'element' || lock_mode == 'face') && Painter.current.element) {
+			elements = [Painter.current.element];
 		}
-		let objects = filterObjects(Outliner.elements);
+		for (let element of elements) {
+			if (!element._static.properties.faces) continue;
+			if (element.visibility === false || element.locked === true) continue;
+			let mesh = element.mesh;
+			if (!mesh || mesh.visible == false || !mesh.geometry) continue;
+			objects.push(mesh);
+		}
 
 		// Calculate brush size on onscreen-pixels
-		const screen_radius = (13.4 / Painter.current.control_scale) * (r / pixel_density);
+		let screen_radius = (12.5 / Painter.current.control_scale) * (r / pixel_density);
+		if (r < 1 && args.softness < 0.1) screen_radius *= 0.5;
 
 		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
 		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;

@@ -84,9 +84,12 @@ export class RenderTargetSnapshot {
 
 		// Decode Mesh Index
 		const mesh_index = Math.round(mesh_id * this.meshes.length) - 1;
+		const object = this.meshes[mesh_index];
+
+		if (!object) return null;
 
 		return {
-			object: this.meshes[mesh_index],
+			object,
 			uv: new THREE.Vector2(pixel_data[1], pixel_data[2]),
 			face_index: Math.round(pixel_data[3])
 		};
