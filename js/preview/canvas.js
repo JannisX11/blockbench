@@ -1000,13 +1000,11 @@ export function initCanvas() {
 	// Vertex gizmos
 	var vertex_img = new Image();
 	vertex_img.src = 'assets/vertex.png';
-	vertex_img.tex = new THREE.Texture(vertex_img);
-	vertex_img.tex.magFilter = THREE.NearestFilter;
-	vertex_img.tex.minFilter = THREE.NearestFilter;
-	vertex_img.onload = function() {
-		this.tex.needsUpdate = true;
-	}
-	Canvas.meshVertexMaterial.map = vertex_img.tex;
+	let vertex_tex = new THREE.Texture(vertex_img);
+	vertex_tex.magFilter = THREE.NearestFilter;
+	vertex_tex.minFilter = THREE.NearestFilter;
+	vertex_img.onload = () => vertex_tex.needsUpdate = true;
+	Canvas.meshVertexMaterial.map = vertex_tex;
 	Canvas.meshVertexMaterial.transparent = true;
 	*/
 

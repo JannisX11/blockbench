@@ -1094,6 +1094,51 @@ new Property(Mesh, 'enum', 'render_order', {
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
+const PLAIN_VERTEX_COLOR = [0, 0.03, 0.08];
+function VertexWeightColorGenerator(element) {
+	let all_armature_bones = element.getArmature().getAllBones();
+	let armature_bone = ArmatureBone.selected.find(ab => all_armature_bones.includes(ab));
+	let bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+
+	this.getVertexColor = function(vkey) {
+		let weight = armature_bone?.getVertexWeight(element, vkey) ?? 0;
+		let weight_sum = 0;
+		all_armature_bones.forEach((bone) => weight_sum += (bone.getVertexWeight(element, vkey) ?? 0));
+
+
+		if (Project.view_mode === 'weighted_bone_colors') {
+			let color = [0, 0, 0];
+			for (let bone of all_armature_bones) {
+				let bone_weight = bone.getVertexWeight(element, vkey);
+				let bone_color = bone_marker_colors[bone.color%markerColors.length];
+				if (bone_weight > 0.02) {
+					let amount = bone_weight / weight_sum;
+					color[0] += bone_color.r * amount;
+					color[1] += bone_color.g * amount;
+					color[2] += bone_color.b * amount;
+				}
+			}
+			return color;
+		} else {
+			if (weight_sum > weight) weight = weight / weight_sum;
+			if (!weight) {
+				return null;
+			} else if (weight < 0.25) {
+				return [0, 0, weight * 4];
+			} else if (weight < 0.5) {
+				let fade = (weight-0.25) * 4;
+				return [0, fade, 1-fade];
+			} else if (weight < 0.75) {
+				let fade = (weight-0.5) * 4;
+				return [fade, 1, 0];
+			} else {
+				let fade = (weight-0.75) * 4;
+				return [1, 1-fade, 0];
+			}
+		}
+	}
+}
+
 new NodePreviewController(Mesh, {
 	setup(element) {
 		let mesh = element.mesh;
@@ -1181,60 +1226,17 @@ new NodePreviewController(Mesh, {
 		let {vertices, faces} = element;
 		let cached_face_vertices = {};
 		
-		let armature_bone;
-		let all_armature_bones = [];
-		let bone_marker_colors;
+		let weight_color_generator;
 		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0] && element.getArmature()) {
-			all_armature_bones = element.getArmature().getAllBones();
-			armature_bone = ArmatureBone.selected.find(ab => all_armature_bones.includes(ab));
-			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+			weight_color_generator = new VertexWeightColorGenerator(element);
 		}
-
-		const PLAIN_VERTEX_COLOR = [0, 0.03, 0.08];
 
 		function addVertexPosition(vkey, normal) {
 			let vertex = vertices[vkey];
 			position_array.push(vertex[0], vertex[1], vertex[2]);
 			normal_array.push(normal[0], normal[1], normal[2]);
-			if (armature_bone) {
-				let weight = armature_bone.getVertexWeight(element, vkey) ?? 0;
-				let weight_sum = 0;
-				all_armature_bones.forEach((bone) => weight_sum += (bone.getVertexWeight(element, vkey) ?? 0));
-
-
-				if (Project.view_mode === 'weighted_bone_colors') {
-					let color = [0, 0, 0];
-					for (let bone of all_armature_bones) {
-						let bone_weight = bone.getVertexWeight(element, vkey);
-						let bone_color = bone_marker_colors[bone.color%markerColors.length];
-						if (bone_weight > 0.02) {
-							let amount = bone_weight / weight_sum;
-							color[0] += bone_color.r * amount;
-							color[1] += bone_color.g * amount;
-							color[2] += bone_color.b * amount;
-						}
-					}
-					color_array.push(...color);
-				} else {
-					if (weight_sum > weight) weight = weight / weight_sum;
-					if (!weight) {
-						color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
-					} else if (weight < 0.25) {
-						color_array.push(0, 0, weight * 4);
-					} else if (weight < 0.5) {
-						let fade = (weight-0.25) * 4;
-						color_array.push(0, fade, 1-fade);
-					} else if (weight < 0.75) {
-						let fade = (weight-0.5) * 4;
-						color_array.push(fade, 1, 0);
-					} else {
-						let fade = (weight-0.75) * 4;
-						color_array.push(1, 1-fade, 0);
-					}
-				}
-			} else {
-				color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
-			}
+			let color = weight_color_generator?.getVertexColor(vkey) ?? PLAIN_VERTEX_COLOR;
+			color_array.push(color[0], color[1], color[2]);
 		}
 
 		if (vertex_offsets) {
@@ -1560,7 +1562,21 @@ new NodePreviewController(Mesh, {
 		let selected_edges = element.getSelectedEdges();
 		let selected_faces = element.getSelectedFaces();
 
-		if (BarItems.selection_mode.value == 'vertex') {
+		if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
+			/*let weight_color_generator;
+			if (element.getArmature()) {
+				weight_color_generator = new VertexWeightColorGenerator(element);
+			}*/
+			let colors = [];
+			for (let key in element.vertices) {
+				//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
+				//colors.push(color[0], color[1], color[2]);
+				colors.push(0.8, 0.8, 0.8);
+			}
+			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+			mesh.vertex_points.geometry.needsUpdate = true;
+
+		} else if (BarItems.selection_mode.value == 'vertex') {
 			let colors = [];
 			for (let key in element.vertices) {
 				let color;
@@ -1572,7 +1588,7 @@ new NodePreviewController(Mesh, {
 				colors.push(color.r, color.g, color.b);
 			}
 			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			mesh.outline.geometry.needsUpdate = true;
+			mesh.vertex_points.geometry.needsUpdate = true;
 		}
 
 		let face_outlines = {};

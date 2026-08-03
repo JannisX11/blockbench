@@ -185,6 +185,7 @@ new Tool('weight_brush', {
 				if (mesh2) Mesh.preview_controller.updateGeometry(mesh2);
 			}
 			Mesh.preview_controller.updateGeometry(mesh);
+			updateSelection();
 		}
 		const stop = (event: MouseEvent) => {
 			document.removeEventListener('pointermove', draw);
@@ -199,6 +200,7 @@ new Tool('weight_brush', {
 	},
 	onSelect() {
 		Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
+		Canvas.meshVertexMaterial.size = 5;
 		size_slider.update();
 		limit_slider.update();
 		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
@@ -212,6 +214,7 @@ new Tool('weight_brush', {
 		setTimeout(() => {
 			Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
 		}, 0);
+		Canvas.meshVertexMaterial.size = 7;
 		Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
 		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.select_bone');
@@ -260,7 +263,10 @@ function updateWeightPreview() {
 	if (Toolbox.selected.id == 'weight_brush' || 
 		vertex_weight_view_modes.includes(Project.view_mode)
 	) {
-		Canvas.updateView({elements: Mesh.all.filter(mesh => mesh.getArmature()), element_aspects: {geometry: true}});
+		Canvas.updateView({
+			elements: Mesh.all.filter(mesh => mesh.getArmature()),
+			element_aspects: {geometry: true},
+		});
 		if (Modes.animate) Animator.preview();
 	}
 }
