@@ -337,7 +337,12 @@ export class Plugin {
 					`Please remember to check if you actually need a plugin before installing it. Running too many plugins can increase the chance of encountering compatibility issues or bugs.`
 			}, resolve))
 		}
-		return await this.download(true);
+		try {
+			return await this.download(true);
+		} catch (err) {
+			console.error(err);
+			Blockbench.showQuickMessage(`Error installing plugin ${this.id}`);
+		}
 	}
 	async load(first: boolean = false, cb?: (this: Plugin) => void) {
 		var scope = this;
@@ -450,11 +455,20 @@ export class Plugin {
 		}
 
 		// Download files
-		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void) {
-			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
-			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
-				response.pipe(file);
-				if (callback) response.on('end', callback);
+		async function copyFileToDrive(origin_filename?: string, target_filename?: string, end_callback?: () => void) {
+			let file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			let url = Plugins.api_path+'/'+origin_filename;
+			await new Promise<void>((resolve, reject) => {
+				https.get(url, function(response) {
+					if (!(response.statusCode >= 200 && response.statusCode < 300)) {
+						let error = new Error(`Could not load plugin resource "${origin_filename}" from "${url}", error ${response.statusCode}`);
+						reject(response);
+						throw error;
+					}
+					response.pipe(file);
+					if (end_callback) response.on('end', end_callback);
+					resolve();
+				});
 			});
 		}
 		return await new Promise<void>(async (resolve, reject) => {
@@ -466,7 +480,7 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
-				});
+				}).catch(reject);
 				if (this.hasImageIcon()) {
 					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
 				}
@@ -483,7 +497,7 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
-				});
+				}).catch(reject);
 			}
 		});
 	}
@@ -556,8 +570,12 @@ export class Plugin {
 			// Save
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
+					let file = fs.createWriteStream(Plugins.path+this.id+'.js');
 					https.get(url, (response) => {
+						if (!(response.statusCode >= 200 && response.statusCode < 300)) {
+							console.error(`Could not load plugin ${this.id} from`, url);
+							return;
+						}
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
@@ -1187,6 +1205,7 @@ export async function loadInstalledPlugins() {
 					console.log(`🧩🛒 Loaded plugin "${installation.id}" from store`);
 
 				} else if (Plugins.json instanceof Object && navigator.onLine) {
+					console.log(`🧩 The plugin "${installation.id}" seems to no longer exist in the repository, uninstalling it instead.`);
 					Plugins.installed.remove(installation);
 				}
 
