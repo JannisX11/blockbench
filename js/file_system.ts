@@ -655,8 +655,9 @@ export namespace Filesystem {
 		}
 
 		let handled = false;
+		// Native file drop, or drop from VS Code via paths
+		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
 		forDragHandlers(event, function(handler, el) {
-			let paths = getFilePaths(event.dataTransfer.files);
 			if (!paths.length) return;
 
 			let read_options = {
@@ -670,7 +671,7 @@ export namespace Filesystem {
 			})
 		})
 		if (!handled) {
-			let file_path = getFilePaths(event.dataTransfer.files)[0];
+			let file_path = paths[0];
 			if (file_path) {
 				unsupportedFileFormatMessage(file_path);
 			}
@@ -691,7 +692,9 @@ export namespace Filesystem {
 	}
 
 	function forDragHandlers(event: DragEvent, cb: (handler: Filesystem.DragHandler, el: HTMLElement) => void) {
-		if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
+		if (!event.dataTransfer) return;
+		let text = event.dataTransfer.getData("text/plain");
+		if ((event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) && !text) {
 			return;
 		}
 		for (let id in Filesystem.drag_handlers) {
@@ -724,7 +727,7 @@ export namespace Filesystem {
 				}
 			}
 			let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
-			let name = event.dataTransfer.files[0].name;
+			let name = event.dataTransfer.files[0] ? event.dataTransfer.files[0].name : text;
 			let name_lower_case = name.toLowerCase();
 			if (el && extensions.find(ext => name_lower_case.endsWith('.'+ext))) {
 				cb(handler, el)
