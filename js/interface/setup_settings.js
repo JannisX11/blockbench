@@ -112,6 +112,7 @@ function setupSettings() {
 	}, onChange() {
 		Canvas.updateRenderSides();
 	}});
+	new Setting('constant_outlines', 		{category: 'preview', value: false, onChange() { updateSelection() }});
 	new Setting('tone_mapping', 			{category: 'preview', value: 'none', type: 'select', options: {
 		none: tl('generic.none'),
 		linear: 'Linear',

@@ -52,6 +52,11 @@ export const Canvas = {
 		transparent: true,
 		color: gizmo_colors.outline
 	}),
+	outlineUnselectedMaterial: new THREE.LineBasicMaterial({
+		linewidth: 1,
+		transparent: true,
+		color: 0x000000
+	}),
 	splinePathLineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 4,
 		vertexColors: true, 

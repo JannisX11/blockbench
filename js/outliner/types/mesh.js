@@ -1562,91 +1562,100 @@ new NodePreviewController(Mesh, {
 		let selected_edges = element.getSelectedEdges();
 		let selected_faces = element.getSelectedFaces();
 
-		if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
-			/*let weight_color_generator;
-			if (element.getArmature()) {
-				weight_color_generator = new VertexWeightColorGenerator(element);
-			}*/
-			let colors = [];
-			for (let key in element.vertices) {
-				//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
-				//colors.push(color[0], color[1], color[2]);
-				colors.push(0.8, 0.8, 0.8);
-			}
-			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			mesh.vertex_points.geometry.needsUpdate = true;
-
-		} else if (BarItems.selection_mode.value == 'vertex') {
-			let colors = [];
-			for (let key in element.vertices) {
-				let color;
-				if (selected_vertices.includes(key)) {
-					color = white;
-				} else {
-					color = gizmo_colors.grid;
+		if (element.selected) {
+			if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
+				/*let weight_color_generator;
+				if (element.getArmature()) {
+					weight_color_generator = new VertexWeightColorGenerator(element);
+				}*/
+				let colors = [];
+				for (let key in element.vertices) {
+					//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
+					//colors.push(color[0], color[1], color[2]);
+					colors.push(0.8, 0.8, 0.8);
 				}
-				colors.push(color.r, color.g, color.b);
+				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+				mesh.vertex_points.geometry.needsUpdate = true;
+
+			} else if (BarItems.selection_mode.value == 'vertex') {
+				let colors = [];
+				for (let key in element.vertices) {
+					let color;
+					if (selected_vertices.includes(key)) {
+						color = white;
+					} else {
+						color = gizmo_colors.grid;
+					}
+					colors.push(color.r, color.g, color.b);
+				}
+				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+				mesh.vertex_points.geometry.needsUpdate = true;
 			}
-			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			mesh.vertex_points.geometry.needsUpdate = true;
 		}
 
-		let face_outlines = {};
-		let faces = element.faces;
-		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
-			selected_faces.forEach(fkey => {
-				let face = faces[fkey];
-				face.vertices.forEach(vkey => {
-					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
-					face.vertices.forEach(vkey2 => {
-						if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
+		if (element.selected) {
+			let face_outlines = {};
+			let faces = element.faces;
+			if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
+				selected_faces.forEach(fkey => {
+					let face = faces[fkey];
+					face.vertices.forEach(vkey => {
+						if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
+						face.vertices.forEach(vkey2 => {
+							if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
+						})
 					})
 				})
+			}
+			let line_colors = [];
+			let is_seam_tool = Toolbox.selected.id === 'seam_tool';
+			let selection_mode = BarItems.selection_mode.value;
+			if (!Modes.edit) selection_mode = 'object';
+			mesh.outline.vertex_order.forEach((key, i) => {
+				let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
+				let color = gizmo_colors.grid;
+				let selected;
+				switch (selection_mode) {
+					case 'object': {
+						color = gizmo_colors.outline;
+						break;
+					}
+					case 'edge': {
+						if (selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
+							color = white;
+							selected = true;
+						}
+						break;
+					}
+					case 'face':
+					case 'cluster': {
+						if (face_outlines[key] && face_outlines[key].has(key_b)) {
+							color = white;
+							selected = true;
+						}
+						break;
+					}
+				}
+				if (is_seam_tool) {
+					let seam = element.getSeam([key, key_b]);
+					if (selected) {
+						if (seam == 'join') color = join_selected;
+						if (seam == 'divide') color = divide_selected;
+					} else {
+						if (seam == 'join') color = join;
+						if (seam == 'divide') color = divide;
+					}
+				}
+				line_colors.push(color.r, color.g, color.b);
 			})
+			mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
+			mesh.outline.geometry.needsUpdate = true;
+			mesh.outline.material = Canvas.meshOutlineMaterial;
+
+		} else if (settings.constant_outlines.value) {
+			mesh.outline.visible = true;
+			mesh.outline.material = Canvas.outlineUnselectedMaterial;
 		}
-		let line_colors = [];
-		let is_seam_tool = Toolbox.selected.id === 'seam_tool';
-		let selection_mode = BarItems.selection_mode.value;
-		if (!Modes.edit) selection_mode = 'object';
-		mesh.outline.vertex_order.forEach((key, i) => {
-			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
-			let color = gizmo_colors.grid;
-			let selected;
-			switch (selection_mode) {
-				case 'object': {
-					color = gizmo_colors.outline;
-					break;
-				}
-				case 'edge': {
-					if (selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
-						color = white;
-						selected = true;
-					}
-					break;
-				}
-				case 'face':
-				case 'cluster': {
-					if (face_outlines[key] && face_outlines[key].has(key_b)) {
-						color = white;
-						selected = true;
-					}
-					break;
-				}
-			}
-			if (is_seam_tool) {
-				let seam = element.getSeam([key, key_b]);
-				if (selected) {
-					if (seam == 'join') color = join_selected;
-					if (seam == 'divide') color = divide_selected;
-				} else {
-					if (seam == 'join') color = join;
-					if (seam == 'divide') color = divide;
-				}
-			}
-			line_colors.push(color.r, color.g, color.b);
-		})
-		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
-		mesh.outline.geometry.needsUpdate = true;
 		
 		mesh.vertex_points.visible = ((Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool') && element.selected;
 		if (Toolbox.selected.id == 'weight_brush') mesh.vertex_points.visible = true;

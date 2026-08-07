@@ -1083,6 +1083,8 @@
 	"settings.render_sides.auto": "Auto",
 	"settings.render_sides.front": "Outside",
 	"settings.render_sides.double": "Inside and Outside",
+	"settings.constant_outlines": "Constant Outlines",
+	"settings.constant_outlines.desc": "Always display element outlines regardless of selection",
 	"settings.fps_limit": "FPS Limit",
 	"settings.fps_limit.desc": "Limit how many frames per second Blockbench renders. The actual frame rate is limited to what your device can display.",
 	"settings.background_rendering": "Background Rendering",

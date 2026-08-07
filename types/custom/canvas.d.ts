@@ -87,6 +87,7 @@ declare namespace Canvas {
 	 * The material used for all selection outlines
 	 */
 	const outlineMaterial: THREE.LineBasicMaterial
+	const outlineUnselectedMaterial: THREE.LineBasicMaterial
 	const meshOutlineMaterial: THREE.LineBasicMaterial
 	const onionSkinEarlierMaterial: THREE.LineBasicMaterial
 	const onionSkinLaterMaterial: THREE.LineBasicMaterial

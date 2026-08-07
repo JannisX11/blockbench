@@ -606,6 +606,7 @@ export class CustomTheme {
 			update(gizmo_colors.outline, '--color-outline');
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
+			update(Canvas.outlineUnselectedMaterial.color, '--color-constant-outline');
 			update((Canvas.ground_plane.material as THREE.MeshBasicMaterial).color, '--color-ground');
 			update((Canvas.brush_outline.material as THREE.ShaderMaterial).uniforms.color.value, '--color-brush-outline');
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
