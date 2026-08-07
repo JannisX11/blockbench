@@ -7,6 +7,7 @@ export class BillboardFace extends CubeFace {
 		this.billboard = billboard;
 		this.uv = [0, 0, canvasGridSize()*2, canvasGridSize()*2]
 		this.rotation = 0;
+		this.color = Math.floor(Math.random()*markerColors.length);
 
 		if (data) {
 			this.extend(data)
@@ -286,6 +287,7 @@ export class Billboard extends OutlinerElement {
 		cube_faces: true,
 		movable: true,
 		resizable: true,
+		marker_color: true,
 		unique_name: false
 	}
 }
