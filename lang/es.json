@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Mueve los cubos seleccionados hacia atrás relativo al ángulo actual de la cámara",
 	"layout.color.wireframe": "Estructura",
 	"layout.color.wireframe.desc": "Líneas de vista de la estructura",
+	"layout.color.wireframe_selectable": "Estructura seleccionable",
+	"layout.color.wireframe_selectable.desc": "Aristas y vértices no seleccionados de la malla activa en modo edición",
 	"action.add_animation": "Añadir Animación",
 	"action.add_animation.desc": "Crear Animación Vacía",
 	"action.load_animation_file": "Importar Animaciones",

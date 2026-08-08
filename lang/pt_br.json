@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Move os cubos selecionados para atrás em relação ao ângulo atual da câmera.",
 	"layout.color.wireframe": "Estrutura de arame",
 	"layout.color.wireframe.desc": "Linhas da estrutura de arame.",
+	"layout.color.wireframe_selectable": "Estrutura de arame selecionável",
+	"layout.color.wireframe_selectable.desc": "Arestas e vértices não selecionados da malha ativa no modo de edição",
 	"action.add_animation": "Adicionar animação",
 	"action.add_animation.desc": "Cria uma animação em branco.",
 	"action.load_animation_file": "Importar animações",

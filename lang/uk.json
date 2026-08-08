@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Перемістити виділені елементи назад відносно поточного ракурсу камери",
 	"layout.color.wireframe": "Каркас",
 	"layout.color.wireframe.desc": "Лінії каркасного виду",
+	"layout.color.wireframe_selectable": "Виділюваний каркас",
+	"layout.color.wireframe_selectable.desc": "Невиділені ребра та вершини активної сітки в режимі редагування",
 	"action.add_animation": "Додати анімацію",
 	"action.add_animation.desc": "Створити анімацію",
 	"action.load_animation_file": "Імпортувати анімації",

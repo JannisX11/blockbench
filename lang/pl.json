@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Przesuń zaznaczone kostki do tyłu, względem aktualnego kąta kamery",
 	"layout.color.wireframe": "Szkielet",
 	"layout.color.wireframe.desc": "Widok linii szkieletów",
+	"layout.color.wireframe_selectable": "Wybieralny szkielet",
+	"layout.color.wireframe_selectable.desc": "Niezaznaczone krawędzie i wierzchołki aktywnej siatki w trybie edycji",
 	"action.add_animation": "Dodaj animację",
 	"action.add_animation.desc": "Stwórz pustą animację",
 	"action.load_animation_file": "Importuj animacje",

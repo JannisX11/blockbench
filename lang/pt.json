@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Mover os cubos selecionados para a trás em relação ao ângulo atual da câmera",
 	"layout.color.wireframe": "Visão de Arames",
 	"layout.color.wireframe.desc": "Linhas de visão de arames",
+	"layout.color.wireframe_selectable": "Arame selecionável",
+	"layout.color.wireframe_selectable.desc": "Arestas e vértices não selecionados da malha ativa no modo de edição",
 	"action.add_animation": "Adicionar Animação",
 	"action.add_animation.desc": "Criar uma animação em branco",
 	"action.load_animation_file": "Importar Animações",

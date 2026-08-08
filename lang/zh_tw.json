@@ -548,6 +548,8 @@
 	"action.move_back.desc": "將選取的立方體按攝影機視角往後移動",
 	"layout.color.wireframe": "線框",
 	"layout.color.wireframe.desc": "線框視圖的線條",
+	"layout.color.wireframe_selectable": "可選擇的線框",
+	"layout.color.wireframe_selectable.desc": "編輯模式下活動網格的未選中邊和頂點",
 	"action.add_animation": "添加動畫",
 	"action.add_animation.desc": "創建一個空白動畫",
 	"action.load_animation_file": "匯入動畫",

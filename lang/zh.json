@@ -548,6 +548,8 @@
 	"action.move_back.desc": "相对于当前视角向后移动所选块",
 	"layout.color.wireframe": "线框",
 	"layout.color.wireframe.desc": "线框模式中的线",
+	"layout.color.wireframe_selectable": "可选择的线框",
+	"layout.color.wireframe_selectable.desc": "编辑模式下活动网格的未选中边和顶点",
 	"action.add_animation": "添加动画",
 	"action.add_animation.desc": "创建一个空白动画",
 	"action.load_animation_file": "导入动画文件",

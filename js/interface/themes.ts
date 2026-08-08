@@ -55,6 +55,7 @@ const DEFAULT_COLORS = {
 	subtle_text: '#848891',
 	grid: '#30333d',
 	wireframe: '#576f82',
+	wireframe_selectable: '#576f82',
 	checkerboard: '#14171b',
 }
 
@@ -597,6 +598,7 @@ export class CustomTheme {
 			update(gizmo_colors.g, '--color-axis-y');
 			update(gizmo_colors.b, '--color-axis-z');
 			update(gizmo_colors.grid, '--color-grid');
+			update(gizmo_colors.wireframe_selectable, '--color-wireframe_selectable');
 			update(gizmo_colors.u, '--color-axis-u'); // spline space colors
 			update(gizmo_colors.v, '--color-axis-v'); // spline space colors
 			update(gizmo_colors.w, '--color-axis-w'); // spline space colors

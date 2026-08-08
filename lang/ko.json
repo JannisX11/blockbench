@@ -548,6 +548,8 @@
 	"action.move_back.desc": "선택한 큐브를 현재 카메라 각도에 대해 뒤로 이동",
 	"layout.color.wireframe": "와이어프레임",
 	"layout.color.wireframe.desc": "와이어프레임 선 보기",
+	"layout.color.wireframe_selectable": "선택 가능한 와이어프레임",
+	"layout.color.wireframe_selectable.desc": "편집 모드에서 활성 메시의 선택되지 않은 모서리 및 정점",
 	"action.add_animation": "애니메이션 추가",
 	"action.add_animation.desc": "빈 애니메이션 생성",
 	"action.load_animation_file": "애니메이션 가져오기",

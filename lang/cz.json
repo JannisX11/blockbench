@@ -548,6 +548,8 @@
 	"action.move_back.desc": "Posune vybrané prvky dozadu vzhledem k aktuálnímu úhlu kamery",
 	"layout.color.wireframe": "Drátový Rám",
 	"layout.color.wireframe.desc": "Drátový Rám - Zobrazit linky",
+	"layout.color.wireframe_selectable": "Vybratelný drátěný model",
+	"layout.color.wireframe_selectable.desc": "Nevybrané hrany a vrcholy aktivní sítě v editačním režimu",
 	"action.add_animation": "Přidat Animaci",
 	"action.add_animation.desc": "Vytvoří prázdnou animaci",
 	"action.load_animation_file": "Vložit Animaci",

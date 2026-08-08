@@ -61,6 +61,7 @@ export const gizmo_colors = {
 	g: new THREE.Color(),
 	b: new THREE.Color(),
 	grid: new THREE.Color(),
+	wireframe_selectable: new THREE.Color(),
 	solid: new THREE.Color(),
 	outline: new THREE.Color(),
 	gizmo_hover: new THREE.Color(),

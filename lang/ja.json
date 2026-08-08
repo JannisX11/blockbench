@@ -548,6 +548,8 @@
 	"action.move_back.desc": "選択したキューブを後方に移動します",
 	"layout.color.wireframe": "ワイヤーフレーム",
 	"layout.color.wireframe.desc": "ワイヤーフレームビュー",
+	"layout.color.wireframe_selectable": "選択可能なワイヤーフレーム",
+	"layout.color.wireframe_selectable.desc": "編集モードでのアクティブメッシュの未選択の辺と頂点",
 	"action.add_animation": "アニメーションを追加",
 	"action.add_animation.desc": "新規アニメーションを追加します",
 	"action.load_animation_file": "アニメーションを読み込み",
