@@ -998,6 +998,98 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+
+	new Action('create_variable_placeholder', {
+		icon: 'variable_add',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click() {
+			function getExpression(result) {
+				let variable = result.variable || 'variable.example';
+				if (result.type == 'value') {
+					return `${variable} = ${result.value}`;
+				} else if (result.type == 'slider') {
+					let args = [`'${result.name}'`];
+					if (result.step || result.range) args.push(result.step ?? 1);
+					if (result.range) args.push(...result.range);
+					return `${variable} = slider(${args.join(', ')})`;
+				} else if (result.type == 'toggle') {
+					return `${variable} = slider('${result.name}')`;
+				} else if (result.type == 'impulse') {
+					let args = [`'${result.name}'`];
+					if (result.duration) args.push(result.duration);
+					return `${variable} = slider(${args.join(', ')})`;
+				}
+				return '';
+			}
+			new Dialog({
+				id: 'create_variable_placeholder',
+				title: 'action.create_variable_placeholder',
+				form: {
+					variable: {label: 'dialog.create_variable_placeholder.variable', placeholder: 'variable.example'},
+					type: {type: 'inline_select', label: 'dialog.create_variable_placeholder.type', options: {
+						value: 'dialog.create_variable_placeholder.type.value',
+						slider: 'dialog.create_variable_placeholder.type.slider',
+						toggle: 'dialog.create_variable_placeholder.type.toggle',
+						impulse: 'dialog.create_variable_placeholder.type.impulse',
+					}},
+					name: {label: 'generic.name', placeholder: 'variable.example', condition: r => r.type != 'value'},
+					value: {type: 'number', label: 'dialog.create_variable_placeholder.value', value: 1},
+					duration: {type: 'number', label: 'dialog.create_variable_placeholder.duration', value: 0.1, condition: r => r.type == 'impulse'},
+					step: {type: 'number', label: 'dialog.create_variable_placeholder.step', value: 1, condition: r => r.type == 'slider', toggle_enabled: true, toggle_default: false},
+					range: {type: 'vector', dimensions: 2, label: 'dialog.create_variable_placeholder.range', value: [0, 1], toggle_enabled: true, toggle_default: false, condition: r => r.type == 'slider'},
+					gen: '_',
+					output: {type: 'text', label: 'dialog.create_variable_placeholder.output', value: ''},
+				},
+				onFormChange(result) {
+					this.form.setValues({output: getExpression(result)}, false);
+				},
+				onConfirm(result) {
+					let expression = getExpression(result);
+					if (!result) return;
+					let panel_vue = Panels.variable_placeholders.inside_vue;
+					panel_vue.text = panel_vue.text.replace(/[\n\s]+$/, '');
+					if (panel_vue.text) panel_vue.text += '\n';
+					panel_vue.text += expression;
+					if (result.type != 'value') {
+						panel_vue.updateButtons();
+						let button = panel_vue.buttons.find(b => b.id == result.name);
+						if (button) {
+							button.value = result.value;
+						}
+					}
+					delete Animator.MolangParser.variables[result.variable];
+					setTimeout( () => Animator.preview(), 50 );
+				}
+			}).show();
+		}
+	})
+	new Action('view_built_in_variables', {
+		icon: 'two_pager',
+		category: 'animation',
+		condition: {modes: ['animate']},
+		click() {
+			let form = {};
+			for (let key in Animator.MolangParser.global_variables) {
+				let value = Animator.MolangParser.global_variables[key];
+				if (key == 'true' || key == 'false') continue;
+				let text = value;
+				if (typeof value == 'function' && Format.molang) {
+					let docs_link = 'https://learn.microsoft.com/en-us/minecraft/creator/reference/content/molangreference/examples/molangconcepts/queryfunctions?view=minecraft-bedrock-stable';
+					text = `[${tl('dialog.view_built_in_variables.function')}](${docs_link})`;
+				}
+				if (typeof value == 'number') text = Math.roundTo(value, 5).toString();
+				if (typeof text != 'string') continue;
+				form[key] = {label: key + ':', type: 'info', text};
+			}
+			new Dialog({
+				id: 'view_built_in_variables',
+				title: 'action.view_built_in_variables',
+				form,
+				singleButton: true,
+			}).show();
+		}
+	})
 })
 
 
@@ -1015,6 +1107,14 @@ Interface.definePanels(function() {
 			height: 400,
 			sidebar_index: 10,
 		},
+		toolbars: [
+			new Toolbar('variable_placeholders', {
+				children: [
+					'create_variable_placeholder',
+					'view_built_in_variables',
+				]
+			})
+		],
 		component: {
 			name: 'panel-placeholders',
 			components: {VuePrismEditor},
@@ -1179,8 +1279,6 @@ Interface.definePanels(function() {
 							<label :for="'placeholder_button_'+button.id" @mousedown="slideButton(button, $event)" @touchstart="slideButton(button, $event)">{{ button.id }}</label>
 						</li>
 					</ul>
-
-					<p>${tl('panel.variable_placeholders.info')}</p>
 
 					<vue-prism-editor
 						id="var_placeholder_area"
