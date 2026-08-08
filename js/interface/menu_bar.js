@@ -418,8 +418,6 @@ export const MenuBar = {
 			new MenuSeparator('edit'),
 			'add_keyframe',
 			'keyframe_column_create',
-			'select_all',
-			'keyframe_column_select',
 			'reverse_keyframes',
 			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
@@ -431,6 +429,11 @@ export const MenuBar = {
 			'round_keyframe_values',
 			'resolve_keyframe_expressions',
 			'delete',
+			new MenuSeparator('select'),
+			'select_all',
+			'keyframe_column_select',
+			'keyframe_select_before_playhead',
+			'keyframe_select_after_playhead',
 		], {
 			icon: 'icon-keyframe',
 			condition: {modes: ['animate']}
