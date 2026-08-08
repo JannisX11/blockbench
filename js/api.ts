@@ -5,7 +5,7 @@ import { EventSystem } from "./util/event_system";
 import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
-import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
+import { currentwindow, electron, process as nativeProcess, shell, SystemInfo } from "./native_apis";
 import { ToastNotification, ToastNotificationOptions } from "./interface/toast_notification";
 
 declare const appVersion: string;
@@ -19,6 +19,7 @@ export const LastVersion = localStorage.getItem('last_version') || localStorage.
 export const Blockbench = {
 	//...previous_data,
 	isWeb: !isApp,
+	isHeadless: isApp && nativeProcess.argv.includes('--blockbench-headless-renderer'),
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
 	isTouch: 'ontouchend' in document,
@@ -321,8 +322,15 @@ export const Blockbench = {
 	removeDragHandler: Filesystem.removeDragHandler,
 };
 
+if (Blockbench.isHeadless) {
+	Blockbench.addFlag('headless');
+	Blockbench.addFlag('no_localstorage_saving');
+}
+
 (function() {
-	if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
+	if (Blockbench.isHeadless) {
+		return;
+	} else if (!LastVersion || LastVersion.replace(/.\d+$/, '') != appVersion.replace(/.\d+$/, '')) {
 		Blockbench.addFlag('after_update');
 	} else if (LastVersion != appVersion) {
 		Blockbench.addFlag('after_patch_update');

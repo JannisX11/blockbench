@@ -68,7 +68,7 @@ export function setupDragHandlers() {
 	)
 }
 
-export function loadModelFile(file, args) {
+export function loadModelFile(file, args = {}) {
 	
 	let existing_tab = isApp && ModelProject.all.find(project => (
 		project.save_path == file.path || project.export_path == file.path
@@ -87,7 +87,7 @@ export function loadModelFile(file, args) {
 				} else {
 					codec.load(content, file, args);
 				}
-				return true;
+				return codec;
 			}
 		}
 	}
@@ -95,20 +95,22 @@ export function loadModelFile(file, args) {
 	// Image
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'image', file.content);
-		if (success) return;
+		if (success) return success;
 	}
 	// Text
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'text', file.content);
-		if (success) return;
+		if (success) return success;
 	}
 	// JSON
-	let model = autoParseJSON(file.content, {file_path: file.path});
+	let model = autoParseJSON(file.content, args.silent ? false : {file_path: file.path});
+	if (model === undefined) return false;
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'json', model);
-		if (success) return;
+		if (success) return success;
 	}
-	unsupportedFileFormatMessage(file.path);
+	if (!args.silent) unsupportedFileFormatMessage(file.path);
+	return false;
 }
 
 export async function loadImages(files, event) {

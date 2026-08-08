@@ -1,0 +1,14 @@
+{
+	"meta": {
+		"format_version": "5.0",
+		"model_format": "free",
+		"box_uv": false
+	},
+	"name": "headless_empty",
+	"resolution": {
+		"width": 16,
+		"height": 16
+	},
+	"elements": [],
+	"outliner": []
+}

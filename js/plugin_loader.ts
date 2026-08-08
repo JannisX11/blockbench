@@ -1024,7 +1024,7 @@ ExperimentalSettings.add(
 	'plugin_load_timeout',
 	{type: 'number', label: 'Plugin load timeout', min: 0.5, value: 10}
 );
-Plugins.loading_promise = new Promise((resolve, reject) => {
+Plugins.loading_promise = Blockbench.isHeadless ? Promise.resolve() : new Promise((resolve, reject) => {
 	const timeout_seconds = ExperimentalSettings.get('plugin_load_timeout') as number ?? 10;
 	$.ajax({
 		cache: false,
@@ -1069,12 +1069,14 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 	}, 3000);
 })
 
-$.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
-	Plugins.download_stats = data;
-	if (Plugins.json) {
-		Plugins.sort();
-	}
-})
+if (!Blockbench.isHeadless) {
+	$.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
+		Plugins.download_stats = data;
+		if (Plugins.json) {
+			Plugins.sort();
+		}
+	})
+}
 
 export async function loadInstalledPlugins() {
 	if (Plugins.loading_promise) {

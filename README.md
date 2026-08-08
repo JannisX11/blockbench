@@ -39,6 +39,12 @@ Use this command or press Ctrl + Shift + B to launch Blockbench in Electron:
 To enable debugging in VS Code, switch to the **Run & Debug** tab, select the **"Debug Renderer"** configuration, and press the green arrow button to launch.
 Now you can set breakpoints and debug inside VSCode.
 
+### Run Headlessly
+
+Use the [headless CLI](HEADLESS_CLI.md) to open a model, run JavaScript against
+Blockbench's live renderer globals, save a `.bbmodel`, and exit without showing
+a window or starting a server.
+
 
 ### Run the web app
 Use this command to launch the web app locally:
