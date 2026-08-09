@@ -196,6 +196,16 @@ export class Animation extends AnimationItem {
 					samples[uuid].push(bone_frame_rotation[uuid]);
 				}
 			})
+			NullObject.all.forEach(node => {
+				if (!node.ik_target) return;
+				let animator = this.getBoneAnimator(node);
+				if (!animator || !animator.displayIK) return;
+				let bone_frame_rotation = animator.displayIK(true);
+				for (let uuid in bone_frame_rotation) {
+					if (!samples[uuid]) samples[uuid] = [];
+					samples[uuid].push(bone_frame_rotation[uuid]);
+				}
+			})
 			Animator.resetLastValues();
 			Timeline.time += interval;
 		}
