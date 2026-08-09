@@ -1,5 +1,6 @@
 import Wintersky from 'wintersky';
 import { THREE } from '../lib/libs';
+import { fabrikIter } from './fabrik';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -888,18 +889,20 @@ export class NullObjectAnimator extends BoneAnimator {
 		bones.reverse();
 
 		bones.forEach(bone => {
-			if (bone.mesh.fix_rotation) bone.mesh.rotation.copy(bone.mesh.fix_rotation);
+			let scene_object = bone.scene_object; 
+			if (scene_object.fix_rotation) scene_object.rotation.copy(scene_object.fix_rotation);
 		});
 
 		let bone_pos = [];
 		bones.forEach((bone, i) => {
-			let pos = bone.mesh.getWorldPosition(new THREE.Vector3());
+			let scene_object = bone.scene_object; 
+			let pos = scene_object.getWorldPosition(new THREE.Vector3());
 
 			bone_pos.push(pos);
 
 			if (i != bones.length - 1) {
 				let last_diff = bones[i + 1].mesh.getWorldPosition(new THREE.Vector3());
-				bone.mesh.parent.worldToLocal(last_diff).sub(bone.mesh.position).normalize();
+				scene_object.parent.worldToLocal(last_diff).sub(scene_object.position).normalize();
 
 				bone_references.push({
 					bone,
@@ -912,17 +915,19 @@ export class NullObjectAnimator extends BoneAnimator {
 		if (pole) {
 			polePos = pole.mesh.getWorldPosition(new THREE.Vector3());
 		}
+		console.log(polePos)
 
 		fabrikIter(bone_pos, ik_target, polePos);
 
 		let results = {};
-		for (i = 0; i < bone_references.length; i++) {
+		for (let i = 0; i < bone_references.length; i++) {
 			let bone_ref = bone_references[i];
+			let scene_object = bone_ref.bone.scene_object; 
 
 			let end = bone_pos[i + 1];
-			bone_ref.bone.mesh.parent
+			scene_object.parent
 				.worldToLocal(end)
-				.sub(bone_ref.bone.mesh.position)
+				.sub(scene_object.position)
 				.normalize();
 
 			Reusable.quat1.setFromUnitVectors(
@@ -930,8 +935,8 @@ export class NullObjectAnimator extends BoneAnimator {
 				end,
 			);
 
-			bone_ref.bone.mesh.applyQuaternion(Reusable.quat1);
-			bone_ref.bone.mesh.updateMatrixWorld();
+			scene_object.applyQuaternion(Reusable.quat1);
+			scene_object.updateMatrixWorld();
 
 			if (get_samples) {
 				let rotation = new THREE.Euler().setFromQuaternion(Reusable.quat1, Format.euler_order);
