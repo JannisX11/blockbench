@@ -1,3 +1,15 @@
+import { Blockbench } from "./api";
+import { updateStreamerModeNotification } from "./interface/setup_settings";
+import { loadThemes } from "./interface/themes";
+import { translateUI } from "./languages";
+import { loadInstalledPlugins } from "./plugin_loader";
+import { animate, setupPreviews } from "./preview/preview";
+import { ipcRenderer, SystemInfo } from "./native_apis";
+import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
+import { AutoBackup } from "./auto_backup";
+import { initReferenceImages } from "./preview/reference_images";
+import { initCanvas } from "./preview/canvas";
+
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
 Interface.center_screen = document.getElementById('center');
@@ -5,12 +17,9 @@ Interface.right_bar = document.getElementById('right_bar');
 Interface.left_bar = document.getElementById('left_bar');
 Interface.preview = document.getElementById('preview');
 
-CustomTheme.setup()
+CustomTheme.setup();
 
 StateMemory.init('dialog_paths', 'object')
-
-initCanvas()
-animate()
 
 Blockbench.browser = 'electron'
 if (isApp === false) {
@@ -41,17 +50,22 @@ if (isApp === false) {
 } else {
 	$('.web_only').remove()
 }
+
+setupPreviews()
+initCanvas()
 BARS.setupActions()
 BARS.setupToolbars()
 BARS.setupVue()
 MenuBar.setup()
 translateUI()
+loadThemes()
+initReferenceImages()
 
-Settings.setupProfiles();
+animate()
 
 console.log(`Three.js r${THREE.REVISION}`)
-console.log('%cBlockbench ' + appVersion + (isApp
-	? (' Desktop (' + Blockbench.operating_system +')')
+console.log('%cBlockbench ' + Blockbench.version + (isApp
+	? (' Desktop (' + Blockbench.operating_system + ', ' + SystemInfo.arch +')')
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
@@ -116,11 +130,6 @@ Blockbench.on('before_closing', (event) => {
 	}
 })
 
-setInterval(function() {
-	Prop.fps = framespersecond;
-	framespersecond = 0;
-}, 1000)
-
 updateProjectResolution()
 
 setupInterface()
@@ -131,6 +140,10 @@ onVueSetup.funcs.forEach((func) => {
 		func()
 	}
 })
+
+if (settings.streamer_mode.value) {
+	updateStreamerModeNotification();
+}
 
 AutoBackup.initialize();
 
@@ -162,6 +175,12 @@ localStorage.setItem('last_version', Blockbench.version);
 })()
 
 setStartScreen(true);
+
+if (Blockbench.isMobile) {
+	// Reselect tool to update transform toolbar in status bar on mobile
+	Toolbox.selected = null;
+	BarItems.move_tool.select();
+}
 
 document.getElementById('page_wrapper').classList.remove('invisible');
 

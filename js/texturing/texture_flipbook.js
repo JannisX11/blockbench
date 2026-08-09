@@ -1,22 +1,17 @@
-TextureAnimator = {
+import { clipboard, nativeImage } from "../native_apis";
+
+export const TextureAnimator = {
 	isPlaying: false,
-	interval: false,
+	start_timecode: 0,
 	frame_total: 0,
 	start() {
-		clearInterval(TextureAnimator.interval)
 		TextureAnimator.isPlaying = true
 		TextureAnimator.frame_total = 0;
-		TextureAnimator.updateButton()
-		let frametime = 1000/settings.texture_fps.value;
-		if (Format.texture_mcmeta && Texture.getDefault()) {
-			let tex = Texture.getDefault();
-			frametime = Math.max(tex.frame_time, 1) * 50;
-		}
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
+		TextureAnimator.start_timecode = performance.now();
+		TextureAnimator.updateButton();
 	},
 	stop() {
 		TextureAnimator.isPlaying = false
-		clearInterval(TextureAnimator.interval)
 		TextureAnimator.updateButton()
 	},
 	toggle() {
@@ -32,27 +27,37 @@ TextureAnimator = {
 			TextureAnimator.start()
 		}
 	},
-	nextFrame() {
-		var animated_textures = []
-		TextureAnimator.frame_total++;
-		Texture.all.forEach(tex => {
-			if (tex.frameCount > 1) {
-				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
-				if (custom_indices) {
-					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
-					tex.currentFrame = Math.clamp(typeof index == 'object' ? index.index : index, 0, tex.frameCount-1);
-
-				} else {
-					if (tex.currentFrame >= tex.frameCount-1) {
-						tex.currentFrame = 0
-					} else {
-						tex.currentFrame++;
-					}
-				}
-				animated_textures.push(tex)
+	playAnimationFrame(anim_time) {
+		if (anim_time == undefined) {
+			anim_time = (performance.now() - TextureAnimator.start_timecode) / 1000;
+		}
+		let animated_textures = [];
+		for (let texture of Texture.all) {
+			if (!(texture.frameCount > 1)) continue;
+			let fps = Format.texture_mcmeta
+				? 1000 / Math.max(16.66, 50 * texture.frame_time)
+				: Math.max(1, texture.fps);
+			let frame = Math.floor((anim_time) * fps);
+			if (texture.frame_order_type == 'custom' && texture.frame_order) {
+				let indices = texture.frame_order.split(/\s+/g).map(number => parseInt(number));
+				let frame_at_index = indices[frame%indices.length];
+				if (!isNaN(frame_at_index)) frame = frame_at_index;
+			} else if (texture.frame_order_type == 'backwards') {
+				frame = texture.frameCount - (frame % texture.frameCount) - 1;
+			} else if (texture.frame_order_type == 'back_and_forth') {
+				let length = texture.frameCount*2 - 2;
+				let mod = frame % length;
+				frame = (mod < texture.frameCount) ? mod : (length - (mod % texture.frameCount));
 			}
-		})
-		TextureAnimator.update(animated_textures);
+			frame = frame % texture.frameCount;
+			if (frame != texture.currentFrame) {
+				texture.currentFrame = frame;
+				animated_textures.push(texture);
+			}
+		}
+		if (animated_textures.length) {
+			TextureAnimator.update(animated_textures);
+		}
 	},
 	update(animated_textures) {
 		let maxFrame = 0;
@@ -72,7 +77,8 @@ TextureAnimator = {
 		BarItems.animated_texture_frame.update();
 		UVEditor.vue.updateTextureCanvas();
 		UVEditor.updateSelectionOutline(true);
-		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
+		let display_frame = TextureAnimator.isPlaying ? Texture.getDefault()?.currentFrame : maxFrame;
+		Interface.Panels.textures.inside_vue._data.currentFrame = display_frame;
 	},
 	reset() {
 		TextureAnimator.stop();
@@ -95,8 +101,10 @@ TextureAnimator = {
 
 	editor_dialog: null,
 }
-
-
+Blockbench.on('display_animation_frame', () => {
+	if (settings.flipbook_textures_in_animation.value == false) return;
+	TextureAnimator.playAnimationFrame(Timeline.time);
+});
 
 BARS.defineActions(function() {
 
@@ -127,6 +135,7 @@ BARS.defineActions(function() {
 		change: function(modify) {
 			let slider_tex = getSliderTexture()
 			if (!slider_tex) return;
+			UVEditor.previous_animation_frame = slider_tex.currentFrame;
 			slider_tex.currentFrame = (modify(slider_tex.currentFrame + slider_tex.frameCount) % slider_tex.frameCount) || 0;
 
 			let textures = Texture.all.filter(tex => tex.frameCount > 1);
@@ -143,11 +152,11 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: textureAnimationCondition,
 		click() {
+			Texture.getDefault().propertiesDialog()
 			if (Format.texture_mcmeta && Texture.all.length) {
-				Texture.getDefault().openMenu()
 				$('dialog div.form_bar_frame_time input').trigger('focus');
 			} else {
-				settings.texture_fps.trigger();
+				$('dialog div.form_bar_fps input').trigger('focus');
 			}
 		}
 	})
@@ -156,11 +165,12 @@ BARS.defineActions(function() {
 	new Action('animated_texture_editor', {
 		icon: 'theaters',
 		category: 'textures',
-		condition: Format.animated_textures && Texture.selected,
+		condition: () => Format.animated_textures && Texture.selected?.frameCount > 1,
 		click() {
 			let texture = Texture.selected;
-			let frametime = 1000/settings.texture_fps.value;
+			let frametime = 1000/Texture.getDefault().fps;
 			let gauge = texture.width;
+			let copied;
 			if (Format.texture_mcmeta && Texture.getDefault()) {
 				let tex = Texture.getDefault();
 				frametime = Math.max(tex.frame_time, 1) * 50;
@@ -247,9 +257,10 @@ BARS.defineActions(function() {
 				}).show();
 			}
 
-			function splitIntoFrames(stride = texture.display_height) {
+			function splitIntoFrames(stride = texture.display_height, old_frames) {
 				let frames = [];
 				let frame_count = Math.ceil(texture.height / stride);
+				let has_selected = false;
 				for (let i = 0; i < frame_count; i++) {
 					let canvas = document.createElement('canvas');
 					let ctx = canvas.getContext('2d');
@@ -260,10 +271,18 @@ BARS.defineActions(function() {
 					let frame = {
 						uuid: guid(),
 						initial_index: i,
+						selected: false,
 						canvas, ctx,
 						data_url,
 					};
+					if (old_frames && old_frames[i]?.selected) {
+						frame.selected = true;
+						has_selected = true;
+					}
 					frames.push(frame);
+				}
+				if (!has_selected && frames[0]) {
+					frames[0].selected = true;
 				}
 				return frames;
 			}
@@ -333,6 +352,9 @@ BARS.defineActions(function() {
 					methods: {
 						togglePlay() {
 							if (!this.playing) {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
 								this.playing = true;
 								let frametime = Math.clamp(1000 / this.fps, 2, 1000);
 								this.interval = setInterval(() => {
@@ -385,23 +407,53 @@ BARS.defineActions(function() {
 								},
 								onConfirm(data) {
 									content_vue.stride = Math.clamp(Math.round(data.stride), 1, texture.height);
-									let new_frames = splitIntoFrames(content_vue.stride);
+									let new_frames = splitIntoFrames(content_vue.stride, content_vue.frames);
 									content_vue.frames.replace(new_frames);
 								}
 							}).show();
 						},
+						select(index, event) {
+							if (!this.frames[index]) return;
+
+							let previous_index = this.frame_index;
+							this.frame_index = index;
+
+							if (event && event.ctrlOrCmd) {
+								this.frames[index].selected = true;
+								
+							} else if (event && event.shiftKey) {
+								let start_index = Math.min(index, previous_index);
+								let end_index = Math.max(index, previous_index);
+								for (let i = start_index; i <= end_index; i++) {
+									this.frames[i].selected = true;
+								}
+
+							} else {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
+								this.frames[index].selected = true;
+
+							}
+						},
 						duplicateFrame() {
-							let frame = this.frames[this.frame_index];
-							if (!frame) return;
-							let copy = Object.assign({}, frame);
-							copy.uuid = guid();
-							this.frames.splice(this.frame_index+1, 0, copy);
-							this.frame_index++;
+							let frames = this.frames.filter(frame => frame.selected);
+							if (!frames.length) return;
+							let insert_index = this.frames.indexOf(frames.last()) + 1;
+							for (let frame of frames) {
+								let copy = Object.assign({}, frame);
+								copy.uuid = guid();
+								frame.selected = false;
+								this.frames.splice(insert_index, 0, copy);
+								this.frame_index = insert_index;
+								insert_index++;
+							}
 						},
 						deleteFrame() {
-							let frame = this.frames[this.frame_index];
-							if (!frame) return;
-							this.frames.remove(frame);
+							for (let frame of this.frames.slice()) {
+								if (!frame.selected) continue;
+								this.frames.remove(frame);
+							}
 							this.frame_index = Math.min(this.frame_index, this.frames.length-1);
 						},
 						createFrame() {
@@ -413,8 +465,15 @@ BARS.defineActions(function() {
 							};
 							this.frame_index++;
 							this.frames.splice(this.frame_index, 0, frame);
+							this.select(this.frame_index);
 						},
 						copy() {
+							copied = [];
+							for (let frame of this.frames) {
+								if (!frame.selected) continue;
+								copied.push(frame);
+							}
+
 							let selected_frame = this.frames[this.frame_index];
 							if (!selected_frame) return;
 							Clipbench.image = {
@@ -434,6 +493,7 @@ BARS.defineActions(function() {
 							}
 						},
 						paste() {
+							let insert_index = this.frames.findLastIndex(f => f.selected) + 1;
 							let addFrame = (data_url) => {
 								let canvas_frame = new CanvasFrame(gauge, this.stride);
 								canvas_frame.loadFromURL(data_url);
@@ -442,11 +502,24 @@ BARS.defineActions(function() {
 									canvas: canvas_frame.canvas,
 									data_url,
 								};
-								this.frame_index++;
-								this.frames.splice(this.frame_index, 0, frame);
+								this.frames.splice(insert_index, 0, frame);
+								this.select(insert_index);
 							}
-						
-							if (isApp) {
+							
+							if (copied) {
+								for (let frame of this.frames) {
+									frame.selected = false;
+								}
+								for (let original of copied) {
+									let copy = Object.assign({}, original);
+									copy.uuid = guid();
+									copy.selected = true;
+									this.frames.splice(insert_index, 0, copy);
+									this.frame_index = insert_index;
+									insert_index++;
+								}
+
+							} else if (isApp) {
 								var image = clipboard.readImage().toDataURL();
 								addFrame(image);
 							} else {
@@ -557,8 +630,8 @@ BARS.defineActions(function() {
 								<ul v-sortable="{onUpdate: sort, animation: 160}">
 									<li v-for="(frame, i) in frames" :key="frame.uuid"
 										:title="i"
-										class="flipbook_frame" :class="{viewing: frame_index == i}"
-										@click="frame_index = i"
+										class="flipbook_frame" :class="{viewing: frame_index == i, selected: frame.selected}"
+										@click="select(i, $event);"
 										@dblclick="setFrame(i)"
 									>
 										<label>{{ i }}</label>
@@ -601,7 +674,7 @@ BARS.defineActions(function() {
 								</div>
 								<div class="flipbook_options">
 									<label>${'FPS'}</label>
-									<numeric-input v-model.number="fps" min="1" step="1" @input="updateFPS()" />
+									<numeric-input v-model.number="fps" :min="1" :step="1" @input="updateFPS()" />
 									<button @click="openCode()" v-if="code_available">${tl('dialog.animated_texture_editor.code_reference')}</button>
 								</div>
 							</div>
@@ -624,6 +697,7 @@ BARS.defineActions(function() {
 						texture.layers.empty();
 						UVEditor.vue.layer = null;
 					}
+					if (this.content_vue.$data.fps) texture.fps = this.content_vue.$data.fps;
 					
 					let i = 0;
 					for (let frame of frames) {
@@ -647,3 +721,7 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	TextureAnimator
+});

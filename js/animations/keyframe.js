@@ -1,4 +1,9 @@
-class KeyframeDataPoint {
+import { markerColors } from "../marker_colors";
+import { clipboard } from "../native_apis";
+import { invertMolang, processMolangReturn } from "../util/molang";
+import { openMolangEditor } from "./molang_editor";
+
+export class KeyframeDataPoint {
 	constructor(keyframe) {
 		this.keyframe = keyframe;
 		for (var key in KeyframeDataPoint.properties) {
@@ -28,8 +33,8 @@ class KeyframeDataPoint {
 		}
 	}
 	getUndoCopy() {
-		var copy = {}
-		for (var key in KeyframeDataPoint.properties) {
+		let copy = {}
+		for (let key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].copy(this, copy)
 		}
 		return copy;
@@ -39,15 +44,17 @@ new Property(KeyframeDataPoint, 'molang', 'x', { label: 'X', condition: point =>
 new Property(KeyframeDataPoint, 'molang', 'y', { label: 'Y', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
 new Property(KeyframeDataPoint, 'molang', 'z', { label: 'Z', condition: point => point.keyframe.transform, default: point => (point && point.keyframe.channel == 'scale' ? '1' : '0') });
 new Property(KeyframeDataPoint, 'string', 'effect', {label: tl('data.effect'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
-new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => 'particle' == point.keyframe.channel});
+new Property(KeyframeDataPoint, 'string', 'locator',{label: tl('data.locator'), condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
 new Property(KeyframeDataPoint, 'molang', 'script', {label: tl('timeline.pre_effect_script'), condition: point => ['particle', 'timeline'].includes(point.keyframe.channel), default: ''});
 new Property(KeyframeDataPoint, 'string', 'file', 	{exposed: false, condition: point => ['particle', 'sound'].includes(point.keyframe.channel)});
+new Property(KeyframeDataPoint, 'boolean', 'bind_to_actor', {exposed: false, default: true, condition: point => ['particle'].includes(point.keyframe.channel)});
 
-class Keyframe {
+export class Keyframe {
 	constructor(data, uuid, animator) {
 		this.type = 'keyframe'
 		this.uuid = (uuid && isUUID(uuid)) ? uuid : guid();
-		this.channel == 'rotation'
+		this.time = 0;
+		this.channel = 'rotation'
 		this.selected = false;
 		this.has_expressions = false;
 		this.display_value = 0;
@@ -87,6 +94,11 @@ class Keyframe {
 				KeyframeDataPoint.properties[key].merge(this.data_points[0], data)
 			}
 		}
+		if (this.channel == 'scale' && this.uniform &&
+			this.data_points.some(d => (d.x != d.y || d.x != d.z))
+		) {
+			this.uniform = false;
+		}
 		return this;
 	}
 	get(axis, data_point = 0) {
@@ -94,11 +106,8 @@ class Keyframe {
 		data_point = this.data_points[data_point];
 		if (!data_point || !data_point[axis]) {
 			return this.transform ? 0 : '';
-		} else if (!isNaN(data_point[axis])) {
-			let num = parseFloat(data_point[axis]);
-			return isNaN(num) ? 0 : num;
 		} else {
-			return data_point[axis]
+			return exportMolang(data_point[axis])
 		}
 	}
 	calc(axis, data_point = 0) {
@@ -113,6 +122,7 @@ class Keyframe {
 	}
 	set(axis, value, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
+		if (typeof value == 'number') value = Math.roundTo(value, 10).toString();
 		if (this.data_points[data_point]) {
 			if (this.uniform) {
 				this.data_points[data_point].x = value;
@@ -135,56 +145,55 @@ class Keyframe {
 			this.set(axis, value+amount, data_point);
 			return value+amount
 		}
-		var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
-		if (start) {
-			var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
-			if (number == 0) {
-				value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
-				value = value.trim();
-			} else {
-				value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
-			}
-		} else {
 
-			var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
-			if (end) {
-				var number = (parseFloat( end[0] ) + amount)
-				value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
-			} else {
-				value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+		value = processMolangReturn(value, (expression) => {
+			let value = exportMolang(expression);
+			if (!value || value === '0') {
+				return amount;
 			}
-		}
+			if (typeof value === 'number') {
+				return value+amount
+			}
+			var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
+			if (start) {
+				var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+				if (number == 0) {
+					value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
+					value = value.trim();
+				} else {
+					value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+				}
+			} else {
+
+				var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
+				if (end) {
+					var number = (parseFloat( end[0] ) + amount)
+					value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
+				} else {
+					value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+				}
+			}
+			value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
+			return value;
+		});
+
 		this.set(axis, value, data_point)
 		return value;
 	}
 	flip(axis) {
 		if (!this.transform || this.channel == 'scale') return this;
-		function negate(value) {
-			if (!value || value === '0') {
-				return value;
-			}
-			if (typeof value === 'number') {
-				return -value;
-			}
-			var start = value.match(/^-?\s*\d*(\.\d+)?\s*(\+|-)/)
-			if (start) {
-				var number = parseFloat( start[0].substr(0, start[0].length-1) );
-				return trimFloatNumber(-number) + value.substr(start[0].length-1);
-			} else {
-				return `-(${value})`;
-			}
-		}
+
 		this.data_points.forEach((data_point, data_point_i) => {
 			if (this.channel == 'rotation') {
 				for (var i = 0; i < 3; i++) {
 					if (i != axis) {
 						let l = getAxisLetter(i)
-						this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+						this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 					}
 				}
 			} else if (this.channel == 'position') {
 				let l = getAxisLetter(axis)
-				this.set(l, negate(this.get(l, data_point_i)), data_point_i)
+				this.set(l, invertMolang(this.get(l, data_point_i)), data_point_i)
 			}
 		})
 		if (this.interpolation == 'bezier') {
@@ -278,20 +287,34 @@ class Keyframe {
 		})
 		return arr;
 	}
-	getFixed(data_point = 0, do_quaternion = true) {
+	getFixed(data_point = 0, return_quaternion = true) {
 		if (this.channel === 'rotation') {
+			
 			let fix = this.animator.group.mesh.fix_rotation;
-			let euler = new THREE.Euler(
-				(fix.x||0) - Math.degToRad(this.calc('x', data_point)),
-				(fix.y||0) - Math.degToRad(this.calc('y', data_point)),
-				(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
-				'ZYX'
-			)
-			return do_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			let use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+			if (use_quaternions) {
+				let euler = new THREE.Euler(
+					Math.degToRad(this.calc('x', data_point)),
+					Math.degToRad(this.calc('y', data_point)),
+					Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				);
+				let quat = new THREE.Quaternion().setFromEuler(fix);
+				quat.multiply(Reusable.quat2.setFromEuler(euler));
+				return return_quaternion ? quat : euler.setFromQuaternion(quat);
+			} else {
+				let euler = new THREE.Euler(
+					(fix.x||0) + Math.degToRad(this.calc('x', data_point)),
+					(fix.y||0) + Math.degToRad(this.calc('y', data_point)),
+					(fix.z||0) + Math.degToRad(this.calc('z', data_point)),
+					Format.euler_order
+				)
+				return return_quaternion ? new THREE.Quaternion().setFromEuler(euler) : euler;
+			}
 		} else if (this.channel === 'position') {
 			let fix = this.animator.group.mesh.fix_position;
 			return new THREE.Vector3(
-				fix.x - this.calc('x', data_point),
+				fix.x + this.calc('x', data_point),
 				fix.y + this.calc('y', data_point),
 				fix.z + this.calc('z', data_point)
 			)
@@ -317,29 +340,38 @@ class Keyframe {
 	}
 	compileBedrockKeyframe() {
 		if (this.transform) {
-
+			let flipArray = array => {
+				if (this.channel == 'position') {
+					array[0] = invertMolang(array[0]);
+				}
+				if (this.channel == 'rotation') {
+					array[0] = invertMolang(array[0]);
+					array[1] = invertMolang(array[1]);
+				}
+				return array;
+			}
 			if (this.interpolation == 'catmullrom') {
 				let previous = this.getPreviousKeyframe();
 				let include_pre = (!previous && this.time > 0) || (previous && previous.interpolation != 'catmullrom')
 				return {
-					pre: include_pre ? this.getArray(0) : undefined,
-					post: this.getArray(include_pre ? 1 : 0),
+					pre: include_pre ? flipArray(this.getArray(0)) : undefined,
+					post: flipArray(this.getArray(include_pre ? 1 : 0)),
 					lerp_mode: this.interpolation,
 				}
 			} else if (this.data_points.length == 1) {
 				let previous = this.getPreviousKeyframe();
 				if (previous && previous.interpolation == 'step') {
 					return new oneLiner({
-						pre:  previous.getArray(1),
-						post: this.getArray(),
+						pre:  flipArray(previous.getArray(1)),
+						post: flipArray(this.getArray()),
 					})
 				} else {
-					return this.getArray();
+					return flipArray(this.getArray());
 				}
 			} else {
 				return new oneLiner({
-					pre:  this.getArray(0),
-					post: this.getArray(1),
+					pre:  flipArray(this.getArray(0)),
+					post: flipArray(this.getArray(1)),
 				})
 			}
 		} else if (this.channel == 'timeline') {
@@ -362,6 +394,7 @@ class Keyframe {
 					points.push({
 						effect: data_point.effect,
 						locator: data_point.locator || undefined,
+						bind_to_actor: data_point.bind_to_actor == false ? false : undefined,
 						pre_effect_script: script,
 					})
 				}
@@ -434,12 +467,19 @@ class Keyframe {
 		}
 		Timeline.selected.safePush(this);
 		if (Timeline.selected.length == 1 && Timeline.selected[0].animator.selected == false) {
-			Timeline.selected[0].animator.select()
+			Timeline.selected[0].animator.select();
 		}
-		this.selected = true
+		this.selected = true;
 		TickUpdates.keyframe_selection = true;
 
 		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
+
+		return this;
+	}
+	clickSelect(event) {
+		Undo.initSelection({timeline: true});
+
+		this.select(event);
 
 		var select_tool = true;
 		Timeline.selected.forEach(kf => {
@@ -452,7 +492,7 @@ class Keyframe {
 				case 'scale': BarItems.resize_tool.select(); break;
 			}
 		}
-		return this;
+		Undo.finishSelection('Select keyframe')
 	}
 	callPlayhead() {
 		Timeline.setTime(this.time)
@@ -546,10 +586,8 @@ class Keyframe {
 	Keyframe.prototype.menu = new Menu([
 		new MenuSeparator('settings'),
 		'keyframe_uniform',
-		'keyframe_interpolation',
 		'keyframe_bezier_linked',
-		'reset_keyframe_handles',
-		'reset_keyframe',
+		'keyframe_interpolation',
 		{name: 'menu.cube.color', icon: 'color_lens', children() {
 			return [
 				{icon: 'bubble_chart', name: 'generic.unset', click: function(kf) {kf.forSelected(kf2 => {kf2.color = -1}, 'change color')}},
@@ -562,7 +600,12 @@ class Keyframe {
 					}
 				}})
 			];
-		}},,
+		}},
+		new MenuSeparator('actions'),
+		'resolve_keyframe_expressions',
+		'reset_keyframe_handles',
+		'reset_keyframe',
+		'round_keyframe_values',
 		new MenuSeparator('copypaste'),
 		'copy',
 		'save_animation_preset',
@@ -586,7 +629,7 @@ class Keyframe {
 	}
 
 // Misc Functions
-function updateKeyframeValue(axis, value, data_point) {
+export function updateKeyframeValue(axis, value, data_point) {
 	Timeline.selected.forEach(function(kf) {
 		if (axis == 'uniform' && kf.channel == 'scale') kf.uniform = true;
 		if (data_point && !kf.data_points[data_point]) return;
@@ -597,7 +640,7 @@ function updateKeyframeValue(axis, value, data_point) {
 		updateKeyframeSelection();
 	}
 }
-function updateKeyframeSelection() {
+export function updateKeyframeSelection() {
 	Timeline.keyframes.forEach(kf => {
 		if (kf.selected && !Timeline.selected.includes(kf)) {
 			kf.selected = false;
@@ -624,7 +667,7 @@ function updateKeyframeSelection() {
 			BarItems.keyframe_bezier_linked.updateEnabledState();
 		}
 	}
-	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
+	if (settings.motion_trails.value && Modes.animate && Animation.selected && (Group.first_selected || (Outliner.selected[0] && Outliner.selected[0].constructor.animator) || Project.motion_trail_lock)) {
 		Animator.showMotionTrail();
 	} else if (Animator.motion_trail.parent) {
 		Animator.motion_trail.children.forEachReverse(child => {
@@ -639,7 +682,7 @@ function updateKeyframeSelection() {
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
 }
-function selectAllKeyframes() {
+export function selectAllKeyframes() {
 	if (!Animation.selected) return;
 	var state = Timeline.selected.length !== Timeline.keyframes.length
 	Timeline.keyframes.forEach((kf) => {
@@ -652,7 +695,7 @@ function selectAllKeyframes() {
 	})
 	updateKeyframeSelection()
 }
-function unselectAllKeyframes() {
+export function unselectAllKeyframes() {
 	if (!Animation.selected) return;
 	Timeline.keyframes.forEach((kf) => {
 		Timeline.selected.remove(kf)
@@ -661,7 +704,7 @@ function unselectAllKeyframes() {
 	updateKeyframeSelection()
 }
 SharedActions.add('delete', {
-	condition: () => Animator.open && Keyframe.selected.length,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Keyframe.selected.length,
 	priority: -1,
 	run() {
 		Undo.initEdit({keyframes: Timeline.selected})
@@ -679,21 +722,21 @@ SharedActions.add('delete', {
 	}
 })
 SharedActions.add('select_all', {
-	condition: () => Animator.open && Animation.selected,
-	priority: -2,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
+	priority: -1,
 	run() {
 		selectAllKeyframes()
 	}
 })
 SharedActions.add('unselect_all', {
-	condition: () => Animator.open && Animation.selected,
-	priority: -2,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
+	priority: -1,
 	run() {
 		unselectAllKeyframes()
 	}
 })
 SharedActions.add('invert_selection', {
-	condition: () => Animator.open && Animation.selected,
+	condition: () => Animator.open && Prop.active_panel == 'timeline' && Animation.selected,
 	priority: -1,
 	run() {
 		Timeline.keyframes.forEach((kf) => {
@@ -796,7 +839,14 @@ BARS.defineActions(function() {
 		icon: 'add_circle',
 		category: 'animation',
 		condition: {modes: ['animate']},
-		keybind: new Keybind({key: 'q', shift: null}),
+		keybind: new Keybind({key: 'q'}, {
+			reset_values: 'shift'
+		}),
+		variations: {
+			reset_values: {
+				name: 'action.add_keyframe.reset_values'
+			}
+		},
 		click: function (event) {
 			var animator = Timeline.selected_animator;
 			if (!animator) return;
@@ -807,8 +857,9 @@ BARS.defineActions(function() {
 			if (Timeline.vue.graph_editor_open && Prop.active_panel == 'timeline' && animator.channels[Timeline.vue.graph_editor_channel]) {
 				channel = Timeline.vue.graph_editor_channel;
 			}
-			animator.createKeyframe((event && (event.shiftKey || Pressing.overrides.shift)) ? {} : null, Timeline.time, channel, true);
-			if (event && (event.shiftKey || Pressing.overrides.shift)) {
+			let reset_values = BarItems.add_keyframe.keybind.additionalModifierTriggered(event) == 'reset_values';
+			animator.createKeyframe(reset_values ? {} : null, Timeline.time, channel, true);
+			if (reset_values) {
 				Animator.preview();
 			}
 		}
@@ -843,6 +894,38 @@ BARS.defineActions(function() {
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('Move keyframes forwards')
+		}
+	})
+	function slideKeyframes(difference, event) {
+		Undo.initEdit({keyframes: Timeline.selected});
+		let round_num = canvasGridSize(event.shiftKey || Pressing.overrides.shift, event.ctrlOrCmd || Pressing.overrides.ctrl);
+		if (Toolbox.selected.id === 'resize_tool') {
+			round_num *= 0.1;
+		}
+		difference *= round_num;
+		for (let kf of Timeline.selected) {
+			kf.offset(Timeline.vue.graph_editor_axis, difference);
+		}
+		Undo.finishEdit('Move keyframe graph');
+	}
+	new Action('move_graph_keyframes_up', {
+		icon: 'arrow_warm_up',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 38, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(1, e);
+			Animator.preview()
+		}
+	})
+	new Action('move_graph_keyframes_down', {
+		icon: 'arrow_cool_down',
+		category: 'transform',
+		condition: {modes: ['animate'], method: () => (!open_menu && Timeline.selected.length && Timeline.vue.graph_editor_open)},
+		keybind: new Keybind({key: 40, ctrl: null, shift: null}),
+		click(e) {
+			slideKeyframes(-1, e);
+			Animator.preview()
 		}
 	})
 	new Action('previous_keyframe', {
@@ -1039,6 +1122,32 @@ BARS.defineActions(function() {
 			Animator.preview()
 		}
 	})
+	new Action('round_keyframe_values', {
+		icon: 'percent',
+		category: 'animation',
+		condition: () => Animator.open && Timeline.selected.length,
+		click: function () {
+			let round = (input) => {
+				if (typeof input == 'number') return Math.round(input);
+				return input.replace(/\d+.\d+/g, (number) => {
+					return Math.round(parseFloat(number));
+				})
+			}
+			let keyframes = Timeline.selected.filter(kf => kf.transform);
+			Undo.initEdit({keyframes})
+			keyframes.forEach((kf) => {
+				for (let dp of kf.data_points) {
+					for (let axis of 'xyz') {
+						if (!Condition(KeyframeDataPoint.properties[axis].condition, dp)) continue;
+						dp[axis] = round(dp[axis]);
+					}
+				}
+			})
+			Undo.finishEdit('Round keyframe values')
+			updateKeyframeSelection()
+			Animator.preview()
+		}
+	})
 	new Action('resolve_keyframe_expressions', {
 		icon: 'functions',
 		category: 'animation',
@@ -1096,14 +1205,24 @@ BARS.defineActions(function() {
 		icon: 'add_road',
 		category: 'animation',
 		condition: () => Animator.open,
-		click() {
+		keybind: new Keybind({}, {
+			all_channels: 'shift'
+		}),
+		variations: {
+			all_channels: {
+				name: 'action.keyframe_column_create.all_channels',
+				description: 'action.keyframe_column_create.all_channels.desc'
+			}
+		},
+		click(event) {
+			let all_channels = BarItems.keyframe_column_create.keybind.additionalModifierTriggered(event) == 'all_channels';
 			Timeline.selected.empty();
 			let new_keyframes = [];
 			Undo.initEdit({keyframes: new_keyframes})
 			Timeline.animators.forEach(animator => {
 				if (animator instanceof BoneAnimator == false) return;
 				channels.forEach(channel => {
-					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+					if (Timeline.vue.channels[channel] !== false && animator[channel] && (animator[channel].length || all_channels)) {
 						let kf = animator[channel].find(kf => Math.epsilon(kf.time, Timeline.time, 1e-5));
 						if (!kf) {
 							kf = animator.createKeyframe(null, Timeline.time, channel, false, false);
@@ -1118,127 +1237,54 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Create keyframe column');
 		}
 	})
+	function selectKeyframes(select_condition) {
+		Timeline.selected.empty();
+		Timeline.animators.forEach(animator => {
+			if (animator instanceof BoneAnimator == false) return;
+			channels.forEach(channel => {
+				if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+					animator[channel].forEach(kf => {
+						if (Timeline.vue.channels[kf.channel] === false) return;
+						if (select_condition(kf)) {
+							Timeline.selected.push(kf);
+							kf.selected = true;
+						}
+					})
+				}
+			})
+		})
+		updateKeyframeSelection();
+	}
 	new Action('keyframe_column_select', {
 		icon: 'unfold_more_double',
 		category: 'animation',
 		condition: () => Animator.open,
 		click() {
-			Timeline.selected.empty();
-			Timeline.animators.forEach(animator => {
-				if (animator instanceof BoneAnimator == false) return;
-				channels.forEach(channel => {
-					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
-						animator[channel].forEach(kf => {
-							if (Math.epsilon(kf.time, Timeline.time, 1e-5) && Timeline.vue.channels[kf.channel] !== false) {
-								Timeline.selected.push(kf);
-								kf.selected = true;
-							}
-						})
-					}
-				})
-			})
-			updateKeyframeSelection();
+			selectKeyframes((kf) => {
+				return Math.epsilon(kf.time, Timeline.time, 1e-5);
+			});
 		}
 	})
-
-	flip_action = new Action('flip_animation', {
-		icon: 'transfer_within_a_station',
+	new Action('keyframe_select_before_playhead', {
+		icon: 'text_select_move_back_character',
 		category: 'animation',
-		condition: {modes: ['animate'], method: () => Animation.selected},
+		condition: () => Animator.open,
 		click() {
-
-			if (!Animation.selected) {
-				Blockbench.showQuickMessage('message.no_animation_selected')
-				return;
-			}
-
-			let original_keyframes = (Timeline.selected.length ? Timeline.selected : Timeline.keyframes).slice();
-			if (!original_keyframes.length) return;
-
-			new Dialog({
-				id: 'flip_animation',
-				title: 'action.flip_animation',
-				form: {
-					info: {type: 'info', text: 'dialog.flip_animation.info'},
-					offset: {label: 'dialog.flip_animation.offset', type: 'checkbox', value: false},
-					show_in_timeline: {label: 'dialog.flip_animation.show_in_timeline', type: 'checkbox', value: true},
-				},
-				onConfirm(formResult) {
-					this.hide()
-					
-					let new_keyframes = [];
-					Undo.initEdit({keyframes: new_keyframes});
-					let animators = [];
-					original_keyframes.forEach(kf => animators.safePush(kf.animator));
-					let channels = ['rotation', 'position', 'scale'];
-
-					animators.forEach(animator => {
-						let opposite_animator;
-						channels.forEach(channel => {
-							if (!animator[channel]) return;
-							let kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
-							if (!kfs.length) return;
-							if (!opposite_animator) {
-								let name = animator.name.toLowerCase().replace(/left/g, '%LX').replace(/right/g, 'left').replace(/%LX/g, 'right');
-								let opposite_bone = Group.all.find(g => g.name.toLowerCase() == name);
-								if (!opposite_bone) {
-									console.log(`Animation Flipping: Unable to find opposite bone for ${animator.name}`)
-									return;
-								}
-								opposite_animator = Animation.selected.getBoneAnimator(opposite_bone);
-							}
-
-							let center_keyframe;
-							if (formResult.offset && !kfs.find(kf => Math.epsilon(kf.time, Timeline.snapTime(Animation.selected.length/2), 0.004))) {
-								center_keyframe = animator.createKeyframe(null, Timeline.snapTime(Animation.selected.length/2), channel, false, false);
-								kfs.push(center_keyframe);
-							}
-							kfs.sort((a, b) => a.time - b.time);
-							let occupied_times = [];
-							kfs.forEach(old_kf => {
-								let time = old_kf.time;
-								if (formResult.offset) {
-									time = (time + Animation.selected.length/2) % (Animation.selected.length + 0.001);
-								}
-								time = Timeline.snapTime(time);
-								if (Math.epsilon(time, Animation.selected.length, 0.004) && formResult.offset && !occupied_times.includes(0)) {
-									// Copy keyframe to start
-									occupied_times.push(0);
-									let new_kf = opposite_animator.createKeyframe(old_kf, 0, channel, false, false)
-									if (new_kf) {
-										new_kf.flip(0);
-										new_keyframes.push(new_kf);
-									}
-								}
-								if (occupied_times.includes(time)) return;
-								occupied_times.push(time);
-								let new_kf = opposite_animator.createKeyframe(old_kf, time, channel, false, false)
-								if (new_kf) {
-									new_kf.flip(0);
-									new_keyframes.push(new_kf);
-								}
-							})
-							if (formResult.offset && !occupied_times.includes(0)) {
-								let new_kf = opposite_animator.createKeyframe(new_keyframes.last(), 0, channel, false, false)
-								if (new_kf) {
-									new_keyframes.push(new_kf);
-								}
-							}
-							if (center_keyframe) center_keyframe.remove();
-						})
-						if (formResult.show_in_timeline && opposite_animator) {
-							opposite_animator.addToTimeline();
-						}
-					})
-					TickUpdates.keyframes = true;
-					Animator.preview();
-
-					Undo.finishEdit('Copy and flip keyframes');
-				}
-			}).show()
+			selectKeyframes((kf) => {
+				return kf.time < (Timeline.time + 1e-5);
+			});
 		}
 	})
-	MenuBar.addAction(flip_action, 'animation')
+	new Action('keyframe_select_after_playhead', {
+		icon: 'text_select_move_forward_character',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			selectKeyframes((kf) => {
+				return kf.time > (Timeline.time - 1e-5);
+			});
+		}
+	})
 })
 
 Interface.definePanels(function() {
@@ -1250,7 +1296,8 @@ Interface.definePanels(function() {
 			slot: 'left_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 4,
 		},
 		toolbars: [
 			new Toolbar({
@@ -1278,8 +1325,14 @@ Interface.definePanels(function() {
 				updateInput(axis, value, data_point) {
 					updateKeyframeValue(axis, value, data_point);
 				},
+				updateToggleInput(axis, value, data_point) {
+					Undo.initEdit({keyframes: Timeline.selected})
+					updateKeyframeValue(axis, value, data_point);
+					Undo.finishEdit('Edit keyframe');
+				},
 				getKeyframeInfos() {
-					let list =  [tl('timeline.'+this.channel)];
+					let channel_name = this.firstKeyframe?.animator.channels[this.channel]?.name;
+					let list =  [channel_name ?? ''];
 					if (this.keyframes.length > 1) list.push(this.keyframes.length);
 					return list.join(', ')
 				},
@@ -1306,6 +1359,13 @@ Interface.definePanels(function() {
 				},
 				updateLocatorSuggestionList() {
 					Locator.updateAutocompleteList();
+				},
+				changeBindToActor(event, i) {
+					Undo.initEdit({keyframes: Timeline.selected});
+					for (let kf of Timeline.selected) {
+						if (kf.data_points[i]) kf.data_points[i].bind_to_actor = event.target.checked;
+					}
+					Undo.finishEdit('Change keyframe property bind to actor');
 				},
 				focusAxis(axis) {
 					if ('xyz'.includes(axis)) {
@@ -1341,7 +1401,7 @@ Interface.definePanels(function() {
 							let val = Math.round((clientX - e1.clientX) / 40);
 							let difference = (val - last_val);
 							if (difference) {
-								if (Toolbox.selected.id === 'rotate_tool') {
+								if (Keyframe.selected[0]?.channel == 'rotation') {
 									difference *= getRotationInterval(e2);
 								} else {
 									difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
@@ -1445,8 +1505,34 @@ Interface.definePanels(function() {
 						})
 					}
 				},
+				openMolangContextMenu(axis, event, value, data_point_i) {
+					new Menu([
+						{
+							name: 'menu.text_edit.expression_editor',
+							icon: 'code_blocks',
+							click() {
+								openMolangEditor({
+									autocomplete_context: MolangAutocomplete.KeyframeContext,
+									text: value
+								}, result => {
+									Undo.initEdit({keyframes: Timeline.selected});
+									Timeline.selected.forEach(function(kf) {
+										if (data_point_i && !kf.data_points[data_point_i]) return;
+										kf.set(axis, result, data_point_i);
+									})
+									Undo.finishEdit('Change keyframe value')
+									if (!['effect', 'locator', 'script'].includes(axis)) {
+										Animator.preview();
+										updateKeyframeSelection();
+									}
+								})
+							}
+						}
+					]).open(event);
+				},
 				autocomplete(text, position) {
-					let test = Animator.autocompleteMolang(text, position, 'keyframe');
+					if (Settings.get('autocomplete_code') == false) return [];
+					let test = MolangAutocomplete.KeyframeContext.autocomplete(text, position);
 					return test;
 				},
 				tl,
@@ -1517,6 +1603,7 @@ Interface.definePanels(function() {
 											class="molang_input keyframe_input tab_target"
 											v-model="data_point['x_string']"
 											@change="updateInput('uniform', $event, data_point_i)"
+											@contextmenu="openMolangContextMenu('uniform', $event, data_point['x_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
@@ -1533,17 +1620,25 @@ Interface.definePanels(function() {
 										class="bar flex"
 										:id="'keyframe_bar_' + property.name"
 									>
-										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang'}" :style="{'font-weight': channel_colors[key] ? 'bolder' : 'unset'}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
+										<label :class="{[channel_colors[key]]: true, slidable_input: property.type == 'molang', axis: !!channel_colors[key]}" @mousedown="slideValue(key, $event, data_point_i)" @touchstart="slideValue(key, $event, data_point_i)">{{ property.label }}</label>
 										<vue-prism-editor 
 											v-if="property.type == 'molang'"
 											class="molang_input keyframe_input tab_target"
 											v-model="data_point[key+'_string']"
 											@change="updateInput(key, $event, data_point_i)"
 											@focus="focusAxis(key)"
+											@contextmenu="openMolangContextMenu(key, $event, data_point[key+'_string'], data_point_i)"
 											language="molang"
 											:autocomplete="autocomplete"
 											:ignoreTabKey="true"
 											:line-numbers="false"
+										/>
+										<input
+											type="checkbox"
+											v-else-if="property.type == 'boolean'"
+											class="keyframe_input tab_target"
+											@input="updateToggleInput(key, $event.target.checked, data_point_i)"
+											:checked="data_point[key]"
 										/>
 										<input
 											v-else
@@ -1554,6 +1649,7 @@ Interface.definePanels(function() {
 											@focus="key == 'locator' && updateLocatorSuggestionList()"
 											@input="updateInput(key, $event.target.value, data_point_i)"
 										/>
+										<input type="checkbox" v-if="key == 'locator'" :checked="data_point.bind_to_actor" title="${tl('timeline.bind_to_actor')}" @input="changeBindToActor($event, data_point_i)">
 										<div class="tool" v-if="key == 'effect'" :title="tl(channel == 'sound' ? 'timeline.select_sound_file' : 'timeline.select_particle_file')" @click="changeKeyframeFile(data_point, firstKeyframe)">
 											<i class="material-icons">upload_file</i>
 										</div>
@@ -1589,4 +1685,14 @@ Interface.definePanels(function() {
 			}
 		}
 	})
+})
+
+Object.assign(window, {
+	KeyframeDataPoint,
+	Keyframe,
+	BBKeyframe: Keyframe,
+	updateKeyframeValue,
+	updateKeyframeSelection,
+	selectAllKeyframes,
+	unselectAllKeyframes
 })

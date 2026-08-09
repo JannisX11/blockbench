@@ -1,5 +1,11 @@
+import { PointerTarget } from "../interface/pointer_target";
+import { clipboard, nativeImage } from "../native_apis";
+import { RenderTargetSnapshot } from "../preview/render_target";
+import { Dynamic2DMap } from "../util/dynamic_2d_map";
+
 StateMemory.init('brush_presets', 'array')
-const Painter = {
+
+export const Painter = {
 	currentPixel: [-1, -1],
 	brushChanges: false,
 	current: {/*texture, image*/},
@@ -23,13 +29,15 @@ const Painter = {
 
 		callback(canvas, Painter.current);
 
+		Blockbench.dispatchEvent('edit_texture', {texture, options, canvas, ctx, offset});
+
 		if (options.use_cache && options.no_update === true) {
 			return;
 		}
 
 		if (options.no_undo && options.use_cache) {
 			texture.updateLayerChanges();
-			let map = texture.getMaterial().map;
+			let map = texture.getOwnMaterial().map;
 			map.needsUpdate = true;
 			UVEditor.vue.updateTextureCanvas();
 		} else {
@@ -58,6 +66,19 @@ const Painter = {
 			&& Painter.current.alpha_matrix[texture.uuid][x][y];
 	},
 	// Preview Brush
+	getTextureToEdit(input_texture) {
+		if (BarItems.view_mode.value == 'material' && input_texture) {
+			if (input_texture.selected) return input_texture;
+			let texture_group = input_texture.getGroup();
+			if (texture_group) {
+				let textures = texture_group.getTextures();
+				if (textures.includes(Texture.selected)) {
+					return Texture.selected;
+				}
+			}
+		}
+		return input_texture;
+	},
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
 			let projections = {};
@@ -78,46 +99,54 @@ const Painter = {
 				var ctx = Painter.getCanvas(references.last().img).getContext('2d');
 				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
 				if (settings.pick_color_opacity.value) {
-					let opacity = Math.floor(color.getAlpha()*256);
+					let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 100.4));
 					for (let id in BarItems) {
 						let tool = BarItems[id];
 						if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 							tool.tool_settings.brush_opacity = opacity;
 						}
 					}
+					BarItems.slider_brush_opacity.update();
 				}
 				ColorPanel.set(color, e.button == 2);
 			}
 		}
-		if (!data.intersects || (data.element && data.element.locked)) return;
-		var texture = data.element.faces[data.face].getTexture()
+		if (!data.intersects || (data.element.locked && !Toolbox.selected.click_locked_elements)) return;
+		var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture())
 		if (!texture || (texture.error && texture.error !== 2)) {
 			Blockbench.showQuickMessage('message.untextured')
 			return;
 		}
 		let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
+		UVEditor.vue.texture = texture;
+		Painter.current.control_scale = Preview.selected.calculateControlScale(data.intersects[0].point);
 
 		Painter.startPaintTool(texture, x, y, data.element.faces[data.face].uv, e, data)
 
-		if (Toolbox.selected.id !== 'color_picker') {
-			addEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
-			addEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
-		}
+		addEventListeners(document, 'pointermove', Painter.movePaintToolCanvas, false );
+		addEventListeners(document, 'pointerup', Painter.stopPaintToolCanvas, false );
 	},
 	movePaintToolCanvas(event, data) {
 		convertTouchEvent(event);
 		if (!data) data = Canvas.raycast(event)
 		if (data && data.element && !data.element.locked && data.face) {
-			var texture = data.element.faces[data.face].getTexture();
+			var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture());
 			if (!texture) return;
 			if (texture.img.naturalWidth + texture.img.naturalHeight == 0) return;
 
 			let new_face;
 			let [x, y] = Painter.getCanvasToolPixelCoords(data.intersects[0].uv, texture);
+			Painter.current.control_scale = Preview.selected.calculateControlScale(data.intersects[0].point);
 
 			let interval = Toolbox.selected.brush?.interval || 1;
-			if (Math.sqrt(Math.pow(x - Painter.current.x, 2) + Math.pow(y - Painter.current.y, 2)) < interval) {
+			let delta = [x - Painter.current.x, y - Painter.current.y];
+			let distance = Math.sqrt(Math.pow(delta[0], 2) + Math.pow(delta[1], 2));
+			if (distance < interval) {
 				return;
+			} else if (distance > interval && !(!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates))) {
+				let rounded_distance = Math.floor(distance/interval)*interval;
+				x = Painter.current.x + (delta[0] / distance) * rounded_distance;
+				y = Painter.current.y + (delta[1] / distance) * rounded_distance;
 			}
 
 			if (
@@ -127,30 +156,38 @@ const Painter = {
 				if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 					return;
 				}
+				if (BarItems.brush_lock_mode.value == 'element' && Painter.current.element !== data.element) return;
+				if (BarItems.brush_lock_mode.value == 'face') return;
 				Painter.current.x = x
 				Painter.current.y = y
 				Painter.current.face = data.face
 				Painter.current.element = data.element
+				Painter.current.client_mouse_x = event.clientX;
+				Painter.current.client_mouse_y = event.clientY;
 				new_face = true
 				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture && Undo.current_save) {
 					Undo.current_save.addTextureOrLayer(texture)
 				}
 			} else {
+				let max_interval_dist = 6;
+				if (Painter.current.face != data.face && (delta[0]**2 + delta[1]**2) > max_interval_dist**2) {
+					new_face = true;
+				}
 				Painter.current.face = data.face;
 			}
 			Painter.movePaintTool(texture, x, y, event, new_face, data.element.faces[data.face].uv)
 		}
 	},
 	stopPaintToolCanvas() {
-		removeEventListeners(document, 'mousemove touchmove', Painter.movePaintToolCanvas, false );
-		removeEventListeners(document, 'mouseup touchend', Painter.stopPaintToolCanvas, false );
+		removeEventListeners(document, 'pointermove', Painter.movePaintToolCanvas, false );
+		removeEventListeners(document, 'pointerup', Painter.stopPaintToolCanvas, false );
 		Painter.stopPaintTool();
 	},
 	getMeshUVIsland(fkey, face) {
 		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
 		if (!Painter.current.uv_islands[fkey]) {
-			Painter.current.uv_islands[fkey] = face.getUVIsland();
+			Painter.current.uv_islands[fkey] = face.getUVIsland(48);
 		}
 		return Painter.current.uv_islands[fkey];
 	},
@@ -159,9 +196,15 @@ const Painter = {
 		//Called directly by startPaintToolCanvas and startBrushUV
 
 		delete Painter.paint_stroke_canceled;
-		if (settings.paint_with_stylus_only.value && !(event.touches && event.touches[0] && event.touches[0].touchType == 'stylus')) {
+		if (settings.paint_with_stylus_only.value && !(event.pointerType == 'pen' || event.touches?.[0]?.touchType == 'stylus')) {
 			Painter.paint_stroke_canceled = true;
 			return;
+		}
+		if (!PointerTarget.requestTarget(PointerTarget.types.paint)) {
+			Painter.paint_stroke_canceled = true;
+			if (Toolbox.selected != BarItems.copy_brush || !event.ctrlOrCmd) {
+				return;
+			}
 		}
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeStart) {
 			let result = Toolbox.selected.brush.onStrokeStart({texture, x, y, uv: uvTag, event, raycast_data: data});
@@ -173,6 +216,7 @@ const Painter = {
 
 		if (Toolbox.selected.id === 'color_picker') {
 			Painter.colorPicker(texture, x, y, event);
+			Painter.paint_stroke_canceled = true;
 			return;
 		}
 		
@@ -183,8 +227,9 @@ const Painter = {
 			undo_aspects.textures = [texture];
 		}
 		Undo.initEdit(undo_aspects);
+		Painter.current.start_event = event;
+		Painter.current.use_screen_projection = !!data && Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
 		Painter.brushChanges = false;
-		Painter.painting = true;
 		
 		if (Toolbox.selected.id === 'draw_shape_tool' || Toolbox.selected.id === 'gradient_tool') {
 			Painter.current = {
@@ -203,18 +248,18 @@ const Painter = {
 		} else {
 			Painter.current.face_matrices = {};
 
-			let is_line
+			let is_line = (event.shiftKey || Pressing.overrides.shift);
+			// Viewport only
 			if (data) {
-				is_line = (event.shiftKey || Pressing.overrides.shift)
-					   && Painter.current.element == data.element
-					   && (Painter.current.face == data.face ||
+				if (is_line && !Painter.current.use_screen_projection) {
+					// Check if on same face or UV island
+					is_line = Painter.current.element == data.element
+						&& (Painter.current.face == data.face ||
 							(data.element.faces[data.face] instanceof MeshFace && Painter.getMeshUVIsland(data.face, data.element.faces[data.face]).includes(Painter.current.face))
 						)
+				}
 				Painter.current.element = data.element;
 				Painter.current.face = data.face;
-			} else {
-				//uv editor
-				is_line = (event.shiftKey || Pressing.overrides.shift);
 			}
 			if (Toolbox.selected.brush?.line == false) is_line = false;
 
@@ -222,17 +267,22 @@ const Painter = {
 				if (is_line) {
 					Painter.drawBrushLine(texture, x, y, event, false, uvTag);
 				} else {
+					Painter.current.client_mouse_x = event.clientX;
+					Painter.current.client_mouse_y = event.clientY;
 					Painter.current.x = Painter.current.y = 0
 					Painter.useBrushlike(texture, x, y, event, uvTag)
 				}
 				Painter.current.x = x;
 				Painter.current.y = y;
+				Painter.current.client_mouse_x = event.clientX;
+				Painter.current.client_mouse_y = event.clientY;
 			}, {no_undo: true, use_cache: true});
 		}
 	},
 	movePaintTool(texture, x, y, event, new_face, uv) {
 		// Called directly from movePaintToolCanvas and moveBrushUV
 		if (Painter.paint_stroke_canceled) return;
+		if (!PointerTarget.requestTarget(PointerTarget.types.paint)) return;
 		
 		if (Toolbox.selected.brush && Toolbox.selected.brush.onStrokeMove) {
 			let result = Toolbox.selected.brush.onStrokeMove({texture, x, y, uv, event, raycast_data: data});
@@ -249,14 +299,28 @@ const Painter = {
 
 		} else {
 			texture.edit(canvas => {
-				Painter.drawBrushLine(texture, x, y, event, new_face, uv)
+				let is_line = true;
+				if (new_face) is_line = false;
+				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
+					is_line = false;
+				}
+				if (is_line) {
+					Painter.drawBrushLine(texture, x, y, event, new_face, uv);
+				} else {
+					Painter.current.x = Painter.current.y = 0;
+					delete Painter.current.client_mouse_x;
+					delete Painter.current.client_mouse_y;
+					Painter.useBrushlike(texture, x, y, event, uv)
+				}
 			}, {no_undo: true, use_cache: true});
 		}
 		Painter.current.x = x;
 		Painter.current.y = y;
+		Painter.current.client_mouse_x = event.clientX;
+		Painter.current.client_mouse_y = event.clientY;
 	},
 	stopPaintTool() {
-		//Called directly by stopPaintToolCanvas and stopBrushUV
+		PointerTarget.endTarget();
 		if (Painter.paint_stroke_canceled) {
 			delete Painter.paint_stroke_canceled;
 			return;
@@ -286,7 +350,11 @@ const Painter = {
 		delete Painter.current.textures;
 		delete Painter.current.uv_rects;
 		delete Painter.current.uv_islands;
-		Painter.painting = false;
+		delete Painter.current.dynamic_brush_size;
+		delete Painter.current.face_matrices;
+		delete Painter.current.start_event;
+		delete Painter.current.render_target_snapshot;
+
 		Painter.currentPixel = [-1, -1];
 	},
 	// Tools
@@ -354,7 +422,8 @@ const Painter = {
 		return rect;
 	},
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
-		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y) return;
+		let use_screen_projection = Painter.current.use_screen_projection;
+		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y && !use_screen_projection) return;
 		Painter.currentPixel = [x, y];
 		Painter.brushChanges = true;
 		if (!is_opposite) {
@@ -363,7 +432,7 @@ const Painter = {
 		let uvFactorX = texture.width / texture.getUVWidth();
 		let uvFactorY = texture.display_height / texture.getUVHeight();
 
-		if (Painter.mirror_painting && !is_opposite) {
+		if (Painter.mirror_painting && !is_opposite && !use_screen_projection) {
 			let targets = Painter.getMirrorPaintTargets(texture, x, y, uvTag);
 			if (targets.length) {
 				let old_element = Painter.current.element;
@@ -381,24 +450,31 @@ const Painter = {
 		let ctx = Painter.current.ctx;
 		ctx.save()
 
-		ctx.beginPath();
-		let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
-		var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
-		ctx.rect(rect[0], rect[1], w, h)
+		if (use_screen_projection && Toolbox.selected.id !== 'fill_tool') {
+			Painter.useBrush(texture, ctx, x, y, event);
 
-		if (Toolbox.selected.id === 'fill_tool') {
-			Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
 		} else {
-			Painter.useBrush(texture, ctx, x, y, event)
+			ctx.beginPath();
+			let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
+			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
+			ctx.rect(rect[0], rect[1], w, h)
+
+			if (Toolbox.selected.id === 'fill_tool') {
+				Painter.useFilltool(texture, ctx, x, y, { rect, uvFactorX, uvFactorY, w, h })
+			} else {
+				Painter.useBrush(texture, ctx, x, y, event)
+			}
 		}
 		Painter.editing_area = undefined;
 	},
 	useBrush(texture, ctx, x, y, event) {
 
-		var color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
+		let use_2nd_color = Keybinds.extra.paint_secondary_color.keybind.isTriggered(Painter.current.start_event ?? event);
+		var color = tinycolor(ColorPanel.get(use_2nd_color)).toRgb();
 		var size = BarItems.slider_brush_size.get();
 		let softness = BarItems.slider_brush_softness.get()/100;
-		let b_opacity = BarItems.slider_brush_opacity.get()/255;
+		let max_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
+		let b_opacity = max_opacity;
 		let tool = Toolbox.selected;
 		let matrix_id = Painter.current.element
 					  ? (Painter.current.element.uuid + Painter.current.face)
@@ -417,26 +493,39 @@ const Painter = {
 				for (let fkey of island) {
 					let face = Painter.current.element.faces[fkey];
 					face.getOccupationMatrix(true, [0, 0], Painter.current.face_matrices[matrix_id]);
+					let matrix_id2 = Painter.current.element ? (Painter.current.element.uuid + fkey) : fkey;
+					Painter.current.face_matrices[matrix_id2] = Painter.current.face_matrices[matrix_id];
 				}
 			}
 		}
+		let pressure;
+		let angle;
 		if (event.touches && event.touches[0] && event.touches[0].touchType == 'stylus' && event.touches[0].force !== undefined) {
 			// Stylus
 			var touch = event.touches[0];
+			pressure = touch.force;
+			angle = touch.altitudeAngle;
 
-			if (settings.brush_opacity_modifier.value == 'pressure' && touch.force !== undefined) {
-				b_opacity = Math.clamp(b_opacity * Math.clamp(touch.force*1.25, 0, 1), 0, 100);
+		} else if (event.pressure >= 0 && event.pressure <= 1 && (event.pressure < 1 || event.pointerType != 'touch') && event.pressure !== 0.5) {
+			pressure = event.pressure;
+			angle = event.altitudeAngle;
+		}
 
-			} else if (settings.brush_opacity_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				var modifier = Math.clamp(0.5 / (touch.altitudeAngle + 0.3), 0, 1);
+		if (pressure !== undefined) {
+			if (settings.brush_opacity_modifier.value == 'pressure' && pressure !== undefined) {
+				b_opacity = Math.clamp(b_opacity * Math.clamp(pressure*1.25, 0, 1), 0, 100);
+
+			} else if (settings.brush_opacity_modifier.value == 'tilt' && angle !== undefined) {
+				var modifier = Math.clamp(0.5 / (angle + 0.3), 0, 1);
 				b_opacity = Math.clamp(b_opacity * modifier, 0, 100);
 			}
-			if (settings.brush_size_modifier.value == 'pressure' && touch.force !== undefined) {
-				size = Math.clamp(touch.force * size * 2, 1, 20);
+			if (settings.brush_size_modifier.value == 'pressure' && pressure !== undefined) {
+				size = Math.clamp(pressure * size * 2, 1, 20);
 
-			} else if (settings.brush_size_modifier.value == 'tilt' && touch.altitudeAngle !== undefined) {
-				size *= Math.clamp(1.5 / (touch.altitudeAngle + 0.3), 1, 4);
+			} else if (settings.brush_size_modifier.value == 'tilt' && angle !== undefined) {
+				size *= Math.clamp(1.5 / (angle + 0.3), 1, 4);
 			}
+			Painter.current.dynamic_brush_size = size;
 		}
 
 		if (tool.brush.draw) {
@@ -445,27 +534,50 @@ const Painter = {
 
 		} else {
 			let face_matrix = settings.paint_side_restrict.value && Painter.current.face_matrices[matrix_id];
+			let shape = BarItems.brush_shape.value;
 			let run_per_pixel = (pxcolor, local_opacity, px, py) => {
 				if (face_matrix) {
 					if (!face_matrix[px] || !face_matrix[px][py % texture.display_height]) {
 						return pxcolor;
 					}
 				}
-				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, ctx, x, y, size, softness, texture, event});
+				return tool.brush.changePixel(px, py, pxcolor, local_opacity, {color, opacity: b_opacity, max_opacity, ctx, x, y, size, softness, texture, event});
 			}
-			let shape = BarItems.brush_shape.value;
-			if (shape == 'square') {
-				Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
-			} else if (shape == 'circle') {
-				Painter.editCircle(ctx, x, y, size, softness * 1.8, run_per_pixel);
+
+			if (Painter.current.use_screen_projection) {
+				face_matrix = null;
+				Painter.projectScreenSpaceBrush(ctx, {
+					x, y, size, texture,
+					softness: softness * 1.8,
+					shape,
+					event,
+					client_x: Painter.current.client_mouse_x ?? event.clientX,
+					client_y: Painter.current.client_mouse_y ?? event.clientY,
+				}, run_per_pixel);
+			} else {
+				size = Painter.getBrushDimensions();
+				if (shape == 'square') {
+					Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
+				} else if (shape == 'circle') {
+					Painter.editCircle(ctx, x, y, size, softness * 1.8, run_per_pixel);
+				}
 			}
 
 		}
 		ctx.restore();
 	},
+	getBrushDimensions(size = BarItems.slider_brush_size.get()) {
+		let aspect_ratio = BarItems.slider_brush_aspect_ratio.get();
+		let dimensions = [size, size];
+		if (aspect_ratio) {
+			let index = aspect_ratio < 0 ? 0 : 1;
+			dimensions[index] = Math.round(size / (Math.abs(aspect_ratio)+1));
+		}
+		return dimensions;
+	},
 	useFilltool(texture, ctx, x, y, area) {
 		let color = tinycolor(ColorPanel.get()).toRgb();
-		let b_opacity = BarItems.slider_brush_opacity.get()/255;
+		let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 		let fill_mode = BarItems.fill_mode.get()
 		let blend_mode = BarItems.blend_mode.value;
 		let {element, offset} = Painter.current;
@@ -483,85 +595,201 @@ const Painter = {
 			}
 		}
 
-		if (element instanceof Cube && fill_mode === 'element') {
-			ctx.beginPath();
-			for (var face in element.faces) {
-				var tag = element.faces[face]
-				if (tag.getTexture() === texture) {
-					var face_rect = getRectangle(
-						tag.uv[0] * uvFactorX,
-						tag.uv[1] * uvFactorY,
-						tag.uv[2] * uvFactorX,
-						tag.uv[3] * uvFactorY
-					)
-					let animation_offset = texture.currentFrame * texture.display_height;
-					ctx.rect(
-						Math.floor(face_rect.ax),
-						Math.floor(face_rect.ay) + animation_offset,
-						Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
-						Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
-					)
-				}
-			}
-			ctx.fill()
-
-		} else if (element instanceof Mesh && (fill_mode === 'element' || fill_mode === 'face')) {
-			ctx.beginPath();
-			for (var fkey in element.faces) {
-				var face = element.faces[fkey];
-				if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
-				if (face.vertices.length <= 2 || face.getTexture() !== texture) continue;
-				
-				let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
-				Painter.current.face_matrices[element.uuid + fkey] = matrix;
-				for (let x in matrix) {
-					for (let y in matrix[x]) {
-						if (!matrix[x][y]) continue;
-						if (!texture.selection.allow(x, y)) continue;
-						x = parseInt(x); y = parseInt(y);
-						ctx.rect(x, y, 1, 1);
+		function paintElement(element) {
+			if (element.getTypeBehavior('cube_faces')) {
+				texture.selection.maskCanvas(ctx, offset);
+				ctx.beginPath();
+				for (var fkey in element.faces) {
+					var face = element.faces[fkey]
+					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
+					if (Painter.getTextureToEdit(face.getTexture()) === texture) {
+						var face_rect = getRectangle(
+							face.uv[0] * uvFactorX,
+							face.uv[1] * uvFactorY,
+							face.uv[2] * uvFactorX,
+							face.uv[3] * uvFactorY
+						)
+						let animation_offset = texture.currentFrame * texture.display_height;
+						ctx.rect(
+							Math.floor(face_rect.ax),
+							Math.floor(face_rect.ay) + animation_offset,
+							Math.ceil(face_rect.bx) - Math.floor(face_rect.ax),
+							Math.ceil(face_rect.by) - Math.floor(face_rect.ay)
+						)
 					}
 				}
-			}
-			ctx.fill()
+				ctx.fill()
+				ctx.restore();
 
-		} else if (fill_mode === 'face' || fill_mode === 'element') {
-			texture.selection.maskCanvas(ctx, offset);
-			ctx.fill();
-		} else {
-			let selection = texture.selection;
-			let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
-			let pxcol = [...image_data.data];
-			let map = {}
-			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-				if (pxcol.equals(px) && selection.allow(x, y)) {
-					if (!map[x]) map[x] = {}
-					map[x][y] = true
-				}
-			})
-			var scan_value = true;
-			if (fill_mode === 'color_connected') {
-				let points = [[x, y]];
-				for (let i = 0; i < 1_000_000; i++) {
-					let current_points = points;
-					points = [];
-					for (let [x, y] of current_points) {
-						if (map[x] && map[x][y]) {
-							map[x][y] = false;
-							points.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+			} else if (element instanceof Mesh) {
+				// Rasterize every target face into a coverage mask, then emit merged
+				// horizontal runs once. Emitting one rect per pixel (or per row per face)
+				// explodes into large numbers of canvas subpaths that ctx.fill chokes on
+				// even at small sizes. The mask dedups overlapping faces and the run merge
+				// keeps the canvas path proportional to the filled shape at every size.
+				let canvas_w = ctx.canvas.width, canvas_h = ctx.canvas.height;
+				let mask = new Uint8Array(canvas_w * canvas_h);
+				let changes = false;
+				let bounds_min_x = canvas_w, bounds_min_y = canvas_h, bounds_max_x = -1, bounds_max_y = -1;
+				let mark_run = (x_start, x_end, y) => {
+					if (y < 0 || y >= canvas_h) return;
+					let a = x_start < 0 ? 0 : x_start;
+					let b = x_end >= canvas_w ? canvas_w - 1 : x_end;
+					if (a > b) return;
+					mask.fill(1, y * canvas_w + a, y * canvas_w + b + 1);
+					changes = true;
+					if (a < bounds_min_x) bounds_min_x = a;
+					if (b > bounds_max_x) bounds_max_x = b;
+					if (y < bounds_min_y) bounds_min_y = y;
+					if (y > bounds_max_y) bounds_max_y = y;
+				};
+				for (var fkey in element.faces) {
+					var face = element.faces[fkey];
+					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
+					if (face.vertices.length <= 2 || Painter.getTextureToEdit(face.getTexture()) !== texture) continue;
+
+					// Face UV polygon in texture-space pixels (same factors as getOccupationMatrix).
+					let face_texture = face.getTexture();
+					let factor_x = face_texture ? (face_texture.width / face_texture.getUVWidth()) : 1;
+					let factor_y = face_texture ? (face_texture.display_height / face_texture.getUVHeight()) : 1;
+					let vertices = [];
+					for (let vkey of face.getSortedVertices()) {
+						let uv = face.uv[vkey];
+						if (!uv) { vertices = null; break; }
+						vertices.push([uv[0] * factor_x, uv[1] * factor_y]);
+					}
+
+					// Convex faces rasterize by scanline (one span per row); concave or
+					// degenerate faces fall back to the exact per-pixel occupation matrix.
+					if (vertices && Painter.scanlineConvexPolygon(vertices, mark_run)) continue;
+
+					let matrix = Painter.current.face_matrices[element.uuid + fkey] || face.getOccupationMatrix(true, [0, 0]);
+					Painter.current.face_matrices[element.uuid + fkey] = matrix;
+					for (let x in matrix) {
+						let px = parseInt(x), column = matrix[x];
+						for (let y in column) {
+							if (column[y]) mark_run(px, px, parseInt(y));
 						}
 					}
-					if (points.length == 0) break;
 				}
-				scan_value = false;
+
+				if (changes) {
+					// Emit one rect per contiguous horizontal run of the mask (respecting an
+					// active selection), then fill once. Path size is O(runs), not O(area).
+					let selection = texture.selection;
+					let check_selection = selection && selection.override === null;
+					ctx.beginPath();
+					for (let y = bounds_min_y; y <= bounds_max_y; y++) {
+						let row = y * canvas_w, run = -1;
+						for (let x = bounds_min_x; x <= bounds_max_x + 1; x++) {
+							let filled = x <= bounds_max_x && mask[row + x] && (!check_selection || selection.allow(x, y));
+							if (filled) {
+								if (run < 0) run = x;
+							} else if (run >= 0) {
+								ctx.rect(run, y, x - run, 1);
+								run = -1;
+							}
+						}
+					}
+					ctx.fill();
+				}
 			}
-			Painter.scanCanvas(ctx, rect[0], rect[1], w, h, (x, y, px) => {
-				if (map[x] && map[x][y] === scan_value) {
+		}
+
+		if ((element?.getTypeBehavior('cube_faces') || element instanceof Mesh || element instanceof SplineMesh) && (fill_mode === 'element' || fill_mode === 'face')) {
+			paintElement(element);
+
+		} else if (fill_mode === 'face' || fill_mode === 'element' || fill_mode === 'selection') {
+			texture.selection.maskCanvas(ctx, offset);
+			ctx.fill();
+			ctx.restore();
+
+		} else if (fill_mode === 'selected_elements') {
+			for (let element of Outliner.selected) {
+				paintElement(element);
+			}
+
+		} else {
+			// Perf note: this branch handles both the "Same Color" (global) and
+			// "Color Connected" (flood fill) modes. It used to build a nested
+			// object map (map[x][y]) via two separate full-canvas scanCanvas
+			// passes (each doing its own getImageData/putImageData), and the
+			// flood fill pushed duplicate, unvisited-checked neighbor coordinates
+			// as new arrays. On large textures (e.g. 1200x1200+) that caused
+			// multi-second freezes (see JannisX11/blockbench#3487). This does the
+			// same work with a single getImageData/putImageData round trip and
+			// flat typed arrays instead of per-pixel objects/array allocations.
+			let selection = texture.selection;
+			let image_data = ctx.getImageData(x - offset[0], y - offset[1], 1, 1);
+			let target_r = image_data.data[0];
+			let target_g = image_data.data[1];
+			let target_b = image_data.data[2];
+			let target_a = image_data.data[3];
+
+			// Mirror scanCanvas's offset/clamping logic so selected texture
+			// layers behave exactly the same as before.
+			let local_x = rect[0];
+			let local_y = rect[1];
+			let scan_x = rect[0];
+			let scan_y = rect[1];
+			if (Painter.current.texture && Painter.current.texture.selected_layer) {
+				local_x -= Painter.current.texture.selected_layer.offset[0];
+				local_y -= Painter.current.texture.selected_layer.offset[1];
+			}
+			if (local_x < 0) { scan_x -= local_x; local_x = 0; }
+			if (local_y < 0) { scan_y -= local_y; local_y = 0; }
+			let scan_w = Math.min(w, ctx.canvas.width - local_x);
+			let scan_h = Math.min(h, ctx.canvas.height - local_y);
+
+			if (scan_w > 0 && scan_h > 0) {
+				let arr = ctx.getImageData(local_x, local_y, scan_w, scan_h);
+				let data = arr.data;
+				let pixel_count = scan_w * scan_h;
+				let matches = new Uint8Array(pixel_count);
+
+				for (let row = 0; row < scan_h; row++) {
+					let py = scan_y + row;
+					let row_offset = row * scan_w;
+					for (let col = 0; col < scan_w; col++) {
+						let i = (row_offset + col) * 4;
+						if (data[i] === target_r && data[i+1] === target_g && data[i+2] === target_b && data[i+3] === target_a) {
+							let px = scan_x + col;
+							if (selection.allow(px, py)) matches[row_offset + col] = 1;
+						}
+					}
+				}
+
+				let fill_flags = matches;
+				if (fill_mode === 'color_connected') {
+					fill_flags = new Uint8Array(pixel_count);
+					let start_col = x - scan_x;
+					let start_row = y - scan_y;
+					if (start_col >= 0 && start_col < scan_w && start_row >= 0 && start_row < scan_h) {
+						let start_idx = start_row * scan_w + start_col;
+						if (matches[start_idx]) {
+							fill_flags[start_idx] = 1;
+							let stack = [start_idx];
+							while (stack.length) {
+								let idx = stack.pop();
+								let col = idx % scan_w;
+								if (col > 0 && matches[idx-1] && !fill_flags[idx-1]) { fill_flags[idx-1] = 1; stack.push(idx-1); }
+								if (col < scan_w-1 && matches[idx+1] && !fill_flags[idx+1]) { fill_flags[idx+1] = 1; stack.push(idx+1); }
+								if (idx-scan_w >= 0 && matches[idx-scan_w] && !fill_flags[idx-scan_w]) { fill_flags[idx-scan_w] = 1; stack.push(idx-scan_w); }
+								if (idx+scan_w < pixel_count && matches[idx+scan_w] && !fill_flags[idx+scan_w]) { fill_flags[idx+scan_w] = 1; stack.push(idx+scan_w); }
+							}
+						}
+					}
+				}
+
+				let changes = false;
+				for (let j = 0; j < pixel_count; j++) {
+					if (!fill_flags[j]) continue;
+					let i = j * 4;
 					var pxcolor = {
-						r: px[0],
-						g: px[1],
-						b: px[2],
-						a: px[3]/255
+						r: data[i],
+						g: data[i+1],
+						b: data[i+2],
+						a: data[i+3]/255
 					}
 					var result_color = pxcolor;
 					if (!Painter.erase_mode) {
@@ -577,13 +805,16 @@ const Painter = {
 							result_color.a = Math.clamp(result_color.a * (1-b_opacity), 0, 1);
 						}
 					}
-					px[0] = result_color.r
-					px[1] = result_color.g
-					px[2] = result_color.b
-					if (!Painter.lock_alpha) px[3] = result_color.a*255
-					return px;
+					data[i]   = result_color.r;
+					data[i+1] = result_color.g;
+					data[i+2] = result_color.b;
+					if (!Painter.lock_alpha) data[i+3] = result_color.a*255;
+					changes = true;
 				}
-			})
+				if (changes) {
+					ctx.putImageData(arr, local_x, local_y);
+				}
+			}
 		}
 		ctx.globalAlpha = 1.0;
 		ctx.globalCompositeOperation = 'source-over'
@@ -634,6 +865,10 @@ const Painter = {
 					point_on_uv[1] = Math.min(face.uv[1], face.uv[1+2]) * uvFactorY + point_on_uv[1];
 				} else {
 					point_on_uv[1] = Math.max(face.uv[1], face.uv[1+2]) * uvFactorY - point_on_uv[1] - offset_pixel_brush;
+				}
+				if (offset_pixel_brush == 1) {
+					point_on_uv[0] = Math.round(point_on_uv[0]);
+					point_on_uv[1] = Math.round(point_on_uv[1]);
 				}
 	
 				return {
@@ -718,6 +953,10 @@ const Painter = {
 						point_on_uv = point_on_uv.map(v => Math.floor(v))
 					}
 				}
+				if (offset_pixel_brush == 1) {
+					point_on_uv[0] = Math.round(point_on_uv[0]);
+					point_on_uv[1] = Math.round(point_on_uv[1]);
+				}
 				
 				return {
 					element: mesh,
@@ -770,7 +1009,7 @@ const Painter = {
 				offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0 : 1;
 			}
 			let center = Painter.mirror_painting_options.texture_center;
-			if (center[0] == 0 && center[1] == 0) {
+			if (!center || (!center[0] && !center[1])) {
 				center = [texture.width/2, texture.display_height/2];
 			}
 			if (Painter.mirror_painting_options.axis.x) {
@@ -822,56 +1061,93 @@ const Painter = {
 		return targets;
 	},
 	drawBrushLine(texture, end_x, end_y, event, new_face, uv) {
-		var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
-		var start_y = (Painter.current.y == undefined ? end_y : Painter.current.y);
-		
-		var diff_x = end_x - start_x;
-		var diff_y = end_y - start_y;
-
-		var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
-
-		if (new_face && !length) {
-			length = 1
-		}
 		let interval = Toolbox.selected.brush?.interval || 1;
-		var i = Math.min(interval, length);
-		var x, y;
 		let {ctx, offset} = Painter.current;
-		if (interval == 1) {
-			if (Math.abs(diff_x) > Math.abs(diff_y)) {
-				interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
-			} else {
-				interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
-			}
-		}
 
-		if (Toolbox.selected.brush?.pixel_perfect && BarItems.pixel_perfect_drawing.value && BarItems.slider_brush_size.get() == 1) {
-			let direction = 0;
-			if (length == 1 && diff_x && !diff_y) {direction = 1;}
-			if (length == 1 && !diff_x && diff_y) {direction = 2;}
-			let image_data = ctx.getImageData(end_x - offset[0], end_y - offset[1], 1, 1);
-			let pixel = {
-				direction,
-				image_data,
-				position: [end_x - offset[0], end_y - offset[1]]
-			};
-			if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
-				ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
-				delete Painter.current.last_pixel;
-			} else {
-				Painter.current.last_pixel = pixel;
-			}
-		}
+		if (!Painter.current.use_screen_projection) {
+			var start_x = (Painter.current.x == undefined ? end_x : Painter.current.x);
+			var start_y = (Painter.current.y == undefined ? end_y : Painter.current.y);
+			
+			var diff_x = end_x - start_x;
+			var diff_y = end_y - start_y;
 
-		while (i <= length) {
-			x = length ? (start_x + diff_x / length * i) : end_x;
-			y = length ? (start_y + diff_y / length * i) : end_y;
-			if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-				x = Math.round(x);
-				y = Math.round(y);
+			var length = Math.sqrt(diff_x*diff_x + diff_y*diff_y)
+
+			if (new_face && !length) {
+				length = 1
 			}
-			Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
-			i += interval;
+			var x, y;
+			var i = Math.min(interval, length);
+			if (interval == 1) {
+				if (Math.abs(diff_x) > Math.abs(diff_y)) {
+					interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+				} else {
+					interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+				}
+			}
+
+			if (Toolbox.selected.brush?.pixel_perfect && BarItems.pixel_perfect_drawing.value && BarItems.slider_brush_size.get() == 1) {
+				let direction = 0;
+				if (length == 1 && diff_x && !diff_y) {direction = 1;}
+				if (length == 1 && !diff_x && diff_y) {direction = 2;}
+				let image_data = ctx.getImageData(end_x - offset[0], end_y - offset[1], 1, 1);
+				let pixel = {
+					direction,
+					image_data,
+					position: [end_x - offset[0], end_y - offset[1]]
+				};
+				if (length == 1 && Painter.current.last_pixel && Painter.current.last_pixel.direction && direction && Painter.current.last_pixel.direction != direction) {
+					ctx.putImageData(Painter.current.last_pixel.image_data, ...Painter.current.last_pixel.position);
+					delete Painter.current.last_pixel;
+				} else {
+					Painter.current.last_pixel = pixel;
+				}
+			}
+
+			while (i <= length+0.001) {
+				x = length ? (start_x + diff_x / length * i) : end_x;
+				y = length ? (start_y + diff_y / length * i) : end_y;
+				if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
+					x = Math.round(x);
+					y = Math.round(y);
+				}
+				Painter.useBrushlike(texture, x, y, event, uv, i < length-1);
+				i += interval;
+			}
+			
+		} else {
+			let pixel_density = texture.width/texture.getUVWidth();
+			const screen_pixel_size = (10 / Painter.current.control_scale) / pixel_density;
+			var start_x = (Painter.current.client_mouse_x ?? event.clientX);
+			var start_y = (Painter.current.client_mouse_y ?? event.clientY);
+			
+			var diff_x = event.clientX - start_x;
+			var diff_y = event.clientY - start_y;
+
+			var length = Math.sqrt(diff_x**2 + diff_y**2) / screen_pixel_size;
+
+			if (new_face && !length) {
+				length = 1
+			}
+			if (!length) {
+				Painter.useBrushlike(texture, end_x, end_y, event, uv, i < length-1);
+				return;
+			}
+			var i = Math.min(interval, length);
+			if (interval == 1) {
+				if (Math.abs(diff_x) > Math.abs(diff_y)) {
+					interval = Math.sqrt(Math.pow(diff_y/diff_x, 2) + 1)
+				} else {
+					interval = Math.sqrt(Math.pow(diff_x/diff_y, 2) + 1)
+				}
+			}
+
+			while (i <= length+0.001) {
+				Painter.current.client_mouse_x = start_x + ((diff_x / length) * i);
+				Painter.current.client_mouse_y = start_y + ((diff_y / length) * i);
+				Painter.useBrushlike(texture, end_x, end_y, event, uv, i < length-1);
+				i += interval;
+			}
 		}
 	},
 	useShapeTool(texture, x, y, event, uvTag) {
@@ -883,7 +1159,7 @@ const Painter = {
 			ctx.drawImage(Painter.current.clear, 0, 0)
 
 			let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
-			let b_opacity = BarItems.slider_brush_opacity.get()/255;
+			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 			var width = BarItems.slider_brush_size.get();
 			let shape = BarItems.draw_shape_type.get();
 			let hollow = shape.substr(-1) == 'h';
@@ -939,6 +1215,7 @@ const Painter = {
 						//changePixel(0, 0, editPx)
 						function editPx(pxcolor) {
 							if (!Painter.erase_mode) {
+								let result_color;
 								if (blend_mode == 'default') {
 									result_color = Painter.combineColors(pxcolor, color, b_opacity);
 								} else {
@@ -1054,7 +1331,7 @@ const Painter = {
 		Painter.brushChanges = true;
 
 		texture.edit(function(canvas) {
-			let b_opacity = BarItems.slider_brush_opacity.get()/255;
+			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 			let {ctx, offset} = Painter.current;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.drawImage(Painter.current.clear, 0, 0)
@@ -1141,18 +1418,47 @@ const Painter = {
 		}, {no_undo: true, use_cache: true});
 	},
 	colorPicker(texture, x, y, event) {
-		var ctx = Painter.getCanvas(texture).getContext('2d')
-		let color = Painter.getPixelColor(ctx, x, y);
+		// Tool switch: transparent pixel → eraser, color pixel → brush
+		if (settings.color_picker_tool_switch.value) {
+			let pixel = texture.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+			if (pixel[3] === 0) {
+				Toolbox.original = BarItems.eraser;
+				// Blockbench.showQuickMessage('Switched to Eraser', 1000);
+				return;
+			}
+		}
+
+		let color;
+		// Pick layer color
+		if (settings.pick_combined_color.value == false && texture.selected_layer) {
+			color = Painter.getPixelColor(
+				texture.getActiveCanvas().ctx,
+				x - texture.selected_layer.offset[0],
+				y - texture.selected_layer.offset[1]
+			);
+		}
+		// Pick combined color
+		if (!color || (color.toHex8() == '00000000')) {
+			color = Painter.getPixelColor(texture.ctx, x, y);
+		}
+		// Set color
 		if (settings.pick_color_opacity.value) {
-			let opacity = Math.floor(color.getAlpha()*256);
+			let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 101));
 			for (let id in BarItems) {
 				let tool = BarItems[id];
 				if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
 					tool.tool_settings.brush_opacity = opacity;
 				}
 			}
+			BarItems.slider_brush_opacity.update();
 		}
 		ColorPanel.set(color, event && event.button == 2);
+
+		// Tool switch: go to brush after picking a color
+		if (settings.color_picker_tool_switch.value && Toolbox.original == BarItems.eraser) {
+			Toolbox.original = BarItems.brush_tool
+			// Blockbench.showQuickMessage('Switched to Brush', 1000);
+		}
 	},
 	// Util
 	combineColors(base, added, opacity) {
@@ -1219,8 +1525,25 @@ const Painter = {
 				mix[ch] = ((normal_base - normal_added) * added.a) + (normal_base * (1-added.a));
 				break;
 
+				case 'darken':
+				mix[ch] = (Math.min(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'lighten':
+				mix[ch] = (Math.max(normal_base, normal_added) * added.a) + (normal_base * (1-added.a));
+				break;
+
 				case 'screen':
 				mix[ch] = ((1 - ((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
+				break;
+
+				case 'overlay':
+					if (base[ch] < 128) {
+						mix[ch] = (((2*normal_base*normal_added)) * added.a) + (normal_base * (1-added.a));
+					}
+					else{
+						mix[ch] = ((1 - 2*((1-normal_base) * (1-normal_added))) * added.a) + (normal_base * (1-added.a));
+					}
 				break;
 
 				//case 'hard_light':
@@ -1294,6 +1617,7 @@ const Painter = {
 		BarItems.slider_brush_size.update()
 		BarItems.slider_brush_softness.update()
 		BarItems.slider_brush_opacity.update()
+		BarItems.slider_brush_aspect_ratio.update()
 		BarItems.slider_color_select_threshold.update()
 	},
 	getBlendModeCompositeOperation(input = BarItems.blend_mode.value) {
@@ -1305,7 +1629,10 @@ const Painter = {
 			//case 'divide': return 'color-burn';
 			case 'add': return 'lighter';
 			//case 'subtract': return 'darken';
+			case 'darken': return 'darken';
+			case 'lighten': return 'lighten';
 			case 'screen': return 'screen';
+			case 'overlay': return 'overlay';
 			case 'difference': return 'difference';
 			default: return 'source-over';
 		}
@@ -1313,8 +1640,9 @@ const Painter = {
 	getCanvasToolPixelCoords(uv_point, texture) {
 		let x = uv_point.x * texture.img.naturalWidth;
 		let y = (1-uv_point.y) * texture.img.naturalHeight;
-		if (!Toolbox.selected.brush || Condition(Toolbox.selected.brush.floor_coordinates)) {
-			let offset = BarItems.slider_brush_size.get()%2 == 0 && Toolbox.selected.brush?.offset_even_radius ? 0.5 : 0;
+		let brush_config = Toolbox.selected.brush;
+		if (!brush_config || Condition(brush_config.floor_coordinates)) {
+			let offset = BarItems.slider_brush_size.get()%2 == 0 && brush_config?.offset_even_radius ? 0.5 : 0;
 			x = Math.floor(x + offset);
 			y = Math.floor(y + offset);
 		}
@@ -1374,6 +1702,57 @@ const Painter = {
 			ctx.putImageData(arr, local_x, local_y);
 		}
 	},
+	/**
+	 * Rasterize a convex polygon into horizontal pixel spans by scanlines.
+	 * Cost scales with the polygon's pixel height and edge count, not its area.
+	 * @param {number[][]} vertices Polygon corners as [x, y] in pixel coordinates, in order.
+	 * @param {(x_start: number, x_end: number, y: number) => void} emit_run Called once per row with the inclusive filled span.
+	 * @returns {boolean} True if rasterized; false (without emitting) if the polygon is concave or degenerate, so callers can fall back.
+	 */
+	scanlineConvexPolygon(vertices, emit_run) {
+		let n = vertices.length;
+		if (n < 3) return false;
+		// Reject concave polygons: every consecutive edge turn must share one sign.
+		let sign = 0;
+		for (let i = 0; i < n; i++) {
+			let a = vertices[i], b = vertices[(i + 1) % n], c = vertices[(i + 2) % n];
+			let cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+			if (cross === 0) continue;
+			let cross_sign = cross > 0 ? 1 : -1;
+			if (sign === 0) sign = cross_sign;
+			else if (cross_sign !== sign) return false;
+		}
+		let min_y = Infinity, max_y = -Infinity;
+		for (let v of vertices) { if (v[1] < min_y) min_y = v[1]; if (v[1] > max_y) max_y = v[1]; }
+		for (let y = Math.floor(min_y); y <= Math.ceil(max_y) - 1; y++) {
+			// Widest x-extent of the polygon within the pixel row band [y, y+1]. Rounding
+			// the span outward keeps coverage conservative, matching getOccupationMatrix.
+			let band_top = y, band_bottom = y + 1;
+			let min_x = Infinity, max_x = -Infinity;
+			for (let v of vertices) {
+				if (v[1] >= band_top && v[1] <= band_bottom) {
+					if (v[0] < min_x) min_x = v[0];
+					if (v[0] > max_x) max_x = v[0];
+				}
+			}
+			for (let i = 0; i < n; i++) {
+				let a = vertices[i], b = vertices[(i + 1) % n];
+				if (a[1] === b[1]) continue;
+				for (let edge = 0; edge < 2; edge++) {
+					let cut = edge === 0 ? band_top : band_bottom;
+					if ((a[1] - cut) * (b[1] - cut) > 0) continue;
+					let t = (cut - a[1]) / (b[1] - a[1]);
+					if (t < 0 || t > 1) continue;
+					let x = a[0] + t * (b[0] - a[0]);
+					if (x < min_x) min_x = x;
+					if (x > max_x) max_x = x;
+				}
+			}
+			if (max_x < min_x) continue;
+			emit_run(Math.floor(min_x), Math.ceil(max_x) - 1, y);
+		}
+		return true;
+	},
 	getPixelColor(ctx, x, y) {
 		let {data} = ctx.getImageData(x, y, 1, 1)
 		return new tinycolor({
@@ -1417,13 +1796,19 @@ const Painter = {
 		ctx.putImageData(arr, x - offset[0], y - offset[1]);
 	},
 	editCircle(ctx, x, y, r, soft, editPx) {
-		r = Math.round(r+1)/2;
-		let pixel_roundness_factor = 1 + 1 / (r+3);
+		let w, h;
+		if (r instanceof Array) {
+			w = Math.round(r[0]+1)/2;
+			h = Math.round(r[1]+1)/2;
+		} else {
+			w = h = Math.round(r+1)/2;
+		}
+		let r_max = Math.max(w, h);
+		let r_1 = r_max%1;
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
-		let r_1 = r%1;
-		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
 				(
@@ -1448,14 +1833,18 @@ const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let distance = Math.sqrt(v_px*v_px + v_py*v_py)
+			let distance = Math.sqrt(
+				(v_px / (w/r_max))**2 +
+				(v_py / (h/r_max))**2
+			);
+			let pixel_roundness_factor = 1 + 1 / (r_max+3);
 			let pos_on_gradient;
-			if (soft*r != 0) {
-				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+			if (soft*r_max != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r_max) / (soft*r_max), 0, 1)
 				pos_on_gradient = Math.hermiteBlend(pos_on_gradient);
 			} else {
 				distance *= pixel_roundness_factor;
-				pos_on_gradient = Math.floor(distance/r);
+				pos_on_gradient = Math.floor(distance/r_max);
 			}
 
 			let opacity = Math.clamp(1-pos_on_gradient, 0, 1);
@@ -1476,12 +1865,19 @@ const Painter = {
 		});
 	},
 	editSquare(ctx, x, y, r, soft, editPx) {
-		r = Math.round(r+1)/2;
+		let w, h;
+		if (r instanceof Array) {
+			w = Math.round(r[0]+1)/2;
+			h = Math.round(r[1]+1)/2;
+		} else {
+			w = h = Math.round(r+1)/2;
+		}
+		let r_max = Math.max(w, h);
+		let r_1 = r_max%1;
 		let selection = Painter.current.texture.selection;
 		let check_painting_area = settings.paint_side_restrict.value && Painter.editing_area && typeof Painter.editing_area === 'object';
 		let is_smooth = x%1 != 0;
-		let r_1 = r%1;
-		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(r)-2, Math.floor(y)-Math.ceil(r)-2, 2*r+3, 2*r+3, function (px, py, pixel) {
+		Painter.scanCanvas(ctx, Math.floor(x)-Math.ceil(w)-2, Math.floor(y)-Math.ceil(h)-2, 2*w+3, 2*h+3, function (px, py, pixel) {
 			if (
 				check_painting_area &&
 				(
@@ -1506,13 +1902,16 @@ const Painter = {
 				v_px += 0.5; v_py += r_1;
 			}
 
-			let distance = Math.max(Math.abs(v_px), Math.abs(v_py));
+			let distance = Math.max(
+				Math.abs(v_px) / (w/r_max),
+				Math.abs(v_py) / (h/r_max)
+			);
 			let pos_on_gradient;
-			if (soft*r != 0) {
-				pos_on_gradient = Math.clamp((distance-(1-soft)*r) / (soft*r), 0, 1)
+			if (soft*r_max != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-soft)*r_max) / (soft*r_max), 0, 1)
 				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
 			} else {
-				pos_on_gradient = Math.floor((distance)/r)
+				pos_on_gradient = Math.floor(distance/r_max)
 			}
 
 			let opacity = limitNumber(1-pos_on_gradient, 0, 1)
@@ -1532,8 +1931,121 @@ const Painter = {
 			}
 		});
 	},
+	projectScreenSpaceBrush(ctx, args, editPx) {
+		let texture = args.texture;
+		let preview = Preview.selected;
+		let r = args.size/2;
+		let selection = Painter.current.texture.selection;
+		let pixel_density = texture.width/texture.getUVWidth();
+		const bounds = [texture.width, texture.height, 0, 0];
+
+		let canvas_offset = preview.canvas.getBoundingClientRect();
+		let mouse_canvas_offset = [
+			args.client_x - canvas_offset.left,
+			args.client_y - canvas_offset.top
+		]
+
+		let objects = [];
+		let elements = Outliner.elements;
+		const lock_mode = BarItems.brush_lock_mode.value;
+		if ((lock_mode == 'element' || lock_mode == 'face') && Painter.current.element) {
+			elements = [Painter.current.element];
+		}
+		for (let element of elements) {
+			if (!element._static.properties.faces) continue;
+			if (element.visibility === false || element.locked === true) continue;
+			let mesh = element.mesh;
+			if (!mesh || mesh.visible == false || !mesh.geometry) continue;
+			objects.push(mesh);
+		}
+
+		// Calculate brush size on onscreen-pixels
+		let screen_radius = (12.5 / Painter.current.control_scale) * (r / pixel_density);
+		if (r < 1 && args.softness < 0.1) screen_radius *= 0.5;
+
+		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
+		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
+		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
+		// Calculate sampling resolution
+
+		Painter.current.render_target_snapshot ??= new RenderTargetSnapshot(preview).takeSnapshot(objects);
+		let snapshot = Painter.current.render_target_snapshot;
+
+		const pixel_intensities = {};
+		const pixel_hits = {};
+		function raycast(offset) {
+			let screen_distance = args.shape == 'square'
+				? Math.max(Math.abs(offset[0]), Math.abs(offset[1]))
+				: Math.sqrt(offset[0]**2 + offset[1]**2);
+			if (screen_distance > screen_radius) return;
+			// Distance in pixel space
+			let distance = (screen_distance / screen_radius) * r;
+
+			let intersect = snapshot.readPixel(
+				mouse_canvas_offset[0] + offset[0], 
+				mouse_canvas_offset[1] + offset[1]
+			);
+			if (!intersect) return;
+
+			let coords = [
+				Math.floor(intersect.uv.x * texture.img.naturalWidth),
+				Math.floor((1-intersect.uv.y) * texture.img.naturalHeight),
+			];
+			if (coords[0] < 0 || coords[0] >= texture.width || coords[1] < 0 || coords[1] >= texture.height) return;
+			bounds[0] = Math.min(bounds[0], coords[0]);
+			bounds[1] = Math.min(bounds[1], coords[1]);
+			bounds[2] = Math.max(bounds[2], coords[0]);
+			bounds[3] = Math.max(bounds[3], coords[1]);
+
+			// If pixel hit, set intensity value (calculate average)
+			let pos_on_gradient;
+			if (args.softness*r != 0) {
+				pos_on_gradient = Math.clamp((distance-(1-args.softness)*r) / (args.softness*r), 0, 1)
+				pos_on_gradient = 3*Math.pow(pos_on_gradient, 2) - 2*Math.pow(pos_on_gradient, 3);
+			} else {
+				pos_on_gradient = Math.floor(distance/r)
+			}
+			if (pos_on_gradient != 1) {
+				let key = coords[0] + '.' + coords[1];
+				pixel_intensities[key] = (pixel_intensities[key] ?? 0) + pos_on_gradient;
+				pixel_hits[key] = (pixel_hits[key]??0) + 1;
+			}
+		}
+		const sample_step = ExperimentalSettings.get('projected_brush_sample_rate') ?? 2;
+		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += sample_step) {
+			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += sample_step) {
+				raycast([offset_x, offset_y]);
+			}
+		}
+
+		// Iterate over affected pixels and modify pixel
+		if (bounds[2] < bounds[0] || bounds[3] < bounds[1]) return; // No pixels
+		Painter.scanCanvas(ctx, bounds[0], bounds[1], bounds[2]-bounds[0]+1, bounds[3]-bounds[1]+1, function (px, py, pixel) {
+			let key = px + '.' + py;
+			if (!pixel_hits[key]) return;
+			if (selection.allow(px, py) == 0) return;
+
+			let pos_on_gradient = pixel_intensities[key] / pixel_hits[key];
+			let opacity = Math.clamp(1-pos_on_gradient, 0, 1)
+
+			if (opacity > 0) {
+				let result_color = editPx({
+					r: pixel[0],
+					g: pixel[1],
+					b: pixel[2],
+					a: pixel[3]/255
+				}, opacity, px, py)
+				pixel[0] = result_color.r
+				pixel[1] = result_color.g
+				pixel[2] = result_color.b
+				pixel[3] = result_color.a*255
+				return pixel;
+			}
+		});
+	},
 	openBrushOptions() {
 		let current_preset = 0;
+		let opacity_range = settings.opacity_range.value == '255' ? 256 : 100;
 		let dialog = new Dialog({
 			id: 'brush_options',
 			title: 'menu.brush_presets.dialog',
@@ -1575,16 +2087,19 @@ const Painter = {
 						this.selected_preset = preset;
 						current_preset = preset;
 						dialog.object.classList.add('preset_selected');
+						dialog.setFormToggles({
+							size: preset.size !== null,
+							softness: preset.softness !== null,
+							opacity: preset.opacity !== null,
+							color: preset.color !== null,
+						}, false);
 						dialog.setFormValues({
 							name: preset.name,
-							use_size: preset.size !== null,
 							size: preset.size == null ? BarItems.slider_brush_size.get() : preset.size,
-							use_softness: preset.softness !== null,
 							softness: preset.softness == null ? BarItems.slider_brush_softness.get() : preset.softness,
-							use_opacity: preset.opacity !== null,
 							opacity: preset.opacity == null ? BarItems.slider_brush_opacity.get() : preset.opacity,
 							pixel_perfect: preset.pixel_perfect == null ? BarItems.pixel_perfect_drawing.value : preset.pixel_perfect,
-							use_color: preset.color !== null,
+							screen_space: preset.screen_space == null ? BarItems.screen_space_brush_projection.value : preset.screen_space,
 							color: preset.color == null ? ColorPanel.get() : preset.color,
 							shape: preset.shape ? preset.shape : 'unset',
 							blend_mode: preset.blend_mode ? preset.blend_mode : 'unset',
@@ -1626,7 +2141,7 @@ const Painter = {
 			},
 			form: {
 				name: {label: 'generic.name', type: 'text'},
-				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', description: 'action.brush_shape.desc', type: 'select', options: {
+				shape: {label: 'action.brush_shape', description: 'action.brush_shape.desc', type: 'select', options: {
 					unset: 'generic.unset',
 					square: 'action.brush_shape.square',
 					circle: 'action.brush_shape.circle'
@@ -1641,42 +2156,78 @@ const Painter = {
 					//divide: 'action.blend_mode.divide',
 					add: 'action.blend_mode.add',
 					//subtract: 'action.blend_mode.subtract',
+					lighten: 'action.blend_mode.lighten',
+					darken: 'action.blend_mode.darken',
 					screen: 'action.blend_mode.screen',
+					overlay: 'action.blend_mode.overlay',
 					difference: 'action.blend_mode.difference',
 				}},
-				use_size: {label: 'action.slider_brush_size', description: 'action.slider_brush_size.desc', type: 'checkbox'},
-				size: {label: '', nocolon: true, description: 'action.slider_brush_size.desc', type: 'number', condition: form => form.use_size, value: 1, min: 1, max: 100},
-				use_opacity: {label: 'action.slider_brush_opacity', description: 'action.slider_brush_opacity.desc', type: 'checkbox'},
-				opacity: {label: '', nocolon: true, description: 'action.slider_brush_opacity.desc', type: 'number', condition: form => form.use_opacity, value: 255, min: 0, max: 255},
-				use_softness: {label: 'action.slider_brush_softness', description: 'action.slider_brush_softness.desc', type: 'checkbox'},
-				softness: {label: '', nocolon: true, description: 'action.slider_brush_softness.desc', type: 'number', condition: form => form.use_softness, value: 0, min: 0, max: 100},
-				pixel_perfect: {label: 'action.pixel_perfect_drawing', type: 'checkbox'},
-				use_color: {label: 'data.color', type: 'checkbox'},
-				color: {label: '', nocolon: true, description: 'action.brush_shape.desc', type: 'color', condition: form => form.use_color},
+				size: {
+					label: 'action.slider_brush_size',
+					description: 'action.slider_brush_size.desc',
+					type: 'number',
+					value: 1, min: 1, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				opacity: {
+					label: 'action.slider_brush_opacity',
+					description: 'action.slider_brush_opacity.desc', type: 'number',
+					value: opacity_range, min: 0, max: opacity_range,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				softness: {
+					label: 'action.slider_brush_softness',
+					description: 'action.slider_brush_softness.desc', type: 'number',
+					value: 0, min: 0, max: 100,
+					toggle_enabled: true,
+					toggle_default: true
+				},
+				pixel_perfect: {
+					label: 'action.pixel_perfect_drawing',
+					type: 'checkbox',
+				},
+				screen_space: {
+					label: 'action.screen_space_brush_projection',
+					type: 'checkbox',
+				},
+				color: {
+					label: 'data.color',
+					description: 'action.brush_shape.desc', type: 'color',
+					toggle_enabled: true,
+					toggle_default: true
+				},
 				actions: {type: 'buttons', buttons: ['generic.delete'], click() {
 					dialog.content_vue.removePreset();
 				}}
 			},
+			/**
+			use_size
+			use_opacity
+			use_softness
+			use_color
+			 */
 			onFormChange(form) {
 				let preset = this.content_vue.selected_preset;
 				preset.name = form.name;
 
-				if (form.use_size) {
+				if (form.size != undefined) {
 					preset.size = form.size;
 				} else {
 					preset.size = null;
 				}
-				if (form.use_softness) {
+				if (form.softness != undefined) {
 					preset.softness = form.softness;
 				} else {
 					preset.softness = null;
 				}
-				if (form.use_opacity) {
+				if (form.opacity != undefined) {
 					preset.opacity = form.opacity;
 				} else {
 					preset.opacity = null;
 				}
-				if (form.use_color) {
+				if (form.color != undefined) {
 					preset.color = form.color.toHexString();
 				} else {
 					preset.color = null;
@@ -1685,6 +2236,11 @@ const Painter = {
 					preset.pixel_perfect = true;
 				} else {
 					preset.pixel_perfect = false;
+				}
+				if (form.screen_space) {
+					preset.screen_space = true;
+				} else {
+					preset.screen_space = false;
 				}
 				if (form.shape !== 'unset') {
 					preset.shape = form.shape;
@@ -1715,6 +2271,7 @@ const Painter = {
 		if (typeof preset.softness == 'number') BarItems.slider_brush_softness.setValue(preset.softness);
 		if (typeof preset.opacity == 'number') 	BarItems.slider_brush_opacity.setValue(preset.opacity);
 		if (preset.pixel_perfect != undefined) 	BarItems.pixel_perfect_drawing.set(preset.pixel_perfect);
+		if (preset.screen_space != undefined) 	BarItems.screen_space_brush_projection.set(preset.screen_space);
 		if (preset.color) 		ColorPanel.set(preset.color);
 		if (preset.shape) {
 			BarItems.brush_shape.set(preset.shape);
@@ -1736,6 +2293,7 @@ const Painter = {
 			size: 1,
 			softness: 0,
 			pixel_perfect: false,
+			screen_space: false,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -1745,6 +2303,7 @@ const Painter = {
 			size: 1,
 			softness: 0,
 			pixel_perfect: true,
+			screen_space: false,
 			shape: 'square',
 			blend_mode: 'default'
 		},
@@ -1754,13 +2313,28 @@ const Painter = {
 			size: 5,
 			softness: 70,
 			pixel_perfect: false,
+			screen_space: false,
+			shape: 'circle',
+			blend_mode: 'default'
+		},
+		{
+			name: 'menu.brush_presets.screen_space',
+			default: true,
+			size: 5,
+			softness: 70,
+			pixel_perfect: false,
+			screen_space: true,
 			shape: 'circle',
 			blend_mode: 'default'
 		}
 	]
 }
+ExperimentalSettings.add(
+	'projected_brush_sample_rate',
+	{type: 'number', label: 'Projected Brush sample interval', min: 1, value: 2, step: 1, force_step: true}
+);
 
-class IntMatrix {
+export class IntMatrix {
 	constructor(width = 16, height = 16) {
 		this.width = width;
 		this.height = height;
@@ -1944,7 +2518,7 @@ class IntMatrix {
 				}
 				if (can_exp_h && y + i >= this.height) can_exp_h = false;
 				if (can_exp_h) {
-					for (let j = 0; j < h; j++) {
+					for (let j = 0; j < w; j++) {
 						if (this.getDirect(x+j, y+i) != 1) {
 							can_exp_h = false;
 							break;
@@ -1966,9 +2540,8 @@ class IntMatrix {
 		return boxes;
 	}
 	maskCanvas(ctx, offset = [0, 0]) {
-		if (!this.is_custom) return;
-
 		ctx.save();
+		if (!this.is_custom) return;
 		ctx.beginPath();
 		let boxes = this.toBoxes();
 		boxes.forEach(box => {
@@ -1981,9 +2554,9 @@ class IntMatrix {
 
 SharedActions.add('copy', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, cut) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2028,15 +2601,15 @@ SharedActions.add('copy', {
 		}
 
 		if (cut) {
-			SharedActions.runSpecific('delete', 'image_content', {message: 'Cut texture selection'});
+			SharedActions.runSpecific('delete', 'image_content', event, {message: 'Cut texture selection'});
 		}
 	}
 })
 SharedActions.add('paste', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 
 		async function loadFromDataUrl(data_url) {
 			let frame = new CanvasFrame();
@@ -2047,7 +2620,12 @@ SharedActions.add('paste', {
 				texture.flags.add('temporary_layers');
 				texture.activateLayers(false);
 			}
-			let offset = Clipbench.image ? [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)] : undefined;
+			let offset;
+			if (Clipbench.image) {
+				offset = [Math.clamp(Clipbench.image.x, 0, texture.width), Math.clamp(Clipbench.image.y, 0, texture.height)];
+				offset[0] = Math.clamp(offset[0], 0, texture.width-frame.width);
+				offset[1] = Math.clamp(offset[1], 0, texture.height-frame.height);
+			}
 			let old_frame = Clipbench.image?.frame || 0;
 			if (old_frame || texture.currentFrame) {
 				offset[1] += texture.display_height * ((texture.currentFrame||0) - old_frame);
@@ -2087,9 +2665,9 @@ SharedActions.add('paste', {
 })
 SharedActions.add('duplicate', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		let selection = texture.selection;
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
@@ -2114,7 +2692,11 @@ SharedActions.add('duplicate', {
 			texture.flags.add('temporary_layers');
 			texture.activateLayers(false);
 		}
-		let new_layer = new TextureLayer({name: layer ? (layer.name + ' - copy') : 'selection', offset}, texture);
+		let new_layer = new TextureLayer({
+			name: layer ? (layer.name + ' - copy') : 'selection',
+			parent_uuid: layer?.parent_uuid,
+			offset
+		}, texture);
 		let image_data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
 		new_layer.setSize(canvas.width, canvas.height);
 		new_layer.ctx.putImageData(image_data, 0, 0);
@@ -2130,9 +2712,9 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('delete', {
 	subject: 'image_content',
-	condition: () => Prop.active_panel == 'uv' && Modes.paint && Texture.getDefault(),
+	condition: () => Prop.active_panel == 'uv' && Modes.paint && UVEditor.texture,
 	run(event, context = 0) {
-		let texture = Texture.getDefault();
+		let texture = UVEditor.texture;
 		if (texture.selection.override == false) return;
 
 		texture.edit((canvas, {ctx, offset}) => {
@@ -2146,6 +2728,54 @@ SharedActions.add('delete', {
 })
 
 BARS.defineActions(function() {
+	new Mode('paint', {
+		icon: 'fa-paint-brush',
+		default_tool: 'brush_tool',
+		category: 'navigate',
+		condition: () => Format && Format.paint_mode,
+		onSelect: () => {
+			if (Modes.previous_id == 'animate') {
+				Animator.preview();
+			}
+			Outliner.elements.forEach(element => {
+				if (element.preview_controller.updatePixelGrid) element.preview_controller.updatePixelGrid(element);
+			})
+			Panels.color.picker.spectrum('set', ColorPanel.panel.vue._data.main_color);
+			if (StateMemory.color_picker_rgb) {
+				BarItems.slider_color_red.update();
+				BarItems.slider_color_green.update();
+				BarItems.slider_color_blue.update();
+			} else {
+				BarItems.slider_color_h.update();
+				BarItems.slider_color_s.update();
+				BarItems.slider_color_v.update();
+			}
+
+			Panels.uv.handle.firstChild.textContent = tl('mode.paint');
+
+			let fill_mode = BarItems.fill_mode.value;
+			if (!Condition(BarItems.fill_mode.options[fill_mode].condition)) {
+				for (let key in BarItems.fill_mode.options) {
+					if (Condition(BarItems.fill_mode.options[key].condition)) {
+						BarItems.fill_mode.set(key);
+						break;
+					}
+				}
+			}
+
+			UVEditor.vue.setMode('paint');
+			three_grid.visible = false;
+		},
+		onUnselect: () => {
+			Animator.showDefaultPose();
+			Outliner.elements.forEach(cube => {
+				if (cube.preview_controller.updatePixelGrid) cube.preview_controller.updatePixelGrid(cube);
+			})
+			Panels.uv.handle.firstChild.textContent = tl('panel.uv');
+			UVEditor.vue.setMode('uv');
+			three_grid.visible = true;
+		},
+	})
 
 	new KeybindItem('paint_secondary_color', {
 		category: 'paint',
@@ -2162,12 +2792,11 @@ BARS.defineActions(function() {
 		cursor: 'grab',
 		selectFace: false,
 		transformerMode: 'hidden',
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: Blockbench.isMobile && {modes: ['paint']}
 	})
 	const BlendModes = {
-		set_opacity: 'set_opacity',
 		set_opacity: 'set_opacity',
 		difference: 'difference',
 		default: 'default',
@@ -2187,11 +2816,13 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			aspect_ratio: true,
 			offset_even_radius: true,
 			pixel_perfect: true,
+			screen_space: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {
-				let size = BarItems.slider_brush_size.get();
+				let size = Painter.current.dynamic_brush_size ?? BarItems.slider_brush_size.get();
 				if (size > 40) {
 					return size / 12;
 				} else {
@@ -2208,24 +2839,33 @@ BARS.defineActions(function() {
 					return {r: color.r, g: color.g, b: color.b, a}
 
 				} else {
-					if (blend_mode == BlendModes.difference) {
-						let before = Painter.getAlphaMatrix(texture, px, py)
-						Painter.setAlphaMatrix(texture, px, py, a);
-						if (a > before) {
-							a = (a - before) / (1 - before);
-						} else if (before) {
-							a = 0;
+					// Limit opacity per brush stroke
+					if (settings.limit_brush_opacity_per_stroke.value) {
+						if (blend_mode == BlendModes.difference) {
+							let before = Painter.getAlphaMatrix(texture, px, py)
+							Painter.setAlphaMatrix(texture, px, py, a);
+							if (a > before) {
+								a = (a - before) / (1 - before);
+							} else if (before) {
+								a = 0;
+							}
+						} else if (opacity < 1 || blend_mode != BlendModes.default) {
+							let before = Painter.getAlphaMatrix(texture, px, py) ?? 0;
+							if (!before) {
+								if (!Painter.current.original_color_maps) Painter.current.original_color_maps = {};
+								if (!Painter.current.original_color_maps[texture.uuid]) {
+									Painter.current.original_color_maps[texture.uuid] = new Dynamic2DMap();
+								}
+								Painter.current.original_color_maps[texture.uuid].set(px, py, pxcolor);
+							} else {
+								let color = Painter.current.original_color_maps[texture.uuid].get(px, py);
+								if (color) pxcolor = color;
+							}
+
+							let target = Math.lerp(before, opacity??1, local_opacity);
+							if (target > before) Painter.setAlphaMatrix(texture, px, py, target);
+							a = Math.max(target, before);
 						}
-					} else if (opacity < 1 || blend_mode != BlendModes.default) {
-						let before = Painter.getAlphaMatrix(texture, px, py);
-						let new_val = (before||0);
-						if (a > before) {
-							a = Math.clamp(a, 0, (opacity - before) / (1 - before));
-						} else if (before) {
-							a = 0;
-						}
-						new_val = new_val + (1-new_val) * a;
-						if (new_val > before || before == undefined) Painter.setAlphaMatrix(texture, px, py, new_val);
 					}
 					let result_color;
 					if (blend_mode == BlendModes.default) {
@@ -2238,7 +2878,7 @@ BARS.defineActions(function() {
 				}
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		keybind: new Keybind({key: 'b'}),
 		modes: ['paint'],
 		side_menu: new Menu('brush_tool', () => {
@@ -2255,6 +2895,10 @@ BARS.defineActions(function() {
 				{name: 'menu.brush_presets.smooth_brush', icon: 'fa-paint-brush', click() {
 					BarItems.brush_tool.select();
 					Painter.loadBrushPreset(Painter.default_brush_presets[2])
+				}},
+				{name: 'menu.brush_presets.screen_space', icon: 'stylus_brush', click() {
+					BarItems.brush_tool.select();
+					Painter.loadBrushPreset(Painter.default_brush_presets[3])
 				}},
 			];
 			StateMemory.brush_presets.forEach((preset) => {
@@ -2304,21 +2948,26 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			aspect_ratio: true,
 			offset_even_radius: true,
+			screen_space: true,
 			onStrokeStart({texture, event, x, y, raycast_data}) {
 				if (event.ctrlOrCmd || Pressing.overrides.ctrl) {
 					let size = BarItems.slider_brush_size.get();
+					let aspect_ratio = BarItems.slider_brush_aspect_ratio.get();
 					copy_source = {
 						data: Painter.getCanvas(texture).getContext('2d').getImageData(0, 0, texture.width, texture.height).data,
 						width: texture.width,
 						height: texture.height,
 						size,
+						aspect_ratio,
 						x,
 						y,
 					}
 					UVEditor.vue.copy_brush_source = {
 						x, y,
 						size,
+						aspect_ratio,
 						texture: texture.uuid
 					}
 					Preview.all.forEach(preview => {
@@ -2339,7 +2988,13 @@ BARS.defineActions(function() {
 			},
 			changePixel(px, py, pxcolor, local_opacity, {opacity,x, y, texture}) {
 				let a = opacity * local_opacity;
-				let mode = BarItems.copy_brush_mode.value
+				let mode = BarItems.copy_brush_mode.value;
+				let size = copy_source.size;
+				let sizes = [size, size];
+				if (copy_source.aspect_ratio) {
+					let index = copy_source.aspect_ratio < 0 ? 0 : 1;
+					sizes[index] = Math.round(size / (Math.abs(copy_source.aspect_ratio)+1));
+				}
 
 				let source_pos;
 				if (mode == 'copy') {
@@ -2348,14 +3003,13 @@ BARS.defineActions(function() {
 						Math.round(copy_source.y + (py - stroke_start_pos[1])),
 					]
 				} else if (mode == 'pattern') {
-					let size = copy_source.size;
 					let grid_start = [
-						copy_source.x - size/2,
-						copy_source.y - size/2,
+						copy_source.x - sizes[0]/2,
+						copy_source.y - sizes[1]/2,
 					]
 					source_pos = [
-						Math.floor(grid_start[0] + ((px + size*200 - (grid_start[0] % size)) % size)),
-						Math.floor(grid_start[1] + ((py + size*200 - (grid_start[1] % size)) % size)),
+						Math.floor(grid_start[0] + ((px + sizes[0]*200 - (grid_start[0] % sizes[0])) % sizes[0])),
+						Math.floor(grid_start[1] + ((py + sizes[1]*200 - (grid_start[1] % sizes[1])) % sizes[1])),
 					]
 				} else {
 					source_pos = [
@@ -2375,12 +3029,14 @@ BARS.defineActions(function() {
 					a: copy_source.data[source_index + 3] / 255
 				}
 
-				let before = Painter.getAlphaMatrix(texture, px, py)
-				Painter.setAlphaMatrix(texture, px, py, a * color.a);
-				if (a > before) {
-					a = (a - before) / (1 - before);
-				} else if (before) {
-					a = 0;
+				if (settings.limit_brush_opacity_per_stroke.value) {
+					let before = Painter.getAlphaMatrix(texture, px, py)
+					Painter.setAlphaMatrix(texture, px, py, a * color.a);
+					if (a > before) {
+						a = (a - before) / (1 - before);
+					} else if (before) {
+						a = 0;
+					}
 				}
 
 				let result_color = Painter.combineColors(pxcolor, color, a);
@@ -2388,7 +3044,7 @@ BARS.defineActions(function() {
 				return result_color;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event);
@@ -2417,7 +3073,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick: function(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2444,17 +3100,19 @@ BARS.defineActions(function() {
 			size: true,
 			softness: true,
 			opacity: true,
+			screen_space: true,
 			offset_even_radius: true,
 			floor_coordinates: () => BarItems.slider_brush_softness.get() == 0,
 			get interval() {
-				return 1 + BarItems.slider_brush_size.get() * BarItems.slider_brush_softness.get() / 1500;
+				let size = Painter.current.dynamic_brush_size ?? BarItems.slider_brush_size.get();
+				return 1 + size * BarItems.slider_brush_softness.get() / 1500;
 			},
 			changePixel(px, py, pxcolor, local_opacity, {opacity, ctx, x, y, size, softness, texture, event}) {
 				if (Painter.lock_alpha) return pxcolor;
 
 				var a = opacity * local_opacity;
 
-				if (opacity < 1) {
+				if (opacity < 1 && settings.limit_brush_opacity_per_stroke.value) {
 					let before = Painter.getAlphaMatrix(texture, px, py);
 					let new_val = (before||0);
 					if (before) {
@@ -2467,7 +3125,7 @@ BARS.defineActions(function() {
 				return pxcolor;
 			}
 		},
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({key: 'e'}),
 		onCanvasClick: function(data) {
@@ -2487,9 +3145,10 @@ BARS.defineActions(function() {
 		toolbar: 'brush',
 		cursor: 'crosshair',
 		selectFace: true,
+		click_locked_elements: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		onCanvasClick(data) {
 			Painter.startPaintToolCanvas(data, data.event)
@@ -2517,7 +3176,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'u'}),
@@ -2541,7 +3200,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		condition: {modes: ['paint']},
 		//keybind: new Keybind({key: 'u'}),
@@ -2556,30 +3215,13 @@ BARS.defineActions(function() {
 			Interface.removeSuggestedModifierKey('shift', 'modifier_actions.snap_direction');
 		}
 	})
-	/*new Tool('copy_paste_tool', {
-		icon: 'fa-vector-square',
-		category: 'tools',
-		toolbar: 'brush',
-		alt_tool: 'color_picker',
-		cursor: 'crosshair',
-		selectFace: true,
-		transformerMode: 'hidden',
-		paintTool: true,
-		allowed_view_modes: ['textured'],
-		modes: ['paint'],
-		condition: {modes: ['paint']},
-		keybind: new Keybind({key: 'm'}),
-		onCanvasClick(data) {
-			if (data && data.element) {
-				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
-			}
-		},
-		onUnselect() {
-			if (Painter.selection.overlay && open_interface) {
-				open_interface.confirm()
-			}
-		}
-	})*/
+	let selection_tools = {
+		rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
+		ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
+		lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
+		wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
+		color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
+	};
 	let selection_tool = new Tool('selection_tool', {
 		icon: 'select',
 		category: 'tools',
@@ -2588,25 +3230,24 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
-		keybind: new Keybind({key: 'm'}),
+		keybind: new Keybind({key: 'm'}, {
+			create: '',
+			add: 'shift',
+			subtract: 'ctrl',
+			intersect: '',
+		}),
 		side_menu: new Menu('selection_tool', () => {
-			let modes = {
-				rectangle: {name: 'action.selection_tool.rectangle', icon: 'select'},
-				ellipse: {name: 'action.selection_tool.ellipse', icon: 'lasso_select'},
-				//lasso: {name: 'action.selection_tool.lasso', icon: 'fa-draw-polygon'},
-				wand: {name: 'action.selection_tool.wand', icon: 'fa-magic'},
-				color: {name: 'action.selection_tool.color', icon: 'fa-eye-dropper'},
-			};
 			let entries = [];
-			for (let id in modes) {
+			for (let id in selection_tools) {
 				let entry = {
 					id,
-					name: modes[id].name,
-					icon: modes[id].icon,
+					name: selection_tools[id].name,
+					icon: selection_tools[id].icon,
+					keybind: BarItems.selection_tool.sub_keybinds[id]?.keybind || undefined,
 					click() {
-						selection_tool.setIcon(modes[id].icon);
+						selection_tool.setIcon(selection_tools[id].icon);
 						selection_tool.mode = id;
 						selection_tool.select();
 						BARS.updateConditions();
@@ -2617,6 +3258,12 @@ BARS.defineActions(function() {
 			}
 			return entries;
 		}),
+		variations: {
+			create: {name: 'action.selection_tool_operation_mode.create'},
+			add: {name: 'action.selection_tool_operation_mode.add'},
+			subtract: {name: 'action.selection_tool_operation_mode.subtract'},
+			intersect: {name: 'action.selection_tool_operation_mode.intersect'},
+		},
 		onCanvasClick(data) {
 			if (data && data.element) {
 				Blockbench.showQuickMessage('message.copy_paste_tool_viewport')
@@ -2636,9 +3283,19 @@ BARS.defineActions(function() {
 			if (TextureLayer.selected?.in_limbo) {
 				TextureLayer.selected.resolveLimbo();
 			}
+			UVEditor.vue.texture_selection_polygon.empty();
 			Interface.removeSuggestedModifierKey('alt', 'modifier_actions.drag_to_duplicate');
 		}
 	})
+	for (let id in selection_tools) {
+		selection_tool.addSubKeybind(id, selection_tools[id].name, null, event => {
+			selection_tool.setIcon(selection_tools[id].icon);
+			selection_tool.mode = id;
+			selection_tool.select();
+			BARS.updateConditions();
+			BarItems.slider_color_select_threshold.update();
+		});
+	}
 	selection_tool.mode = 'rectangle';
 
 	new Tool('move_layer_tool', {
@@ -2649,7 +3306,7 @@ BARS.defineActions(function() {
 		selectFace: true,
 		transformerMode: 'hidden',
 		paintTool: true,
-		allowed_view_modes: ['textured'],
+		allowed_view_modes: ['textured', 'material'],
 		modes: ['paint'],
 		keybind: new Keybind({shift: true, key: 'v'}),
 		onCanvasClick(data) {
@@ -2677,10 +3334,9 @@ BARS.defineActions(function() {
 		onChange() {
 			BARS.updateConditions();
 			UVEditor.vue.brush_type = this.value;
-			let img = Canvas.brush_outline.material.map.image;
 			switch (this.value) {
-				case 'square': img.src = 'assets/brush_outline.png'; break;
-				case 'circle': img.src = 'assets/brush_outline_circle.png'; break;
+				case 'square': Canvas.brush_outline.material.uniforms.SHAPE.value = 0; break;
+				case 'circle': Canvas.brush_outline.material.uniforms.SHAPE.value = 1; break;
 			}
 		},
 		icon_mode: true,
@@ -2716,7 +3372,10 @@ BARS.defineActions(function() {
 			//divide: true,
 			add: true,
 			//subtract: true,
+			lighten: true,
+			darken: true,
 			screen: true,
+			overlay: true,
 			difference: true,
 		}
 	})
@@ -2724,8 +3383,10 @@ BARS.defineActions(function() {
 		category: 'paint',
 		condition: () => Toolbox && Toolbox.selected.id === 'fill_tool',
 		options: {
-			face: true,
+			face: {name: true, condition: () => !Format.image_editor},
+			selection: {name: true, condition: () => Format.image_editor},
 			element: {name: true, condition: () => !Format.image_editor},
+			selected_elements: {name: true, condition: () => !Format.image_editor},
 			color_connected: true,
 			color: true,
 		}
@@ -2737,6 +3398,15 @@ BARS.defineActions(function() {
 			copy: true,
 			pattern: true,
 			sample: true
+		}
+	})
+	new BarSelect('brush_lock_mode', {
+		category: 'paint',
+		condition: () => Toolbox && Toolbox.selected.brush,
+		options: {
+			none: true,
+			element: true,
+			face: true
 		}
 	})
 	new BarSelect('selection_tool_operation_mode', {
@@ -2751,58 +3421,99 @@ BARS.defineActions(function() {
 		}
 	})
 	let last_mode = null;
-	Blockbench.on('update_pressed_modifier_keys', ({before, now}) => {
+	let last_changed_to = null;
+	Blockbench.on('update_pressed_modifier_keys', ({before, now, event}) => {
 		let tool = BarItems.selection_tool_operation_mode;
+		let selection_tool = BarItems.selection_tool;
 		if (!Condition(tool.condition)) return;
 		if (UVEditor.vue.selection_rect.active) return;
-		if (now.shift) {
+
+		if (selection_tool.keybind.additionalModifierTriggered(event) == 'add') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('add');
-		} else if (now.ctrl) {
+			last_changed_to = 'add';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'subtract') {
 			if (!last_mode) last_mode = tool.value;
 			tool.set('subtract');
-		} else if (before.ctrl || before.shift) {
+			last_changed_to = 'subtract';
+
+		} else if (selection_tool.keybind.additionalModifierTriggered(event) == 'intersect') {
+			if (!last_mode) last_mode = tool.value;
+			tool.set('intersect');
+			last_changed_to = 'intersect';
+
+		} else if (last_changed_to == tool.value) {
 			tool.set(last_mode);
+			last_changed_to = last_mode;
 			last_mode = null;
 		}
 	});
 
-	StateMemory.init('mirror_painting_options', 'object');
-	Painter.mirror_painting_options = StateMemory.mirror_painting_options;
-	if (!Painter.mirror_painting_options.axis) {
-		Painter.mirror_painting_options.axis = {x: true, y: false, z: false};
-	}
-	if (!Painter.mirror_painting_options.global && !Painter.mirror_painting_options.local) {
-		Painter.mirror_painting_options.global = true;
-	}
-	if (!Painter.mirror_painting_options.texture_center) {
-		Painter.mirror_painting_options.texture_center = [0, 0];
-	}
-	function toggleMirrorPaintingAxis(axis) {
-		let axes = Painter.mirror_painting_options.axis
-		axes[axis] = !axes[axis];
-		if (!axes.x && !axes.z) {
-			if (axis == 'x') {
-				axes.z = true;
-			} else {
-				axes.x = true;
+	let expand_texture_selection_dialog = new Dialog('expand_texture_selection', {
+		title: 'action.expand_texture_selection',
+		form: {
+			value: {type: 'number', label: 'dialog.expand_texture_selection.radius', value: 1},
+			corner: {
+				type: 'select',
+				label: 'dialog.expand_texture_selection.corner',
+				options: {
+					round: 'dialog.expand_texture_selection.corner.round',
+					square: 'dialog.expand_texture_selection.corner.square',
+					manhattan: 'dialog.expand_texture_selection.corner.manhattan',
+				}
 			}
-		}
-		highlightMirrorPaintingAxes();
-		StateMemory.save('mirror_painting_options');
-	}
-	function toggleMirrorPaintingSpace(space) {
-		let options = Painter.mirror_painting_options;
-		options[space] = !options[space];
-		if (!options.global && !options.local && !options.texture_frames) {
-			if (space == 'global') {
-				options.local = true;
-			} else {
-				options.global = true;
+		},
+		onConfirm(result) {
+			if (result.value == 0) return;
+			let texture = UVEditor.texture;
+			let selection = texture.selection;
+			let radius = Math.abs(result.value);
+			let radius_sq = result.value ** 2;
+			const round = 'round';
+			const manhattan = 'manhattan';
+
+			if (selection.is_custom) {
+				let selection_copy = selection.array.slice();
+				let expected_value = result.value < 0 ? 0 : 1;
+				selection.forEachPixel((x, y, val, index) => {
+					if (val == expected_value) return;
+					for (let offset_x = -radius; offset_x <= radius; offset_x++) {
+						for (let offset_y = -radius; offset_y <= radius; offset_y++) {
+							// Radius check
+							if (result.corner == round) {
+								if ((offset_x ** 2 + offset_y ** 2) > radius_sq) continue;
+							} else if (result.corner == manhattan) {
+								if ((Math.abs(offset_x) + Math.abs(offset_y)) > radius) continue;
+							}
+							// Testing
+							if (selection.get(x + offset_x, y + offset_y) == expected_value) {
+								selection_copy[index] = expected_value;
+								return;
+							}
+						}
+					}
+				})
+				selection.array = selection_copy;
+			} else if (selection.override == true && result.value < 0) {
+				selection.setOverride(null);
+				selection.forEachPixel((x, y, val, index) => {
+					let selected = x >= radius && y >= radius && x < selection.width - radius && y < selection.height - radius;
+					selection.array[index] = selected ? 1 : 0;
+				});
 			}
+			UVEditor.updateSelectionOutline();
 		}
-		StateMemory.save('mirror_painting_options');
-	}
+	});
+	new Action('expand_texture_selection', {
+		icon: 'settings_overscan',
+		category: 'paint',
+		condition: {modes: ['paint'], selected: {texture: true}},
+		click() {
+			expand_texture_selection_dialog.show();
+		}
+	})
+
 	function highlightMirrorPaintingAxes() {
 		if (!Painter.mirror_painting) return;
 		
@@ -2825,7 +3536,9 @@ BARS.defineActions(function() {
 		scene.add(grids);
 		setTimeout(() => {
 			scene.remove(grids);
-			grid.geometry.dispose();
+			for (let grid of grids.children) {
+				grid.geometry.dispose();
+			}
 		}, 1000)
 	}
 	new Toggle('mirror_painting', {
@@ -2836,95 +3549,36 @@ BARS.defineActions(function() {
 			Painter.mirror_painting = value;
 			highlightMirrorPaintingAxes();
 		},
-		side_menu: new Menu('mirror_painting', [
-			new MenuSeparator('options'),
-			// Enabled
-			{
-				name: 'menu.mirror_painting.enabled',
-				icon: () => Painter.mirror_painting,
-				click() {BarItems.mirror_painting.trigger()}
+		tool_config: new ToolConfig('mirror_painting', {
+			title: 'action.mirror_painting',
+			width: 408,
+			form: {
+				enabled: {type: 'checkbox', label: 'menu.mirror_painting.enabled', value: Painter.mirror_painting},
+				_1: '_',
+				global: {type: 'checkbox', label: 'menu.mirror_painting.global', value: true, description: 'menu.mirror_painting.global.desc',},
+				local: {type: 'checkbox', label: 'menu.mirror_painting.local', description: 'menu.mirror_painting.local.desc',},
+				axis: {type: 'inline_multi_select', label: 'menu.mirror_painting.axis', options: {x: 'X', z: 'Z'}, value: {x: true, z: false}, description: 'menu.mirror_painting.axis.desc'},
+				_2: '_',
+				texture: {type: 'checkbox', label: 'menu.mirror_painting.texture', description: 'menu.mirror_painting.texture.desc'},
+				texture_center: {type: 'vector', label: 'menu.mirror_painting.texture_center', dimensions: 2, condition: form => form.texture, toggle_enabled: true, toggle_default: false},
+				_3: '_',
+				texture_frames: {
+					type: 'checkbox',
+					label: 'menu.mirror_painting.texture_frames',
+					description: 'menu.mirror_painting.texture_frames.desc',
+					condition: () => Texture.all.find(tex => tex.frameCount > 1)
+				},
 			},
-			// Axis
-			{
-				name: 'menu.mirror_painting.axis',
-				description: 'menu.mirror_painting.axis.desc',
-				icon: 'call_split',
-				children: [
-					{name: 'X', icon: () => Painter.mirror_painting_options.axis.x, color: 'x', click() {toggleMirrorPaintingAxis('x')}},
-					//{name: 'Y', icon: () => Painter.mirror_painting_options.axis.y, color: 'y', click() {toggleMirrorPaintingAxis('y')}},
-					{name: 'Z', icon: () => Painter.mirror_painting_options.axis.z, color: 'z', click() {toggleMirrorPaintingAxis('z')}},
-				]
-			},
-			new MenuSeparator('space'),
-			// Global
-			{
-				name: 'menu.mirror_painting.global',
-				description: 'menu.mirror_painting.global.desc',
-				icon: () => !!Painter.mirror_painting_options.global,
-				click() {toggleMirrorPaintingSpace('global')}
-			},
-			// Local
-			{
-				name: 'menu.mirror_painting.local',
-				description: 'menu.mirror_painting.local.desc',
-				icon: () => !!Painter.mirror_painting_options.local,
-				click() {toggleMirrorPaintingSpace('local')}
-			},
-			new MenuSeparator('texture'),
-			// Texture
-			{
-				name: 'menu.mirror_painting.texture',
-				description: 'menu.mirror_painting.texture.desc',
-				icon: () => !!Painter.mirror_painting_options.texture,
-				click() {Painter.mirror_painting_options.texture = !Painter.mirror_painting_options.texture; StateMemory.save('mirror_painting_options')}
-			},
-			{
-				name: 'menu.mirror_painting.configure_texture_center',
-				icon: 'align_horizontal_center',
-				click() {
-					let center = Painter.mirror_painting_options.texture_center;
-					let is_custom = !!(center[0] || center[1]);
-					let default_center = [Project.texture_width/2, Project.texture_height/2];
-					let texture = Texture.getDefault();
-					if (texture) {
-						default_center.V2_set(texture.width/2, texture.height/2);
-					}
-					new Dialog({
-						id: 'mirror_painting_texture_center',
-						title: 'menu.mirror_painting.configure_texture_center',
-						width: 400,
-						form: {
-							mode: {type: 'inline_select', value: is_custom ? 'custom' : 'middle', options: {
-								middle: 'dialog.mirror_painting_texture_center.middle',
-								custom: 'dialog.mirror_painting_texture_center.custom',
-							}},
-							center: {type: 'vector', dimensions: 2, value: is_custom ? center : default_center, min: 0, step: 0.5, condition: (result) => result.mode == 'custom'}
-						},
-						onConfirm(result) {
-							if (result.mode == 'custom') {
-								center.replace(result.center.map(v => Math.round(v*2)/2));
-							} else {
-								center.V2_set(0, 0);
-							}
-							StateMemory.save('mirror_painting_options');
-						}
-					}).show();
-					if (open_menu) {
-						setTimeout(() => open_menu.hide(), 10);
-					}
+			onFormChange(result) {
+				Painter.mirror_painting = result.enabled;
+				BarItems.mirror_painting.set(result.enabled);
+				if (!result.axis.x && !result.axis.z) {
+					this.setFormValues({axis: {x: true, z: false}});
 				}
-			},
-			new MenuSeparator('animated_texture'),
-			// Animated Texture Frames
-			{
-				name: 'menu.mirror_painting.texture_frames',
-				description: 'menu.mirror_painting.texture_frames.desc',
-				condition: () => Texture.all.find(tex => tex.frameCount > 1),
-				icon: () => !!Painter.mirror_painting_options.texture_frames,
-				click() {toggleMirrorPaintingSpace('texture_frames')}
-			},
-		], {keep_open: true})
+			}
+		})
 	})
+	Painter.mirror_painting_options = BarItems.mirror_painting.tool_config.options;
 	new Toggle('color_erase_mode', {
 		icon: 'remove_circle',
 		category: 'paint',
@@ -2945,12 +3599,85 @@ BARS.defineActions(function() {
 	})
 
 	new Toggle('painting_grid', {
-		icon: 'grid_on',
+		icon: 'grid_3x3',
 		category: 'view',
 		condition: {modes: ['paint']},
 		keybind: new Keybind({key: 'g'}),
 		linked_setting: 'painting_grid'
 	})
+	new Toggle('image_tiled_view', { 
+		category: 'paint',
+		icon: 'grid_view',
+		onChange(value) {
+			if (value && BarItems.image_onion_skin_view.value) {
+				BarItems.image_onion_skin_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'tiled' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		},
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				mirrored: {
+					label: 'menu.image_tiled_view.mirrored',
+					type: 'checkbox',
+					value: false
+				}
+			},
+			onFormChange(result) {
+				UVEditor.updateOverlayCanvas();
+			}
+		})
+	})
+	Painter.image_tiled_view_options = BarItems.image_tiled_view.tool_config.options;
+
+	new Toggle('image_onion_skin_view', { 
+		category: 'paint',
+		icon: 'animation',
+		condition: () => Panels.textures.vue.maxFrameCount(),
+		onChange(value) {
+			if (value && BarItems.image_tiled_view.value) {
+				BarItems.image_tiled_view.set(false);
+			}
+			UVEditor.vue.overlay_canvas_mode = value ? 'onion_skin' : null;
+			UVEditor.vue.updateTexture();
+			UVEditor.updateOverlayCanvas();
+		},
+		tool_config: new ToolConfig('image_onion_skin_view', {
+			title: 'action.image_onion_skin_view',
+			form: {
+				frame: {
+					label: 'menu.image_onion_skin_view.frame',
+					type: 'select',
+					value: 'last_viewed',
+					options: {
+						last_viewed: 'menu.image_onion_skin_view.frame.last_viewed',
+						previous: 'menu.image_onion_skin_view.frame.previous',
+						next: 'menu.image_onion_skin_view.frame.next',
+						both: 'menu.image_onion_skin_view.frame.both',
+					}
+				},
+				display: {
+					label: 'menu.image_onion_skin_view.display',
+					type: 'select',
+					value: 'pixels',
+					options: {
+						pixels: 'menu.image_onion_skin_view.display.pixels',
+						transparent: 'menu.image_onion_skin_view.display.transparent',
+					}
+				},
+				above: {
+					label: 'menu.image_onion_skin_view.above',
+					type: 'checkbox'
+				},
+			},
+			onFormChange(result) {
+				UVEditor.updateOverlayCanvas();
+			}
+		})
+	})
+	Painter.image_onion_skin_view_options = BarItems.image_onion_skin_view.tool_config.options;
 
 	new NumSlider('slider_brush_size', {
 		condition: () => (Toolbox && ((Toolbox.selected.brush?.size == true) || ['draw_shape_tool'].includes(Toolbox.selected.id))),
@@ -2958,6 +3685,16 @@ BARS.defineActions(function() {
 		category: 'paint',
 		settings: {
 			min: 1, max: 1024, interval: 1, default: 1,
+		},
+		onChange(value, event) {
+			if (event instanceof PointerEvent) {
+				// Update preview outline
+				if (UVEditor.vue._data.mouse_coords.active) {
+					UVEditor.vue.$forceUpdate();
+				} else {
+					Preview.selected.mousemove(event);
+				}
+			}
 		}
 	})
 	new NumSlider('slider_brush_softness', {
@@ -2966,6 +3703,7 @@ BARS.defineActions(function() {
 		tool_setting: 'brush_softness',
 		settings: {
 			min: 0, max: 100, default: 0,
+			gesture_speed: 2,
 			show_bar: true,
 			interval: function(event) {
 				if (event.shiftKey && event.ctrlOrCmd) {
@@ -2982,20 +3720,49 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_brush_opacity', {
 		category: 'paint',
-		condition: () => (Toolbox && ((Toolbox.selected.brush?.opacity == true) || ['fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id))),
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.opacity == true) || ['color_picker', 'fill_tool', 'draw_shape_tool', 'gradient_tool'].includes(Toolbox.selected.id))),
 		tool_setting: 'brush_opacity',
 		settings: {
-			min: 0, max: 255, default: 255,
+			min: 0,
+			get max() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get default() {return settings.opacity_range.value == '255' ? 255 : 100},
+			get gesture_speed() {return settings.opacity_range.value == '255' ? 4 : 1},
 			show_bar: true,
 			interval: function(event) {
-				if (event.shiftKey && event.ctrlOrCmd) {
-					return 1;
-				} else if (event.shiftKey) {
-					return 4;
-				} else if (event.ctrlOrCmd) {
-					return 1;
+				if (settings.opacity_range.value == '255') {
+					if (event.shiftKey && event.ctrlOrCmd) {
+						return 1;
+					} else if (event.shiftKey) {
+						return 4;
+					} else if (event.ctrlOrCmd) {
+						return 1;
+					} else {
+						return 8;
+					}
 				} else {
-					return 8;
+					if (event.shiftKey || event.ctrlOrCmd) {
+						return 1;
+					} else {
+						return 2;
+					}
+				}
+			}
+		}
+	})
+	new NumSlider('slider_brush_aspect_ratio', {
+		condition: () => (Toolbox && ((Toolbox.selected.brush?.aspect_ratio == true))),
+		tool_setting: 'brush_aspect_ratio',
+		category: 'paint',
+		settings: {
+			min: -16, max: 16, interval: 0.1, default: 0,
+		},
+		onChange(value, event) {
+			if (event instanceof PointerEvent) {
+				// Update preview outline
+				if (UVEditor.vue._data.mouse_coords.active) {
+					UVEditor.vue.$forceUpdate();
+				} else {
+					Preview.selected.mousemove(event);
 				}
 			}
 		}
@@ -3004,6 +3771,11 @@ BARS.defineActions(function() {
 		icon: 'stylus_laser_pointer',
 		category: 'view',
 		condition: () => Toolbox && Toolbox.selected.brush?.pixel_perfect == true,
+	})
+	new Toggle('screen_space_brush_projection', {
+		icon: 'stylus_laser_pointer',
+		category: 'view',
+		condition: () => Format.image_editor == false && Toolbox && Toolbox.selected.brush?.screen_space == true,
 	})
 	new NumSlider('slider_color_select_threshold', {
 		category: 'paint',
@@ -3017,3 +3789,8 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+Object.assign(window, {
+	Painter,
+	IntMatrix,
+});

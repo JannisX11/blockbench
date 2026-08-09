@@ -1,4 +1,4 @@
-const ActionControl = {
+export const ActionControl = {
 	get open() {return ActionControl.vue._data.open},
 	set open(state) {ActionControl.vue._data.open = !!state},
 	type: 'action_selector',
@@ -45,7 +45,7 @@ const ActionControl = {
 	cancel() {
 		ActionControl.hide()
 	},
-	trigger(action, e) {
+	trigger(action, event) {
 		if (action.id == 'action_control') {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
@@ -70,7 +70,7 @@ const ActionControl = {
 			}
 
 		} else if (action.type == 'plugin') {
-			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
+			let plugin = Plugins.all.find(plugin => plugin.uuid == action.uuid);
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
@@ -78,14 +78,14 @@ const ActionControl = {
 			}
 
 		} else {
-			action.trigger(e);
+			action.trigger(event);
 		}
 		if (action instanceof BarItem) {
 			this.addRecentlyUsed(action);
 		}
 	},
-	click(action, e) {
-		ActionControl.trigger(action, e)
+	click(action, event) {
+		ActionControl.trigger(action, event)
 		ActionControl.hide()
 	},
 	handleKeys(e) {
@@ -283,7 +283,7 @@ BARS.defineActions(function() {
 							project.geometry_name.toLowerCase().includes(search_input)
 						) {
 							list.push({
-								name: project.getDisplayName(),
+								name: project.getDisplayName(true),
 								icon: project.format.icon,
 								description: project.path,
 								keybind_label: Modes.options[project.mode].name,
@@ -309,7 +309,7 @@ BARS.defineActions(function() {
 							list.push({
 								name: profile.name,
 								icon: profile.selected ? 'far.fa-dot-circle' : 'far.fa-circle',
-								color: markerColors[profile.color].standard,
+								color: markerColors[profile.color % markerColors.length].standard,
 								uuid: profile.uuid,
 								type: 'profile'
 							})
@@ -337,6 +337,7 @@ BARS.defineActions(function() {
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,
+								uuid: plugin.uuid,
 								type: 'plugin'
 							})
 							if (list.length > ActionControl.max_length) break;
@@ -385,7 +386,7 @@ BARS.defineActions(function() {
 							return action.value;
 						}
 					} else {
-						action.keybind.label;
+						return action.keybind?.label ?? '';
 					}
 				} else {
 					return action.description;
@@ -444,3 +445,7 @@ BARS.defineActions(function() {
 		`
 	})
 })
+
+Object.assign(window, {
+	ActionControl
+});

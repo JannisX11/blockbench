@@ -1,5 +1,7 @@
-const Codecs = {};
-class Codec extends EventSystem {
+import { fs } from "../native_apis";
+
+export const Codecs = {};
+export class Codec extends EventSystem {
 	constructor(id, data) {
 		super();
 		if (!data) data = 0;
@@ -15,16 +17,21 @@ class Codec extends EventSystem {
 		Merge.function(this, data, 'write');
 		Merge.function(this, data, 'overwrite');
 		Merge.function(this, data, 'export');
+		Merge.function(this, data, 'exportCollection');
+		Merge.function(this, data, 'writeCollection');
 		Merge.function(this, data, 'fileName');
 		Merge.function(this, data, 'afterSave');
 		Merge.function(this, data, 'afterDownload');
 		Merge.string(this, data, 'extension');
 		Merge.boolean(this, data, 'remember');
 		Merge.boolean(this, data, 'multiple_per_file');
+		Merge.boolean(this, data, 'support_partial_export');
+		Merge.boolean(this, data, 'support_offset');
 		this.format = data.format;
 		this.load_filter = data.load_filter;
 		this.export_action = data.export_action;
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
+		this.context = null;
 	}
 	getExportOptions() {
 		let options = {};
@@ -36,19 +43,19 @@ class Codec extends EventSystem {
 		return options;
 	}
 	//Import
-	load(model, file, add) {
+	load(model, file, args = {}) {
 		if (!this.parse) return false;
-		if (!add) {
+		if (!args.import_to_current_project) {
 			setupProject(this.format)
 		}
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			var name = pathToName(file.path, true);
 			Project.name = pathToName(name, false);
 			Project.export_path = file.path;
-			
+			Project.export_codec = this.id;
 		}
 
-		this.parse(model, file.path)
+		this.parse(model, file.path, args)
 
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			loadDataFromModelMemory();
@@ -77,7 +84,7 @@ class Codec extends EventSystem {
 			let opts_in_project = Project.export_options[codec.id];
 
 			for (let form_id in this.export_options) {
-				if (!Condition(this.export_options[form_id].condition)) continue;
+				// if (!Condition(this.export_options[form_id].condition)) continue;
 				form[form_id] = {};
 				for (let key in this.export_options[form_id]) {
 					form[form_id][key] = this.export_options[form_id][key];
@@ -104,10 +111,11 @@ class Codec extends EventSystem {
 			}).show();
 		})
 	}
-	async export() {
+	async export(options) {
 		if (Object.keys(this.export_options).length) {
 			let result = await this.promptExportOptions();
-			if (result === null) return;
+			if (options === null) return;
+			if (result) options = Object.assign({...options}, result);
 		}
 		Blockbench.export({
 			resource_id: 'model',
@@ -115,15 +123,61 @@ class Codec extends EventSystem {
 			extensions: [this.extension],
 			name: this.fileName(),
 			startpath: this.startPath(),
-			content: this.compile(),
+			content: this.compile(options),
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
 	}
+	async patchCollectionExport(collection, callback) {
+		this.context = collection;
+		let name = this.name;
+		this.name = collection.name;
+		let element_export_values = {};
+		let all = Outliner.elements.concat(Group.all);
+		for (let node of all) {
+			if (typeof node.export != 'boolean') continue;
+			element_export_values[node.uuid] = node.export;
+			node.export = false;
+		}
+		for (let node of collection.getAllChildren()) {
+			if (node.export == false) node.export = true;
+		}
+		try {
+			await callback();
+		} catch (error) {
+			throw error;
+		} finally {
+			this.context = null;
+			this.name = name;
+			for (let node of all) {
+				if (element_export_values[node.uuid] === undefined) continue;
+				node.export = element_export_values[node.uuid];
+			}
+		}
+	}
+	async exportCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			await this.export();
+		})
+	}
+	async writeCollection(collection) {
+		this.patchCollectionExport(collection, async () => {
+			this.write(this.compile(), collection.export_path);
+			collection.saved = true;
+		})
+	}
 	fileName() {
-		return Project.name||'model';
+		if (this.context instanceof Collection) {
+			return this.context.name;
+		} else {
+			return Project.name||'model';
+		}
 	}
 	startPath() {
-		return Project.export_path;
+		if (this.context instanceof Collection) {
+			return this.context.export_path;
+		} else {
+			return Project.export_path;
+		}
 	}
 	write(content, path) {
 		if (fs.existsSync(path) && this.overwrite) {
@@ -141,11 +195,16 @@ class Codec extends EventSystem {
 	}
 	afterSave(path) {
 		var name = pathToName(path, true)
-		if (Format.codec == this || this.id == 'project') {
+		if (this.context instanceof Collection) {
+			this.context.export_path = path;
+			this.context.export_codec = this.id;
+
+		} else if (Format.codec == this || this.id == 'project') {
 			if (this.id == 'project') {
 				Project.save_path = path;
 			} else {
 				Project.export_path = path;
+				Project.export_codec = this.id;
 			}
 			Project.name = pathToName(path, false);
 			Project.saved = true;
@@ -169,10 +228,20 @@ class Codec extends EventSystem {
 }
 Codec.getAllExtensions = function() {
 	let extensions = [];
-	for (var id in Codecs) {
-		if (Codecs[id].load_filter && Codecs[id].load_filter.extensions) {
-			extensions.safePush(...Codecs[id].load_filter.extensions);
+	for (let id in Codecs) {
+		let codec = Codecs[id];
+		if (codec.load_filter && codec.load_filter.extensions) {
+			let list = typeof codec.load_filter.extensions == 'function'
+				? codec.load_filter.extensions()
+				: codec.load_filter.extensions ?? [];
+			extensions.safePush(...list);
 		}
 	}
 	return extensions;
 }
+
+
+Object.assign(window, {
+	Codec,
+	Codecs
+});

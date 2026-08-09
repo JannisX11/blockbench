@@ -1,10 +1,17 @@
-const Validator = {
+export const Validator = {
 	checks: [],
 
 	warnings: [],
 	errors: [],
 	_timeout: null,
+	accumulated_triggers: [],
+	wildcard_trigger: false,
 	validate(trigger) {
+		if (trigger) {
+			this.accumulated_triggers.safePush(trigger);
+		} else {
+			this.wildcard_trigger = true;
+		}
 		if (this._timeout) {
 			clearTimeout(this._timeout);
 			this._timeout = null;
@@ -20,7 +27,7 @@ const Validator = {
 				try {
 					if (!Condition(check.condition)) return;
 
-					if (!trigger || check.update_triggers.includes(trigger)) {
+					if (this.wildcard_trigger || check.update_triggers.includes(trigger) || this.accumulated_triggers.find(t => check.update_triggers.includes(t))) {
 						check.update();
 					}
 					Validator.warnings.push(...check.warnings);
@@ -30,6 +37,8 @@ const Validator = {
 					console.error(error);
 				}
 			})
+			this.accumulated_triggers.empty();
+			this.wildcard_trigger = false;
 		}, 40)
 	},
 	openDialog() {
@@ -55,19 +64,17 @@ const Validator = {
 						pureMarked
 					},
 					template: `
-						<template>
-							<ul>
-								<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
-									<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
-									<span class="markdown" v-html="pureMarked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
-									<template v-if="problem.buttons">
-										<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
-											<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
-										</div>
+						<ul>
+							<li v-for="problem in problems" class="validator_dialog_problem" :class="problem.error ? 'validator_error' : 'validator_warning'" :key="problem.message">
+								<i class="material-icons">{{ problem.error ? 'error' : 'warning' }}</i>
+								<span class="markdown" v-html="pureMarked(problem.message.replace(/\\n/g, '\\n\\n'))"></span>
+								<template v-if="problem.buttons">
+									<div v-for="button in problem.buttons" class="tool" :title="button.name" @click="button.click($event)">
+										<div class="icon_wrapper plugin_icon normal" v-html="getIconNode(button.icon, button.color).outerHTML"></div>
 									</div>
-								</li>
-							</ul>
-						</template>
+								</template>
+							</li>
+						</ul>
 					`
 				}
 			});
@@ -84,7 +91,7 @@ const Validator = {
 };
 
 
-class ValidatorCheck {
+export class ValidatorCheck {
 	constructor(id, options) {
 		this.id = id;
 
@@ -183,7 +190,7 @@ new ValidatorCheck('cube_size_limit', {
 })
 
 new ValidatorCheck('box_uv', {
-	condition: () => Cube.all.find(cube => cube.box_uv),
+	condition: () => Format.edit_mode && Cube.all.find(cube => cube.box_uv),
 	update_triggers: ['update_selection'],
 	run() {
 		Cube.all.forEach(cube => {
@@ -233,7 +240,7 @@ new ValidatorCheck('texture_names', {
 			let characters = used_path.replace(/^#/, '').match(/[^a-z0-9._/\\-]/)
 			if (characters) {
 				this.warn({
-					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters are invalid.`,
+					message: `Texture "${used_path}" contains the following invalid characters: "${characters.join('')}". Valid characters are: a-z0-9._/\\-. Uppercase letters and spaces are invalid.`,
 					buttons: [
 						{
 							name: 'Select Texture',
@@ -251,7 +258,7 @@ new ValidatorCheck('texture_names', {
 })
 
 new ValidatorCheck('catmullrom_keyframes', {
-	condition: {features: ['animation_files']},
+	condition: () => Format.id?.includes('bedrock'),
 	update_triggers: ['update_keyframe_selection'],
 	run() {
 		function getButtons(kf) {
@@ -326,3 +333,45 @@ new ValidatorCheck('catmullrom_keyframes', {
 		})
 	}
 })
+
+new ValidatorCheck('zero_wide_uv_faces', {
+	condition: {formats: ['optifine_entity', 'java_block']},
+	update_triggers: ['update_selection'],
+	run() {
+		for (let cube of Cube.all) {
+			if (cube.box_uv && Format.id == 'optifine_entity') continue;
+			let affected_faces = [];
+			let select_cube_button = {
+				name: 'Select Cube',
+				icon: 'fa-cube',
+				click() {
+					Validator.dialog.hide();
+					cube.select();
+					UVEditor.getSelectedFaces(cube, true).replace(affected_faces);
+					updateSelection();
+				}
+			};
+			for (let fkey in cube.faces) {
+				let face = cube.faces[fkey];
+				if (face.texture === null) continue;
+				let uv_size = face.uv_size;
+				let size_issue;
+				for (let i of [0, 1]) {
+					let size = uv_size[i];
+					if (Math.abs(size) < 0.00005) {
+						size_issue = true;
+					}
+				}
+				if (size_issue) {
+					affected_faces.push(fkey);
+					this.warn({
+						message: `The face "${fkey}" on cube "${cube.name}" has invalid UV sizes. UV sizes should not be 0.`,
+						buttons: [select_cube_button]
+					})
+				}
+			}
+		}
+	}
+})
+
+Object.assign(window, {Validator, ValidatorCheck});

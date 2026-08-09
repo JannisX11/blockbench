@@ -1,4 +1,7 @@
-class EditSession {
+import Peer from "peerjs";
+import { clipboard, getPCUsername } from "./native_apis";
+
+export class EditSession {
 	constructor() {
 		this.active = false;
 		this.hosting = false;
@@ -20,7 +23,7 @@ class EditSession {
 	start(username) {
 		if (this.active) return;
 
-		var peer = this.peer = new Peer({
+		let peer = this.peer = new Peer({
 			key: 'edit_session',
 			host: EditSession.defaults.ip,
 			port: 9000,
@@ -155,7 +158,7 @@ class EditSession {
 		TickUpdates.interface = true;
 	}
 	copyToken() {
-		var input = $('#edit_session_token')
+		let input = document.getElementById('edit_session_token');
 		if (this.active) {
 			input.focus()
 			document.execCommand('selectAll')
@@ -164,12 +167,12 @@ class EditSession {
 			if (isApp) {
 				var token = clipboard.readText()
 				if (EditSession.matchToken(token)) {
-					$('#edit_session_token').val(token)
+					input.value = token;
 				}
 			} else {
 				navigator.clipboard.readText().then((token) => {
 					if (EditSession.matchToken(token)) {
-						$('#edit_session_token').val(token)
+						input.value = token;
 					}
 				})
 			}
@@ -213,7 +216,12 @@ class EditSession {
 			action: entry.action,
 			time: entry.time || Date.now()
 		}
-		this.sendAll('edit', JSON.stringify(new_entry))
+		this.sendAll('edit', JSON.stringify(new_entry, (key, value) => {
+			if (key == 'image_data' && typeof value == 'object' && value.data instanceof Uint8ClampedArray) {
+				return {data: Array.from(value.data)};
+			}
+			return value;
+		}))
 	}
 	receiveData(tag) {
 		if (Blockbench.hasFlag('log_session')) {
@@ -344,9 +352,18 @@ EditSession.matchToken = function(token) {
 	return !!(token.length === 16 && token.match(/[a-z0-9]{16}/))
 }
 
+
+ExperimentalSettings.add(
+	'max_chat_message_length',
+	{type: 'number', label: 'Max chat message length', min: 1, value: 512, step: 1, force_step: true}
+);
+ExperimentalSettings.add(
+	'session_server',
+	{type: 'string', label: 'Edit Session server', value: 'blckbn.ch'}
+);
 EditSession.defaults = {
-	max_chat_length: 512,
-	ip: 'blckbn.ch',
+	max_chat_length: ExperimentalSettings.get('max_chat_message_length'),
+	ip: ExperimentalSettings.get('session_server') ?? 'blckbn.ch',
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 }
 
@@ -446,7 +463,7 @@ BARS.defineActions(function() {
 			} else {
 				username = settings.username.value;
 				if (!username && isApp) {
-					username = process.env.USERNAME
+					username = getPCUsername()
 				}
 				token = EditSession.token;
 				if (!token && isApp) {
@@ -466,9 +483,10 @@ BARS.defineActions(function() {
 					about: {type: 'info', text: 'edit_session.about', condition: !session},
 					status: {type: 'info', text: `**${tl('edit_session.status')}**: ${(session && session.hosting) ? tl('edit_session.hosting') : tl('edit_session.connected')}`, condition: !!session},
 				},
+				cancelIndex: 2,
 				buttons: session
-					? ['edit_session.quit', 'dialog.close']
-					: ['edit_session.join', 'edit_session.create', 'dialog.close'],
+					? ['edit_session.quit']
+					: ['edit_session.join', 'edit_session.create'],
 				onButton(button) {
 					let result = this.getFormResult();
 					if (session && button == 0) {
@@ -512,9 +530,8 @@ Interface.definePanels(function() {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
-		},
-		onResize: t => {
+			height: 400,
+			sidebar_index: 10,
 		},
 		component: {
 			data() {return {

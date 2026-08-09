@@ -1,0 +1,52 @@
+const StateMemory = {
+	/**
+	 * Initialize a memorized property
+	 */
+	init(key: string, type: 'string'|'number'|'boolean'|'object'|'array', default_value?: any) {
+		let saved: any = localStorage.getItem(`StateMemory.${key}`)
+		if (typeof saved == 'string') {
+			try {
+				saved = JSON.parse(saved)
+			} catch (err) {
+				localStorage.removeItem(`StateMemory.${key}`);
+			}
+		}
+		if ( saved !== null && (typeof saved == type || (type == 'array' && (saved instanceof Array))) ) {
+			StateMemory[key] = saved;
+		} else if (default_value != undefined) {
+			StateMemory[key] = default_value;
+		} else {
+			StateMemory[key] = (() => {switch (type) {
+				case 'string': return ''; break;
+				case 'number': return 0; break;
+				case 'boolean': return false; break;
+				case 'object': return {}; break;
+				case 'array': return []; break;
+			}})();
+		}
+	},
+	set(key: string, value: any) {
+		if (StateMemory[key] instanceof Array) {
+			StateMemory[key].replace(value);
+		} else {
+			StateMemory[key] = value;
+		}
+		StateMemory.save(key);
+	},
+	save(key: string) {
+		let serialized = JSON.stringify(StateMemory[key])
+		localStorage.setItem(`StateMemory.${key}`, serialized)
+	},
+	get(key: string): string|number|[]|boolean|any {
+		return StateMemory[key];
+	}
+};
+export default StateMemory as (typeof global.StateMemory) & Record<string, any>;
+
+const global = {
+	StateMemory
+};
+declare global {
+	const StateMemory: (typeof global.StateMemory) & Record<string, any>
+}
+Object.assign(window, global);

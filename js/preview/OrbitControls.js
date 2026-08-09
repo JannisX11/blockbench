@@ -1,11 +1,17 @@
+import { PointerTarget } from "../interface/pointer_target";
+
 /**
+ * Original source: https://github.com/mrdoob/three.js, MIT
+ * Modified for Blockbench
  * @author qiao / https://github.com/qiao
  * @author mrdoob / http://mrdoob.com
  * @author alteredq / http://alteredqualia.com/
  * @author WestLangley / http://github.com/WestLangley
  * @author erich666 / http://erichaines.com
  */
-THREE.OrbitControls = function ( object, preview ) {
+class OrbitControls extends THREE.EventDispatcher {
+constructor ( object, preview ) {
+	super();
 
 	this.object = object;
 	this.preview = preview
@@ -72,13 +78,7 @@ THREE.OrbitControls = function ( object, preview ) {
 	};
 
 	this.updateSceneScale = function() {
-		ReferenceImage.active.forEach(ref => {
-			if (ref.layer == 'blueprint' && ref.attached_side == scope.preview.angle) {
-				ref.updateTransform()
-			}
-		})
-		if (Transformer.visible) Transformer.update()
-		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
+		scope.update();
 	};
 
 	this.onUpdate = function(call) {
@@ -118,7 +118,6 @@ THREE.OrbitControls = function ( object, preview ) {
 				let auto_rot_angle = getAutoRotationAngle()
 				scope.autoRotateProgress += auto_rot_angle;
 				scope.rotateLeft( auto_rot_angle );
-
 			}
 
 			spherical.theta += sphericalDelta.theta;
@@ -298,6 +297,10 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	}();
 
+	this.panLeft = panLeft;
+	this.panUp = panUp;
+	
+
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function () {
 
@@ -357,7 +360,6 @@ THREE.OrbitControls = function ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -376,7 +378,6 @@ THREE.OrbitControls = function ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -402,18 +403,17 @@ THREE.OrbitControls = function ( object, preview ) {
 		rotateDelta.subVectors( rotateEnd, rotateStart );
 
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+		let clamped_viewport_size = Math.clamp(Math.min(element.clientWidth + element.clientHeight), 600, 1200);
 
 		// rotating across whole screen goes 360 degrees around
-		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+		scope.rotateLeft( 2 * Math.PI * rotateDelta.x / clamped_viewport_size * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
-		scope.rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		scope.rotateUp( 2 * Math.PI * rotateDelta.y / clamped_viewport_size * scope.rotateSpeed );
 
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMoveDolly( event ) {
@@ -430,7 +430,6 @@ THREE.OrbitControls = function ( object, preview ) {
 		dollyStart.copy( dollyEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMovePan( event ) {
@@ -440,7 +439,6 @@ THREE.OrbitControls = function ( object, preview ) {
 		panStart.copy( panEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseUp( event ) {
@@ -448,15 +446,13 @@ THREE.OrbitControls = function ( object, preview ) {
 	}
 
 	function handleMouseWheel( event ) {
-
+		let modifier = Math.abs(event.deltaY) >= 50 ? 1 : 0.25;
 		if ( event.deltaY < 0 ) {
-			dollyOut( getZoomScale() );
+			dollyOut( getZoomScale(modifier) );
 		} else if ( event.deltaY > 0 ) {
-			dollyIn( getZoomScale() );
-
+			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
-		scope.updateSceneScale();
 
 	}
 
@@ -529,7 +525,6 @@ THREE.OrbitControls = function ( object, preview ) {
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-		scope.updateSceneScale()
 
 	}
 
@@ -598,20 +593,20 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	function onMouseDown( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 
 		event.preventDefault();
 		scope.hasMoved = false
 		
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
-				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
-					return;
-				}
-				handleMouseDownRotate( event );
+			if ( scope.enableRotate === false ) return;
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
+				return;
+			}
+			handleMouseDownRotate( event );
 
-				state = STATE.ROTATE;
+			state = STATE.ROTATE;
 
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
@@ -644,7 +639,7 @@ THREE.OrbitControls = function ( object, preview ) {
 
 	function onMouseMove( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 		event.preventDefault();
 		scope.hasMoved = true
 
@@ -670,6 +665,8 @@ THREE.OrbitControls = function ( object, preview ) {
 
 		if ( scope.isEnabled() === false ) return;
 
+		PointerTarget.endTarget(PointerTarget.types.navigate);
+
 		handleMouseUp( event );
 
 		document.removeEventListener( 'mousemove', onMouseMove, false );
@@ -685,6 +682,16 @@ THREE.OrbitControls = function ( object, preview ) {
 	function onMouseWheel( event ) {
 
 		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
+		let enabled = keybind.isTriggered(event);
+
+		if (!enabled && Keybinds.extra.preview_scroll_pan.keybind.isTriggered(event)) {
+			pan( -event.deltaX, -event.deltaY );
+
+			scope.update();
+		}
+
+		if (!enabled) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -746,7 +753,7 @@ THREE.OrbitControls = function ( object, preview ) {
 	function onTouchMove( event ) {
 
 		if ( scope.isEnabled() === false ) return;
-		if ( Transformer.dragging || Painter.painting ) return;
+		if ( !PointerTarget.requestTarget(PointerTarget.types.navigate) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -759,6 +766,7 @@ THREE.OrbitControls = function ( object, preview ) {
 				if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?
 
 				handleTouchMoveRotate( event );
+				scope.hasMoved = true;
 
 				break;
 
@@ -783,6 +791,7 @@ THREE.OrbitControls = function ( object, preview ) {
 		if ( scope.isEnabled() === false ) return;
 		scope.dispatchEvent( endEvent );
 		state = STATE.NONE;
+		scope.hasMoved = false;
 
 	}
 
@@ -795,8 +804,10 @@ THREE.OrbitControls = function ( object, preview ) {
 	window.addEventListener( 'keydown', onKeyDown, false );
 
 	this.update();
-
+}
 };
 
-THREE.OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.OrbitControls.prototype.constructor = THREE.OrbitControls;
+// OrbitControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+// OrbitControls.prototype.constructor = OrbitControls;
+
+export default OrbitControls;

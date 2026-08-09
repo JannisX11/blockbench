@@ -1,31 +1,19 @@
 sudo: required
-dist: trusty
+dist: focal
 
 language: node_js
 node:
-  - 16
+  - 20
 
 if: tag IS blank AND commit_message =~ ci-build
 
 jobs:
   include:
-    - name: "macOS"
-      os: osx
-      osx_image: "xcode14.2"
-      script:
-        - npm run prepublish
-        - electron-builder --publish=always
-
     - name: "Linux"
       os: linux
       script:
-        - npm run prepublish
         - sudo apt-get install rpm
-        - electron-builder --publish=onTagOrDraft
-
-cache:
-  directories:
-    - node_modules
+        - npm run publish-linux
 
 install:
   - npm install

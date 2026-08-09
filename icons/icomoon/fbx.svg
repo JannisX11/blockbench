@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="32"
+   height="32"
+   viewBox="0 0 32 32"
+   version="1.1"
+   id="SVGRoot"
+   inkscape:version="1.1.2 (b8e25be833, 2022-02-05)"
+   sodipodi:docname="fbx.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="32"
+     inkscape:cx="33.71875"
+     inkscape:cy="18.796875"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="3840"
+     inkscape:window-height="2066"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1"
+     inkscape:grid-bbox="true"
+     inkscape:pagecheckerboard="1"
+     inkscape:snap-grids="false">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4485" />
+  </sodipodi:namedview>
+  <defs
+     id="defs5055">
+    <inkscape:path-effect
+       effect="fillet_chamfer"
+       id="path-effect11295"
+       is_visible="true"
+       lpeversion="1"
+       satellites_param="F,0,0,1,0,2.2,0,1 @ F,0,0,1,0,2.2,0,1 @ F,0,0,1,0,2.2,0,1 @ F,0,0,1,0,2.2,0,1"
+       unit="px"
+       method="auto"
+       mode="F"
+       radius="2.2"
+       chamfer_steps="1"
+       flexible="false"
+       use_knot_distance="true"
+       apply_no_radius="true"
+       apply_with_radius="true"
+       only_selected="false"
+       hide_knots="false" />
+  </defs>
+  <metadata
+     id="metadata5058">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1"
+     transform="translate(0,16)">
+    <path
+       id="rect112"
+       style="opacity:1;stroke-width:0.381777;stroke-linecap:round;stroke-linejoin:round"
+       d="m 2.9488173,-7.9930991 a 2.2,2.2 0 0 0 -2.20117206,2.201172 V 6.7783849 A 2.2,2.2 0 0 0 2.9488173,8.9776039 H 28.985926 a 2.2,2.2 0 0 0 2.199219,-2.199219 v -12.570312 a 2.2,2.2 0 0 0 -2.199219,-2.201172 z m -0.560547,3.773438 h 7.054687 v 1.732422 h -4.894531 v 2.46679603 h 4.320313 V 1.7119789 h -4.320313 v 3.400391 h -2.160156 z m 8.5214837,0 h 4.558594 c 1.137775,0 2.008839,0.216788 2.613281,0.652343 0.613332,0.435554 0.919922,1.026773 0.919922,1.773438 0,0.453332 -0.109809,0.85733503 -0.332031,1.21289103 -0.213333,0.355554 -0.517093,0.63539998 -0.908203,0.83984298 0.533332,0.168889 0.951685,0.453517 1.253906,0.85351599 0.302221,0.39111 0.453125,0.875349 0.453125,1.453125 0,0.817776 -0.318986,1.450088 -0.958985,1.894531 -0.63111,0.435555 -1.555661,0.652344 -2.773437,0.652344 h -4.826172 z m 9.171875,0 h 2.453125 l 2.146485,3.02539 2.107421,-3.02539 h 2.333985 l -3.253906,4.50585901 3.480468,4.82617199 h -2.49414 l -2.251954,-3.240235 -2.214843,3.240235 h -2.478516 l 3.453125,-4.74609399 z m -7.02539,1.625 v 2.20117203 h 2.146484 c 0.533332,0 0.937334,-0.094584 1.21289,-0.28125 0.275554,-0.186666 0.414063,-0.46172903 0.414063,-0.82617203 0,-0.364444 -0.138509,-0.634723 -0.414063,-0.8125 -0.275555,-0.18667 -0.679558,-0.28125 -1.21289,-0.28125 z m 0,3.773437 v 2.306641 h 2.519531 c 0.568887,0 0.994853,-0.092631 1.279297,-0.279297 0.293333,-0.186666 0.441406,-0.476078 0.441406,-0.867188 0,-0.773332 -0.574039,-1.160156 -1.720703,-1.160156 z" />
+    <g
+       aria-label="FBX"
+       id="text6635-5"
+       style="font-size:13.3333px;line-height:1.25;letter-spacing:0px;word-spacing:0px"
+       transform="translate(-33.036516,-10.067487)" />
+  </g>
+</svg>

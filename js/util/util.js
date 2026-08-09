@@ -1,33 +1,14 @@
+import './molang'
+import './state_memory'
+
 //Blockbench
-function compareVersions(string1/*new*/, string2/*old*/) {
-	// Is string1 newer than string2 ?
-	var arr1 = string1.split(/[.-]/);
-	var arr2 = string2.split(/[.-]/);
-	var i = 0;
-	var num1 = 0;
-	var num2 = 0;
-	while (i < Math.max(arr1.length, arr2.length)) {
-		num1 = arr1[i];
-		num2 = arr2[i];
-		if (num1 == 'beta') num1 = -1;
-		if (num2 == 'beta') num2 = -1;
-		num1 = parseInt(num1) || 0;
-		num2 = parseInt(num2) || 0;
-		if (num1 > num2) {
-			return true;
-		} else if (num1 < num2) {
-			return false
-		}
-		i++;
-	}
-	return false;
-}
+
 /**
  * 
  * @param {*} condition Input condition. Can be undefined, a boolean, a function or a condition object
  * @param {*} context 
  */
-const Condition = function(condition, context) {
+export const Condition = function(condition, context) {
 	if (condition !== undefined && condition !== null && condition.condition !== undefined) {
 		condition = condition.condition
 	}
@@ -49,24 +30,20 @@ const Condition = function(condition, context) {
 			if (condition.selected.animation_controller_state === false && (AnimationController.selected?.selected_state)) return false;
 			if (condition.selected.keyframe === true && !(Keyframe.selected.length)) return false;
 			if (condition.selected.keyframe === false && (Keyframe.selected.length)) return false;
-			if (condition.selected.group === true && !Group.selected) return false;
-			if (condition.selected.group === false && Group.selected) return false;
+			if (condition.selected.group === true && !Group.first_selected) return false;
+			if (condition.selected.group === false && Group.first_selected) return false;
 			if (condition.selected.texture === true && !Texture.selected) return false;
 			if (condition.selected.texture === false && Texture.selected) return false;
 			if (condition.selected.element === true && !Outliner.selected.length) return false;
 			if (condition.selected.element === false && Outliner.selected.length) return false;
-			if (condition.selected.cube === true && !Cube.selected.length) return false;
-			if (condition.selected.cube === false && Cube.selected.length) return false;
-			if (condition.selected.mesh === true && !Mesh.selected.length) return false;
-			if (condition.selected.mesh === false && Mesh.selected.length) return false;
-			if (condition.selected.locator === true && !Locator.selected.length) return false;
-			if (condition.selected.locator === false && Locator.selected.length) return false;
-			if (condition.selected.null_object === true && !NullObject.selected.length) return false;
-			if (condition.selected.null_object === false && NullObject.selected.length) return false;
-			if (condition.selected.texture_mesh === true && !TextureMesh.selected.length) return false;
-			if (condition.selected.texture_mesh === false && TextureMesh.selected.length) return false;
-			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.selected)) return false;
-			if (condition.selected.outliner === false && (Outliner.selected.length || Group.selected)) return false;
+			if (condition.selected.outliner === true && !(Outliner.selected.length || Group.first_selected)) return false;
+			if (condition.selected.outliner === false && (Outliner.selected.length || Group.first_selected)) return false;
+			for (let key in condition.selected) {
+				if (OutlinerElement.types[key]) {
+					if (condition.selected[key] === true && !OutlinerElement.types[key].selected.length) return false;
+					if (condition.selected[key] === false && OutlinerElement.types[key].selected.length) return false;
+				}
+			}
 		}
 		if (condition.project && !Project) return false;
 
@@ -93,28 +70,18 @@ Condition.mutuallyExclusive = function(a, b) {
 	return false;
 }
 
-async function wait(delay) {
+export async function wait(delay) {
 	await new Promise((resolve) => {
 		setTimeout(resolve, delay);
 	})
 }
+export function silentReject() {}
 
-function pureMarked(input) {
+export function pureMarked(input) {
 	let dom = marked(input);
 	return DOMPurify.sanitize(dom);
 }
 
-class oneLiner {
-	constructor(data) {
-		if (data !== undefined) {
-			for (var key in data) {
-				if (data.hasOwnProperty(key)) {
-					this[key] = data[key]
-				}
-			}
-		}
-	}
-}
 var asyncLoop = function(o){
 	var i=-1;
 	var async_loop = function(){
@@ -138,8 +105,12 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 		return this.ctrlKey || this.metaKey;
 	}
 })
+ImageData.prototype.getIndex = function(x, y) {
+	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+    return (x + y * this.height) * 4;
+}
 
-function convertTouchEvent(event) {
+export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
 		//event.preventDefault();
 		event.clientX = event.changedTouches[0].clientX;
@@ -155,24 +126,38 @@ function convertTouchEvent(event) {
 	}
 	return event;
 }
-function addEventListeners(el, events, func, option) {
+export function addEventListeners(el, events, func, option) {
 	events.split(' ').forEach(e => {
 		el.addEventListener(e, func, option)
 	})
 }
-function removeEventListeners(el, events, func, option) {
+export function removeEventListeners(el, events, func, option) {
 	events.split(' ').forEach(e => {
 		el.removeEventListener(e, func, option)
 	})
 }
+export function getStringWidth(string, size) {
+	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
+	if (size && size !== 16) {
+		node.style.fontSize = size + 'pt';
+	}
+	document.body.append(node);
+	let width = node.clientWidth;
+	node.remove();
+	return width + 1;
+};
 
-function patchedAtob(base64) {
-	return (typeof Buffer == 'function')
-		? Buffer.from(base64, 'base64').toString()
-		: atob(base64);
+export function patchedAtob(base64) {
+	if (typeof Buffer == 'function') {
+		return Buffer.from(base64, 'base64').toString();
+	} else {
+		return decodeURIComponent(atob(base64).split('').map((c) => {
+			return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+		}).join(''));
+	}
 }
 
-function highestInObject(obj, inverse) {
+export function highestInObject(obj, inverse) {
 	var n = inverse ? Infinity : -Infinity;
 	var result;
 	for (var key in obj) {
@@ -184,7 +169,7 @@ function highestInObject(obj, inverse) {
 	return result;
 }
 
-class Rectangle {
+export class Rectangle {
 	constructor(start_x = 0, start_y = 0, width = 0, height = 0) {
 		this.start_x = start_x;
 		this.start_y = start_y;
@@ -245,7 +230,7 @@ class Rectangle {
 		else if (y > this.end_y) this.end_y = y;
 	}
 }
-function getRectangle(a, b, c, d) {
+export function getRectangle(a, b, c, d) {
 	var rect = {};
 	if (!b && typeof a === 'object') {
 		rect = a
@@ -276,7 +261,7 @@ function getRectangle(a, b, c, d) {
 	rect.y = rect.h = rect.by - rect.ay
 	return rect;
 }
-function doRectanglesOverlap(rect1, rect2) {
+export function doRectanglesOverlap(rect1, rect2) {
 	if (rect1.ax > rect2.bx || rect2.ax > rect1.bx) {
 		return false
 	}
@@ -300,7 +285,7 @@ Date.prototype.getDateArray = function() {
 	return [
 		this.getDate(),
 		this.getMonth()+1,
-		this.getYear()+1900
+		this.getFullYear()
 	];
 }
 Date.prototype.getDateString = function() {
@@ -317,13 +302,13 @@ Date.prototype.dayOfYear = function() {
 
 
 //Object
-function omitKeys(obj, keys, dual_level) {
+export function omitKeys(obj, keys, dual_level) {
 	var dup = {};
-	for (key in obj) {
+	for (let key in obj) {
 		if (keys.indexOf(key) == -1) {
 			if (dual_level === true && typeof obj[key] === 'object') {
 				dup[key] = {}
-				for (key2 in obj[key]) {
+				for (let key2 in obj[key]) {
 					if (keys.indexOf(key2) == -1) {
 							dup[key][key2] = obj[key][key2];
 					}
@@ -335,10 +320,10 @@ function omitKeys(obj, keys, dual_level) {
 	}
 	return dup;
 }
-function get (options, name, defaultValue) {
+export function get (options, name, defaultValue) {
 	return (name in options ? options[name] : defaultValue)
 }
-function getKeyByValue(object, value) {
+export function getKeyByValue(object, value) {
 	return Object.keys(object).find(key => object[key] === value);
 }
 
@@ -395,8 +380,10 @@ var Merge = {
 		}
 	},
 	molang(obj, source, index) {
-		if (['string', 'number'].includes(typeof source[index])) {
-			obj[index] = source[index];
+		if (typeof source[index] == 'string') {
+			obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
+		} else if (typeof source[index] == 'number') {
+			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
 	},
 	boolean(obj, source, index, validate) {
@@ -429,7 +416,7 @@ var Merge = {
 	}
 }
 
-function onVueSetup(func) {
+export function onVueSetup(func) {
 	if (!onVueSetup.funcs) {
 		onVueSetup.funcs = []
 	}
@@ -437,20 +424,23 @@ function onVueSetup(func) {
 }
 
 //String
-function capitalizeFirstLetter(string) {
+export function capitalizeFirstLetter(string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);
 }
-function autoStringify(object) {
+export function autoStringify(object) {
 	return compileJSON(object, {small: settings.minifiedout.value})
 }
-function pluralS(arr) {
+export function pluralS(arr) {
 	if (arr.length === 1 || arr === 1) {
 		return '';
 	} else {
 		return 's';
 	}
 }
-function pathToName(path, extension) {
+export function toSnakeCase(input) {
+	return input.replace(/[A-Z]/g, (char) => ('_'+char)).toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+}
+export function pathToName(path, extension) {
 	var path_array = path.split('/').join('\\').split('\\')
 	if (extension === true) {
 		return path_array[path_array.length-1]
@@ -458,7 +448,7 @@ function pathToName(path, extension) {
 		return path_array[path_array.length-1].replace(/\.\w+$/, '')
 	}
 }
-function pathToExtension(path) {
+export function pathToExtension(path) {
 	if (typeof path !== 'string') return '';
 	var matches = path.match(/\.\w{2,24}$/)
 	if (!matches || !matches.length) return '';
@@ -466,8 +456,8 @@ function pathToExtension(path) {
 }
 Object.defineProperty(String.prototype, 'hashCode', {
 	value() {
-		var hash = 0, i, chr;
-		for (i = 0; i < this.length; i++) {
+		var hash = 0, chr;
+		for (let i = 0; i < this.length; i++) {
 			chr   = this.charCodeAt(i);
 			hash  = ((hash << 5) - hash) + chr;
 			hash |= 0;
@@ -475,13 +465,39 @@ Object.defineProperty(String.prototype, 'hashCode', {
 		return hash;
 	}
 });
+export function exportMolang(input) {
+	if (!input) return 0;
+	if (typeof input == 'string') {
+		if (!isNaN(input)) {
+			let num = parseFloat(input);
+			return isNaN(num) ? 0 : num;
+		} else {
+			return input.replace(/\n/g, '');
+		}
+	} else if (typeof input == 'number') {
+		return input;
+	} else {
+		return 0;
+	}
+}
+
+// HTML
+export function isNodeUnderCursor(node, event) {
+	if (!node) return;
+	let rect = node.getBoundingClientRect();
+	return pointInRectangle([event.clientX, event.clientY], [rect.x, rect.y], [rect.right+1, rect.bottom+1]);
+}
+export function findNodeUnderCursor(selector, event) {
+	return document.querySelectorAll(selector).entries().map(([i, node]) => node).find(node => isNodeUnderCursor(node, event));
+}
+
 
 //Color
 tinycolor.prototype.toInt = function() {
 	let {r, g, b, a} = this.toRgb();
 	return r * Math.pow(256, 3) + g * Math.pow(256, 2) + b * Math.pow(256, 1) + a * Math.pow(256, 0);
 }
-function intToRGBA(int) {
+export function intToRGBA(int) {
 	const rgba = {};
 
 	rgba.r = Math.floor(int / Math.pow(256, 3));
@@ -499,7 +515,7 @@ function intToRGBA(int) {
 	);
 	return rgba;
 }
-function getAverageRGB(imgEl, blockSize) {
+export function getAverageRGB(imgEl, blockSize) {
 		
 	var defaultRGB = {r:0,g:0,b:0}, // for non-supporting envs
 		canvas = document.createElement('canvas'),
@@ -547,7 +563,7 @@ function getAverageRGB(imgEl, blockSize) {
 	return rgb;	
 }
 // Source: https://github.com/antimatter15/rgb-lab/
-function rgb2lab(rgb){
+export function rgb2lab(rgb){
 	var r = rgb[0] / 255,
 		g = rgb[1] / 255,
 		b = rgb[2] / 255,
@@ -571,7 +587,7 @@ function rgb2lab(rgb){
 // calculate the perceptual distance between colors in CIELAB
 // https://github.com/THEjoezack/ColorMine/blob/master/ColorMine/ColorSpaces/Comparisons/Cie94Comparison.cs
 
-function labColorDistance(labA, labB){
+export function labColorDistance(labA, labB){
 	var deltaL = labA[0] - labB[0];
 	var deltaA = labA[1] - labB[1];
 	var deltaB = labA[2] - labB[2];
@@ -586,15 +602,23 @@ function labColorDistance(labA, labB){
 	var deltaCkcsc = deltaC / (sc);
 	var deltaHkhsh = deltaH / (sh);
 	var i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
-	return i < 0 ? 0 : Math.sqrt(i);}
+	return i < 0 ? 0 : Math.sqrt(i);
+}
+export function colorDistance(color1, color2) {
+	return Math.sqrt(
+		Math.pow(color2._r - color1._r, 2) +
+		Math.pow(color2._g - color1._g, 2) +
+		Math.pow(color2._b - color1._b, 2)
+	);
+}
 
-function stringifyLargeInt(int) {
+export function stringifyLargeInt(int) {
 	let string = int.toString();
 	return string.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
 }
 
 
-function intersectLines(p1, p2, p3, p4) {
+export function intersectLines(p1, p2, p3, p4) {
 	let s1 = [ p2[0] - p1[0],   p2[1] - p1[1] ];
 	let s2 = [ p4[0] - p3[0],   p4[1] - p3[1] ];
 
@@ -603,10 +627,10 @@ function intersectLines(p1, p2, p3, p4) {
 
 	return (s >= 0 && s <= 1 && t >= 0 && t <= 1);
 }
-function pointInRectangle(point, rect_start, rect_end) {
+export function pointInRectangle(point, rect_start, rect_end) {
 	return (point[0] > rect_start[0] && point[0] < rect_end[0] && point[1] > rect_start[1] && point[1] < rect_end[1])
 }
-function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
+export function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 	// Check if points inside rect
 	if (pointInRectangle(p1, rect_start, rect_end)) return true;
 	if (pointInRectangle(p2, rect_start, rect_end)) return true;
@@ -618,7 +642,7 @@ function lineIntersectsReactangle(p1, p2, rect_start, rect_end) {
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_end[0], rect_start[1]])
 		|| intersectLines(p1, p2, [rect_end[0], rect_end[1]], [rect_start[0], rect_end[1]])
 }
-function pointInTriangle(pt, v1, v2, v3) {
+export function pointInTriangle(pt, v1, v2, v3) {
 	function sign(p1, p2, p3) {
 		return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
 	}
@@ -631,11 +655,27 @@ function pointInTriangle(pt, v1, v2, v3) {
 
 	return !(has_neg && has_pos);
 }
-function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
+export function pointInPolygon(point, polygon_points) {
+	// ray-casting algorithm based on
+    // https://wrf.ecse.rpi.edu/Research/Short_Notes/pnpoly.html
+    let x = point[0], y = point[1], vs = polygon_points;
+    
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+        let xi = vs[i][0], yi = vs[i][1];
+        let xj = vs[j][0], yj = vs[j][1];
+        
+        let intersect = ((yi > y) != (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+export function lineIntersectsTriangle(l1, l2, v1, v2, v3) {
 	return intersectLines(l1, l2, v1, v2) || intersectLines(l1, l2, v2, v3) || intersectLines(l1, l2, v3, v1);
 }
 
-function cameraTargetToRotation(position, target) {
+export function cameraTargetToRotation(position, target) {
 	let spherical = new THREE.Spherical();
 	spherical.setFromCartesianCoords(...target.slice().V3_subtract(position));
 	let theta = Math.radToDeg(-spherical.theta);
@@ -643,7 +683,7 @@ function cameraTargetToRotation(position, target) {
 	if (phi < 90) phi += 180; theta += 180;
 	return [theta, phi];
 }
-function cameraRotationToTarget(position, rotation) {
+export function cameraRotationToTarget(position, rotation) {
 	let vec = new THREE.Vector3(0, 0, 16);
 	vec.applyEuler(new THREE.Euler(Math.degToRad(rotation[1]), Math.degToRad(rotation[0]), 0, 'ZYX'));
 	vec.z *= -1;
@@ -651,9 +691,18 @@ function cameraRotationToTarget(position, rotation) {
 	return vec.toArray().V3_add(position);
 }
 
-function getDateDisplay(input_date) {
+const date_formatter = new Intl.DateTimeFormat();
+const date_time_formatter = new Intl.DateTimeFormat(undefined, {
+	year: 'numeric',
+	month: 'numeric',
+	day: 'numeric',
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit"
+});
+export function getDateDisplay(input_date, print_time = true) {
 	let date = new Date(input_date);
-	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+	var diff = Math.floor(Blockbench.openTime / (60_000*60*24)) - Math.floor(date / (60_000*60*24));
 	let label;
 	if (diff <= 0) {
 		label = tl('dates.today');
@@ -664,14 +713,69 @@ function getDateDisplay(input_date) {
 	} else if (diff <= 60) {
 		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
 	} else {
-		label = date.toLocaleDateString();
+		label = date_formatter.format(date);
 	}
 	return {
 		short: label,
-		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+		full: print_time ? date_time_formatter.format(date) : date_formatter.format(date)
 	}
 }
 
-const NativeGlobals = {
+if (!window.structuredClone) {
+	window.structuredClone = function structuredClone(data) {
+		return JSON.parse(JSON.stringify(data));
+	}
+}
+
+export const NativeGlobals = {
 	Animation
 }
+
+if (!window.structuredClone) {
+	window.structuredClone = (input) => {
+		if (!input) return;
+		return JSON.parse(JSON.stringify(input));
+	}
+}
+
+Object.assign(window, {
+	Condition,
+	Objector,
+	Merge,
+	pureMarked,
+	convertTouchEvent,
+	addEventListeners,
+	removeEventListeners,
+	getStringWidth,
+	patchedAtob,
+	highestInObject,
+	getRectangle,
+	doRectanglesOverlap,
+	omitKeys,
+	onVueSetup,
+	capitalizeFirstLetter,
+	autoStringify,
+	pluralS,
+	pathToName,
+	pathToExtension,
+	exportMolang,
+	isNodeUnderCursor,
+	findNodeUnderCursor,
+	intToRGBA,
+	getAverageRGB,
+	rgb2lab,
+	labColorDistance,
+	stringifyLargeInt,
+	intersectLines,
+	pointInRectangle,
+	lineIntersectsReactangle,
+	pointInTriangle,
+	pointInPolygon,
+	lineIntersectsTriangle,
+	cameraTargetToRotation,
+	cameraRotationToTarget,
+	getDateDisplay,
+	wait,
+	Rectangle,
+	getKeyByValue,
+});
