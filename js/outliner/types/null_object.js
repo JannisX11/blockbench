@@ -103,6 +103,7 @@ export class NullObject extends OutlinerElement {
 					})
 					Undo.finishEdit('Change null object lock ik target rotation option');
 					if (Modes.animate) Animator.preview();
+					updateSelection();
 				}
 			},
 			...Outliner.control_menu_group,
@@ -113,10 +114,93 @@ export class NullObject extends OutlinerElement {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'position')
-	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'string', 'ik_pole', { condition: () => Format.animation_mode });
-	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
+	new Property(NullObject, 'string', 'ik_target', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_target', description: 'action.set_ik_target.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
+					function iterate(arr, level) {
+						arr.forEach(node => {
+							if (node.constructor.animator || node instanceof Locator) {
+								if (level) nodes.push(node);
+							}
+							if (node.children) {
+								iterate(node.children, level+1);
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'string', 'ik_source', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_source', description: 'action.set_ik_source.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					iterate(Outliner.root)
+					function iterate(arr) {
+						arr.forEach(node => {
+							if (node.children) {
+								if (node.constructor.animator) {
+									nodes.push(node);
+								}
+								iterate(node.children)
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'string', 'ik_pole', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_pole', description: 'action.set_ik_pole.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
+					function iterate(arr) {
+						arr.forEach(node => {
+							if (node.selected) return;
+							if (node instanceof Group) {
+								nodes.push(node);
+								iterate(node.children);
+							} else if (node instanceof Locator || node instanceof NullObject) {
+								nodes.push(node);
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'boolean', 'lock_ik_target_rotation', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'menu.null_object.lock_ik_target_rotation', type: 'checkbox'},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	})
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
 	
@@ -280,7 +364,7 @@ BARS.defineActions(function() {
 	})
 
 	new Action('set_ik_pole', {
-		icon: 'fa-paperclip',
+		icon: 'chip_extraction',
 		category: 'edit',
 		condition() {
 			let action = BarItems.set_ik_pole;

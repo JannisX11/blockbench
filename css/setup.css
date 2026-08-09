@@ -569,7 +569,7 @@
 	}
 	div.bb-select,
 	select {
-		display: block;
+		display: flex;
 		position: relative;
 		background-color: var(--color-button);
 		text-align: left;
@@ -582,6 +582,7 @@
 		color: var(--color-text);
 		white-space: nowrap;
 		overflow: hidden;
+		gap: 4px;
 	}
 	div.bb-select:hover,
 	select {

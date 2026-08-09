@@ -516,13 +516,22 @@ Interface.CustomElements.SelectInput = function(id, data) {
 	let options = typeof data.options == 'function' ? data.options() : data.options;
 	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
 	let select = Interface.createElement('div', {id, class: 'bb-select half', value: value}, getNameFor(options[value]));
+	if (data.display_icon && options[value]) {
+		let icon_string = options[value].icon ?? '';
+		select.prepend(Blockbench.getIconNode(icon_string, options[value]?.color));
+	}
 	function setKey(key, options, input_event) {
 		if (!options) {
 			options = typeof data.options == 'function' ? data.options() : data.options;
 		}
 		value = key;
 		select.setAttribute('value', key);
-		select.textContent = getNameFor(options[key]);
+		select.textContent = getNameFor(options[value]);
+		if (data.display_icon && options[value]) {
+			if (select.firstElementChild?.classList.contains('icon')) select.firstElementChild.remove();
+			let icon_string = options[value].icon ?? '';
+			select.prepend(Blockbench.getIconNode(icon_string, options[value]?.color));
+		}
 		if (typeof data.onChange == 'function') {
 			data.onChange(value);
 		}

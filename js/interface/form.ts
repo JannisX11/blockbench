@@ -30,6 +30,7 @@ export enum FormInputType {
 	InlineSelect = 'inline_select',
 	MultiSelect = 'multi_select',
 	InlineMultiSelect = 'inline_multi_select',
+	OutlinerNode = 'outliner_node',
 	Info = 'info',
 	NumSlider = 'num_slider',
 	Buttons = 'buttons',
@@ -119,6 +120,7 @@ export interface FormElementOptions {
 	 * @returns Interval value
 	 */
 	getInterval?: (event: Event) => number
+	getOutlinerNodes?: () => OutlinerNode[]
 	/**
 	 * For num_sliders, the sliding interval mode
 	 */
@@ -680,6 +682,50 @@ FormElement.types.select = class FormElementSelect extends FormElement {
 	}
 	getDefault(): string {
 		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.outliner_node = class FormElementOutlinerNode extends FormElement {
+	select_input: {node: HTMLElement, set: (value: string) => void}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.select_input = new Interface.CustomElements.SelectInput(this.id, {
+			get options() {
+				let nodes = scope.options.getOutlinerNodes();
+				let options = {};
+				let value = scope.select_input ? scope.getValue() : null;
+				for (let node of nodes) {
+					options[node.uuid] = {
+						name: node.name,
+						icon: (node as any).icon ?? '',
+						marked: node.uuid == value,
+						color: 'color' in node ? markerColors[(node as any).color % markerColors.length]?.standard : undefined
+					};
+				}
+				return options;
+			},
+			display_icon: true,
+			value: this.options.value || this.options.default,
+			onInput() {
+				scope.change();
+			}
+		});
+		bar.append(this.select_input.node);
+		let clear = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'));
+		clear.addEventListener('click', (event: PointerEvent) => {
+			this.select_input.set('');
+			scope.change();
+		})
+		bar.append(clear);
+	}
+	getValue(): string {
+		return this.select_input.node.getAttribute('value');
+	}
+	setValue(value: string) {
+		this.select_input.set(value);
+	}
+	getDefault(): string {
+		return '';
 	}
 };
 FormElement.types.inline_select = class FormElementInlineSelect extends FormElement {

@@ -77,6 +77,10 @@ declare namespace Interface {
 					value?: T[keyof T]
 					default?: T[keyof T]
 					options: T
+					/**
+					 * Set to true to display the specified icon of the selected option in the UI element
+					 */
+					display_icon?: boolean
 					onChange?(value: T[keyof T]): void
 				}
 			)

@@ -2687,6 +2687,10 @@
 
 	"armature_bone.connected": "Connected",
 
+	"null_object.ik_target": "IK Target",
+	"null_object.ik_source": "IK Source",
+	"null_object.ik_pole": "IK Pole",
+
 	"texture_mesh.texture_name": "Texture Name",
 
 	"switches.visibility": "Visibility",
