@@ -161,9 +161,6 @@ declare namespace Animator {
 	 * @deprecated AnimationCodec should be used instead
 	 */
 	function exportAnimationControllerFile(path: string, save_as?: boolean): void
-	/**
-	 * @deprecated AnimationCodec should be used instead
-	 */
 	function resetLastValues(): void
 	function autocompleteMolang(
 		text: string,
