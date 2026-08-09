@@ -287,7 +287,7 @@ export function setupResizeLines() {
 		position() {
 			let offset = $(Panels.timeline.vue.$el).offset();
 			this.setPosition({
-				left: offset.left + 2 + Interface.data.timeline_head,
+				left: offset.left + Interface.data.timeline_head - 1,
 				top: offset.top - Interface.work_screen.offsetTop + 30,
 				bottom: Interface.work_screen.clientHeight - offset.top + Interface.work_screen.offsetTop - Panels.timeline.vue.$el.clientHeight + 10
 			})
