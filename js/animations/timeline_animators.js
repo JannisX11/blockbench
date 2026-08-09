@@ -858,7 +858,7 @@ export class NullObjectAnimator extends BoneAnimator {
 	displayIK(get_samples) {
 		let null_object = this.getElement();
 		let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
-		let pole = [...Group.all, ...Locator.all].find(node => node.uuid == null_object.ik_pole);
+		let pole = [...Group.all, ...Locator.all, ...NullObject.all].find(node => node.uuid == null_object.ik_pole);
 		if (!null_object || !target) return;
 
 		let bones = [];
@@ -911,13 +911,12 @@ export class NullObjectAnimator extends BoneAnimator {
 			}
 		});
 
-		let polePos;
+		let pole_pos;
 		if (pole) {
-			polePos = pole.mesh.getWorldPosition(new THREE.Vector3());
+			pole_pos = pole.mesh.getWorldPosition(new THREE.Vector3());
 		}
-		console.log(polePos)
 
-		fabrikIter(bone_pos, ik_target, polePos);
+		fabrikIter(bone_pos, ik_target, pole_pos);
 
 		let results = {};
 		for (let i = 0; i < bone_references.length; i++) {
@@ -984,7 +983,8 @@ export class NullObjectAnimator extends BoneAnimator {
 
 		if (!this.muted.position) {
 			this.displayPosition(this.interpolate('position'), multiplier);
-			this.displayIK();
+			// displayIK needs to be called separately.
+			// This is so null object positions get updated before IK so they can be used as pole
 		}
 	}
 }

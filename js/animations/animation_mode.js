@@ -337,6 +337,17 @@ export const Animator = {
 			})
 		})
 
+		NullObject.all.forEach(node => {
+			if (!node.ik_target) return;
+			animations.forEach((animation, anim_i) => {
+				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
+					return;
+				}
+				let ba = animation.getBoneAnimator(node);
+				ba?.displayIK();
+			})
+		})
+
 		Canvas.scene.updateMatrixWorld();
 
 		Animator.resetLastValues();

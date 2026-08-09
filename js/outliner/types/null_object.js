@@ -293,11 +293,11 @@ BARS.defineActions(function() {
 
 			function iterate(arr) {
 				arr.forEach(node => {
+					if (node.selected) return;
 					if (node instanceof Group) {
 						nodes.push(node);
 						iterate(node.children);
-					}
-					if (node instanceof Locator) {
+					} else if (node instanceof Locator || node instanceof NullObject) {
 						nodes.push(node);
 					}
 				})
@@ -305,7 +305,7 @@ BARS.defineActions(function() {
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_pole ? ' (✔)' : ''),
-					icon: node instanceof Locator ? 'fa-anchor' : 'folder',
+					icon: node.icon,
 					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
 					click() {
 						Undo.initEdit({ elements: NullObject.selected });
