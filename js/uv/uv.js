@@ -3060,7 +3060,8 @@ Interface.definePanels(function() {
 					let original_margin = this.getFrameMargin();
 					let offset = $(this.$refs.viewport).offset();
 					UVEditor.total_zoom_offset = [6, 6];
-					if (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
+					let force = event.touches?.[0]?.force;
+					if (event.touches && (!force || force == 0.5) && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
 						// Drag (touch only)
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
