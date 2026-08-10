@@ -60,8 +60,12 @@ export default {
 		height: Number,
 		hsv: Object
 	},
+	data() {return {
+		update: 0
+	}},
 	computed: {
 		position() {
+			this.update;
 			let hsv = this.hsv;
 			let triangle = this.$refs.triangle;
 			let dimensions = [
@@ -124,6 +128,9 @@ export default {
 		},
 		tl,
 	},
+	mounted() {
+		this.update++;
+	}
 }
 </script>
 

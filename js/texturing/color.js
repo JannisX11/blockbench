@@ -568,7 +568,7 @@ Interface.definePanels(() => {
 				hsv: {
 					h: 0,
 					s: 0,
-					v: 0,
+					v: 1,
 				},
 				editing_hsv: false,
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
