@@ -69,8 +69,8 @@ export class Texture {
 		img.src = 'assets/missing.png'
 
 		let tex = new THREE.Texture(this.canvas);
-		tex.magFilter = THREE.NearestFilter
-		tex.minFilter = THREE.NearestFilter
+		tex.magFilter = THREE.NearestFilter // Pixelated rendering
+		tex.minFilter = THREE.NearestFilter // Distance
 		tex.name = this.name;
 		img.tex = tex;
 
@@ -2910,7 +2910,7 @@ Interface.definePanels(function() {
 				@mouseup="unhighlightTexture($event)"
 				@dblclick="texture.propertiesDialog($event)"
 				@mousedown.stop="dragTexture($event)" @touchstart="dragTexture($event)"
-				@contextmenu="texture.showContextMenu($event)"
+				@contextmenu.prevent.stop="texture.showContextMenu($event)"
 			>
 				<i v-if="texture.getGroup()?.is_material" class="material-icons icon pbr_channel_icon">{{ pbr_channels[texture.pbr_channel].icon }}</i>
 				<div class="texture_icon_wrapper">
