@@ -162,8 +162,8 @@ export const Painter = {
 				Painter.current.y = y
 				Painter.current.face = data.face
 				Painter.current.element = data.element
-				Painter.current.client_mouse_x = event.clientX;
-				Painter.current.client_mouse_y = event.clientY;
+				//Painter.current.client_mouse_x = event.clientX;
+				//Painter.current.client_mouse_y = event.clientY;
 				new_face = true
 				UVEditor.vue.texture = texture;
 				if (texture !== Painter.current.texture && Undo.current_save) {
@@ -300,7 +300,7 @@ export const Painter = {
 		} else {
 			texture.edit(canvas => {
 				let is_line = true;
-				if (new_face) is_line = false;
+				if (new_face && !Painter.current.use_screen_projection) is_line = false;
 				if (BarItems.image_tiled_view.value == true && (Math.abs(Painter.current.x - x) > texture.width/2 || Math.abs(Painter.current.y - y) > texture.display_height/2)) {
 					is_line = false;
 				}
@@ -555,7 +555,7 @@ export const Painter = {
 					client_y: Painter.current.client_mouse_y ?? event.clientY,
 				}, run_per_pixel);
 			} else {
-				size = Painter.getBrushDimensions();
+				size = Painter.getBrushDimensions(size);
 				if (shape == 'square') {
 					Painter.editSquare(ctx, x, y, size, softness * 1.8, run_per_pixel);
 				} else if (shape == 'circle') {

@@ -77,7 +77,12 @@ export class RenderTargetSnapshot {
 		coord_y = Math.floor(this.render_target.height - coord_y);
 
 		let pixel_index = coord_x + coord_y * this.render_target.width;
-		let pixel_data = this.pixel_buffer.slice(pixel_index*4, pixel_index*4 + 4);
+		let pixel_data = [
+			this.pixel_buffer[pixel_index*4+0],
+			this.pixel_buffer[pixel_index*4+1],
+			this.pixel_buffer[pixel_index*4+2],
+			this.pixel_buffer[pixel_index*4+3],
+		];
 
 		const mesh_id = pixel_data[0];
 		if (mesh_id === 0) return null; // Hit background
