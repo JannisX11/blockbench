@@ -5,7 +5,9 @@ import { fs } from "../native_apis";
 BARS.defineActions(function() {
 
 	function getTextures() {
-		if (Texture.selected) {
+		if (UVEditor.texture && Prop.active_panel != 'textures') {
+			return [UVEditor.texture];
+		} else if (Texture.selected) {
 			return Texture.all.filter(t => t.selected || t.multi_selected);
 		} else {
 			return Texture.all;
@@ -806,6 +808,7 @@ BARS.defineActions(function() {
 				let editCanvas = (canvas, ctx, offset) => {
 					let frame_count = texture.frameCount || 1;
 					let copy = Painter.copyCanvas(canvas);
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.beginPath();
 
@@ -853,6 +856,7 @@ BARS.defineActions(function() {
 
 					ctx.clip();
 					ctx.drawImage(copy, 0, 0);
+					ctx.restore();
 				};
 			
 				texture.edit((canvas) => {

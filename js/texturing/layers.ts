@@ -937,15 +937,16 @@ BARS.defineActions(() => {
 			Undo.finishEdit('Resolve layer group');
 		}
 	})
+	let getTexture = () => Texture.selected || Texture.getDefault();
 	new Action('enable_texture_layers', {
 		icon: 'library_add_check',
 		category: 'layers',
-		condition: () => Texture.getDefault()?.layers_enabled == false,
+		condition: () => getTexture()?.layers_enabled == false,
 		click() {
 			if (!Modes.paint) {
 				Modes.options.paint.select();
 			}
-			let texture = Texture.getDefault();
+			let texture = getTexture();
 			texture.activateLayers(true);
 		}
 	})
