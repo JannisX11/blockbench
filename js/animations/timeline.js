@@ -1234,8 +1234,9 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				},
 				dragKeyframes(clicked, e1) {
-					convertTouchEvent(e1);
 					if (e1.target.classList.contains('keyframe_bezier_handle')) return;
+					if (e1.button > 0) return;
+					convertTouchEvent(e1);
 					let dragging_range;
 					let dragging_restriction;
 					let originalValue;
@@ -1425,6 +1426,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				dragBezierHandle(clicked, side, e1) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let values_changed;
 					let is_setup = false;
@@ -1551,6 +1553,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				slideGraphAmplify(e1, anchor_side) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
