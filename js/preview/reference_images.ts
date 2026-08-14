@@ -86,7 +86,7 @@ export class ReferenceImage {
 		this._modify_nodes = [];
 		this.defaults = data;
 
-		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.source))) {
+		if (data.source && ['mp4', 'wmv', 'mov'].includes(pathToExtension(data.name || data.source))) {
 			this.is_video = true;
 		}
 		this.node = Interface.createElement('div', {class: 'reference_image'}) as HTMLDivElement;
@@ -757,7 +757,7 @@ export class ReferenceImage {
 						vector.applyQuaternion(this.scene_object.quaternion.clone().invert());
 						if (z_movement) {
 							vector.x = vector.y = 0;
-						} else {
+						} else if (Pressing.overrides.ctrl || e2.ctrlOrCmd) {
 							vector.z = 0;
 						}
 						vector.applyQuaternion(this.scene_object.quaternion);
