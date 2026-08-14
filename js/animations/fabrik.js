@@ -57,8 +57,8 @@ export function fabrikIter(bones, target, pole) {
     }
 
     // --- Pole Vector Alignment (Applied Post-Solve) ---
-    // Only applies to chains with intermediate joints (n > 2)
-    if (pole && n > 2) {
+    // Only applies to chains with intermediate joints (n > 2) and need to bend to reach the target (dist < total_length)
+    if (pole && n > 2 && dist < total_length) {
         let root = bones[0];
         let tip = bones[n - 1];
 

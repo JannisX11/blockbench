@@ -464,7 +464,7 @@ export const Timeline = {
 			if (Timeline.dragging_playhead) {
 				delete Timeline.dragging_playhead;
 				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
-				Timeline.pause();
+				if (Timeline.playing) Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
 				Undo.finishEdit('Change Animation Length')
