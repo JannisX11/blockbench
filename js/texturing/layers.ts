@@ -57,6 +57,8 @@ export abstract class TextureLayerItem {
 		return it(this);
 	}
 	extend(data: any) {}
+	getSaveCopy(arg: any): any {}
+	getUndoCopy(arg: any): any {}
 	/**
 	 * Selects the layer
 	 */
@@ -77,6 +79,24 @@ export abstract class TextureLayerItem {
 	showContextMenu(event: MouseEvent): void {
 		if (!this.selected) this.clickSelect(event);
 		if ('menu' in this) this.menu.open(event, this);
+	}
+	/**
+	 * Add the layer to the associated texture above the previously selected layer, select this layer, and scroll the layer panel list to it
+	 */
+	addForEditing(): this {
+		let layer_list = this.texture.layers;
+		let i = layer_list.indexOf(this.texture.selected_layer);
+		if (i == -1) {
+			layer_list.push(this);
+		} else {
+			layer_list.splice(i+1, 0, this);
+		}
+		layer_list.replace(TextureLayerItem.solveLayerOrder(layer_list));
+		this.select();
+		Vue.nextTick(() => {
+			this.scrollTo();
+		});
+		return this;
 	}
 	/**
 	 * Scroll the layer panel list to
@@ -158,6 +178,10 @@ export abstract class TextureLayerItem {
 			addRecursive(layer);
 		}
 		return sorted_list;
+	}
+	static types: Record<string, any> = {};
+	static registerType(id: string, constructor: any) {
+		TextureLayerItem.types[id] = constructor;
 	}
 }
 
@@ -355,24 +379,6 @@ export class TextureLayer extends TextureLayerItem {
 		return this;
 	}
 	/**
-	 * Add the layer to the associated texture above the previously selected layer, select this layer, and scroll the layer panel list to it
-	 */
-	addForEditing(): this {
-		let layer_list = this.texture.layers;
-		let i = layer_list.indexOf(this.texture.selected_layer);
-		if (i == -1) {
-			layer_list.push(this);
-		} else {
-			layer_list.splice(i+1, 0, this);
-		}
-		layer_list.replace(TextureLayerItem.solveLayerOrder(layer_list));
-		this.select();
-		Vue.nextTick(() => {
-			this.scrollTo();
-		});
-		return this;
-	}
-	/**
 	 * Merge this texture onto the texture below
 	 * @param undo Create an undo entry
 	 */
@@ -550,6 +556,7 @@ export class TextureLayer extends TextureLayerItem {
 	 */
 	static selected: TextureLayer | null = null
 }
+TextureLayerItem.registerType('pixel_layer', TextureLayer);
 TextureLayer.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	'layer_blend_mode',
@@ -718,6 +725,7 @@ export class TextureLayerGroup extends TextureLayerItem {
 		dialog.show();
 	}
 }
+TextureLayerItem.registerType('layer_group', TextureLayerGroup);
 new Property(TextureLayerGroup, 'string', 'name', {default: 'layer'});
 new Property(TextureLayerGroup, 'boolean', 'folded');
 new Property(TextureLayerGroup, 'string', 'parent_uuid');
@@ -770,11 +778,12 @@ SharedActions.add('duplicate', {
 	condition: () => Prop.active_panel == 'layers' && !!Texture.selected?.selected_layer,
 	run() {
 		let texture = Texture.selected;
-		let original = texture.getActiveLayer();
+		let original = texture.selected_layer!;
 		let copy = original.getUndoCopy(true);
 		copy.name += '-copy';
 		Undo.initEdit({textures: [texture], bitmap: true});
-		let layer = new TextureLayer(copy, texture);
+		let constructor = TextureLayerItem.types[original.type] || TextureLayer;
+		let layer = new constructor(copy, texture);
 		layer.addForEditing();
 		texture.updateLayerChanges(true);
 		Undo.finishEdit('Duplicate layer');

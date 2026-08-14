@@ -351,10 +351,9 @@ export class Texture {
 				if (layer)  {
 					layer.extend(layer_template);
 					old_layers.remove(layer);
-				} else if (layer_template.type == 'layer_group') {
-					layer = new TextureLayerGroup(layer_template, this, layer_template.uuid);
 				} else {
-					layer = new TextureLayer(layer_template, this, layer_template.uuid);
+					let constructor = TextureLayerItem.types[layer_template.type] || TextureLayer;
+					layer = new constructor(layer_template, this, layer_template.uuid);
 				}
 				this.layers.push(layer);
 			})
