@@ -107,7 +107,8 @@ export class ReferenceImage {
 			addEventListeners(this.node, 'mousedown mousemove', (event: MouseEvent | PointerEvent) => {
 				// Enable pointer events for controls section
 				let from_bottom = this.video.clientHeight - event.offsetY;
-				this.video.style.pointerEvents = from_bottom < 62 ? 'auto' : '';
+				let controls_usable = from_bottom < 62 || document.fullscreenElement === this.video;
+				this.video.style.pointerEvents = controls_usable ? 'auto' : '';
 			})
 			this.video.append(Interface.createElement('source', {type: `video/mp4`}))
 			this.node.append(this.video);
@@ -1276,6 +1277,7 @@ export const ReferenceImageMode = {
 				form: {
 					view_mode: {
 						type: 'inline_select',
+						label: 'reference_image.view_mode',
 						options: {
 							flat_image: 'reference_image.view_mode.flat_image',
 							billboard: 'reference_image.view_mode.billboard',
