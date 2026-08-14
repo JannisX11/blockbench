@@ -1090,6 +1090,23 @@ new Property(Cube, 'boolean', 'shade', {
 		}
 	}
 });
+new Property(Cube, 'enum', 'shade_direction_override', {
+	default: '',
+	condition: {features: ['java_cube_shading_properties']},
+	inputs: {
+		element_panel: {
+			input: {label: 'cube.shade_direction_override', description: 'cube.shade_direction_override.desc', type: 'select', options: {
+				'': 'generic.none',
+				north: 'face.north',
+				south: 'face.south',
+				west: 'face.west',
+				east: 'face.east',
+				up: 'face.up',
+				down: 'face.down',
+			}},
+		}
+	}
+});
 new Property(Cube, 'number', 'light_emission', {
 	condition: {features: ['java_cube_shading_properties']},
 	inputs: {

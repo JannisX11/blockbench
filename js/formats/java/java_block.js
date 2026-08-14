@@ -49,6 +49,9 @@ var codec = new Codec('java_block', {
 			if (s.light_emission) {
 				element.light_emission = s.light_emission;
 			}
+			if (s.shade_direction_override) {
+				element.shade_direction_override = s.shade_direction_override;
+			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
 				element.rotation = new oneLiner({});
 				if (!Format.rotation_limit && (s.rotation.positiveItems() > 1 || s.rotation.some(v => Math.abs(v) > 45))) {
