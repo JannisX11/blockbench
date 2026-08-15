@@ -59,15 +59,15 @@ BARS.defineActions(() => {
 									<label>Website</label>
 								</a>
 								<a class="open-in-browser" href="https://bsky.app/profile/blockbench.net">
-									<i class="icon fab fa-bluesky" style="color: #208bfe;"></i>
+									<i class="icon fab fa-bluesky"></i>
 									<label>Bluesky</label>
 								</a>
 								<a class="open-in-browser" href="https://twitter.com/blockbench">
-									<i class="icon fab fa-twitter" style="color: #1ea6ff;"></i>
+									<i class="icon fab fa-twitter"></i>
 									<label>Twitter</label>
 								</a>
 								<a class="open-in-browser" href="http://discord.blockbench.net">
-									<i class="icon fab fa-discord" style="color: #5865F2;"></i>
+									<i class="icon fab fa-discord"></i>
 									<label>Discord</label>
 								</a>
 								<a class="open-in-browser" href="https://youtube.com/Blockbench3D">
@@ -75,7 +75,7 @@ BARS.defineActions(() => {
 									<label>YouTube</label>
 								</a>
 								<a class="open-in-browser" href="https://github.com/JannisX11/blockbench">
-									<i class="icon fab fa-github" style="color: #dddddd;"></i>
+									<i class="icon fab fa-github"></i>
 									<label>GitHub</label>
 								</a>
 								<a class="open-in-browser" href="https://blockbench.net/wiki">

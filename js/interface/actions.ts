@@ -217,6 +217,7 @@ export abstract class BarItem extends EventSystem {
 				}
 			}, {passive: true})
 			action.node.addEventListener('touchstart', () => {
+				if (tooltip.closest('.dialog_bar.form_bar')) return;
 				tooltip.style.display = 'none';
 				let show_tooltip = setTimeout(() => {
 					tooltip.style.display = 'block';
