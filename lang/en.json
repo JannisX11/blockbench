@@ -2733,6 +2733,7 @@
 
 	"codec.common.encoding": "Encoding",
 	"codec.common.armature": "Export Groups as Armature",
+	"codec.common.merge_armature_mesh": "Merge Armature Mesh",
 	"codec.common.export_animations": "Export Animations",
 	"codec.common.embed_textures": "Embed Textures",
 	"codec.common.format": "Format",

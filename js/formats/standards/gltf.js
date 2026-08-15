@@ -409,7 +409,7 @@ export function buildSkinnedMesh(armature, scale) {
 		//bone.position.multiplyScalar(1/scale);
 		bone.rotation.copy(armature_bone.mesh.rotation);
 		bone.name = armature_bone.name;
-		bone.uuid = armature_bone.mesh.uuid
+		bone.uuid = armature_bone.mesh.uuid;
 		if (bones_by_uuid[armature_bone.parent.uuid]) {
 			bones_by_uuid[armature_bone.parent.uuid].add(bone);
 		}
@@ -417,12 +417,13 @@ export function buildSkinnedMesh(armature, scale) {
 		if (armature_bone.parent instanceof Armature) root_bones.push(bone);
 		bones_by_uuid[armature_bone.uuid] = bone;
 	}
-	let skeleton = new THREE.Skeleton(bones);	
+	let skeleton = new THREE.Skeleton(bones);
 	skeleton.name = armature.name;
 
 	let group = new THREE.Group();
-	group.name = armature.name
+	group.name = armature.name;
 	root_bones.forEach(bone => group.add(bone));
+	group.updateMatrixWorld();
 
 	for (let mesh_obj of meshes) {
 		if (!mesh_obj.faces || mesh_obj.export == false) continue;
@@ -431,6 +432,8 @@ export function buildSkinnedMesh(armature, scale) {
 		let skinWeights = [];
 
 		let geometry = mesh_obj.mesh.geometry.clone();
+
+		geometry.applyMatrix4(mesh_obj.mesh.matrix);
 
 		// Set skin weights
 		for (let key in mesh_obj.faces) {
@@ -458,18 +461,12 @@ export function buildSkinnedMesh(armature, scale) {
 			}
 		}
 		
-		if (geometry) {			
+		if (geometry) {
 			geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
 			geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
-
 		}
 
 		let skinned_mesh = new THREE.SkinnedMesh(geometry, mesh_obj.mesh.material);
-		skinned_mesh.position.copy(mesh_obj.mesh.position);
-		skinned_mesh.rotation.copy(mesh_obj.mesh.rotation);
-		skinned_mesh.scale.copy(mesh_obj.mesh.scale);
-		skinned_mesh.matrix.copy(mesh_obj.mesh.matrix);
-		//let skinned_mesh = new THREE.Mesh(geometry, mesh_obj.mesh.material);
 		skinned_mesh.name = mesh_obj.name;
 		skinned_mesh.bind(skeleton);
 		group.add(skinned_mesh);
@@ -520,6 +517,7 @@ var codec = new Codec('gltf', {
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
 		armature: {type: 'checkbox', label: tl('codec.common.armature'), value: false},
+		merge_armature: {type: 'checkbox', label: tl('codec.common.merge_armature_mesh'), value: false},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options) {
@@ -548,7 +546,9 @@ var codec = new Codec('gltf', {
 		const remove_later = [];
 		const add_back_later = [];
 		for (let armature of Armature.all) {
-			let skinned_mesh = buildSkinnedMesh(armature, options.scale);
+			let skinned_mesh = options.merge_armature
+				? buildSkinnedMeshMerged(armature, options.scale)
+				: buildSkinnedMesh(armature, options.scale);
 			if (armature.parent == Outliner.ROOT) {
 				gl_scene.add(skinned_mesh);
 				remove_later.push([gl_scene, skinned_mesh]);
@@ -635,5 +635,6 @@ BARS.defineActions(function() {
 Object.assign(window, {
 	buildAnimationTracks,
 	buildSkinnedMesh,
+	buildSkinnedMeshMerged,
 	buildSkinnedMeshFromGroup
 })
