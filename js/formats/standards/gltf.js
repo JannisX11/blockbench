@@ -517,7 +517,7 @@ var codec = new Codec('gltf', {
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
 		armature: {type: 'checkbox', label: tl('codec.common.armature'), value: false},
-		merge_armature: {type: 'checkbox', label: tl('codec.common.merge_armature_mesh'), value: false},
+		merge_armature: {type: 'checkbox', label: tl('codec.common.merge_armature_mesh'), value: false, condition: () => Armature.hasAny()},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options) {
