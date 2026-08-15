@@ -1,8 +1,8 @@
 /// <reference types="./blockbench"/>
 
 declare class AnimationItem {
-	static all: _Animation[]
-	static selected: _Animation | null
+	static all: BBAnimation[]
+	static selected: BBAnimation | null
 	getUndoCopy?(options?: any, save?: any): AnimationOptions
 }
 
@@ -31,28 +31,16 @@ interface AnimationUndoCopy {
 	selected: any
 }
 
-/**
- *
- * ⚠️ This will not provide correct type information! ⚠️
- *
- * Use {@link Blockbench.Animation} instead for TypeScript support.
- *
- * Blockbench overwrites libdom's {@link Animation} type with its own `Animation` Class, but TypeScript doesn't include a way to overwrite UMD global types.
- * To get around this, we changed the name of this class type declaration to `_Animation` and use that in the type definitions.
- */
-interface Animation {}
+
 
 /**
- * ⚠️ THIS IS TYPE ONLY ⚠️
+ * Animation class
  *
- * **It does not exist** in Blockbench at Run-time. Use {@link Blockbench.Animation} instead.
- *
- * Blockbench overwrites libdom's {@link Animation} type with its own `Animation` Class, but TypeScript doesn't include a way to overwrite UMD global types.
- * To get around this, we changed the name of this class type declaration to `_Animation` and use that in the type definitions.
- *
- * @deprecated
+ * `BBAnimation` is an alias for `Animation`. Blockbench's Animation class conflicts with libdom's {@link Animation} type with its own `Animation` Class, but TypeScript doesn't include a way to overwrite UMD global types.
+ * 
+ * You can use `BBAnimation` to get around the Typescript conflict, or use `Animation`.
  */
-declare class _Animation extends AnimationItem {
+declare class BBAnimation extends AnimationItem {
 	constructor(data?: AnimationOptions)
 	extend(data?: AnimationOptions): this
 	getUndoCopy(options?: {}, save?: any): AnimationUndoCopy
@@ -64,7 +52,7 @@ declare class _Animation extends AnimationItem {
 	save(): this | undefined
 	select(): this | undefined
 	setLength(length?: number): void
-	createUniqueName(references?: _Animation[]): any
+	createUniqueName(references?: BBAnimation[]): any
 	setScopeFromAnimators(): number | undefined
 	rename(): this
 	togglePlayingState(state: any): any
@@ -119,8 +107,6 @@ declare class _Animation extends AnimationItem {
 	menu: Menu
 	file_menu: Menu
 }
-declare type BBAnimation = _Animation
-declare const BBAnimation = _Animation
 interface MolangAutoCompletionItem {
 	text: string
 	label: string | undefined
@@ -134,8 +120,8 @@ declare namespace Animator {
 	const motion_trail: THREE.Object3D
 	const motion_trail_lock: boolean
 	const particle_effects: any
-	const animations: _Animation[]
-	const selected: _Animation | undefined
+	const animations: BBAnimation[]
+	const selected: BBAnimation | undefined
 	function join(): void
 	function leave(): void
 	function showDefaultPose(no_matrix_update?: boolean): void
@@ -185,17 +171,17 @@ interface Channel {
 	condition?: ConditionResolvable<GeneralAnimator>
 }
 declare class GeneralAnimator {
-	constructor(uuid: string | null, animation: _Animation, name: string)
+	constructor(uuid: string | null, animation: BBAnimation, name: string)
 	uuid: string
-	keyframes: _Keyframe[]
-	animation: _Animation
+	keyframes: BBKeyframe[]
+	animation: BBAnimation
 	expanded: boolean
 	selected: boolean
 	select(): this
 	addToTimeline(): this
-	addKeyframe(data: KeyframeOptions, uuid?: string): _Keyframe
-	createKeyframe(): _Keyframe
-	getOrMakeKeyframe(): { before: _Keyframe; result: _Keyframe }
+	addKeyframe(data: KeyframeOptions, uuid?: string): BBKeyframe
+	createKeyframe(): BBKeyframe
+	getOrMakeKeyframe(): { before: BBKeyframe; result: BBKeyframe }
 	toggleMuted(channel: string): this
 	scrollTo(): this
 
@@ -212,9 +198,9 @@ declare class GeneralAnimator {
 declare class BoneAnimator extends GeneralAnimator {
 	name: string
 	uuid: string
-	rotations: _Keyframe[]
-	position: _Keyframe[]
-	scale: _Keyframe[]
+	rotations: BBKeyframe[]
+	position: BBKeyframe[]
+	scale: BBKeyframe[]
 	getGroup(): Group
 	fillValues(): void
 	pushKeyframe(): void
@@ -228,22 +214,22 @@ declare class BoneAnimator extends GeneralAnimator {
 declare class NullObjectAnimator extends GeneralAnimator {
 	name: string
 	uuid: string
-	rotations: _Keyframe[]
-	position: _Keyframe[]
-	scale: _Keyframe[]
+	rotations: BBKeyframe[]
+	position: BBKeyframe[]
+	scale: BBKeyframe[]
 	getElement(): NullObject
 	doRender(): void
 	displayIK(): void
 	displayFrame(): void
 }
 declare class EffectAnimator extends GeneralAnimator {
-	constructor(animation: _Animation)
+	constructor(animation: BBAnimation)
 	name: string
 	uuid: string
-	rotations: _Keyframe[]
-	position: _Keyframe[]
-	scale: _Keyframe[]
-	pushKeyframe(keyframe: _Keyframe): this
+	rotations: BBKeyframe[]
+	position: BBKeyframe[]
+	scale: BBKeyframe[]
+	pushKeyframe(keyframe: BBKeyframe): this
 	displayFrame(in_loop?: boolean): void
 	startPreviousSounds(): void
 }

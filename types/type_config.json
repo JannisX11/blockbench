@@ -25,6 +25,7 @@
 		"texturing/painter",
 		"texturing/texture_groups",
 		"texturing/textures",
+		"find_replace",
 		"undo",
 		"web",
 		"copy_paste",

@@ -31,9 +31,9 @@ interface UndoAspects {
 	layers?: TextureLayerItem[]
 	settings?: {}
 	uv_mode?: boolean
-	animations?: _Animation[]
+	animations?: BBAnimation[]
 	animation_controllers?: AnimationController[]
-	keyframes?: _Keyframe[]
+	keyframes?: BBKeyframe[]
 	display_slots?: string[]
 	exploded_view?: boolean
 	mirror_modeling?: false
@@ -143,7 +143,7 @@ declare class UndoSystem {
 	 * Add keyframes to the current edit that were indirectly removed by moving other keyframes to their position
 	 * @param keyframes
 	 */
-	addKeyframeCasualties(keyframes: _Keyframe[]): void
+	addKeyframeCasualties(keyframes: BBKeyframe[]): void
 	/**
 	 * Undoes the latest edit
 	 */

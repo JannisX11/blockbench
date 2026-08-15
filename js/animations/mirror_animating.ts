@@ -5,7 +5,7 @@ import { Animation } from "./animation";
 import { Keyframe } from "./keyframe";
 import { BoneAnimator } from "./timeline_animators";
 
-type TKeyframe = _Keyframe;
+type TKeyframe = BBKeyframe;
 interface FlipCopyKeyframesOptions {
 	mirror_animating?: boolean
 	keyframes: TKeyframe[]
@@ -155,7 +155,7 @@ Blockbench.on('finish_edit', (args) => {
 		show_in_timeline: false,
 	});
 	if (removed_keyframes.length) {
-		Undo.addKeyframeCasualties(removed_keyframes as _Keyframe[]);
+		Undo.addKeyframeCasualties(removed_keyframes as BBKeyframe[]);
 	}
 	let original_keyframes = args.aspects.keyframes.filter(kf => !removed_keyframes.includes(kf));
 	args.aspects.keyframes = [
@@ -253,7 +253,7 @@ BARS.defineActions(function() {
 						offset
 					});
 					if (removed_keyframes.length) {
-						Undo.addKeyframeCasualties(removed_keyframes as _Keyframe[]);
+						Undo.addKeyframeCasualties(removed_keyframes as BBKeyframe[]);
 					}
 					new_keyframes.replace(added_keyframes);
 

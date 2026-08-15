@@ -1,6 +1,15 @@
+/**
+ * A fabrik IK solver and utility for IK chains
+ * @module
+ */
+
 const quat1 = new THREE.Quaternion();
 
-export function fabrikIter(bones, target, pole) {
+/**
+ * Solves the given chain of bones using fabrik solver to reach the target location, with an optional pole vector.
+ * Modifies the vectors in the `bones` parameter with the resulting positions.
+ */
+export function fabrikIter(bones: THREE.Vector3[], target: THREE.Vector3, pole?: THREE.Vector3): void {
     let n = bones.length;
 
     let base_pos = bones[0].clone();

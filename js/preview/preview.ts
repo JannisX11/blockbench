@@ -40,7 +40,7 @@ export type RaycastResult = {
 	face?: string
 	vertex?: any
 	vertices?: [string, string]
-	keyframe?: _Keyframe
+	keyframe?: BBKeyframe
 	vertex_index?: number
 	element?: OutlinerElement
 }

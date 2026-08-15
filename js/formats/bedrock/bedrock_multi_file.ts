@@ -125,7 +125,7 @@ type AddedContent = {
 	elements: OutlinerElement[]
 	groups: Group[]
 	nodes: OutlinerNode[]
-	animations: _Animation[]
+	animations: BBAnimation[]
 	textures: Texture[]
 	collections: Collection[]
 }

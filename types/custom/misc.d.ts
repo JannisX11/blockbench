@@ -23,7 +23,7 @@ declare const VuePrismEditor: Vue.Component
 interface BlockbenchEventMap {
 	display_animation_frame: {in_loop: true}
 	display_default_pose: {reduced_updates: boolean}
-	interpolate_keyframes: {animator: BoneAnimator, t: number, time: number, use_quaternions: boolean, keyframe_before: _Keyframe, keyframe_after: _Keyframe}
+	interpolate_keyframes: {animator: BoneAnimator, t: number, time: number, use_quaternions: boolean, keyframe_before: BBKeyframe, keyframe_after: BBKeyframe}
 	before_closing: {}
 	create_session: {peer: Peer, token: string}
 	join_session: {conn: DataConnection}
@@ -109,11 +109,11 @@ interface BlockbenchEventMap {
 	update_recent_project_data: {data: RecentProjectData}
 	update_recent_project_thumbnail: {data: RecentProjectData, thumbnail: string}
 	load_from_recent_project_data: {data: RecentProjectData}
-	edit_animation_properties: {animation: _Animation}
+	edit_animation_properties: {animation: BBAnimation}
 	select_preview_scene: {scene: PreviewScene}
 	unselect_preview_scene: {scene: PreviewScene}
-	select_animation: {animation: _Animation}
-	remove_animation: {animations: _Animation[]}
+	select_animation: {animation: BBAnimation}
+	remove_animation: {animations: BBAnimation[]}
 	compile_bedrock_animation_controller_state: {state: AnimationControllerState, json: any}
 	select_animation_controller_state: {state: AnimationControllerState}
 	add_animation_controller_animation: {state: AnimationControllerState}

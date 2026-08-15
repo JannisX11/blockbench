@@ -6,11 +6,11 @@ declare global {
 }
 
 declare interface MolangExpression {
-	animation: _Animation
+	animation: BBAnimation
 	animator: BoneAnimator
 	channel: string
 	key: string
-	kf: _Keyframe
+	kf: BBKeyframe
 	type: string
 	value: string
 }
