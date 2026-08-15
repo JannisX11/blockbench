@@ -9,6 +9,7 @@ import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
 import { AutoBackup } from "./auto_backup";
 import { initReferenceImages } from "./preview/reference_images";
 import { initCanvas } from "./preview/canvas";
+import { initializeHeadlessCLI } from "./headless_cli";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
@@ -69,8 +70,10 @@ console.log('%cBlockbench ' + Blockbench.version + (isApp
 	: (' Web ('+capitalizeFirstLetter(Blockbench.browser) + (Blockbench.isPWA ? ', PWA)' : ')'))),
 	'border: 2px solid #3e90ff; padding: 4px 8px; font-size: 1.2em;'
 )
-Blockbench.startup_count = parseInt(localStorage.getItem('startups')||0) + 1;
-localStorage.setItem('startups', Blockbench.startup_count);
+Blockbench.startup_count = Blockbench.isHeadless
+	? 1
+	: parseInt(localStorage.getItem('startups')||0) + 1;
+if (!Blockbench.isHeadless) localStorage.setItem('startups', Blockbench.startup_count);
 
 document.getElementById('blackout').addEventListener('click', event => {
 	if (typeof open_interface.cancel == 'function' && open_interface.cancel_on_click_outside !== false) {
@@ -80,7 +83,7 @@ document.getElementById('blackout').addEventListener('click', event => {
 	}
 })
 
-if (isApp) {
+if (isApp && !Blockbench.isHeadless) {
 	updateRecentProjects()
 }
 
@@ -101,7 +104,7 @@ if (!Blockbench.isWeb || !Blockbench.isPWA) {
 	$.ajaxSetup({ cache: false });
 }
 
-if (Blockbench.startup_count == 1) {
+if (!Blockbench.isHeadless && Blockbench.startup_count == 1) {
 	try {
 		jQuery.ajax({
 			url: 'https://blckbn.ch/api/event/new_installation',
@@ -112,7 +115,7 @@ if (Blockbench.startup_count == 1) {
 		console.error(err);
 	}
 }
-if (Blockbench.startup_count == 3) {
+if (!Blockbench.isHeadless && Blockbench.startup_count == 3) {
 	try {
 		jQuery.ajax({
 			url: 'https://blckbn.ch/api/event/recurring_user',
@@ -133,7 +136,7 @@ Blockbench.on('before_closing', (event) => {
 updateProjectResolution()
 
 setupInterface()
-setupDragHandlers()
+if (!Blockbench.isHeadless) setupDragHandlers()
 
 onVueSetup.funcs.forEach((func) => {
 	if (typeof func === 'function') {
@@ -145,15 +148,15 @@ if (settings.streamer_mode.value) {
 	updateStreamerModeNotification();
 }
 
-AutoBackup.initialize();
+if (!Blockbench.isHeadless) AutoBackup.initialize();
 
 if (isApp) {
-	initializeDesktopApp();
+	if (!Blockbench.isHeadless) initializeDesktopApp();
 } else {
 	initializeWebApp();
 }
 
-localStorage.setItem('last_version', Blockbench.version);
+if (!Blockbench.isHeadless) localStorage.setItem('last_version', Blockbench.version);
 
 (function() {
 	// Promise.any workaround
@@ -161,17 +164,26 @@ localStorage.setItem('last_version', Blockbench.version);
 	function proceed() {
 		if (proceeded) return;
 
-		Settings.saveLocalStorages();
+		if (!Blockbench.isHeadless) Settings.saveLocalStorages();
 		if (isApp) {
-			loadOpenWithBlockbenchFile();
-			ipcRenderer.send('app-loaded');
+			if (Blockbench.isHeadless) {
+				initializeHeadlessCLI();
+			} else {
+				loadOpenWithBlockbenchFile();
+			}
+			// Defer IPC until main.ts has evaluated the final global exports.
+			setTimeout(() => ipcRenderer.send('app-loaded'), 0);
 		} else {
 			loadInfoFromURL();
 		}
 		proceeded = true;
 	}
-	loadInstalledPlugins().then(proceed);
-	setTimeout(proceed, 1200);
+	if (Blockbench.isHeadless) {
+		proceed();
+	} else {
+		loadInstalledPlugins().then(proceed);
+		setTimeout(proceed, 1200);
+	}
 })()
 
 setStartScreen(true);
