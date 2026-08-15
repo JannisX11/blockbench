@@ -463,13 +463,25 @@ export class Plugin {
 		}
 
 		// Download files
-		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void) {
-			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void, on_error?: (error: Error) => void) {
+			let target_path = PathModule.join(Plugins.path, target_filename);
 			// @ts-ignore
 			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
+				// Piping a non-2xx response writes the error body to disk as the
+				// plugin, which then looks installed but cannot load. fetchAbout()
+				// and fetchChangelog() guard on the status for the same reason.
+				// The stream is only opened once the response is known to be good,
+				// so a failed download leaves nothing behind.
+				if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+					response.resume();
+					on_error?.(new Error(`Could not download ${origin_filename}: HTTP ${response.statusCode}`));
+					return;
+				}
+				let file = fs.createWriteStream(target_path);
+				file.on('error', error => on_error?.(error));
 				response.pipe(file);
 				if (callback) response.on('end', callback);
-			});
+			}).on('error', error => on_error?.(error));
 		}
 		return await new Promise<void>(async (resolve, reject) => {
 			// New system
@@ -480,6 +492,10 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
+				}, (error) => {
+					if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
+					console.error(error);
+					reject(error);
 				});
 				if (this.hasImageIcon()) {
 					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
@@ -497,6 +513,10 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
+				}, (error) => {
+					if (first) Blockbench.showQuickMessage(tl('message.installed_plugin_fail', [this.title]));
+					console.error(error);
+					reject(error);
 				});
 			}
 		});
