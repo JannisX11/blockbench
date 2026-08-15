@@ -396,18 +396,19 @@ export class Preview {
 			error_element.innerHTML = `Error creating WebGL context. Try to update your ${isApp ? 'graphics drivers' : 'web browser'}.`
 
 			if (isApp) {
-				// @ts-expect-error
-				window.restartWithoutHardwareAcceleration = function() {
+				if (settings.hardware_acceleration.value == true) {
+					// @ts-expect-error
+					window.restartWithoutHardwareAcceleration = function() {
 
-					ipcRenderer.send('edit-launch-setting', {key: 'hardware_acceleration', value: false});
-					settings.hardware_acceleration.value = false;
-					Settings.saveLocalStorages();
+						ipcRenderer.send('edit-launch-setting', {key: 'hardware_acceleration', value: false});
+						settings.hardware_acceleration.set(false);
 
-					electron.app.relaunch()
-					electron.app.quit()
+						electron.app.relaunch();
+						electron.app.quit();
+					}
+					error_element.innerHTML = error_element.innerHTML +
+						'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>';
 				}
-				error_element.innerHTML = error_element.innerHTML +
-					'\nAlternatively, try to <a href onclick="restartWithoutHardwareAcceleration()">Restart without Hardware Acceleration.</a>'
 				
 				var {BrowserWindow} = electron;
 				new BrowserWindow({

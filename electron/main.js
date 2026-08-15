@@ -53,6 +53,9 @@ const LaunchSettings = {
 
 if (LaunchSettings.get('hardware_acceleration') == false) {
 	app.disableHardwareAcceleration();
+	if (process.platform != 'win32') {
+		app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+	}
 }
 
 function createWindow(second_instance, options = {}) {
