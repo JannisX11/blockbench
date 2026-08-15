@@ -4104,6 +4104,24 @@ skin_presets.creeper = {
 		]
 	}`
 };
+skin_presets.cushion = {
+	display_name: 'Cushion',
+	model: `{
+		"name": "cushion",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"external_textures": ["entity/cushion/white_cushion.png"],
+		"bones": [
+			{
+				"name": "cushion",
+				"pivot": [23, 0, -7],
+				"cubes": [
+					{"origin": [-8, -0.125, -8], "size": [16, 4, 16], "inflate": -0.01, "uv": [0, 0]}
+				]
+			}
+		]
+	}`
+};
 skin_presets.dolphin = {
 	display_name: 'Dolphin',
 	pose: true,
