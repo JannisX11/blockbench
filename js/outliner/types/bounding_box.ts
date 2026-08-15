@@ -467,8 +467,6 @@ new NodePreviewController(BoundingBox, {
 		this.dispatchEvent('update_visibility', {element});
 	},
 	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
-		if ((BarItems.selection_mode as BarSelect).value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
-
 		let vector = Reusable.vec2;
 		var adjustedFrom = element.from;
 		var adjustedTo = element.to;

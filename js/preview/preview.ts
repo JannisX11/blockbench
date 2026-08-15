@@ -1800,8 +1800,16 @@ export class Preview {
 				isSelected = true
 
 			} else if (element.visibility != false && element.preview_controller?.viewportRectangleOverlap) {
-				isSelected = this.selection.click_target?.element == element ||
-					element.preview_controller.viewportRectangleOverlap(element, {projectPoint, extend_selection, rect_start, rect_end, preview: this});
+				if (this.selection.click_target?.element == element) {
+					isSelected = true;
+				} else if (BarItems.selection_mode.value != 'object' && Format.meshes && (element instanceof Mesh == false) && this.selection.old_selected.some(el => el instanceof Mesh)) {
+					isSelected = false;
+				} else {
+					isSelected = element.preview_controller.viewportRectangleOverlap(
+						element,
+						{projectPoint, extend_selection, rect_start, rect_end, preview: this}
+					);
+				}
 			}
 			if (isSelected) {
 				element.markAsSelected();

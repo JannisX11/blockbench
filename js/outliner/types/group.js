@@ -361,7 +361,8 @@ export class Group extends OutlinerNode {
 		return this;
 	}
 	duplicate() {
-		var copy = this.getChildlessCopy(false)
+		var copy = this.getChildlessCopy(false);
+		Clipbench.duplicate_map.set(this, copy);
 		delete copy.parent;
 		if (this.getTypeBehavior('unique_name')) copy.temp_data.old_name = this.name;
 		Property.resetUniqueValues(Group, copy);

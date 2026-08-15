@@ -19,6 +19,7 @@ export const Clipbench = {
 		mesh_selection: 'fa-gem',
 		outliner: 'fas.fa-cube',
 	},
+	duplicate_map: new Map(),
 	getCopyType(mode, check) {
 		// mode: 1 = copy, 2 = paste
 		let p = Prop.active_panel;

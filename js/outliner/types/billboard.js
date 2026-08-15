@@ -707,8 +707,6 @@ new NodePreviewController(Billboard, {
 		this.dispatchEvent('update_painting_grid', {element: cube});
 	},
 	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
-		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
-
 		let {mesh} = element;
 		let vector = Reusable.vec2;
 

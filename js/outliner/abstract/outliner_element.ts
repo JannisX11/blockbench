@@ -96,6 +96,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 	}
 	duplicate() {
 		let copy = new (this.constructor as ElementTypeConstructor)(this);
+		Clipbench.duplicate_map.set(this, copy);
 		//Numeration
 		let number: number | undefined;
 		let matches = copy.name.match(/[0-9]+$/);

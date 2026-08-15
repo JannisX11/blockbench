@@ -836,9 +836,24 @@ SharedActions.add('duplicate', {
 			}
 			copy.markAsSelected();
 		})
+		// Remap references
+		let map = Clipbench.duplicate_map;
+		map.forEach((copy) => {
+			if (copy instanceof NullObject) {
+				for (let property of ['ik_source', 'ik_target', 'ik_pole']) {
+					let uuid = copy[property];
+					if (!uuid) continue;
+					let previous = list.find(obj => obj.uuid == uuid);
+					if (previous) {
+						copy[property] = map.get(previous)?.uuid ?? '';
+					}
+				}
+			}
+		});
 		BarItems.move_tool.select();
 		updateSelection();
-		Undo.finishEdit('Duplicate elements')
+		Undo.finishEdit('Duplicate elements');
+		Clipbench.duplicate_map = new Map();
 	}
 })
 SharedActions.add('select_all', {
