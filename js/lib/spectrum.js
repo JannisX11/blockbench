@@ -1116,8 +1116,8 @@
 				}
 
 				var t0 = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
-				var pageX = t0 && t0.pageX || e.pageX;
-				var pageY = t0 && t0.pageY || e.pageY;
+				var pageX = t0 && t0.pageX || e.pageX || 0;
+				var pageY = t0 && t0.pageY || e.pageY || 0;
 
 				var dragX = Math.max(0, Math.min(pageX - offset.left, maxWidth));
 				var dragY = Math.max(0, Math.min(pageY - offset.top, maxHeight));
