@@ -367,7 +367,7 @@ export class BoneAnimator extends GeneralAnimator {
 	}
 	doRender() {
 		this.getGroup()
-		if (this.group && this.group.children && this.group.mesh) {
+		if (this.group && this.group.children) {
 			let mesh = this.group.mesh
 			return (mesh && mesh.fix_rotation)
 		}
@@ -450,13 +450,14 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 
 		for (let keyframe of this[channel]) {
-			if (keyframe.time < time) {
-				if (!before || keyframe.time > before_time) {
+			let kf_time = keyframe.time;
+			if (kf_time < time) {
+				if (!before || kf_time > before_time) {
 					before = keyframe
 					before_time = before.time;
 				}
-			} else  {
-				if (!after || keyframe.time < after_time) {
+			} else {
+				if (!after || kf_time < after_time) {
 					after = keyframe
 					after_time = after.time;
 				}
