@@ -1,6 +1,7 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
+	"desktopName": "net.blockbench.blockbench",
 	"version": "5.2.0-beta.1",
 	"license": "GPL-3.0-or-later",
 	"author": {
@@ -24,7 +25,6 @@
 		"afterSign": "scripts/notarize.js",
 		"appId": "blockbench",
 		"productName": "Blockbench",
-		"desktopName": "net.blockbench.blockbench",
 		"artifactName": "${productName}_${version}.${ext}",
 		"directories": {
 			"output": "dist-electron"
