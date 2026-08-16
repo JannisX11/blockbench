@@ -19,6 +19,7 @@
     "skipLibCheck": true,
     "allowJs": true,
     "allowUmdGlobalAccess": true,
+    "allowImportingTsExtensions": true,
     "rootDir": "js",
 
     "declaration": true,

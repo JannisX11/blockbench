@@ -115,7 +115,7 @@
 			],
 			"syncDesktopName": true,
 			"category": "Graphics;3DGraphics",
-			"icon": "build/icon.ico"
+			"icon": "build/icon.png"
 		},
 		"fileAssociations": [
 			{
@@ -140,7 +140,7 @@
 		"build-electron": "node ./build.js --target=electron",
 		"build-test-portable": "npm run build-electron && electron-builder --windows portable --publish=never",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"publish-mac": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --publish=always",
+		"publish-mac": "npm uninstall electron-color-picker && npm run build-electron && caffeinate -i electron-builder --publish=always",
 		"publish-linux": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --linux --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish-web": "npm run build-web && npm run pwa && npm run generate-docs",
