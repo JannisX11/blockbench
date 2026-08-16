@@ -20,17 +20,16 @@ interface AnimationOptions {
 }
 
 interface AnimationUndoCopy {
-	uuid: any
-	name: any
+	uuid: string
+	name: string
 	loop: any
-	override: any
-	anim_time_update: any
-	blend_weight: any
-	length: any
-	snapping: any
-	selected: any
+	override: boolean
+	anim_time_update: string
+	blend_weight: string
+	length: number
+	snapping: number
+	selected: boolean
 }
-
 
 
 /**
