@@ -115,7 +115,7 @@
 			],
 			"syncDesktopName": true,
 			"category": "Graphics;3DGraphics",
-			"icon": "build/icon.icns"
+			"icon": "build/icon.ico"
 		},
 		"fileAssociations": [
 			{
