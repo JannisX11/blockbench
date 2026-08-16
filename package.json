@@ -7,6 +7,7 @@
 		"name": "JannisX11",
 		"email": "info@blockbench.net"
 	},
+	"desktopName": "blockbench",
 	"homepage": "https://blockbench.net",
 	"repository": {
 		"type": "git",
@@ -112,6 +113,7 @@
 				"rpm",
 				"appImage"
 			],
+			"syncDesktopName": true,
 			"category": "Graphics;3DGraphics",
 			"icon": "build/icon.icns"
 		},
@@ -164,7 +166,7 @@
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
 		"electron": "^43.4.0",
-		"electron-builder": "^26.0.18",
+		"electron-builder": "^26.15.3",
 		"esbuild": "^0.28.1",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
