@@ -121,6 +121,7 @@ declare namespace Animator {
 	const particle_effects: any
 	const animations: BBAnimation[]
 	const selected: BBAnimation | undefined
+	const _last_values: Record<string, ArrayVector3>
 	function join(): void
 	function leave(): void
 	function showDefaultPose(no_matrix_update?: boolean): void

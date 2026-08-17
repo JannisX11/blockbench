@@ -322,6 +322,7 @@ export const Animator = {
 		Group.all.concat(Outliner.elements).forEach(node => {
 			if (!node.constructor.animator) return;
 			Animator.resetLastValues();
+			Blockbench.dispatchEvent('pre_stack_node_animations', {node, animations, in_loop, controller_blend_values});
 			animations.forEach((animation, anim_i) => {
 				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
 					return;

@@ -427,9 +427,9 @@ BARS.defineActions(function() {
 	})
 })
 
-const DEFAULT_POSE_FIRST = {
+const DEFAULT_POSE_FIRST: DefaultPoseConfig = {
 	rightarm: {
-		rotation: [-95, 45, 115].map(Math.degToRad),
+		rotation: [-95, 45, 115],
 		position: [-13.5, -10, 12]
 	},
 	rightitem: {
@@ -444,34 +444,45 @@ const DEFAULT_POSE_FIRST = {
 	rightleg: {hide_cubes: true},
 	leftleg: {hide_cubes: true},
 }
-const DEFAULT_POSE_THIRD = {
+const DEFAULT_POSE_THIRD: DefaultPoseConfig = {
 	rightarm: {
-		rotation: [18, 0, 0].map(Math.degToRad),
+		rotation: [18, 0, 0],
 	}
 }
-
-function applyDefaultPose(data) {
-	for (let bone_name in data) {
-		let bone_data = data[bone_name];
-		let bone = Group.all.find(g => g.name.toLowerCase() == bone_name);
-		if (!bone) continue;
-		if (bone_data.rotation) bone.mesh.rotation.fromArray(bone_data.rotation);
-		if (bone_data.position) bone.mesh.position.add(Reusable.vec1.fromArray(bone_data.position));
-		if (bone_data.scale) bone.mesh.scale.fromArray(bone_data.scale);
-		if (bone_data.hide_cubes) {
-			for (let child of bone.mesh.children) {
-				if (child.type == 'cube') child.visible = false;
-			}
+type DefaultPoseConfig = Record<string, {
+	rotation?: ArrayVector3,
+	position?: ArrayVector3,
+	scale?: ArrayVector3,
+	hide_cubes?: true
+}>
+function applyDefaultPose(data: DefaultPoseConfig, node: OutlinerNode) {
+	let bone_data = data[node.name.toLowerCase()];
+	if (!bone_data) return;
+	if (bone_data.rotation) {
+		node.mesh.rotation.fromArray(bone_data.rotation.map(Math.degToRad));
+		Animator._last_values.rotation = bone_data.rotation.slice() as ArrayVector3;
+	}
+	if (bone_data.position) {
+		node.mesh.position.add(Reusable.vec1.fromArray(bone_data.position));
+		Animator._last_values.position = bone_data.position.slice() as ArrayVector3;
+	}
+	if (bone_data.scale) {
+		node.mesh.scale.fromArray(bone_data.scale);
+		Animator._last_values.scale = bone_data.scale.slice() as ArrayVector3;
+	}
+	if (bone_data.hide_cubes) {
+		for (let child of node.mesh.children) {
+			if (child.type == 'cube') child.visible = false;
 		}
 	}
 }
-Blockbench.on('display_default_pose', () => {
+Blockbench.on('pre_stack_node_animations', ({node}) => {
 	if (Project.multi_file_ruleset == attachable_ruleset.id) {
 		if (Project.bedrock_animation_mode == 'attachable_first') {
-			applyDefaultPose(DEFAULT_POSE_FIRST);
+			applyDefaultPose(DEFAULT_POSE_FIRST, node);
 		} else {
 			let has_item = Animator.MolangParser.parse('query.is_item_equipped(0)');
-			if (has_item) applyDefaultPose(DEFAULT_POSE_THIRD);
+			if (has_item) applyDefaultPose(DEFAULT_POSE_THIRD, node);
 		}
 	}
 })
