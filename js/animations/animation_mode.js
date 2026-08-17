@@ -71,6 +71,7 @@ export const Animator = {
 		if (Group.first_selected) {
 			Group.first_selected.select();
 		}
+		Vue.nextTick(Timeline.vue.updateScroll);
 		BarItems.slider_animation_length.update();
 		if (Panels.transform) {
 			Toolbars.element_origin.toPlace('bone_origin')

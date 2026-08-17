@@ -608,10 +608,6 @@ export const Timeline = {
 	updateSize() {
 		Timeline.vue.updateTimecodes();
 	},
-	updateScroll(e) {
-		$('.channel_head').css('left', scroll_amount+'px')
-		$('#timeline_time').css('left', -scroll_amount+'px')
-	},
 	unselect(e) {
 		if (!Animation.selected) return;
 		Timeline.keyframes.forEach((kf) => {

@@ -890,18 +890,23 @@ export class Panel extends EventSystem {
 
 		this.container.classList.remove('floating');
 
+		let safeAppend = (target: HTMLElement, element: HTMLElement) => {
+			if ([...target.children].includes(element)) return;
+			target.append(element);
+		}
+
 		if (slot == 'left_bar' || slot == 'right_bar') {
 
-			document.getElementById(slot)!.append(this.container);
+			safeAppend(document.getElementById(slot)!, this.container);
 
 		} else if (slot == 'top') {
-			document.getElementById('top_slot')!.append(this.container);
+			safeAppend(document.getElementById('top_slot')!, this.container);
 
 		} else if (slot == 'bottom') {
-			document.getElementById('bottom_slot')!.append(this.container);
+			safeAppend(document.getElementById('bottom_slot')!, this.container);
 
 		} else if (slot == 'float' && !Blockbench.isMobile) {
-			Interface.work_screen.append(this.container);
+			safeAppend(Interface.work_screen, this.container);
 			this.container.classList.add('floating');
 			this.dispatchEvent('change_zindex', {zindex: 14});
 			if (!this.resize_handles) {
