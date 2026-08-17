@@ -24,7 +24,7 @@ export class Locator extends OutlinerElement {
 		return this;
 	}
 	init() {
-		if (this.parent instanceof Group == false) {
+		if (this.parent == Outliner.ROOT && Group.first_selected) {
 			this.addTo(Group.first_selected)
 		}
 		super.init();
@@ -46,11 +46,14 @@ export class Locator extends OutlinerElement {
 	getWorldCenter() {
 		var pos = new THREE.Vector3();
 		var q = Reusable.quat1.set(0, 0, 0, 1);
-		if (this.parent instanceof Group) {
-			THREE.fastWorldPosition(this.parent.mesh, pos);
-			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
-			pos.sub(offset2);
+		let parent_object = this.parent.scene_object;
+		if (parent_object) {
+			THREE.fastWorldPosition(parent_object, pos);
+			parent_object.getWorldQuaternion(q);
+			if (this.parent instanceof Group) {
+				let offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
+				pos.sub(offset2);
+			}
 		}
 		var offset = Reusable.vec3.fromArray(this.position).applyQuaternion(q);
 		pos.add(offset);

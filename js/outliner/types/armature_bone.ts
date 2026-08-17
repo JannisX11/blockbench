@@ -290,7 +290,7 @@ export class ArmatureBone extends OutlinerElement {
 		movable: true,
 		rotatable: true,
 		resizable: true,
-		child_types: ['armature_bone'],
+		child_types: ['armature_bone', 'locator', 'null_object'],
 		parent_types: ['armature_bone', 'armature'],
 		select_children: 'self_first',
 		hide_in_screenshot: true,
