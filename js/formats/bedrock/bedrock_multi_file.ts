@@ -230,12 +230,17 @@ BARS.defineActions(function() {
 			new Collection({name: 'Player', scope: 1}).add();
 
 			if (!Project.variable_placeholders.includes('.is_item_equipped')) {
-				let text = `query.is_item_equipped = toggle('Holding Item')`;
-				if (form_config.import_as_attachable) {
+				let name = 'Holding Item';
+				let text = `query.is_item_equipped = toggle('${name}')`;
+				if (form_config.import_as_attachable && !Project.variable_placeholders.includes('.equipped_item_is_attachable')) {
 					text += `\nquery.equipped_item_is_attachable = true`;
 				}
 				Project.variable_placeholders = text + '\n' + Project.variable_placeholders;
 				Panels.variable_placeholders.inside_vue.text = Project.variable_placeholders;
+				setTimeout(() => {
+					let button = Panels.variable_placeholders.inside_vue.buttons.find(b => b.id == name);
+					if (button) Vue.set(button, 'value', 1);
+				}, 100);
 			}
 
 			if (form_config.import_as_attachable) {
