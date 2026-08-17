@@ -642,6 +642,7 @@ export class Preview {
 
 		if (intersect_object.isElement) {
 			let element, face;
+			let rejected_intersects = [];
 			while (true) {
 				element = OutlinerNode.uuids[intersect_object.name];
 				if (element.getTypeBehavior('cube_faces')) {
@@ -685,7 +686,8 @@ export class Preview {
 						let ctx = Painter.getCanvas(texture).getContext('2d');
 						let color = Painter.getPixelColor(ctx, x, y);
 						if (color.getAlpha() < 0.004) {
-							intersects.shift();
+							let rejected = intersects.shift();
+							rejected_intersects.push(rejected);
 							while (intersects.length && !intersects[0].object.isElement) {
 								intersects.shift();
 							}
@@ -695,6 +697,9 @@ export class Preview {
 							continue;
 						}
 					}
+					Painter.current.rejected_intersects = rejected_intersects;
+				} else {
+					delete Painter.current.rejected_intersects;
 				}
 				break;
 			}

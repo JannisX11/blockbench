@@ -1956,6 +1956,8 @@ export const Painter = {
 			if (element.visibility === false || element.locked === true) continue;
 			let mesh = element.mesh;
 			if (!mesh || mesh.visible == false || !mesh.geometry) continue;
+			// Paint through transparency
+			if (Painter.current.rejected_intersects?.some(i => i.object == mesh)) continue;
 			objects.push(mesh);
 		}
 
