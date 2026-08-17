@@ -1026,11 +1026,11 @@ BARS.defineActions(function() {
 					if (result.range) args.push(...result.range);
 					return `${variable} = slider(${args.join(', ')})`;
 				} else if (result.type == 'toggle') {
-					return `${variable} = slider('${result.name}')`;
+					return `${variable} = toggle('${result.name}')`;
 				} else if (result.type == 'impulse') {
 					let args = [`'${result.name}'`];
 					if (result.duration) args.push(result.duration);
-					return `${variable} = slider(${args.join(', ')})`;
+					return `${variable} = impulse(${args.join(', ')})`;
 				}
 				return '';
 			}
