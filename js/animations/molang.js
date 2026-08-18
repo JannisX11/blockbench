@@ -19,7 +19,7 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 	get 'query.time_stamp'() {
-		return Math.floor(Timeline.time * 20) / 20
+		return Math.floor(Timeline.time * 20);
 	},
 	get 'query.all_animations_finished'() {
 		if (AnimationController.selected?.selected_state) {
