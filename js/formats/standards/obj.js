@@ -1,3 +1,5 @@
+import { findMTLFile, importOBJ } from "../../modeling/mesh/import_obj";
+
 var _obj_export;
 const cube_face_normals = {
 	north: [0, 0, -1],
@@ -12,6 +14,39 @@ var codec = new Codec('obj', {
 	name: 'OBJ Wavefront Model',
 	extension: 'obj',
 	support_partial_export: true,
+	load_filter: {
+		type: 'text',
+		extensions: ['obj']
+	},
+	load(content, file) {
+		setupProject(Formats.free);
+		let name = pathToName(file.path, true);
+		Project.name = pathToName(name, false);
+		if (file.path && isApp && !file.no_file) {
+			Project.export_path = file.path;
+			Project.export_codec = this.id;
+		}
+
+		importOBJ({
+			obj: file,
+			mtl: findMTLFile(file),
+			scale: Settings.get('model_export_scale')
+		}, false);
+		Project.saved = true;
+
+		if (file.path && isApp && !file.no_file) {
+			loadDataFromModelMemory();
+			addRecentProject({
+				name,
+				path: file.path,
+				icon: Format.icon
+			});
+			let project = Project;
+			setTimeout(() => {
+				if (Project == project) updateRecentProjectThumbnail();
+			}, 500);
+		}
+	},
 	compile(options) {
 		if (!options) options = 0;
 
