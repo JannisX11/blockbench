@@ -1,3 +1,5 @@
+import { ColladaLoader } from "three/examples/jsm/loaders/ColladaLoader.js";
+import { createLoadingManager, getResourceURL, loadThreeModel } from "../../io/three_import";
 
 function arrangeArray(array) {
 	return array.map(v => Math.roundTo(v, 6)).join(' ');
@@ -7,6 +9,22 @@ function arrangeArray(array) {
 var codec = new Codec('collada', {
 	name: 'Collada Model',
 	extension: 'dae',
+	load_filter: {
+		type: 'text',
+		extensions: ['dae']
+	},
+	async load(content, file) {
+		let collada;
+		let loading = createLoadingManager();
+		try {
+			collada = new ColladaLoader(loading.manager).parse(content, getResourceURL(file.path));
+		} catch (error) {
+			console.error(error);
+			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
+		}
+		await loading.wait();
+		await loadThreeModel(collada.scene, file, this);
+	},
 	compile(options = 0) {
 		let scope = this;
 		let geometries = [];
