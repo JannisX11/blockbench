@@ -11,9 +11,10 @@ let codec = new Codec('image', {
 		type: 'image',
 		extensions: Texture.getAllExtensions
 	},
-	load(files: (Filesystem.FileResult & {uuid: string})[], path, resolution) {
+	load(files: (Filesystem.FileResult & {uuid: string})[], path: string | Filesystem.FileResult, resolution) {
 		if (files instanceof Array == false) files = [files];
 		if (typeof path === 'object') {
+			// @ts-expect-error
 			files = [path];
 			path = path.path;
 		}

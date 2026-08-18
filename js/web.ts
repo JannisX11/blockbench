@@ -116,7 +116,7 @@ export async function loadInfoFromURL() {
 
 	if (Blockbench.queries.m) {
 		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model, b) => {
-			Codecs.project.load(model, {path: ''});
+			Codecs.project.load(model, {path: '', name: ''});
 		}).fail(() => {
 			Blockbench.showMessageBox({
 				title: 'message.invalid_link',

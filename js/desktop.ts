@@ -114,6 +114,7 @@ export function loadOpenWithBlockbenchFile() {
 	})
 	ipcRenderer.on('load-tab', (event, model) => {
 		let fake_file = {
+			name: model.name || '',
 			path: model.editor_state?.save_path || ''
 		};
 		Codecs.project.load(model, fake_file);

@@ -1,5 +1,6 @@
 import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
+import { LoadOptions } from "./../../io/codec"
 
 const ITEM_PARENTS = [
 	'item/generated', 	'minecraft:item/generated',
@@ -20,11 +21,6 @@ interface ElementTemplate {
 	shade_direction_override?: string
 	rotated?: any
 	color?: number
-}
-interface LoadOptions {
-	import_to_current_project?: boolean
-	externalDataLoader?: (path: string) => any
-	[key: string]: unknown
 }
 interface CompileOptions {
 	cube_name?: boolean
