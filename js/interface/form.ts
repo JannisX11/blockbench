@@ -1112,6 +1112,7 @@ class FormElementFile extends FormElement {
 	value: string
 	content: any
 	input: HTMLInputElement
+	input_wrapper: HTMLDivElement
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.type == 'folder' && !isApp) return;
@@ -1120,11 +1121,12 @@ class FormElementFile extends FormElement {
 
 		let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${this.id}" style="pointer-events: none;" disabled>`);
 		this.input = input[0] as HTMLInputElement;
-		this.input.value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
 		let input_wrapper = $('<div class="input_wrapper"></div>');
+		this.input_wrapper = input_wrapper[0] as HTMLDivElement;
 		input_wrapper.append(input);
 		bar.append(input_wrapper[0]);
 		bar.classList.add('form_bar_file');
+		this.updateInput();
 
 		switch (this.options.type) {
 			case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
@@ -1138,7 +1140,7 @@ class FormElementFile extends FormElement {
 			this.value = '';
 			delete this.content;
 			delete this.file;
-			input.val('');
+			this.updateInput();
 		})
 
 		input_wrapper.on('click', e => {
@@ -1146,7 +1148,7 @@ class FormElementFile extends FormElement {
 				this.value = files[0].path;
 				this.content = files[0].content;
 				this.file = files[0];
-				input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+				this.updateInput();
 				scope.change();
 			}
 			switch (this.options.type) {
@@ -1174,12 +1176,21 @@ class FormElementFile extends FormElement {
 						custom_writer: () => {},
 					}, path => {
 						this.value = path;
-						input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+						this.updateInput();
 						scope.change();
 					});
 					break;
 			}
 		})
+	}
+	updateInput() {
+		let value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
+		this.input.value = value ? value + '\u200E' : '';
+		if (value) {
+			this.input_wrapper.title = value;
+		} else {
+			this.input_wrapper.removeAttribute('title');
+		}
 	}
 	getValue(): Filesystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
@@ -1198,7 +1209,7 @@ class FormElementFile extends FormElement {
 		} else {
 			this.content = value;
 		}
-		$(this.input).val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+		this.updateInput();
 	}
 	getDefault() {
 		return '';
