@@ -192,7 +192,8 @@ export async function loadThreeModel(root, file, codec: Codec, options: {scale?:
 	setupProject(Formats.free);
 	let name = pathToName(file.path, true);
 	Project.name = pathToName(name, false);
-	if (file.path && isApp && !file.no_file) {
+	let can_export = codec.compile !== Codec.prototype.compile;
+	if (file.path && isApp && !file.no_file && can_export) {
 		Project.export_path = file.path;
 		Project.export_codec = codec.id;
 	}
