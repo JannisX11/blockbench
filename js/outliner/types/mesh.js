@@ -1168,6 +1168,7 @@ new NodePreviewController(Mesh, {
 		let points = new THREE.Points(new THREE.BufferGeometry(), Canvas.meshVertexMaterial);
 		points.element_uuid = element.uuid;
 		points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(new Array(24).fill(1), 3));
+		points.visible = element.selected;
 		mesh.vertex_points = points;
 		points.no_export = true;
 		mesh.add(points);
