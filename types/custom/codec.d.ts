@@ -37,7 +37,8 @@ interface CodecOptions {
 	support_offset?: boolean
 	load_filter?: {
 		extensions: string[] | (() => string[])
-		type: 'json' | 'text' | 'image'
+		type: 'json' | 'text' | 'image' | 'binary'
+		readtype?: 'buffer' | 'binary' | 'text' | 'image'
 		condition?: ConditionResolvable
 	}
 	/**
@@ -175,6 +176,7 @@ declare class Codec extends Deletable {
 	 * Get a list of all possible extensions of all codecs
 	 */
 	static getAllExtensions(): string[]
+	static getReadType(path: string): 'buffer' | 'binary' | 'text' | 'image' | undefined
 }
 
 declare const Codecs: {

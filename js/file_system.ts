@@ -587,7 +587,7 @@ export namespace Filesystem {
 		 * If true, the drop will work on all child elements of the specified element
 		 */
 		propagate?: boolean
-		readtype?: ReadType
+		readtype?: ReadType | ((file: string) => ReadType)
 		/**
 		 * Whether to display an error box when importing a dragged file fails
 		 */

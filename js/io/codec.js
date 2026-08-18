@@ -239,6 +239,17 @@ Codec.getAllExtensions = function() {
 	}
 	return extensions;
 }
+Codec.getReadType = function(path) {
+	let extension = pathToExtension(path);
+	for (let id in Codecs) {
+		let filter = Codecs[id].load_filter;
+		if (!filter || !filter.readtype) continue;
+		let list = typeof filter.extensions == 'function'
+			? filter.extensions()
+			: filter.extensions ?? [];
+		if (list.includes(extension)) return filter.readtype;
+	}
+}
 
 
 Object.assign(window, {

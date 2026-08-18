@@ -275,7 +275,7 @@ onVueSetup(async function() {
 				}
 			},
 			openProject: function(p, event) {
-				Blockbench.read([p.path], {}, files => {
+				Blockbench.read([p.path], {readtype: Codec.getReadType(p.path)}, files => {
 					loadModelFile(files[0]);
 				})
 			},
