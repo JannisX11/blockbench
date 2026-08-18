@@ -110,7 +110,7 @@ var codec = new Codec('fbx', {
 		}
 		await loading.wait();
 		await loadThreeModel(root, file, this, {
-			scale: (Settings.get('model_export_scale') as number) / 100,
+			scale: args.scale ?? (Settings.get('model_export_scale') as number) / 100,
 			import_to_current_project: args.import_to_current_project
 		});
 	},
@@ -1977,19 +1977,32 @@ export function compileASCIIFBXSection(object: FBXNode) {
 }
 
 BARS.defineActions(function() {
+	let import_dialog: Dialog | undefined;
 	new Action('import_fbx', {
 		icon: 'view_in_ar',
 		category: 'file',
 		condition: {modes: ['edit'], method: () => Format.meshes},
 		click() {
-			Blockbench.import({
-				resource_id: 'model',
-				extensions: ['fbx'],
-				type: codec.name,
-				readtype: 'buffer'
-			}, files => {
-				codec.load(files[0].content, files[0], {import_to_current_project: true});
-			})
+			if (!import_dialog) {
+				import_dialog = new Dialog('import_fbx', {
+					title: 'action.import_fbx',
+					form: {
+						model: {
+							type: 'file', label: 'dialog.import_model.file', return_as: 'file',
+							extensions: ['fbx'], resource_id: 'model', filetype: codec.name, readtype: 'buffer'
+						},
+						scale: {type: 'number', label: 'dialog.import_model.scale', value: (Settings.get('model_export_scale') as number) / 100}
+					},
+					onConfirm(result) {
+						if (!result.model) return;
+						codec.load((result.model as any).content, result.model, {
+							import_to_current_project: true,
+							scale: result.scale
+						});
+					}
+				})
+			}
+			import_dialog.show();
 		}
 	})
 })

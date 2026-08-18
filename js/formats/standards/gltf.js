@@ -528,7 +528,10 @@ var codec = new Codec('gltf', {
 		})
 		if (!gltf) return;
 
-		await loadThreeModel(gltf.scene, file, this, {import_to_current_project: args.import_to_current_project});
+		await loadThreeModel(gltf.scene, file, this, {
+			scale: args.scale,
+			import_to_current_project: args.import_to_current_project
+		});
 		if (!args.import_to_current_project && pathToExtension(file.path) == 'glb') {
 			Project.export_options[this.id] = {...Project.export_options[this.id], encoding: 'binary'};
 		}
@@ -661,19 +664,32 @@ Object.assign(window, {
 })
 
 BARS.defineActions(function() {
+	let import_dialog;
 	new Action('import_gltf', {
 		icon: 'view_in_ar',
 		category: 'file',
 		condition: {modes: ['edit'], method: () => Format.meshes},
 		click() {
-			Blockbench.import({
-				resource_id: 'model',
-				extensions: ['gltf', 'glb'],
-				type: codec.name,
-				readtype: 'buffer'
-			}, files => {
-				codec.load(files[0].content, files[0], {import_to_current_project: true});
-			})
+			if (!import_dialog) {
+				import_dialog = new Dialog('import_gltf', {
+					title: 'action.import_gltf',
+					form: {
+						model: {
+							type: 'file', label: 'dialog.import_model.file', return_as: 'file',
+							extensions: ['gltf', 'glb'], resource_id: 'model', filetype: codec.name, readtype: 'buffer'
+						},
+						scale: {type: 'number', label: 'dialog.import_model.scale', value: Settings.get('model_export_scale')}
+					},
+					onConfirm(result) {
+						if (!result.model) return;
+						codec.load(result.model.content, result.model, {
+							import_to_current_project: true,
+							scale: result.scale
+						});
+					}
+				})
+			}
+			import_dialog.show();
 		}
 	})
 })

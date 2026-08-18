@@ -854,6 +854,8 @@
 
 	"dialog.view_backups.open_folder": "Open Folder",
 
+	"dialog.import_model.file": "Model File",
+	"dialog.import_model.scale": "Scale",
 	"dialog.import_obj.obj": "OBJ File",
 	"dialog.import_obj.mtl": "MTL File",
 	"dialog.import_obj.scale": "Scale",
