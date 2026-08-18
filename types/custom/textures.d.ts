@@ -231,9 +231,9 @@ declare global {
 		 * @param cb Callback function
 		 */
 		load(cb?: () => {}): this
-		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult): this
-		fromPath(path: string): this
+		fromJavaLink(link: string, path_array: string[], externalDataLoader?: (path) => any): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult, externalDataLoader?: (path) => any): this
+		fromPath(path: string, externalDataLoader?: (path) => any): this
 		/**
 		 * Loads file content **only**.
 		 *
