@@ -1,9 +1,28 @@
 import { Dialog } from "../../interface/dialog";
 import { THREE } from "../../lib/libs";
+import { Filesystem } from "../../file_system";
+import { fs, PathModule } from "../../native_apis";
 
 BARS.defineActions(() => {
 
 	let import_obj_dialog: Dialog | undefined;
+	let last_obj_path: string | undefined;
+
+	function findMTLFile(obj_file: Filesystem.FileResult): Filesystem.FileResult | undefined {
+		if (!isApp || !obj_file?.path) return;
+		let candidates: string[] = [];
+		let reference = typeof obj_file.content == 'string' && obj_file.content.match(/^[ \t]*mtllib[ \t]+(.+)$/m)?.[1].trim();
+		if (reference) {
+			candidates.push(reference, ...reference.split(/\s+/));
+		}
+		candidates.push(pathToName(obj_file.path, false) + '.mtl');
+		for (let candidate of candidates) {
+			let path = PathModule.resolve(PathModule.dirname(obj_file.path), candidate);
+			if (fs.existsSync(path)) {
+				return {name: pathToName(path, true), path, content: fs.readFileSync(path, 'utf8')};
+			}
+		}
+	}
 
 	new Action('import_obj', {
 		icon: 'fa-gem',
@@ -139,6 +158,13 @@ BARS.defineActions(() => {
 						obj: {type: 'file', label: 'dialog.import_obj.obj', return_as: 'file', extensions: ['obj'], resource_id: 'obj', filetype: 'OBJ Wavefront Model'},
 						mtl: {type: 'file', label: 'dialog.import_obj.mtl', return_as: 'file', extensions: ['mtl'], resource_id: 'obj', filetype: 'OBJ Material File'},
 						scale: {type: 'number', label: 'dialog.import_obj.scale', value: 16},
+					},
+					onFormChange(result) {
+						let obj_path = (result.obj as Filesystem.FileResult)?.path;
+						if (!obj_path || obj_path == last_obj_path) return;
+						last_obj_path = obj_path;
+						let mtl_file = findMTLFile(result.obj as Filesystem.FileResult);
+						if (mtl_file) import_obj_dialog.setFormValues({mtl: mtl_file}, false);
 					},
 					onConfirm(result) {
 						importOBJ(result);
