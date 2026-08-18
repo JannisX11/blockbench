@@ -1,3 +1,5 @@
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getResourceURL, loadThreeModel } from "../../io/three_import";
 import { THREE } from "../../lib/libs";
 import { Armature } from "../../outliner/types/armature";
 
@@ -512,6 +514,25 @@ var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
 	support_partial_export: true,
+	load_filter: {
+		type: 'binary',
+		readtype: 'buffer',
+		extensions: ['gltf', 'glb']
+	},
+	async load(content, file) {
+		let gltf = await new Promise((resolve, reject) => {
+			new GLTFLoader().parse(content, getResourceURL(file.path), resolve, reject);
+		}).catch(error => {
+			console.error(error);
+			Blockbench.showMessageBox({translateKey: 'invalid_model'});
+		})
+		if (!gltf) return;
+
+		await loadThreeModel(gltf.scene, file, this);
+		if (pathToExtension(file.path) == 'glb') {
+			Project.export_options[this.id] = {...Project.export_options[this.id], encoding: 'binary'};
+		}
+	},
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
