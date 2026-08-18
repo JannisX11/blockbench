@@ -629,29 +629,29 @@ export namespace Filesystem {
 	document.ondragover = function(event) {
 		event.preventDefault()
 	}
+	export function getFilePaths(file_names: FileList): string[] {
+		let paths: string[] = [];
+		if (isApp) {
+			for (let file of file_names) {
+				if ('path' in file && typeof file.path == 'string' && file.path) {
+					paths.push(file.path);
+				} else {
+					let path = webUtils.getPathForFile(file);
+					if (path) paths.push(path);
+				}
+			}
+		} else {
+			paths = [...file_names] as unknown as string[];
+		}
+		return paths;
+	}
+
 	document.body.ondrop = function(event) {
 		event.preventDefault()
 		let text = event.dataTransfer.getData('text/plain');
 
 		if (text) {
 			Blockbench.dispatchEvent('drop_text', {text});
-		}
-
-		function getFilePaths(file_names: FileList): string[] {
-			let paths: string[] = [];
-			if (isApp) {
-				for (let file of file_names) {
-					if ('path' in file && typeof file.path == 'string' && file.path) {
-						paths.push(file.path);
-					} else {
-						let path = webUtils.getPathForFile(file);
-						if (path) paths.push(path);
-					}
-				}
-			} else {
-				paths = [...file_names] as unknown as string[];
-			}
-			return paths;
 		}
 
 		let handled = false;
