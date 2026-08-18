@@ -34,6 +34,10 @@ interface ConvertedTexture extends DecodedTexture {
 }
 
 async function decodeTexture(source): Promise<DecodedTexture | undefined> {
+	let deadline = Date.now() + 1000;
+	while (!source.image && Date.now() < deadline) {
+		await new Promise(resolve => setTimeout(resolve, 30));
+	}
 	let image = source.image;
 	if (!image) return;
 	if (image instanceof HTMLImageElement && !image.complete) {
@@ -70,9 +74,9 @@ export async function decodeThreeTextures(root): Promise<Map<any, DecodedTexture
 			if (material && material.map) sources.add(material.map);
 		}
 	})
+	let entries = await Promise.all([...sources].map(async source => [source, await decodeTexture(source)]));
 	let decoded = new Map();
-	for (let source of sources) {
-		let texture = await decodeTexture(source);
+	for (let [source, texture] of entries) {
 		if (texture) decoded.set(source, texture);
 	}
 	return decoded;
