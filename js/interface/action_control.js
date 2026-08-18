@@ -129,7 +129,7 @@ export const ActionControl = {
 		return true;
 	},
 	addRecentlyUsed(action) {
-		if (action.id == 'action_control') return;
+		if (action.id == 'action_control' || action.id == 'add_plugin' || action.id == 'remove_plugin') return;
 		ActionControl.recently_used.remove(action.id);
 		ActionControl.recently_used.splice(0, 0, action.id);
 		if (ActionControl.recently_used.length > ActionControl.max_recently_used) {
@@ -198,7 +198,7 @@ BARS.defineActions(function() {
 				if (!type && search_input) {
 					for (let key in this.search_types) {
 						if (key == 'setting') continue;
-						if (key.includes(search_input)) {
+						if (key.includes(search_input) || this.search_types[key].name.toLowerCase()?.includes(search_input)) {
 							list.push({
 								name: this.search_types[key].name,
 								icon: this.search_types[key].icon,
