@@ -519,7 +519,7 @@ var codec = new Codec('gltf', {
 		readtype: 'buffer',
 		extensions: ['gltf', 'glb']
 	},
-	async load(content, file) {
+	async load(content, file, args = {}) {
 		let gltf = await new Promise((resolve, reject) => {
 			new GLTFLoader().parse(content, getResourceURL(file.path), resolve, reject);
 		}).catch(error => {
@@ -528,8 +528,8 @@ var codec = new Codec('gltf', {
 		})
 		if (!gltf) return;
 
-		await loadThreeModel(gltf.scene, file, this);
-		if (pathToExtension(file.path) == 'glb') {
+		await loadThreeModel(gltf.scene, file, this, {import_to_current_project: args.import_to_current_project});
+		if (!args.import_to_current_project && pathToExtension(file.path) == 'glb') {
 			Project.export_options[this.id] = {...Project.export_options[this.id], encoding: 'binary'};
 		}
 	},
@@ -658,4 +658,22 @@ Object.assign(window, {
 	buildSkinnedMesh,
 	buildSkinnedMeshMerged,
 	buildSkinnedMeshFromGroup
+})
+
+BARS.defineActions(function() {
+	new Action('import_gltf', {
+		icon: 'view_in_ar',
+		category: 'file',
+		condition: {modes: ['edit'], method: () => Format.meshes},
+		click() {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: ['gltf', 'glb'],
+				type: codec.name,
+				readtype: 'buffer'
+			}, files => {
+				codec.load(files[0].content, files[0], {import_to_current_project: true});
+			})
+		}
+	})
 })

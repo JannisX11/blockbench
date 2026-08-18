@@ -170,6 +170,7 @@ export function importThreeObject(root, decoded: Map<any, DecodedTexture>, optio
 	}
 
 	let elements: Mesh[] = [];
+	let created_textures = [...textures.values()].map(converted => converted.texture);
 	function convertNode(node, parent) {
 		let target = parent;
 		if (node.isMesh && node.geometry) {
@@ -187,11 +188,22 @@ export function importThreeObject(root, decoded: Map<any, DecodedTexture>, optio
 	}
 	convertNode(root, undefined);
 
-	return elements;
+	return {elements, textures: created_textures};
 }
 
-export async function loadThreeModel(root, file, codec: Codec, options: {scale?: number} = {}) {
+export async function loadThreeModel(root, file, codec: Codec, options: {scale?: number, import_to_current_project?: boolean} = {}) {
 	let decoded = await decodeThreeTextures(root);
+
+	if (options.import_to_current_project) {
+		let elements = [];
+		let textures = [];
+		Undo.initEdit({outliner: true, elements, textures, selection: true});
+		let imported = importThreeObject(root, decoded, options);
+		elements.push(...imported.elements);
+		textures.push(...imported.textures);
+		Undo.finishEdit('Import model');
+		return imported.elements;
+	}
 
 	setupProject(Formats.free);
 	let name = pathToName(file.path, true);
@@ -202,7 +214,7 @@ export async function loadThreeModel(root, file, codec: Codec, options: {scale?:
 		Project.export_codec = codec.id;
 	}
 
-	let elements = importThreeObject(root, decoded, options);
+	let {elements} = importThreeObject(root, decoded, options);
 	Project.saved = true;
 
 	if (file.path && isApp && !file.no_file) {

@@ -99,7 +99,7 @@ var codec = new Codec('fbx', {
 		readtype: 'buffer',
 		extensions: ['fbx']
 	},
-	async load(content, file) {
+	async load(content, file, args: any = {}) {
 		let loading = createLoadingManager();
 		let root;
 		try {
@@ -109,7 +109,10 @@ var codec = new Codec('fbx', {
 			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
 		}
 		await loading.wait();
-		await loadThreeModel(root, file, this, {scale: (Settings.get('model_export_scale') as number) / 100});
+		await loadThreeModel(root, file, this, {
+			scale: (Settings.get('model_export_scale') as number) / 100,
+			import_to_current_project: args.import_to_current_project
+		});
 	},
 	compile(options) {
 		options = Object.assign(this.getExportOptions(), options);
@@ -1972,3 +1975,21 @@ export function compileASCIIFBXSection(object: FBXNode) {
 	}
 	return handleObjectChildren(object);
 }
+
+BARS.defineActions(function() {
+	new Action('import_fbx', {
+		icon: 'view_in_ar',
+		category: 'file',
+		condition: {modes: ['edit'], method: () => Format.meshes},
+		click() {
+			Blockbench.import({
+				resource_id: 'model',
+				extensions: ['fbx'],
+				type: codec.name,
+				readtype: 'buffer'
+			}, files => {
+				codec.load(files[0].content, files[0], {import_to_current_project: true});
+			})
+		}
+	})
+})
