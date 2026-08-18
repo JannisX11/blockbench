@@ -376,6 +376,10 @@
 		text-align: left;
 		text-overflow: ellipsis;
 	}
+	.form_bar_file .input_wrapper.drag_hover input {
+		border-color: var(--color-accent);
+		background-color: var(--color-selected);
+	}
 	.form_bar_file .input_wrapper > .material-icons {
 		position: absolute;
 		margin-left: -28px;

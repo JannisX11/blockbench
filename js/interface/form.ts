@@ -2,8 +2,9 @@ import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
 import { Filesystem } from "../file_system"
 import { tl } from "../languages"
+import { fs, PathModule } from "../native_apis"
 import { EventSystem } from "../util/event_system"
-import { getStringWidth, pureMarked } from "../util/util"
+import { getStringWidth, pathToExtension, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
 type ReadType = Filesystem.ReadType;
@@ -1143,14 +1144,50 @@ class FormElementFile extends FormElement {
 			this.updateInput();
 		})
 
+		const fileCB = (files) => {
+			this.value = files[0].path;
+			this.content = files[0].content;
+			this.file = files[0];
+			this.updateInput();
+			scope.change();
+		}
+
+		if (this.options.type != 'save') {
+			this.input_wrapper.addEventListener('dragover', event => {
+				if (!event.dataTransfer?.types.includes('Files')) return;
+				event.preventDefault();
+				event.stopPropagation();
+				this.input_wrapper.classList.add('drag_hover');
+			})
+			this.input_wrapper.addEventListener('dragleave', event => {
+				if (this.input_wrapper.contains(event.relatedTarget as Node)) return;
+				this.input_wrapper.classList.remove('drag_hover');
+			})
+			this.input_wrapper.addEventListener('drop', event => {
+				this.input_wrapper.classList.remove('drag_hover');
+				if (!event.dataTransfer?.files.length) return;
+				event.preventDefault();
+				event.stopPropagation();
+
+				let paths = Filesystem.getFilePaths(event.dataTransfer.files);
+				if (this.options.type == 'folder') {
+					let path = paths[0] as string;
+					fileCB([{path: fs.statSync(path).isDirectory() ? path : PathModule.dirname(path)}]);
+					return;
+				}
+				let extensions = this.options.extensions;
+				let index = [...event.dataTransfer.files].findIndex(file => {
+					return !extensions?.length || extensions.includes(pathToExtension(file.name));
+				})
+				if (index == -1) {
+					Blockbench.showQuickMessage('message.unsupported_file_extension.title');
+					return;
+				}
+				Filesystem.read([paths[index]], {readtype: this.options.readtype}, fileCB);
+			})
+		}
+
 		input_wrapper.on('click', e => {
-			const fileCB = (files) => {
-				this.value = files[0].path;
-				this.content = files[0].content;
-				this.file = files[0];
-				this.updateInput();
-				scope.change();
-			}
 			switch (this.options.type) {
 				case 'file':
 					Blockbench.import({
