@@ -657,6 +657,7 @@ export namespace Filesystem {
 		let handled = false;
 		// Native file drop, or drop from VS Code via paths
 		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
+		if (!paths.some(path => path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
 			if (!paths.length) return;
 
