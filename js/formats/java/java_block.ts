@@ -3,6 +3,7 @@ import { getTexturesById } from "../../texturing/textures"
 import { convertTextureMeshesToCubes, GeneratedItemMesh } from "./../../outliner/types/texture_mesh"
 import { LoadOptions } from "./../../io/codec"
 
+const ITEM_LAYER_LIMIT = 5
 const ITEM_PARENTS = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -84,7 +85,7 @@ function resolveGeneratedItemConflict() {
 	})
 }
 
-function confirmGeneratedItemConversion(placeholder: GeneratedItemMesh) {
+function confirmGeneratedItemConversion(placeholders: GeneratedItemMesh[]) {
 	Blockbench.showMessageBox({
 		translateKey: 'convert_generated_item_model',
 		icon: 'eject',
@@ -94,7 +95,7 @@ function confirmGeneratedItemConversion(placeholder: GeneratedItemMesh) {
 		cancel: 1
 	}, result => {
 		if (result != 0) return;
-		convertTextureMeshesToCubes([placeholder]);
+		convertTextureMeshesToCubes(placeholders);
 	})
 }
 
@@ -654,22 +655,29 @@ const codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
+		let item_layers = [];
+		while (item_layers.length < ITEM_LAYER_LIMIT && typeof model.textures?.['layer' + item_layers.length] === 'string') {
+			item_layers.push('layer' + item_layers.length);
+		}
 		if (
 			!model.elements &&
 			ITEM_PARENTS.includes(model.parent) &&
-			model.textures &&
-			typeof model.textures.layer0 === 'string'
+			item_layers.length
 		) {
-			let texture_mesh = new GeneratedItemMesh({
-				name: model.textures.layer0,
-				rotation: [90, 180, 0],
-				local_pivot: [0, -7.5, -16],
-				export: false
-			}).init();
+			let placeholders = item_layers.map(key => {
+				let layer_texture = texture_ids[key];
+				return new GeneratedItemMesh({
+					name: model.textures[key],
+					texture_name: layer_texture ? layer_texture.uuid : '',
+					rotation: [90, 180, 0],
+					local_pivot: [0, -7.5, -16],
+					export: false
+				}).init();
+			});
 
-			new_cubes.push(texture_mesh);
+			new_cubes.push(...placeholders);
 
-			let layer0 = texture_ids.layer0;
+			let layer0 = texture_ids[item_layers[0]];
 			if (settings.dialog_generated_item_model.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'generated_item_model',
@@ -691,7 +699,7 @@ const codec = new Codec('java_block', {
 						settings.dialog_generated_item_model.set(false);
 					}
 					if (result == 'convert') {
-						confirmGeneratedItemConversion(texture_mesh);
+						confirmGeneratedItemConversion(placeholders);
 					}
 				})
 			}
