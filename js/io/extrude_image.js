@@ -132,7 +132,8 @@ export const Extruder = {
 		return areas;
 	},
 	startConversion(formResult) {
-		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []});
+		let groups = [];
+		Undo.initEdit({elements: Outliner.selected, groups, outliner: true, textures: []});
 		let texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
 		texture.uv_width = Extruder.ext_img.naturalWidth;
 		texture.uv_height = Extruder.ext_img.naturalHeight;
@@ -141,16 +142,17 @@ export const Extruder = {
 		if (Format.cube_size_limiter && !Format.integer_size) {
 			pixel_size = 16 / Extruder.width;
 		}
-		Extruder.extrudeTexture(texture, Object.assign({
+		let result = Extruder.extrudeTexture(texture, Object.assign({
 			image: Extruder.ext_img,
 			pixel_size: [pixel_size, pixel_size],
 			depth: pixel_size,
 			group: texture.name.split('.')[0]
 		}, formResult));
+		if (result.group) groups.push(result.group);
 
 		Undo.finishEdit(
 			'Add extruded texture',
-			{elements: Outliner.selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
+			{elements: Outliner.selected, groups, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
 		)
 	},
 	extrudeTexture(texture, options = {}) {
