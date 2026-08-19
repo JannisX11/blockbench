@@ -150,6 +150,7 @@ export class GeneratedItemMesh extends TextureMesh {
 		rotatable: false,
 		duplicatable: false,
 		texturable: false,
+		parent_types: ['root'],
 	}
 }
 	GeneratedItemMesh.prototype.title = tl('data.generated_item_mesh');
