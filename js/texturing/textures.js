@@ -1973,6 +1973,7 @@ export class Texture {
 					}
 				}
 			}),
+			'extrude_texture_to_model',
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',

@@ -1596,6 +1596,8 @@
 	"action.import_bedrock_voxel_shape.desc": "Add a voxel shape from a json file to the current project",
 	"action.extrude_texture": "Extruded Texture",
 	"action.extrude_texture.desc": "Generate a model by stretching out a texture",
+	"action.extrude_texture_to_model": "Extrude Texture",
+	"action.extrude_texture_to_model.desc": "Generate a model by extruding this texture",
 	"action.export_blockmodel": "Export Block/Item Model",
 	"action.export_blockmodel.desc": "Export a Minecraft Java Edition block or item model",
 	"action.export_asset_archive": "Download Archive",

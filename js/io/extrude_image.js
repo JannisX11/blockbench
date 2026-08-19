@@ -49,12 +49,21 @@ export const Extruder = {
 		return (Format.cube_size_limiter && !Format.integer_size) ? 16 / Extruder.width : 1;
 	},
 	drawImage(file) {
+		Extruder.image_file = file;
+		Extruder.source_texture = null;
+		Extruder.loadSource(isApp ? file.path.replace(/#/g, '%23') : file.content);
+	},
+	drawTexture(texture) {
+		Extruder.image_file = null;
+		Extruder.source_texture = texture;
+		Extruder.loadSource(texture.source);
+	},
+	loadSource(source) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
 
 		Extruder.ext_img = new Image()
-		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
-		Extruder.image_file = file
+		Extruder.ext_img.src = source
 		Extruder.ext_img.style.imageRendering = 'pixelated'
 		Extruder.canvas.style.imageRendering = 'pixelated'
 
@@ -144,9 +153,13 @@ export const Extruder = {
 	startConversion(formResult) {
 		let groups = [];
 		Undo.initEdit({elements: Outliner.selected, groups, outliner: true, textures: []});
-		let texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
-		texture.uv_width = Extruder.ext_img.naturalWidth;
-		texture.uv_height = Extruder.ext_img.naturalHeight;
+		let texture = Extruder.source_texture;
+		let added_texture = !texture;
+		if (added_texture) {
+			texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
+			texture.uv_width = Extruder.ext_img.naturalWidth;
+			texture.uv_height = Extruder.ext_img.naturalHeight;
+		}
 
 		let pixel_size = Extruder.getPixelSize();
 		let result = Extruder.extrudeTexture(texture, Object.assign({
@@ -159,7 +172,7 @@ export const Extruder = {
 
 		Undo.finishEdit(
 			'Add extruded texture',
-			{elements: Outliner.selected, groups, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
+			{elements: Outliner.selected, groups, outliner: true, textures: added_texture ? [texture] : []}
 		)
 	},
 	extrudeTexture(texture, options = {}) {
@@ -264,6 +277,15 @@ export const Extruder = {
 }
 
 BARS.defineActions(() => {
+	new Action('extrude_texture_to_model', {
+		icon: 'eject',
+		category: 'textures',
+		condition: () => Texture.selected && Project && (!Project.box_uv || Format.optional_box_uv),
+		click() {
+			Extruder.dialog.show();
+			Extruder.drawTexture(Texture.selected);
+		}
+	})
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',
