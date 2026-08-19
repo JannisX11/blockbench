@@ -678,7 +678,7 @@ const codec = new Codec('java_block', {
 			new_cubes.push(...placeholders);
 
 			let layer0 = texture_ids[item_layers[0]];
-			if (settings.dialog_generated_item_model.value) {
+			if (settings.dialog_generated_item_model.value && !hasOwnElements()) {
 				Blockbench.showMessageBox({
 					translateKey: 'generated_item_model',
 					icon: 'wallpaper',
