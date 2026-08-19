@@ -13,6 +13,11 @@ export class TextureMesh extends OutlinerElement {
 	get from() {
 		return this.origin;
 	}
+	getTexture() {
+		return Texture.all.find(texture => texture.uuid == this.texture)
+			|| Texture.all.find(texture => texture.name == this.texture_name)
+			|| Texture.getDefault();
+	}
 	getWorldCenter() {
 		let m = this.mesh;
 		let pos = new THREE.Vector3().fromArray(this.local_pivot);
@@ -106,6 +111,7 @@ new Property(TextureMesh, 'string', 'texture_name', {
 		}
 	}
 })
+new Property(TextureMesh, 'string', 'texture')
 new Property(TextureMesh, 'vector', 'origin');
 new Property(TextureMesh, 'vector', 'local_pivot');
 new Property(TextureMesh, 'vector', 'rotation');
@@ -142,9 +148,7 @@ export class GeneratedItemMesh extends TextureMesh {
 OutlinerElement.registerType(GeneratedItemMesh, 'generated_item_mesh');
 
 function getShapeTexture(element) {
-	let tex = (element && element.texture_name && Texture.all.find(texture => {
-		return texture.uuid == element.texture_name || texture.name == element.texture_name;
-	})) || Texture.getDefault();
+	let tex = element ? element.getTexture() : Texture.getDefault();
 	if (tex && tex.pbr_channel != 'color' && tex.getGroup()) {
 		let group = tex.getGroup();
 		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
