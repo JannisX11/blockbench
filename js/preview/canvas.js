@@ -840,7 +840,7 @@ export const Canvas = {
 		})
 	},
 
-	getModelSize() {
+	getModelBoundingBox() {
 		var visible_box = new THREE.Box3()
 		Canvas.withoutGizmos(() => {
 			Outliner.elements.forEach(element => {
@@ -848,7 +848,18 @@ export const Canvas = {
 					visible_box.expandByObject(element.mesh);
 				}
 			})
+			if (visible_box.isEmpty()) {
+				Outliner.elements.forEach(element => {
+					if (element.visibility != false && element.mesh && element.mesh.geometry) {
+						visible_box.expandByObject(element.mesh);
+					}
+				})
+			}
 		})
+		return visible_box;
+	},
+	getModelSize() {
+		var visible_box = Canvas.getModelBoundingBox();
 	
 		var offset = new THREE.Vector3(8,8,8);
 		visible_box.max.add(offset);
