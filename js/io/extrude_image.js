@@ -21,6 +21,7 @@ export const Extruder = {
 				type: 'select',
 				options: {
 					upright: 'dialog.extrude.orientation.upright',
+					upright_z: 'dialog.extrude.orientation.upright_z',
 					flat: 'dialog.extrude.orientation.flat',
 				}
 			},
@@ -198,6 +199,17 @@ export const Extruder = {
 					east:	{uv: east_uv, texture},
 					west:	{uv: west_uv, texture},
 				};
+			} else if (orientation == 'upright_z') {
+				from = [0, 16 - (rect.y2+1) * pixel_size[1], 16 - (rect.x2+1) * pixel_size[0]];
+				to = [depth, 16 - rect.y * pixel_size[1], 16 - rect.x * pixel_size[0]];
+				faces = {
+					east:	{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					west:	{uv: [sprite_x2, y1, sprite_x1, y2], texture},
+					up:		{uv: [sprite_x1, y1, sprite_x2, y1 + uv_scale_y], texture, rotation: 270},
+					down:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture, rotation: 90},
+					north:	{uv: east_uv, texture},
+					south:	{uv: west_uv, texture},
+				};
 			} else {
 				from = [rect.x * pixel_size[0], 0, rect.y * pixel_size[1]];
 				to = [(rect.x2+1) * pixel_size[0], depth, (rect.y2+1) * pixel_size[1]];
@@ -211,7 +223,8 @@ export const Extruder = {
 				};
 			}
 			if (mirror_x) {
-				[from[0], to[0]] = [-to[0], -from[0]];
+				let sprite_axis = orientation == 'upright_z' ? 2 : 0;
+				[from[sprite_axis], to[sprite_axis]] = [-to[sprite_axis], -from[sprite_axis]];
 			}
 
 			let cube = new Cube({
