@@ -80,7 +80,7 @@ function resolveGeneratedItemConflict() {
 			removeGeneratedItemPlaceholders();
 		} else if (result != 'keep') {
 			resolved_conflicts.delete(project);
-			Undo.undo();
+			if (Project == project) Undo.undo();
 		}
 	})
 }
