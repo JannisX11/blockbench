@@ -11,6 +11,7 @@ declare const DisplayMode: {
 	animate_preview: Preview
 	groundAnimation(): void
 	updateDisplaySkin(): void
+	loadJSON(json: any): void
 }
 
 declare type DisplaySlotName =

@@ -3524,7 +3524,7 @@ Interface.definePanels(function() {
 				dragFace(element, face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
-					if (!element.selected) {
+					if (element && !element.selected) {
 						element.select(event);
 						UVEditor.getSelectedFaces(element, true).empty();
 					}

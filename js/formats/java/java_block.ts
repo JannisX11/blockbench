@@ -1,11 +1,33 @@
-let item_parents = [
+import { ModelFormat } from "../../io/format"
+import { getTexturesById } from "../../texturing/textures"
+import { LoadOptions } from "./../../io/codec"
+
+const ITEM_PARENTS = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
 	'item/handheld_rod','minecraft:item/handheld_rod',
 	'builtin/generated','minecraft:builtin/generated',
 ]
 
-var codec = new Codec('java_block', {
+interface ElementTemplate {
+	name?: string
+	__comment?: string
+	from: ArrayVector3
+	to: ArrayVector3
+	rotation?: any
+	faces: Record<string, any>
+	shade?: boolean
+	light_emission?: number
+	shade_direction_override?: string
+	rotated?: any
+	color?: number
+}
+interface CompileOptions {
+	cube_name?: boolean
+	prevent_dialog?: boolean
+	raw?: boolean
+}
+const codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
 	extension: 'json',
@@ -13,21 +35,21 @@ var codec = new Codec('java_block', {
 	load_filter: {
 		type: 'json',
 		extensions: ['json'],
-		condition(model) {
+		condition(model: any) {
 			return model.parent || model.elements || model.textures;
 		}
 	},
-	compile(options) {
+	compile(options: CompileOptions) {
 		if (options === undefined) options = {}
-		var clear_elements = []
-		var textures_used = []
-		var element_indices = []
-		var overflow_cubes = [];
+		let clear_elements = []
+		let textures_used = []
+		let element_indices = []
+		let overflow_cubes = [];
 
-		function computeCube(s) {
+		function computeCube(s: Cube) {
 			if (s.export == false) return;
 			//Create Element
-			var element = {}
+			let element: Partial<ElementTemplate> = {};
 			element_indices[Cube.all.indexOf(s)] = clear_elements.length
 
 			if ((options.cube_name !== false && !settings.minifiedout.value) || options.cube_name === true) {
@@ -35,10 +57,10 @@ var codec = new Codec('java_block', {
 					element.name = s.name
 				}
 			}
-			element.from = s.from.slice();
-			element.to = s.to.slice();
+			element.from = s.from.slice() as ArrayVector3;
+			element.to = s.to.slice() as ArrayVector3;
 			if (s.inflate) {
-				for (var i = 0; i < 3; i++) {
+				for (let i = 0; i < 3; i++) {
 					element.from[i] -= s.inflate;
 					element.to[i] += s.inflate;
 				}
@@ -84,12 +106,12 @@ var codec = new Codec('java_block', {
 			if (Format.rotation_limit && s.rotation.positiveItems() >= 2) {
 				element.rotated = s.rotation
 			}
-			var element_has_texture
-			var e_faces = {}
-			for (var face in s.faces) {
+			let element_has_texture = false;
+			let e_faces = {}
+			for (let face in s.faces) {
 				if (s.faces.hasOwnProperty(face)) {
 					if (s.faces[face].texture !== null) {
-						var tag = new oneLiner()
+						let tag = new oneLiner<any>()
 						if (s.faces[face].enabled !== false) {
 							tag.uv = s.faces[face].uv.slice();
 							tag.uv.forEach((n, i) => {
@@ -100,7 +122,7 @@ var codec = new Codec('java_block', {
 							tag.rotation = s.faces[face].rotation
 						}
 						if (s.faces[face].texture) {
-							var tex = s.faces[face].getTexture()
+							let tex = s.faces[face].getTexture()
 							if (tex) {
 								tag.texture = '#' + tex.id
 								textures_used.safePush(tex)
@@ -166,10 +188,10 @@ var codec = new Codec('java_block', {
 				return key
 			}
 		}
-		var isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
-		var texturesObj = {}
+		let isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
+		let texturesObj: Record<string, string> = {}
 		Texture.all.forEach(function(t, i){
-			var link = t.javaTextureLink()
+			let link = t.javaTextureLink()
 			if (t.particle) {
 				texturesObj.particle = link
 			}
@@ -189,7 +211,7 @@ var codec = new Codec('java_block', {
 				cancel: 1,
 			}, (result) => {
 				if (result == 0) {
-					selected.splice(0, Infinity, ...overflow_cubes)
+					Outliner.selected.splice(0, Infinity, ...overflow_cubes)
 					updateSelection();
 				}
 			})
@@ -203,7 +225,7 @@ var codec = new Codec('java_block', {
 			Project.parent = '';
 		}*/
 
-		var blockmodel = {
+		let blockmodel: any = {
 			format_version: Project.java_block_version
 		};
 		if (checkExport('comment', Project.credit || settings.credit.value)) {
@@ -235,10 +257,10 @@ var codec = new Codec('java_block', {
 			blockmodel.overrides = Project.overrides.map(override => new oneLiner(override));
 		}
 		if (checkExport('display', Object.keys(Project.display_settings).length >= 1)) {
-			var new_display = {}
-			var entries = 0;
-			for (var i in DisplayMode.slots) {
-				var key = DisplayMode.slots[i]
+			let new_display = {}
+			let entries = 0;
+			for (let i in DisplayMode.slots) {
+				let key = DisplayMode.slots[i]
 				if (DisplayMode.slots.hasOwnProperty(i) && Project.display_settings[key] && Project.display_settings[key].export) {
 					new_display[key] = Project.display_settings[key].export()
 					entries++;
@@ -271,7 +293,7 @@ var codec = new Codec('java_block', {
 				}
 			}
 			iterate(Outliner.root, groups);
-			var i = 0;
+			let i = 0;
 			while (i < groups.length) {
 				if (typeof groups[i] === 'object') {
 					i = Infinity
@@ -292,7 +314,7 @@ var codec = new Codec('java_block', {
 			return autoStringify(blockmodel)
 		}
 	},
-	parse(model, path, args = {}) {
+	parse(model: any, path: string, args: LoadOptions = {}) {
 		if (!model.elements && !model.parent && !model.display && !model.textures) {
 			Blockbench.showMessageBox({
 				translateKey: 'invalid_model',
@@ -308,9 +330,9 @@ var codec = new Codec('java_block', {
 
 		let uses_new_rotations = false;
 
-		var previous_texture_length = import_to_current_project ? Texture.all.length : 0
-		var new_cubes = [];
-		var new_textures = [];
+		let previous_texture_length = import_to_current_project ? Texture.all.length : 0
+		let new_cubes = [];
+		let new_textures = [];
 		if (import_to_current_project) {
 			let groups = [];
 			Undo.initEdit({elements: new_cubes, outliner: true, textures: new_textures, groups})
@@ -336,20 +358,20 @@ var codec = new Codec('java_block', {
 			Project.overrides = model.overrides.slice();
 		}
 
-		var texture_ids = {}
-		var texture_paths = {}
-		var texture_by_link = {}
+		let texture_ids: Record<string, Texture> = {}
+		let texture_paths: Record<string, Texture> = {}
+		let texture_by_link: Record<string, Texture> = {}
 		if (model.textures) {
 			//Create Path Array to fetch textures
-			var path_arr = path.split(osfs)
+			let path_arr = path.split(osfs)
 			if (!path_arr.includes('cit')) {
-				var index = path_arr.length - path_arr.indexOf('models')
+				let index = path_arr.length - path_arr.indexOf('models')
 				path_arr.splice(-index)
 			}
 
-			var texture_arr = model.textures
+			let texture_arr = model.textures
 
-			for (var key in texture_arr) {
+			for (let key in texture_arr) {
 				if (typeof texture_arr[key] === 'string' && key != 'particle') {
 					let link = texture_arr[key];
 					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
@@ -380,8 +402,8 @@ var codec = new Codec('java_block', {
 				}
 			}
 			//Get Rid Of ID overlapping
-			for (var i = previous_texture_length; i < Texture.all.length; i++) {
-				var t = Texture.all[i]
+			for (let i = previous_texture_length; i < Texture.all.length; i++) {
+				let t = Texture.all[i]
 				if (getTexturesById(t.id).length > 1) {
 					t.id = Project.added_models + '_' + t.id
 				}
@@ -392,10 +414,10 @@ var codec = new Codec('java_block', {
 			}
 		}
 
-		var oid = elements.length
+		let oid = Outliner.elements.length
 
 		if (model.elements) {
-			model.elements.forEach(function(obj) {
+			model.elements.forEach((obj: ElementTemplate) => {
 				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
 				if (typeof obj.rotation == 'object') {
@@ -407,8 +429,8 @@ var codec = new Codec('java_block', {
 						if (obj.rotation.angle && obj.rotation.axis) {
 							let axis = getAxisNumber(obj.rotation.axis)
 							if (axis >= 0) {
-								base_cube.rotation.V3_set(0)
-								base_cube.rotation[axis] = obj.rotation.angle
+								base_cube.rotation.V3_set(0, 0, 0);
+								base_cube.rotation[axis] = obj.rotation.angle;
 							}
 						}
 						if (obj.rotation.origin) {
@@ -432,8 +454,8 @@ var codec = new Codec('java_block', {
 					}
 				}
 				//Faces
-				var faces_without_uv = false;
-				for (var key in base_cube.faces) {
+				let faces_without_uv = false;
+				for (let key in base_cube.faces) {
 					if (obj.faces[key] && !obj.faces[key].uv) {
 						faces_without_uv = true;
 					}
@@ -445,9 +467,9 @@ var codec = new Codec('java_block', {
 					base_cube.autouv = 0;
 				}
 
-				for (var key in base_cube.faces) {
-					var read_face = obj.faces[key];
-					var new_face = base_cube.faces[key];
+				for (let key in base_cube.faces) {
+					let read_face = obj.faces[key];
+					let new_face = base_cube.faces[key];
 					if (read_face === undefined) {
 
 						new_face.texture = null
@@ -463,17 +485,17 @@ var codec = new Codec('java_block', {
 							new_face.texture = false;
 							
 						} else if (read_face.texture) {
-							var id = read_face.texture.replace(/^#/, '')
-							var t = texture_ids[id]
+							let id = read_face.texture.replace(/^#/, '')
+							let t = texture_ids[id]
 
 							if (t instanceof Texture === false) {
 								if (texture_paths[read_face.texture]) {
-									var t = texture_paths[read_face.texture]
+									t = texture_paths[read_face.texture]
 									if (t.id === 'particle') {
 										t.extend({id: id, name: '#'+id}).loadEmpty(3)
 									}
 								} else {
-									var t = new Texture({id: id, name: '#'+id}).add(false).loadEmpty(3)
+									t = new Texture({id: id, name: '#'+id}).add(false).loadEmpty(3)
 									texture_ids[id] = t
 									new_textures.push(t);
 								}
@@ -499,16 +521,17 @@ var codec = new Codec('java_block', {
 		}
 		if (model.groups && model.groups.length > 0) {
 
-			function parseGroupsForJava(array, import_reference, startIndex) {
-				function iterate(array, save_array, addGroup) {
-					var i = 0;
+			function parseGroupsForJava(array, import_reference?: Group, startIndex?: number) {
+				function iterate(array, save_array: any[], addGroup?: Group | typeof Outliner.ROOT) {
+					let i = 0;
 					while (i < array.length) {
 						if (typeof array[i] === 'number' || typeof array[i] === 'string') {
-			
+							
+							let obj;
 							if (typeof array[i] === 'number') {
-								var obj = elements[array[i] + (startIndex ? startIndex : 0) ]
+								obj = Outliner.elements[array[i] + (startIndex ? startIndex : 0) ]
 							} else {
-								var obj = OutlinerNode.uuids[array[i]];
+								obj = OutlinerNode.uuids[array[i]];
 							}
 							if (obj) {
 								obj.removeFromParent()
@@ -520,7 +543,7 @@ var codec = new Codec('java_block', {
 								OutlinerNode.uuids[array[i].uuid].removeFromParent();
 								delete OutlinerNode.uuids[array[i].uuid];
 							}
-							var obj = new Group(array[i], array[i].uuid)
+							let obj = new Group(array[i], array[i].uuid)
 							obj.parent = addGroup
 							obj.isOpen = !!array[i].isOpen
 							if (array[i].uuid) {
@@ -547,7 +570,7 @@ var codec = new Codec('java_block', {
 						})
 						Group.all.empty();
 					}
-					iterate(array, Outliner.root, 'root');
+					iterate(array, Outliner.root, Outliner.ROOT);
 				}
 			}
 
@@ -562,7 +585,7 @@ var codec = new Codec('java_block', {
 		}
 		if (
 			!model.elements &&
-			item_parents.includes(model.parent) &&
+			ITEM_PARENTS.includes(model.parent) &&
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
@@ -572,7 +595,7 @@ var codec = new Codec('java_block', {
 				local_pivot: [0, -7.5, -16],
 				locked: true,
 				export: false
-			}).init()
+			}).init();
 			texture_mesh.locked = true;
 
 			new_cubes.push(texture_mesh);
@@ -667,9 +690,7 @@ var codec = new Codec('java_block', {
 	},
 })
 
-var format = new ModelFormat({
-	id: 'java_block',
-	extension: 'json',
+const format = new ModelFormat('java_block', {
 	icon: 'icon-format_block',
 	category: 'minecraft',
 	target: 'Minecraft: Java Edition',
@@ -702,7 +723,7 @@ var format = new ModelFormat({
 	pbr: true,
 	cube_size_limiter: {
 		coordinate_limits: [-16, 32],
-		test(cube, values = 0) {
+		test(cube: Cube, values: any = {}) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
 			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
@@ -716,13 +737,13 @@ var format = new ModelFormat({
 				)
 			})
 		},
-		move(cube, values = 0) {
+		move(cube: Cube, values: any = {}) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
 			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
 			
 			[0, 1, 2].forEach((ax) => {
-				var overlap = to[ax] + inflate - 32
+				let overlap = to[ax] + inflate - 32
 				if (overlap > 0) {
 					//If positive site overlaps
 					from[ax] -= overlap
@@ -744,7 +765,7 @@ var format = new ModelFormat({
 				}
 			})
 		},
-		clamp(cube, values = 0) {
+		clamp(cube: Cube, values: any = {}) {
 			let from = values.from || cube.from;
 			let to = values.to || cube.to;
 			let inflate = values.inflate == undefined ? cube.inflate : values.inflate;
@@ -775,12 +796,11 @@ Object.defineProperty(format, 'rotation_limit', {
 
 
 BARS.defineActions(function() {
-	codec.export_action = new Action({
-		id: 'export_blockmodel',
+	codec.export_action = new Action('export_blockmodel', {
 		icon: 'icon-format_block',
 		category: 'file',
 		condition: () => Format == format,
-		click: function () {
+		click() {
 			codec.export();
 		}
 	})
@@ -788,7 +808,7 @@ BARS.defineActions(function() {
 		icon: 'assessment',
 		category: 'file',
 		condition: () => Format == format,
-		click: function () {
+		click() {
 			Blockbench.import({
 				resource_id: 'model',
 				extensions: ['json'],
@@ -796,8 +816,8 @@ BARS.defineActions(function() {
 				multiple: true,
 			}, function(files) {
 				files.forEach(file => {
-					var model = autoParseJSON(file.content, {file_path: file.path})
-					codec.parse(model, file.path, {
+					let model = autoParseJSON(file.content as string, {file_path: file.path});
+					(codec as any).parse(model, file.path, {
 						import_to_current_project: true
 					})
 				})
@@ -805,3 +825,10 @@ BARS.defineActions(function() {
 		}
 	})
 })
+
+declare global {
+	interface BarItemRegistry {
+		export_blockmodel: Action
+		import_java_block_model: Action
+	}
+}

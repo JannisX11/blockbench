@@ -63,7 +63,6 @@ export interface BarItemOptions extends KeybindItemOptions {
 }
 /**
  * BarItem, the base abstract class for anything that can be added to a toolbar
- * @module Actions
  */
 export abstract class BarItem extends EventSystem {
 	static constructing: BarItem | undefined;

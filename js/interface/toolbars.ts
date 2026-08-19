@@ -749,16 +749,16 @@ export const BARS = {
 				},
 				methods: {
 					sort(event: VueDraggableEvent) {
-						var item = this.currentBar.splice(event.oldIndex, 1)[0]
+						let item = this.currentBar.splice(event.oldIndex, 1)[0]
 						this.currentBar.splice(event.newIndex, 0, item)
 						this.update();
 					},
 					drop(event: VueDraggableEvent) {
-						var scope = this;
+						let scope = this;
 						$('#bar_items_current .tooltip').css('display', '')
 						setTimeout(() => {
 							if ($('#bar_items_current:hover').length === 0 && !Blockbench.isTouch) {
-								var item = scope.currentBar.splice(event.newIndex, 1)[0];
+								let item = scope.currentBar.splice(event.newIndex, 1)[0];
 								if (item instanceof BarItem) item.toolbars.remove(BARS.editing_bar);
 								scope.update();
 							}

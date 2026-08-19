@@ -629,6 +629,23 @@ export namespace Filesystem {
 	document.ondragover = function(event) {
 		event.preventDefault()
 	}
+	export function getFilePaths(file_names: FileList): string[] {
+		let paths: string[] = [];
+		if (isApp) {
+			for (let file of file_names) {
+				if ('path' in file && typeof file.path == 'string' && file.path) {
+					paths.push(file.path);
+				} else {
+					let path = webUtils.getPathForFile(file);
+					if (path) paths.push(path);
+				}
+			}
+		} else {
+			paths = [...file_names] as unknown as string[];
+		}
+		return paths;
+	}
+
 	document.body.ondrop = function(event) {
 		event.preventDefault()
 		let text = event.dataTransfer.getData('text/plain');
@@ -637,26 +654,10 @@ export namespace Filesystem {
 			Blockbench.dispatchEvent('drop_text', {text});
 		}
 
-		function getFilePaths(file_names: FileList): string[] {
-			let paths: string[] = [];
-			if (isApp) {
-				for (let file of file_names) {
-					if ('path' in file && typeof file.path == 'string' && file.path) {
-						paths.push(file.path);
-					} else {
-						let path = webUtils.getPathForFile(file);
-						if (path) paths.push(path);
-					}
-				}
-			} else {
-				paths = [...file_names] as unknown as string[];
-			}
-			return paths;
-		}
-
 		let handled = false;
 		// Native file drop, or drop from VS Code via paths
 		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
+		if (!paths.some(path => path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
 			if (!paths.length) return;
 

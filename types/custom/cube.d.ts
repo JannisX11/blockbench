@@ -51,6 +51,8 @@ declare class Cube extends OutlinerElement {
 	 * Visibility of the cube in the viewport
 	 */
 	visibility: boolean
+	light_emission: number
+	shade_direction_override: any
 	from: ArrayVector3
 	to: ArrayVector3
 	rotation: ArrayVector3

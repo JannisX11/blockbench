@@ -1,10 +1,114 @@
+import { Filesystem } from "../file_system";
 import { fs } from "../native_apis";
 
-export const Codecs = {};
+/**
+ * A codec represents a specific file format that can be imported into and exported from Blockbench. The codec handles the compilation and parsing, as well as the loading and exporting logic
+ * @module
+ */
+
+export interface LoadOptions {
+	import_to_current_project?: boolean
+	externalDataLoader?: (path: string) => any
+	[key: string]: unknown
+}
+export interface CodecOptions {
+	name?: string
+	load?(model: any, file: Filesystem.FileResult, args?: LoadOptions): void
+	compile?(options?: any): string | ArrayBuffer | any
+	parse?(data: any, path: string, args?: LoadOptions): void
+	export?(): void
+	/**
+	 * Generate a file name to suggest when exporting
+	 */
+	fileName?(): string
+	startPath?(): string
+	write?(content: any, path: string): void
+	overwrite?(content: any, path: string, callback: (path: any) => void): void
+	afterDownload?(path: any): void
+	afterSave?(path: any): void
+	exportCollection?(collection: Collection): void
+	writeCollection?(collection: Collection): void
+
+	dispatchEvent?(event_name: string, data: any): void
+
+	extension?: string
+	/**
+	 * Whether to remember the models exported using this codec
+	 */
+	remember?: boolean
+	/**
+	 * Whether the codec can be used to export a part of the model via a collection
+	 */
+	support_partial_export?: boolean
+	support_offset?: boolean
+	load_filter?: {
+		extensions: string[] | (() => string[])
+		type: 'json' | 'text' | 'image' | 'binary'
+		readtype?: 'buffer' | 'binary' | 'text' | 'image'
+		condition?: ConditionResolvable
+	}
+	/**
+	 * List of export option inputs, based on the Dialog form API
+	 */
+	export_options?: {
+		[key: string]: FormElementOptions
+	}
+	/**
+	 * Default action that is used to export to the codec
+	 */
+	export_action?: Action
+	format?: ModelFormat
+	plugin?: string
+}
+
+/**
+ * A codec represents a specific file format that can be imported into and exported from Blockbench. The codec handles the compilation and parsing, as well as the loading and exporting logic
+ */
 export class Codec extends EventSystem {
-	constructor(id, data) {
+	/**
+	 * The display name of the codec
+	 */
+	name: string
+	/**
+	 * The default file extension that the codec uses
+	 */
+	extension: string
+	/**
+	 * Whether to remember files that use this codec in the recent models list
+	 */
+	remember: boolean
+	/**
+	 * Whether the codec can be used to export a part of the model via a collection
+	 */
+	support_partial_export: boolean
+	support_offset: boolean
+	/**
+	 * If available, the action that is used to export files using this codec
+	 */
+	export_action?: Action
+
+	/**
+	 * List of export option inputs
+	 */
+	export_options: Record<string, FormElementOptions> = {};
+	/**
+	 * Additional properties
+	 */
+	[key: string]: any
+	/**
+	 * Default/main format of this codec
+	 */
+	format?: ModelFormat
+	plugin?: string
+
+
+	/**
+	 * Creates a new codec
+	 * @param id Codec ID
+	 * @param options Codec options
+	 */
+	constructor(id: string, data: CodecOptions = {}) {
 		super();
-		if (!data) data = 0;
 		this.id = id;
 		Codecs[id] = this;
 		this.name = data.name || 'Unknown Format';
@@ -33,7 +137,10 @@ export class Codec extends EventSystem {
 		this.plugin = data.plugin || (typeof Plugins != 'undefined' ? Plugins.currently_loading : '');
 		this.context = null;
 	}
-	getExportOptions() {
+	/**
+	 * Return the stored export option values of the current project
+	 */
+	getExportOptions(): { [key: string]: any } {
 		let options = {};
 		for (let key in this.export_options) {
 			options[key] = this.export_options[key].value;
@@ -43,7 +150,13 @@ export class Codec extends EventSystem {
 		return options;
 	}
 	//Import
-	load(model, file, args = {}) {
+	/**
+	 * Load a file into the program
+	 * @param model
+	 * @param file
+	 * @param args Load options
+	 */
+	load(model: any, file?: Filesystem.FileResult, args: LoadOptions = {}): boolean | void {
 		if (!this.parse) return false;
 		if (!args.import_to_current_project) {
 			setupProject(this.format)
@@ -71,13 +184,25 @@ export class Codec extends EventSystem {
 		}
 		Settings.updateSettingsInProfiles();
 	}
-	//parse(model, path)
+	/**
+	 * Takes the content of a file, and loads the model into the current Blockbench project
+	 * @param data File content
+	 * @param path File path
+	 */
+	parse?(data: any, path: string, args?: LoadOptions): void
 
-	compile(options = this.getExportOptions()) {
+	/**
+	 * Compiles the file content
+	 * @param options
+	 */
+	compile(options = this.getExportOptions()): any {
 		this.dispatchEvent('compile', {content: ''})
 		return '';
 	}
-	async promptExportOptions() {
+	/**
+	 * Prompt the user to enter their preferred export settings into the dialog
+	 */
+	async promptExportOptions(): Promise<{ [key: string]: any } | null> {
 		let codec = this;
 		return await new Promise((resolve, reject) => {
 			let form = {};
@@ -111,7 +236,10 @@ export class Codec extends EventSystem {
 			}).show();
 		})
 	}
-	async export(options) {
+	/**
+	 * Opens the file browser to export a file of this type
+	 */
+	async export(options?: Record<string, any>) {
 		if (Object.keys(this.export_options).length) {
 			let result = await this.promptExportOptions();
 			if (options === null) return;
@@ -127,12 +255,12 @@ export class Codec extends EventSystem {
 			custom_writer: isApp ? (a, b) => this.write(a, b) : null,
 		}, path => this.afterDownload(path))
 	}
-	async patchCollectionExport(collection, callback) {
+	async patchCollectionExport(collection: Collection, callback) {
 		this.context = collection;
 		let name = this.name;
 		this.name = collection.name;
 		let element_export_values = {};
-		let all = Outliner.elements.concat(Group.all);
+		let all = (Outliner.elements as OutlinerNode[]).concat(Group.all);
 		for (let node of all) {
 			if (typeof node.export != 'boolean') continue;
 			element_export_values[node.uuid] = node.export;
@@ -154,46 +282,58 @@ export class Codec extends EventSystem {
 			}
 		}
 	}
-	async exportCollection(collection) {
+	async exportCollection(collection: Collection) {
 		this.patchCollectionExport(collection, async () => {
 			await this.export();
 		})
 	}
-	async writeCollection(collection) {
+	async writeCollection(collection: Collection) {
 		this.patchCollectionExport(collection, async () => {
 			this.write(this.compile(), collection.export_path);
 			collection.saved = true;
 		})
 	}
-	fileName() {
+	/**
+	 * Generate a file name to suggest when exporting
+	 */
+	fileName(): string {
 		if (this.context instanceof Collection) {
 			return this.context.name;
 		} else {
 			return Project.name||'model';
 		}
 	}
-	startPath() {
+	/**
+	 * Generates the suggested file path. This is the path that the explorer opens in when exporting this type
+	 */
+	startPath(): string {
 		if (this.context instanceof Collection) {
 			return this.context.export_path;
 		} else {
 			return Project.export_path;
 		}
 	}
-	write(content, path) {
+	/**
+	 * Write the content of this file to the selected location. The default method can be overwritten to achieve custom behavior
+	 * @param content File content, as generated by compile()
+	 * @param path The file export path
+	 */
+	write(content: any, path: string) {
 		if (fs.existsSync(path) && this.overwrite) {
 			this.overwrite(content, path, path => this.afterSave(path))
 		} else {
 			Blockbench.writeFile(path, {content}, path => this.afterSave(path));
 		}
 	}
-	//overwrite(content, path, cb)
-	afterDownload(path) {
+	overwrite?(content: any, path: string, callback: (path: string) => void): void;
+
+	afterDownload(path: string): void {
 		if (this.remember) {
 			Project.saved = true;
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
 	}
-	afterSave(path) {
+	afterSave(path: string): void {
 		var name = pathToName(path, true)
 		if (this.context instanceof Collection) {
 			this.context.export_path = path;
@@ -225,34 +365,49 @@ export class Codec extends EventSystem {
 		delete Codecs[this.id];
 		if (this.format && this.format.codec == this) delete this.format.codec;
 	}
-}
-Codec.getAllExtensions = function() {
-	let extensions = [];
-	for (let id in Codecs) {
-		let codec = Codecs[id];
-		if (codec.load_filter && codec.load_filter.extensions) {
-			let list = typeof codec.load_filter.extensions == 'function'
-				? codec.load_filter.extensions()
-				: codec.load_filter.extensions ?? [];
-			extensions.safePush(...list);
+
+	/**
+	 * Get a list of all possible extensions of all codecs
+	 */
+	static getAllExtensions(): string[] {
+		let extensions = [];
+		for (let id in Codecs) {
+			let codec = Codecs[id];
+			if (codec.load_filter && codec.load_filter.extensions) {
+				let list = typeof codec.load_filter.extensions == 'function'
+					? codec.load_filter.extensions()
+					: codec.load_filter.extensions ?? [];
+				extensions.safePush(...list);
+			}
+		}
+		return extensions;
+	}
+
+	/**
+	 * Get the read type that a file needs, based on the load filters of all codecs
+	 */
+	static getReadType(path: string) {
+		let extension = pathToExtension(path);
+		for (let id in Codecs) {
+			let filter = Codecs[id].load_filter;
+			if (!filter || !filter.readtype) continue;
+			let list = typeof filter.extensions == 'function'
+				? filter.extensions()
+				: filter.extensions ?? [];
+			if (list.includes(extension)) return filter.readtype;
 		}
 	}
-	return extensions;
 }
-Codec.getReadType = function(path) {
-	let extension = pathToExtension(path);
-	for (let id in Codecs) {
-		let filter = Codecs[id].load_filter;
-		if (!filter || !filter.readtype) continue;
-		let list = typeof filter.extensions == 'function'
-			? filter.extensions()
-			: filter.extensions ?? [];
-		if (list.includes(extension)) return filter.readtype;
-	}
-}
+export const Codecs: Record<string, Codec> = {};
 
 
-Object.assign(window, {
+const global = {
 	Codec,
 	Codecs
-});
+};
+declare global {
+	const Codec: typeof global.Codec
+	type Codec = import('./codec').Codec
+	const Codecs: Record<string, Codec>
+}
+Object.assign(window, global);
