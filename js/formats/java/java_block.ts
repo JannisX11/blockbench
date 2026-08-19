@@ -933,3 +933,32 @@ Blockbench.on('finished_edit', () => {
 	if (Format?.id != 'java_block') return;
 	setTimeout(resolveGeneratedItemConflict, 0);
 })
+
+new ValidatorCheck('generated_item_model_elements', {
+	condition: () => Format?.id == 'java_block' && GeneratedItemMesh.all.length > 0,
+	update_triggers: ['finished_edit', 'undo', 'redo'],
+	run() {
+		if (!hasOwnElements()) return;
+		this.warn({
+			message: 'This model has a generated item model and its own elements. Minecraft only uses the elements, so the generated shape is ignored in game.',
+			buttons: [
+				{
+					name: 'Convert to Extruded Model',
+					icon: 'eject',
+					click() {
+						Validator.dialog.hide();
+						convertTextureMeshesToCubes(GeneratedItemMesh.all.slice());
+					}
+				},
+				{
+					name: 'Remove Generated Model',
+					icon: 'delete',
+					click() {
+						Validator.dialog.hide();
+						removeGeneratedItemPlaceholders();
+					}
+				}
+			]
+		})
+	}
+})
