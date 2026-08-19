@@ -1715,6 +1715,8 @@
 	"action.add_locator.desc": "Adds a new locator to control positions of particles, leashes etc",
 	"action.add_null_object": "Add Null Object",
 	"action.add_null_object.desc": "Adds a new null object",
+	"action.convert_texture_mesh_to_cubes": "Convert to Extruded Model",
+	"action.convert_texture_mesh_to_cubes.desc": "Replace the texture mesh with cubes extruded from its texture, in the same place",
 	"action.add_texture_mesh": "Add Texture Mesh",
 	"action.add_texture_mesh.desc": "Adds a new Texture Mesh",
 	"action.add_billboard": "Add Billboard",

@@ -1,3 +1,4 @@
+import { Extruder } from '../../io/extrude_image'
 export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
@@ -81,6 +82,7 @@ export class TextureMesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		new MenuSeparator('manage'),
+		'convert_texture_mesh_to_cubes',
 		'rename',
 		'toggle_visibility',
 		'delete'
@@ -341,7 +343,59 @@ new NodePreviewController(TextureMesh, {
 	}
 })
 
+function convertTextureMeshToCubes(element, group_parent) {
+	let texture = getShapeTexture();
+	if (!texture || !texture.width || !texture.img) return {cubes: []};
+
+	return Extruder.extrudeTexture(texture, {
+		mode: 'areas',
+		scan_tolerance: 141,
+		orientation: 'flat',
+		mirror_x: true,
+		pixel_size: [
+			Project.getUVWidth(texture) / texture.width * element.scale[0],
+			Project.getUVHeight(texture) / texture.height * element.scale[2]
+		],
+		depth: element.scale[1],
+		offset: [
+			element.local_pivot[0] + element.origin[0],
+			element.local_pivot[1] + element.origin[1] - element.scale[1],
+			element.local_pivot[2] + element.origin[2]
+		],
+		rotation: element.rotation,
+		origin: element.origin,
+		name: element.name,
+		group: element.name,
+		parent: group_parent
+	});
+}
+
+export function convertTextureMeshesToCubes(elements) {
+	let cubes = [];
+	let groups = [];
+	Undo.initEdit({elements, groups, outliner: true, selection: true});
+	for (let element of elements) {
+		let converted = convertTextureMeshToCubes(element, element.parent);
+		if (!converted.cubes.length) continue;
+		if (converted.group) groups.push(converted.group);
+		cubes.push(...converted.cubes);
+		element.remove();
+	}
+	Undo.finishEdit('Convert texture mesh to cubes', {elements: cubes, groups, outliner: true, selection: true});
+	updateSelection();
+	return cubes;
+}
+
 BARS.defineActions(function() {
+	new Action({
+		id: 'convert_texture_mesh_to_cubes',
+		icon: 'eject',
+		category: 'edit',
+		condition: () => Modes.edit && TextureMesh.selected.length,
+		click() {
+			convertTextureMeshesToCubes(TextureMesh.selected.slice());
+		}
+	})
 	new Action({
 		id: 'add_texture_mesh',
 		icon: 'fa-puzzle-piece',
