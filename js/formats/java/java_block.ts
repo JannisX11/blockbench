@@ -28,7 +28,7 @@ interface CompileOptions {
 	prevent_dialog?: boolean
 	raw?: boolean
 }
-function confirmGeneratedItemConversion(placeholder: TextureMesh) {
+function confirmGeneratedItemConversion(placeholder: GeneratedItemMesh) {
 	Blockbench.showMessageBox({
 		translateKey: 'convert_generated_item_model',
 		icon: 'eject',
