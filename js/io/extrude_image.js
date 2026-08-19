@@ -25,6 +25,12 @@ export const Extruder = {
 					flat: 'dialog.extrude.orientation.flat',
 				}
 			},
+			depth: {
+				label: 'dialog.extrude.depth',
+				type: 'number',
+				value: 1,
+				min: 0
+			},
 			scan_tolerance: {
 				label: 'dialog.extrude.opacity',
 				type: 'range',
@@ -39,6 +45,9 @@ export const Extruder = {
 			Extruder.startConversion(formResult);
 		}
 	}),
+	getPixelSize() {
+		return (Format.cube_size_limiter && !Format.integer_size) ? 16 / Extruder.width : 1;
+	},
 	drawImage(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
@@ -58,6 +67,7 @@ export const Extruder = {
 			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
 			Extruder.width = Extruder.ext_img.naturalWidth;
 			Extruder.height = Extruder.ext_img.naturalHeight;
+			Extruder.dialog.setFormValues({depth: Extruder.getPixelSize()});
 
 			if (Extruder.width > 128) return;
 
@@ -138,10 +148,7 @@ export const Extruder = {
 		texture.uv_width = Extruder.ext_img.naturalWidth;
 		texture.uv_height = Extruder.ext_img.naturalHeight;
 
-		let pixel_size = 1;
-		if (Format.cube_size_limiter && !Format.integer_size) {
-			pixel_size = 16 / Extruder.width;
-		}
+		let pixel_size = Extruder.getPixelSize();
 		let result = Extruder.extrudeTexture(texture, Object.assign({
 			image: Extruder.ext_img,
 			pixel_size: [pixel_size, pixel_size],

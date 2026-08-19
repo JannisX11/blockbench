@@ -613,6 +613,7 @@
 	"dialog.extrude.orientation.upright": "Upright X",
 	"dialog.extrude.orientation.upright_z": "Upright Z",
 	"dialog.extrude.orientation.flat": "Flat",
+	"dialog.extrude.depth": "Depth",
 	"dialog.extrude.opacity": "Minimum Opacity",
 	"dialog.extrude.scan": "Scan and Import",
 
