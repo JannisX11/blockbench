@@ -91,18 +91,67 @@ export const Extruder = {
 			ctx.stroke();
 		}
 	},
+	scanAreas(image_data, width, height, options = {}) {
+		let mode = options.mode || 'areas';
+		let tolerance = Math.round(options.scan_tolerance ?? 255);
+		let finished_pixels = {};
+		let areas = [];
+
+		function isOpaquePixel(px_x, px_y) {
+			let opacity = image_data[(px_x + width * px_y) * 4 + 3];
+			return Math.isBetween(px_x, 0, width-1)
+				&& Math.isBetween(px_y, 0, height-1)
+				&& opacity >= tolerance;
+		}
+		function isPixelFinished(x, y) {
+			return (finished_pixels[x] !== undefined && finished_pixels[x][y] === true);
+		}
+
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				if (isPixelFinished(x, y) || !isOpaquePixel(x, y)) continue;
+
+				let rect = {x, y, x2: x, y2: y};
+				let loop = true;
+				let safety_limit = 5000;
+				while (loop && safety_limit) {
+					let can_expand_x = false;
+					let can_expand_y = false;
+					if (mode === 'areas' || mode === 'lines') {
+						can_expand_x = true;
+						for (let check = rect.y; check <= rect.y2; check++) {
+							if (!isOpaquePixel(rect.x2 + 1, check) || isPixelFinished(rect.x2 + 1, check)) can_expand_x = false;
+						}
+						if (can_expand_x) rect.x2++;
+					}
+					if (mode === 'areas' || mode === 'columns') {
+						can_expand_y = true;
+						for (let check = rect.x; check <= rect.x2; check++) {
+							if (!isOpaquePixel(check, rect.y2 + 1) || isPixelFinished(check, rect.y2 + 1)) can_expand_y = false;
+						}
+						if (can_expand_y) rect.y2++;
+					}
+					if (!can_expand_x && !can_expand_y) loop = false;
+					safety_limit--;
+				}
+				for (let fy = rect.y; fy <= rect.y2; fy++) {
+					for (let fx = rect.x; fx <= rect.x2; fx++) {
+						if (finished_pixels[fx] === undefined) finished_pixels[fx] = {};
+						finished_pixels[fx][fy] = true;
+					}
+				}
+				areas.push(rect);
+			}
+		}
+		return areas;
+	},
 	startConversion(formResult) {
 		let offset = formResult.offset instanceof Array ? formResult.offset : [0, 0, 0];
 		let depth = typeof formResult.depth == 'number' ? formResult.depth : null;
-		var scan_mode = formResult.mode;
-		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
 
 		//Undo
 		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []})
 		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
-
-		//var ext_x, ext_y;
-		var ctx = Painter.getCanvas(texture).getContext('2d')
 
 		var c = document.createElement('canvas')
 		var ctx = c.getContext('2d');
@@ -113,7 +162,6 @@ export const Extruder = {
 		texture.uv_width = c.width;
 		texture.uv_height = c.height;
 
-		var finished_pixels = {}
 		var cube_nr = 0;
 		var cube_name = texture.name.split('.')[0]
 		Outliner.selected.empty()
@@ -126,132 +174,40 @@ export const Extruder = {
 		let uv_scale_x = Project.getUVWidth(texture) / Extruder.width;
 		let uv_scale_y = Project.getUVHeight(texture) / Extruder.height;
 
-		function isOpaquePixel(px_x, px_y) {
-			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
-			return Math.isBetween(px_x, 0, Extruder.width-1)
-				&& Math.isBetween(px_y, 0, Extruder.height-1)
-				&& opacity >= pixel_opacity_tolerance;
-		}
-		function finishPixel(x, y) {
-			if (finished_pixels[x] === undefined) {
-				finished_pixels[x] = {}
+		for (let rect of Extruder.scanAreas(image_data, c.width, c.height, formResult)) {
+			let from, to, faces;
+			if (formResult.orientation == 'upright')  {
+				from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
+				to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, depth ?? scale_i];
+				faces = {
+					south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+					down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+				};
+			} else {
+				from = [rect.x*scale_i, 0, rect.y*scale_i];
+				to = [(rect.x2+1)*scale_i, depth ?? scale_i, (rect.y2+1)*scale_i];
+				faces = {
+					up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
+					north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
+					south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
+					east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
+					west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
+				};
 			}
-			finished_pixels[x][y] = true
-		}
-		function isPixelFinished(x, y) {
-			return (finished_pixels[x] !== undefined && finished_pixels[x][y] === true)
-		}
-
-		//Scanning
-		let ext_y = 0;
-		while (ext_y < Extruder.height) {
-
-			let ext_x = 0;
-			while (ext_x < Extruder.width) {
-				if (isPixelFinished(ext_x, ext_y) === false && isOpaquePixel(ext_x, ext_y) === true) {
-
-					//Search From New Pixel
-					var loop = true;
-					var rect = {x: ext_x, y: ext_y, x2: ext_x, y2: ext_y}
-					var safety_limit = 5000
-
-					//Expanding Loop
-					while (loop === true && safety_limit) {
-						var y_check, x_check, canExpandX, canExpandY;
-						//Expand X
-						if (scan_mode === 'areas' || scan_mode === 'lines') {
-							y_check = rect.y
-							x_check = rect.x2 + 1
-							canExpandX = true
-							while (y_check <= rect.y2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandX = false;
-								}
-								y_check += 1
-							}
-							if (canExpandX === true) {
-								rect.x2 += 1
-							}
-						} else {
-							canExpandX = false;
-						}
-						//Expand Y
-						if (scan_mode === 'areas' || scan_mode === 'columns') {
-							x_check = rect.x
-							y_check = rect.y2 + 1
-							canExpandY = true
-							while (x_check <= rect.x2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandY = false
-								}
-								x_check += 1
-							}
-							if (canExpandY === true) {
-								rect.y2 += 1
-							}
-						} else {
-							canExpandY = false;
-						}
-						//Conclusion
-						if (canExpandX === false && canExpandY === false) {
-							loop = false;
-						}
-						safety_limit--;
-					}
-
-					//Draw Rectangle
-					var draw_x = rect.x
-					var draw_y = rect.y
-					while (draw_y <= rect.y2) {
-						draw_x = rect.x
-						while (draw_x <= rect.x2) {
-							finishPixel(draw_x, draw_y)
-							draw_x++;
-						}
-						draw_y++;
-					}
-
-					// Generate cube
-					let from, to, faces;
-					if (formResult.orientation == 'upright')  {
-						from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
-						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, depth ?? scale_i];
-						faces = {
-							south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-						};
-					} else {
-						from = [rect.x*scale_i, 0, rect.y*scale_i];
-						to = [(rect.x2+1)*scale_i, depth ?? scale_i, (rect.y2+1)*scale_i];
-						faces = {
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
-						};
-					}
-					var current_cube = new Cube({
-						name: cube_name+'_'+cube_nr,
-						autouv: 0, box_uv: false,
-						from: from.map((v, i) => v + offset[i]),
-						to: to.map((v, i) => v + offset[i]),
-						faces
-					}).init();
-					Outliner.selected.push(current_cube);
-					cube_nr++;
-				}
-
-				ext_x++;
-			}
-			ext_y++;
+			var current_cube = new Cube({
+				name: cube_name+'_'+cube_nr,
+				autouv: 0, box_uv: false,
+				from: from.map((v, i) => v + offset[i]),
+				to: to.map((v, i) => v + offset[i]),
+				faces
+			}).init();
+			Outliner.selected.push(current_cube);
+			cube_nr++;
 		}
 
 		var group = new Group(cube_name).init().addTo()
