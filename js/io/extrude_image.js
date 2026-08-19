@@ -280,7 +280,7 @@ BARS.defineActions(() => {
 	new Action('extrude_texture_to_model', {
 		icon: 'eject',
 		category: 'textures',
-		condition: () => Texture.selected && Project && (!Project.box_uv || Format.optional_box_uv),
+		condition: () => Texture.selected && !Texture.selected.error && Project && (!Project.box_uv || Format.optional_box_uv),
 		click() {
 			Extruder.dialog.show();
 			Extruder.drawTexture(Texture.selected);
