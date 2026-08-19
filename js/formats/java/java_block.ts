@@ -28,6 +28,62 @@ interface CompileOptions {
 	prevent_dialog?: boolean
 	raw?: boolean
 }
+const resolved_conflicts = new WeakSet<object>();
+
+function removeGeneratedItemPlaceholders() {
+	let placeholders = GeneratedItemMesh.all.slice();
+	if (!placeholders.length) return;
+	Undo.initEdit({elements: placeholders, outliner: true, selection: true});
+	placeholders.forEach(placeholder => placeholder.remove());
+	Undo.finishEdit('Remove generated item model', {elements: [], outliner: true, selection: true});
+	updateSelection();
+}
+
+function hasOwnElements() {
+	return !!Outliner.elements.find(element => element instanceof GeneratedItemMesh == false);
+}
+
+function resolveGeneratedItemConflict() {
+	if (!GeneratedItemMesh.all.length || !hasOwnElements()) return;
+	if (resolved_conflicts.has(Project)) return;
+	resolved_conflicts.add(Project);
+
+	let project = Project;
+	Blockbench.showMessageBox({
+		translateKey: 'generated_item_model_conflict',
+		icon: 'wallpaper',
+		width: 512,
+		commands: {
+			convert: {
+				text: 'message.generated_item_model_conflict.convert',
+				description: 'message.generated_item_model_conflict.convert.desc',
+				icon: 'eject'
+			},
+			remove: {
+				text: 'message.generated_item_model_conflict.remove',
+				description: 'message.generated_item_model_conflict.remove.desc',
+				icon: 'delete'
+			},
+			keep: {
+				text: 'message.generated_item_model_conflict.keep',
+				description: 'message.generated_item_model_conflict.keep.desc',
+				icon: 'visibility'
+			}
+		},
+		buttons: ['dialog.cancel'],
+		cancel: 0
+	}, result => {
+		if (result == 'convert') {
+			convertTextureMeshesToCubes(GeneratedItemMesh.all.slice());
+		} else if (result == 'remove') {
+			removeGeneratedItemPlaceholders();
+		} else if (result != 'keep') {
+			resolved_conflicts.delete(project);
+			Undo.undo();
+		}
+	})
+}
+
 function confirmGeneratedItemConversion(placeholder: GeneratedItemMesh) {
 	Blockbench.showMessageBox({
 		translateKey: 'convert_generated_item_model',
@@ -872,3 +928,8 @@ declare global {
 		import_java_block_model: Action
 	}
 }
+
+Blockbench.on('finished_edit', () => {
+	if (Format?.id != 'java_block') return;
+	setTimeout(resolveGeneratedItemConflict, 0);
+})
