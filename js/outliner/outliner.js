@@ -818,7 +818,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('duplicate', {
 	subject: 'outliner',
-	condition: () => Modes.edit && Outliner.selected.length,
+	condition: () => Modes.edit && Outliner.selected.find(element => element.getTypeBehavior('duplicatable') != false),
 	priority: -2,
 	run() {
 		let added_elements = [];
@@ -827,6 +827,10 @@ SharedActions.add('duplicate', {
 		Outliner.selected.empty();
 		list.forEachReverse(function(obj, i) {
 			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
+			if (obj.getTypeBehavior('duplicatable') == false) {
+				obj.markAsSelected();
+				return;
+			}
 			let copy = obj.duplicate();
 			added_elements.push(copy);
 			if ('forEachChild' in copy) {
