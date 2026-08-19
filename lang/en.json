@@ -288,6 +288,8 @@
 	"message.outdated_client.message": "Please update to the latest version of Blockbench to do this.",
 	"message.newer_project_format_version.title": "Outdated client",
 	"message.newer_project_format_version.message": "This file was saved in a newer version of Blockbench. Update to Blockbench %0 or newer to be able to open it correctly",
+	"message.generated_item_model.title": "Generated Item Model",
+	"message.generated_item_model.message": "This model has no elements of its own. Minecraft builds the item shape from the `layer0` texture, so the element shown here is only a preview of that shape. It is locked, and is not exported.\n\nEditing it will not change how the item looks in game. Edit the texture instead.",
 	"message.child_model_only.title": "Empty Child Model",
 	"message.child_model_only.message": "This file is a child of %0 and does not contain a model.",
 	"message.child_model_only.open": "Open Parent",

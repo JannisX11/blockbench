@@ -600,6 +600,22 @@ const codec = new Codec('java_block', {
 
 			new_cubes.push(texture_mesh);
 
+			if (settings.dialog_generated_item_model.value) {
+				Blockbench.showMessageBox({
+					translateKey: 'generated_item_model',
+					icon: 'wallpaper',
+					width: 512,
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					},
+					buttons: ['dialog.close']
+				}, (result, checkboxes: any = {}) => {
+					if (checkboxes.dont_show_again) {
+						settings.dialog_generated_item_model.set(false);
+					}
+				})
+			}
+
 		} else if (!model.elements && model.parent) {
 			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
 			Blockbench.showMessageBox({
