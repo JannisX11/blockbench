@@ -1,5 +1,6 @@
 import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
+import { Extruder } from "./../../io/extrude_image"
 import { LoadOptions } from "./../../io/codec"
 
 const ITEM_PARENTS = [
@@ -27,6 +28,37 @@ interface CompileOptions {
 	prevent_dialog?: boolean
 	raw?: boolean
 }
+const GENERATED_ITEM_DEPTH = 1;
+
+function confirmGeneratedItemConversion(texture: Texture, placeholder: TextureMesh) {
+	Blockbench.showMessageBox({
+		translateKey: 'convert_generated_item_model',
+		icon: 'eject',
+		width: 512,
+		buttons: ['message.convert_generated_item_model.confirm', 'dialog.cancel'],
+		confirm: 0,
+		cancel: 1
+	}, async result => {
+		if (result != 0) return;
+		if (placeholder) placeholder.remove();
+
+		let converted = await Extruder.convertImage({
+			name: texture.name,
+			path: texture.path,
+			content: texture.source
+		}, {
+			mode: 'areas',
+			orientation: 'upright',
+			scan_tolerance: 1,
+			depth: GENERATED_ITEM_DEPTH,
+			offset: [0, 0, 8 - GENERATED_ITEM_DEPTH / 2]
+		});
+		if (!converted) {
+			Blockbench.showMessageBox({translateKey: 'invalid_model', icon: 'error'});
+		}
+	})
+}
+
 const codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
@@ -600,11 +632,19 @@ const codec = new Codec('java_block', {
 
 			new_cubes.push(texture_mesh);
 
+			let layer0 = texture_ids.layer0;
 			if (settings.dialog_generated_item_model.value) {
 				Blockbench.showMessageBox({
 					translateKey: 'generated_item_model',
 					icon: 'wallpaper',
 					width: 512,
+					commands: {
+						convert: {
+							text: 'message.generated_item_model.convert',
+							icon: 'eject',
+							condition: !!(layer0 && !layer0.error)
+						}
+					},
 					checkboxes: {
 						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
 					},
@@ -612,6 +652,9 @@ const codec = new Codec('java_block', {
 				}, (result, checkboxes: any = {}) => {
 					if (checkboxes.dont_show_again) {
 						settings.dialog_generated_item_model.set(false);
+					}
+					if (result == 'convert') {
+						confirmGeneratedItemConversion(layer0, texture_mesh);
 					}
 				})
 			}

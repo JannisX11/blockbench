@@ -38,6 +38,21 @@ export const Extruder = {
 			Extruder.startConversion(formResult);
 		}
 	}),
+	async convertImage(file, options) {
+		let image = new Image();
+		await new Promise(resolve => {
+			image.onload = resolve;
+			image.onerror = resolve;
+			image.src = Filesystem.getImageSource(file);
+		})
+		if (!image.naturalWidth) return false;
+		Extruder.ext_img = image;
+		Extruder.image_file = file;
+		Extruder.width = image.naturalWidth;
+		Extruder.height = image.naturalHeight;
+		Extruder.startConversion(options);
+		return true;
+	},
 	drawImage(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
@@ -77,6 +92,8 @@ export const Extruder = {
 		}
 	},
 	startConversion(formResult) {
+		let offset = formResult.offset instanceof Array ? formResult.offset : [0, 0, 0];
+		let depth = typeof formResult.depth == 'number' ? formResult.depth : null;
 		var scan_mode = formResult.mode;
 		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
 
@@ -200,7 +217,7 @@ export const Extruder = {
 					let from, to, faces;
 					if (formResult.orientation == 'upright')  {
 						from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
-						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, scale_i];
+						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, depth ?? scale_i];
 						faces = {
 							south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
 							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
@@ -211,7 +228,7 @@ export const Extruder = {
 						};
 					} else {
 						from = [rect.x*scale_i, 0, rect.y*scale_i];
-						to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i];
+						to = [(rect.x2+1)*scale_i, depth ?? scale_i, (rect.y2+1)*scale_i];
 						faces = {
 							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
 							down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
@@ -224,7 +241,9 @@ export const Extruder = {
 					var current_cube = new Cube({
 						name: cube_name+'_'+cube_nr,
 						autouv: 0, box_uv: false,
-						from, to, faces
+						from: from.map((v, i) => v + offset[i]),
+						to: to.map((v, i) => v + offset[i]),
+						faces
 					}).init();
 					Outliner.selected.push(current_cube);
 					cube_nr++;
