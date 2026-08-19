@@ -1,6 +1,6 @@
 import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
-import { Extruder } from "./../../io/extrude_image"
+import { convertTextureMeshesToCubes } from "./../../outliner/types/texture_mesh"
 import { LoadOptions } from "./../../io/codec"
 
 const ITEM_PARENTS = [
@@ -28,9 +28,7 @@ interface CompileOptions {
 	prevent_dialog?: boolean
 	raw?: boolean
 }
-const GENERATED_ITEM_DEPTH = 1;
-
-function confirmGeneratedItemConversion(texture: Texture, placeholder: TextureMesh) {
+function confirmGeneratedItemConversion(placeholder: TextureMesh) {
 	Blockbench.showMessageBox({
 		translateKey: 'convert_generated_item_model',
 		icon: 'eject',
@@ -38,24 +36,9 @@ function confirmGeneratedItemConversion(texture: Texture, placeholder: TextureMe
 		buttons: ['message.convert_generated_item_model.confirm', 'dialog.cancel'],
 		confirm: 0,
 		cancel: 1
-	}, async result => {
+	}, result => {
 		if (result != 0) return;
-		if (placeholder) placeholder.remove();
-
-		let converted = await Extruder.convertImage({
-			name: texture.name,
-			path: texture.path,
-			content: texture.source
-		}, {
-			mode: 'areas',
-			orientation: 'upright',
-			scan_tolerance: 1,
-			depth: GENERATED_ITEM_DEPTH,
-			offset: [0, 0, 8 - GENERATED_ITEM_DEPTH / 2]
-		});
-		if (!converted) {
-			Blockbench.showMessageBox({translateKey: 'invalid_model', icon: 'error'});
-		}
+		convertTextureMeshesToCubes([placeholder]);
 	})
 }
 
@@ -654,7 +637,7 @@ const codec = new Codec('java_block', {
 						settings.dialog_generated_item_model.set(false);
 					}
 					if (result == 'convert') {
-						confirmGeneratedItemConversion(layer0, texture_mesh);
+						confirmGeneratedItemConversion(texture_mesh);
 					}
 				})
 			}

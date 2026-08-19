@@ -38,21 +38,6 @@ export const Extruder = {
 			Extruder.startConversion(formResult);
 		}
 	}),
-	async convertImage(file, options) {
-		let image = new Image();
-		await new Promise(resolve => {
-			image.onload = resolve;
-			image.onerror = resolve;
-			image.src = Filesystem.getImageSource(file);
-		})
-		if (!image.naturalWidth) return false;
-		Extruder.ext_img = image;
-		Extruder.image_file = file;
-		Extruder.width = image.naturalWidth;
-		Extruder.height = image.naturalHeight;
-		Extruder.startConversion(options);
-		return true;
-	},
 	drawImage(file) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
