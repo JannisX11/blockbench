@@ -146,79 +146,113 @@ export const Extruder = {
 		return areas;
 	},
 	startConversion(formResult) {
-		let offset = formResult.offset instanceof Array ? formResult.offset : [0, 0, 0];
-		let depth = typeof formResult.depth == 'number' ? formResult.depth : null;
+		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []});
+		let texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
+		texture.uv_width = Extruder.ext_img.naturalWidth;
+		texture.uv_height = Extruder.ext_img.naturalHeight;
 
-		//Undo
-		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []})
-		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
-
-		var c = document.createElement('canvas')
-		var ctx = c.getContext('2d');
-		c.width = Extruder.ext_img.naturalWidth;
-		c.height = Extruder.ext_img.naturalHeight;
-		ctx.drawImage(Extruder.ext_img, 0, 0)
-		var image_data = ctx.getImageData(0, 0, c.width, c.height).data
-		texture.uv_width = c.width;
-		texture.uv_height = c.height;
-
-		var cube_nr = 0;
-		var cube_name = texture.name.split('.')[0]
-		Outliner.selected.empty()
-
-		//Scale Index
-		var scale_i = 1;
+		let pixel_size = 1;
 		if (Format.cube_size_limiter && !Format.integer_size) {
-			scale_i = 16 / Extruder.width;
+			pixel_size = 16 / Extruder.width;
 		}
-		let uv_scale_x = Project.getUVWidth(texture) / Extruder.width;
-		let uv_scale_y = Project.getUVHeight(texture) / Extruder.height;
-
-		for (let rect of Extruder.scanAreas(image_data, c.width, c.height, formResult)) {
-			let from, to, faces;
-			if (formResult.orientation == 'upright')  {
-				from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
-				to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, depth ?? scale_i];
-				faces = {
-					south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-					down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-				};
-			} else {
-				from = [rect.x*scale_i, 0, rect.y*scale_i];
-				to = [(rect.x2+1)*scale_i, depth ?? scale_i, (rect.y2+1)*scale_i];
-				faces = {
-					up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
-					north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-					south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-					east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
-					west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
-				};
-			}
-			var current_cube = new Cube({
-				name: cube_name+'_'+cube_nr,
-				autouv: 0, box_uv: false,
-				from: from.map((v, i) => v + offset[i]),
-				to: to.map((v, i) => v + offset[i]),
-				faces
-			}).init();
-			Outliner.selected.push(current_cube);
-			cube_nr++;
-		}
-
-		var group = new Group(cube_name).init().addTo()
-		Outliner.selected.forEach(function(s) {
-			s.addTo(group).init()
-		})
+		Extruder.extrudeTexture(texture, Object.assign({
+			image: Extruder.ext_img,
+			pixel_size: [pixel_size, pixel_size],
+			depth: pixel_size,
+			group: texture.name.split('.')[0]
+		}, formResult));
 
 		Undo.finishEdit(
 			'Add extruded texture',
 			{elements: Outliner.selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
 		)
+	},
+	extrudeTexture(texture, options = {}) {
+		let image = options.image || texture.img;
+		let canvas = document.createElement('canvas');
+		canvas.width = image.naturalWidth || texture.width;
+		canvas.height = image.naturalHeight || texture.height;
+		let ctx = canvas.getContext('2d');
+		ctx.drawImage(image, 0, 0);
+		let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+		let orientation = options.orientation || 'flat';
+		let mirror_x = options.mirror_x == true;
+		let pixel_size = options.pixel_size || [1, 1];
+		let depth = options.depth ?? 1;
+		let offset = options.offset || [0, 0, 0];
+		let origin = options.origin || [0, 0, 0];
+		let rotation_steps = (options.rotation || [0, 0, 0]).map(angle => ((Math.round(angle / 90) % 4) + 4) % 4);
+		let can_roll = (options.rotation || [0, 0, 0]).allAre(angle => Math.abs(angle % 90) < 0.0001);
+
+		let uv_scale_x = Project.getUVWidth(texture) / canvas.width;
+		let uv_scale_y = Project.getUVHeight(texture) / canvas.height;
+
+		let cubes = [];
+		for (let rect of Extruder.scanAreas(image_data, canvas.width, canvas.height, options)) {
+			let x1 = rect.x * uv_scale_x;
+			let x2 = (rect.x2 + 1) * uv_scale_x;
+			let y1 = rect.y * uv_scale_y;
+			let y2 = (rect.y2 + 1) * uv_scale_y;
+			let sprite_x1 = mirror_x ? x2 : x1;
+			let sprite_x2 = mirror_x ? x1 : x2;
+
+			let east_uv = [x2 - uv_scale_x, y1, x2, y2];
+			let west_uv = [x1, y1, x1 + uv_scale_x, y2];
+			if (mirror_x) [east_uv, west_uv] = [west_uv, east_uv];
+
+			let from, to, faces;
+			if (orientation == 'upright') {
+				from = [rect.x * pixel_size[0], 16 - (rect.y2+1) * pixel_size[1], 0];
+				to = [(rect.x2+1) * pixel_size[0], 16 - rect.y * pixel_size[1], depth];
+				faces = {
+					south:	{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					north:	{uv: [sprite_x2, y1, sprite_x1, y2], texture},
+					up:		{uv: [sprite_x1, y1, sprite_x2, y1 + uv_scale_y], texture},
+					down:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture},
+					east:	{uv: east_uv, texture},
+					west:	{uv: west_uv, texture},
+				};
+			} else {
+				from = [rect.x * pixel_size[0], 0, rect.y * pixel_size[1]];
+				to = [(rect.x2+1) * pixel_size[0], depth, (rect.y2+1) * pixel_size[1]];
+				faces = {
+					up:		{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					down:	{uv: [sprite_x1, y2, sprite_x2, y1], texture},
+					north:	{uv: [sprite_x2, y1, sprite_x1, y1 + uv_scale_y], texture},
+					south:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture},
+					east:	{uv: east_uv, texture, rotation: 90},
+					west:	{uv: west_uv, texture, rotation: 270},
+				};
+			}
+			if (mirror_x) {
+				[from[0], to[0]] = [-to[0], -from[0]];
+			}
+
+			let cube = new Cube({
+				name: options.name || texture.name.split('.')[0],
+				autouv: 0, box_uv: false,
+				from: from.map((value, axis) => Math.roundTo(value + offset[axis], 4)),
+				to: to.map((value, axis) => Math.roundTo(value + offset[axis], 4)),
+				origin: origin.slice(),
+				rotation: can_roll ? [0, 0, 0] : (options.rotation || [0, 0, 0]).slice(),
+				faces
+			}).init();
+			if (can_roll) {
+				rotation_steps.forEach((steps, axis) => {
+					if (steps) cube.roll(axis, steps, origin);
+				})
+			}
+			cubes.push(cube);
+		}
+
+		let group = null;
+		if (options.group) {
+			group = new Group({name: options.group}).init().addTo(options.parent);
+			cubes.forEach(cube => cube.addTo(group));
+		}
+		Outliner.selected.replace(cubes);
+		return {cubes, group};
 	}
 }
 
