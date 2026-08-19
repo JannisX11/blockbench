@@ -64,7 +64,7 @@ export class TextureMesh extends OutlinerElement {
 		for (var key in TextureMesh.properties) {
 			TextureMesh.properties[key].copy(this, el)
 		}
-		el.type = 'texture_mesh';
+		el.type = this.type;
 		el.uuid = this.uuid
 		return el;
 	}
@@ -114,6 +114,32 @@ new Property(TextureMesh, 'boolean', 'visibility', {default: true});
 new Property(TextureMesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(TextureMesh, 'texture_mesh');
+
+export class GeneratedItemMesh extends TextureMesh {
+	rename() {
+		return this;
+	}
+	static behavior = {
+		unique_name: false,
+		movable: false,
+		scalable: false,
+		resizable: false,
+		rotatable: false,
+		duplicatable: false,
+	}
+}
+	GeneratedItemMesh.prototype.title = tl('data.generated_item_mesh');
+	GeneratedItemMesh.prototype.icon = 'wallpaper';
+	GeneratedItemMesh.prototype.menu = new Menu([
+		'convert_texture_mesh_to_cubes',
+		'toggle_visibility',
+		'delete'
+	]);
+	GeneratedItemMesh.prototype.buttons = [
+		Outliner.buttons.visibility,
+	];
+
+OutlinerElement.registerType(GeneratedItemMesh, 'generated_item_mesh');
 
 function getShapeTexture() {
 	let tex = Texture.getDefault();
@@ -343,6 +369,26 @@ new NodePreviewController(TextureMesh, {
 	}
 })
 
+new NodePreviewController(GeneratedItemMesh, {
+	setup: TextureMesh.preview_controller.setup,
+	updateGeometry: TextureMesh.preview_controller.updateGeometry,
+	updateFaces: TextureMesh.preview_controller.updateFaces,
+	updateTransform(element) {
+		let {mesh} = element;
+		mesh.position.fromArray(element.origin);
+		mesh.rotation.set(
+			Math.degToRad(element.rotation[0]),
+			Math.degToRad(element.rotation[1]),
+			Math.degToRad(element.rotation[2])
+		);
+		mesh.scale.set(1, 1, 1);
+		if (mesh.parent !== Project.model_3d) Project.model_3d.add(mesh);
+		mesh.updateMatrixWorld();
+
+		this.dispatchEvent('update_transform', {element});
+	}
+})
+
 function convertTextureMeshToCubes(element, group_parent) {
 	let texture = getShapeTexture();
 	if (!texture || !texture.width || !texture.img) return {cubes: []};
@@ -435,5 +481,6 @@ BARS.defineActions(function() {
 })
 
 Object.assign(window, {
-	TextureMesh
+	TextureMesh,
+	GeneratedItemMesh
 });

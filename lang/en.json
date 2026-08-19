@@ -25,6 +25,7 @@
 	"data.null_object": "Null Object",
 	"data.mesh": "Mesh",
 	"data.texture_mesh": "Texture Mesh",
+	"data.generated_item_mesh": "Generated Item Model",
 	"data.spline_mesh": "Spline",
 	"data.billboard": "Billboard",
 	"data.bounding_box": "Bounding Box",

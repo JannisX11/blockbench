@@ -1,6 +1,6 @@
 import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
-import { convertTextureMeshesToCubes } from "./../../outliner/types/texture_mesh"
+import { convertTextureMeshesToCubes, GeneratedItemMesh } from "./../../outliner/types/texture_mesh"
 import { LoadOptions } from "./../../io/codec"
 
 const ITEM_PARENTS = [
@@ -604,14 +604,12 @@ const codec = new Codec('java_block', {
 			model.textures &&
 			typeof model.textures.layer0 === 'string'
 		) {
-			let texture_mesh = new TextureMesh({
+			let texture_mesh = new GeneratedItemMesh({
 				name: model.textures.layer0,
 				rotation: [90, 180, 0],
 				local_pivot: [0, -7.5, -16],
-				locked: true,
 				export: false
 			}).init();
-			texture_mesh.locked = true;
 
 			new_cubes.push(texture_mesh);
 
