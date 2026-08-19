@@ -127,18 +127,7 @@ export class TextureMesh extends OutlinerElement {
 	];
 
 new Property(TextureMesh, 'string', 'name', {default: 'texture_mesh'})
-new Property(TextureMesh, 'string', 'texture_name', {
-	inputs: {
-		element_panel: {
-			input: {label: 'texture_mesh.texture_name', type: 'text'},
-			onChange() {
-				Cube.selected.forEach(element => {
-					element.preview_controller.updateRenderOrder(element);
-				});
-			}
-		}
-	}
-})
+new Property(TextureMesh, 'string', 'texture_name')
 new Property(TextureMesh, 'string', 'texture')
 new Property(TextureMesh, 'vector', 'origin');
 new Property(TextureMesh, 'vector', 'local_pivot');
