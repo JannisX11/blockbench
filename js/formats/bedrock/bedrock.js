@@ -1057,7 +1057,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 					}
 				} else if (obj instanceof TextureMesh) {
 					let texmesh = {
-						texture: obj.texture_name,
+						texture: Texture.all.find(tex => tex.uuid == obj.texture)?.name ?? obj.texture_name,
 						position: obj.origin.slice(),
 					}
 					texmesh.position[0] *= -1;
