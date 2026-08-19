@@ -1067,11 +1067,21 @@ export class Texture {
 				})
 			})
 		} else {
+			let texture_meshes = Outliner.selected.filter(el => el instanceof TextureMesh && el.getTypeBehavior('texturable') != false);
 			affected_elements = Outliner.selected.filter(el => el.faces);
-			if (!affected_elements.length) return;
-			Undo.initEdit({elements: affected_elements})
+			if (!affected_elements.length && !texture_meshes.length) return;
+			Undo.initEdit({elements: [...affected_elements, ...texture_meshes]})
+
+			texture_meshes.forEach((element) => {
+				if (all !== 'blank' || !element.texture) {
+					element.texture = this.uuid;
+					element.texture_name = this.name;
+				}
+			})
+			affected_elements = affected_elements.concat(texture_meshes);
 	
 			affected_elements.forEach((element) => {
+				if (!element.faces) return;
 				let selected_faces = UVEditor.getSelectedFaces(element);
 				for (var face in element.faces) {
 					if (all || element.box_uv || selected_faces.includes(face)) {

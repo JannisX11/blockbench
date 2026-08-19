@@ -86,6 +86,34 @@ export class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
+		{name: 'menu.cube.texture', icon: 'collections', children(context) {
+			function applyTexture(texture, undo_message) {
+				let elements = TextureMesh.selected.filter(element => element.getTypeBehavior('texturable') != false);
+				Undo.initEdit({elements});
+				for (let element of elements) {
+					element.texture = texture ? texture.uuid : '';
+					element.texture_name = texture ? texture.name : '';
+				}
+				Undo.finishEdit(undo_message);
+				Canvas.updateView({elements, element_aspects: {faces: true}});
+			}
+			let arr = [
+				{icon: 'crop_square', name: 'menu.cube.texture.blank', click() {
+					applyTexture(null, 'Unassign texture from texture mesh');
+				}}
+			]
+			Texture.all.forEach(texture => {
+				arr.push({
+					name: texture.name,
+					icon: (texture.mode === 'link' ? texture.img : texture.source),
+					marked: texture.uuid == context.texture,
+					click() {
+						applyTexture(texture, 'Apply texture to texture mesh');
+					}
+				})
+			})
+			return arr;
+		}},
 		new MenuSeparator('manage'),
 		'convert_texture_mesh_to_cubes',
 		'rename',
@@ -132,6 +160,7 @@ export class GeneratedItemMesh extends TextureMesh {
 		resizable: false,
 		rotatable: false,
 		duplicatable: false,
+		texturable: false,
 	}
 }
 	GeneratedItemMesh.prototype.title = tl('data.generated_item_mesh');
