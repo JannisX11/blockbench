@@ -141,8 +141,10 @@ export class GeneratedItemMesh extends TextureMesh {
 
 OutlinerElement.registerType(GeneratedItemMesh, 'generated_item_mesh');
 
-function getShapeTexture() {
-	let tex = Texture.getDefault();
+function getShapeTexture(element) {
+	let tex = (element && element.texture_name && Texture.all.find(texture => {
+		return texture.uuid == element.texture_name || texture.name == element.texture_name;
+	})) || Texture.getDefault();
 	if (tex && tex.pbr_channel != 'color' && tex.getGroup()) {
 		let group = tex.getGroup();
 		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
@@ -180,7 +182,7 @@ new NodePreviewController(TextureMesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element, texture = getShapeTexture()) {
+	updateGeometry(element, texture = getShapeTexture(element)) {
 		
 		let {mesh} = element;
 		let position_array = [];
@@ -348,7 +350,7 @@ new NodePreviewController(TextureMesh, {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else {
-			var tex = Texture.getDefault();
+			var tex = getShapeTexture(element);
 			if (tex && tex.uuid) {
 				mesh.material = tex.getMaterial()
 			} else {
@@ -390,7 +392,7 @@ new NodePreviewController(GeneratedItemMesh, {
 })
 
 function convertTextureMeshToCubes(element, group_parent) {
-	let texture = getShapeTexture();
+	let texture = getShapeTexture(element);
 	if (!texture || !texture.width || !texture.img) return {cubes: []};
 
 	return Extruder.extrudeTexture(texture, {
