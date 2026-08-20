@@ -588,6 +588,8 @@
 	"dialog.adjust_opacity.mode.multiply": "Multiply",
 	"dialog.adjust_opacity.mode.set": "Set",
 
+	"dialog.missing_resources.title": "Missing Files",
+	"dialog.missing_resources.message": "This model uses files that could not be found. Select them below to load the model with its textures.",
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",
