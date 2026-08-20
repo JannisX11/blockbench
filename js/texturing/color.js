@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
 import { colorDistance } from "../util/util";
@@ -115,7 +116,7 @@ export const ColorPanel = {
 
 		if (extension == 'png') {
 			var img = new Image();
-			img.src = file.content || file.path.replace(/#/g, '%23');
+			img.src = Filesystem.getImageSource(file);
 			img.onload = function() {
 				var c = document.createElement('canvas');
 				var ctx = c.getContext('2d');

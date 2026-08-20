@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 //Extruder
 export const Extruder = {
 	dialog: new Dialog({
@@ -43,7 +44,7 @@ export const Extruder = {
 		var ctx = Extruder.canvas.getContext('2d')
 
 		Extruder.ext_img = new Image()
-		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
+		Extruder.ext_img.src = Filesystem.getImageSource(file)
 		Extruder.image_file = file
 		Extruder.ext_img.style.imageRendering = 'pixelated'
 		Extruder.canvas.style.imageRendering = 'pixelated'

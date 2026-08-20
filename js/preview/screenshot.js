@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 import { currentwindow, fs, nativeImage } from "../native_apis";
 import { applyPalette, quantize } from "../util/gif";
 
@@ -489,7 +490,7 @@ export const Screencam = {
 		}
 		if (options.background_image) {
 			vars.background_image = new Image();
-			vars.background_image.src = options.background_image
+			vars.background_image.src = Filesystem.getImageSource(options.background_image)
 			vars.background_image.onerror = () => {
 				vars.background_image = null;
 			}

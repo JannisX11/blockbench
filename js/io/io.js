@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 import { shell } from "../native_apis";
 import { Extruder } from './extrude_image'
 
@@ -119,7 +120,7 @@ export async function loadImages(files, event) {
 
 	let img = new Image();
 	await new Promise((resolve, reject) => {
-		img.src = isApp ? files[0].path : files[0].content;
+		img.src = Filesystem.getImageSource(files[0]);
 		img.onload = resolve;
 		// TGA images will fail, should still continue
 		img.onerror = resolve;
