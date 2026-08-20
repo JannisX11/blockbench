@@ -83,7 +83,8 @@ new TransformerModule('edit', {
 		if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
 			if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
 				if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
-					SplineGizmos.refreshGizmos(Transformer);
+					SplineGizmos.refreshGizmos();
+					attached_nodes.push(SplineMesh.selected[0]); // Replaces "scope.attach(spline)"
 				} else if (Outliner.selected.length) {
 					Outliner.selected.forEach(element => {
 						if (

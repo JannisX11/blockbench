@@ -4,7 +4,7 @@
  */
 
 import { PointerTarget } from "../../interface/pointer_target";
-import { getRotationObjects } from "../transform";
+import { selectSplinePoints } from "../transform";
 import { TransformerModule } from "./transform_modules";
 
  ( function () {
@@ -857,7 +857,7 @@ import { TransformerModule } from "./transform_modules";
 				this.handleMode = newMode;
 				this.updateAllGizmoTransforms();
 			}
-			this.refreshGizmos = function(scope) {
+			this.refreshGizmos = function() {
 				let spline = SplineMesh.selected[0];
 
 				// Dispose of previous gizmos
@@ -886,7 +886,6 @@ import { TransformerModule } from "./transform_modules";
 					kid.renderOrder = 999;
 				});
 
-				// if (scope) scope.attach(spline);
 				this.spline = spline;
 			}
 			this.tryAssignIndex = function(object) {
@@ -913,7 +912,7 @@ import { TransformerModule } from "./transform_modules";
 					gizmo.select();
 				});
 			}
-			this.selectSplinePoints = function(scope) {
+			this.selectPoints = function(scope) {
 				let gizmo = this.getCurrent();
 				let spline = OutlinerNode.uuids[gizmo.spline];
 				let handle = OutlinerNode.uuids[gizmo.spline].handles[gizmo.handle];
@@ -1210,7 +1209,8 @@ import { TransformerModule } from "./transform_modules";
 				let module = TransformerModule.active;
 				if (module) {
 					let result = module.updateGizmo({});
-					this.visible = result !== false && Canvas.show_gizmos;
+					let isEditingSpline = SplineMesh.hasSelected() && BarItems.spline_handle_mode !== "object";
+					this.visible = (result !== false || isEditingSpline) && Canvas.show_gizmos;
 					if (!this.visible) {
 						this.axis = this.hoverAxis = null;
 					}
@@ -1303,7 +1303,7 @@ import { TransformerModule } from "./transform_modules";
 							// Spline Gizmos cannot and should not trigger draggin states.
 							PointerTarget.endTarget();
 							
-							SplineGizmos.selectSplinePoints(scope);
+							SplineGizmos.selectPoints(scope);
 							SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 							
 							event.preventDefault();
