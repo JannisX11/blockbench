@@ -1217,8 +1217,7 @@ import { TransformerModule } from "./transform_modules";
 				let module = TransformerModule.active;
 				if (module) {
 					let result = module.updateGizmo({});
-					let isEditingSpline = SplineMesh.hasSelected() && BarItems.spline_handle_mode !== "object";
-					this.visible = (result !== false || isEditingSpline) && Canvas.show_gizmos;
+					this.visible = (result !== false) && Canvas.show_gizmos;
 					if (!this.visible) {
 						this.axis = this.hoverAxis = null;
 					}
