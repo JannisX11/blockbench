@@ -1065,6 +1065,7 @@ BARS.defineActions(function() {
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
 			}
 		})
+		if (ArmatureBone.hasSelected()) updateNslideValues();
 	}
 	new NumSlider('slider_size_x', {
 		name: tl('action.slider_size', ['X']),

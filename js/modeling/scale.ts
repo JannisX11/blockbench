@@ -3,6 +3,14 @@
  */
 export namespace ModelScaler {
 	let overflow: (null | OutlinerElement[]) = null;
+	type BeforeData = {
+		from?: number[]
+		to?: number[]
+		origin?: number[]
+		vertices?: Record<string, any>
+		length?: number
+		width?: number
+	}
 
 	export const dialog = new Dialog({
 		id: 'scale',
@@ -65,12 +73,16 @@ export namespace ModelScaler {
 		Undo.initEdit({elements: Outliner.selected, outliner: Format.bone_rig, groups: scale_groups});
 
 		Outliner.selected.forEach((obj) => {
-			const before = {
+			const before: BeforeData = {
 				from: ('from' in obj && obj.from instanceof Array) ? obj.from.slice() : undefined,
 				to: ('to' in obj && obj.to instanceof Array) ? obj.to.slice() : undefined,
 				origin: ('origin' in obj && obj.origin instanceof Array) ? obj.origin.slice() : undefined,
-				vertices: undefined as undefined | Record<string, any>
+				vertices: undefined as undefined | Record<string, any>,
 			};
+			if (obj instanceof ArmatureBone) {
+				before.width = obj.width;
+				before.length = obj.length;
+			}
 			if (obj instanceof Mesh) {
 				before.vertices = {};
 				for (let key in obj.vertices) {
@@ -110,7 +122,7 @@ export namespace ModelScaler {
 			if (obj instanceof Cube) obj.autouv = 0;
 
 			let inflate = obj instanceof Cube ? obj.inflate : 0;
-			let before = obj.temp_data.before as {from: ArrayVector3, to: ArrayVector3, origin: ArrayVector3, vertices: Record<string, ArrayVector3>};
+			let before = obj.temp_data.before as BeforeData;
 			if (!before) before = obj as any;
 
 			origin.forEach(function(ogn, i) {
@@ -153,6 +165,10 @@ export namespace ModelScaler {
 					}
 				}
 			})
+			if (obj instanceof ArmatureBone) {
+				obj.width = before.width * size;
+				obj.length = before.length * size;
+			}
 			if (obj.getTypeBehavior('cube_size_limit') && Format.cube_size_limiter) {
 				if (Format.cube_size_limiter.test(obj as Cube)) {
 					overflow.push(obj);
