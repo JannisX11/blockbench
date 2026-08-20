@@ -1,7 +1,7 @@
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { Blockbench } from "../../api";
 import { Filesystem } from "../../file_system";
-import { createLoadingManager, getResourceURL, loadThreeModel } from "../../io/three_import";
+import { getResourceURL, loadThreeModel, parseWithResources } from "../../io/three_import";
 import { Armature } from "../../outliner/types/armature";
 import { ArmatureBone } from "../../outliner/types/armature_bone";
 import { adjustFromAndToForInflateAndStretch } from "../../outliner/types/cube";
@@ -100,15 +100,8 @@ var codec = new Codec('fbx', {
 		extensions: ['fbx']
 	},
 	async load(content, file, args: any = {}) {
-		let loading = createLoadingManager();
-		let root;
-		try {
-			root = new FBXLoader(loading.manager).parse(prepareFBXContent(content), getResourceURL(file.path));
-		} catch (error) {
-			console.error(error);
-			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
-		}
-		await loading.wait();
+		let root = await parseWithResources(manager => new FBXLoader(manager).parse(prepareFBXContent(content), getResourceURL(file.path)));
+		if (!root) return Blockbench.showMessageBox({translateKey: 'invalid_model'});
 		await loadThreeModel(root, file, this, {
 			scale: args.scale ?? (Settings.get('model_export_scale') as number) / 100,
 			import_to_current_project: args.import_to_current_project

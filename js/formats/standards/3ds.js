@@ -1,5 +1,5 @@
 import {TDSLoader} from 'three/examples/jsm/loaders/TDSLoader.js'
-import { createLoadingManager, getResourceURL, loadThreeModel } from "../../io/three_import";
+import { getResourceURL, loadThreeModel, parseWithResources } from "../../io/three_import";
 
 new Codec('3ds', {
 	name: '3DS Model',
@@ -10,15 +10,8 @@ new Codec('3ds', {
 		extensions: ['3ds']
 	},
 	async load(content, file) {
-		let root;
-		let loading = createLoadingManager();
-		try {
-			root = new TDSLoader(loading.manager).parse(content, getResourceURL(file.path));
-		} catch (error) {
-			console.error(error);
-			return Blockbench.showMessageBox({translateKey: 'invalid_model'});
-		}
-		await loading.wait();
+		let root = await parseWithResources(manager => new TDSLoader(manager).parse(content, getResourceURL(file.path)));
+		if (!root) return Blockbench.showMessageBox({translateKey: 'invalid_model'});
 		await loadThreeModel(root, file, this, {scale: 1});
 	}
 })

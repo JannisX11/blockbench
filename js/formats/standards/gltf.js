@@ -1,5 +1,5 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { getResourceURL, loadThreeModel } from "../../io/three_import";
+import { getResourceURL, loadThreeModel, parseWithResources } from "../../io/three_import";
 import { THREE } from "../../lib/libs";
 import { Armature } from "../../outliner/types/armature";
 
@@ -520,13 +520,10 @@ var codec = new Codec('gltf', {
 		extensions: ['gltf', 'glb']
 	},
 	async load(content, file, args = {}) {
-		let gltf = await new Promise((resolve, reject) => {
-			new GLTFLoader().parse(content, getResourceURL(file.path), resolve, reject);
-		}).catch(error => {
-			console.error(error);
-			Blockbench.showMessageBox({translateKey: 'invalid_model'});
-		})
-		if (!gltf) return;
+		let gltf = await parseWithResources(manager => new Promise((resolve, reject) => {
+			new GLTFLoader(manager).parse(content, getResourceURL(file.path), resolve, reject);
+		}));
+		if (!gltf) return Blockbench.showMessageBox({translateKey: 'invalid_model'});
 
 		await loadThreeModel(gltf.scene, file, this, {
 			scale: args.scale,

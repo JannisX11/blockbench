@@ -1,5 +1,6 @@
 import { THREE } from "../lib/libs";
 import { PathModule } from "../native_apis";
+import { promptMissingResources, resourceToURL } from "./missing_resources";
 
 const vertex_precision = 4;
 
@@ -8,18 +9,65 @@ export function getResourceURL(path: string) {
 	return 'file:///' + encodeURI(PathModule.dirname(path).replace(/\\/g, '/')).replace(/#/g, '%23') + '/';
 }
 
-export function createLoadingManager(timeout = 15000) {
+export function createLoadingManager(timeout = 15000, resources?: Record<string, string>) {
 	let manager = new THREE.LoadingManager();
+	if (resources) {
+		manager.setURLModifier(url => resources[resourceFileName(url)] ?? url);
+	}
+	let missing: string[] = [];
+	manager.onError = url => {
+		if (typeof url != 'string' || url.startsWith('data:')) return;
+		missing.safePush(resourceFileName(url));
+	};
 	let started = false;
 	manager.onStart = () => started = true;
 	let finished = new Promise<void>(resolve => manager.onLoad = () => resolve());
 	return {
 		manager,
+		missing,
 		async wait() {
 			if (!started) return;
 			await Promise.race([finished, new Promise(resolve => setTimeout(resolve, timeout))]);
 		}
 	};
+}
+
+function resourceFileName(url: string): string {
+	try {
+		return decodeURIComponent(url.split('?')[0].split(/[\/]/).pop());
+	} catch (error) {
+		return url;
+	}
+}
+
+export async function parseWithResources<T>(parse: (manager: THREE.LoadingManager) => T | Promise<T>): Promise<T | null> {
+	let resources: Record<string, string> = {};
+	let prompted = false;
+	while (true) {
+		let loading = createLoadingManager(15000, resources);
+		let root;
+		try {
+			root = await parse(loading.manager);
+		} catch (error) {
+			console.error(error);
+			root = null;
+		}
+		await loading.wait();
+		if (!prompted && loading.missing.length) {
+			prompted = true;
+			let provided = await promptMissingResources(loading.missing.map(name => ({
+				name,
+				extensions: [pathToExtension(name)].filter(Boolean)
+			})));
+			if (provided) {
+				for (let name in provided) {
+					resources[name] = resourceToURL(provided[name]);
+				}
+				continue;
+			}
+		}
+		return root;
+	}
 }
 
 interface DecodedTexture {
