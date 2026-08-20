@@ -103,8 +103,9 @@ async function decodeTexture(source): Promise<DecodedTexture | undefined> {
 	canvas.height = height;
 	try {
 		canvas.getContext('2d').drawImage(image, 0, 0);
+		let src = image instanceof HTMLImageElement && !image.src.startsWith('data:') ? resourceFileName(image.src) : '';
 		return {
-			name: source.name || 'texture',
+			name: source.name || src || 'texture',
 			data_url: canvas.toDataURL(),
 			width, height,
 			flip_v: source.flipY !== false
