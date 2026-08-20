@@ -657,24 +657,24 @@ export namespace Filesystem {
 		let handled = false;
 		// Native file drop, or drop from VS Code via paths
 		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
-		if (!paths.some(path => path.match(/\.\w+$/))) return;
+		if (!paths.some(path => (typeof path == 'string' ? path : (path as unknown as File).name || '').match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
 			if (!paths.length) return;
+			handled = true;
 
 			let read_options = {
-				extensions: (typeof handler.extensions == 'function' ? handler.extensions : handler.extensions) as string[],
+				extensions: (typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions) as string[],
 				readtype: handler.readtype,
 				errorbox: handler.errorbox,
 			}
 			Filesystem.read(paths, read_options, (files) => {
 				handler.cb(files, event)
-				handled = true;
 			})
 		})
 		if (!handled) {
 			let file_path = paths[0];
 			if (file_path) {
-				unsupportedFileFormatMessage(file_path);
+				unsupportedFileFormatMessage(typeof file_path == 'string' ? file_path : (file_path as unknown as File).name);
 			}
 
 		}
