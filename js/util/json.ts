@@ -145,11 +145,11 @@ interface FeedbackOptions {
  * @returns Parsed data
  */
 export function autoParseJSON(data: string, feedback: boolean | FeedbackOptions = true): any {
-	if (data.substr(0, 4) === '<lz>') {
-		data = LZUTF8.decompress(data.substr(4), {inputEncoding: 'StorageBinaryString'})
+	if (data.substring(0, 4) === '<lz>') {
+		data = LZUTF8.decompress(data.substring(4), {inputEncoding: 'StorageBinaryString'})
 	}
 	if (data.charCodeAt(0) === 0xFEFF) {
-		data = data.substr(1)
+		data = data.substring(1)
 	}
 	try {
 		data = JSON.parse(data)

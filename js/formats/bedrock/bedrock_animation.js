@@ -30,7 +30,8 @@ export const animation_codec = new AnimationCodec('bedrock', {
 		if (auto_loaded && file.path) {
 			form['_path'] = {type: 'info', text: file.path};
 		}
-		let json = autoParseJSON(file.content, {file_path: file.path})
+		let json = autoParseJSON(file.content, {file_path: file.path});
+		if (!json) return;
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
 		let entries = json.animations || json.animation_controllers;
