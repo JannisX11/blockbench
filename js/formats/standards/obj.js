@@ -18,7 +18,7 @@ var codec = new Codec('obj', {
 		type: 'text',
 		extensions: ['obj']
 	},
-	load(content, file) {
+	async load(content, file) {
 		setupProject(Formats.free);
 		let name = pathToName(file.path, true);
 		Project.name = pathToName(name, false);
@@ -27,7 +27,7 @@ var codec = new Codec('obj', {
 			Project.export_codec = this.id;
 		}
 
-		importOBJ({
+		await importOBJ({
 			obj: file,
 			mtl: findMTLFile(file),
 			scale: Settings.get('model_export_scale')

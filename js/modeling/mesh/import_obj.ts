@@ -2,6 +2,7 @@ import { Dialog } from "../../interface/dialog";
 import { THREE } from "../../lib/libs";
 import { Filesystem } from "../../file_system";
 import { fs, PathModule } from "../../native_apis";
+import { promptMissingResources } from "../../io/missing_resources";
 
 export function findMTLFile(obj_file: Filesystem.FileResult): Filesystem.FileResult | undefined {
 	if (!isApp || !obj_file?.path) return;
@@ -19,9 +20,17 @@ export function findMTLFile(obj_file: Filesystem.FileResult): Filesystem.FileRes
 	}
 }
 
-export function importOBJ(result, add_undo = true) {
+export async function importOBJ(result, add_undo = true) {
 	let mtl_materials = {};
+	if (!result.mtl && typeof result.obj.content == 'string') {
+		let reference = result.obj.content.match(/^[ \t]*mtllib[ \t]+(.+)$/m)?.[1].trim();
+		if (reference) {
+			let provided = await promptMissingResources([{name: reference, extensions: ['mtl'], readtype: 'text'}]);
+			if (provided?.[reference]) result.mtl = provided[reference];
+		}
+	}
 	if (result.mtl) {
+		let material_textures: Record<string, string> = {};
 		let mtl_lines = result.mtl.content.split(/[\r\n]+/);
 		let current_material;
 		for (let line of mtl_lines) {
@@ -29,16 +38,43 @@ export function importOBJ(result, add_undo = true) {
 			let cmd = args.shift();
 			switch (cmd) {
 				case 'newmtl': {
-					current_material = mtl_materials[args[0]] = {};
+					current_material = args[0];
+					mtl_materials[current_material] = {};
 					break;
 				}
 				case 'map_Kd': {
-					let texture_name = args[0];
-					let texture_path = isApp ? PathModule.join(result.mtl.path, '..', texture_name) : '';
-					let texture = new Texture().fromPath(texture_path).add();
-					current_material.texture = texture;
+					if (current_material) material_textures[current_material] = args[0];
 				}
 			}
+		}
+
+		let texture_files: Record<string, Texture> = {};
+		let missing: string[] = [];
+		for (let texture_name of new Set(Object.values(material_textures))) {
+			let texture_path = isApp && result.mtl.path ? PathModule.join(result.mtl.path, '..', texture_name) : '';
+			if (texture_path && fs.existsSync(texture_path)) {
+				texture_files[texture_name] = new Texture().fromPath(texture_path).add();
+			} else {
+				missing.push(texture_name);
+			}
+		}
+		if (missing.length) {
+			let provided = await promptMissingResources(missing.map(name => ({name})));
+			for (let texture_name of missing) {
+				let file = provided?.[texture_name];
+				if (file && isApp && file.path) {
+					texture_files[texture_name] = new Texture().fromPath(file.path).add();
+				} else if (file && typeof file.content == 'string') {
+					texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).fromDataURL(file.content).add();
+				} else if (isApp && result.mtl.path) {
+					texture_files[texture_name] = new Texture().fromPath(PathModule.join(result.mtl.path, '..', texture_name)).add();
+				} else {
+					texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).add();
+				}
+			}
+		}
+		for (let material in material_textures) {
+			mtl_materials[material].texture = texture_files[material_textures[material]];
 		}
 	}
 	
