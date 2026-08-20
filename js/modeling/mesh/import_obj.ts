@@ -20,57 +20,88 @@ export function findMTLFile(obj_file: Filesystem.FileResult): Filesystem.FileRes
 	}
 }
 
+function parseMTLTextures(content: string): Record<string, string> {
+	let material_textures: Record<string, string> = {};
+	let current_material;
+	for (let line of content.split(/[\r\n]+/)) {
+		let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
+		let cmd = args.shift();
+		if (cmd == 'newmtl') {
+			current_material = args[0];
+		} else if (cmd == 'map_Kd' && current_material) {
+			material_textures[current_material] = args[0];
+		}
+	}
+	return material_textures;
+}
+
+function findTexturePath(mtl, texture_name: string): string {
+	if (!isApp || !mtl.path) return '';
+	let texture_path = PathModule.join(mtl.path, '..', texture_name);
+	return fs.existsSync(texture_path) ? texture_path : '';
+}
+
 export async function importOBJ(result, add_undo = true) {
 	let mtl_materials = {};
+	let provided_files: Record<string, Filesystem.FileResult> = {};
+	let prompted_names = new Set<string>();
 	if (!result.mtl && typeof result.obj.content == 'string') {
 		let reference = result.obj.content.match(/^[ \t]*mtllib[ \t]+(.+)$/m)?.[1].trim();
 		if (reference) {
-			let provided = await promptMissingResources([{name: reference, extensions: ['mtl'], readtype: 'text'}]);
-			if (provided?.[reference]) result.mtl = provided[reference];
+			let provided = await promptMissingResources([{
+				name: reference,
+				extensions: ['mtl'],
+				readtype: 'text',
+				expand(file) {
+					let extra: {name: string}[] = [];
+					if (typeof file.content != 'string') return extra;
+					for (let texture_name of new Set(Object.values(parseMTLTextures(file.content)))) {
+						if (!findTexturePath(file, texture_name)) {
+							prompted_names.add(texture_name);
+							extra.push({name: texture_name});
+						}
+					}
+					return extra;
+				}
+			}]);
+			if (provided?.[reference]) {
+				result.mtl = provided[reference];
+				Object.assign(provided_files, provided);
+			}
 		}
 	}
 	if (result.mtl) {
-		let material_textures: Record<string, string> = {};
-		let mtl_lines = result.mtl.content.split(/[\r\n]+/);
-		let current_material;
-		for (let line of mtl_lines) {
-			let args = line.split(/\s+/).filter(arg => typeof arg !== 'undefined' && arg !== '');
-			let cmd = args.shift();
-			switch (cmd) {
-				case 'newmtl': {
-					current_material = args[0];
-					mtl_materials[current_material] = {};
-					break;
-				}
-				case 'map_Kd': {
-					if (current_material) material_textures[current_material] = args[0];
-				}
-			}
+		let material_textures = parseMTLTextures(result.mtl.content);
+		for (let material in material_textures) {
+			mtl_materials[material] = {};
 		}
 
 		let texture_files: Record<string, Texture> = {};
 		let missing: string[] = [];
 		for (let texture_name of new Set(Object.values(material_textures))) {
-			let texture_path = isApp && result.mtl.path ? PathModule.join(result.mtl.path, '..', texture_name) : '';
-			if (texture_path && fs.existsSync(texture_path)) {
+			if (provided_files[texture_name]) continue;
+			let texture_path = findTexturePath(result.mtl, texture_name);
+			if (texture_path) {
 				texture_files[texture_name] = new Texture().fromPath(texture_path).add();
-			} else {
+			} else if (!prompted_names.has(texture_name)) {
 				missing.push(texture_name);
 			}
 		}
 		if (missing.length) {
 			let provided = await promptMissingResources(missing.map(name => ({name})));
-			for (let texture_name of missing) {
-				let file = provided?.[texture_name];
-				if (file && isApp && file.path) {
-					texture_files[texture_name] = new Texture().fromPath(file.path).add();
-				} else if (file && typeof file.content == 'string') {
-					texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).fromDataURL(file.content).add();
-				} else if (isApp && result.mtl.path) {
-					texture_files[texture_name] = new Texture().fromPath(PathModule.join(result.mtl.path, '..', texture_name)).add();
-				} else {
-					texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).add();
-				}
+			if (provided) Object.assign(provided_files, provided);
+			prompted_names = new Set([...prompted_names, ...missing]);
+		}
+		for (let texture_name of prompted_names) {
+			let file = provided_files[texture_name];
+			if (file && isApp && file.path) {
+				texture_files[texture_name] = new Texture().fromPath(file.path).add();
+			} else if (file && typeof file.content == 'string') {
+				texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).fromDataURL(file.content).add();
+			} else if (isApp && result.mtl.path) {
+				texture_files[texture_name] = new Texture().fromPath(PathModule.join(result.mtl.path, '..', texture_name)).add();
+			} else {
+				texture_files[texture_name] = new Texture({name: pathToName(texture_name, true)}).add();
 			}
 		}
 		for (let material in material_textures) {
