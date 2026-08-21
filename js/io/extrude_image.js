@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 //Extruder
 export const Extruder = {
 	dialog: new Dialog({
@@ -51,7 +52,7 @@ export const Extruder = {
 	drawImage(file) {
 		Extruder.image_file = file;
 		Extruder.source_texture = null;
-		Extruder.loadSource(isApp ? file.path.replace(/#/g, '%23') : file.content);
+		Extruder.loadSource(Filesystem.getImageSource(file));
 	},
 	drawTexture(texture) {
 		Extruder.image_file = null;

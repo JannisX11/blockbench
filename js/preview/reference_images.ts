@@ -316,8 +316,9 @@ export class ReferenceImage {
 			let zindex = this.layer == 'background' ? '-1' : '1';
 			this.node.style.zIndex = zindex;
 			if (ReferenceImage.selected) zindex = '1';
-			// Z index currently does not work per element, this is a temporary workaround
+			// Z index and overflow currently does not work per element, this is a temporary workaround
 			Preview.selected.css_renderer.domElement.style.zIndex = zindex;
+			Preview.selected.css_renderer.domElement.style.overflow = (this.layer == 'float') ? 'visible' : 'hidden';
 		}
 		
 		this.updateTransform();

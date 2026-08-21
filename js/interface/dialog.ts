@@ -752,8 +752,14 @@ export class Dialog {
 		let blackout = document.getElementById('blackout');
 		blackout.style.display = 'block';
 		blackout.classList.toggle('darken', this.darken);
-		blackout.style.zIndex = (20 + Dialog.stack.length * 2).toString();
-		this.object.style.zIndex = (21 + Dialog.stack.length * 2).toString();
+		let zindex = Math.min(21 + Dialog.stack.length, 29)
+		blackout.style.zIndex = (zindex-1).toString();
+		this.object.style.zIndex = zindex.toString();
+		for (let dialog of Dialog.stack) {
+			if (parseInt(dialog.object.style.zIndex) > (zindex-2)) {
+				dialog.object.style.zIndex = (zindex-2).toString();
+			}
+		}
 
 		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';

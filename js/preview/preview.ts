@@ -344,7 +344,7 @@ export class Preview {
 		//Controls
 		this.controls = new OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
-		this.controls.maxDistance = 3960;
+		this.controls.maxDistance = settings.maximum_zoom_distance.value as number;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = (settings.viewport_zoom_speed.value as number) / 100 * 1.5;
 		this.controls.rotateSpeed = (settings.viewport_rotate_speed.value as number) / 100;

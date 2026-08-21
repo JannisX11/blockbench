@@ -105,6 +105,9 @@ function setupSettings() {
 			preview.camPers.updateProjectionMatrix();
 		});
 	}});
+	new Setting('maximum_zoom_distance',{category: 'preview', value: 4000, type: 'number', min: 16, onChange(val) {
+		Preview.all.forEach(preview => preview.controls.maxDistance = val);
+	}});
 	new Setting('render_sides', 			{category: 'preview', value: 'auto', type: 'select', options: {
 		'auto': tl('settings.render_sides.auto'),
 		'front': tl('settings.render_sides.front'),

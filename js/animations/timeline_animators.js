@@ -797,9 +797,6 @@ export class NullObjectAnimator extends BoneAnimator {
 		this.uuid = uuid;
 		this._name = name;
 
-		this.solver = new FIK.Structure3D(scene);
-		this.chain = new FIK.Chain3D();
-
 		this.position = [];
 	}
 	get name() {
