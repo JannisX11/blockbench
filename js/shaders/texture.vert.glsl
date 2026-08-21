@@ -5,6 +5,8 @@ attribute float highlight;
 uniform bool SHADE;
 uniform int LIGHTSIDE;
 uniform int SHADEMODE;
+uniform vec3 SHADEPOS;
+uniform vec3 SHADENEG;
 uniform vec3 LIGHTDIR0;
 uniform vec3 LIGHTDIR1;
 
@@ -25,7 +27,9 @@ void main()
 
 		if (SHADEMODE == 1) {
 			vec3 S = N * N;
-			light = S.x * 0.6 + S.y * (N.y >= 0.0 ? 1.0 : 0.5) + S.z * 0.8;
+			light = S.x * (N.x >= 0.0 ? SHADEPOS.x : SHADENEG.x)
+				+ S.y * (N.y >= 0.0 ? SHADEPOS.y : SHADENEG.y)
+				+ S.z * (N.z >= 0.0 ? SHADEPOS.z : SHADENEG.z);
 		} else if (SHADEMODE == 2) {
 			light = min(1.0, (max(0.0, dot(N, LIGHTDIR0)) + max(0.0, dot(N, LIGHTDIR1))) * 0.6 + 0.4);
 		} else {

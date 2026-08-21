@@ -1,6 +1,7 @@
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from '../shaders/shader';
+import { shading_uniforms } from '../preview/shading';
 import { Blockbench } from '../api';
 import { clipboard, fs, ipcRenderer, nativeImage, openFileInEditor } from '../native_apis';
 import { Filesystem } from '../file_system';
@@ -80,9 +81,7 @@ export class Texture {
 				SHADE: {type: 'bool', value: settings.shading.value},
 				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
 				LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
-				SHADEMODE: {type: 'int', value: Canvas.global_shade_mode},
-				LIGHTDIR0: {type: 'vec3', value: Canvas.global_light_dir_0},
-				LIGHTDIR1: {type: 'vec3', value: Canvas.global_light_dir_1},
+				...shading_uniforms,
 				EMISSIVE: {type: 'bool', value: this.render_mode == 'emissive'}
 			},
 			vertexShader: prepareShader(VertShader),

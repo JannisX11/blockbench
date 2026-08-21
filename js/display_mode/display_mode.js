@@ -877,7 +877,7 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	display_area.updateMatrixWorld()
 	lights.rotation.set(0, 0, 0);
 	Canvas.global_light_side = 0;
-	Canvas.global_shade_mode = 0;
+	ShadingMode.override = null;
 	Canvas.updateShading();
 	scene.remove(display_area)
 	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
@@ -1043,10 +1043,6 @@ DisplayMode.groundAnimation = function() {
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
-const gui_light_directions = {
-	front: [[-0.2225, 0.1715, 0.9597], [-0.2150, 0.9718, 0.0966]],
-	side: [[-0.9334, 0.2627, -0.2443], [-0.1036, 0.9766, 0.1884]]
-}
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
 	if (Format.id == 'bedrock_block') {
@@ -1061,15 +1057,12 @@ DisplayMode.updateGUILight = function() {
 	}
 	if (Format.id == 'java_block') {
 		if (DisplayMode.display_slot == 'gui') {
-			let directions = gui_light_directions[Project.front_gui_light ? 'front' : 'side'];
-			Canvas.global_light_dir_0.fromArray(directions[0]);
-			Canvas.global_light_dir_1.fromArray(directions[1]);
-			Canvas.global_shade_mode = 2;
+			ShadingMode.override = Project.front_gui_light ? 'minecraft_gui_front' : 'minecraft_gui_side';
 		} else {
-			Canvas.global_shade_mode = 1;
+			ShadingMode.override = 'minecraft_world';
 		}
 	} else {
-		Canvas.global_shade_mode = 0;
+		ShadingMode.override = null;
 	}
 	Canvas.updateShading();
 } 

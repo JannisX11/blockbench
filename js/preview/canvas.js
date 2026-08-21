@@ -187,9 +187,6 @@ export const Canvas = {
 	transparentMaterial: new THREE.MeshBasicMaterial({visible: false, name: 'invisible'}),
 	global_light_color: new THREE.Color(0xffffff),
 	global_light_side: 0,
-	global_shade_mode: 0,
-	global_light_dir_0: new THREE.Vector3(),
-	global_light_dir_1: new THREE.Vector3(),
 
 	hover_helper_line: (function() {
 		let material = new THREE.LineBasicMaterial({color: 0xA4A5CA, linewidth: 2});
@@ -364,6 +361,7 @@ export const Canvas = {
 		});
 	},
 	updateShading() {
+		ShadingMode.getActive().apply();
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
@@ -415,7 +413,6 @@ export const Canvas = {
 				material.uniforms.SHADE.value = settings.shading.value;
 				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 				material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
-				material.uniforms.SHADEMODE.value = Canvas.global_shade_mode;
 			})
 			Canvas.emptyMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;
