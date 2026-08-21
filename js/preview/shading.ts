@@ -169,34 +169,10 @@ export class ShadingMode {
 
 new ShadingType('cardinal', {
 	uniforms: {
-		LIGHTSIDE: {type: 'int', value: 0},
 		SHADEPOS: {type: 'vec3', value: new THREE.Vector3(0.6, 1, 0.8)},
 		SHADENEG: {type: 'vec3', value: new THREE.Vector3(0.6, 0.5, 0.8)}
 	},
 	glsl: `
-			if (LIGHTSIDE == 1) {
-				float temp = N.y;
-				N.y = N.z * -1.0;
-				N.z = temp;
-			}
-			if (LIGHTSIDE == 2) {
-				float temp = N.y;
-				N.y = N.x;
-				N.x = temp;
-			}
-			if (LIGHTSIDE == 3) {
-				N.y = N.y * -1.0;
-			}
-			if (LIGHTSIDE == 4) {
-				float temp = N.y;
-				N.y = N.z;
-				N.z = temp;
-			}
-			if (LIGHTSIDE == 5) {
-				float temp = N.y;
-				N.y = N.x * -1.0;
-				N.x = temp;
-			}
 			vec3 S = N * N;
 			light = S.x * (N.x >= 0.0 ? SHADEPOS.x : SHADENEG.x)
 				+ S.y * (N.y >= 0.0 ? SHADEPOS.y : SHADENEG.y)

@@ -363,7 +363,6 @@ export const Canvas = {
 		});
 	},
 	updateShading() {
-		shading_uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 		ShadingMode.getActive().apply();
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
