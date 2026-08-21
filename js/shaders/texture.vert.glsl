@@ -4,6 +4,9 @@ attribute float highlight;
 
 uniform bool SHADE;
 uniform int LIGHTSIDE;
+uniform int SHADEMODE;
+uniform vec3 LIGHTDIR0;
+uniform vec3 LIGHTDIR1;
 
 centroid varying vec2 vUv;
 varying float light;
