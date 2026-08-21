@@ -1066,7 +1066,7 @@ DisplayMode.updateGUILight = function() {
 		if (DisplayMode.display_slot == 'gui') {
 			ShadingMode.override = Project.front_gui_light ? 'minecraft_gui_front' : 'minecraft_gui_side';
 		} else {
-			ShadingMode.override = 'minecraft_world';
+			ShadingMode.override = 'minecraft_entity';
 		}
 	} else {
 		ShadingMode.override = null;
