@@ -12,6 +12,7 @@ import BrushOutlineVertShader from './../shaders/brush_outline.vert.glsl'
 import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
 import { prepareShader } from '../shaders/shader';
 import { gizmo_colors } from './preview'
+import { ShadingMode, shading_uniforms } from './shading'
 
 export const Reusable = {
 	vec1: new THREE.Vector3(),
@@ -168,7 +169,8 @@ export const Canvas = {
 			Canvas.emptyMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: {
 					map: {type: 't', value: tex},
-					...commonUniforms
+					...commonUniforms,
+					...shading_uniforms
 				},
 				vertexShader: prepareShader(MarkerVertShader),
 				fragmentShader: prepareShader(MarkerFragShader),
@@ -800,6 +802,7 @@ export const Canvas = {
 		// https://codepen.io/Fyrestar/pen/YmpXYr
 		var uniforms = {
 			SHADE: {type: 'bool', value: settings.shading.value},
+			...shading_uniforms,
 			t0: {type: 't', value: null},
 			t1: {type: 't', value: null},
 			t2: {type: 't', value: null}
