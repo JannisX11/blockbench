@@ -226,6 +226,11 @@ new ShadingMode('minecraft_world', {
 	type: 'cardinal',
 	faces: {up: 1, down: 0.5, north: 0.8, south: 0.8, east: 0.6, west: 0.6}
 });
+new ShadingMode('minecraft_nether', {
+	name: 'Minecraft Nether',
+	type: 'cardinal',
+	faces: {up: 0.9, down: 0.9, north: 0.8, south: 0.8, east: 0.6, west: 0.6}
+});
 new ShadingMode('minecraft_gui_front', {
 	name: 'Minecraft GUI (Front)',
 	type: 'directional',
@@ -240,6 +245,16 @@ new ShadingMode('minecraft_entity', {
 	name: 'Minecraft Entity',
 	type: 'directional',
 	lights: [[0.2, 1, -0.7], [-0.2, 1, 0.7]]
+});
+new ShadingMode('soft', {
+	name: 'Soft',
+	type: 'cardinal',
+	faces: {up: 1, down: 0.8, north: 0.92, south: 0.92, east: 0.86, west: 0.86}
+});
+new ShadingMode('studio', {
+	name: 'Studio',
+	type: 'cardinal',
+	faces: {up: 0.8, down: 0.8, north: 1, south: 0.5, east: 0.6, west: 0.6}
 });
 
 const global = {
