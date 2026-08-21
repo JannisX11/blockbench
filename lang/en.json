@@ -1081,6 +1081,8 @@
 	"settings.brightness.desc": "Brightness of the preview. Default is 50",
 	"settings.shading": "Shading",
 	"settings.shading.desc": "Enable shading in the preview",
+	"settings.shading_mode": "Default Shading Mode",
+	"settings.shading_mode.desc": "Shading mode to use when the format does not pick one",
 	"settings.antialiasing": "Anti-aliasing",
 	"settings.antialiasing.desc": "Toggle anti-aliasing in the preview",
 	"settings.antialiasing_bleed_fix": "Fix anti-aliasing bleeding",

@@ -1,6 +1,7 @@
 import { AutoBackup } from "../auto_backup";
 import { changeImageEditor } from "../desktop";
 import { currentwindow } from "../native_apis";
+import { ShadingMode } from "../preview/shading";
 import { Setting, Settings, SettingsProfile } from "./settings";
 import { addStartScreenSection } from "./start_screen";
 
@@ -92,6 +93,9 @@ function setupSettings() {
 		Canvas.updateShading();
 	}});
 	new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
+		Canvas.updateShading()
+	}});
+	new Setting('shading_mode',		{category: 'preview', value: 'blockbench', type: 'select', options: ShadingMode.getSelectOptions(), onChange() {
 		Canvas.updateShading()
 	}});
 	new Setting('antialiasing', 	{category: 'preview', value: true, requires_restart: true});
