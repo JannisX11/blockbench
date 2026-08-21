@@ -157,7 +157,6 @@ export class PreviewScene {
 		}
 		if (PreviewScene.active) PreviewScene.active.unselect();
 
-		Canvas.global_light_color.copy(this.light_color as THREE.Color);
 		Canvas.global_light_side = this.light_side;
 		Canvas.scene.background = this.cubemap;
 		Canvas.scene.fog = this.fog;
@@ -184,7 +183,6 @@ export class PreviewScene {
 			model.disable();
 		})
 
-		Canvas.global_light_color.set(0xffffff);
 		Canvas.global_light_side = 0;
 		if (this.cubemap) scene.background = null;
 		if (this.fog) scene.fog = null;
@@ -192,8 +190,8 @@ export class PreviewScene {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value as number));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
-		Canvas.updateShading();
 		PreviewScene.active = null;
+		Canvas.updateShading();
 	}
 	delete() {
 		delete PreviewScene.scenes[this.id];
@@ -598,7 +596,6 @@ new PreviewModel('studio', {
 // Scenes
 new PreviewScene('studio', {
 	category: 'generic',
-	light_color: {r: 1.04, g: 1.03, b: 1.1},
 	shading_mode: 'studio',
 	preview_models: ['studio']
 });

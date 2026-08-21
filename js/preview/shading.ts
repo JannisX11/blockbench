@@ -52,6 +52,10 @@ export interface ShadingModeOptions {
 	 * Shade of a face that no light reaches, for `directional` modes
 	 */
 	ambient?: number
+	/**
+	 * Light colour of the environment this mode renders, multiplied with the preview scene's own colour
+	 */
+	color?: ArrayVector3
 	[key: string]: any
 }
 
@@ -106,6 +110,7 @@ export class ShadingMode {
 	lights: [ArrayVector3, ArrayVector3]
 	power: number
 	ambient: number
+	color: THREE.Color
 	[key: string]: any
 
 	constructor(id: string, data: ShadingModeOptions = {}) {
@@ -117,6 +122,7 @@ export class ShadingMode {
 		this.lights = data.lights ?? [[0, 1, 0], [0, -1, 0]];
 		this.power = data.power ?? 0.6;
 		this.ambient = data.ambient ?? 0.4;
+		this.color = new THREE.Color().fromArray(data.color ?? [1, 1, 1]);
 		ShadingModes[id] = this;
 	}
 	writeUniforms(uniforms: Record<string, ShadingUniform>): Record<string, ShadingUniform> {
@@ -230,7 +236,8 @@ new ShadingMode('soft', {
 new ShadingMode('studio', {
 	name: 'Studio',
 	type: 'cardinal',
-	faces: {up: 0.8, down: 0.8, north: 1, south: 0.5, east: 0.6, west: 0.6}
+	faces: {up: 0.8, down: 0.8, north: 1, south: 0.5, east: 0.6, west: 0.6},
+	color: [1.04, 1.03, 1.1]
 });
 
 const global = {

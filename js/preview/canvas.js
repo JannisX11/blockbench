@@ -363,7 +363,10 @@ export const Canvas = {
 		});
 	},
 	updateShading() {
-		ShadingMode.getActive().apply();
+		let shading_mode = ShadingMode.getActive();
+		shading_mode.apply();
+		Canvas.global_light_color.copy(shading_mode.color);
+		if (PreviewScene.active) Canvas.global_light_color.multiply(PreviewScene.active.light_color);
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
