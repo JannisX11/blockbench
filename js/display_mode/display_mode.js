@@ -1042,6 +1042,14 @@ DisplayMode.groundAnimation = function() {
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
+Blockbench.on('update_scene_shading', () => {
+	for (let id in displayReferenceObjects.refmodels) {
+		let material = displayReferenceObjects.refmodels[id].material;
+		if (!material || !material.uniforms) continue;
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+	}
+});
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
 	if (Format.id == 'bedrock_block') {
