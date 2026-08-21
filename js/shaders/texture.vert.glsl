@@ -23,32 +23,39 @@ void main()
 
 		vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
 
-		if (LIGHTSIDE == 1) {
-			float temp = N.y;
-			N.y = N.z * -1.0;
-			N.z = temp;
-		}
-		if (LIGHTSIDE == 2) {
-			float temp = N.y;
-			N.y = N.x;
-			N.x = temp;
-		}
-		if (LIGHTSIDE == 3) {
-			N.y = N.y * -1.0;
-		}
-		if (LIGHTSIDE == 4) {
-			float temp = N.y;
-			N.y = N.z;
-			N.z = temp;
-		}
-		if (LIGHTSIDE == 5) {
-			float temp = N.y;
-			N.y = N.x * -1.0;
-			N.x = temp;
-		}
+		if (SHADEMODE == 1) {
+			vec3 S = N * N;
+			light = S.x * 0.6 + S.y * (N.y >= 0.0 ? 1.0 : 0.5) + S.z * 0.8;
+		} else if (SHADEMODE == 2) {
+			light = min(1.0, (max(0.0, dot(N, LIGHTDIR0)) + max(0.0, dot(N, LIGHTDIR1))) * 0.6 + 0.4);
+		} else {
+			if (LIGHTSIDE == 1) {
+				float temp = N.y;
+				N.y = N.z * -1.0;
+				N.z = temp;
+			}
+			if (LIGHTSIDE == 2) {
+				float temp = N.y;
+				N.y = N.x;
+				N.x = temp;
+			}
+			if (LIGHTSIDE == 3) {
+				N.y = N.y * -1.0;
+			}
+			if (LIGHTSIDE == 4) {
+				float temp = N.y;
+				N.y = N.z;
+				N.z = temp;
+			}
+			if (LIGHTSIDE == 5) {
+				float temp = N.y;
+				N.y = N.x * -1.0;
+				N.x = temp;
+			}
 
-		float yLight = (1.0+N.y) * 0.5;
-		light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+			float yLight = (1.0+N.y) * 0.5;
+			light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+		}
 
 	} else {
 
