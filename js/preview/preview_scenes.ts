@@ -629,6 +629,7 @@ new PreviewScene('minecraft_sunset', {
 });
 new PreviewScene('minecraft_night', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_night',
 	web_config: 'minecraft/night/night.json',
 	require_minecraft_eula: true,
 });
@@ -670,6 +671,7 @@ new PreviewScene('minecraft_nether', {
 });
 new PreviewScene('minecraft_end', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_end',
 	web_config: 'minecraft/end/end.json',
 	require_minecraft_eula: true,
 });

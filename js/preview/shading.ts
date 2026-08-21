@@ -211,7 +211,18 @@ new ShadingMode('minecraft_world', {
 new ShadingMode('minecraft_nether', {
 	name: 'Minecraft Nether',
 	type: 'cardinal',
-	faces: {up: 0.9, down: 0.9, north: 0.8, south: 0.8, east: 0.6, west: 0.6}
+	faces: {up: 0.9, down: 0.9, north: 0.8, south: 0.8, east: 0.6, west: 0.6},
+	color: [0.705, 0.623, 0.462]
+});
+new ShadingMode('minecraft_night', {
+	name: 'Minecraft Night',
+	type: 'cardinal',
+	color: [0.278, 0.278, 0.504]
+});
+new ShadingMode('minecraft_end', {
+	name: 'Minecraft End',
+	type: 'cardinal',
+	color: [0.467, 0.467, 0.467]
 });
 new ShadingMode('minecraft_gui_front', {
 	name: 'Minecraft GUI (Front)',
