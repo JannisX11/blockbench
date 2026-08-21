@@ -363,6 +363,7 @@ export const Canvas = {
 		});
 	},
 	updateShading() {
+		shading_uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 		ShadingMode.getActive().apply();
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
@@ -414,7 +415,6 @@ export const Canvas = {
 				if (!material.uniforms) return;
 				material.uniforms.SHADE.value = settings.shading.value;
 				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
-				material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 			})
 			Canvas.emptyMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;

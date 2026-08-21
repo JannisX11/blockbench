@@ -1,4 +1,22 @@
-export type ShadingModeType = 'cardinal' | 'directional'
+export interface ShadingUniform {
+	type: string
+	value: any
+}
+
+export interface ShadingTypeOptions {
+	/**
+	 * Uniforms this type needs, declared into every shader that supports shading modes
+	 */
+	uniforms?: Record<string, ShadingUniform>
+	/**
+	 * Body that calculates the shade. `N` is the world space normal, and the snippet must assign to `light`
+	 */
+	glsl: string
+	/**
+	 * Writes a mode of this type into the uniforms
+	 */
+	apply?(mode: ShadingMode, uniforms: Record<string, ShadingUniform>): void
+}
 
 export interface ShadingModeFaces {
 	up?: number
@@ -15,10 +33,9 @@ export interface ShadingModeOptions {
 	 */
 	name?: string
 	/**
-	 * How the shade of a face is calculated. `cardinal` shades each face by the axis it points along, and
-	 * `directional` lights the model with two directional lights
+	 * ID of the shading type that calculates the shade
 	 */
-	type?: ShadingModeType
+	type?: string
 	/**
 	 * Shade of each cardinal direction, for `cardinal` modes
 	 */
@@ -27,44 +44,86 @@ export interface ShadingModeOptions {
 	 * The two light directions, for `directional` modes. They do not need to be normalized
 	 */
 	lights?: [ArrayVector3, ArrayVector3]
+	/**
+	 * How much the lights contribute, for `directional` modes
+	 */
+	power?: number
+	/**
+	 * Shade of a face that no light reaches, for `directional` modes
+	 */
+	ambient?: number
+	[key: string]: any
 }
 
-const shader_types: Record<ShadingModeType, number> = {cardinal: 0, directional: 1};
-
-export const shading_uniforms = {
-	SHADEMODE: {type: 'int', value: 0},
-	SHADEPOS: {type: 'vec3', value: new THREE.Vector3(0.6, 1, 0.8)},
-	SHADENEG: {type: 'vec3', value: new THREE.Vector3(0.6, 0.5, 0.8)},
-	LIGHTDIR0: {type: 'vec3', value: new THREE.Vector3(0, 1, 0)},
-	LIGHTDIR1: {type: 'vec3', value: new THREE.Vector3(0, -1, 0)},
+export const shading_uniforms: Record<string, ShadingUniform> = {
+	SHADEMODE: {type: 'int', value: 0}
 };
 
+export const ShadingTypes: Record<string, ShadingType> = {};
 export const ShadingModes: Record<string, ShadingMode> = {};
+
+export class ShadingType {
+	id: string
+	index: number
+	uniforms: Record<string, ShadingUniform>
+	glsl: string
+	apply: (mode: ShadingMode, uniforms: Record<string, ShadingUniform>) => void
+
+	constructor(id: string, data: ShadingTypeOptions) {
+		this.id = id;
+		this.glsl = data.glsl;
+		this.uniforms = data.uniforms ?? {};
+		this.apply = data.apply ?? (() => {});
+		this.index = ShadingType.all.length;
+		ShadingType.all.push(this);
+		ShadingTypes[id] = this;
+		Object.assign(shading_uniforms, this.uniforms);
+	}
+	static all: ShadingType[] = []
+}
+
+export function compileShading(source: string): string {
+	if (!source.includes('SHADING_')) return source;
+	let declarations = '';
+	for (let name in shading_uniforms) {
+		if (name == 'SHADEMODE') continue;
+		declarations += `uniform ${shading_uniforms[name].type} ${name};\n`;
+	}
+	let branches = '';
+	for (let type of ShadingType.all) {
+		branches += `${branches ? '} else ' : ''}if (SHADEMODE == ${type.index}) {\n${type.glsl}\n`;
+	}
+	return source
+		.replace('SHADING_UNIFORMS', declarations.trimEnd())
+		.replace('SHADING_MODES', branches + '}');
+}
 
 export class ShadingMode {
 	id: string
 	name: string
-	type: ShadingModeType
+	type: string
 	faces: Required<ShadingModeFaces>
 	lights: [ArrayVector3, ArrayVector3]
+	power: number
+	ambient: number
+	[key: string]: any
 
 	constructor(id: string, data: ShadingModeOptions = {}) {
+		Object.assign(this, data);
 		this.id = id;
 		this.name = data.name ?? id;
 		this.type = data.type ?? 'cardinal';
 		this.faces = {up: 1, down: 0.5, north: 0.8, south: 0.8, east: 0.6, west: 0.6, ...data.faces};
 		this.lights = data.lights ?? [[0, 1, 0], [0, -1, 0]];
+		this.power = data.power ?? 0.6;
+		this.ambient = data.ambient ?? 0.4;
 		ShadingModes[id] = this;
 	}
-	writeUniforms(uniforms: typeof shading_uniforms): typeof shading_uniforms {
-		uniforms.SHADEMODE.value = shader_types[this.type];
-		if (this.type == 'cardinal') {
-			uniforms.SHADEPOS.value.set(this.faces.east, this.faces.up, this.faces.south);
-			uniforms.SHADENEG.value.set(this.faces.west, this.faces.down, this.faces.north);
-		} else if (this.type == 'directional') {
-			uniforms.LIGHTDIR0.value.fromArray(this.lights[0]).normalize();
-			uniforms.LIGHTDIR1.value.fromArray(this.lights[1]).normalize();
-		}
+	writeUniforms(uniforms: Record<string, ShadingUniform>): Record<string, ShadingUniform> {
+		let type = ShadingTypes[this.type];
+		if (!type) return uniforms;
+		uniforms.SHADEMODE.value = type.index;
+		type.apply(this, uniforms);
 		return uniforms;
 	}
 	apply() {
@@ -73,14 +132,14 @@ export class ShadingMode {
 	/**
 	 * Uniforms for a material that always renders with this mode, whatever the scene uses
 	 */
-	getUniforms(): typeof shading_uniforms {
-		return this.writeUniforms({
-			SHADEMODE: {type: 'int', value: 0},
-			SHADEPOS: {type: 'vec3', value: new THREE.Vector3()},
-			SHADENEG: {type: 'vec3', value: new THREE.Vector3()},
-			LIGHTDIR0: {type: 'vec3', value: new THREE.Vector3()},
-			LIGHTDIR1: {type: 'vec3', value: new THREE.Vector3()}
-		});
+	getUniforms(): Record<string, ShadingUniform> {
+		let uniforms: Record<string, ShadingUniform> = {SHADEMODE: {type: 'int', value: 0}};
+		for (let name in shading_uniforms) {
+			if (name == 'SHADEMODE') continue;
+			let {type, value} = shading_uniforms[name];
+			uniforms[name] = {type, value: value?.clone ? value.clone() : value};
+		}
+		return this.writeUniforms(uniforms);
 	}
 	delete() {
 		delete ShadingModes[this.id];
@@ -108,6 +167,60 @@ export class ShadingMode {
 	}
 }
 
+new ShadingType('cardinal', {
+	uniforms: {
+		LIGHTSIDE: {type: 'int', value: 0},
+		SHADEPOS: {type: 'vec3', value: new THREE.Vector3(0.6, 1, 0.8)},
+		SHADENEG: {type: 'vec3', value: new THREE.Vector3(0.6, 0.5, 0.8)}
+	},
+	glsl: `
+			if (LIGHTSIDE == 1) {
+				float temp = N.y;
+				N.y = N.z * -1.0;
+				N.z = temp;
+			}
+			if (LIGHTSIDE == 2) {
+				float temp = N.y;
+				N.y = N.x;
+				N.x = temp;
+			}
+			if (LIGHTSIDE == 3) {
+				N.y = N.y * -1.0;
+			}
+			if (LIGHTSIDE == 4) {
+				float temp = N.y;
+				N.y = N.z;
+				N.z = temp;
+			}
+			if (LIGHTSIDE == 5) {
+				float temp = N.y;
+				N.y = N.x * -1.0;
+				N.x = temp;
+			}
+			vec3 S = N * N;
+			light = S.x * (N.x >= 0.0 ? SHADEPOS.x : SHADENEG.x)
+				+ S.y * (N.y >= 0.0 ? SHADEPOS.y : SHADENEG.y)
+				+ S.z * (N.z >= 0.0 ? SHADEPOS.z : SHADENEG.z);`,
+	apply(mode, uniforms) {
+		uniforms.SHADEPOS.value.set(mode.faces.east, mode.faces.up, mode.faces.south);
+		uniforms.SHADENEG.value.set(mode.faces.west, mode.faces.down, mode.faces.north);
+	}
+});
+new ShadingType('directional', {
+	uniforms: {
+		LIGHTDIR0: {type: 'vec3', value: new THREE.Vector3(0, 1, 0)},
+		LIGHTDIR1: {type: 'vec3', value: new THREE.Vector3(0, -1, 0)},
+		SHADEMIX: {type: 'vec2', value: new THREE.Vector2(0.6, 0.4)}
+	},
+	glsl: `
+			light = min(1.0, (max(0.0, dot(N, LIGHTDIR0)) + max(0.0, dot(N, LIGHTDIR1))) * SHADEMIX.x + SHADEMIX.y);`,
+	apply(mode, uniforms) {
+		uniforms.LIGHTDIR0.value.fromArray(mode.lights[0]).normalize();
+		uniforms.LIGHTDIR1.value.fromArray(mode.lights[1]).normalize();
+		uniforms.SHADEMIX.value.set(mode.power, mode.ambient);
+	}
+});
+
 new ShadingMode('minecraft_world', {
 	name: 'Minecraft World',
 	type: 'cardinal',
@@ -131,11 +244,16 @@ new ShadingMode('minecraft_entity', {
 
 const global = {
 	ShadingMode,
-	ShadingModes
+	ShadingModes,
+	ShadingType,
+	ShadingTypes
 };
 declare global {
 	type ShadingMode = import('./shading').ShadingMode
 	const ShadingMode: typeof global.ShadingMode
 	const ShadingModes: Record<string, ShadingMode>
+	type ShadingType = import('./shading').ShadingType
+	const ShadingType: typeof global.ShadingType
+	const ShadingTypes: Record<string, ShadingType>
 }
 Object.assign(window, global);
