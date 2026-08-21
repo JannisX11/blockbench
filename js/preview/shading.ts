@@ -124,6 +124,7 @@ export class ShadingMode {
 		this.ambient = data.ambient ?? 0.4;
 		this.color = new THREE.Color().fromArray(data.color ?? [1, 1, 1]);
 		ShadingModes[id] = this;
+		ShadingMode.updateSelectOptions();
 	}
 	writeUniforms(uniforms: Record<string, ShadingUniform>): Record<string, ShadingUniform> {
 		let type = ShadingTypes[this.type];
@@ -149,6 +150,7 @@ export class ShadingMode {
 	}
 	delete() {
 		delete ShadingModes[this.id];
+		ShadingMode.updateSelectOptions();
 	}
 	/**
 	 * Shading mode that display mode and other contexts render with, overriding every other source
@@ -163,6 +165,11 @@ export class ShadingMode {
 			|| ShadingModes[PreviewScene.active?.shading_mode]
 			|| ShadingModes[settings.shading_mode?.value as string]
 			|| ShadingModes.minecraft_world;
+	}
+	static updateSelectOptions() {
+		if (typeof settings != 'undefined' && settings.shading_mode) {
+			settings.shading_mode.options = ShadingMode.getSelectOptions();
+		}
 	}
 	static getSelectOptions(): Record<string, string> {
 		let options: Record<string, string> = {};
