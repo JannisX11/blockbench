@@ -247,6 +247,10 @@ export interface FormatFeatures {
 	 */
 	display_mode: boolean
 	/**
+	 * ID of a shading mode to render this format with, overriding the Default Shading Mode setting
+	 */
+	shading_mode: string
+	/**
 	 * Emaböes animation mode
 	 */
 	animation_mode: boolean
@@ -705,6 +709,7 @@ new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
+new Property(ModelFormat, 'string', 'shading_mode');
 
 
 const global = {
