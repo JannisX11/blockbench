@@ -540,7 +540,7 @@ export class refModel {
 					SHADE: {type: 'bool', value: settings.shading.value},
 					LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
 					LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
-					...ShadingModes.minecraft_world.getUniforms(),
+					...ShadingModes.minecraft_entity.getUniforms(),
 					EMISSIVE: {type: 'bool', value: false}
 				},
 				vertexShader: prepareShader(VertShader),
