@@ -684,6 +684,11 @@ const codec = new Codec('java_block', {
 					icon: 'wallpaper',
 					width: 512,
 					commands: {
+						edit_texture: {
+							text: 'message.generated_item_model.edit_texture',
+							icon: 'draw',
+							condition: !!(layer0 && !layer0.error)
+						},
 						convert: {
 							text: 'message.generated_item_model.convert',
 							icon: 'eject',
@@ -698,7 +703,9 @@ const codec = new Codec('java_block', {
 					if (checkboxes.dont_show_again) {
 						settings.dialog_generated_item_model.set(false);
 					}
-					if (result == 'convert') {
+					if (result == 'edit_texture') {
+						layer0.openInImageEditor();
+					} else if (result == 'convert') {
 						confirmGeneratedItemConversion(placeholders);
 					}
 				})

@@ -291,6 +291,7 @@
 	"message.newer_project_format_version.message": "This file was saved in a newer version of Blockbench. Update to Blockbench %0 or newer to be able to open it correctly",
 	"message.generated_item_model.title": "Generated Item Model",
 	"message.generated_item_model.message": "This model has no elements of its own. Minecraft builds the item shape from the model's texture, so what you see here is only a preview of that shape. It cannot be edited, and is not exported.\n\nTo change how the item looks in game, edit the texture.",
+	"message.generated_item_model.edit_texture": "Edit Texture",
 	"message.generated_item_model.convert": "Convert to Editable Model",
 	"message.convert_generated_item_model.title": "Convert to Editable Model",
 	"message.convert_generated_item_model.message": "This builds real elements by extruding the texture, so you can change the item shape in 3D.\n\nIf you only want to change how the item looks, you do not need this. Edit the texture instead, and Minecraft will keep generating the shape from it.",
