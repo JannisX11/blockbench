@@ -14,10 +14,6 @@ centroid varying vec2 vUv;
 varying float light;
 varying float lift;
 
-float AMBIENT = 0.5;
-float XFAC = -0.15;
-float ZFAC = 0.05;
-
 void main()
 {
 
@@ -26,11 +22,6 @@ void main()
 		vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
 
 		if (SHADEMODE == 1) {
-			vec3 S = N * N;
-			light = S.x * (N.x >= 0.0 ? SHADEPOS.x : SHADENEG.x)
-				+ S.y * (N.y >= 0.0 ? SHADEPOS.y : SHADENEG.y)
-				+ S.z * (N.z >= 0.0 ? SHADEPOS.z : SHADENEG.z);
-		} else if (SHADEMODE == 2) {
 			light = min(1.0, (max(0.0, dot(N, LIGHTDIR0)) + max(0.0, dot(N, LIGHTDIR1))) * 0.6 + 0.4);
 		} else {
 			if (LIGHTSIDE == 1) {
@@ -57,8 +48,10 @@ void main()
 				N.x = temp;
 			}
 
-			float yLight = (1.0+N.y) * 0.5;
-			light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+			vec3 S = N * N;
+			light = S.x * (N.x >= 0.0 ? SHADEPOS.x : SHADENEG.x)
+				+ S.y * (N.y >= 0.0 ? SHADEPOS.y : SHADENEG.y)
+				+ S.z * (N.z >= 0.0 ? SHADEPOS.z : SHADENEG.z);
 		}
 
 	} else {

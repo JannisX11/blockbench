@@ -1,4 +1,4 @@
-export type ShadingModeType = 'gradient' | 'cardinal' | 'directional'
+export type ShadingModeType = 'cardinal' | 'directional'
 
 export interface ShadingModeFaces {
 	up?: number
@@ -15,8 +15,8 @@ export interface ShadingModeOptions {
 	 */
 	name?: string
 	/**
-	 * How the shade of a face is calculated. `gradient` is Blockbench's own smooth shading, `cardinal` shades
-	 * each face by the axis it points along, and `directional` lights the model with two directional lights
+	 * How the shade of a face is calculated. `cardinal` shades each face by the axis it points along, and
+	 * `directional` lights the model with two directional lights
 	 */
 	type?: ShadingModeType
 	/**
@@ -29,7 +29,7 @@ export interface ShadingModeOptions {
 	lights?: [ArrayVector3, ArrayVector3]
 }
 
-const shader_types: Record<ShadingModeType, number> = {gradient: 0, cardinal: 1, directional: 2};
+const shader_types: Record<ShadingModeType, number> = {cardinal: 0, directional: 1};
 
 export const shading_uniforms = {
 	SHADEMODE: {type: 'int', value: 0},
@@ -56,15 +56,31 @@ export class ShadingMode {
 		this.lights = data.lights ?? [[0, 1, 0], [0, -1, 0]];
 		ShadingModes[id] = this;
 	}
-	apply() {
-		shading_uniforms.SHADEMODE.value = shader_types[this.type];
+	writeUniforms(uniforms: typeof shading_uniforms): typeof shading_uniforms {
+		uniforms.SHADEMODE.value = shader_types[this.type];
 		if (this.type == 'cardinal') {
-			shading_uniforms.SHADEPOS.value.set(this.faces.east, this.faces.up, this.faces.south);
-			shading_uniforms.SHADENEG.value.set(this.faces.west, this.faces.down, this.faces.north);
+			uniforms.SHADEPOS.value.set(this.faces.east, this.faces.up, this.faces.south);
+			uniforms.SHADENEG.value.set(this.faces.west, this.faces.down, this.faces.north);
 		} else if (this.type == 'directional') {
-			shading_uniforms.LIGHTDIR0.value.fromArray(this.lights[0]).normalize();
-			shading_uniforms.LIGHTDIR1.value.fromArray(this.lights[1]).normalize();
+			uniforms.LIGHTDIR0.value.fromArray(this.lights[0]).normalize();
+			uniforms.LIGHTDIR1.value.fromArray(this.lights[1]).normalize();
 		}
+		return uniforms;
+	}
+	apply() {
+		this.writeUniforms(shading_uniforms);
+	}
+	/**
+	 * Uniforms for a material that always renders with this mode, whatever the scene uses
+	 */
+	getUniforms(): typeof shading_uniforms {
+		return this.writeUniforms({
+			SHADEMODE: {type: 'int', value: 0},
+			SHADEPOS: {type: 'vec3', value: new THREE.Vector3()},
+			SHADENEG: {type: 'vec3', value: new THREE.Vector3()},
+			LIGHTDIR0: {type: 'vec3', value: new THREE.Vector3()},
+			LIGHTDIR1: {type: 'vec3', value: new THREE.Vector3()}
+		});
 	}
 	delete() {
 		delete ShadingModes[this.id];
@@ -81,7 +97,7 @@ export class ShadingMode {
 			|| ShadingModes[Format?.shading_mode]
 			|| ShadingModes[PreviewScene.active?.shading_mode]
 			|| ShadingModes[settings.shading_mode?.value as string]
-			|| ShadingModes.blockbench;
+			|| ShadingModes.minecraft_world;
 	}
 	static getSelectOptions(): Record<string, string> {
 		let options: Record<string, string> = {};
@@ -92,10 +108,6 @@ export class ShadingMode {
 	}
 }
 
-new ShadingMode('blockbench', {
-	name: 'Blockbench',
-	type: 'gradient'
-});
 new ShadingMode('minecraft_world', {
 	name: 'Minecraft World',
 	type: 'cardinal',

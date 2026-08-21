@@ -95,7 +95,7 @@ function setupSettings() {
 	new Setting('shading', 	  		{category: 'preview', value: true, onChange() {
 		Canvas.updateShading()
 	}});
-	new Setting('shading_mode',		{category: 'preview', value: 'blockbench', type: 'select', options: ShadingMode.getSelectOptions(), onChange() {
+	new Setting('shading_mode',		{category: 'preview', value: 'minecraft_world', type: 'select', options: ShadingMode.getSelectOptions(), onChange() {
 		Canvas.updateShading()
 	}});
 	new Setting('antialiasing', 	{category: 'preview', value: true, requires_restart: true});
