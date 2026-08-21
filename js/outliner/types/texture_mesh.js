@@ -14,9 +14,7 @@ export class TextureMesh extends OutlinerElement {
 		return this.origin;
 	}
 	getTexture() {
-		return Texture.all.find(texture => texture.uuid == this.texture)
-			|| Texture.all.find(texture => texture.name == this.texture_name)
-			|| Texture.getDefault();
+		return Texture.all.find(texture => texture.name == this.texture_name) || Texture.getDefault();
 	}
 	getWorldCenter() {
 		let m = this.mesh;
@@ -86,34 +84,6 @@ export class TextureMesh extends OutlinerElement {
 	TextureMesh.prototype.menu = new Menu([
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
-		{name: 'menu.cube.texture', icon: 'collections', children(context) {
-			function applyTexture(texture, undo_message) {
-				let elements = TextureMesh.selected.filter(element => element.getTypeBehavior('texturable') != false);
-				Undo.initEdit({elements});
-				for (let element of elements) {
-					element.texture = texture ? texture.uuid : '';
-					element.texture_name = texture ? texture.name : '';
-				}
-				Undo.finishEdit(undo_message);
-				Canvas.updateView({elements, element_aspects: {faces: true}});
-			}
-			let arr = [
-				{icon: 'crop_square', name: 'menu.cube.texture.blank', click() {
-					applyTexture(null, 'Unassign texture from texture mesh');
-				}}
-			]
-			Texture.all.forEach(texture => {
-				arr.push({
-					name: texture.name,
-					icon: (texture.mode === 'link' ? texture.img : texture.source),
-					marked: texture.uuid == context.texture,
-					click() {
-						applyTexture(texture, 'Apply texture to texture mesh');
-					}
-				})
-			})
-			return arr;
-		}},
 		new MenuSeparator('manage'),
 		'convert_texture_mesh_to_cubes',
 		'rename',
@@ -127,8 +97,19 @@ export class TextureMesh extends OutlinerElement {
 	];
 
 new Property(TextureMesh, 'string', 'name', {default: 'texture_mesh'})
-new Property(TextureMesh, 'string', 'texture_name')
-new Property(TextureMesh, 'string', 'texture')
+new Property(TextureMesh, 'string', 'texture_name', {
+	inputs: {
+		element_panel: {
+			input: {label: 'texture_mesh.texture_name', type: 'text'},
+			onChange() {
+				TextureMesh.selected.forEach(element => {
+					element.preview_controller.updateFaces(element);
+				});
+				UVEditor.loadData();
+			}
+		}
+	}
+})
 new Property(TextureMesh, 'vector', 'origin');
 new Property(TextureMesh, 'vector', 'local_pivot');
 new Property(TextureMesh, 'vector', 'rotation');
@@ -149,7 +130,6 @@ export class GeneratedItemMesh extends TextureMesh {
 		resizable: false,
 		rotatable: false,
 		duplicatable: false,
-		texturable: false,
 		parent_types: ['root'],
 	}
 }

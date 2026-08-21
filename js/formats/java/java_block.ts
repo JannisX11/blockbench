@@ -668,7 +668,7 @@ const codec = new Codec('java_block', {
 				let layer_texture = texture_ids[key];
 				return new GeneratedItemMesh({
 					name: model.textures[key],
-					texture: layer_texture ? layer_texture.uuid : '',
+					texture_name: layer_texture ? layer_texture.name : '',
 					rotation: [90, 180, 0],
 					local_pivot: [0, -7.5, -16],
 					export: false
