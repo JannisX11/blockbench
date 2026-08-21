@@ -12,6 +12,7 @@ export interface PreviewSceneOptions {
 	require_minecraft_eula?: boolean
 	light_color?: {r: number, g: number, b: number}
 	light_side?: number
+	shading_mode?: string
 	condition?: ConditionResolvable
 	cubemap?: string[]
 	fog?: {
@@ -34,6 +35,7 @@ export class PreviewScene {
 	category: string;
 	light_color: {r: number, g: number, b: number} = {r: 1, g: 1, b: 1};
 	light_side: number = 0;
+	shading_mode: string = '';
 	condition: ConditionResolvable;
 	fov: number = null;
 	web_config_path?: string
@@ -52,6 +54,7 @@ export class PreviewScene {
 
 		this.light_color = {r: 1, g: 1, b: 1};
 		this.light_side = 0;
+		this.shading_mode = '';
 		this.condition;
 		this.fov = null;
 
@@ -74,6 +77,7 @@ export class PreviewScene {
 		}
 		if (data.light_color) this.light_color = data.light_color;
 		if (data.light_side) this.light_side = data.light_side;
+		if (data.shading_mode) this.shading_mode = data.shading_mode;
 		this.condition = data.condition;
 
 		this.cubemap = null;
@@ -608,66 +612,79 @@ new PreviewScene('space', {
 });
 new PreviewScene('minecraft_plains', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/plains/plains.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_snowy_tundra', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/snowy_tundra/snowy_tundra.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_cherry_grove', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/cherry_grove/cherry_grove.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_sunset', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/sunset/sunset.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_night', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/night/night.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_desert', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/desert/desert.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_ocean', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/ocean/ocean.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_underwater', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/underwater/underwater.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_coral_reef', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/coral_reef/coral_reef.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_lush_cave', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/lush_cave/lush_cave.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_deep_dark', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/deep_dark/deep_dark.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_nether', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/nether/nether.json',
 	require_minecraft_eula: true,
 });
 new PreviewScene('minecraft_end', {
 	category: 'minecraft',
+	shading_mode: 'minecraft_world',
 	web_config: 'minecraft/end/end.json',
 	require_minecraft_eula: true,
 });
