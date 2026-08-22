@@ -119,7 +119,8 @@ export class Texture {
 			}
 			self.currentFrame = Math.min(self.currentFrame, (self.frameCount||1)-1)
 
-			if (img.update_from_canvas) {
+			let update_from_canvas = img.update_from_canvas;
+			if (update_from_canvas) {
 				delete img.update_from_canvas;
 			} else if (!self.layers_enabled) {
 				self.canvas.width = self.width;
@@ -191,6 +192,12 @@ export class Texture {
 					TextureAnimator.updateButton()
 					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(self)
+				} else if (!update_from_canvas) {
+					Outliner.elements.forEach(element => {
+						if (element instanceof TextureMesh) {
+							element.preview_controller.updateGeometry(element);
+						}
+					})
 				}
 				if (typeof self.load_callback === 'function') {
 					self.load_callback(self);
