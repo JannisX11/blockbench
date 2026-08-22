@@ -277,6 +277,7 @@ function setupSettings() {
 	}});
 	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
 		latest: 'Latest',
+		'1.21.11': '1.21.11 - 26.2',
 		'1.21.6': '1.21.6 - 1.21.10',
 		'1.9.0': '1.9 - 1.21.5',
 	}});
