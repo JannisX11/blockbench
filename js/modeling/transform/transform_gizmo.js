@@ -4,7 +4,7 @@
  */
 
 import { PointerTarget } from "../../interface/pointer_target";
-import { getRotationObjects } from "../transform";
+import { selectSplinePoints } from "../transform";
 import { TransformerModule } from "./transform_modules";
 
  ( function () {
@@ -857,36 +857,37 @@ import { TransformerModule } from "./transform_modules";
 				this.handleMode = newMode;
 				this.updateAllGizmoTransforms();
 			}
-			this.refreshGizmos = function(scope) {
+			this.refreshGizmos = function() {
 				let spline = SplineMesh.selected[0];
 
 				// Dispose of previous gizmos
-				this.clear();
+				let isValid = this.verifyValidity(true);
 	
 				// Create new Gizmos
-				for (let hKey in spline.handles) {
-					let data = {};
-					data.joint = spline.vertices[spline.handles[hKey].joint];
-					data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
-					data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
-					data.vKeyJoint = spline.handles[hKey].joint;
-					data.vKeyCtrl1 = spline.handles[hKey].control1;
-					data.vKeyCtrl2 = spline.handles[hKey].control2;
-					data.uuid = spline.uuid;
-					data.hKey = hKey
-					data.c1Arrow = hKey == spline.getFirstHandle().key;
-					data.c2Arrow = hKey == spline.getLastHandle().key;
+				if (isValid) {
+					for (let hKey in spline.handles) {
+						let data = {};
+						data.joint = spline.vertices[spline.handles[hKey].joint];
+						data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
+						data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
+						data.vKeyJoint = spline.handles[hKey].joint;
+						data.vKeyCtrl1 = spline.handles[hKey].control1;
+						data.vKeyCtrl2 = spline.handles[hKey].control2;
+						data.uuid = spline.uuid;
+						data.hKey = hKey
+						data.c1Arrow = hKey == spline.getFirstHandle().key;
+						data.c2Arrow = hKey == spline.getLastHandle().key;
 
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
-				}
+						this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
+					}
 	
-				// Add new Gizmos to parent
-				this.add(...this.spline_handles);
-				this.traverse((kid) => {
-					kid.renderOrder = 999;
-				});
+					// Add new Gizmos to parent
+					this.add(...this.spline_handles);
+					this.traverse((kid) => {
+						kid.renderOrder = 999;
+					});
+				}
 
-				// if (scope) scope.attach(spline);
 				this.spline = spline;
 			}
 			this.tryAssignIndex = function(object) {
@@ -913,7 +914,7 @@ import { TransformerModule } from "./transform_modules";
 					gizmo.select();
 				});
 			}
-			this.selectSplinePoints = function(scope) {
+			this.selectPoints = function(scope) {
 				let gizmo = this.getCurrent();
 				let spline = OutlinerNode.uuids[gizmo.spline];
 				let handle = OutlinerNode.uuids[gizmo.spline].handles[gizmo.handle];
@@ -930,10 +931,16 @@ import { TransformerModule } from "./transform_modules";
 				this.updateAllGizmoTransforms();
 				// this.reportStatus();
 			}
-			this.verifyValidity = function() {
-				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object" || !Modes.edit) {
-					this.clear();
-				}
+			this.verifyValidity = function(fromRefresh) {
+				let noSplinesSelected = !SplineMesh.hasSelected();
+				let anotherSplineSelected = (this.spline != SplineMesh.selected[0]) && !fromRefresh; //Refresh will always return true for this, so we exclude it.
+				let notHandleMode = BarItems.spline_selection_mode.value === "object";
+				let gizmosAreHidden = !Canvas.show_gizmos;
+
+				let shouldInvalidate = noSplinesSelected || anotherSplineSelected || notHandleMode || gizmosAreHidden || !Modes.edit;
+				if (shouldInvalidate || fromRefresh) this.clear();
+
+				return !shouldInvalidate;
 			}
 			this.clear = function() {
 				this.remove(...this.spline_handles);
@@ -1210,7 +1217,7 @@ import { TransformerModule } from "./transform_modules";
 				let module = TransformerModule.active;
 				if (module) {
 					let result = module.updateGizmo({});
-					this.visible = result !== false && Canvas.show_gizmos;
+					this.visible = (result !== false) && Canvas.show_gizmos;
 					if (!this.visible) {
 						this.axis = this.hoverAxis = null;
 					}
@@ -1303,7 +1310,7 @@ import { TransformerModule } from "./transform_modules";
 							// Spline Gizmos cannot and should not trigger draggin states.
 							PointerTarget.endTarget();
 							
-							SplineGizmos.selectSplinePoints(scope);
+							SplineGizmos.selectPoints(scope);
 							SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 							
 							event.preventDefault();
