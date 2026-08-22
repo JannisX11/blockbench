@@ -1855,7 +1855,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => Format.java_cube_shading_properties && Modes.edit,
+		condition: () => Format.java_cube_shading_properties && Format.java_cube_shade_toggle && Modes.edit,
 		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {

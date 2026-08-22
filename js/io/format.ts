@@ -279,6 +279,14 @@ export interface FormatFeatures {
 	 */
 	java_cube_shading_properties: boolean
 	/**
+	 * Enables the boolean shade property on Minecraft Java block/item model cubes. Removed from the model format in 26.3, where it is replaced by java_cube_shade_direction_override
+	 */
+	java_cube_shade_toggle: boolean
+	/**
+	 * Enables the shade direction override property on Minecraft Java block/item model cubes. Added to the model format in 26.3, replacing java_cube_shade_toggle
+	 */
+	java_cube_shade_direction_override: boolean
+	/**
 	 * Enables cullfaces, the ability on faces in Minecraft block models to set a direction, that, if covered by another block, will cause the face to unrender
 	 */
 	cullfaces: boolean
@@ -684,6 +692,8 @@ new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
+new Property(ModelFormat, 'boolean', 'java_cube_shade_toggle');
+new Property(ModelFormat, 'boolean', 'java_cube_shade_direction_override');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'cullfaces');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');

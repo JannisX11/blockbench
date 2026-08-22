@@ -65,13 +65,13 @@ const codec = new Codec('java_block', {
 					element.to[i] += s.inflate;
 				}
 			}
-			if (s.shade === false) {
+			if (Format.java_cube_shade_toggle && s.shade === false) {
 				element.shade = false
 			}
 			if (s.light_emission) {
 				element.light_emission = s.light_emission;
 			}
-			if (s.shade_direction_override) {
+			if (Format.java_cube_shade_direction_override && s.shade_direction_override) {
 				element.shade_direction_override = s.shade_direction_override;
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
@@ -343,6 +343,9 @@ const codec = new Codec('java_block', {
 
 		if (!import_to_current_project && typeof model.format_version == 'string') {
 			Project.java_block_version = model.format_version;
+		}
+		if (!Format.java_cube_shade_direction_override && model.elements instanceof Array && model.elements.find(element => element.shade_direction_override)) {
+			Project.java_block_version = '26.3';
 		}
 
 		//Load
@@ -790,6 +793,24 @@ Object.defineProperty(format, 'rotation_limit', {
 			return !VersionUtil.compare(Project.java_block_version, '>=', '1.21.11');
 		} catch (err) {
 			return true;
+		}
+	}
+})
+Object.defineProperty(format, 'java_cube_shade_toggle', {
+	get() {
+		try {
+			return !VersionUtil.compare(Project.java_block_version, '>=', '26.3');
+		} catch (err) {
+			return true;
+		}
+	}
+})
+Object.defineProperty(format, 'java_cube_shade_direction_override', {
+	get() {
+		try {
+			return VersionUtil.compare(Project.java_block_version, '>=', '26.3');
+		} catch (err) {
+			return false;
 		}
 	}
 })

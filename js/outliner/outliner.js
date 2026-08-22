@@ -56,7 +56,7 @@ export const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
+			condition: {modes: ['edit'], features: ['java_cube_shading_properties', 'java_cube_shade_toggle']},
 			title: tl('switches.shade'),
 			icon: 'fa-star',
 			icon_off: 'far.fa-star',

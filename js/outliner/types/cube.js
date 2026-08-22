@@ -1083,7 +1083,7 @@ new Property(Cube, 'boolean', 'rescale', {
 new Property(Cube, 'boolean', 'locked');
 new Property(Cube, 'boolean', 'shade', {
 	default: true,
-	condition: {features: ['java_cube_shading_properties']},
+	condition: {features: ['java_cube_shading_properties', 'java_cube_shade_toggle']},
 	inputs: {
 		element_panel: {
 			input: {label: 'switches.shade', type: 'checkbox'},
@@ -1092,7 +1092,7 @@ new Property(Cube, 'boolean', 'shade', {
 });
 new Property(Cube, 'enum', 'shade_direction_override', {
 	default: '',
-	condition: {features: ['java_cube_shading_properties']},
+	condition: {features: ['java_cube_shading_properties', 'java_cube_shade_direction_override']},
 	inputs: {
 		element_panel: {
 			input: {label: 'cube.shade_direction_override', description: 'cube.shade_direction_override.desc', type: 'select', options: {
