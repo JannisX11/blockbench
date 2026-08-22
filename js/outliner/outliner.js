@@ -842,7 +842,7 @@ SharedActions.add('duplicate', {
 		})
 		// Remap references
 		let map = Clipbench.duplicate_map;
-		map.forEach((copy) => {
+		map.forEach((copy, orig) => {
 			if (copy instanceof NullObject) {
 				for (let property of ['ik_source', 'ik_target', 'ik_pole']) {
 					let uuid = copy[property];
@@ -851,6 +851,18 @@ SharedActions.add('duplicate', {
 					if (previous) {
 						copy[property] = map.get(previous)?.uuid ?? '';
 					}
+				}
+			} else if (copy instanceof ArmatureBone) {
+				let orig_armature = orig.getArmature();
+				let orig_meshes = orig_armature.children.filter(c => c instanceof Mesh);
+				for (let key in orig.vertex_weights) {
+					let [mesh_id, vkey] = key.split(':');
+					if (!vkey) continue;
+					let weight = orig.vertex_weights[key];
+					let mesh = orig_meshes.find(m => m.uuid.startsWith(mesh_id));
+					if (!mesh) continue;
+					copy.setVertexWeight(map.get(mesh), vkey, weight);
+					copy.vertex_weights[key];
 				}
 			}
 		});
