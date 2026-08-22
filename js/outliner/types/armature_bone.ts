@@ -98,6 +98,20 @@ export class ArmatureBone extends OutlinerElement {
 			weights[weightkey] = weight;
 		}
 	}
+	_upgradeVertexWeights() {
+		let meshes = this.getArmature()?.children.filter(c => c instanceof Mesh);
+		if (!meshes || meshes.length == 0) return;
+		for (let key of Object.keys(this.vertex_weights)) {
+			if (key.length > 6) continue;
+			let weight = this.vertex_weights[key];
+			for (let mesh of meshes) {
+				if (mesh.vertices[key]) {
+					this.setVertexWeight(mesh, key, weight);
+				}
+			}
+			delete this.vertex_weights[key];
+		}
+	}
 	init(): this {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {

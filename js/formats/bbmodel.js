@@ -573,6 +573,11 @@ var codec = new Codec('project', {
 			Undo.history = model.history.slice()
 			Undo.index = model.history_index;
 		}
+		if (ArmatureBone.all.length) {
+			try {
+				ArmatureBone.all.forEach(bone => bone._upgradeVertexWeights());
+			} catch (err) {}
+		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()
 		Canvas.updateAllFaces()
