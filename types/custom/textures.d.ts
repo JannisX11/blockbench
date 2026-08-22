@@ -309,6 +309,10 @@ declare global {
 		 * Opens the texture in the configured image editor
 		 */
 		openEditor(): this
+		/**
+		 * Opens the texture in an image editor tab inside Blockbench
+		 */
+		openInImageEditor(): this
 		showContextMenu(event: MouseEvent): void
 		openMenu(): void
 		resizeDialog(): this

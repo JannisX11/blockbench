@@ -261,9 +261,12 @@ export async function updateRecentProjectThumbnail() {
 		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
-		let center = getSelectionCenter(true);
-		MediaPreview.controls.target.fromArray(center);
-		MediaPreview.controls.target.add(scene.position);
+		let bounding_box = Canvas.getModelBoundingBox();
+		if (bounding_box.isEmpty()) {
+			MediaPreview.controls.target.set(0, 0, 0);
+		} else {
+			bounding_box.getCenter(MediaPreview.controls.target);
+		}
 
 		let box = Canvas.getModelSize();
 		let size = Math.max(box[0], box[1]*2)

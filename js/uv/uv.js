@@ -2679,7 +2679,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		expand_button: true,
 		condition: {modes: ['edit', 'paint'], method: () => !Format.image_editor},
-		display_condition: () => UVEditor.hasElements() || Modes.paint,
+		display_condition: () => UVEditor.hasElements() || TextureMesh.selected.length > 0 || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -2920,7 +2920,10 @@ Interface.definePanels(function() {
 				},
 				updateTexture() {
 					let texture;
-					if (Format.single_texture) {
+					let texture_meshes = TextureMesh.selected;
+					if (texture_meshes.length && !UVEditor.getMappableElements().length) {
+						texture = texture_meshes[0].getTexture();
+					} else if (Format.single_texture) {
 						texture = Texture.getDefault();
 					} else {
 						let elements = UVEditor.getMappableElements();
