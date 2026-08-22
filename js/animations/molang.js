@@ -1730,7 +1730,7 @@ export function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'sign',
-					arguments: ['vaule'],
+					arguments: ['value'],
 				})
 				.addQuery({
 					id: 'copy_sign',
