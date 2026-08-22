@@ -1183,35 +1183,35 @@ new NodePreviewController(Mesh, {
 		this.dispatchEvent('setup', {element});
 	},
 	displayDeformation(element, vertex_offsets) {
-		let position_array = [];
-		let outline_positions = [];
-		let {vertices, faces} = element;
-		
-		if (vertex_offsets) {
-			vertices = {};
-			for (let vkey in element.vertices) {
-				vertices[vkey] = element.vertices[vkey].slice();
-				if (vertex_offsets[vkey] instanceof Array) {
-					vertices[vkey].V3_add(vertex_offsets[vkey])
-				}
+		if (!vertex_offsets) return;
+		let position_index = 0;
+		let outline_position_index = 0;
+		let {vertices, faces, mesh} = element;
+
+		let transformed_vertices = {};
+		for (let vkey in vertices) {
+			transformed_vertices[vkey] = vertices[vkey].slice();
+			if (vertex_offsets[vkey] instanceof Array) {
+				transformed_vertices[vkey].V3_add(vertex_offsets[vkey])
 			}
 		}
-		if (vertex_offsets) {
-			for (let key in faces) {
-				let face = faces[key];
-				if (face.vertices.length <= 2) continue;
-				face.vertices.forEach((vkey, i) => {
-					position_array.push(...vertices[vkey]);
-				})
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+			for (let vkey of face.vertices) {
+				let pos = transformed_vertices[vkey];
+				mesh.geometry.attributes.position.array.set(pos, position_index);
+				position_index += 3;
 			}
-			element.mesh.outline.vertex_order.forEach(key => {
-				outline_positions.push(...vertices[key]);
-			})
-			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
-			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
-			element.mesh.frustumCulled = false;
-			return;
 		}
+		mesh.outline.vertex_order.forEach(key => {
+			let pos = transformed_vertices[key];
+			mesh.outline.geometry.attributes.position.array.set(pos, outline_position_index);
+			outline_position_index += 3;
+		})
+		mesh.geometry.attributes.position.needsUpdate = true;
+		mesh.outline.geometry.attributes.position.needsUpdate = true;
+		mesh.frustumCulled = false;
 	},
 	updateGeometry(element, vertex_offsets) {
 		
