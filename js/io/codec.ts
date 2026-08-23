@@ -169,6 +169,8 @@ export class Codec extends EventSystem {
 
 		this.parse(model, file.path, args)
 
+		this.dispatchEvent('parsed', {model, path: file?.path, options: args, project: Project});
+
 		if (file.path && isApp && this.remember && !file.no_file ) {
 			loadDataFromModelMemory();
 			addRecentProject({
