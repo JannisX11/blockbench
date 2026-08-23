@@ -5159,6 +5159,11 @@ Interface.definePanels(function() {
 			`
 		}
 	})
+	Object.defineProperty(UVEditor.panel, 'icon', {
+		get() {
+			return Modes.paint ? 'note_alt' : 'photo_size_select_large'
+		},
+	})
 	UVEditor.panel.on('move_to', (data) => {
 		if (!Blockbench.isMobile) {
 			UVEditor.saveViewportOffset();

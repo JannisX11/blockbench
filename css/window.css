@@ -494,6 +494,7 @@
 		cursor: default;
 		color: var(--color-text);
 		border-radius: 6px;
+		position: relative;
 	}
 	body.is_mobile.is_landscape #panel_selector_bar .panel_selector {
 		display: flex;
@@ -509,6 +510,20 @@
 	}
 	#panel_selector_bar .panel_selector .icon_wrapper {
 		margin-top: 7px;
+	}
+	#panel_selector_bar .panel_selector_color_preview {
+		width: 28px;
+		height: 6px;
+		border-radius: 5px;
+		border: 1px solid var(--color-border);
+		position: absolute;
+		bottom: 2px;
+		right: 0;
+		left: 0;
+		margin: auto;
+	}
+	body.is_mobile.is_landscape #panel_selector_bar .panel_selector_color_preview {
+		top: 34px;
 	}
 	#mobile_keyboard_menu {
 		width: 48px;

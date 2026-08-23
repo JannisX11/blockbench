@@ -1400,6 +1400,9 @@ export function setupMobilePanelSelector() {
 			openKeyboardMenu() {
 				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 			},
+			getMainColor() {
+				return ColorPanel.get();
+			},
 			Condition,
 			getIconNode: Blockbench.getIconNode
 		},
@@ -1410,6 +1413,7 @@ export function setupMobilePanelSelector() {
 				</div>
 				<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 					<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+					<div class="panel_selector_color_preview" v-if="panel.id == 'color'" :style="{backgroundColor: getMainColor()}"></div>
 				</div>
 				<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 					<i class="material-icons">keyboard</i>
