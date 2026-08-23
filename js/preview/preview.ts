@@ -10,6 +10,9 @@ import { PointerTarget } from '../interface/pointer_target';
 import { unselectInterface } from '../interface/interface';
 import { sameMeshEdge } from '../modeling/mesh/util';
 
+const background_scene = new THREE.Scene();
+const background_camera = new THREE.PerspectiveCamera(45, 1, 1, 10);
+
 interface AnglePreset {
 	name?: string
 	id?: string
@@ -755,7 +758,26 @@ export class Preview {
 	}
 	render() {
 		this.controls.update();
-		this.renderer.render(Canvas.scene, this.camera);
+		let background = Canvas.scene.background as THREE.CubeTexture;
+		if (this.isOrtho && background?.isCubeTexture) {
+			Canvas.scene.background = null;
+			background_scene.background = background;
+			background_camera.aspect = this.width / this.height;
+			background_camera.fov = this.camPers.fov;
+			background_camera.updateProjectionMatrix();
+			background_camera.quaternion.copy(this.camera.quaternion);
+			try {
+				this.renderer.render(background_scene, background_camera);
+				this.renderer.autoClear = false;
+				this.renderer.render(Canvas.scene, this.camera);
+			} finally {
+				this.renderer.autoClear = true;
+				background_scene.background = null;
+				Canvas.scene.background = background;
+			}
+		} else {
+			this.renderer.render(Canvas.scene, this.camera);
+		}
 		if (this.css_renderer) {
 			this.css_renderer.render(Canvas.scene, this.camera, this == Preview.selected);
 		}
