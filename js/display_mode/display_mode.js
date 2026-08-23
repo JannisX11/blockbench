@@ -889,6 +889,7 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	}
 
 	main_preview.fullscreen()
+	PreviewScene.updateVisibility();
 
 	resizeWindow()
 	ReferenceImage.updateAll()
@@ -1079,6 +1080,7 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 	DisplayMode.updateGUILight();
 	Toolbars.display.update();
 	updateGUISlotCrop();
+	PreviewScene.updateVisibility();
 }
 DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
