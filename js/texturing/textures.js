@@ -97,6 +97,7 @@ export class Texture {
 		let size_control = {};
 
 		this.img.onload = () => {
+			console.log('unload');
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
 			if (self.width && dimensions_changed) {
 				tex = new THREE.Texture(this.canvas);
@@ -110,6 +111,7 @@ export class Texture {
 				if (Canvas.layered_material) Canvas.updateLayeredTextures();
 			}
 			tex.needsUpdate = true;
+			console.log('needs update', self.name, tex.width);
 
 			self.width = img.naturalWidth;
 			self.height = img.naturalHeight;
@@ -727,7 +729,7 @@ export class Texture {
 		mat.map.wrapS = mat.map.wrapT = wrap;
 
 		// Map
-		mat.map.needsUpdate = true;
+		// mat.map.needsUpdate = true;
 
 		// PBR material
 		if (this.group && (this.pbr_channel == 'mer' || this.pbr_channel == 'height') && this.getGroup()?.is_material && BarItems.view_mode.value == 'material') {
