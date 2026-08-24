@@ -47,4 +47,8 @@ const global = {
     APNGencoder,
     DOMPurify,
 }
+declare global {
+    const THREE: typeof threejs;
+}
 Object.assign(window, global);
+

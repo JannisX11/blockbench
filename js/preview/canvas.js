@@ -364,7 +364,7 @@ export const Canvas = {
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
-		Sun.intensity = settings_brightness * 5;
+		Sun.intensity = settings_brightness * Math.PI;
 		let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
 		Canvas.sun = Sun;
 	
@@ -376,7 +376,7 @@ export const Canvas = {
 				Canvas.material_light = light = new THREE.DirectionalLight();
 			}
 			light.color.copy(Canvas.global_light_color);
-			light.intensity = 0.7 * settings_brightness * 5;
+			light.intensity = 0.7 * settings_brightness * Math.PI;
 	
 			Canvas.scene.add(light);
 			switch (Canvas.global_light_side) {
@@ -424,8 +424,8 @@ export const Canvas = {
 			for (let key in displayReferenceObjects.refmodels)  {
 				let material = displayReferenceObjects.refmodels[key].material;
 				if (!material) continue;
-				if (material.uniforms.SHADE) material.uniforms.SHADE.value = settings.shading.value;
-				if (material.uniforms.BRIGHTNESS) material.uniforms.BRIGHTNESS.value = settings_brightness;
+				if (material.uniforms?.SHADE) material.uniforms.SHADE.value = settings.shading.value;
+				if (material.uniforms?.BRIGHTNESS) material.uniforms.BRIGHTNESS.value = settings_brightness;
 			}
 			Canvas.emptyMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;
@@ -935,11 +935,14 @@ export function initCanvas() {
 
 	Canvas.updateMarkerColorMaterials();
 
+	// For "Physically Correct Lighting" in newer three.js versions
+	let light_factor = Math.PI;
+
 	//Light
 	Sun = new THREE.AmbientLight( 0xffffff );
 	Sun.name = 'sun'
 	Canvas.scene.add(Sun);
-	Sun.intensity = 0.5
+	Sun.intensity = 0.5 * light_factor;
 
 	lights = new THREE.Object3D()
 	lights.name = 'lights'
@@ -950,14 +953,14 @@ export function initCanvas() {
 	lights.top.position.set(0, 100, 0)
 	lights.add(lights.top);
 	
-	lights.top.intensity = 0.46
+	lights.top.intensity = 0.46 * light_factor;
 	
 	lights.bottom = new THREE.DirectionalLight();
 	lights.bottom.name = 'light_bottom'
 	lights.bottom.position.set(0, -100, 0)
 	lights.add(lights.bottom);
 	
-	lights.bottom.intensity = -0.02
+	lights.bottom.intensity = -0.02 * light_factor;
 
 	lights.north = new THREE.DirectionalLight();
 	lights.north.name = 'light_north'
@@ -969,7 +972,7 @@ export function initCanvas() {
 	lights.south.position.set(0, 0, 100)
 	lights.add(lights.south);
 
-	lights.north.intensity = lights.south.intensity = 0.3
+	lights.north.intensity = lights.south.intensity = 0.3 * light_factor;
 
 	lights.west = new THREE.DirectionalLight();
 	lights.west.name = 'light_west'
@@ -981,7 +984,7 @@ export function initCanvas() {
 	lights.east.position.set(100, 0, 0)
 	lights.add(lights.east);
 
-	lights.west.intensity = lights.east.intensity = 0.1
+	lights.west.intensity = lights.east.intensity = 0.1 * light_factor;
 
 	Canvas.updateShading()
 

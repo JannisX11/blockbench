@@ -111,8 +111,8 @@ export class Texture {
 			}
 			tex.needsUpdate = true;
 
-			self.width = tex.width = img.naturalWidth;
-			self.height = tex.height = img.naturalHeight;
+			self.width = img.naturalWidth;
+			self.height = img.naturalHeight;
 			if (self.selection) self.selection.changeSize(self.width, self.height);
 			if (img.naturalWidth > 16384 || img.naturalHeight > 16384) {
 				self.error = 2;
