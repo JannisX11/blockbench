@@ -163,6 +163,7 @@ export type RecentProjectData = {
 	day: number
 	favorite: boolean
 	textures?: string[]
+	texture_sets?: string[]
 	animation_files?: string[]
 }
 export function updateRecentProjects() {
@@ -210,6 +211,7 @@ export function updateRecentProjectData() {
 	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
+	project.texture_sets = TextureGroup.all.filter(t => t.is_material && t.material_config).map(t => t.material_config.getFilePath());
 
 	if (Format.animation_files) {
 		project.animation_files = [];
@@ -321,6 +323,15 @@ export function loadDataFromModelMemory() {
 			files.forEach(f => {
 				if (!Texture.all.find(t => t.path == f.path)) {
 					new Texture({name: f.name}).fromFile(f).add(false).fillParticle();
+				}
+			})
+		})
+	}
+	if (project.texture_sets) {
+		Blockbench.read(project.texture_sets, {}, files => {
+			files.forEach(f => {
+				if (!TextureGroup.all.find(tg => tg.material_config.getFilePath() == f.path)) {
+					importTextureSet(f, false);
 				}
 			})
 		})
