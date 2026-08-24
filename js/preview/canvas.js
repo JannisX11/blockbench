@@ -364,8 +364,9 @@ export const Canvas = {
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
-		Sun.intensity = settings_brightness;
+		Sun.intensity = settings_brightness * 5;
 		let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
+		Canvas.sun = Sun;
 	
 		lights.add(Sun);
 		if (view_mode == 'material') {
@@ -375,7 +376,7 @@ export const Canvas = {
 				Canvas.material_light = light = new THREE.DirectionalLight();
 			}
 			light.color.copy(Canvas.global_light_color);
-			light.intensity = 0.7 * settings_brightness;
+			light.intensity = 0.7 * settings_brightness * 5;
 	
 			Canvas.scene.add(light);
 			switch (Canvas.global_light_side) {
@@ -409,7 +410,7 @@ export const Canvas = {
 			function updateShaderMaterial(material) {
 				if (!material.uniforms) return;
 				material.uniforms.SHADE.value = settings.shading.value;
-				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings_brightness);
 				material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 			}
 			Texture.all.forEach(tex => {
@@ -420,17 +421,23 @@ export const Canvas = {
 				let model = PreviewModel.models[id];
 				if (model.material) updateShaderMaterial(model.material);
 			}
+			for (let key in displayReferenceObjects.refmodels)  {
+				let material = displayReferenceObjects.refmodels[key].material;
+				if (!material) continue;
+				if (material.uniforms.SHADE) material.uniforms.SHADE.value = settings.shading.value;
+				if (material.uniforms.BRIGHTNESS) material.uniforms.BRIGHTNESS.value = settings_brightness;
+			}
 			Canvas.emptyMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;
-				material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+				material.uniforms.BRIGHTNESS.value = settings_brightness;
 			})
 			Canvas.coloredSolidMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;
-				material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+				material.uniforms.BRIGHTNESS.value = settings_brightness;
 			})
 		}
 		Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
-		Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings_brightness;
 		Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 		Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 		Blockbench.dispatchEvent('update_scene_shading');

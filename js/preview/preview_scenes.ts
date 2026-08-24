@@ -406,7 +406,7 @@ export class PreviewModel implements Deletable {
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: this.shading},
-				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
+				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value as number / 50)},
 				LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
 				EMISSIVE: {type: 'bool', value: false}
 			},
@@ -414,7 +414,7 @@ export class PreviewModel implements Deletable {
 			fragmentShader: prepareShader(FragShader),
 			side: this.render_side
 		});
-		if (typeof this.color == 'object') {
+		if (typeof this.color == 'object' && this.material.color) {
 			this.material.color.copy(this.color);
 		}
 
