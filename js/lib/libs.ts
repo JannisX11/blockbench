@@ -20,7 +20,7 @@ Vue.directive('sortable', {
 })
 
 threejs.ColorManagement.enabled = false;
-const THREE = Object.assign({}, threejs);
+const THREE = Object.assign({}, threejs) as typeof import('three');
 
 export {
     GIFEnc,

@@ -407,7 +407,6 @@ export const Canvas = {
 				Canvas.scene.remove(Canvas.material_light);
 			}
 			function updateShaderMaterial(material) {
-				let material = tex.getMaterial();
 				if (!material.uniforms) return;
 				material.uniforms.SHADE.value = settings.shading.value;
 				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);

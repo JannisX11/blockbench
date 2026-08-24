@@ -22,7 +22,7 @@
 		"@types/dompurify": "^3.0.5",
 		"@types/jquery": "^3.5.32",
 		"@types/prismjs": "^1.26.0",
-		"@types/three": "^0.129.2",
+		"@types/three": "^0.174.0",
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.0.1",
 		"electron": "^40.8.0",
