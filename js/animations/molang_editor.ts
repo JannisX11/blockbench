@@ -1,4 +1,4 @@
-import { MolangAutocomplete } from "./molang";
+import { MolangAutocomplete } from "../../types/custom/molang";
 
 interface MolangEditorOptions {
 	autocomplete_context: MolangAutocomplete.Context
@@ -37,12 +37,13 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 						},
 						onConfirm(form) {
 							if (!form.find) return;
+							let replace_text = form.replace.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
 							function replace(text: string) {
 								if (form.regex) {
 									let regex = new RegExp(form.find, 'g');
-									return text.replace(regex, form.replace);
+									return text.replace(regex, replace_text);
 								} else {
-									return text.split(form.find).join(form.replace);
+									return text.split(form.find).join(replace_text);
 								}
 							}
 							scope.text = replace(scope.text);
@@ -76,11 +77,13 @@ export function openMolangEditor(options: MolangEditorOptions, callback: ((resul
 		},
 		onOpen() {
 			let element = document.querySelector('#expression_editor_prism.molang_input') as HTMLElement;
-			element.style.height = (dialog.object.clientHeight - 50) + 'px';
+			element.style.height = Math.max(dialog.object.clientHeight - 148, 100) + 'px';
+			element.style.maxHeight = element.style.height;
 		},
 		onResize() {
 			let element = document.querySelector('#expression_editor_prism.molang_input') as HTMLElement;
-			element.style.height = (dialog.object.clientHeight - 50) + 'px';
+			element.style.height = (dialog.object.clientHeight - 148) + 'px';
+			element.style.maxHeight = element.style.height;
 		},
 		onConfirm() {
 			callback(dialog.content_vue.$data.text);

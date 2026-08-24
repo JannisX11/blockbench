@@ -1,8 +1,17 @@
+import { Filesystem } from "../file_system";
+import { shell } from "../native_apis";
+import { Extruder } from './extrude_image'
+
 //Import
 export function setupDragHandlers() {
 	Blockbench.addDragHandler(
 		'texture',
-		{extensions: ['png', 'tga'], propagate: true, readtype: 'image', condition: () => !Dialog.open},
+		{
+			extensions: Texture.getAllExtensions,
+			propagate: true,
+			readtype: 'image',
+			condition: () => !Dialog.open
+		},
 		function(files, event) {
 			loadImages(files, event)
 		}
@@ -71,7 +80,10 @@ export function loadModelFile(file, args) {
 
 	function loadIfCompatible(codec, type, content) {
 		if (codec.load_filter && codec.load_filter.type == type) {
-			if (codec.load_filter.extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
+			let extensions = typeof codec.load_filter.extensions == 'function'
+				? codec.load_filter.extensions()
+				: codec.load_filter.extensions ?? [];
+			if (extensions.includes(extension) && Condition(codec.load_filter.condition, content)) {
 				if (existing_tab && !codec.multiple_per_file) {
 					existing_tab.select();
 				} else {
@@ -93,11 +105,12 @@ export function loadModelFile(file, args) {
 		if (success) return;
 	}
 	// JSON
-	let model = autoParseJSON(file.content);
+	let model = autoParseJSON(file.content, {file_path: file.path});
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'json', model);
 		if (success) return;
 	}
+	unsupportedFileFormatMessage(file.path);
 }
 
 export async function loadImages(files, event) {
@@ -107,9 +120,10 @@ export async function loadImages(files, event) {
 
 	let img = new Image();
 	await new Promise((resolve, reject) => {
-		img.src = isApp ? files[0].path : files[0].content;
+		img.src = Filesystem.getImageSource(files[0]);
 		img.onload = resolve;
-		img.onerror = reject;
+		// TGA images will fail, should still continue
+		img.onerror = resolve;
 	})
 
 	// Options
@@ -127,8 +141,11 @@ export async function loadImages(files, event) {
 		if (!Format.image_editor && Condition(Panels.textures.condition)) {
 			options.texture = 'action.import_texture';
 		}
-		if (Modes.paint && document.querySelector('#UVEditor:hover') && Texture.selected) {
-			options.layer = 'data.layer';
+		if (Modes.paint && Texture.selected) {
+			options.layer = 'message.load_images.add_layer';
+		}
+		if (Modes.edit && (!Project.box_uv || Format.optional_box_uv)) {
+			options.extrude_with_cubes = 'dialog.extrude.title';
 		}
 	}
 	options.edit = 'message.load_images.edit_image';
@@ -144,9 +161,6 @@ export async function loadImages(files, event) {
 		} else {
 			options.texture = 'action.import_texture';
 		}
-	}
-	if (Project && (!Project.box_uv || Format.optional_box_uv)) {
-		options.extrude_with_cubes = 'dialog.extrude.title';
 	}
 
 	function doLoadImages(method) {
@@ -204,7 +218,8 @@ export async function loadImages(files, event) {
 		} else if (method == 'minecraft_skin') {
 			Formats.skin.setup_dialog.show();
 			Formats.skin.setup_dialog.setFormValues({
-				texture: files[0]
+				texture_source: 'upload_texture',
+				texture_file: files[0]
 			})
 
 		} else if (method == 'extrude_with_cubes') {
@@ -227,9 +242,30 @@ export async function loadImages(files, event) {
 			minecraft_skin: 'icon-player',
 			extrude_with_cubes: 'eject',
 		};
+		let categories = {
+			replace_texture: 'message.load_images.category.add_to_project',
+			texture: 'message.load_images.category.add_to_project',
+			layer: 'message.load_images.category.add_to_project',
+			reference_image: 'message.load_images.category.add_to_project',
+			edit: 'message.load_images.category.new_project',
+			minecraft_skin: 'message.load_images.category.new_project',
+			extrude_with_cubes: 'message.load_images.category.add_to_project',
+		}
 		let commands = {};
 		for (let id in options) {
-			commands[id] = {text: options[id], icon: icons[id]};
+			if (categories[id] == 'message.load_images.category.new_project') continue;
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
+		}
+		for (let id in options) {
+			commands[id] = {
+				text: options[id],
+				icon: icons[id],
+				category: categories[id],
+			};
 		}
 		let title = tl('message.load_images.title');
 		let message = `${files[0].name}`;
@@ -246,247 +282,40 @@ export async function loadImages(files, event) {
 	}
 }
 
-//Extruder
-export const Extruder = {
-	dialog: new Dialog({
-		id: 'image_extruder',
-		title: 'dialog.extrude.title',
-		buttons: ['dialog.confirm', 'dialog.cancel'],
-		part_order: ['form', 'lines'],
-		form: {
-			mode: {
-				label: 'dialog.extrude.mode',
-				type: 'select',
-				options: {
-					areas: 'dialog.extrude.mode.areas',
-					lines: 'dialog.extrude.mode.lines',
-					columns: 'dialog.extrude.mode.columns',
-					pixels: 'dialog.extrude.mode.pixels'
-				}
-			},
-			orientation: {
-				label: 'dialog.extrude.orientation',
-				type: 'select',
-				options: {
-					upright: 'dialog.extrude.orientation.upright',
-					flat: 'dialog.extrude.orientation.flat',
-				}
-			},
-			scan_tolerance: {
-				label: 'dialog.extrude.opacity',
-				type: 'range',
-				min: 1, max: 255, value: 255, step: 1,
-				editable_range_label: true
-			}
-		},
-		lines: [
-			`<canvas height="256" width="256" id="extrusion_canvas" class="checkerboard"></canvas>`
-		],
-		onConfirm(formResult) {
-			Extruder.startConversion(formResult);
+export function unsupportedFileFormatMessage(file_path) {
+	let extension = pathToExtension(file_path).toLowerCase();
+	let supported_plugins = Plugins.all.filter(plugin => {
+		return plugin.contributes?.open_extensions?.includes(extension);
+	})
+	let commands = {};
+	for (let plugin of supported_plugins) {
+		commands[plugin.id] = {
+			icon: (!plugin.icon || plugin.icon.match(/\.(svg|png)/)) ? 'extension' : plugin.icon,
+			text: tl('message.invalid_format.install_plugin', [plugin.title])
 		}
-	}),
-	drawImage(file) {
-		Extruder.canvas = $('#extrusion_canvas').get(0)
-		var ctx = Extruder.canvas.getContext('2d')
-
-		Extruder.ext_img = new Image()
-		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
-		Extruder.image_file = file
-		Extruder.ext_img.style.imageRendering = 'pixelated'
-		Extruder.canvas.style.imageRendering = 'pixelated'
-
-		Extruder.ext_img.onload = function() {
-			let ratio = Extruder.ext_img.naturalWidth / Extruder.ext_img.naturalHeight;
-			Extruder.canvas.width = 256;
-			Extruder.canvas.height = 256 / ratio;
-			ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
-			ctx.imageSmoothingEnabled = false;
-			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
-			Extruder.width = Extruder.ext_img.naturalWidth;
-			Extruder.height = Extruder.ext_img.naturalHeight;
-
-			if (Extruder.width > 128) return;
-
-			var p = 0
-			ctx.beginPath();
-
-			for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
-				ctx.moveTo(0.5 + x + p, p);
-				ctx.lineTo(0.5 + x + p, 256 + p);
-			}
-			for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
-				ctx.moveTo(p, 0.5 + x + p);
-				ctx.lineTo(256 + p, 0.5 + x + p);
-			}
-
-			ctx.strokeStyle = CustomTheme.data.colors.grid;
-			ctx.stroke();
-		}
-	},
-	startConversion(formResult) {
-		var scan_mode = formResult.mode;
-		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
-
-		//Undo
-		Undo.initEdit({elements: selected, outliner: true, textures: []})
-		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle()
-
-		//var ext_x, ext_y;
-		var ctx = Painter.getCanvas(texture).getContext('2d')
-
-		var c = document.createElement('canvas')
-		var ctx = c.getContext('2d');
-		c.width = Extruder.ext_img.naturalWidth;
-		c.height = Extruder.ext_img.naturalHeight;
-		ctx.drawImage(Extruder.ext_img, 0, 0)
-		var image_data = ctx.getImageData(0, 0, c.width, c.height).data
-
-		var finished_pixels = {}
-		var cube_nr = 0;
-		var cube_name = texture.name.split('.')[0]
-		selected.empty()
-
-		//Scale Index
-		var scale_i = 1;
-		scale_i = 16 / Extruder.width;
-		let uv_scale_x = Project.texture_width / Extruder.width;
-		let uv_scale_y = Project.texture_height / Extruder.height;
-
-		function isOpaquePixel(px_x, px_y) {
-			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
-			return Math.isBetween(px_x, 0, Extruder.width-1)
-				&& Math.isBetween(px_y, 0, Extruder.height-1)
-				&& opacity >= pixel_opacity_tolerance;
-		}
-		function finishPixel(x, y) {
-			if (finished_pixels[x] === undefined) {
-				finished_pixels[x] = {}
-			}
-			finished_pixels[x][y] = true
-		}
-		function isPixelFinished(x, y) {
-			return (finished_pixels[x] !== undefined && finished_pixels[x][y] === true)
-		}
-
-		//Scanning
-		let ext_y = 0;
-		while (ext_y < Extruder.height) {
-
-			let ext_x = 0;
-			while (ext_x < Extruder.width) {
-				if (isPixelFinished(ext_x, ext_y) === false && isOpaquePixel(ext_x, ext_y) === true) {
-
-					//Search From New Pixel
-					var loop = true;
-					var rect = {x: ext_x, y: ext_y, x2: ext_x, y2: ext_y}
-					var safety_limit = 5000
-
-					//Expanding Loop
-					while (loop === true && safety_limit) {
-						var y_check, x_check, canExpandX, canExpandY;
-						//Expand X
-						if (scan_mode === 'areas' || scan_mode === 'lines') {
-							y_check = rect.y
-							x_check = rect.x2 + 1
-							canExpandX = true
-							while (y_check <= rect.y2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandX = false;
-								}
-								y_check += 1
-							}
-							if (canExpandX === true) {
-								rect.x2 += 1
-							}
-						} else {
-							canExpandX = false;
-						}
-						//Expand Y
-						if (scan_mode === 'areas' || scan_mode === 'columns') {
-							x_check = rect.x
-							y_check = rect.y2 + 1
-							canExpandY = true
-							while (x_check <= rect.x2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandY = false
-								}
-								x_check += 1
-							}
-							if (canExpandY === true) {
-								rect.y2 += 1
-							}
-						} else {
-							canExpandY = false;
-						}
-						//Conclusion
-						if (canExpandX === false && canExpandY === false) {
-							loop = false;
-						}
-						safety_limit--;
-					}
-
-					//Draw Rectangle
-					var draw_x = rect.x
-					var draw_y = rect.y
-					while (draw_y <= rect.y2) {
-						draw_x = rect.x
-						while (draw_x <= rect.x2) {
-							finishPixel(draw_x, draw_y)
-							draw_x++;
-						}
-						draw_y++;
-					}
-
-					// Generate cube
-					let from, to, faces;
-					if (formResult.orientation == 'upright')  {
-						from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
-						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, scale_i];
-						faces = {
-							south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-						};
-					} else {
-						from = [rect.x*scale_i, 0, rect.y*scale_i];
-						to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i];
-						faces = {
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
-						};
-					}
-					var current_cube = new Cube({
-						name: cube_name+'_'+cube_nr,
-						autouv: 0, box_uv: false,
-						from, to, faces
-					}).init();
-					selected.push(current_cube);
-					cube_nr++;
-				}
-
-				ext_x++;
-			}
-			ext_y++;
-		}
-
-		var group = new Group(cube_name).init().addTo()
-		selected.forEach(function(s) {
-			s.addTo(group).init()
-		})
-
-		Undo.finishEdit('Add extruded texture', {elements: selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]})
 	}
+	if (isApp && file_path.match(/[\\\/]/)) {
+		commands.open_in_default_program = {
+			icon: 'open_in_new',
+			text: 'message.unsupported_file_extension.open_in_default_program'
+		}
+	}
+	Blockbench.showMessageBox({
+		translateKey: 'unsupported_file_extension',
+		message: tl('message.unsupported_file_extension.message', ['`' + pathToName(file_path, true) + '`']),
+		commands,
+	}, (plugin_id) => {
+		if (plugin_id == 'open_in_default_program') {
+			return shell.openPath(file_path);
+		}
+		let plugin = plugin_id && supported_plugins.find(p => p.id == plugin_id);
+		if (plugin) {
+			BarItems.plugins_window.click();
+			Plugins.dialog.content_vue.selectPlugin(plugin);
+		}
+	})
 }
+
 
 
 BARS.defineActions(function() {
@@ -515,9 +344,14 @@ BARS.defineActions(function() {
 				startpath,
 				multiple: true
 			}, function(files) {
-				files.forEach(file => {
-					loadModelFile(file);
-				})
+				let image_extensions = Texture.getAllExtensions();
+				if (files.allAre(file => image_extensions.includes(pathToExtension(file.name).toLowerCase()))) {
+					loadImages(files);
+				} else {
+					files.forEach(file => {
+						loadModelFile(file);
+					});
+				}
 			})
 		}
 	})
@@ -543,21 +377,13 @@ BARS.defineActions(function() {
 			}, {placeholder: 'https://blckbn.ch/123abc'});
 		}
 	})
-	new Action('extrude_texture', {
-		icon: 'eject',
-		category: 'file',
-		condition: _ => (Project && (!Project.box_uv || Format.optional_box_uv)),
-		click() {
-			Blockbench.import({
-				resource_id: 'texture',
-				extensions: ['png'],
-				type: 'PNG Texture',
-				readtype: 'image'
-			}, (files) => {
-				if (files.length) {
-					Extruder.dialog.show();
-					Extruder.drawImage(files[0]);
-				}
+	Blockbench.on('drop_text', ({text}) => {
+		if (text && text.startsWith('https://blckbn.ch/')) {
+			let code = text.replace(/\/$/, '').split('/').last();
+			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
+				Codecs.project.load(model, {path: ''});
+			}).fail(error => {
+				Blockbench.showQuickMessage('message.invalid_link')
 			})
 		}
 	})
@@ -568,11 +394,12 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 's', ctrl: true}),
 		condition: () => Project,
 		click: async function(event) {
+			let export_codec = Codecs[Project.export_codec] ?? Format?.codec;
 			if (isApp) {
 				await saveTextures()
 				if (Format) {
-					let export_codec = Format.codec;
 					if (Project.save_path) {
+						console.log('write1')
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
 					if (Project.export_path && export_codec?.compile) {
@@ -694,6 +521,7 @@ Object.assign(window, {
 	loadModelFile,
 	loadImages,
 	Extruder,
+	unsupportedFileFormatMessage,
 	compileJSON,
 	autoParseJSON,
 })

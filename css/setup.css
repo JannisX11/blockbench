@@ -1,4 +1,4 @@
-@layer reset, lib, base, theme, theme-override;
+@layer reset, lib, base, plugin, theme, theme-override;
 @layer reset {
 	* {
 		margin: 0;
@@ -143,20 +143,28 @@
 		src: local('Assistant-ExtraBold'),
 			url(../font/Assistant-ExtraBold.ttf) format('truetype');
 	}
+	@font-face {
+		font-family: 'Montserrat';
+		font-style: normal;
+		font-weight: 100 1000;
+		src: local('Montserrat-VariableFont'),
+			url(../font/Montserrat-VariableFont_wght.ttf) format('truetype'),
+			url(../font/Montserrat-VariableFont_wght.ttf) format('truetype');
+	}
 	
 	/* https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@1 */
 	@font-face {
 		font-family: 'Material Icons';
 		font-style: normal;
 		font-weight: 400;
-		src: url(../font/material-icons.woff2?4) format('woff');
+		src: url(../font/material-icons.woff2) format('woff');
 	}
 	@font-face {
 		font-family: 'icomoon';
 		font-weight: normal;
 		font-style: normal;
-		src: url('../font/icomoon.ttf?wxwksw') format('truetype'),
-			 url('../font/icomoon.woff?wxwksw') format('woff');
+		src: url('../font/icomoon.ttf') format('truetype'),
+			 url('../font/icomoon.woff') format('woff');
 	}
 
 /*Icons*/
@@ -317,7 +325,9 @@
 
 
 	
-
+	.icon {
+		user-select: none;
+	}
 	.material-icons {
 		font-family: 'Material Icons';
 		font-weight: normal;
@@ -377,7 +387,7 @@
 		--color-subtle_text: #848891;
 		--color-bright_ui: #f4f3ff;
 		--color-bright_border: var(--color-text);
-		--color-grid: #495061;
+		--color-grid: #30333d;
 		--color-wireframe: #576f82;
 		--color-checkerboard: #14171b;
 
@@ -389,6 +399,7 @@
 		--color-error: #ff2a51;
 		--color-warning: #ffc400;
 		--color-stream: #6442A4;
+		--color-update: #76f39b;
 		
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
@@ -406,7 +417,7 @@
 		--font-custom-code: '';
 
 		--font-main: var(--font-custom-main), Assistant, segoe ui, sans-serif;
-		--font-headline: var(--font-custom-headline), var(--font-custom-main), Assistant, segoe ui, sans-serif;
+		--font-headline: var(--font-custom-headline), Montserrat, segoe ui, sans-serif;
 		--font-code: var(--font-custom-code), Consolas, Monospace;
 	}
 
@@ -441,14 +452,14 @@
 	}
 	h1 {
 		letter-spacing: -0.03em;
+		font-weight: 800;
 	}
 	h2 {
-		font-weight: lighter;
+		font-weight: 200;
 		margin: 0;
 	}
 	h3 {
 		font-size: 1.28em;
-		padding-bottom: 4px;
 		font-weight: inherit;
 		margin-left: 16px;
 		min-width: 10px;
@@ -495,7 +506,7 @@
 	}
 	button:hover {
 		background: var(--color-accent);
-		color: var(--color-accent_text) !important;
+		color: var(--color-accent_text);
 	}
 	button:focus {
 	    text-decoration: underline;
@@ -506,7 +517,7 @@
     	text-decoration: underline;
 	}
 	button.minor:hover {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	button > i {
 		pointer-events: none;
@@ -546,6 +557,7 @@
 		border: 1px solid var(--color-border);
 		background: var(--color-back);
 		color: var(--color-text);
+		border-radius: 5px;
 		resize: none;
 		outline: none;
 		user-select: initial;
@@ -555,8 +567,9 @@
 		user-select: initial;
 		-webkit-user-select: initial;
 	}
-	div.bb-select {
-		display: block;
+	div.bb-select,
+	select {
+		display: flex;
 		position: relative;
 		background-color: var(--color-button);
 		text-align: left;
@@ -569,8 +582,10 @@
 		color: var(--color-text);
 		white-space: nowrap;
 		overflow: hidden;
+		gap: 4px;
 	}
-	div.bb-select:hover{
+	div.bb-select:hover,
+	select {
 		color: var(--color-light);
 	}
 
@@ -690,7 +705,7 @@
 	}
 	input[type=checkbox].toggle_switch {
 		height: 22px;
-		width: 42px;
+		width: 46px;
 		background-color: var(--color-button);
 		position: relative;
 		--color: var(--color-text);
@@ -700,9 +715,6 @@
 		transition: background-color 70ms ease-out;
 	}
 	input[type=checkbox].toggle_switch:checked {
-		height: 22px;
-		width: 46px;
-		border-radius: 12px;
 		background-color: var(--color-accent);
 		--color: var(--color-light);
 	}
@@ -792,8 +804,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 	div.nslide_arrow {
 		position: absolute;
@@ -820,8 +832,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 
 	input.toggle_panel {

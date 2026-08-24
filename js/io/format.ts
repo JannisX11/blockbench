@@ -4,13 +4,13 @@ import { setProjectTitle } from "../interface/interface";
 import { settings, Settings } from "../interface/settings";
 import { TickUpdates } from "../misc";
 import { Mode, Modes } from "../modes";
-import { Group } from "../outliner/group";
+import { Group } from "../outliner/types/group";
 import { Canvas } from "../preview/canvas";
 import { DefaultCameraPresets } from "../preview/preview";
 import { Property } from "../util/property";
-import { SplineMesh } from "../outliner/spline_mesh";
+import { SplineMesh } from "../outliner/types/spline_mesh";
 
-interface FormatPage {
+export interface FormatPage {
 	component?: Vue.Component
 	content?: (
 		| {
@@ -24,7 +24,7 @@ interface FormatPage {
 	)[]
 	button_text?: string
 }
-interface CubeSizeLimiter {
+export interface CubeSizeLimiter {
 	/**
 	 * Test whether the cube with the optionally provided values violates the size restrictions
 	 */
@@ -60,7 +60,7 @@ interface CubeSizeLimiter {
  */
 declare const Format: ModelFormat
 
-export const Formats = {};
+export const Formats: Record<string, ModelFormat> = {};
 
 Object.defineProperty(window, 'Format', {
 	get() {
@@ -69,24 +69,7 @@ Object.defineProperty(window, 'Format', {
 })
 
 //Formats
-interface FormatOptions {
-	id: string
-	icon: string
-	name?: string
-	description?: string
-	category?: string
-	target?: string | string[]
-	confidential?: boolean
-	condition?: ConditionResolvable
-	show_on_start_screen?: boolean
-	can_convert_to?: boolean
-	format_page?: FormatPage
-	onFormatPage?(): void
-	onStart?(): void
-	onSetup?(project: ModelProject, newModel?: boolean): void
-	convertTo?(): void
-	new?(): boolean
-
+export interface FormatFeatures {
 	/**
 	 * Enables Box UV on cubes by default
 	 */
@@ -111,6 +94,14 @@ interface FormatOptions {
 	 * If true, UV size (the size of the texture in UV space) will be defined per texture and not per project
 	 */
 	per_texture_uv_size: boolean
+	/**
+	 * Set how textures wrap in the format by default
+	 */
+	texture_wrap_default: 'limited' | 'repeat' | 'clamp'
+	/**
+	 * Set a texture wrap value per texture
+	 */
+	per_texture_wrap_mode: boolean
 	/**
 	 * Enable a model identifier field in the project settings. Default is true
 	 */
@@ -144,6 +135,14 @@ interface FormatOptions {
 	 */
 	centered_grid: boolean
 	/**
+	 * Specify how large in pixels a block is. Defaults to 16.
+	 */
+	block_size: number
+	/**
+	 * Which direction of the model is facing forward
+	 */
+	forward_direction: '-z' | '+z' | '-x' | '+x'
+	/**
 	 * Add the ability to rotate cubes
 	 */
 	rotate_cubes: boolean
@@ -172,6 +171,10 @@ interface FormatOptions {
 	 */
 	billboards: boolean
 	/**
+	 * Enable bounding box elements
+	 */
+	bounding_boxes: boolean
+	/**
 	 * Enable locators
 	 */
 	locators: boolean
@@ -187,6 +190,10 @@ interface FormatOptions {
 	 * Forces cube rotations to snap to 22.5 degree increments
 	 */
 	rotation_snap: boolean
+	/**
+	 * Rotation euler order for outliner nodes
+	 */
+	euler_order: 'XYZ' | 'ZYX'
 	/**
 	 * Allows cube UVs to be rotated
 	 */
@@ -211,6 +218,14 @@ interface FormatOptions {
 	 * If true, animations will be saved into files
 	 */
 	animation_files: boolean
+	/**
+	 * Change how animations can be grouped
+	 */
+	animation_grouping: 'by_file' | 'custom' | 'disabled'
+	/**
+	 * Enable molang syntax and validation in animations
+	 */
+	molang: boolean
 	/**
 	 * Enables a folder path per texture that can be set in the texture properties window
 	 */
@@ -244,6 +259,18 @@ interface FormatOptions {
 	 */
 	animation_controllers: boolean
 	/**
+	 * If true, interpolation between keyframes in looping animations will wrap around
+	 */
+	animation_loop_wrapping: boolean
+	/**
+	 * If true, use quaternion lerping to interpolate between rotation keyframes
+	 */
+	quaternion_interpolation: boolean
+	/**
+	 * Toggle quaternion interpolation per node / animator
+	 */
+	per_animator_rotation_interpolation: boolean
+	/**
 	 * If true, cube sizes will not be floored to calculate UV sizes with box UV. This can result in UVs not aligning with pixel edges
 	 */
 	box_uv_float_size: boolean
@@ -268,8 +295,28 @@ interface FormatOptions {
 	 * Options to limit the size of cubes
 	 */
 	cube_size_limiter?: CubeSizeLimiter
+}
+export type FormatOptions = FormatFeatures & {
+	id: string
+	icon: string
+	name?: string
+	description?: string
+	category?: string
+	target?: string | string[]
+	confidential?: boolean
+	condition?: ConditionResolvable
+	show_on_start_screen?: boolean
+	show_in_new_list?: boolean
+	can_convert_to?: boolean
+	format_page?: FormatPage
+	onFormatPage?(): void
+	onStart?(): void
+	onSetup?(project: ModelProject, newModel?: boolean): void
+	convertTo?(): void
+	new?(): boolean
 
 	codec?: Codec
+	animation_codec?: AnimationCodec
 	onActivation?(): void
 	onDeactivation?(): void
 }
@@ -298,10 +345,12 @@ export class ModelFormat implements FormatOptions {
 	cube_size_limiter?: CubeSizeLimiter
 
 	codec?: Codec
+	animation_codec?: AnimationCodec
 	onActivation?(): void
 	onDeactivation?(): void
 
-	static properties: Record<string, Property>
+	static properties: Record<string, Property<any>>
+	public type = 'format';
 
 	constructor(id: string, data: Partial<FormatOptions>) {
 		if (typeof id == 'object') {
@@ -326,6 +375,7 @@ export class ModelFormat implements FormatOptions {
 		this.cube_size_limiter = data.cube_size_limiter;
 
 		this.codec = data.codec;
+		this.animation_codec = data.animation_codec;
 		this.onSetup = data.onSetup;
 		this.onFormatPage = data.onFormatPage;
 		this.onActivation = data.onActivation;
@@ -345,6 +395,9 @@ export class ModelFormat implements FormatOptions {
 		for (let id in ModelFormat.properties) {
 			ModelFormat.properties[id].merge(this, data);
 		}
+		if (!data.animation_files && !data.animation_grouping) {
+			this.animation_grouping = 'custom';
+		}
 		if (this.format_page && this.format_page.component) {
 			Vue.component(`format_page_${this.id}`, this.format_page.component)
 		}
@@ -356,17 +409,17 @@ export class ModelFormat implements FormatOptions {
 		}
 		// @ts-ignore Incompatible internal and external types
 		Blockbench.Format = Blockbench.Project.format = this;
-		if (typeof this.onActivation == 'function') {
-			Format.onActivation()
-		}
 		Canvas.buildGrid()
 		if (Format.centered_grid) {
 			scene.position.set(0, 0, 0);
-			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 8;
+			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = Format.block_size/2;
 		} else {
-			scene.position.set(-8, 0, -8);
+			scene.position.set(-Format.block_size/2, 0, -Format.block_size/2);
 			Canvas.ground_plane.position.x = Canvas.ground_plane.position.z = 0;
 		}
+		let ground_plane_scale = Format.block_size / 16;
+		Canvas.ground_plane.scale.set(ground_plane_scale, ground_plane_scale, ground_plane_scale);
+
 		PreviewModel.getActiveModels().forEach(model => {
 			model.update();
 		})
@@ -380,10 +433,15 @@ export class ModelFormat implements FormatOptions {
 		if (Mode.selected && !Condition(Mode.selected.condition)) {
 			(this.pose_mode ? Modes.options.paint : Modes.options.edit).select();
 		}
-		Interface.Panels.animations.inside_vue.$data.animation_files_enabled = this.animation_files;
+		Interface.Panels.animations.inside_vue.$data.animation_files = this.animation_files;
+		Interface.Panels.animations.inside_vue.$data.group_animations_by_file = this.animation_grouping == 'by_file';
 		// @ts-ignore
 		Interface.status_bar.vue.Format = this;
 		UVEditor.vue.cube_uv_rotation = this.uv_rotation;
+		
+		if (typeof this.onActivation == 'function') {
+			Format.onActivation()
+		}
 		if (Modes.vue) Modes.vue.$forceUpdate();
 		TickUpdates.interface = true;
 		Canvas.updateShading();
@@ -392,9 +450,10 @@ export class ModelFormat implements FormatOptions {
 		return this;
 	}
 	new(): boolean {
-		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
-			(BarItems.project_window as Action).click();
+			if (Settings.get('new_project_dialog')) {
+				BarItems.project_window.click();
+			}
 			return true;
 		}
 		return false;
@@ -404,6 +463,7 @@ export class ModelFormat implements FormatOptions {
 		Undo.history.empty();
 		Undo.index = 0;
 		Project.export_path = '';
+		Project.export_codec = '';
 		Project.unhandled_root_fields = {};
 
 		var old_format = Blockbench.Format as ModelFormat;
@@ -451,9 +511,7 @@ export class ModelFormat implements FormatOptions {
 					el.addTo(root_group)
 				})
 			}
-			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
-				// @ts-ignore
 				Project.geometry_name = Project.name;
 			}
 		}
@@ -484,6 +542,10 @@ export class ModelFormat implements FormatOptions {
 				el.applyTexture(texture, true)
 			})
 		}
+
+		// Outliner names
+		Group.all.forEach(group => group.sanitizeName());
+		Outliner.elements.forEach(group => group.sanitizeName());
 
 		//Rotate Cubes
 		if (!this.rotate_cubes && old_format.rotate_cubes) {
@@ -527,6 +589,12 @@ export class ModelFormat implements FormatOptions {
 				b.remove()
 			})
 		}
+		//Billboards
+		if (!this.bounding_boxes && old_format.bounding_boxes) {
+			BoundingBox.all.slice().forEach(b => {
+				b.remove()
+			})
+		}
 
 		//Canvas Limit
 		if (this.cube_size_limiter && !old_format.cube_size_limiter && !settings.deactivate_size_limit.value) {
@@ -551,6 +619,12 @@ export class ModelFormat implements FormatOptions {
 			})
 		}
 
+		if (Format.per_texture_wrap_mode == false) {
+			Texture.all.forEach(texture => {
+				texture.wrap_mode = Texture.properties.wrap_mode.getDefault()
+			})
+		}
+
 		//Animation Mode
 		if (!this.animation_mode && old_format.animation_mode) {
 			Animator.animations.length = 0;
@@ -572,7 +646,6 @@ export class ModelFormat implements FormatOptions {
 	}
 	delete() {
 		delete Formats[this.id];
-		// @ts-ignore
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
@@ -586,6 +659,8 @@ new Property(ModelFormat, 'boolean', 'single_texture');
 new Property(ModelFormat, 'boolean', 'single_texture_default');
 new Property(ModelFormat, 'boolean', 'per_group_texture');
 new Property(ModelFormat, 'boolean', 'per_texture_uv_size');
+new Property(ModelFormat, 'enum', 'texture_wrap_default', {default: 'limited', values: ['limited', 'repeat', 'clamp']});
+new Property(ModelFormat, 'boolean', 'per_texture_wrap_mode');
 new Property(ModelFormat, 'boolean', 'model_identifier', {default: true});
 new Property(ModelFormat, 'boolean', 'legacy_editable_file_name');
 new Property(ModelFormat, 'boolean', 'parent_model_id');
@@ -594,6 +669,8 @@ new Property(ModelFormat, 'boolean', 'animated_textures');
 new Property(ModelFormat, 'boolean', 'bone_rig');
 new Property(ModelFormat, 'boolean', 'armature_rig');
 new Property(ModelFormat, 'boolean', 'centered_grid');
+new Property(ModelFormat, 'number', 'block_size', {default: 16});
+new Property(ModelFormat, 'enum', 'forward_direction', {default: '-z', values: ['-z', '+z', '-x', '+x']});
 new Property(ModelFormat, 'boolean', 'rotate_cubes');
 new Property(ModelFormat, 'boolean', 'stretch_cubes');
 new Property(ModelFormat, 'boolean', 'integer_size');
@@ -601,6 +678,7 @@ new Property(ModelFormat, 'boolean', 'meshes');
 new Property(ModelFormat, 'boolean', 'splines');
 new Property(ModelFormat, 'boolean', 'texture_meshes');
 new Property(ModelFormat, 'boolean', 'billboards');
+new Property(ModelFormat, 'boolean', 'bounding_boxes');
 new Property(ModelFormat, 'boolean', 'locators');
 new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
@@ -612,7 +690,12 @@ new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'enum', 'animation_grouping', {default: 'by_file', values: ['by_file', 'custom', 'disabled']});
 new Property(ModelFormat, 'boolean', 'animation_controllers');
+new Property(ModelFormat, 'boolean', 'animation_loop_wrapping');
+new Property(ModelFormat, 'boolean', 'quaternion_interpolation');
+new Property(ModelFormat, 'boolean', 'per_animator_rotation_interpolation');
+new Property(ModelFormat, 'boolean', 'molang', {default: true});
 new Property(ModelFormat, 'boolean', 'image_editor');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
@@ -621,9 +704,18 @@ new Property(ModelFormat, 'boolean', 'display_mode');
 new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
+new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
 
 
-Object.assign(window, {
+const global = {
 	ModelFormat,
 	Formats
-});
+};
+declare global {
+	const ModelFormat: typeof global.ModelFormat
+	type ModelFormat = import('./format').ModelFormat
+	const Format: ModelFormat
+	const Formats: Record<string, ModelFormat>
+}
+
+Object.assign(window, global);

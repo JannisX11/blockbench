@@ -1,3 +1,5 @@
+import { PointerTarget } from "../interface/pointer_target";
+
 /**
  * Original source: https://github.com/mrdoob/three.js, MIT
  * Modified for Blockbench
@@ -76,13 +78,7 @@ constructor ( object, preview ) {
 	};
 
 	this.updateSceneScale = function() {
-		ReferenceImage.active.forEach(ref => {
-			if (ref.is_blueprint && ref.attached_side == scope.preview.angle) {
-				ref.updateTransform()
-			}
-		})
-		if (Transformer.visible) Transformer.update()
-		Blockbench.dispatchEvent('update_camera_position', {preview: scope.preview})
+		scope.update();
 	};
 
 	this.onUpdate = function(call) {
@@ -122,7 +118,6 @@ constructor ( object, preview ) {
 				let auto_rot_angle = getAutoRotationAngle()
 				scope.autoRotateProgress += auto_rot_angle;
 				scope.rotateLeft( auto_rot_angle );
-
 			}
 
 			spherical.theta += sphericalDelta.theta;
@@ -365,7 +360,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -384,7 +378,6 @@ constructor ( object, preview ) {
 			scope.enableZoom = false;
 
 		}
-		scope.updateSceneScale()
 
 	}
 
@@ -421,8 +414,6 @@ constructor ( object, preview ) {
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMoveDolly( event ) {
@@ -439,7 +430,6 @@ constructor ( object, preview ) {
 		dollyStart.copy( dollyEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseMovePan( event ) {
@@ -449,7 +439,6 @@ constructor ( object, preview ) {
 		panStart.copy( panEnd );
 
 		scope.update();
-		scope.updateSceneScale();
 	}
 
 	function handleMouseUp( event ) {
@@ -464,7 +453,6 @@ constructor ( object, preview ) {
 			dollyIn( getZoomScale(modifier) );
 		}
 		scope.update();
-		scope.updateSceneScale();
 
 	}
 
@@ -537,7 +525,6 @@ constructor ( object, preview ) {
 		rotateStart.copy( rotateEnd );
 
 		scope.update();
-		scope.updateSceneScale()
 
 	}
 
@@ -606,20 +593,20 @@ constructor ( object, preview ) {
 
 	function onMouseDown( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 
 		event.preventDefault();
 		scope.hasMoved = false
 		
 		if ( Keybinds.extra.preview_rotate.keybind.isTriggered(event) ) {
 
-				if ( scope.enableRotate === false ) return;
-				if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
-					return;
-				}
-				handleMouseDownRotate( event );
+			if ( scope.enableRotate === false ) return;
+			if (event.which === 1 && Canvas.raycast(event) && !Modes.display) {
+				return;
+			}
+			handleMouseDownRotate( event );
 
-				state = STATE.ROTATE;
+			state = STATE.ROTATE;
 
 		} else if ( Keybinds.extra.preview_drag.keybind.isTriggered(event) ) {
 
@@ -652,7 +639,7 @@ constructor ( object, preview ) {
 
 	function onMouseMove( event ) {
 
-		if (scope.isEnabled() === false || Transformer.dragging) return;
+		if (scope.isEnabled() === false || !PointerTarget.requestTarget(PointerTarget.types.navigate)) return;
 		event.preventDefault();
 		scope.hasMoved = true
 
@@ -678,6 +665,8 @@ constructor ( object, preview ) {
 
 		if ( scope.isEnabled() === false ) return;
 
+		PointerTarget.endTarget(PointerTarget.types.navigate);
+
 		handleMouseUp( event );
 
 		document.removeEventListener( 'mousemove', onMouseMove, false );
@@ -693,6 +682,16 @@ constructor ( object, preview ) {
 	function onMouseWheel( event ) {
 
 		if ( scope.isEnabled() === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		let keybind = Keybinds.extra.preview_scroll_zoom.keybind;
+		let enabled = keybind.isTriggered(event);
+
+		if (!enabled && Keybinds.extra.preview_scroll_pan.keybind.isTriggered(event)) {
+			pan( -event.deltaX, -event.deltaY );
+
+			scope.update();
+		}
+
+		if (!enabled) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -754,7 +753,7 @@ constructor ( object, preview ) {
 	function onTouchMove( event ) {
 
 		if ( scope.isEnabled() === false ) return;
-		if ( Transformer.dragging || Painter.painting ) return;
+		if ( !PointerTarget.requestTarget(PointerTarget.types.navigate) ) return;
 
 		event.preventDefault();
 		event.stopPropagation();
@@ -767,6 +766,7 @@ constructor ( object, preview ) {
 				if ( state !== STATE.TOUCH_ROTATE ) return; // is this needed?
 
 				handleTouchMoveRotate( event );
+				scope.hasMoved = true;
 
 				break;
 
@@ -791,6 +791,7 @@ constructor ( object, preview ) {
 		if ( scope.isEnabled() === false ) return;
 		scope.dispatchEvent( endEvent );
 		state = STATE.NONE;
+		scope.hasMoved = false;
 
 	}
 

@@ -21,6 +21,8 @@ function isComment(line) {
  * @param {string} path 
  */
 function processFile(content, path) {
+	if (content.match(/\ndeclare global {/)) return content;
+
 	// TODO: Handle comments
 	let lines = content.split(/\r?\n/);
 	let output_lines = [];
@@ -31,7 +33,7 @@ function processFile(content, path) {
 		if (global_scope) {
 			if (line.startsWith('}') || line.startsWith('  ')) {
 				output_lines.push('    ' + line);
-			} else if (line.startsWith('export ') && !line.startsWith('export {}')) {
+			} else if ((line.startsWith('export ') || line.startsWith('interface')) && !line.startsWith('export {}')) {
 				for (let comment of comment_stash) {
 					output_lines.push('    ' + comment);
 				}
@@ -48,7 +50,7 @@ function processFile(content, path) {
 				output_lines.push(line);
 			}
 
-		} else if (line.startsWith('export ') && !line.startsWith('export {}')) {
+		} else if ((line.startsWith('export ') || line.startsWith('interface')) && !line.startsWith('export {}')) {
 			output_lines.push('declare global {');
 			for (let comment of comment_stash) {
 				output_lines.push('    ' + comment);
@@ -74,6 +76,9 @@ function processFile(content, path) {
 	if (output_lines.includes('export {};') == false) {
 		output_lines.push('export {};');
 	}
+	output_lines = output_lines.map(line => {
+		return line.replace(/, }/g, ' }');
+	})
 	output_lines.push('');
 	let result = output_lines.join('\n');
 	return result;
@@ -83,7 +88,7 @@ function convertDirectory(path) {
 	let files = fs.readdirSync(path)
 	for (let file_name of files) {
 		let file_path = PathModule.join(path, file_name)
-		let simple_file_path = file_path.replace(/[\\\/]/g, '/').replace(/\.d\.ts$/, '');
+		let simple_file_path = file_path.replace(/[\\\/]/g, '/').replace(/(\.d\.ts)$/, '');
 
 		if (file_name.endsWith('.ts')) {
 			let file_content = fs.readFileSync(file_path, {encoding: 'utf-8'});

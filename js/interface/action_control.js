@@ -45,7 +45,7 @@ export const ActionControl = {
 	cancel() {
 		ActionControl.hide()
 	},
-	trigger(action, e) {
+	trigger(action, event) {
 		if (action.id == 'action_control') {
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
@@ -70,7 +70,7 @@ export const ActionControl = {
 			}
 
 		} else if (action.type == 'plugin') {
-			let plugin = Plugins.all.find(plugin => plugin.id == action.id);
+			let plugin = Plugins.all.find(plugin => plugin.uuid == action.uuid);
 			if (plugin.installed) {
 				plugin.uninstall();
 			} else {
@@ -78,14 +78,14 @@ export const ActionControl = {
 			}
 
 		} else {
-			action.trigger(e);
+			action.trigger(event);
 		}
 		if (action instanceof BarItem) {
 			this.addRecentlyUsed(action);
 		}
 	},
-	click(action, e) {
-		ActionControl.trigger(action, e)
+	click(action, event) {
+		ActionControl.trigger(action, event)
 		ActionControl.hide()
 	},
 	handleKeys(e) {
@@ -129,7 +129,7 @@ export const ActionControl = {
 		return true;
 	},
 	addRecentlyUsed(action) {
-		if (action.id == 'action_control') return;
+		if (action.id == 'action_control' || action.id == 'add_plugin' || action.id == 'remove_plugin') return;
 		ActionControl.recently_used.remove(action.id);
 		ActionControl.recently_used.splice(0, 0, action.id);
 		if (ActionControl.recently_used.length > ActionControl.max_recently_used) {
@@ -198,7 +198,7 @@ BARS.defineActions(function() {
 				if (!type && search_input) {
 					for (let key in this.search_types) {
 						if (key == 'setting') continue;
-						if (key.includes(search_input)) {
+						if (key.includes(search_input) || this.search_types[key].name.toLowerCase()?.includes(search_input)) {
 							list.push({
 								name: this.search_types[key].name,
 								icon: this.search_types[key].icon,
@@ -283,7 +283,7 @@ BARS.defineActions(function() {
 							project.geometry_name.toLowerCase().includes(search_input)
 						) {
 							list.push({
-								name: project.getDisplayName(),
+								name: project.getDisplayName(true),
 								icon: project.format.icon,
 								description: project.path,
 								keybind_label: Modes.options[project.mode].name,
@@ -337,6 +337,7 @@ BARS.defineActions(function() {
 								description: plugin.description,
 								keybind_label: plugin.author,
 								id: plugin.id,
+								uuid: plugin.uuid,
 								type: 'plugin'
 							})
 							if (list.length > ActionControl.max_length) break;
@@ -385,7 +386,7 @@ BARS.defineActions(function() {
 							return action.value;
 						}
 					} else {
-						action.keybind.label;
+						return action.keybind?.label ?? '';
 					}
 				} else {
 					return action.description;

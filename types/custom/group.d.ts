@@ -22,9 +22,9 @@ interface GroupOptions {
 }
 
 declare class Group extends OutlinerNode {
-	constructor(options: Partial<GroupOptions> | string)
+	constructor(options: Partial<GroupOptions> | string, uuid?: UUID)
 	/**
-	 * Returns the selected groups
+	 * Returns the directly selected groups
 	 * @Note This only includes directly selected groups, not groups that are selected because the parent is selected
 	 */
 	static selected: Group[]
@@ -66,7 +66,7 @@ declare class Group extends OutlinerNode {
 	cem_attach?: boolean
 	cem_model?: string
 	cem_scale?: number
-	mesh: THREE.Mesh
+	mesh: THREE.Object3D
 
 	[key: string]: any
 
@@ -74,7 +74,10 @@ declare class Group extends OutlinerNode {
 
 	extend(options: Partial<GroupOptions>): this
 	selectChildren(event: Event): this
-	selectLow(highlight: boolean): this
+	/**
+	 * Mark the group as selected
+	 */
+	markAsSelected(descendants?: boolean): void
 	select(event?: any, isOutlinerClick?: boolean): this
 	unselect(): this
 	matchesSelection(): boolean

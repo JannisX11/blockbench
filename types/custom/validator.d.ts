@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 /**
  * The validator in Blockbench provides feedback about the model and can detect issues in real time, based on a list of checks that can be added. This is a good way to ensure model files are valid, and to teach users about best practices.
  */
@@ -11,16 +11,20 @@ declare namespace Validator {
 	 * Run the validator
 	 * @param trigger ID of the Blockbench event that triggered the call
 	 */
-	function validate(trigger?: EventName): void
+	function validate<T extends BlockbenchEventName>(trigger?: T): void
 	/**
 	 * Opens the Validator dialog
 	 */
 	function openDialog(): void
+	/**
+	 * The Validator dialog, created the first time it is opened
+	 */
+	const dialog: Dialog
 
 	/**
 	 * Cached trigger IDs
 	 */
-	const triggers: EventName[]
+	const triggers: BlockbenchEventName[]
 	/**
 	 * Update the cached triggers list
 	 */
@@ -35,7 +39,7 @@ interface ValidatorCheckOptions {
 	/**
 	 * Names of events that automatically trigger this check
 	 */
-	update_triggers?: EventName[]
+	update_triggers?: BlockbenchEventName[]
 	condition?: ConditionResolvable
 }
 interface WarningOrError {

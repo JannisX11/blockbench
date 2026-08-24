@@ -170,7 +170,7 @@ const DisplayReferences = {
 				"name": "right_arm",
 				"size": [3, 12, 4],
 				"pos": [5.5, 17.5, 0],
-				"origin": [0, 22, 0],
+				"origin": [4, 22, 0],
 				"rotation": [22.5, 0, 0],
 				"north": {"uv": [44, 20, 47, 32]},
 				"east": {"uv": [40, 20, 44, 32]},
@@ -184,7 +184,7 @@ const DisplayReferences = {
 				"name": "right_arm_layer",
 				"size": [3.5, 12.5, 4.5],
 				"pos": [5.5, 17.5, 0],
-				"origin": [0, 22, 0],
+				"origin": [4, 22, 0],
 				"rotation": [22.5, 0, 0],
 				"north": {"uv": [44, 36, 47, 48]},
 				"east": {"uv": [40, 36, 44, 48]},
@@ -198,7 +198,7 @@ const DisplayReferences = {
 				"name": "left_arm",
 				"size": [3, 12, 4],
 				"pos": [-5.5, 17.5, 0],
-				"origin": [0, 22, 0],
+				"origin": [-4, 22, 0],
 				"rotation": [22.5, 0, 0],
 				"north": {"uv": [36, 52, 39, 64]},
 				"east": {"uv": [32, 52, 36, 64]},
@@ -212,7 +212,7 @@ const DisplayReferences = {
 				"name": "left_arm_layer",
 				"size": [3.5, 12.5, 4.5],
 				"pos": [-5.5, 17.5, 0],
-				"origin": [0, 22, 0],
+				"origin": [-4, 22, 0],
 				"rotation": [22.5, 0, 0],
 				"north": {"uv": [52, 52, 55, 64]},
 				"east": {"uv": [48, 52, 52, 64]},
@@ -670,6 +670,29 @@ const DisplayReferences = {
 			{"size": [16,16,16], "pos": [8, 8, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]
 	},
+	flower_pot: {
+		texture: 'assets/flower_pot.png',
+		elements: [
+			{
+				"size": [6, 6, 6],
+				"pos": [0, 3, 0],
+				"origin": [0, 0, 0],
+				"north": {"uv":[0, 10, 6, 16]},
+				"east": {"uv":[0, 10, 6, 16]},
+				"south": {"uv":[0, 10, 6, 16]},
+				"west": {"uv":[0, 10, 6, 16]},
+				"up": {"uv":[0, 5, 6, 11]},
+				"down": {"uv":[0, 10, 6, 16]}
+			},
+			{
+				"size": [6, 0, 6],
+				"pos": [0, 4, 0],
+				"origin": [0, 0, 0],
+				"up": {"uv":[10, 0, 16, 6]},
+				"down": {"uv":[0, 0, 1, 1]},
+			}
+		]
+	},
 	frame: {
 		texture: 'assets/item_frame.png',
 		elements: [
@@ -684,7 +707,7 @@ const DisplayReferences = {
 	},
 	frame_top_block: {
 		texture: 'assets/missing.png',
-		cubes: [
+		elements: [
 			{"size": [16,16,16], "pos": [8, -8.01, 8], "origin": [0, 0, 0], "north":{"uv":[0,0,16,16]},"east":{"uv":[0,0,16,16]},"south":{"uv":[0,0,16,16]},"west":{"uv":[0,0,16,16]},"up":{"uv":[0,0,16,16]},"down":{"uv":[0,0,16,16]}}
 		]
 	},

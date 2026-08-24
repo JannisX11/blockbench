@@ -1,7 +1,12 @@
+import { markerColors } from "../marker_colors";
+import { dragHelper } from "../util/drag_helper";
+
 export class TimelineMarker {
 	constructor(data) {
+		this.uuid = guid();
 		this.time = 0;
 		this.color = 0;
+		this.name = 0;
 		if (data) {
 			this.extend(data);
 		}
@@ -9,11 +14,13 @@ export class TimelineMarker {
 	extend(data) {
 		Merge.number(this, data, 'color');
 		Merge.number(this, data, 'time');
+		Merge.string(this, data, 'name');
 	}
 	getUndoCopy() {
 		return {
 			color: this.color,
 			time: this.time,
+			name: this.name,
 		}
 	}
 	callPlayhead() {
@@ -24,6 +31,20 @@ export class TimelineMarker {
 	showContextMenu(event) {
 		this.menu.open(event, this);
 		return this;
+	}
+	propertiesDialog() {
+		new Dialog({
+			id: 'timeline_marker_properties',
+			title: 'menu.animation.properties',
+			form: {
+				time: {label: 'action.slider_keyframe_time', value: Math.roundTo(this.time, 4), type: 'number', min: 0},
+				name: {label: 'generic.name', value: this.name, type: 'text'}
+			},
+			onConfirm: (form) => {
+				this.time = form.time;
+				this.name = form.name;
+			}
+		}).show();
 	}
 }
 TimelineMarker.prototype.menu = new Menu([
@@ -38,26 +59,18 @@ TimelineMarker.prototype.menu = new Menu([
 			}})
 		];
 	}},
-	{
-		name: 'menu.timeline_marker.set_time',
-		icon: 'schedule',
-		click(marker) {
-			new Dialog({
-				id: 'timeline_marker_set_time',
-				title: 'menu.timeline_marker.set_time',
-				form: {
-					time: {label: 'action.slider_keyframe_time', value: Math.roundTo(marker.time, 4), type: 'number', min: 0}
-				},
-				onConfirm(form) {
-					marker.time = form.time;
-				}
-			}).show();
-		}
-	},
 	new MenuSeparator('manage'),
 	{icon: 'delete', name: 'generic.delete', click: function(marker) {
 		if (Animation.selected) Animation.selected.markers.remove(marker);
-	}}
+	}},
+	new MenuSeparator('properties'),
+	{
+		name: 'menu.animation.properties',
+		icon: 'list',
+		click(marker) {
+			marker.propertiesDialog();
+		}
+	},
 ])
 
 export const Timeline = {
@@ -296,7 +309,8 @@ export const Timeline = {
 		return 1/Math.clamp(Animation.selected ? Animation.selected.snapping : settings.animation_snap.value, 1, 120);
 	},
 	setup() {
-		document.getElementById('timeline_body').addEventListener('mousedown', e => {
+		let timeline_body = Panels.timeline.node.querySelector('#timeline_body');
+		timeline_body.addEventListener('mousedown', e => {
 			if (e.which === 2 || (Keybinds.extra.preview_drag.keybind.isTriggered(e) && e.which !== 1)) {
 				let pos = [e.clientX, e.clientY];
 				let timeline = e.currentTarget;
@@ -322,9 +336,27 @@ export const Timeline = {
 			}
 		})
 
-		$('#timeline_time').on('mousedown touchstart', e => {
+		let timeline_time = Panels.timeline.node.querySelector('#timeline_time');
+		addEventListeners(timeline_time, 'mousedown touchstart', e => {
 			if (e.which !== 1 && !event.changedTouches) return;
-			if (e.target.classList.contains('timeline_marker')) return;
+			if (e.target.classList.contains('timeline_marker')) {
+				let marker_uuid = e.target.getAttribute('uuid');
+				let marker = Animation.selected.markers.find(m => m.uuid == marker_uuid);
+				if (marker && (Pressing.overrides.ctrl || e.ctrlOrCmd)) {
+					let initial_time = marker.time;
+					dragHelper(e, {
+						onMove(arg) {
+							marker.time = Math.max(0, initial_time + arg.delta.x / Timeline.vue.$data.size);
+							if (!arg.event.ctrlKey) marker.time = Timeline.snapTime(marker.time);
+							displayTimeOnCursor(marker.time);
+						},
+						onEnd() {
+							Blockbench.setCursorTooltip();
+						}
+					})
+				}
+				return;
+			}
 
 			if (e.target.id == 'timeline_endbracket') {
 
@@ -377,7 +409,15 @@ export const Timeline = {
 				}
 			}
 		})
-		$(document).on('mousemove touchmove', e => {
+		function displayTimeOnCursor(time) {
+			if (settings.timecode_frame_number.value) {
+				time = Math.round(time / Timeline.getStep());
+			} else {
+				time = Math.roundTo(time, 2);
+			}
+			Blockbench.setCursorTooltip(time);
+		}
+		addEventListeners(document, 'mousemove touchmove', e => {
 			if (Timeline.dragging_playhead) {
 
 				convertTouchEvent(e);
@@ -394,7 +434,7 @@ export const Timeline = {
 					if (rounded) {
 						Timeline.playAudioStutter();
 					}
-					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
+					displayTimeOnCursor(time);
 				}
 			} else if (Timeline.dragging_endbracket) {
 
@@ -404,7 +444,7 @@ export const Timeline = {
 				
 				Animation.selected.setLength(time)
 				Timeline.revealTime(time)
-				Blockbench.setCursorTooltip(Math.roundTo(time, 2));
+				displayTimeOnCursor(time);
 
 			} else if (Timeline.dragging_onion_skin_point) {
 
@@ -416,15 +456,15 @@ export const Timeline = {
 					Timeline.vue.onion_skin_time = time;
 					Timeline.revealTime(time);
 					Animator.updateOnionSkin();
-					Blockbench.setCursorTooltip(Math.roundTo(time, 2));
+					displayTimeOnCursor(time);
 				}
 			}
-		})
-		.on('mouseup touchend', e => {
+		});
+		addEventListeners(document, 'mouseup touchend', e => {
 			if (Timeline.dragging_playhead) {
 				delete Timeline.dragging_playhead;
 				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
-				Timeline.pause();
+				if (Timeline.playing) Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
 				Undo.finishEdit('Change Animation Length')
@@ -434,10 +474,11 @@ export const Timeline = {
 				delete Timeline.dragging_onion_skin_point
 			}
 			Blockbench.setCursorTooltip();
-		})
+		});
 		
 		//Enter Time
-		$('#timeline_timestamp').click(e => {
+		let timestamp = Panels.timeline.node.querySelector('#timeline_timestamp');
+		addEventListeners(timestamp, 'click', e => {
 			if ($('#timeline_timestamp').attr('contenteditable') == 'true') return;
 
 			$('#timeline_timestamp').attr('contenteditable', true).focus().select()
@@ -464,13 +505,13 @@ export const Timeline = {
 			selection.removeAllRanges();
 			selection.addRange(range);
 		})
-		.on('focusout keydown', e => {
+		addEventListeners(timestamp, 'focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				$('#timeline_timestamp').attr('contenteditable', false)
 				Timeline.setTimecode(Timeline.time)
 			}
 		})
-		.on('keyup', e => {
+		addEventListeners(timestamp, 'keyup', e => {
 			var times = $('#timeline_timestamp').text().split(':')
 			times.forEach((t, i) => {
 				times[i] = parseInt(t)
@@ -492,18 +533,19 @@ export const Timeline = {
 			}
 		})
 		//Enter Frame
-		$('#timeline_framenumber').click(e => {
+		let framenumber = Panels.timeline.node.querySelector('#timeline_framenumber');
+		framenumber.addEventListener('click', e => {
 			if ($('#timeline_framenumber').attr('contenteditable') == 'true') return;
 
 			$('#timeline_framenumber').attr('contenteditable', true).trigger('focus');
 			document.execCommand('selectAll');
 		})
-		.on('focusout keydown', e => {
+		addEventListeners(framenumber, 'focusout keydown', e => {
 			if (e.type === 'focusout' || Keybinds.extra.confirm.keybind.isTriggered(e) || Keybinds.extra.cancel.keybind.isTriggered(e)) {
 				$('#timeline_framenumber').attr('contenteditable', false)
 			}
 		})
-		.on('keyup', e => {
+		addEventListeners(framenumber, 'keyup', e => {
 			let frame = parseInt($('#timeline_framenumber').text())
 			let seconds = frame * Timeline.getStep();
 			if (Math.abs(seconds-Timeline.time) > 1e-3 ) {
@@ -512,22 +554,23 @@ export const Timeline = {
 			}
 		})
 
-		$('#timeline_vue').on('mousewheel scroll', function(e) {
-			e.preventDefault()
-			let event = e.originalEvent;
+		let timeline_vue = Panels.timeline.node.querySelector('#timeline_vue');
+		addEventListeners(timeline_vue, 'mousewheel scroll', function(event) {
+			event.preventDefault()
 			let body = document.getElementById('timeline_body');
+			let is_zoom_gesture = event.ctrlKey && !Pressing.ctrl;
 
 			body.scrollLeft += event.deltaX/2;
 
 			if (event.shiftKey) {
 				body.scrollLeft += event.deltaY/4
 
-			} else if  (event.ctrlOrCmd) {
+			} else if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 
 				let offset = $('#timeline_body_inner').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
 				
-				var zoom = 1 - event.deltaY/600
+				var zoom = 1 - event.deltaY / (is_zoom_gesture ? 160 : 600)
 				let original_size = Timeline.vue._data.size
 				let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
 				Timeline.vue._data.size = updated_size;
@@ -540,6 +583,13 @@ export const Timeline = {
 			Timeline.updateSize()
 			event.preventDefault();
 		});
+
+		Blockbench.on('update_pressed_modifier_keys', (keys) => {
+			if (!Modes.animate) return;
+			let timeline_time = document.getElementById('timeline_time');
+			if (!timeline_time) return;
+			timeline_time.classList.toggle('holding_ctrl', keys.now.ctrl);
+		})
 
 		BarItems.slider_animation_speed.update()
 		Timeline.is_setup = true
@@ -557,10 +607,6 @@ export const Timeline = {
 	},
 	updateSize() {
 		Timeline.vue.updateTimecodes();
-	},
-	updateScroll(e) {
-		$('.channel_head').css('left', scroll_amount+'px')
-		$('#timeline_time').css('left', -scroll_amount+'px')
 	},
 	unselect(e) {
 		if (!Animation.selected) return;
@@ -733,6 +779,13 @@ export const Timeline = {
 	])
 }
 
+StateMemory.init("timeline_channels", "object", {
+	rotation: true,
+	position: true,
+	scale: true,
+	hide_empty: false,
+});
+
 Interface.definePanels(() => {
 	function eventTargetToAnimator(target) {
 		let target_node = target;
@@ -817,12 +870,7 @@ Interface.definePanels(() => {
 				onion_skin_selectable: BarItems.animation_onion_skin.value,
 				onion_skin_time: 0,
 
-				channels: {
-					rotation: true,
-					position: true,
-					scale: true,
-					hide_empty: false,
-				}
+				channels: StateMemory.timeline_channels
 			}},
 			computed: {
 				graph_editor_animator() {
@@ -1028,8 +1076,7 @@ Interface.definePanels(() => {
 				},
 				updateGraph() {
 					if (this.graph_editor_open) {
-						this.graph_size++;
-						this.graph_size--;
+						this.graph_size += 1e-7;
 					}
 				},
 				toggleAnimator(animator) {
@@ -1084,6 +1131,7 @@ Interface.definePanels(() => {
 				openContextMenu(event) {
 					if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
 					if (Blockbench.hasFlag('no_context_menu')) return;
+					event.preventDefault();
 					Timeline.menu.open(event, event);
 				},
 				dragAnimator(animator, e1) {
@@ -1182,8 +1230,9 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				},
 				dragKeyframes(clicked, e1) {
-					convertTouchEvent(e1);
 					if (e1.target.classList.contains('keyframe_bezier_handle')) return;
+					if (e1.button > 0) return;
+					convertTouchEvent(e1);
 					let dragging_range;
 					let dragging_restriction;
 					let originalValue;
@@ -1338,7 +1387,7 @@ Interface.definePanels(() => {
 							Blockbench.setStatusBarText(text);
 						}
 						BarItems.slider_keyframe_time.update()
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}
@@ -1373,6 +1422,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				dragBezierHandle(clicked, side, e1) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let values_changed;
 					let is_setup = false;
@@ -1476,7 +1526,7 @@ Interface.definePanels(() => {
 
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 						Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 					}
 					function off() {
@@ -1499,11 +1549,10 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				slideGraphAmplify(e1, anchor_side) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
-					let dragging_range;
-					let previousValue;
 					let is_setup = false;
 					let keyframes = this.graph_editor_animator[this.graph_editor_channel].filter(kf => kf.selected);
 					let original_range = this.getSelectedGraphRange();
@@ -1512,8 +1561,6 @@ Interface.definePanels(() => {
 
 					function setup() {
 						Undo.initEdit({keyframes});
-						dragging_range = [Infinity, 0];
-						previousValue = 0;
 						values_changed = false;
 						Timeline.dragging_keyframes = true;
 						is_setup = true;
@@ -1550,7 +1597,7 @@ Interface.definePanels(() => {
 						}
 						let text = Math.round(value * 100) + '%';
 						Blockbench.setStatusBarText(text);
-						Animator.showMotionTrail()
+						Animator.showMotionTrail(null, true)
 						Animator.preview()
 
 					}
@@ -1627,7 +1674,14 @@ Interface.definePanels(() => {
 					if (range[0] == range[1]) return null;
 					return range;
 				},
+				getNodeColor(node) {
+					if (node.color >= 0) {
+						return markerColors[node.color % markerColors.length].pastel;
+					}
+					return '';
+				},
 				clamp: Math.clamp,
+				Condition,
 				trimFloatNumber,
 				getAxisLetter
 			},
@@ -1641,7 +1695,7 @@ Interface.definePanels(() => {
 					<div id="timeline_header">
 						<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
 							<div id="timeline_timestamp">{{ timestamp }}</div>
-							<span id="">/</span>
+							<span>/</span>
 							<div id="timeline_framenumber">{{ framenumber }}</div>
 							<div class="channel_axis_selector" v-if="graph_editor_open">
 								<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
@@ -1672,12 +1726,15 @@ Interface.definePanels(() => {
 								/>
 								<div
 									v-for="marker in markers"
-									class="timeline_marker"
-									v-bind:style="{left: (marker.time * size) + 'px', '--color': markerColors[marker.color % markerColors.length].standard}"
+									class="timeline_marker tool"
+									:style="{left: (marker.time * size) + 'px', '--color': getColor(marker.color)}"
+									:uuid="marker.uuid"
 									@contextmenu.prevent="marker.showContextMenu($event)"
+									@dblclick.prevent="marker.propertiesDialog()"
 									v-on:click="marker.callPlayhead()"
 								>
-									<i class="material-icons icon">sports_score</i>
+									<i class="material-icons icon">beenhere</i>
+									<div class="tooltip" v-if="marker.name">{{ marker.name }}</div>
 								</div>
 							</div>
 						</div>
@@ -1692,13 +1749,18 @@ Interface.definePanels(() => {
 					</div>
 					<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
 						<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
-							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.constructor.name == 'BoneAnimator' && !animator.group}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
+							<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 								<div class="animator_head_bar">
 									<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
 										<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
 											<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 										</div>
-										<span v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">{{animator.name}}</span>
+										<dynamic-icon v-if="animator.node" :icon="animator.node.icon.replace('fa ', '').replace(/ /g, '.')" :color="getNodeColor(animator.node)" />
+										<dynamic-icon v-else-if="animator.particle" :icon="'wand_shine'" />
+										<dynamic-icon v-else :icon="'help'" style="color: var(--color-error)" />
+										<span class="timeline_animator_name" v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
+											{{animator.name}}
+										</span>
 										<div class="text_button" v-on:click.stop="removeAnimator(animator)">
 											<i class="material-icons">remove</i>
 										</div>
@@ -1717,9 +1779,9 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<div class="animator_channel_bar"
-									v-bind:style="{width: (size*length + head_width)+'px'}"
+									v-bind:style="graph_editor_open ? {} : {width: (size*length + head_width)+'px'}"
 									v-for="(channel_options, channel) in animator.channels"
-									v-if="animator.expanded && channels[channel] != false && (!channels.hide_empty || animator[channel].length)"
+									v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition, animator) && (!channels.hide_empty || animator[channel].length)"
 								>
 									<div class="channel_head"
 										:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
@@ -1728,14 +1790,9 @@ Interface.definePanels(() => {
 										@contextmenu.stop="animator.showContextMenu($event)"
 									>
 										<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
-											<template v-if="channel === 'sound'">
-												<i class="channel_mute fas fa-volume-mute" v-if="animator.muted[channel]"></i>
-												<i class="channel_mute fas fa-volume-up" v-else></i>
-											</template>
-											<template v-else>
-												<i class="channel_mute fas fa-eye-slash" v-if="animator.muted[channel]"></i>
-												<i class="channel_mute fas fa-eye" v-else></i>
-											</template>
+											<i class="icon material-icons channel_mute" :class="{disabled: animator.muted[channel]}">
+												{{ channel === 'sound' ? (animator.muted[channel] ? 'volume_off' : 'volume_up') : (animator.muted[channel] ? 'visibility_off' : 'visibility') }}
+											</i>
 										</div>
 										<div class="text_button" v-else></div>
 										<span>{{ channel_options.name }}</span>
@@ -1760,7 +1817,7 @@ Interface.definePanels(() => {
 											v-bind:id="keyframe.uuid"
 											v-on:click.stop="keyframe.clickSelect($event)"
 											v-on:dblclick="keyframe.callPlayhead()"
-											:title="tl('timeline.'+keyframe.channel)"
+											:title="animator.channels[channel].name"
 											@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 											@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 										>
@@ -1791,7 +1848,7 @@ Interface.definePanels(() => {
 										:d="loop_graph"
 										class="loop_graph"
 										:class="{selected: loop_graphs.length == 0 || i == graph_editor_axis_number}"
-										style="stroke: var(--color-grid);"
+										style="stroke: var(--color-loop_graph);"
 									></path>
 									<path v-if="graphs.length == 3"
 										:d="graphs[(graph_editor_axis_number+1) % 3]"
@@ -2081,7 +2138,18 @@ BARS.defineActions(function() {
 					ba.addToTimeline();
 				}
 			}
-
+		}
+	})
+	new Action('add_all_to_timeline', {
+		icon: 'docs_add_on',
+		category: 'animation',
+		condition: {modes: ['animate'], selected: {animation_controller: false, animation: true}},
+		click() {
+			Group.all.concat(Outliner.elements).forEach(node => {
+				if (!node.selected) return;
+				let ba = Animation.selected.getBoneAnimator(node);
+				if (ba) ba.addToTimeline();
+			})
 		}
 	})
 	new Action('fold_all_animations', {
@@ -2128,12 +2196,33 @@ BARS.defineActions(function() {
 			let on = 'fas.fa-check-square';
 			let off = 'far.fa-square';
 			let {channels} = Timeline.vue._data;
+			let menu_list = [];
+			let used_animator_types = [BoneAnimator];
+			for (let animator of Timeline.animators) {
+				used_animator_types.safePush(animator.constructor);
+			}
+			for (let type of used_animator_types) {
+				for (let id in type.prototype.channels) {
+					if (menu_list.find(e => e.id == id)) continue;
+					let channel = type.prototype.channels[id];
+					menu_list.push({
+						id,
+						name: channel.name ?? `timeline.${id}`,
+						icon: channels[id] != false ? on : off,
+						click() {
+							Vue.set(channels, id, channels[id] == false);
+							StateMemory.save('timeline_channels');
+						}
+					})
+				}
+			}
 			return [
-				{name: 'timeline.rotation',	icon: channels.rotation ? on : off, click() {channels.rotation = !channels.rotation}},
-				{name: 'timeline.position',	icon: channels.position ? on : off, click() {channels.position = !channels.position}},
-				{name: 'timeline.scale', 	icon: channels.scale 	? on : off, click() {channels.scale	 = !channels.scale}},
+				...menu_list,
 				'_',
-				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
+				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {
+					Vue.set(channels, 'hide_empty', !channels.hide_empty);
+					StateMemory.save('timeline_channels');
+				}},
 			]
 		}
 	})

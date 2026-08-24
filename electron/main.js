@@ -4,7 +4,6 @@ import url from 'url'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import fs from 'node:fs'
-import {getColorHexRGB} from 'electron-color-picker'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -54,6 +53,9 @@ const LaunchSettings = {
 
 if (LaunchSettings.get('hardware_acceleration') == false) {
 	app.disableHardwareAcceleration();
+	if (process.platform != 'win32') {
+		app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+	}
 }
 
 function createWindow(second_instance, options = {}) {
@@ -61,12 +63,13 @@ function createWindow(second_instance, options = {}) {
 		app.quit()
 		return;
 	}
+	let native_frame = LaunchSettings.get('native_window_frame') === true;
 	let win_options = {
 		icon: 'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: LaunchSettings.get('native_window_frame') === true,
-		titleBarStyle: 'hidden',
+		frame: native_frame,
+		titleBarStyle: native_frame ? 'default' : 'hidden',
 		minWidth: 640,
 		minHeight: 480,
 		width: 1080,
@@ -89,7 +92,6 @@ function createWindow(second_instance, options = {}) {
 
 	remote.enable(win.webContents)
 
-	var index_path = path.join(__dirname, './../index.html')
 	if (process.platform === 'darwin') {
 
 		let template = [
@@ -162,13 +164,16 @@ function createWindow(second_instance, options = {}) {
 	}
 	
 	if (options.maximize !== false) win.maximize()
-	win.show()
 
-	win.loadURL(url.format({
+	let index_path = path.join(__dirname, './../index.html')
+	let url_path = url.format({
 		pathname: index_path,
 		protocol: 'file:',
 		slashes: true
-	}))
+	});
+	win.loadURL(url_path).finally(() => {
+		win.show();
+	});
 	win.on('closed', () => {
 		win = null;
 		all_wins.splice(all_wins.indexOf(win), 1);
@@ -246,7 +251,8 @@ ipcMain.on('close-detached-project', async (event, window_id, uuid) => {
 	if (window) window.send('close-detached-project', uuid);
 })
 ipcMain.on('request-color-picker', async (event, arg) => {
-	const color = await getColorHexRGB().catch((error) => {
+	const ColorPicker = await import('electron-color-picker');
+	const color = await ColorPicker.getColorHexRGB().catch((error) => {
 		console.warn('[Error] Failed to pick color', error)
 		return ''
 	})
@@ -266,7 +272,9 @@ ipcMain.on('open-in-default-app', async (event, path) => {
 
 app.on('ready', () => {
 
-	createWindow()
+	const dev_mode = process.execPath && process.execPath.match(/node_modules[\\\/]electron/);
+
+	createWindow();
 
 	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {
@@ -282,7 +290,7 @@ app.on('ready', () => {
 		}
 
 		app_was_loaded = true;
-		if (process.execPath && process.execPath.match(/node_modules[\\\/]electron/)) {
+		if (dev_mode) {
 
 			console.log('[Blockbench] App launched in development mode')
 	

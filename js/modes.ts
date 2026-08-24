@@ -1,8 +1,8 @@
 import { Vue } from "./lib/libs"
 import { Blockbench } from "./api"
-import { Interface, Panels } from "./interface/interface"
+import { Interface } from "./interface/interface"
 import { MenuBar } from "./interface/menu_bar"
-import { updatePanelSelector, updateSidebarOrder } from "./interface/panels"
+import { Panels, updateInterfacePanels, updatePanelSelector, updateSidebarOrder } from "./interface/panels"
 import { Prop } from "./misc"
 import { Outliner } from "./outliner/outliner"
 import { ReferenceImage } from "./preview/reference_images"
@@ -10,7 +10,7 @@ import { ReferenceImage } from "./preview/reference_images"
 interface ModeOptions {
 	id?: string
 	name?: string
-	icon?: string
+	icon?: IconString
 	default_tool?: string
 	selectElements?: boolean
 	category?: string
@@ -27,9 +27,7 @@ interface ModeOptions {
 	onUnselect?(): void
 }
 export class Mode extends KeybindItem {
-	id: string
-	name: string
-	icon: string
+	icon: IconString
 	selected: boolean
 	tool: string
 	default_tool?: string
@@ -48,7 +46,6 @@ export class Mode extends KeybindItem {
 			data = id;
 			id = data.id;
 		}
-		// @ts-ignore
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
@@ -102,8 +99,6 @@ export class Mode extends KeybindItem {
 		$('#main_toolbar .toolbar_wrapper').css('visibility', this.hide_toolbars ? 'hidden' : 'visible');
 		$('#status_bar').css('display', this.hide_status_bar ? 'none' : 'flex');
 
-		Outliner.vue.options.hidden_types.replace(this.hidden_node_types);
-
 		if (typeof this.onSelect === 'function') {
 			this.onSelect()
 		}
@@ -118,7 +113,6 @@ export class Mode extends KeybindItem {
 		if (!Blockbench.isMobile) {
 			for (let id in Panels) {
 				let panel = Panels[id];
-				panel.updatePositionData();
 				panel.updateSlot();
 
 			}
@@ -137,6 +131,7 @@ export class Mode extends KeybindItem {
 		}
 		updateInterface();
 		updateSelection();
+		Outliner.updateNodeDisplayRules();
 		Blockbench.dispatchEvent('select_mode', {mode: this})
 	}
 	/**Unselects the mode */
@@ -144,9 +139,9 @@ export class Mode extends KeybindItem {
 		delete Modes[this.id];
 		Modes.previous_id = this.id;
 		if (typeof this.onUnselect === 'function') {
-			Blockbench.dispatchEvent('unselect_mode', {mode: this})
 			this.onUnselect()
 		}
+		Blockbench.dispatchEvent('unselect_mode', {mode: this})
 		this.selected = false;
 		Mode.selected = Modes.selected = false;
 	}
@@ -219,7 +214,14 @@ onVueSetup(function() {
 	}
 });
 
-Object.assign(window, {
+const global = {
 	Mode,
 	Modes
-});
+};
+declare global {
+	const Modes: typeof global.Modes
+	const Mode: typeof global.Mode
+	type Mode = import('./modes').Mode
+}
+
+Object.assign(window, global);

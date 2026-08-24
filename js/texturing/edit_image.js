@@ -1,8 +1,13 @@
+import { decodeTga } from "@lunapaint/tga-codec";
+import { colorDistance } from "../util/util";
+import { fs } from "../native_apis";
 
 BARS.defineActions(function() {
 
 	function getTextures() {
-		if (Texture.selected) {
+		if (UVEditor.texture && Prop.active_panel != 'textures') {
+			return [UVEditor.texture];
+		} else if (Texture.selected) {
 			return Texture.all.filter(t => t.selected || t.multi_selected);
 		} else {
 			return Texture.all;
@@ -90,10 +95,12 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.brightness')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.contrast')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="contrast" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="contrast" @input="change()" />
@@ -149,6 +156,7 @@ BARS.defineActions(function() {
 						preview_changes: true,
 						saturation: 100,
 						hue: 0,
+						brightness: 100,
 						textures
 					}},
 					methods: {
@@ -159,7 +167,7 @@ BARS.defineActions(function() {
 									texture.selection.maskCanvas(ctx, env.offset);
 									ctx.clearRect(0, 0, texture.width, texture.height);
 									if (this.preview_changes) {
-										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg)`;
+										ctx.filter = `saturate(${this.saturation / 100}) hue-rotate(${this.hue}deg) brightness(${this.brightness / 100})`;
 									} else {
 										ctx.filter = `brightness(1.0)`;
 									}
@@ -185,13 +193,20 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
+							<label class="form_label_compact">${tl('dialog.adjust_saturation_hue.saturation')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="saturation" @input="change()">
 								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="saturation" @input="change()" />
 							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_saturation_hue.hue')}</label>
 							<div class="bar slider_input_combo">
 								<input type="range" class="tool" min="-180" max="180" step="1" v-model.number="hue" @input="change()">
 								<numeric-input class="tool" :min="-180" :max="180" :step="1" v-model.number="hue" @input="change()" />
+							</div>
+							<label class="form_label_compact">${tl('dialog.adjust_brightness_contrast.brightness')}</label>
+							<div class="bar slider_input_combo">
+								<input type="range" class="tool" min="0" max="200" step="1" v-model.number="brightness" @input="change()">
+								<numeric-input class="tool" :min="0" :max="200" :step="1" v-model.number="brightness" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -363,9 +378,9 @@ BARS.defineActions(function() {
 											let a = !curves.a ? A : (values.a[A] !== undefined ? values.a[A] : values.a[A] = curves.a.getPointAt(A / 255).y * 255);
 											brightness = Math.max(brightness, 1);
 										
-											image_data.data[i+0] = Math.max(R, 1) * (r / brightness) * (rgb / brightness);
-											image_data.data[i+1] = Math.max(G, 1) * (g / brightness) * (rgb / brightness);
-											image_data.data[i+2] = Math.max(B, 1) * (b / brightness) * (rgb / brightness);
+											image_data.data[i+0] = Math.max(R+1, 1) * (r / brightness) * (rgb / brightness) - 1;
+											image_data.data[i+1] = Math.max(G+1, 1) * (g / brightness) * (rgb / brightness) - 1;
+											image_data.data[i+2] = Math.max(B+1, 1) * (b / brightness) * (rgb / brightness) - 1;
 											image_data.data[i+3] = a;
 										}
 									} else {
@@ -524,7 +539,9 @@ BARS.defineActions(function() {
 					data() {return {
 						show_preview,
 						preview_changes: true,
-						opacity: 100,
+						mode: 'multiply',
+						opacity_percent: 100,
+						opacity_value: 255,
 						textures
 					}},
 					methods: {
@@ -532,21 +549,39 @@ BARS.defineActions(function() {
 							textures.forEach((texture, i) => {
 								texture.edit((canvas, env) => {
 									let ctx = canvas.getContext('2d');
-									ctx.save();
-									texture.selection.maskCanvas(ctx, env.offset);
-									ctx.clearRect(0, 0, texture.width, texture.height);
-									if (this.preview_changes) {
-										ctx.filter = `opacity(${this.opacity}%)`;
-										ctx.drawImage(original_canvases[i], 0, 0);
-										if (this.opacity > 100 && this.preview_changes) {
-											ctx.filter = `opacity(${this.opacity-100}%)`;
+
+									if (this.mode == 'multiply') {
+										ctx.save();
+										texture.selection.maskCanvas(ctx, env.offset);
+										ctx.clearRect(0, 0, texture.width, texture.height);
+										if (this.preview_changes) {
+											ctx.filter = `opacity(${this.opacity_percent}%)`;
+											ctx.drawImage(original_canvases[i], 0, 0);
+											if (this.opacity_percent > 100 && this.preview_changes) {
+												ctx.filter = `opacity(${this.opacity_percent-100}%)`;
+												ctx.drawImage(original_canvases[i], 0, 0);
+											}
+										} else {
+											ctx.filter = `opacity(100%)`;
 											ctx.drawImage(original_canvases[i], 0, 0);
 										}
+										ctx.restore();
 									} else {
-										ctx.filter = `opacity(100%)`;
+										let selection = texture.selection;
+										let value = Math.clamp(this.opacity_value, 0, 255);
+
+										ctx.clearRect(0, 0, texture.width, texture.height);
 										ctx.drawImage(original_canvases[i], 0, 0);
+										
+										if (this.preview_changes) {
+											Painter.scanCanvas(ctx, 0, 0, canvas.width, canvas.height, (x, y, px) => {
+												if (selection.allow(x, y) && !px.allEqual(0)) {
+													px[3] = value;
+													return px;
+												}
+											})
+										}
 									}
-									ctx.restore();
 
 									setTimeout(() => {
 										let ref_ctx = this.$refs.canvas[i].getContext('2d');
@@ -556,6 +591,10 @@ BARS.defineActions(function() {
 
 								}, {no_undo: true, use_cache: true});
 							})
+						},
+						setMode(mode) {
+							this.mode = mode;
+							this.change();
 						},
 						togglePreview() {
 							this.show_preview = show_preview = !this.show_preview;
@@ -567,9 +606,22 @@ BARS.defineActions(function() {
 								<canvas v-for="(texture, i) in textures" :height="texture.height" :width="texture.width" ref="canvas" />
 							</div>
 							<div class="tool texture_adjust_preview_toggle" @click="togglePreview()"><i class="material-icons">{{ show_preview ? 'expand_more' : 'expand_less' }}</i></div>
-							<div class="bar slider_input_combo">
-								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity" @input="change()">
-								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity" @input="change()" />
+
+							<div class="dialog_bar bar form_bar" form_type="inline_select">
+								<label class="name_space_left">${tl('dialog.adjust_opacity.mode')}</label>
+								<ul class="form_inline_select">
+									<li :class="{selected: mode == 'multiply'}" @click="setMode('multiply')" key="multiply">${tl('dialog.adjust_opacity.mode.multiply')}</li>
+									<li :class="{selected: mode == 'set'}" @click="setMode('set')" key="set">${tl('dialog.adjust_opacity.mode.set')}</li>
+								</ul>
+							</div>
+
+							<div class="bar slider_input_combo" v-if="mode == 'multiply'">
+								<input type="range" class="tool" min="0" max="200" step="0.1" v-model.number="opacity_percent" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="200" :step="0.1" v-model.number="opacity_percent" @input="change()" />
+							</div>
+							<div class="bar slider_input_combo" v-else>
+								<input type="range" class="tool" min="0" max="255" step="1" v-model.number="opacity_value" @input="change()">
+								<numeric-input class="tool" style="width: 64px;" :min="0" :max="255" :step="1" v-model.number="opacity_value" @input="change()" />
 							</div>
 							<div class="bar button_bar_checkbox">
 								<input type="checkbox" v-model="preview_changes" id="checkbox_preview_changes" @change="change()">
@@ -647,20 +699,32 @@ BARS.defineActions(function() {
 		icon: 'stacked_bar_chart',
 		category: 'textures',
 		condition: {modes: ['paint'], selected: {texture: true}},
-		click() {
+		async click() {
 			let texture = Texture.getDefault();
 			let original_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+			if (texture.file_format == 'tga' && isApp) {
+
+				let data = fs.readFileSync(texture.path);
+				if (data instanceof ArrayBuffer) data = new Uint8Array(data);
+				let result = await decodeTga(data);
+				original_data.data.set(result.image.data);
+			}
 
 			Undo.initEdit({textures: [texture], bitmap: true});
 
 			texture.layers_enabled = true;
+			texture.layers.empty();
 			let i = 0;
-			for (let color of ['red', 'green', 'blue']) {
-				data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+			for (let color of ['red', 'green', 'blue', 'alpha']) {
+				let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
 				for (let j = 0; j < data_copy.data.length; j += 4) {
 					if (i != 0) data_copy.data[j+0] = 0;
 					if (i != 1) data_copy.data[j+1] = 0;
 					if (i != 2) data_copy.data[j+2] = 0;
+					if (i == 3) {
+						data_copy.data[j+0] = data_copy.data[j+1] = data_copy.data[j+2] = data_copy.data[j+3];
+					}
+					data_copy.data[j+3] = 255;
 				}
 				let layer = new TextureLayer({
 					name: color,
@@ -668,7 +732,12 @@ BARS.defineActions(function() {
 				}, texture);
 				layer.setSize(original_data.width, original_data.height);
 				layer.ctx.putImageData(data_copy, 0, 0);
-				texture.layers.unshift(layer);
+				if (color == 'alpha') {
+					texture.layers.push(layer);
+					layer.blend_mode = 'alpha_mask'
+				} else {
+					texture.layers.unshift(layer);
+				}
 				if (color == 'red') {
 					layer.select();
 				}
@@ -676,6 +745,54 @@ BARS.defineActions(function() {
 			}
 			texture.updateLayerChanges(true);
 			Undo.finishEdit('Split texture into RGB layers');
+			updateInterfacePanels();
+			BARS.updateConditions();
+		}
+	})
+	new Action('split_alpha_into_layer', {
+		icon: 'tab_inactive',
+		category: 'textures',
+		condition: {modes: ['paint'], selected: {texture: true}},
+		async click() {
+			let texture = Texture.getDefault();
+			let original_data = texture.ctx.getImageData(0, 0, texture.canvas.width, texture.canvas.height);
+			if (texture.file_format == 'tga' && isApp) {
+
+				let data = fs.readFileSync(texture.path);
+				if (data instanceof ArrayBuffer) data = new Uint8Array(data);
+				let result = await decodeTga(data);
+				original_data.data.set(result.image.data);
+			}
+
+			Undo.initEdit({textures: [texture], bitmap: true});
+
+			texture.layers_enabled = true;
+			texture.layers.empty();
+
+			// Color
+			let data_copy = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+			for (let j = 0; j < data_copy.data.length; j += 4) {
+				data_copy.data[j+3] = 255;
+			}
+			let layer = new TextureLayer({name: 'color'}, texture);
+			layer.setSize(original_data.width, original_data.height);
+			layer.ctx.putImageData(data_copy, 0, 0);
+			texture.layers.push(layer);
+			layer.select();
+
+			// Alpha
+			let data_alpha = new ImageData(original_data.data.slice(), original_data.width, original_data.height);
+			for (let j = 0; j < data_alpha.data.length; j += 4) {
+				data_alpha.data[j+0] = data_alpha.data[j+1] = data_alpha.data[j+2] = data_alpha.data[j+3];
+				data_alpha.data[j+3] = 255;
+			}
+			let alpha_layer = new TextureLayer({name: 'alpha', blend_mode: 'alpha_mask'}, texture);
+			alpha_layer.setSize(original_data.width, original_data.height);
+			alpha_layer.ctx.putImageData(data_alpha, 0, 0);
+			texture.layers.push(alpha_layer);
+
+			texture.updateLayerChanges(true);
+			Undo.finishEdit('Split texture alpha into alpha mask layers');
 			updateInterfacePanels();
 			BARS.updateConditions();
 		}
@@ -688,9 +805,10 @@ BARS.defineActions(function() {
 			let textures = getTextures();
 			Undo.initEdit({textures, bitmap: true});
 			textures.forEach(texture => {
-				texture.edit((canvas) => {
+				let editCanvas = (canvas, ctx, offset) => {
 					let frame_count = texture.frameCount || 1;
-					let ctx = canvas.getContext('2d');
+					let copy = Painter.copyCanvas(canvas);
+					ctx.save();
 					ctx.clearRect(0, 0, canvas.width, canvas.height);
 					ctx.beginPath();
 
@@ -707,21 +825,26 @@ BARS.defineActions(function() {
 										for (let y in matrix[x]) {
 											if (!matrix[x][y]) continue;
 											x = parseInt(x); y = parseInt(y);
-											ctx.rect(x, y + y_offset, 1, 1);
+											ctx.rect(
+												-offset[0] + x,
+												-offset[1] + y + y_offset,
+												1,
+												1
+											);
 										}
 									}
 								}
 							} else if (el.getTypeBehavior('cube_faces')) {
-								let factor_x = texture.width  / Project.texture_width;
-								let factor_y = texture.display_height / Project.texture_height;
+								let factor_x = texture.width  / texture.getUVWidth();
+								let factor_y = texture.display_height / texture.getUVHeight();
 								for (var fkey in el.faces) {
 									var face = el.faces[fkey];
 									if (face.getTexture() !== texture) continue;
 									
 									let rect = face.getBoundingRect();
 									let canvasRect = [
-										Math.floor(rect.ax * factor_x),
-										Math.floor(rect.ay * factor_y) + y_offset,
+										-offset[0] + Math.floor(rect.ax * factor_x),
+										-offset[1] + Math.floor(rect.ay * factor_y) + y_offset,
 										Math.ceil(rect.bx * factor_x) - Math.floor(rect.ax * factor_x),
 										Math.ceil(rect.by * factor_y) - Math.floor(rect.ay * factor_y),
 									]
@@ -732,7 +855,18 @@ BARS.defineActions(function() {
 					}
 
 					ctx.clip();
-					ctx.drawImage(texture.img, 0, 0);
+					ctx.drawImage(copy, 0, 0);
+					ctx.restore();
+				};
+			
+				texture.edit((canvas) => {
+					if (texture.layers_enabled) {
+						for (let layer of texture.layers) {
+							editCanvas(layer.canvas, layer.ctx, layer.offset);
+						}
+					} else {
+						editCanvas(canvas, texture.ctx, texture.offset);
+					}
 				}, {no_undo: true});
 			})
 			Undo.finishEdit('Clear unused texture space')
@@ -745,8 +879,8 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: {modes: ['paint'], method: () => Texture.all.length},
 		click() {
-			if (Texture.selected?.selected_layer) {
-				Texture.selected?.selected_layer.flip(0, true);
+			if (TextureLayer.selected) {
+				TextureLayer.selected.flip(0, true);
 				return;
 			}
 			let textures = getTextures();

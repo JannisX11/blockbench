@@ -1,4 +1,5 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
+
 type OccupationMatrix = {
 	[x: number]: {
 		[y: number]: boolean
@@ -19,8 +20,8 @@ interface MeshOptions {
 }
 
 interface MeshFaceOptions extends FaceOptions {
-	vertices: string[]
-	uv: { [vkey: string]: ArrayVector2 }
+	vertices?: string[]
+	uv?: { [vkey: string]: ArrayVector2 }
 }
 declare class MeshFace extends Face {
 	constructor(mesh: Mesh, data: MeshFaceOptions)
@@ -32,13 +33,13 @@ declare class MeshFace extends Face {
 	uv: {
 		[vertex: string]: ArrayVector2
 	}
-	extend(data: MeshFaceOptions): void
+	extend(data: MeshFaceOptions): this
 	/**
 	 * Returns the face normal in mesh space as calculated from the vertex positions
 	 * @param normalize If true, the values will be normalized.
 	 * @param alt_tri On quads, if true, this will return the normal of the second tri instead of the first
 	 */
-	getNormal(normalize: boolean, alt_tri?: boolean): ArrayVector3
+	getNormal(normalize: boolean = false, alt_tri?: boolean): ArrayVector3
 	/**
 	 * Calculates which pixels the UV face occupies, and returns them as a map
 	 */
@@ -61,8 +62,13 @@ declare class MeshFace extends Face {
 	invert(): void
 	/**
 	 * Returns whether the face is selected
+	 * @param face_key Optional face key of the face, the method runs faster if this is provided
 	 */
-	isSelected(): boolean
+	isSelected(face_key?: string): boolean
+	/**
+	 * Returns true if the face is concave
+	 */
+	isConcave(): boolean
 	/**
 	 * Returns the vertices of a quad in an order that creates a convex quad shape if possible. If the face has less than 4 vertices, it just returns the vertices in original order.
 	 */
@@ -99,7 +105,7 @@ interface MeshOptions {
 	name?: string
 	color?: number
 	visibility?: boolean
-	smooth_shading?: boolean
+	shading?: 'flat' | 'smooth'
 	rotation?: ArrayVector3
 	origin?: ArrayVector3
 	vertices?: {
@@ -109,7 +115,7 @@ interface MeshOptions {
 declare class Mesh extends OutlinerElement {
 	constructor(options: Partial<MeshOptions>, uuid?: string)
 
-	smooth_shading: boolean
+	shading: 'flat' | 'smooth'
 	visibility: boolean
 	color: number
 	origin: ArrayVector3
@@ -124,6 +130,7 @@ declare class Mesh extends OutlinerElement {
 	seams: {
 		[vkey: string]: MeshSeamValue
 	}
+	vertice_list: ArrayVector3[]
 	armature: string
 
 	extend(options: Partial<MeshOptions>): this

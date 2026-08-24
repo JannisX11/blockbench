@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 type StateAnimationInput =
 	| string
@@ -68,7 +68,7 @@ declare class AnimationControllerState {
 	remove(undo?: boolean): void
 	createUniqueName(): void
 
-	addAnimation(animation?: _Animation): void
+	addAnimation(animation?: BBAnimation): void
 	addTransition(target_uuid?: string): void
 	addParticle(options?: { effect: string }): void
 	addSound(options?: { effect: string; file: string }): void

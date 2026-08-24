@@ -3,9 +3,8 @@ import { SharedActions } from "../interface/shared_actions";
 import { Prop } from "../misc";
 import { guid } from "../util/math_util";
 import { Property } from "../util/property";
-import { OutlinerElement, OutlinerNode } from "./outliner";
 import { Toolbar } from '../interface/toolbars'
-import { Group } from "./group";
+import { Group } from "./types/group";
 import { Interface } from "../interface/interface";
 import { Menu } from "../interface/menu";
 import { Blockbench } from "../api";
@@ -15,14 +14,23 @@ import { Clipbench } from "../copy_paste";
 import { getFocusedTextInput } from "../interface/keyboard";
 import { tl } from "../languages";
 import { Panel } from "../interface/panels";
-import { Codecs } from "../io/codec";
+import { FormElementOptions } from "../interface/form";
+import { fs } from "../native_apis";
+import { Filesystem } from "../file_system";
+import { loadModelFile } from "../io/io";
+import { OutlinerElement } from "./abstract/outliner_element";
+import { OutlinerNode } from "./abstract/outliner_node";
+import { ScopeColors } from "../multi_file_editing";
 
-interface CollectionOptions {
+export interface CollectionOptions {
 	children?: string[]
 	name?: string
 	export_codec?: string
 	export_path?: string
+	offset?: ArrayVector3
+	model_identifier?: string
 	visibility?: boolean
+	scope?: number
 }
 
 /**
@@ -37,10 +45,10 @@ export class Collection {
 	 */
 	children: string[]
 	export_path: string
-	codec: string
-	menu: Menu
 	export_codec: string
 	visibility: boolean
+	scope: number
+	saved: boolean
 
 	static properties: Record<string, Property<any>>
 	/**
@@ -94,7 +102,7 @@ export class Collection {
 				if (node instanceof Group) {
 					node.multiSelect();
 				} else {
-					Outliner.selected.safePush(node);
+					node.markAsSelected(true);
 				}
 			}
 			i++;
@@ -102,7 +110,7 @@ export class Collection {
 		updateSelection();
 		return this;
 	}
-	clickSelect(event) {
+	clickSelect(event: MouseEvent) {
 		Undo.initSelection({collections: true, timeline: Modes.animate});
 		this.select(event);
 		Undo.finishSelection('Select collection');
@@ -111,6 +119,11 @@ export class Collection {
 	 * Get all direct children
 	 */
 	getChildren(): OutlinerNode[] {
+		if (this.scope) {
+			return Outliner.nodes.filter(node => {
+				return node.scope == this.scope && !(node.parent instanceof OutlinerNode && node.parent.scope == this.scope);
+		});
+		}
 		return this.children.map(uuid => OutlinerNode.uuids[uuid]).filter(node => node != undefined);
 	}
 	add(): this {
@@ -127,7 +140,7 @@ export class Collection {
 			}
 		}
 		for (let element of Outliner.selected) {
-			if (!(element instanceof OutlinerNode && element.parent.selected)) {
+			if (!(element instanceof OutlinerNode && element.parent instanceof OutlinerNode && element.parent.selected)) {
 				this.children.safePush(element.uuid);
 			}
 		}
@@ -138,10 +151,10 @@ export class Collection {
 	 */
 	getVisibility(): boolean {
 		let match = this.getChildren().find(node => {
-			return node && 'visibility' in node && typeof node.visibility == 'boolean';
+			return node && typeof node.visibility == 'boolean';
 		});
-		// @ts-ignore
-		return match ? match.visibility : true;
+		// @ts-inore
+		return match ? ('visibility' in match ? !!match.visibility : true) : true;
 	}
 	/**
 	 * Get all children, including indirect ones
@@ -155,14 +168,35 @@ export class Collection {
 				child.forEachChild(subchild => nodes.safePush(subchild));
 			}
 		}
+		if (this.scope) {
+			for (let node of Outliner.nodes) {
+				if (node.scope == this.scope) nodes.safePush(node);
+			}
+		}
 		return nodes;
+	}
+	/**
+	 * Check if the node is contained in this collection, directly or indirectly
+	 * @returns {true} if the collection contains the node
+	 */
+	contains(node: OutlinerNode): boolean {
+		if (this.scope && this.scope == node.scope) return true;
+		if (this.children.length == 0) return false;
+		let node_match: OutlinerNode | typeof Outliner.ROOT = node;
+		while (node_match instanceof OutlinerNode) {
+			if (this.children.includes(node_match.uuid)) {
+				return true;
+			}
+			node_match = node_match.parent;
+		}
+		return false;
 	}
 	/**
 	 * Toggle visibility of everything in the collection
 	 * @param event If the alt key is pressed, the result is inverted and the visibility of everything but the collection will be toggled
 	 */
 	toggleVisibility(event: KeyboardEvent | MouseEvent): void {
-		let children = this.getChildren();
+		let children = this.getAllChildren();
 		if (!children.length) return;
 		let groups = [];
 		let elements = [];
@@ -176,9 +210,6 @@ export class Collection {
 		}
 		for (let child of children) {
 			update(child);
-			if ('forEachChild' in child && typeof child.forEachChild == 'function') {
-				child.forEachChild(update);
-			}
 		}
 		if (event.altKey) {
 			// invert selection
@@ -191,7 +222,7 @@ export class Collection {
 		all.forEach(node => {
 			node.visibility = state;
 		})
-		Canvas.updateView({elements, element_aspects: {visibility: true}});
+		Canvas.updateView({elements, element_aspects: {visibility: true}, groups, group_aspects: {visibility: true}});
 		Undo.finishEdit('Toggle collection visibility');
 	}
 	/**
@@ -199,7 +230,7 @@ export class Collection {
 	 */
 	showContextMenu(event) {
 		if (!this.selected) this.clickSelect(event);
-		this.menu.open(event, this);
+		Collection.menu.open(event, this);
 		return this;
 	}
 	getUndoCopy() {
@@ -238,7 +269,6 @@ export class Collection {
 				group: []
 			}
 			for (let child of collection.getChildren()) {
-				// @ts-ignore
 				let type = child.type;
 				if (!types[type]) types[type] = [];
 				types[type].push(child);
@@ -249,7 +279,7 @@ export class Collection {
 					list.push({
 						name: node.name,
 						uuid: node.uuid,
-						icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+						icon: key == 'group' ? Group.prototype.icon : types[key][0].icon
 					})
 				}
 			}
@@ -263,6 +293,15 @@ export class Collection {
 			}[]
 			selected: string[]
 		}
+		let form: Record<string, FormElementOptions> = {};
+		for (let key in Collection.properties) {
+			let property = Collection.properties[key];
+			if (!Condition(property.condition, this) || !property.inputs?.dialog) continue;
+			let form_input = Object.assign({}, property.inputs.dialog.input);
+			form_input.value = this[key];
+			form[key] = form_input;
+		}
+
 		let dialog = new Dialog({
 			id: 'collection_properties',
 			title: this.name,
@@ -276,17 +315,7 @@ export class Collection {
 				}
 			},
 			part_order: ['form', 'component'],
-			form: {
-				name: {type: 'text', label: 'generic.name', value: this.name},
-				export_path: {
-					label: 'dialog.collection.export_path',
-					value: this.export_path,
-					type: 'file',
-					condition: isApp && this.codec,
-					extensions: ['json'],
-					filetype: 'JSON collection',
-				}
-			},
+			form,
 			component: {
 				components: {VuePrismEditor},
 				data: {
@@ -309,7 +338,7 @@ export class Collection {
 						this.selected.empty();
 					},
 					addWithFilter(this: PropertiesComponentData, event) {
-						// @ts-ignore
+						// @ts-expect-error
 						BarItems.select_window.click(event, {returnResult: ({elements, groups}) => {
 							for (let node of elements.concat(groups)) {
 								if (!this.content.find(node2 => node2.uuid == node.uuid)) {
@@ -345,19 +374,15 @@ export class Collection {
 			onConfirm: form_data => {
 				let vue_data = dialog.content_vue.$data as PropertiesComponentData;
 				if (
-					form_data.name != this.name ||
-					form_data.export_path != this.export_path ||
+					Object.keys(form).find(key => form_data[key] != this[key]) ||
 					vue_data.content.find(node => !collection.children.includes(node.uuid)) ||
 					collection.children.find(uuid => !vue_data.content.find(node => node.uuid == uuid))
 				) {
 					Undo.initEdit({collections: [this]});
 
-					this.extend({
-						name: form_data.name,
-						export_path: form_data.export_path,
-					})
-					if (isApp) this.export_path = form_data.path;
+					this.extend(form_data);
 					this.children.replace(vue_data.content.map(node => node.uuid));
+					this.saved = false;
 
 					Blockbench.dispatchEvent('edit_collection_properties', {collection: this})
 
@@ -371,95 +396,158 @@ export class Collection {
 		})
 		dialog.show();
 	}
-}
-Collection.prototype.menu = new Menu([
-	new MenuSeparator('settings'),
-	new MenuSeparator('edit'),
-	'set_collection_content_to_selection',
-	'add_to_collection',
-	new MenuSeparator('copypaste'),
-	'copy',
-	'duplicate',
-	'delete',
-	new MenuSeparator('export'),
-	(collection) => {
-		let codec = Codecs[collection.codec];
-		if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
-			let export_action = codec.export_action;
-			return {
-				id: 'export_as',
-				name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
-				icon: export_action.icon,
-				description: export_action.description,
-				click() {
-					codec.writeCollection(collection);
-				}
+	
+	static menu = new Menu([
+		new MenuSeparator('settings'),
+		new MenuSeparator('edit'),
+		'set_collection_content_to_selection',
+		'add_to_collection',
+		new MenuSeparator('copypaste'),
+		'copy',
+		'duplicate',
+		'delete',
+		new MenuSeparator('export'),
+		{
+			id: 'open',
+			name: 'menu.collection.open_file',
+			icon: 'file_open',
+			condition: (collection: Collection) => (isApp && collection.export_path && fs.existsSync(collection.export_path)),
+			click(collection: Collection) {
+				Filesystem.readFile([collection.export_path], {readtype: 'text'}, files => {
+					loadModelFile(files[0]);
+				})
 			}
-		}
-	},
-	{
-		id: 'export',
-		name: 'generic.export',
-		icon: 'insert_drive_file',
-		children: (collection) => {
-			let actions = [];
-			for (let id in Codecs) {
-				let codec = Codecs[id];
-				if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
-
+		},
+		{
+			name: 'menu.animation.open_location',
+			icon: 'folder',
+			condition: (collection: Collection) => (isApp && collection.export_path && fs.existsSync(collection.export_path)),
+			click(collection: Collection) {
+				Filesystem.showFileInFolder(collection.export_path);
+			}
+		},
+		(collection: Collection) => {
+			let codec = Codecs[collection.export_codec];
+			if (codec?.export_action && collection.export_path && Condition(codec.export_action.condition)) {
 				let export_action = codec.export_action;
-				let new_action = {
-					name: export_action.name,
+				return {
+					id: 'export_as',
+					name: tl('menu.collection.export_as', pathToName(collection.export_path, true)),
 					icon: export_action.icon,
 					description: export_action.description,
 					click() {
-						codec.exportCollection(collection);
+						codec.writeCollection(collection);
 					}
 				}
-				if (id == 'project') {
-					new_action = {
-						name: 'menu.collection.export_project',
-						icon: 'icon-blockbench_file',
-						description: '',
+			}
+		},
+		{
+			id: 'export',
+			name: 'generic.export',
+			icon: 'insert_drive_file',
+			children: (collection) => {
+				let actions = [];
+				for (let id in Codecs) {
+					let codec = Codecs[id];
+					if (!codec.export_action || !codec.support_partial_export || !Condition(codec.export_action.condition)) continue;
+
+					let export_action = codec.export_action;
+					let new_action = {
+						name: export_action.name,
+						icon: export_action.icon,
+						description: export_action.description,
 						click() {
 							codec.exportCollection(collection);
 						}
 					}
+					if (id == 'project') {
+						new_action = {
+							name: 'menu.collection.export_project',
+							icon: 'icon-blockbench_file',
+							description: '',
+							click() {
+								codec.exportCollection(collection);
+							}
+						}
+					}
+					actions.push(new_action);
 				}
-				actions.push(new_action);
+				return actions;
 			}
-			return actions;
+		},
+		new MenuSeparator('properties'),
+		{
+			icon: 'list',
+			name: 'menu.texture.properties',
+			click(collection) { collection.propertiesDialog()}
 		}
-	},
-	new MenuSeparator('properties'),
-	{
-		icon: 'list',
-		name: 'menu.texture.properties',
-		click(collection) { collection.propertiesDialog()}
+	])
+}
+// @ts-expect-error
+Collection.prototype.menu = Collection.menu;
+
+new Property(Collection, 'string', 'name', {
+	default: 'collection',
+	inputs: {
+		dialog: {
+			input: {type: 'text', label: 'generic.name'},
+		}
 	}
-])
-new Property(Collection, 'string', 'name', {default: 'collection'});
+});
+new Property(Collection, 'string', 'model_identifier', {
+	condition: {features: ['model_identifier', '']},
+	default: () => Project.model_identifier,
+	inputs: {
+		dialog: {
+			input: {type: 'text', label: 'dialog.project.geoname'},
+		}
+	}
+});
+new Property(Collection, 'number', 'scope');
+new Property(Collection, 'boolean', 'saved', {default: true});
 new Property(Collection, 'string', 'export_codec');
-new Property(Collection, 'string', 'export_path');
+new Property(Collection, 'string', 'export_path', {
+	condition: (collection: Collection) => (isApp && !!collection.export_codec),
+	inputs: {
+		dialog: {
+			input: {
+				label: 'dialog.collection.export_path',
+				type: 'file',
+				extensions: ['json'],
+				filetype: 'JSON collection',
+			}
+		}
+	}
+});
+new Property(Collection, 'vector', 'offset', {
+	condition: (collection: Collection) => collection.export_codec && Codecs[collection.export_codec]?.support_offset,
+	inputs: {
+		dialog: {
+			input: {
+				label: 'dialog.collection.offset',
+				type: 'vector',
+				dimensions: 3
+			}
+		}
+	}
+});
 new Property(Collection, 'array', 'children');
 new Property(Collection, 'boolean', 'visibility', {default: false});
 
 Object.defineProperty(Collection, 'all', {
 	get() {
-		// @ts-ignore
 		return Project.collections
 	}
 })
 Object.defineProperty(Collection, 'selected', {
 	get() {
-		// @ts-ignore
 		return Project ? Project.collections.filter(c => c.selected) : [];
 	}
 })
 
 SharedActions.add('delete', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		let selected = Collection.selected.slice();
 		Undo.initEdit({collections: selected});
@@ -472,7 +560,7 @@ SharedActions.add('delete', {
 })
 SharedActions.add('duplicate', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		let new_collections = [];
 		Undo.initEdit({collections: new_collections});
@@ -487,7 +575,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('copy', {
 	subject: 'collection',
-	condition: () => Prop.active_panel == 'collections' && Collection.selected.length,
+	condition: () => Prop.active_panel == 'collections' && Collection.selected.length > 0,
 	run() {
 		Clipbench.collections = Collection.selected.map(collection => collection.getUndoCopy());
 	}
@@ -525,7 +613,7 @@ BARS.defineActions(() => {
 	new Action('set_collection_content_to_selection', {
 		icon: 'unarchive',
 		category: 'select',
-		condition: () => Collection.selected.length,
+		condition: () => Collection.selected.length > 0,
 		click() {
 			let collections = Collection.selected;
 			Undo.initEdit({collections});
@@ -539,7 +627,7 @@ BARS.defineActions(() => {
 	new Action('add_to_collection', {
 		icon: 'box_add',
 		category: 'select',
-		condition: () => Collection.selected.length,
+		condition: () => Collection.selected.length > 0,
 		click() {
 			let collections = Collection.selected;
 			Undo.initEdit({collections});
@@ -585,7 +673,8 @@ Interface.definePanels(function() {
 			float_position: [0, 0],
 			float_size: [300, 300],
 			height: 300,
-			folded: false
+			folded: false,
+			sidebar_index: 9,
 		},
 		condition: {modes: ['edit', 'paint', 'animate'], method: () => (!Format.image_editor)},
 		toolbars: [
@@ -716,12 +805,20 @@ Interface.definePanels(function() {
 					})
 					updateSelection();
 				},
+				save(collection: Collection) {
+					let codec = Codecs[collection.export_codec];
+					if (!codec) {
+						return Blockbench.showQuickMessage(`Cannot export collection: Unknown codec "${collection.export_codec}"`);
+					}
+					if (collection.export_path) {
+						codec.writeCollection(collection);
+					}
+				},
 				getContentList(collection: Collection) {
 					let types = {
 						group: []
 					}
 					for (let child of collection.getChildren()) {
-						// @ts-ignore
 						let type = child.type;
 						if (!types[type]) types[type] = [];
 						types[type].push(child);
@@ -732,11 +829,15 @@ Interface.definePanels(function() {
 						list.push({
 							count: types[key].length == 1 ? '' : types[key].length,
 							name: types[key].length == 1 ? types[key][0].name : '',
-							icon: key == 'group' ? Group.prototype.icon : OutlinerElement.types[key].prototype.icon
+							icon: key == 'group' ? Group.prototype.icon : types[key][0].icon
 						})
 					}
 					return list;
-				}
+				},
+				getScopeColor(collection: Collection) {
+					if (!collection.scope) return '';
+					return ScopeColors[(collection.scope-1) % ScopeColors.length];
+				},
 			},
 			template: `
 				<ul
@@ -753,6 +854,7 @@ Interface.definePanels(function() {
 						:key="collection.uuid"
 						:uuid="collection.uuid"
 						class="collection"
+						:style="{'--color-scope': getScopeColor(collection)}"
 						@click.stop="collection.clickSelect($event)"
 						@dblclick.stop="collection.propertiesDialog()"
 						@contextmenu.prevent.stop="collection.showContextMenu($event)"
@@ -772,6 +874,15 @@ Interface.definePanels(function() {
 							</ul>
 						</div>
 
+						<div class="in_list_button"
+							v-if="collection.export_codec && collection.export_path"
+							:class="{unclickable: collection.saved}"
+							@click.stop="save(collection)"
+							title="${tl('menu.animation.save')}"
+						>
+							<i v-if="collection.saved" class="material-icons">check_circle</i>
+							<i v-else class="material-icons">save</i>
+						</div>
 						<div class="in_list_button" @click.stop="collection.toggleVisibility($event)" @dblclick.stop>
 							<i v-if="collection.getVisibility()" class="material-icons icon">visibility</i>
 							<i v-else class="material-icons icon toggle_disabled">visibility_off</i>
@@ -786,7 +897,11 @@ Interface.definePanels(function() {
 		])
 	})
 })
-
-Object.assign(window, {
+const global = {
 	Collection
-});
+};
+declare global {
+	type Collection = import('./collections').Collection
+	const Collection: typeof global.Collection
+}
+Object.assign(window, global);

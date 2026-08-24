@@ -2,7 +2,7 @@ import { BBPlugin } from "./plugin_loader";
 import { createScopedFS } from "./util/scoped_fs";
 
 const electron: typeof import("@electron/remote") = require('@electron/remote');
-const {clipboard, shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
+const {shell, nativeImage, ipcRenderer, webUtils} = require('electron') as typeof import('electron');
 const app = electron.app;
 const fs: typeof import("node:fs") = require('node:fs');
 const NodeBuffer: typeof import("node:buffer") = require('buffer');
@@ -13,6 +13,7 @@ const PathModule: typeof import("node:path") = require('path');
 const os: typeof import("node:os") = require('os');
 const currentwindow = electron.getCurrentWindow();
 const dialog = electron.dialog;
+const clipboard = electron.clipboard;
 
 /** @internal */
 export {
@@ -39,6 +40,10 @@ const SAFE_APIS = [
 	'url',
 	'string_decoder',
 	'querystring',
+	'constants',
+	'buffer',
+	'stream',
+	'perf_hooks'
 ];
 const REQUESTABLE_APIS = [
 	'fs',
@@ -50,6 +55,9 @@ const REQUESTABLE_APIS = [
 	'util',
 	'os',
 	'v8',
+	'dialog',
+	'clipboard',
+	'shell',
 ];
 const API_DESCRIPTIONS = {
 	fs: 'access and change files on your computer',
@@ -59,6 +67,8 @@ const API_DESCRIPTIONS = {
 	os: 'see information about your computer',
 	https: 'create servers and talk to other servers',
 	dialog: 'open native dialogs',
+	clipboard: 'read and write to the clipboard',
+	shell: 'open files, folders, and links, and move objects to trash',
 };
 type PluginPermissions = {
 	allowed: Record<string, boolean|any>
@@ -75,11 +85,14 @@ try {
 function savePluginSettings() {
 	fs.writeFileSync(PLUGIN_SETTINGS_PATH, stringify(PluginSettings), {encoding: 'utf-8'});
 }
+type PluginOrDevTools = InstanceType<typeof BBPlugin> | {name: string, id: string}
 interface GetModuleOptions {
 	scope?: string
 	message?: string
+	optional?: boolean
+	show_permission_dialog?: boolean
 }
-function getModule(module_name: string, plugin_id: string, plugin: InstanceType<typeof BBPlugin>, options: GetModuleOptions = {}) {
+function getModule(module_name: string, plugin_id: string, plugin: PluginOrDevTools, options: GetModuleOptions = {}) {
 	const no_namespace_name = module_name.replace(/^node:/, '');
 	if (SAFE_APIS.includes(no_namespace_name)) {
 		return originalRequire(module_name);
@@ -96,14 +109,23 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 	let has_permission = false;
 	if (permission === true) {
 		has_permission = true;
-	} else if (module_name == 'fs' && permission?.directories?.includes(options2.scope)) {
-		has_permission = true;
+	} else if (no_namespace_name == 'fs' && permission?.directories && options2.scope) {
+		for (let directory of permission?.directories) {
+			if (options2.scope.startsWith(directory)) {
+				has_permission = true;
+				break;
+			}
+		}
 	}
 
 	if (!has_permission) {
-		let api_description = API_DESCRIPTIONS[module_name] ?? `the module "${module_name}"`;
+		if (options.show_permission_dialog == false) {
+			return;
+		}
+
+		let api_description = API_DESCRIPTIONS[no_namespace_name] ?? `the module "${no_namespace_name}"`;
 		let option_text = '';
-		if (module_name == 'fs' && options2.scope) {
+		if (no_namespace_name == 'fs' && options2.scope) {
 			api_description = 'a folder';
 			option_text = '\nLocation: "' + options2.scope.replace(/\n/g, '') + '"';
 		}
@@ -111,7 +133,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 		let result = dialog.showMessageBoxSync(currentwindow, {
 			title: 'Plugin Permission',
 			message: `Permission to ${api_description} requested`,
-			detail: `The plugin "${plugin.name}" (${plugin_id}) requires permission to ${api_description}.${option_text}${options.message ? `\n\n"${options.message}"` : ''}`,
+			detail: `The plugin "${plugin.name}" (${plugin_id}) requires permission to ${api_description}.${option_text}${options.optional === false ? `\n\nThis permission is not optional and is required for the plugin to function.` : ""}${options.message ? `\n\n"${options.message}"` : ''}`,
 			type: 'question',
 			noLink: true,
 			cancelId: 3,
@@ -119,7 +141,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				'Allow once',
 				'Always allow for this plugin',
 				'Uninstall plugin',
-				'Deny',
+				options.optional === false ? 'Disable plugin' : 'Deny'
 			]
 		});
 		enum Result {
@@ -136,7 +158,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 				}
 			}
 			let allowed = PluginSettings[plugin_id].allowed;
-			if (module_name == 'fs' && options2.scope) {
+			if (no_namespace_name == 'fs' && options2.scope) {
 				if (typeof allowed[module_name] != 'object') allowed[module_name] = {directories: []}
 				allowed[module_name].directories.push(options2.scope);
 			} else {
@@ -144,9 +166,13 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 			}
 			savePluginSettings();
 		}
-		if (result == Result.Uninstall) {
+		if (result == Result.Uninstall && "uninstall" in plugin) {
 			setTimeout(() => {
 				plugin.uninstall();
+			}, 20);
+		} else if (result == Result.Deny && options.optional === false && "toggleDisabled" in plugin) {
+			setTimeout(() => {
+				if (!plugin.disabled) plugin.toggleDisabled();
 			}, 20);
 		}
 		if (!(result == Result.Once || result == Result.Always)) {
@@ -161,6 +187,10 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 		return createScopedFS(options2.scope);
 	} else if (no_namespace_name == 'process') {
 		return process;
+	} else if (no_namespace_name == 'clipboard') {
+		return clipboard;
+	} else if (no_namespace_name == 'shell') {
+		return shell;
 	} else if (no_namespace_name == 'dialog') {
 		let api = {};
 		for (let key in dialog) {
@@ -175,7 +205,7 @@ function getModule(module_name: string, plugin_id: string, plugin: InstanceType<
 /**
  * @internal
  */
-export function getPluginScopedRequire(plugin: InstanceType<typeof BBPlugin>) {
+export function getPluginScopedRequire(plugin: PluginOrDevTools) {
 	const plugin_id = plugin.id;
 	return function require(module_id: string, options?: GetModuleOptions) {
 		return getModule(module_id, plugin_id, plugin, options);
@@ -184,21 +214,54 @@ export function getPluginScopedRequire(plugin: InstanceType<typeof BBPlugin>) {
 const originalRequire = window.require;
 delete window.require;
 
-export function revokePluginPermissions(plugin: InstanceType<typeof BBPlugin>): string[] {
+/**
+ * Revoke the permissions of a plugin
+ * @param plugin
+ * @returns List of revoked permissions
+ * @private
+ */
+export function revokePluginPermissions(plugin: PluginOrDevTools): string[] {
 	let permissions = Object.keys(PluginSettings[plugin.id]?.allowed ?? {});
 	delete PluginSettings[plugin.id];
 	savePluginSettings();
 	return permissions;
 }
-export function getPluginPermissions(plugin: InstanceType<typeof BBPlugin>) {
+/**
+ * @private
+ */
+export function getPluginPermissions(plugin: PluginOrDevTools) {
 	let data = PluginSettings[plugin.id]?.allowed;
 	if (data) return parse(stringify(data)) as Record<string, (boolean | any)>;
+}
+
+export function exposeNativeApisInDevTools() {
+	let result = dialog.showMessageBoxSync(currentwindow, {
+		title: 'Expose Native Modules',
+		message: `Espose native modules in globally and dev tools?`,
+		detail: 'Only do this if you are a developer and you know what you are doing.',
+		type: 'question',
+		noLink: true,
+		cancelId: 1,
+		buttons: [
+			'Enable',
+			'Cancel',
+		]
+	});
+	if (result == 0) {
+		// @ts-expect-error
+		window.require = getPluginScopedRequire({id: 'dev_tools', name: 'Dev Tools'});
+		window.process = process;
+		console.warn("Exposed 'require' and 'process' in dev tools");
+	}
 }
 
 export const SystemInfo = {
 	platform: process.platform,
 	home_directory: os.homedir(),
 	appdata_directory: electron.process.env.APPDATA,
+	user_data_directory: app.getPath('userData'),
+	desktop_directory: app.getPath('desktop'),
+	temp_directory: os.tmpdir(),
 	arch: process.arch,
 	os_version: os.version(),
 }
@@ -220,13 +283,26 @@ export function openFileInEditor(file_path: string, editor: string) {
 	}
 }
 
-Object.assign(window, {
+/**
+ * @internal
+ */
+export function openDevTools() {
+	currentwindow.webContents.openDevTools();
+}
+
+// @ts-ignore
+window.Settings = {get(arg) {console.error("Settings.get was accessed too early:", arg)}};
+
+const global = {
+	openDevTools,
 	SystemInfo,
 	Buffer,
-});
-
-/**
- * TODO:
- * - Ensure it still works in the web app
- */
-
+};
+declare global {
+	const openDevTools: typeof global.openDevTools
+	const SystemInfo: typeof global.SystemInfo
+	interface Window {
+		SystemInfo: typeof global.SystemInfo | null
+	}
+}
+Object.assign(window, global);

@@ -1,34 +1,8 @@
 import './molang'
+import './state_memory'
 
 //Blockbench
-/**
- * Compare two versions
- * @param {string} version1 
- * @param {string} version2 
- * @returns Whether version1 is higher/newer than version2
- */
-export function compareVersions(version1, version2) {
-	var arr1 = version1.split(/[.-]/);
-	var arr2 = version2.split(/[.-]/);
-	var i = 0;
-	var num1 = 0;
-	var num2 = 0;
-	while (i < Math.max(arr1.length, arr2.length)) {
-		num1 = arr1[i];
-		num2 = arr2[i];
-		if (num1 == 'beta') num1 = -1;
-		if (num2 == 'beta') num2 = -1;
-		num1 = parseInt(num1) || 0;
-		num2 = parseInt(num2) || 0;
-		if (num1 > num2) {
-			return true;
-		} else if (num1 < num2) {
-			return false
-		}
-		i++;
-	}
-	return false;
-}
+
 /**
  * 
  * @param {*} condition Input condition. Can be undefined, a boolean, a function or a condition object
@@ -101,6 +75,7 @@ export async function wait(delay) {
 		setTimeout(resolve, delay);
 	})
 }
+export function silentReject() {}
 
 export function pureMarked(input) {
 	let dom = marked(input);
@@ -130,6 +105,10 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 		return this.ctrlKey || this.metaKey;
 	}
 })
+ImageData.prototype.getIndex = function(x, y) {
+	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
+    return (x + y * this.height) * 4;
+}
 
 export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
@@ -306,7 +285,7 @@ Date.prototype.getDateArray = function() {
 	return [
 		this.getDate(),
 		this.getMonth()+1,
-		this.getYear()+1900
+		this.getFullYear()
 	];
 }
 Date.prototype.getDateString = function() {
@@ -623,7 +602,15 @@ export function labColorDistance(labA, labB){
 	var deltaCkcsc = deltaC / (sc);
 	var deltaHkhsh = deltaH / (sh);
 	var i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
-	return i < 0 ? 0 : Math.sqrt(i);}
+	return i < 0 ? 0 : Math.sqrt(i);
+}
+export function colorDistance(color1, color2) {
+	return Math.sqrt(
+		Math.pow(color2._r - color1._r, 2) +
+		Math.pow(color2._g - color1._g, 2) +
+		Math.pow(color2._b - color1._b, 2)
+	);
+}
 
 export function stringifyLargeInt(int) {
 	let string = int.toString();
@@ -704,9 +691,18 @@ export function cameraRotationToTarget(position, rotation) {
 	return vec.toArray().V3_add(position);
 }
 
-export function getDateDisplay(input_date) {
+const date_formatter = new Intl.DateTimeFormat();
+const date_time_formatter = new Intl.DateTimeFormat(undefined, {
+	year: 'numeric',
+	month: 'numeric',
+	day: 'numeric',
+	hour: "2-digit",
+	minute: "2-digit",
+	second: "2-digit"
+});
+export function getDateDisplay(input_date, print_time = true) {
 	let date = new Date(input_date);
-	var diff = Math.round(Blockbench.openTime / (60_000*60*24)) - Math.round(date / (60_000*60*24));
+	var diff = Math.floor(Blockbench.openTime / (60_000*60*24)) - Math.floor(date / (60_000*60*24));
 	let label;
 	if (diff <= 0) {
 		label = tl('dates.today');
@@ -717,11 +713,11 @@ export function getDateDisplay(input_date) {
 	} else if (diff <= 60) {
 		label = tl('dates.weeks_ago', [Math.ceil(diff/7)]);
 	} else {
-		label = date.toLocaleDateString();
+		label = date_formatter.format(date);
 	}
 	return {
 		short: label,
-		full: date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+		full: print_time ? date_time_formatter.format(date) : date_formatter.format(date)
 	}
 }
 
@@ -746,7 +742,6 @@ Object.assign(window, {
 	Condition,
 	Objector,
 	Merge,
-	compareVersions,
 	pureMarked,
 	convertTouchEvent,
 	addEventListeners,

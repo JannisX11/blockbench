@@ -8,11 +8,6 @@ function isStreamerMode(): boolean {
 	return window.settings.streamer_mode.value;
 }
 
-declare class Blockbench {
-	static isTouch: boolean
-	static showMessageBox(options: any): void
-	static showQuickMessage(message: string): void
-}
 
 export namespace Filesystem {
 	export type FileResult = {
@@ -20,12 +15,13 @@ export namespace Filesystem {
 		path: string
 		content?: string | ArrayBuffer
 		browser_file?: File
+		no_file?: boolean
 	}
 
 	/**
 	 * The resource identifier group, used to allow the file dialog (open and save) to remember where it was last used
 	 */
-	type ResourceID =
+	export type ResourceID =
 		| string
 		| 'texture'
 		| 'minecraft_skin'
@@ -42,15 +38,15 @@ export namespace Filesystem {
 		| 'palette'
 
 	// MARK: Import
-	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
-	interface ReadOptions {
+	export type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
+	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
 		/** File Extensions
 		 */
 		extensions?: string[]
 	}
-	interface ImportOptions extends ReadOptions {
+	export interface ImportOptions extends ReadOptions {
 		/** Name of the file type
 		 */
 		type: string
@@ -80,9 +76,9 @@ export namespace Filesystem {
 	 */
 	export function importFile(options: ImportOptions, callback?: (files: FileResult[]) => void) {
 		if (isApp) {
-			let properties = [];
+			let properties = ['openFile'] as any[];
 			if (options.multiple) {
-				properties.push('openFile', 'multiSelections')
+				properties.push('multiSelections')
 			}
 			if (options.extensions[0] === 'image/*') {
 				options.type = 'Images'
@@ -148,6 +144,15 @@ export namespace Filesystem {
 		}
 	}
 
+
+	// MARK: Image Source
+	let image_version = 0;
+	export function getImageSource(file: FileResult | string): string {
+		let source = typeof file == 'string' ? file : (file.content ?? file.path);
+		if (typeof source != 'string' || source.startsWith('data:')) return source as string;
+		if (!isApp) return source;
+		return source.replace(/#/g, '%23').replace(/\?\d+$/, '') + '?' + (++image_version);
+	}
 	
 	// MARK: Read
 	export function readFile(files: string[] | FileList, options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {
@@ -181,35 +186,16 @@ export namespace Filesystem {
 				}
 
 				if (readtype === 'image') {
-					//
-					let extension = pathToExtension(file)
-					if (extension === 'tga') {
-						let targa_loader = new Targa()
-						targa_loader.open(file, () => {
-
-							results[i] = {
-								name: pathToName(file, true),
-								path: file,
-								content: targa_loader.getDataURL()
-							}
-						
-							result_count++;
-							if (result_count === files.length) {
-								callback(results)
-							}
-						})
-
-					} else {
-						results[i] = {
-							name: pathToName(file, true),
-							path: file,
-							content: file
-						}
-						result_count++;
-						if (result_count === files.length) {
-							callback(results)
-						}
+					results[i] = {
+						name: pathToName(file, true),
+						path: file,
+						content: file
 					}
+					result_count++;
+					if (result_count === files.length) {
+						callback(results)
+					}
+
 				} else /*text*/ {
 					let data;
 					try {
@@ -255,15 +241,7 @@ export namespace Filesystem {
 				let reader = new FileReader()
 				let local_i = i;
 				reader.onloadend = function() {
-					let result;
-					if (typeof reader.result != 'string' && reader.result.byteLength && pathToExtension(name) === 'tga') {
-						let arr = new Uint8Array(reader.result)
-						let targa_loader = new Targa()
-						targa_loader.load(arr)
-						result = targa_loader.getDataURL()
-					} else {
-						result = reader.result
-					}
+					let result = reader.result;
 					results[local_i] = {
 						name,
 						path: name,
@@ -304,7 +282,7 @@ export namespace Filesystem {
 
 	
 	// MARK: Pick Directory
-	interface PickDirOptions {
+	export interface PickDirOptions {
 		/**Location where the file dialog starts off
 		 */
 		startpath?: string
@@ -350,7 +328,7 @@ export namespace Filesystem {
 	}
 
 	// MARK: Export
-	interface ExportOptions extends WriteOptions {
+	export interface ExportOptions extends WriteOptions {
 		/**
 		 * Name of the file type
 		 */
@@ -400,11 +378,12 @@ export namespace Filesystem {
 				options.custom_writer(options.content, file_name)
 				
 			} else {
+				let savetype = typeof options.savetype == 'function' ? options.savetype(file_name) : options.savetype;
 
-				if (options.savetype === 'image') {
+				if (savetype === 'image' && typeof options.content == 'string') {
 					saveAs(options.content, file_name, {})
 
-				} else if (options.savetype === 'zip' || options.savetype === 'buffer' || options.savetype === 'binary') {
+				} else if (['zip', 'buffer', 'binary', 'image'].includes(savetype)) {
 					let blob = options.content instanceof Blob
 							 ? options.content
 							 : new Blob([options.content], {type: "octet/stream"});
@@ -460,7 +439,7 @@ export namespace Filesystem {
 
 	// MARK: Write
 	type WriteType = 'text' | 'buffer' | 'binary' | 'zip' | 'image'
-	interface WriteOptions {
+	export interface WriteOptions {
 		content?: string | ArrayBuffer | Blob
 		savetype?: WriteType | ((file: string) => WriteType)
 		custom_writer?: (content: string | ArrayBuffer | Blob, file_path: string, callback?: (file_path: string) => void) => void
@@ -507,6 +486,7 @@ export namespace Filesystem {
 			//text or binary
 			let content = options.content;
 			if (content instanceof ArrayBuffer) {
+				// @ts-ignore
 				content = Buffer.from(content);
 			}
 			fs.writeFileSync(file_path, content as string)
@@ -525,7 +505,7 @@ export namespace Filesystem {
 
 
 	// MARK: Find
-	interface FindFileOptions {
+	export interface FindFileOptions {
 		recursive: boolean
 		filter_regex: RegExp
 		priority_regex?: RegExp
@@ -536,11 +516,11 @@ export namespace Filesystem {
 	 * Find a file in a directory based on content within the file, optionally optimized via file name match
 	 * @param {string[]} base_directories List of base directory paths to search in
 	 */
-	export function findFileFromContent(
+	export function findFileFromContent<T = any>(
 		base_directories: string[],
 		options: FindFileOptions,
-		check_file: (path: string, content: string|object) => boolean
-	) {
+		check_file: (path: string, content: string|object) => T
+	): T | undefined {
 		let deprioritized_files = [];
 
 		function checkFile(path) {
@@ -599,7 +579,7 @@ export namespace Filesystem {
 
 
 	// MARK: Drag & Drop
-	interface DragHandlerOptions {
+	export interface DragHandlerOptions {
 		/**
 		 * Allowed file extensions
 		 */
@@ -658,37 +638,36 @@ export namespace Filesystem {
 	document.ondragover = function(event) {
 		event.preventDefault()
 	}
+	export function getFilePaths(file_names: FileList): string[] {
+		let paths: string[] = [];
+		if (isApp) {
+			for (let file of file_names) {
+				if ('path' in file && typeof file.path == 'string' && file.path) {
+					paths.push(file.path);
+				} else {
+					let path = webUtils.getPathForFile(file);
+					if (path) paths.push(path);
+				}
+			}
+		} else {
+			paths = [...file_names] as unknown as string[];
+		}
+		return paths;
+	}
+
 	document.body.ondrop = function(event) {
 		event.preventDefault()
 		let text = event.dataTransfer.getData('text/plain');
 
-		if (text && text.startsWith('https://blckbn.ch/')) {
-			let code = text.replace(/\/$/, '').split('/').last();
-			$.getJSON(`https://blckbn.ch/api/models/${code}`, (model) => {
-				Codecs.project.load(model, {path: ''});
-			}).fail(error => {
-				Blockbench.showQuickMessage('message.invalid_link')
-			})
+		if (text) {
+			Blockbench.dispatchEvent('drop_text', {text});
 		}
 
+		let handled = false;
+		// Native file drop, or drop from VS Code via paths
+		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
+		if (!paths.some(path => path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
-			let fileNames = event.dataTransfer.files
-
-			let paths: string[] | FileList = [];
-			if (isApp) {
-				for (let file of fileNames) {
-					if ('path' in file) {
-						// @ts-ignore
-						paths.push(file.path)
-					} else if (isApp) {
-						// @ts-ignore
-						let path = webUtils.getPathForFile(file);
-						paths.push(path);
-					}
-				}
-			} else {
-				paths = fileNames;
-			}
 			if (!paths.length) return;
 
 			let read_options = {
@@ -698,8 +677,16 @@ export namespace Filesystem {
 			}
 			Filesystem.read(paths, read_options, (files) => {
 				handler.cb(files, event)
+				handled = true;
 			})
 		})
+		if (!handled) {
+			let file_path = paths[0];
+			if (file_path) {
+				unsupportedFileFormatMessage(file_path);
+			}
+
+		}
 	}
 	document.body.ondragenter = function(event) {
 		event.preventDefault()
@@ -715,7 +702,9 @@ export namespace Filesystem {
 	}
 
 	function forDragHandlers(event: DragEvent, cb: (handler: Filesystem.DragHandler, el: HTMLElement) => void) {
-		if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
+		if (!event.dataTransfer) return;
+		let text = event.dataTransfer.getData("text/plain");
+		if ((event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) && !text) {
 			return;
 		}
 		for (let id in Filesystem.drag_handlers) {
@@ -748,11 +737,9 @@ export namespace Filesystem {
 				}
 			}
 			let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
-			extensions.includes( pathToExtension(event.dataTransfer.files[0].name).toLowerCase());
-			let name = event.dataTransfer.files[0].name;
-			if (el && extensions.filter(ex => {
-				return name.substr(-ex.length) == ex;
-			}).length) {
+			let name = event.dataTransfer.files[0] ? event.dataTransfer.files[0].name : text;
+			let name_lower_case = name.toLowerCase();
+			if (el && extensions.find(ext => name_lower_case.endsWith('.'+ext))) {
 				cb(handler, el)
 				break;
 			}
@@ -760,6 +747,8 @@ export namespace Filesystem {
 	}
 }
 
-Object.assign(window, {
+const global = {
 	Filesystem
-})
+};
+// No internal global declaration since it does not work well with namespaces
+Object.assign(window, global);

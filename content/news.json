@@ -1,38 +1,34 @@
 {
 	"new_version": {
-		"color": "var(--color-dark)",
+		"color": "var(--color-bright_ui)",
+		"text_color": "var(--color-accent_text)",
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Welcome to Blockbench 4.12", "type": "h3"},
-			{"text": "The Collection & Selection Update!", "type": "h1"},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v4.12.0)!"}
+			{"text": "Blockbench 5.1 - The Workflow Update!", "type": "h1"},
+			{"text": "Take your workflow to the next level."},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.1.0) - or watch the [update video](https://youtu.be/OH82WjNwriE)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/pbr.png",
-				"title": "PBR Editing + Preview",
-				"text": "Create, edit, and view physically based materials"
+				"image": "https://web.blockbench.net/content/mirror_animating.png",
+				"title": "Mirror Animating",
+				"text": "With this new feature, you can just animate one side of your model, and all changes will be mirrored to the other side - in real time and with phase offset support!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/collections.png",
-				"title": "Collections",
-				"text": "A new way to organize your model!"
+				"image": "https://web.blockbench.net/content/bounding_boxes.png",
+				"title": "Bounding Boxes",
+				"text": "Bounding Boxes make it easier than ever to configure hitboxes and collisions for your model!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/lasso.png",
-				"title": "Lasso Selection Tool",
-				"text": "Select free-form shapes in the 2D Editor"
+				"image": "https://web.blockbench.net/content/pen_tablet.png",
+				"title": "Improved Pen Tablet Support",
+				"text": "Take your texturing to the next level with your pen tablet, pressure and tilt sensitivity included!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/group_multi_select.png",
-				"title": "Group Multi Selection",
-				"text": "You can finally select multiple groups at once!"
-			},
-			{
-				"image": "https://web.blockbench.net/content/rotation_snap.png",
-				"title": "Rotation Snap",
-				"text": "It's vertex snap, but for rotations!"
+				"image": "https://web.blockbench.net/content/image_formats.png",
+				"title": "Image Formats",
+				"text": "In addition to PNG, JPEG, TGA, and WebP are now natively supported as texture formats!"
 			}
 		]
 	}

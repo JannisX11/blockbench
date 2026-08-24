@@ -190,7 +190,7 @@ new ValidatorCheck('cube_size_limit', {
 })
 
 new ValidatorCheck('box_uv', {
-	condition: () => Cube.all.find(cube => cube.box_uv),
+	condition: () => Format.edit_mode && Cube.all.find(cube => cube.box_uv),
 	update_triggers: ['update_selection'],
 	run() {
 		Cube.all.forEach(cube => {

@@ -2,42 +2,22 @@ import { FormElementOptions } from "./interface/form";
 import { ModelFormat } from "./io/format";
 import { Prop } from "./misc";
 import { EventSystem } from "./util/event_system";
-import { compareVersions } from "./util/util";
+import VersionUtil from './util/version_util';
 import { Filesystem } from "./file_system";
 import { MessageBoxOptions } from "./interface/dialog";
-import { currentwindow, shell, SystemInfo } from "./native_apis";
+import { currentwindow, electron, shell, SystemInfo } from "./native_apis";
+import { ToastNotification, ToastNotificationOptions } from "./interface/toast_notification";
 
 declare const appVersion: string;
 declare let Format: ModelFormat
 
 
-interface ToastNotificationOptions {
-	/**
-	 * Text message
-	 */
-	text: string
-	/**
-	 * Blockbench icon string
-	 */
-	icon?: string
-	/**
-	 * Expire time in miliseconds
-	 */
-	expire?: number
-	/**
-	 * Background color, accepts any CSS color string
-	 */
-	color?: string
-	/**
-	 * Method to run on click. 
-	 * @returns Return `true` to close toast
-	 */
-	click?: (event: Event) => boolean
-}
 export const LastVersion = localStorage.getItem('last_version') || localStorage.getItem('welcomed_version') || appVersion;
 
+// const previous_data = window.Blockbench as {};
+
 export const Blockbench = {
-	...window.Blockbench,
+	//...previous_data,
 	isWeb: !isApp,
 	isMobile: (window.innerWidth <= 960 || window.innerHeight <= 500) && 'ontouchend' in document,
 	isLandscape: window.innerWidth > window.innerHeight,
@@ -48,11 +28,15 @@ export const Blockbench = {
 	version: appVersion,
 	operating_system: '',
 	platform: 'web',
+	browser: 'electron' as string,
 	flags: [],
 	drag_handlers: {},
 	events: {},
 	openTime: new Date(),
 	setup_successful: null as null | true,
+	argv: isApp ? electron.process?.argv?.slice() : null,
+	queries: {} as Record<string, string|boolean>,
+	startup_count: 0,
 	/**
 	 * @deprecated Use Undo.initEdit and Undo.finishEdit instead
 	 */
@@ -72,16 +56,16 @@ export const Blockbench = {
 		}
 	},
 	isNewerThan(version: string): boolean {
-		return compareVersions(Blockbench.version, version);
+		return VersionUtil.compare(Blockbench.version, '>', version);
 	},
 	isOlderThan(version: string): boolean {
-		return compareVersions(version, Blockbench.version);
+		return VersionUtil.compare(Blockbench.version, '<', version);
 	},
 	registerEdit() {
 		console.warn('Blockbench.registerEdit is outdated. Please use Undo.initEdit and Undo.finishEdit')
 	},
 	//Interface
-	getIconNode(icon: IconString | boolean | HTMLElement | (() => (IconString | boolean | HTMLElement)), color?: string) {
+	getIconNode(icon: IconString | boolean | HTMLElement | (() => (IconString | boolean | HTMLElement)), color?: string): HTMLElement {
 		let node;
 		if (typeof icon === 'function') {
 			icon = icon()
@@ -118,7 +102,7 @@ export const Blockbench = {
 			//Icomoon
 			node = document.createElement('i');
 			node.classList.add(icon, 'icon');
-		} else if (icon.substr(0, 14) === 'data:image/png') {
+		} else if (icon.startsWith('data:image/')) {
 			//Data URL
 			node = document.createElement('img');
 			node.classList.add('icon');
@@ -159,52 +143,7 @@ export const Blockbench = {
 	},
 
 	showToastNotification(options: ToastNotificationOptions) {
-		let notification = document.createElement('li');
-		notification.className = 'toast_notification';
-		if (options.icon) {
-			let icon = Blockbench.getIconNode(options.icon);
-			notification.append(icon);
-		}
-		let text = document.createElement('span');
-		text.innerText = tl(options.text);
-		notification.append(text);
-
-		let close_button = document.createElement('div');
-		close_button.innerHTML = '<i class="material-icons">clear</i>';
-		close_button.className = 'toast_close_button';
-		close_button.addEventListener('click', (event) => {
-			notification.remove();
-		})
-		notification.append(close_button);
-
-		if (options.color) {
-			notification.style.backgroundColor = options.color;
-		}
-		if (typeof options.click == 'function') {
-			notification.addEventListener('click', (event) => {
-				if (event.target == close_button || (event.target as HTMLElement).parentElement == close_button) return;
-				let result = options.click(event);
-				if (result == true) {
-					notification.remove();
-				}
-			})
-			notification.style.cursor = 'pointer';
-		}
-
-		if (options.expire) {
-			setTimeout(() => {
-				notification.remove();
-			}, options.expire);
-		}
-
-		document.getElementById('toast_notification_list').append(notification);
-
-		function deletableToast(node: HTMLElement) {
-			this.delete = function() {
-				node.remove();
-			}
-		}
-		return new deletableToast(notification);
+		return new ToastNotification(options.id, options);
 	},
 	setCursorTooltip(text?: string): void {},
 	setProgress(progress: number, time: number = 0, bar?: string): void {},
@@ -294,7 +233,6 @@ export const Blockbench = {
 				let n = new Notification(title, {body: text, icon: icon||'favicon.png'})
 				n.onclick = function() {
 					if (isApp) {
-						// @ts-ignore
 						currentwindow.focus();
 					} else {
 						window.focus();
@@ -304,9 +242,10 @@ export const Blockbench = {
 		})
 	},
 	//CSS
-	addCSS(css: string): Deletable {
+	addCSS(css: string, layer: string = 'plugin'): Deletable {
 		let style_node = document.createElement('style');
-		style_node.type ='text/css';
+		style_node.setAttribute('type', 'text/css');
+		if (layer != '') css = `@layer ${layer} {${css}}`;
 		style_node.appendChild(document.createTextNode(css));
 		document.getElementsByTagName('head')[0].appendChild(style_node);
 		function deletableStyle(node) {
@@ -327,7 +266,7 @@ export const Blockbench = {
 		return this.flags[flag];
 	},
 	//Events
-	dispatchEvent(event_name: EventName, data: any): any[] {
+	dispatchEvent<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, data: D): any[] {
 		let list = this.events[event_name];
 		let results: any[];
 		if (list) {
@@ -344,21 +283,21 @@ export const Blockbench = {
 		}
 		return results;
 	},
-	on(event_name: EventName, cb) {
+	on<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.on.call(this, event_name, cb);
 	},
-	once(event_name: EventName, cb) {
+	once<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.once.call(this, event_name, cb);
 	},
-	addListener(event_name: EventName, cb) {
+	addListener<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): Deletable {
 		return EventSystem.prototype.addListener.call(this, event_name, cb);
 	},
-	removeListener(event_name: EventName, cb) {
+	removeListener<T extends BlockbenchEventName, D extends BlockbenchEventMap[T]>(event_name: T, cb: (data: D) => any): void {
 		return EventSystem.prototype.removeListener.call(this, event_name, cb);
 	},
 	// Update
-	onUpdateTo(version, callback) {
-		if (LastVersion && compareVersions(version, LastVersion) && !Blockbench.isOlderThan(version)) {
+	onUpdateTo(version: string, callback: (previous_version: string) => void) {
+		if (LastVersion && VersionUtil.compare(version, '>', LastVersion) && !Blockbench.isOlderThan(version)) {
 			callback(LastVersion);
 		}
 	},
@@ -366,7 +305,7 @@ export const Blockbench = {
 	Format: 0 as (ModelFormat | number),
 	Project: 0 as (ModelProject | number),
 	get Undo() {
-		return Project?.undo;
+		return Blockbench.Project instanceof ModelProject ? Blockbench.Project.undo : undefined;
 	},
 	// File System
 	import: Filesystem.importFile,
@@ -402,12 +341,23 @@ if (isApp) {
 		case 'darwin': 	Blockbench.operating_system = 'macOS'; break;
 		default:		Blockbench.operating_system = 'Linux'; break;
 	}
-	// @ts-ignore
 	if (Blockbench.platform.includes('win32') === true) window.osfs = '\\';
 }
 
-Object.assign(window, {
+declare global {
+	interface Window {
+		Blockbench: typeof Blockbench
+		osfs: '/' | '\\'
+	}
+}
+
+const global = {
 	LastVersion,
 	Blockbench,
 	isApp
-});
+}
+declare global {
+	const LastVersion: typeof global.LastVersion
+	const Blockbench: typeof global.Blockbench
+}
+Object.assign(window, global);

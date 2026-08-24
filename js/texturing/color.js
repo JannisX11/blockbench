@@ -1,13 +1,10 @@
+import { Filesystem } from "../file_system";
+import { Blockbench } from "../api";
 import { ipcRenderer } from "../native_apis";
+import { colorDistance } from "../util/util";
 import ColorPickerNormal from "./ColorPickerNormal.vue";
+import ColorPickerWheel from "./ColorPickerWheel.vue";
 
-function colorDistance(color1, color2) {
-	return Math.sqrt(
-		Math.pow(color2._r - color1._r, 2) +
-		Math.pow(color2._g - color1._g, 2) +
-		Math.pow(color2._b - color1._b, 2)
-	);
-}
 //
 StateMemory.init('color_palettes', 'array')
 
@@ -70,14 +67,13 @@ export const ColorPanel = {
 		ColorPanel.panel.vue.editing_hsv = true;
 		ColorPanel.change({
 			h: ColorPanel.panel.vue._data.hsv.h,
-			s: ColorPanel.panel.vue._data.hsv.s/100,
-			v: ColorPanel.panel.vue._data.hsv.v/100
-		});
+			s: ColorPanel.panel.vue._data.hsv.s,
+			v: ColorPanel.panel.vue._data.hsv.v
+		}, ColorPanel.panel.vue.second_color_selected);
 	},
 	hexToHsv(hex) {
 		var color = new tinycolor(hex);
-		var tc = color.toHsv();
-		return {h: tc.h, s: tc.s*100, v: tc.v*100};
+		return color.toHsv();
 	},
 	addToHistory(color) {
 		color = color.toLowerCase();
@@ -109,7 +105,7 @@ export const ColorPanel = {
 	},
 	saveLocalStorages() {
 		localStorage.setItem('colors', JSON.stringify({
-			palette: ColorPanel.panel.vue._data.palette,
+			palette: ColorPanel.palette,
 			history: ColorPanel.panel.vue._data.history,
 		}))
 	},
@@ -120,7 +116,7 @@ export const ColorPanel = {
 
 		if (extension == 'png') {
 			var img = new Image();
-			img.src = file.content || file.path.replace(/#/g, '%23');
+			img.src = Filesystem.getImageSource(file);
 			img.onload = function() {
 				var c = document.createElement('canvas');
 				var ctx = c.getContext('2d');
@@ -495,8 +491,9 @@ SharedActions.add('delete', {
 			Blockbench.showQuickMessage('message.palette_locked');
 			return;
 		}
-		if (ColorPanel.panel.vue.palette.includes(ColorPanel.panel.vue.selected_color)) {
-			ColorPanel.panel.vue.palette.remove(ColorPanel.panel.vue.selected_color)
+		if (ColorPanel.palette.includes(ColorPanel.panel.vue.selected_color)) {
+			ColorPanel.palette.remove(ColorPanel.panel.vue.selected_color);
+			ColorPanel.saveLocalStorages();
 		}
 	}
 })
@@ -512,7 +509,8 @@ Interface.definePanels(() => {
 			slot: 'right_bar',
 			float_position: [0, 0],
 			float_size: [300, 400],
-			height: 400
+			height: 400,
+			sidebar_index: 4,
 		},
 		toolbars: [
 			new Toolbar('color_picker', {
@@ -545,12 +543,12 @@ Interface.definePanels(() => {
 				}
 				this.vue.$refs.square_picker.style.display = disp_before;
 				Vue.nextTick(() => {
-					$('#main_colorpicker').spectrum('reflow');
+					Panels.color.picker.spectrum('reflow');
 				})
 			})
 		},
 		component: {
-			components: {ColorPickerNormal},
+			components: {ColorPickerNormal, ColorPickerWheel},
 			data: {
 				width: 100,
 				picker_height: 100,
@@ -571,7 +569,7 @@ Interface.definePanels(() => {
 				hsv: {
 					h: 0,
 					s: 0,
-					v: 0,
+					v: 1,
 				},
 				editing_hsv: false,
 				history: (saved_colors && saved_colors.history instanceof Array) ? saved_colors.history : []
@@ -642,8 +640,11 @@ Interface.definePanels(() => {
 					ColorPanel.set(color, second_color);
 				},
 				changeColor(color, secondary = this.second_color_selected) {
-					console.log(color, secondary)
 					this[secondary ? 'second_color' : 'main_color'] = color;
+				},
+				changeHsv(hsv) {
+					this.editing_hsv = true;
+					ColorPanel.change(hsv, this.second_color_selected);
 				},
 				swapColors() {
 					BarItems.swap_colors.click();
@@ -656,7 +657,7 @@ Interface.definePanels(() => {
 						this.second_color_selected = !!secondary;
 						Object.assign(this.hsv, ColorPanel.hexToHsv(this.selected_color));
 						this.updateSliders();
-						$('#main_colorpicker').spectrum('set', this.selected_color);
+						Panels.color.picker.spectrum('set', this.selected_color);
 						this.text_input = this.selected_color;
 					}
 				},
@@ -681,7 +682,7 @@ Interface.definePanels(() => {
 							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
 						}
 						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
+						Panels.color.picker.spectrum('set', value);
 						this.text_input = value;
 						this.editing_hsv = false;
 					}
@@ -694,7 +695,7 @@ Interface.definePanels(() => {
 							Object.assign(this.hsv, ColorPanel.hexToHsv(value));
 						}
 						this.updateSliders()
-						$('#main_colorpicker').spectrum('set', value);
+						Panels.color.picker.spectrum('set', value);
 						this.text_input = value;
 						this.editing_hsv = false;
 					}
@@ -732,7 +733,7 @@ Interface.definePanels(() => {
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
-						<color-wheel v-if="picker_type == 'wheel' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-wheel>
+						<color-picker-wheel v-if="picker_type == 'wheel' && width" :hsv="hsv" @input="changeHsv" :width="width" :height="width"></color-picker-wheel>
 						<color-picker-normal v-if="picker_type == 'normal' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-picker-normal>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
@@ -766,7 +767,12 @@ Interface.definePanels(() => {
 			float_position: [0, 0],
 			float_size: [300, 400],
 			height: 400,
+			attached_to: 'color',
+			attached_index: 1,
+			sidebar_index: 5,
 		},
+		growable: true,
+		resizable: true,
 		toolbars: [
 			new Toolbar('palette', {
 				children: [
@@ -819,6 +825,7 @@ Interface.definePanels(() => {
 				sort(event) {
 					var item = this.palette.splice(event.oldIndex, 1)[0];
 					this.palette.splice(event.newIndex, 0, item);
+					ColorPanel.saveLocalStorages();
 				},
 				drop(event) {
 				},
@@ -953,7 +960,7 @@ BARS.defineActions(function() {
 		click: function () {
 			let content = 'GIMP Palette\nName: Blockbench palette\nColumns: 10\n';
 			ColorPanel.palette.forEach(color => {
-				t = new tinycolor(color);
+				let t = new tinycolor(color);
 				content += `${t._r}\t${t._g}\t${t._b}\t${color}\n`;
 			})
 			Blockbench.export({
@@ -1015,7 +1022,16 @@ BARS.defineActions(function() {
 		}
 	})
 
-	function loadPalette(arr) {
+	async function loadPalette(arr) {
+		if (ColorPanel.palette.length) {
+			let result = await new Promise((resolve, reject) => {
+				Blockbench.showMessageBox({
+					translateKey: 'load_palette',
+					buttons: ['dialog.confirm', 'dialog.cancel']
+				}, resolve);
+			})
+			if (result != 0) return;
+		}
 		ColorPanel.palette.splice(0, Infinity, ...arr);
 		ColorPanel.saveLocalStorages();
 	}
@@ -1134,11 +1150,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.panel.vue._data.hsv.s);
+			return Math.round(ColorPanel.panel.vue._data.hsv.s * 100);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.panel.vue._data.hsv.s);
-			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.s * 100);
+			ColorPanel.panel.vue._data.hsv.s = Math.clamp(value, this.settings.min, this.settings.max) / 100;
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1154,11 +1170,11 @@ BARS.defineActions(function() {
 			return 1
 		},
 		get: function() {
-			return Math.round(ColorPanel.panel.vue._data.hsv.v);
+			return Math.round(ColorPanel.panel.vue._data.hsv.v * 100);
 		},
 		change: function(modify) {
-			var value = modify(ColorPanel.panel.vue._data.hsv.v);
-			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max);
+			var value = modify(ColorPanel.panel.vue._data.hsv.v * 100);
+			ColorPanel.panel.vue._data.hsv.v = Math.clamp(value, this.settings.min, this.settings.max) / 100;
 			ColorPanel.updateFromHsv();
 		}
 	})
@@ -1179,7 +1195,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 1) + hex + ColorPanel.panel.vue.main_color.substring(3);
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 1) + hex + main_color.substring(3);
 		}
 	})
 	let green = new NumSlider('slider_color_green', {
@@ -1196,7 +1213,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 3) + hex + ColorPanel.panel.vue.main_color.substring(5);
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 3) + hex + main_color.substring(5);
 		}
 	})
 	let blue = new NumSlider('slider_color_blue', {
@@ -1213,7 +1231,8 @@ BARS.defineActions(function() {
 			var value = Math.clamp(modify(this.get()), 0, 255);
 			let hex = parseInt(value).toString(16);
 			if (hex.length == 1) hex = '0' + hex;
-			ColorPanel.panel.vue.main_color = ColorPanel.panel.vue.main_color.substring(0, 5) + hex;
+			let main_color = ColorPanel.panel.vue.main_color;
+			ColorPanel.panel.vue.main_color = main_color.substring(0, 5) + hex;
 		}
 	})
 	let slider_vector_rgb = [red, green, blue];
@@ -1238,7 +1257,7 @@ BARS.defineActions(function() {
 	new Action('pick_screen_color', {
 		icon: 'colorize',
 		category: 'color',
-		condition: () => (typeof EyeDropper == 'function'),
+		condition: () => (typeof EyeDropper == 'function' && Blockbench.platform != 'linux'),
 		click: async function () {
 			if (Blockbench.platform == 'win32') {
 				// workaround for https://github.com/electron/electron/issues/27980

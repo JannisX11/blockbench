@@ -17,7 +17,7 @@
 		float: left;
 	}
 	.f_right {
-		float: right !important;
+		float: right;
 	}
 	.i_b {
 		display: inline-block;
@@ -31,11 +31,13 @@
 		background-color: var(--color-back);
 		height: 18px;
 		margin-top: 12px;
+		border-radius: 10px;
 	}
 	.progress_bar_inner {
 		background-color: var(--color-accent);
 		height: 100%;
 		width: calc(100% * var(--progress));
+		border-radius: inherit;
 	}
 	.accent_color {
 		color: var(--color-accent);
@@ -53,6 +55,10 @@
 	}
 	.code {
 		font-size: 16px;
+		tab-size: 4;
+	}
+	textarea.code {
+		padding: 5px;
 	}
 	.small_text {
 		font-size: 0.94em;
@@ -120,9 +126,9 @@
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
-	.checkerboard, .checkerboard_trigger .checkerboard_target {
+	.checkerboard, #center.checkerboard, .checkerboard_trigger .checkerboard_target {
 		--color-checker_offset: rgba(0, 0, 0, 0.16);
-		background-color: var(--color-checkerboard) !important;
+		background-color: var(--color-checkerboard);
 		background-image: linear-gradient(45deg, var(--color-checkerboard) 25%, transparent 25%),
 						  linear-gradient(-45deg, var(--color-checkerboard) 25%, transparent 25%),
 						  linear-gradient(45deg, transparent 75%, var(--color-checkerboard) 75%),
@@ -132,7 +138,7 @@
 	}
 	body[mode=start] div#center.checkerboard {
 		background-image: none;
-		background-color: var(--color-dark) !important;
+		background-color: var(--color-dark);
 	}
 
 /*UI Elements*/
@@ -144,6 +150,31 @@
 	}
 	.preview > canvas {
 		background-repeat: no-repeat;
+	}
+	.preview > .preview_css_renderer_canvas {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+	}
+	div.preview.fixed_ratio {
+		display: flex;
+	}
+	.preview.fixed_ratio > canvas {
+		margin: auto;
+		border-radius: 7px;
+		border: 2px solid var(--color-grid);
+	}
+	.preview > .preview_perspective_label {
+		position: absolute;
+		width: fit-content;
+		margin: auto;
+		bottom: 4px;
+		right: 0;
+		left: 0;
+		pointer-events: none;
+		opacity: 0.5;
+		text-transform: uppercase;
 	}
 	.preview .preview_menu {
 		position: absolute;
@@ -374,6 +405,7 @@
 		cursor: text;
 		user-select: text;
 		-webkit-user-select: text;
+		overflow: auto;
 	}
 	.markdown pre code {
 		user-select: text;
@@ -397,6 +429,7 @@
 		border-top: 1px solid var(--color-border);
 	}
 	.markdown img {
+		image-rendering: auto;
 		max-width: 100%;
 	}
 
@@ -416,7 +449,12 @@
 	.toolbar_wrapper.narrow > .toolbar {
 		width: fit-content;
 		display: flex;
+		flex-direction: row-reverse;
+		justify-content: space-between;
 		height: 100%;
+	}
+	body.is_mobile .toolbar_wrapper.narrow > .toolbar:not(.vertical) {
+		width: 100%;
 	}
 	.toolbar_wrapper > .toolbar.no_wrap {
 		width: fit-content;
@@ -452,6 +490,7 @@
 		width: 16px;
 		margin-left: -5px;
 		font-size: 20px;
+		margin-top: 5px;
 	}
 	.toolbar.vertical > .tool.toolbar_menu > i {
 		width: auto;
@@ -506,7 +545,7 @@
 		padding: 0;
 	}
 	.tool.widget.bar_text {
-		padding: 3px;
+		padding: 2px;
 	}
 	.tool.has_label {
 		width: auto;
@@ -579,11 +618,11 @@
 	}
 	.tooltip {
 		position: absolute;
-		height: 29px;
+		height: 28px;
 		width: fit-content;
 		padding-left: 6px;
 		padding-right: 6px;
-		padding-top: 3px;
+		padding-top: 1px;
 		background: var(--color-bright_ui);
 		color: var(--color-bright_ui_text);
 		margin-top: 30px;
@@ -656,7 +695,10 @@
 	}
 	.tool.side_menu_tool i.icon.action_more_options {
 		display: inline-block;
-		width: 19px;
+		width: 20px;
+		height: 100%;
+		margin-top: 0;
+		padding-top: 4px;
 		color: var(--color-text);
 		margin-left: 0;
 	}
@@ -671,6 +713,7 @@
 		text-align: center;
 		width: 100%;
 		margin-top: 0px;
+		padding-top: 0px;
 	}
 
 /*(Context-)Menu*/
@@ -777,6 +820,7 @@
 		margin: -4px -8px -4px 2px;
 		padding: 4px 0;
 		text-align: center;
+		border-radius: 5px;
 	}
 	.contextMenu .menu_more_button:hover,
 	.hybrid_parent.opened .menu_more_button {
@@ -854,7 +898,6 @@
 /* Theme Borders */
 	body.theme_borders .contextMenu,
 	body.theme_borders dialog,
-	body.theme_borders .dialog_close_button,
 	body.theme_borders #start_screen > content,
 	body.theme_borders #quick_message_box,
 	body.theme_borders action_selector > #action_selector_list,

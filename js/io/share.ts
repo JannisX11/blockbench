@@ -4,7 +4,7 @@ import { FormInputType } from "../interface/form";
 import { settings } from "../interface/settings";
 import { BARS } from "../interface/toolbars";
 import { tl } from "../languages";
-import { Mesh } from "../outliner/mesh";
+import { Mesh } from "../outliner/types/mesh";
 import { Outliner } from "../outliner/outliner";
 import { ReferenceImage } from "../preview/reference_images";
 import { capitalizeFirstLetter } from "../util/util";
@@ -64,7 +64,7 @@ BARS.defineActions(function() {
 						dialog.setFormValues({tags});
 					}
 				}},
-				animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && Animator.animations.length)},
+				animations: {label: 'dialog.sketchfab_uploader.animations', value: true, type: 'checkbox', condition: (Format.animation_mode && !!Animator.animations.length)},
 				draft: {label: 'dialog.sketchfab_uploader.draft', type: 'checkbox', value: true},
 				divider: '_',
 				private: {label: 'dialog.sketchfab_uploader.private', type: 'checkbox'},
@@ -108,7 +108,7 @@ BARS.defineActions(function() {
 	
 					$.ajax({
 						url: 'https://api.sketchfab.com/v3/models',
-						data: data,
+						data,
 						cache: false,
 						contentType: false,
 						processData: false,
@@ -118,6 +118,7 @@ BARS.defineActions(function() {
 							new Dialog('sketchfab_link', {
 								title: tl('message.sketchfab.success'),
 								icon: 'icon-sketchfab',
+								singleButton: true,
 								form: {
 									message: {type: 'info', text: `[${formResult.name} on Sketchfab](${url})`},
 									link: {type: 'text', value: url, readonly: true, share_text: true}
@@ -150,7 +151,7 @@ BARS.defineActions(function() {
 	new Action('upload_sketchfab', {
 		icon: 'icon-sketchfab',
 		category: 'file',
-		condition: () => Project && Outliner.elements.length,
+		condition: () => Project && !!Outliner.elements.length,
 		click() {
 			uploadSketchfabModel()
 		}
@@ -158,10 +159,9 @@ BARS.defineActions(function() {
 
 	new Action('share_model', {
 		icon: 'share',
-		condition: () => Project && Outliner.elements.length,
+		condition: () => Project && !!Outliner.elements.length,
 		async click() {
 			let thumbnail = await new Promise(resolve => {
-				// @ts-ignore
 				Preview.selected.screenshot({width: 640, height: 480}, resolve);
 			});
 			let image = new Image();
@@ -185,7 +185,7 @@ BARS.defineActions(function() {
 						'2w': tl('dates.weeks', [2]),
 					}},
 					info: {type: 'info', text: 'The model and thumbnail will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'},
-					reference_images: {type: 'checkbox', label: 'dialog.share_model.reference_images', value: true, condition: () => ReferenceImage.current_project.length},
+					reference_images: {type: 'checkbox', label: 'dialog.share_model.reference_images', value: true, condition: () => ReferenceImage.current_project.length > 0},
 					thumbnail: {type: 'checkbox', label: 'dialog.share_model.thumbnail', value: true},
 				},
 				lines: [image],
@@ -227,7 +227,7 @@ BARS.defineActions(function() {
 
 						},
 						error: function(response) {
-							let error_text = 'dialog.share_model.failed' + ' - ' + response.status;
+							let error_text = tl('dialog.share_model.failed') + ' - ' + response.status;
 							if (response.status == 413) {
 								if (ReferenceImage.current_project.length && formResult.reference_images) {
 									error_text = 'dialog.share_model.too_large_references';

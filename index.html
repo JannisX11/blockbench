@@ -15,7 +15,7 @@
 	<link rel="stylesheet" href="css/fontawesome.css">
 	<link rel="stylesheet" href="css/spectrum.css">
 	<link rel="stylesheet" href="css/prism.css">
-	<link rel="stylesheet" href="css/setup.css">
+	<link rel="stylesheet" href="css/setup.css" id="setup_stylesheet">
 	<link rel="stylesheet" href="css/general.css">
 	<link rel="stylesheet" href="css/window.css">
 	<link rel="stylesheet" href="css/start_screen.css">
@@ -47,6 +47,20 @@
 			if (error_element && !error_element.innerText) {
 				error_element.innerText = `${message}\nIn .${file.split(location.origin).join('')}:${line}`
 			}
+			let version = document.querySelector('#loading_error_version');
+			if (version && window.Blockbench) {
+				version.innerText = Blockbench.version;
+			}
+		}
+		window.factoryResetAndReload = function() {
+			let lang_key = 'menu.help.developer.reset_storage.confirm';
+			let result = window.confirm((window.tl && tl(lang_key) != lang_key) ? tl(lang_key) : 'Are you sure you want to reset Blockbench to factory settings? This will delete all custom settings, keybindings and installed plugins.');
+			if (result) {
+				localStorage.clear();
+				if ('Blockbench' in window) Blockbench.addFlag('no_localstorage_saving');
+				console.log('Cleared Local Storage');
+				window.location.reload(true);
+			}
 		}
 	</script>
 	<div id="loading_error_message" style="display: none;">
@@ -55,20 +69,11 @@
 		<button onclick="window.Blockbench ? window.Blockbench.reload() : window.location.reload(true)" class="large" style="margin-right: auto; margin-left: auto;">Reload</button>
 		<button onclick="factoryResetAndReload()" class="large" style="margin-right: auto; margin-left: auto;">Factory Reset</button>
 		<button onclick="window.close()" class="large" style="margin-right: auto; margin-left: auto;">Quit</button>
+		<div id="loading_error_version" style="color: var(--color-subtle_text);"></div>
 	</div>
 	<script type="module" src="dist/bundle.js"></script>
 
 	<div style="display: none;"></div>
-
-	<div id="overlay_message_box" style="display: none;">
-		<div>
-			<h3><i class="material-icons icon">keyboard</i><span class="tl">keybindings.recording</span></h3>
-			<p class="tl">keybindings.press</p>
-			<button class="tl" onclick="Keybinds.recording.stopRecording()">dialog.cancel</button>
-			<button class="tl" onclick="Keybinds.recording.clear().stopRecording()">keybindings.clear</button>
-			<div id="keybind_input_box" contenteditable="true" style="font-size: 0"></div>
-		</div>
-	</div>
 
 	<div id="dialog_wrapper"></div>
 
@@ -129,7 +134,7 @@
 				>
 					<dynamic-icon :icon="project.format ? project.format.icon : 'home'"></dynamic-icon>
 					<label class="project_tab_session_badge" v-if="project.EditSession"><i class="material-icons">group</i>{{ project.EditSession.client_count }}</label>
-					<label>{{ project.getDisplayName() }}</label>
+					<label>{{ project.getDisplayName(false) }}<span v-if="project.getFileExtension?.()">.{{ project.getFileExtension() }}</span></label>
 					<div class="project_tab_close_button" :class="{unsaved: !project.saved}" :title="close_tab_label" @click="project.close()">
 						<i class="material-icons close_icon">clear</i>
 						<i class="material-icons unsaved_icon" v-if="!project.saved">fiber_manual_record</i>
@@ -195,7 +200,8 @@
 		// Browser compatibility check
 		try {
 			eval('[1].at(0)');
-			if (document.body.computedStyleMap().get('position').value != 'fixed') {
+			let stylesheet = document.getElementById('setup_stylesheet');
+			if (!stylesheet || !stylesheet.sheet?.cssRules?.length) {
 				throw 'Stylesheet not loaded';
 			}
 			browser_check_passed = true;
@@ -208,6 +214,8 @@
 			document.getElementById('loading_error_message').style.display = 'block'
 			if (window.require) {
 				require('@electron/remote').getCurrentWindow().webContents.openDevTools();
+			} else if (window.openDevTools) {
+				window.openDevTools();
 			}
 		} else {
 			document.getElementById('loading_error_message').innerHTML = 'No loading errors...'

@@ -1,3 +1,7 @@
+import { ModelLoader } from "../io/model_loader";
+import { Menu } from "./menu"
+import { currentwindow, exposeNativeApisInDevTools } from "../native_apis";
+
 export class BarMenu extends Menu {
 	constructor(id, structure, options = {}) {
 		super(id, structure, options)
@@ -45,6 +49,11 @@ export class BarMenu extends Menu {
 		this.highlight_action = action;
 		this.label.classList.add('highlighted');
 	}
+	delete() {
+		super.delete();
+		this.label.remove();
+		delete MenuBar.menus[this.id];
+	}
 }
 
 export const MenuBar = {
@@ -75,7 +84,7 @@ export const MenuBar = {
 							}
 						})
 					}
-					arr.push(new MenuSeparator('loaders'));
+					arr.push(new MenuSeparator('loaders', 'format_category.loaders'));
 					for (let key in ModelLoader.loaders) {
 						let loader = ModelLoader.loaders[key];
 						arr.push({
@@ -156,7 +165,7 @@ export const MenuBar = {
 						ModelProject.all.forEach(project => {
 							if (project == Project) return;
 							projects.push({
-								name: project.getDisplayName(),
+								name: project.getDisplayName(true),
 								icon: project.format.icon,
 								description: project.path,
 								click() {
@@ -174,6 +183,8 @@ export const MenuBar = {
 				'import_project',
 				'import_java_block_model',
 				'import_optifine_part',
+				'import_bedrock_attachable',
+				'import_bedrock_voxel_shape',
 				'import_obj',
 				'extrude_texture'
 			]},
@@ -181,6 +192,7 @@ export const MenuBar = {
 				'export_blockmodel',
 				'export_bedrock',
 				'export_entity',
+				'export_bedrock_voxel_shape',
 				'export_class_entity',
 				'export_optifine_full',
 				'export_optifine_part',
@@ -191,6 +203,7 @@ export const MenuBar = {
 				'export_fbx',
 				'export_stl',
 				'export_collada',
+				'export_legacy_project',
 				'export_modded_animations',
 				'upload_sketchfab',
 				'share_model',
@@ -259,7 +272,8 @@ export const MenuBar = {
 			'select_window',
 			'select_all',
 			'unselect_all',
-			'invert_selection'
+			'invert_selection',
+			'expand_texture_selection'
 		], {icon: 'edit'})
 		new BarMenu('transform', [
 			'scale',
@@ -274,7 +288,10 @@ export const MenuBar = {
 			{name: 'menu.transform.flip', id: 'flip', icon: 'flip', children: [
 				'flip_x',
 				'flip_y',
-				'flip_z'
+				'flip_z',
+				'flip_in_place_x',
+				'flip_in_place_y',
+				'flip_in_place_z'
 			]},
 			{name: 'menu.transform.center', id: 'center', icon: 'filter_center_focus', children: [
 				'center_x',
@@ -341,6 +358,7 @@ export const MenuBar = {
 			new MenuSeparator('filters'),
 			'limit_to_palette',
 			'split_rgb_into_layers',
+			'split_alpha_into_layer',
 			'clear_unused_texture_space',
 			new MenuSeparator('transform'),
 			'flip_texture_x',
@@ -354,6 +372,20 @@ export const MenuBar = {
 			condition: {modes: ['paint']}
 		})
 
+		new BarMenu('paint', [
+			new MenuSeparator('options'),
+			'mirror_painting',
+			'color_erase_mode',
+			'lock_alpha',
+			'painting_grid',
+			'pixel_perfect_drawing',
+			'brush_lock_mode',
+			new MenuSeparator('operations'),
+		], {
+			icon: 'fa-paint-brush',
+			condition: {modes: ['paint']}
+		})
+
 		new BarMenu('animation', [
 			new MenuSeparator('edit_options'),
 			'animation_onion_skin',
@@ -363,6 +395,7 @@ export const MenuBar = {
 			new MenuSeparator('edit'),
 			'add_marker',
 			'select_effect_animator',
+			'copy_animation_pose',
 			'flip_animation',
 			'optimize_animation',
 			'retarget_animators',
@@ -385,8 +418,6 @@ export const MenuBar = {
 			new MenuSeparator('edit'),
 			'add_keyframe',
 			'keyframe_column_create',
-			'select_all',
-			'keyframe_column_select',
 			'reverse_keyframes',
 			{name: 'menu.animation.flip_keyframes', id: 'flip_keyframes', condition: () => Timeline.selected.length, icon: 'flip', children: [
 				'flip_x',
@@ -395,8 +426,14 @@ export const MenuBar = {
 			]},
 			'keyframe_uniform',
 			'reset_keyframe',
+			'round_keyframe_values',
 			'resolve_keyframe_expressions',
 			'delete',
+			new MenuSeparator('select'),
+			'select_all',
+			'keyframe_column_select',
+			'keyframe_select_before_playhead',
+			'keyframe_select_after_playhead',
 		], {
 			icon: 'icon-keyframe',
 			condition: {modes: ['animate']}
@@ -455,6 +492,10 @@ export const MenuBar = {
 			'convert_to_mesh',
 			'auto_set_cullfaces',
 			'remove_blank_faces',
+			'generate_voxel_shapes',
+			'generate_bedrock_block_box',
+			'generate_bedrock_entity_box',
+			'slice_bedrock_multiblock',
 		], {icon: 'handyman'})
 		MenuBar.menus.filter = MenuBar.menus.tools;
 
@@ -501,6 +542,7 @@ export const MenuBar = {
 			new MenuSeparator('references'),
 			'bedrock_animation_mode',
 			'preview_scene',
+			'preview_models',
 			'edit_reference_images',
 			new MenuSeparator('model'),
 			'hide_everything_except_selection',
@@ -537,17 +579,33 @@ export const MenuBar = {
 				{name: 'menu.help.plugin_documentation', id: 'plugin_documentation', icon: 'fa-book', click: () => {
 					Blockbench.openLink('https://www.blockbench.net/wiki/docs/plugin');
 				}},
+				'experimental_settings',
 				'open_dev_tools',
 				{name: 'Error Log', condition: () => window.ErrorLog.length, icon: 'error', color: 'red', keybind: {toString: () => window.ErrorLog.length.toString()}, click() {
-					let lines = window.ErrorLog.slice(0, 64).map((error) => {
-						return Interface.createElement('p', {style: 'word-break: break-word;'}, `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`);
+					let error_messages = window.ErrorLog.map((error) => {
+						return `${error.message}\n - In .${error.file.split(location.origin).join('')} : ${error.line}`;
+					})
+					let lines = error_messages.slice(0, 64).map((message) => {
+						return Interface.createElement('p', {style: 'word-break: break-word;'}, message);
 					})
 					new Dialog({
 						id: 'error_log',
 						title: 'Error Log',
 						lines,
-						singleButton: true
+						buttons: ['action.copy', 'dialog.close'],
+						confirmIndex: 1,
+						cancelIndex: 1,
+						onButton(index) {
+							if (index == 0) {
+								Clipbench.setText(error_messages.slice(0, 256).join('\n'));
+							}
+						}
 					}).show();
+				}},
+				{name: 'Expose Native Modules', icon: 'terminal', condition: isApp && (() => {
+					return currentwindow.webContents.isDevToolsOpened();
+				}), click: () => {
+					exposeNativeApisInDevTools();
 				}},
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
@@ -555,6 +613,15 @@ export const MenuBar = {
 				{name: 'menu.help.developer.unlock_projects', id: 'unlock_projects', icon: 'vpn_key', condition: () => ModelProject.all.find(project => project.locked), click() {
 					ModelProject.all.forEach(project => project.locked = false);
 				}},
+				{
+					name: 'Uncorrupt Mesh',
+					id: 'uncorrupt_mesh',
+					icon: 'build',
+					condition: () => Mesh.hasSelected(),
+					click() {
+						uncorruptMesh();
+					}
+				},
 				{name: 'menu.help.developer.cache_reload', id: 'cache_reload', icon: 'cached', condition: !isApp, click: () => {
 					if('caches' in window){
 						caches.keys().then((names) => {
@@ -696,10 +763,24 @@ export const MenuBar = {
 		}
 		return bar;
 	},
+	addMenu(menu, position) {
+		MenuBar.menus[menu.id] = menu;
+		if (position) {
+			let order = Object.keys(MenuBar.menus);
+			order.remove(menu.id);
+			let index = typeof position == 'number' ? position : order.indexOf(position)+1;
+			order.splice(index, 0, menu.id);
+
+			let menus = Object.assign({}, MenuBar.menus);
+			order.forEach(id => delete MenuBar.menus[id]);
+			order.forEach(id => MenuBar.menus[id] = menus[id]);
+		}
+		MenuBar.update();
+	},
 	update() {
 		if (!Blockbench.isMobile) {
-			let bar = $(document.getElementById('menu_bar'));
-			bar.children().detach();
+			let bar = document.getElementById('menu_bar');
+			bar.replaceChildren();
 			this.keys = [];
 			for (var menu in MenuBar.menus) {
 				if (MenuBar.menus.hasOwnProperty(menu)) {

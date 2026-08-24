@@ -1,7 +1,7 @@
 import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
-import { compareVersions, patchedAtob } from '../util/util'
+import { patchedAtob } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
@@ -10,6 +10,7 @@ import { Blockbench } from '../api'
 import { InputFormConfig } from './form'
 import { Filesystem } from '../file_system'
 import { fs } from '../native_apis'
+import VersionUtil from '../util/version_util'
 
 type ThemeSource = 'built_in' | 'file' | 'repository' | 'custom';
 type ThemeData = {
@@ -52,7 +53,7 @@ const DEFAULT_COLORS = {
 	accent_text: '#000006',
 	bright_ui_text: '#000006',
 	subtle_text: '#848891',
-	grid: '#495061',
+	grid: '#30333d',
 	wireframe: '#576f82',
 	checkerboard: '#14171b',
 }
@@ -118,7 +119,7 @@ export class CustomTheme {
 				if (data.colors[key]) {
 					Merge.string(this.colors, data.colors, key);
 				} else {
-					CustomTheme.selected.colors[key] = DEFAULT_COLORS[key];
+					this.colors[key] = DEFAULT_COLORS[key];
 				}
 			}
 		}
@@ -172,7 +173,6 @@ export class CustomTheme {
 	static dialog: Dialog|null = null
 	static setup() {
 
-		fs
 		const theme_watchers: Record<string, any> = {};
 		let remote_themes_loaded = false;
 		CustomTheme.dialog = new Dialog({
@@ -458,7 +458,7 @@ export class CustomTheme {
 
 							<div class="dialog_bar" v-if="data.source == 'custom'">
 								<label class="name_space_left" for="layout_name">${tl('layout.version')}</label>
-								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version">
+								<input @input="customizeTheme($event)" type="text" class="half dark_bordered" id="layout_name" v-model="data.version" placeholder="1.0.0">
 							</div>
 
 							<hr />
@@ -544,13 +544,14 @@ export class CustomTheme {
 				cancelText: tl('dialog.cancel'),
 				chooseText: tl('dialog.confirm'),
 				move(c) {
-					CustomTheme.selected.colors[scope_key] = c.toHexString();
 					CustomTheme.customizeTheme();
+					CustomTheme.selected.colors[scope_key] = c.toHexString();
 				},
 				change(c) {
 					last_color = c.toHexString();
 				},
 				hide(c) {
+					CustomTheme.customizeTheme();
 					CustomTheme.selected.colors[scope_key] = last_color;
 					field.spectrum('set', last_color);
 				},
@@ -605,6 +606,7 @@ export class CustomTheme {
 			update(gizmo_colors.outline, '--color-outline');
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
+			update(Canvas.outlineUnselectedMaterial.color, '--color-constant-outline');
 			update((Canvas.ground_plane.material as THREE.MeshBasicMaterial).color, '--color-ground');
 			update((Canvas.brush_outline.material as THREE.ShaderMaterial).uniforms.color.value, '--color-brush-outline');
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');
@@ -631,7 +633,17 @@ export class CustomTheme {
 			variable_section += `\n\t${key}: ${variables[key]};`
 		}
 		variable_section += '\n}\n';
-		document.getElementById('theme_css').textContent = `@layer theme {${variable_section}${theme.css}};`
+
+		let css = theme.css || '';
+		// Move import statements ouf of the later as they do not function inside
+		let import_section = css.length > 10 && css.match(/^[\S\s]*@import .+/);
+		if (css && import_section) {
+			let remaining_css = css.substring(import_section.length);
+			css = `${import_section[0]}\n@layer theme {${variable_section}${remaining_css}};`
+		} else {
+			css = `@layer theme {${variable_section}${css}};`;
+		}
+		document.getElementById('theme_css').textContent = css;
 		document.body.classList.toggle('theme_borders', !!theme.borders);
 		// Options
 		for (let attribute of document.body.attributes) {
@@ -854,7 +866,7 @@ export function loadThemes() {
 				if (!text_content) return;
 				let theme = new CustomTheme().parseBBTheme(text_content);
 
-				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && compareVersions(theme.version, stored_theme.version))) {
+				if ((theme.version && !stored_theme.version) || (theme.version && stored_theme.version && VersionUtil.compare(theme.version, '>', stored_theme.version))) {
 					// Update theme
 					stored_theme.extend(theme);
 					stored_theme.source = 'repository';
@@ -912,10 +924,12 @@ BARS.defineActions(function() {
 			})
 		}
 	})
-	BarItems.import_theme.toElement('#layout_title_bar')
-	BarItems.export_theme.toElement('#layout_title_bar')
 })
-
-Object.assign(window, {
+const global = {
 	CustomTheme,
-});
+};
+declare global {
+	const CustomTheme: typeof global.CustomTheme
+	type CustomTheme = import('./themes').CustomTheme
+}
+Object.assign(window, global);

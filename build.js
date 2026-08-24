@@ -5,6 +5,7 @@ import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
 import fs from 'node:fs';
+import { spawn } from 'child_process';
 import vuePlugin from 'esbuild-vue/src/index.js';
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
@@ -13,6 +14,9 @@ const options = commandLineArgs([
     {name: 'target', type: String},
     {name: 'watch', type: Boolean},
     {name: 'serve', type: Boolean},
+    {name: 'launch', type: Boolean},
+    {name: 'host', type: String},
+    {name: 'port', type: Number},
     {name: 'analyze', type: Boolean},
 ])
 
@@ -24,7 +28,11 @@ function conditionalImportPlugin(name, config) {
          */
         setup(build) {
             build.onResolve({ filter: config.filter }, args => {
-                return { path: path.join(args.resolveDir, path.dirname(args.path), config.file) };
+                if (config.library) {
+                    return { path: path.join( import.meta.dirname, 'node_modules', path.dirname(args.path), config.file) };
+                } else {
+                    return { path: path.join(args.resolveDir, path.dirname(args.path), config.file) };
+                }
             });
         }
     };
@@ -57,12 +65,34 @@ function createJsonPlugin(ext_suffix, namespace) {
     };
 };
 
+let electron_process = null;
+function createElectronPlugin() {
+    if (!isApp || !options.launch) return null;
+    return {
+        name: 'electron-launcher',
+        setup(build) {
+            build.onEnd((result) => {
+                if (result.errors.length > 0) return;
+
+                if (!electron_process) {
+                    electron_process = spawn('electron', ['.', '--remote-debugging-port=9223'], {
+                        stdio: 'inherit',
+                        shell: true,
+                    });
+                    
+                    electron_process.on('close', () => process.exit(0));
+                }
+            });
+        }
+    }
+}
+
 const isApp = options.target == 'electron';
 const dev_mode = options.watch || options.serve;
 const minify = !dev_mode;
 
 /**
- * @typedef {esbuild.BuildOptions} BuildOptions
+ * @type {esbuild.BuildOptions} BuildOptions
  */
 const config = {
     entryPoints: ['./js/main.js'],
@@ -77,27 +107,38 @@ const config = {
     minify,
     outfile: './dist/bundle.js',
     mainFields: ['module', 'main'],
+    logLevel: 'info',
+    logOverride: {
+        'commonjs-variable-in-esm': 'silent'
+    },
     external: [
         'electron',
     ],
     loader: {
-        '.bbtheme': 'text'
+        '.bbtheme': 'text',
+        '.png': 'dataurl'
     },
     plugins: [
         conditionalImportPlugin(2, {
             filter: /native_apis/,
             file: isApp ? 'native_apis.ts' : 'native_apis_web.ts'
         }),
+        conditionalImportPlugin(3, {
+            filter: /vue.js/,
+            file: dev_mode ? 'vue.js' : 'vue.min.js',
+            library: true,
+        }),
         conditionalImportPlugin(1, {
             filter: /desktop/,
-            file: isApp ? 'desktop.js' : 'web.js'
+            file: isApp ? 'desktop.ts' : 'web.ts'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         vuePlugin(),
         glsl({
             minify
-        })
-    ],
+        }),
+        createElectronPlugin()
+    ].filter(plugin => plugin != null),
     sourcemap: true,
 }
 
@@ -106,14 +147,11 @@ if (options.watch || options.serve) {
     if (isApp) {
         await ctx.watch({});
     } else {
-        const host = 'localhost';
-        const port = 3001;
         await ctx.serve({
             servedir: import.meta.dirname,
-            host,
-            port
+            host: options.host,
+            port: options.port
         });
-        console.log(`Hosting app at http://${host}:${port}`)
     }
 } else {
     if (options.analyze) config.metafile = true;

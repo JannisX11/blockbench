@@ -2,11 +2,12 @@ import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
 import { Filesystem } from "../file_system"
 import { tl } from "../languages"
+import { fs, PathModule } from "../native_apis"
 import { EventSystem } from "../util/event_system"
-import { getStringWidth, pureMarked } from "../util/util"
+import { getStringWidth, pathToExtension, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
-type ReadType = 'buffer' | 'binary' | 'text' | 'image'
+type ReadType = Filesystem.ReadType;
 interface FileResult {
 	name: string
 	path: string
@@ -28,7 +29,9 @@ export enum FormInputType {
 	Folder = 'folder',
 	Save = 'save',
 	InlineSelect = 'inline_select',
+	MultiSelect = 'multi_select',
 	InlineMultiSelect = 'inline_multi_select',
+	OutlinerNode = 'outliner_node',
 	Info = 'info',
 	NumSlider = 'num_slider',
 	Buttons = 'buttons',
@@ -44,6 +47,10 @@ export interface FormElementOptions {
 	 * Type of the input. If unspecified, defaults to text
 	 */
 	type?: FormInputType | `${FormInputType}`
+	/**
+	 * Visual style of the input. Checkbox inputs support 'checkbox' or 'toggle_switch'. Textarea supports 'code'
+	 */
+	style?: 'checkbox' | 'toggle_switch' | 'code'
 	/**
 	 * Stretch the input field across the whole width of the form
 	 */
@@ -114,6 +121,7 @@ export interface FormElementOptions {
 	 * @returns Interval value
 	 */
 	getInterval?: (event: Event) => number
+	getOutlinerNodes?: () => OutlinerNode[]
 	/**
 	 * For num_sliders, the sliding interval mode
 	 */
@@ -130,6 +138,16 @@ export interface FormElementOptions {
 	 * Lock the ratio of a vector
 	 */
 	linked_ratio?: boolean
+	/**
+	 * Adds a reset button for the input
+	 */
+	reset_button?: boolean
+	/**
+	 * Extra actions that display as icon buttons next to the input
+	 */
+	extra_actions?: {
+		icon: string, name: string, click: (event: Event) => void
+	}[]
 	/**
 	 * Set the return type of files on file inputs
 	 */
@@ -177,6 +195,7 @@ export class InputForm extends EventSystem {
 	}
 	buildForm() {
 		let jq_node = $(this.node);
+		this.deleteFormElements();
 		jq_node.empty();
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
@@ -194,6 +213,16 @@ export class InputForm extends EventSystem {
 			jq_node.append(bar);
 		}
 		this.updateLabelWidth();
+	}
+	deleteFormElements() {
+		for (let form_id in this.form_data) {
+			this.form_data[form_id].delete();
+		}
+		this.form_data = {};
+	}
+	delete() {
+		this.deleteFormElements();
+		this.node.remove();
 	}
 	updateLabelWidth(ignore_hidden: boolean = false) {
 		this.max_label_width = 0;
@@ -305,6 +334,7 @@ export class FormElement extends EventSystem {
 		if (this.options.full_width) {
 			bar.classList.add('full_width_dialog_bar');
 		}
+		bar.setAttribute('form_type', this.options.type);
 		if (this.options.description) {
 			bar.setAttribute('title', tl(this.options.description));
 		}
@@ -319,6 +349,8 @@ export class FormElement extends EventSystem {
 	}
 	getDefault(): any {
 		return null;
+	}
+	delete() {
 	}
 	change() {
 		this.dispatchEvent('change', {changed_keys: [this.id]});
@@ -350,6 +382,70 @@ export class FormElement extends EventSystem {
 				this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
 			});
 			this.input_toggle = toggle;
+		}
+		if (this.options.reset_button) {
+			let icon = Blockbench.getIconNode('undo');
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: tl('generic.reset')}, icon);
+			extra_action.addEventListener('click', event => {
+				this.setValue(this.options.default ?? this.options.value ?? this.getDefault());
+				this.change();
+			})
+			this.bar.append(extra_action);
+		}
+		for (let action of this.options.extra_actions ?? []) {
+			let icon = Blockbench.getIconNode(action.icon);
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
+			extra_action.addEventListener('click', event => {
+				if (action.click) {
+					action.click(event);
+				}
+			})
+			this.bar.append(extra_action);
+		}
+	}
+	addShareButtons(bar: HTMLElement) {
+		let text = this.options.value?.toString() ?? '';
+		let is_url = text.startsWith('https://');
+		// @ts-ignore
+		let input: HTMLElement = this.input ?? this.textarea;
+
+		let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
+		copy_button.addEventListener('click', e => {
+			let text = this.getValue();
+			let is_url = text.startsWith('https://');
+			if (isApp || navigator.clipboard) {
+				Clipbench.setText(text);
+				Blockbench.showQuickMessage('dialog.copied_to_clipboard');
+				input.focus();
+				document.execCommand('selectAll');
+
+			} else if (is_url) {
+				Blockbench.showMessageBox({
+					title: 'dialog.share_model.title',
+					message: `[${text}](${text})`,
+				})
+			}
+		});
+		bar.append(copy_button);
+
+		if (is_url) {
+			let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
+			open_button.addEventListener('click', e => {
+				let text = this.getValue();
+				Blockbench.openLink(text);
+			});
+			bar.append(open_button);
+		}
+		if (navigator.share) {
+			let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
+			share_button.addEventListener('click', e => {
+				let text = this.getValue();
+				navigator.share({
+					title: this.options.label ? tl(this.options.label) : 'Share',
+					[is_url ? 'url' : 'text']: text
+				});
+			});
+			bar.append(share_button);
 		}
 	}
 
@@ -414,6 +510,7 @@ FormElement.types.range = class FormElementRange extends FormElement {
 	}
 	setValue(value: number): void {
 		this.input.value = value.toString();
+		if (this.numeric_input) this.numeric_input.value = value;
 	}
 	getDefault(): number {
 		return Math.clamp(0, this.options.min, this.options.max);
@@ -475,57 +572,22 @@ FormElement.types.text = class FormElementText extends FormElement {
 		}
 		if (this.options.type == 'password') {
 
-			bar.append(`<div class="password_toggle form_input_tool tool">
-					<i class="fas fa-eye-slash"></i>
-				</div>`)
+			let password_toggle = Interface.createElement(
+				'div',
+				{class: 'password_toggle form_input_tool tool'},
+				Blockbench.getIconNode('fas.fa-eye-slash')
+			) as HTMLDivElement;
+			bar.append(password_toggle);
 			input_element.type = 'password';
 			let hidden = true;
-			let this_bar = $(bar);
-			let this_input_element = input_element;
-			this_bar.find('.password_toggle').on('click', e => {
+			password_toggle.addEventListener('click', e => {
 				hidden = !hidden;
-				this_input_element.setAttribute('type', hidden ? 'password' : 'text');
-				this_bar.find('.password_toggle i')[0].className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
+				input_element.setAttribute('type', hidden ? 'password' : 'text');
+				password_toggle.firstElementChild.className = hidden ? 'fas fa-eye-slash' : 'fas fa-eye';
 			})
 		}
-		if (this.options.share_text && this.options.value) {
-			let text = this.options.value.toString();
-			let is_url = text.startsWith('https://');
-
-			let copy_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.copy_to_clipboard')}, Blockbench.getIconNode('content_paste'));
-			copy_button.addEventListener('click', e => {
-				if (isApp || navigator.clipboard) {
-					Clipbench.setText(text);
-					Blockbench.showQuickMessage('dialog.copied_to_clipboard');
-					input_element.focus();
-					document.execCommand('selectAll');
-
-				} else if (is_url) {
-					Blockbench.showMessageBox({
-						title: 'dialog.share_model.title',
-						message: `[${text}](${text})`,
-					})
-				}
-			});
-			bar.append(copy_button);
-
-			if (is_url) {
-				let open_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('dialog.open_url')}, Blockbench.getIconNode('open_in_browser'));
-				open_button.addEventListener('click', e => {
-					Blockbench.openLink(text);
-				});
-				bar.append(open_button);
-			}
-			if (navigator.share) {
-				let share_button = Interface.createElement('div', {class: 'form_input_tool tool', title: tl('generic.share')}, Blockbench.getIconNode('share'));
-				share_button.addEventListener('click', e => {
-					navigator.share({
-						title: this.options.label ? tl(this.options.label) : 'Share',
-						[is_url ? 'url' : 'text']: text
-					});
-				});
-				bar.append(share_button);
-			}
+		if (this.options.share_text) {
+			this.addShareButtons(bar);
 		}
 	}
 	getValue(): string {
@@ -553,7 +615,13 @@ FormElement.types.textarea = class FormElementTextarea extends FormElement {
 			}
 		});
 		this.textarea.style.height = (this.options.height || 150) + 'px';
+		if (this.options.style == 'code') this.textarea.classList.add('code');
 		bar.append(this.textarea);
+		if (this.options.share_text) {
+			let form_overlay_tools = Interface.createElement('div', {class: 'form_overlay_tools'});
+			bar.append(form_overlay_tools);
+			this.addShareButtons(form_overlay_tools);
+		}
 	}
 	getValue() {
 		return this.textarea.value;
@@ -617,6 +685,50 @@ FormElement.types.select = class FormElementSelect extends FormElement {
 		return Object.keys(this.options.options)[0] ?? '';
 	}
 };
+FormElement.types.outliner_node = class FormElementOutlinerNode extends FormElement {
+	select_input: {node: HTMLElement, set: (value: string) => void}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.select_input = new Interface.CustomElements.SelectInput(this.id, {
+			get options() {
+				let nodes = scope.options.getOutlinerNodes();
+				let options = {};
+				let value = scope.select_input ? scope.getValue() : null;
+				for (let node of nodes) {
+					options[node.uuid] = {
+						name: node.name,
+						icon: (node as any).icon ?? '',
+						marked: node.uuid == value,
+						color: 'color' in node ? markerColors[(node as any).color % markerColors.length]?.standard : undefined
+					};
+				}
+				return options;
+			},
+			display_icon: true,
+			value: this.options.value || this.options.default,
+			onInput() {
+				scope.change();
+			}
+		});
+		bar.append(this.select_input.node);
+		let clear = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'));
+		clear.addEventListener('click', (event: PointerEvent) => {
+			this.select_input.set('');
+			scope.change();
+		})
+		bar.append(clear);
+	}
+	getValue(): string {
+		return this.select_input.node.getAttribute('value');
+	}
+	setValue(value: string) {
+		this.select_input.set(value);
+	}
+	getDefault(): string {
+		return '';
+	}
+};
 FormElement.types.inline_select = class FormElementInlineSelect extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
@@ -649,6 +761,72 @@ FormElement.types.inline_select = class FormElementInlineSelect extends FormElem
 	}
 	getDefault(): string {
 		return Object.keys(this.options.options)[0] ?? '';
+	}
+};
+FormElement.types.multi_select = class FormElementMultiSelect extends FormElement {
+	value: string[]
+	ul: HTMLUListElement
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let val = this.options.value || this.options.default;
+		this.value = [];
+		if (val instanceof Array) {
+			this.value.push(...val);
+		}
+		this.ul = Interface.createElement('ul', {class: 'form_multi_select'});
+		bar.append(this.ul)
+		this.ul.addEventListener('click', event => {
+			let options = [];
+			for (let key in this.options.options) {
+				let text = this.options.options[key];
+				if (typeof text != 'string') text = text.name;
+				let value = this.value.includes(key);
+				options.push({
+					id: key,
+					name: text,
+					icon: () => value,
+					click: () => {
+						value = !value;
+						value ? this.value.safePush(key) : this.value.remove(key);
+						this.updateUI();
+						this.change();
+					}
+				})
+			}
+			new Menu('multi_select', options, {keep_open: true}).open(this.ul);
+		})
+		this.updateUI();
+	}
+	updateUI() {
+		this.ul.innerHTML = '';
+		for (let key in this.options.options) {
+			if (this.value.includes(key) == false) continue;
+			let text = this.options.options[key];
+			if (typeof text != 'string') text = text.name;
+			let remove_button = Blockbench.getIconNode('clear');
+			this.ul.append(Interface.createElement('li', {}, [
+				text,
+				remove_button
+			]));
+			remove_button.addEventListener('click', event => {
+				event.stopPropagation();
+				this.value.remove(key);
+				this.updateUI();
+				this.change();
+			})
+		}
+		let add = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('add'));
+		this.ul.append(add);
+	}
+	getValue(): string[] {
+		return this.value;
+	}
+	setValue(value: string[]) {
+		this.value.replace(value);
+		this.updateUI();
+	}
+	getDefault(): string[] {
+		return [];
 	}
 };
 FormElement.types.inline_multi_select = class FormElementInlineMultiSelect extends FormElement {
@@ -730,11 +908,12 @@ FormElement.types.buttons = class FormElementButtons extends FormElement {
 		return true;
 	}
 	build(bar: HTMLDivElement) {
+		super.build(bar);
 		this.bar = bar;
 		let list = document.createElement('div');
 		list.className = 'dialog_form_buttons';
 		this.options.buttons.forEach((button_text, index) => {
-			let button = document.createElement('a');
+			let button = document.createElement('button');
 			button.innerText = tl(button_text);
 			button.addEventListener('click', e => {
 				this.options.click(index);
@@ -749,13 +928,10 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		let getInterval = this.options.getInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'position') getInterval = getSpatialInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
 		this.slider = new NumSlider('form_slider_'+this.id, {
 			private: true,
-			// @ts-ignore
 			onChange: () => {
 				this.change();
 			},
@@ -811,6 +987,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			let numeric_input = new Interface.CustomElements.NumericInput(this.id + '_' + i, {
 				value: this.options.value ? this.options.value[i] : 0,
 				min: this.options.min, max: this.options.max, step: this.options.step,
+				readonly: this.options.readonly,
 				onChange() {
 					if (scope.linked_ratio) {
 						updateInputs(numeric_input);
@@ -866,6 +1043,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 };
 FormElement.types.color = class FormElementColor extends FormElement {
 	colorpicker: ColorPicker
+	owns_colorpicker: boolean = false
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.colorpicker) this.colorpicker = this.options.colorpicker;
@@ -879,8 +1057,8 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				private: true,
 				value: this.options.value
 			})
+			this.owns_colorpicker = true;
 		}
-		// @ts-ignore
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
@@ -898,6 +1076,11 @@ FormElement.types.color = class FormElementColor extends FormElement {
 	getDefault() {
 		return '#ffffff';
 	}
+	delete() {
+		if (this.owns_colorpicker && this.colorpicker) {
+			this.colorpicker.delete();
+		}
+	}
 };
 FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 	input: HTMLInputElement
@@ -905,7 +1088,7 @@ FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
 		super.build(bar);
 		this.input = Interface.createElement('input', {
 			type: 'checkbox',
-			class: 'focusable_input',
+			class: 'focusable_input' + (this.options.style == 'toggle_switch' ? ' toggle_switch' : ''),
 			id: this.id,
 		})
 		this.input.checked = this.options.value;
@@ -930,6 +1113,7 @@ class FormElementFile extends FormElement {
 	value: string
 	content: any
 	input: HTMLInputElement
+	input_wrapper: HTMLDivElement
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.type == 'folder' && !isApp) return;
@@ -938,11 +1122,12 @@ class FormElementFile extends FormElement {
 
 		let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${this.id}" style="pointer-events: none;" disabled>`);
 		this.input = input[0] as HTMLInputElement;
-		this.input.value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
 		let input_wrapper = $('<div class="input_wrapper"></div>');
+		this.input_wrapper = input_wrapper[0] as HTMLDivElement;
 		input_wrapper.append(input);
 		bar.append(input_wrapper[0]);
 		bar.classList.add('form_bar_file');
+		this.updateInput();
 
 		switch (this.options.type) {
 			case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
@@ -956,17 +1141,53 @@ class FormElementFile extends FormElement {
 			this.value = '';
 			delete this.content;
 			delete this.file;
-			input.val('');
+			this.updateInput();
 		})
 
+		const fileCB = (files) => {
+			this.value = files[0].path;
+			this.content = files[0].content;
+			this.file = files[0];
+			this.updateInput();
+			scope.change();
+		}
+
+		if (this.options.type != 'save') {
+			this.input_wrapper.addEventListener('dragover', event => {
+				if (!event.dataTransfer?.types.includes('Files')) return;
+				event.preventDefault();
+				event.stopPropagation();
+				this.input_wrapper.classList.add('drag_hover');
+			})
+			this.input_wrapper.addEventListener('dragleave', event => {
+				if (this.input_wrapper.contains(event.relatedTarget as Node)) return;
+				this.input_wrapper.classList.remove('drag_hover');
+			})
+			this.input_wrapper.addEventListener('drop', event => {
+				this.input_wrapper.classList.remove('drag_hover');
+				if (!event.dataTransfer?.files.length) return;
+				event.preventDefault();
+				event.stopPropagation();
+
+				let paths = Filesystem.getFilePaths(event.dataTransfer.files);
+				if (this.options.type == 'folder') {
+					let path = paths[0] as string;
+					fileCB([{path: fs.statSync(path).isDirectory() ? path : PathModule.dirname(path)}]);
+					return;
+				}
+				let extensions = this.options.extensions;
+				let index = [...event.dataTransfer.files].findIndex(file => {
+					return !extensions?.length || extensions.includes(pathToExtension(file.name));
+				})
+				if (index == -1) {
+					Blockbench.showQuickMessage('message.unsupported_file_extension.title');
+					return;
+				}
+				Filesystem.read([paths[index]], {readtype: this.options.readtype}, fileCB);
+			})
+		}
+
 		input_wrapper.on('click', e => {
-			const fileCB = (files) => {
-				this.value = files[0].path;
-				this.content = files[0].content;
-				this.file = files[0];
-				input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
-				scope.change();
-			}
 			switch (this.options.type) {
 				case 'file':
 					Blockbench.import({
@@ -992,12 +1213,21 @@ class FormElementFile extends FormElement {
 						custom_writer: () => {},
 					}, path => {
 						this.value = path;
-						input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+						this.updateInput();
 						scope.change();
 					});
 					break;
 			}
 		})
+	}
+	updateInput() {
+		let value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
+		this.input.value = value ? value + '\u200E' : '';
+		if (value) {
+			this.input_wrapper.title = value;
+		} else {
+			this.input_wrapper.removeAttribute('title');
+		}
 	}
 	getValue(): Filesystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
@@ -1016,7 +1246,7 @@ class FormElementFile extends FormElement {
 		} else {
 			this.content = value;
 		}
-		$(this.input).val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+		this.updateInput();
 	}
 	getDefault() {
 		return '';
@@ -1026,5 +1256,12 @@ FormElement.types.file = FormElementFile;
 FormElement.types.folder = FormElementFile;
 FormElement.types.save = FormElementFile;
 
-
-Object.assign(window, {InputForm, FormElement});
+const global = {InputForm, FormElement};
+declare global {
+	const InputForm: typeof global.InputForm
+	type InputForm = import('./form').InputForm
+	const FormElement: typeof global.FormElement
+	type FormElement = import('./form').FormElement
+	type FormElementOptions = import('./form').FormElementOptions
+}
+Object.assign(window, global);

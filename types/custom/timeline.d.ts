@@ -1,7 +1,7 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 declare namespace Timeline {
 	const animators: GeneralAnimator[]
-	const selected: _Keyframe[]
+	const selected: BBKeyframe[]
 	const playing_sounds: any[]
 	let playback_speed: number
 	/**
@@ -9,6 +9,7 @@ declare namespace Timeline {
 	 */
 	let time: number
 	let playing: boolean
+	let vue: Vue
 
 	/**
 	 * Set the timeline to a specific time
@@ -31,7 +32,7 @@ declare namespace Timeline {
 	 * @param time Input time in seconds
 	 * @param animation Animation to use the snapping setting from. If unspecified, uses the selected animation
 	 */
-	function snapTime(time: number, animation?: _Animation): number
+	function snapTime(time: number, animation?: BBAnimation): number
 	/**
 	 * Returns the time between two snapping points
 	 */
@@ -58,7 +59,7 @@ declare namespace Timeline {
 	 */
 	function pause(): void
 
-	let keyframes: _Keyframe[]
+	let keyframes: BBKeyframe[]
 	let menu: Menu
 	function showMenu(event: Event): void
 	let selected_animator: GeneralAnimator | null

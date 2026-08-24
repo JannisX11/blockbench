@@ -1,16 +1,20 @@
 {
 	"name": "blockbench-types",
-	"version": "5.0.0-beta.1",
+	"version": "5.2.0-beta.1-next.3",
 	"description": "Blockbench typescript types",
 	"main": "",
 	"types": "./index.d.ts",
-	"typeScriptVersion": "3.2",
+	"typeScriptVersion": "5.8",
 	"keywords": [
 		"blockbench"
 	],
 	"author": "JannisX11",
 	"bugs": {
 		"url": "https://github.com/JannisX11/blockbench/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/JannisX11/blockbench"
 	},
 	"homepage": "https://blockbench.net",
 	"dependencies": {
@@ -21,16 +25,15 @@
 		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"dompurify": "^3.0.1",
-		"electron": "^33.3.1",
+		"electron": "^40.8.0",
 		"prismjs": "^1.29.0",
 		"tinycolor2": "^1.6.0",
-		"typescript": "^4.9.5",
+		"typescript": "^5.8.3",
 		"vue": "2.7.14",
 		"wintersky": "^1.3.0"
 	},
 	"devDependencies": {
 		"@types/node": "^18.14.6",
-		"prettier": "^2.8.3",
-		"typedoc": "^0.23.24"
+		"prettier": "^2.8.3"
 	}
 }

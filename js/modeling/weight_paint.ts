@@ -1,29 +1,37 @@
 import { Blockbench } from '../api';
 import { THREE } from '../lib/libs';
-import { Armature } from '../outliner/armature';
-import { ArmatureBone } from '../outliner/armature_bone';
-import { Preview } from '../preview/preview';
+import { Armature } from '../outliner/types/armature';
+import { ArmatureBone } from '../outliner/types/armature_bone';
+import { Preview, RaycastResult } from '../preview/preview';
+import { symmetrizeArmature } from './mirror_modeling';
 
-type CanvasClickData = {event: MouseEvent} | {
-	event: MouseEvent
-	element: OutlinerElement
-	face: string
-	intersects: Array<THREE.Intersection<THREE.Mesh>>
-}
+type CanvasClickData = RaycastResult
 
 let brush_outline: HTMLElement;
-function updateBrushOutline(event: PointerEvent) {
-	if (!brush_outline) return;
+function updateBrushOutline(event: PointerEvent | KeyboardEvent) {
+	if (!brush_outline || Toolbox.selected.id != 'weight_brush') return;
 	let preview = Preview.selected as Preview;
-	let preview_offset = $(preview.canvas).offset();
-	let click_pos = [
-		event.clientX - preview_offset.left,
-		event.clientY - preview_offset.top,
-	]
 	preview.node.append(brush_outline);
-	brush_outline.style.left = click_pos[0] + 'px';
-	brush_outline.style.top = click_pos[1] + 'px';
+	brush_outline.style.display = (event.altKey || Pressing.overrides.alt) ? 'none' : 'block'
+
+	if ('clientX' in event) {
+		let preview_offset = $(preview.canvas).offset();
+		let click_pos = [
+			event.clientX - preview_offset.left,
+			event.clientY - preview_offset.top,
+		]
+		brush_outline.style.left = click_pos[0] + 'px';
+		brush_outline.style.top = click_pos[1] + 'px';
+	}
 }
+Blockbench.on('update_pressed_modifier_keys', (arg) => {
+	updateBrushOutline(arg.event);
+});
+document.addEventListener('touchend', () => {
+	if (brush_outline && brush_outline.isConnected) {
+		brush_outline.remove();
+	}
+})
 
 
 let screen_space_vertex_positions: null | Record<string, {x:number, y:number}> = null;
@@ -31,7 +39,7 @@ const raycaster = new THREE.Raycaster();
 function updateScreenSpaceVertexPositions(mesh: Mesh) {
 	if (screen_space_vertex_positions) return screen_space_vertex_positions;
 
-	const depth_check = (BarItems.weight_brush_xray as Toggle).value == false;
+	const depth_check = BarItems.weight_brush_xray.value == false;
 	let vec = new THREE.Vector3();
 	raycaster.ray.origin.setFromMatrixPosition(Preview.selected.camera.matrixWorld);
 	let raycasts = 0;
@@ -57,43 +65,63 @@ function updateScreenSpaceVertexPositions(mesh: Mesh) {
 	return screen_space_vertex_positions;
 }
 Blockbench.on('update_camera_position', () => {
-	screen_space_vertex_positions = null
+	screen_space_vertex_positions = null;
 })
 
+let previous_element: Mesh | undefined;
 new Tool('weight_brush', {
 	icon: 'stylus_highlighter',
 	category: 'tools',
 	cursor: 'crosshair',
 	toolbar: 'weight_brush',
-	// @ts-ignore
 	transformerMode: 'hidden',
 	selectElements: false,
 	modes: ['edit'],
-	condition: {modes: ['edit'], method: () => Armature.all.length},
+	condition: {modes: ['edit'], method: () => !!Armature.all.length},
 	
-	onCanvasClick(data: CanvasClickData) {
-		if ('element' in data == false) return;
+	onCanvasClick(data) {
+		let element = 'element' in data && data.element;
+		if (element instanceof ArmatureBone) {
+			return element.select(data.event);
+		}
+		if (data.event.altKey || Pressing.overrides.alt) return;
 		let preview = Preview.selected as Preview;
 		let preview_offset = $(preview.canvas).offset();
-		let armature_bone = ArmatureBone.selected[0] as ArmatureBone;
-		let other_bones = armature_bone.getArmature().getAllBones() as ArmatureBone[];
-		other_bones.remove(armature_bone);
+		let armature_bone = ArmatureBone.selected[0] as ArmatureBone | undefined;
 		if (!armature_bone) {
 			return Blockbench.showQuickMessage('Select an armature bone first!');
 		}
-		if (data.element instanceof Mesh == false) {
+		let armature = armature_bone.getArmature();
+		let all_bones = armature.getAllBones() as ArmatureBone[];
+		let other_bones = all_bones.slice();
+		other_bones.remove(armature_bone);
+		if (!element && previous_element instanceof Mesh && armature.children.includes(previous_element)) {
+			element = previous_element;
+		}
+		if (element instanceof Mesh == false) {
 			return;
 		}
-		if (!data.element.getArmature()) {
+		if (!element.getArmature()) {
 			return Blockbench.showQuickMessage('This mesh is not attached to an armature!');
 		}
+		if (element != previous_element) {
+			screen_space_vertex_positions = null;
+		}
+		previous_element = element;
 
-		// @ts-ignore
-		Undo.initEdit({elements: [armature_bone]});
+		let undo_tracked = all_bones;
+		Undo.initEdit({elements: undo_tracked, mirror_modeling: false});
+
+		if (data.element && data.event instanceof PointerEvent && data.event.pointerType == 'touch') {
+			// Prevent rotate navigation on mobile
+			let v = Preview.selected.controls.enableRotate;
+			Preview.selected.controls.enableRotate = false;
+			setTimeout(() => Preview.selected.controls.enableRotate = v, 50);
+		}
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
-			let radius = (BarItems.slider_weight_brush_size as NumSlider).get();
+			let radius = size_slider.get();
 			let click_pos = [
 				event.clientX - preview_offset.left,
 				event.clientY - preview_offset.top,
@@ -104,22 +132,25 @@ new Tool('weight_brush', {
 			}
 			last_click_pos = click_pos;
 
-			data = data ?? preview.raycast(event);
-			if (!data || 'element' in data == false) return;
-			let mesh = data.element;
+			data = data ?? preview.raycast(event) as any;
+			let mesh = element;
 			if (mesh instanceof Mesh == false) return;
 			let vec = new THREE.Vector2();
+			let limit = limit_slider.get() / 100;
+			let base_radius = 0.2;
+			let target_average_x = 0;
+			let affected_vkeys = new Set<string>();
 
 			updateScreenSpaceVertexPositions(mesh);
-			
+
 			for (let vkey in mesh.vertices) {
 				let screen_pos = screen_space_vertex_positions[vkey];
 				if (!screen_pos) continue;
 				let distance = vec.set(screen_pos.x - click_pos[0], screen_pos.y - click_pos[1]).length();
-				let base_radius = 0.2;
 				let falloff = (1-(distance / radius)) * (1 + base_radius);
 				let influence = Math.hermiteBlend(Math.clamp(falloff, 0, 1));
-				let value = armature_bone.vertex_weights[vkey] ?? 0;
+				let value = armature_bone.getVertexWeight(mesh, vkey) ?? 0;
+				if (influence <= 0) continue;
 				
 				if (event.shiftKey || Pressing.overrides.shift) {
 					influence /= 8;
@@ -127,24 +158,34 @@ new Tool('weight_brush', {
 				if (subtract) {
 					value = value * (1-influence);
 				} else {
-					value = value + (1-value) * influence;
+					value = value + (limit-value) * influence;
 				}
 
 				// Reduce weight on other bones
-				for (let bone of other_bones) {
-					if (bone.vertex_weights[vkey] && !subtract) {
-						bone.vertex_weights[vkey] = Math.clamp(bone.vertex_weights[vkey] - influence, 0, 1);
+				if (blend_mode_select.value == 'set') {
+					for (let bone of other_bones) {
+						if (bone.getVertexWeight(mesh, vkey) && !subtract) {
+							let lower_limit = Math.min(Math.max(0, 1-limit), bone.getVertexWeight(mesh, vkey));
+							let value = Math.clamp(bone.getVertexWeight(mesh, vkey) - influence, lower_limit, 1);
+							bone.setVertexWeight(mesh, vkey, value);
+						}
 					}
 				}
 
 				if (value < 0.04) {
-					delete armature_bone.vertex_weights[vkey];
+					armature_bone.setVertexWeight(mesh, vkey);
 				} else {
-					armature_bone.vertex_weights[vkey] = value
+					armature_bone.setVertexWeight(mesh, vkey, value);
 				}
+				target_average_x += mesh.vertices[vkey][0];
+				affected_vkeys.add(vkey);
 			}
-			// @ts-ignore
+			if (BarItems.mirror_modeling.value) {
+				let mesh2 = symmetrizeArmature(armature, mesh, affected_vkeys);
+				if (mesh2) Mesh.preview_controller.updateGeometry(mesh2);
+			}
 			Mesh.preview_controller.updateGeometry(mesh);
+			updateSelection();
 		}
 		const stop = (event: MouseEvent) => {
 			document.removeEventListener('pointermove', draw);
@@ -154,34 +195,35 @@ new Tool('weight_brush', {
 		}
 		document.addEventListener('pointermove', draw);
 		document.addEventListener('pointerup', stop);
-		draw(data.event, data);
+		draw(data.event as MouseEvent, data);
 
 	},
 	onSelect() {
-		Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
-		(BarItems.slider_weight_brush_size as NumSlider).update();
+		Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
+		Canvas.meshVertexMaterial.size = 5;
+		size_slider.update();
+		limit_slider.update();
 		Interface.addSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.addSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
-		// @ts-ignore
-		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = true;
+		Interface.addSuggestedModifierKey('alt', 'modifier_actions.select_bone');
 
-		brush_outline = Interface.createElement('div', {id: 'weight_brush_outline'});
+		brush_outline = brush_outline ?? Interface.createElement('div', {id: 'weight_brush_outline'});
 		document.addEventListener('pointermove', updateBrushOutline);
 	},
 	onUnselect() {
 		setTimeout(() => {
-			Canvas.updateView({elements: Mesh.all, element_aspects: {faces: true}});
+			Canvas.updateView({elements: [...Mesh.all, ...ArmatureBone.all], element_aspects: {faces: true}});
 		}, 0);
+		Canvas.meshVertexMaterial.size = 7;
 		Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.subtract');
 		Interface.removeSuggestedModifierKey('shift', 'modifier_actions.reduced_intensity');
-		// @ts-ignore
-		ArmatureBone.preview_controller.material.wireframe = ArmatureBone.preview_controller.material_selected.wireframe = false;
+		Interface.removeSuggestedModifierKey('alt', 'modifier_actions.select_bone');
 
 		if (brush_outline) brush_outline.remove()
 		document.removeEventListener('pointermove', updateBrushOutline);
 	}
 })
-let slider = new NumSlider('slider_weight_brush_size', {
+let size_slider = new NumSlider('slider_weight_brush_size', {
 	condition: () => Toolbox?.selected?.id == 'weight_brush',
 	tool_setting: 'weight_brush_size',
 	category: 'edit',
@@ -189,9 +231,18 @@ let slider = new NumSlider('slider_weight_brush_size', {
 		min: 1, max: 1024, interval: 1, default: 50,
 	}
 })
-slider.on('change', (data: {number: number}) => {
+size_slider.on('change', (data: {number: number}) => {
 	if (brush_outline) {
 		brush_outline.style.setProperty('--radius', data.number.toString());
+	}
+})
+let limit_slider = new NumSlider('slider_weight_brush_limit', {
+	condition: () => Toolbox?.selected?.id == 'weight_brush',
+	tool_setting: 'slider_weight_brush_limit',
+	category: 'edit',
+	
+	settings: {
+		min: 1, max: 100, interval: 1, default: 100, show_bar: true,
 	}
 })
 new Toggle('weight_brush_xray', {
@@ -199,9 +250,34 @@ new Toggle('weight_brush_xray', {
 	category: 'edit',
 	condition: () => Toolbox?.selected?.id == 'weight_brush',
 })
-
-Blockbench.on('update_selection', (data) => {
-	if (Toolbox.selected.id == 'weight_brush' || Project.view_mode === 'vertex_weight') {
-		Canvas.updateView({elements: Mesh.all.filter(mesh => mesh.getArmature()), element_aspects: {geometry: true}});
+let blend_mode_select = new BarSelect('weight_brush_blend_mode', {
+	category: 'edit',
+	options: {
+		set: 'action.weight_brush_blend_mode.set',
+		add: 'action.weight_brush_blend_mode.add',
 	}
 })
+
+const vertex_weight_view_modes = ['vertex_weight', 'weighted_bone_colors'];
+function updateWeightPreview() {
+	if (Toolbox.selected.id == 'weight_brush' || 
+		vertex_weight_view_modes.includes(Project.view_mode)
+	) {
+		Canvas.updateView({
+			elements: Mesh.all.filter(mesh => mesh.getArmature()),
+			element_aspects: {geometry: true},
+		});
+		if (Modes.animate) Animator.preview();
+	}
+}
+Blockbench.on('update_selection', updateWeightPreview);
+
+declare global {
+    interface BarItemRegistry {
+		weight_brush: Tool
+		slider_weight_brush_size: NumSlider
+		slider_weight_brush_limit: NumSlider
+		weight_brush_xray: Toggle
+		weight_brush_blend_mode: BarSelect
+    }
+}

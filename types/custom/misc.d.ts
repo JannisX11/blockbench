@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 declare class Deletable {
 	/**
@@ -8,7 +8,6 @@ declare class Deletable {
 	delete(): void
 }
 type UUID = string
-
 
 declare global {
 	const settings: typeof settings
@@ -21,148 +20,154 @@ declare const isApp: boolean
 
 declare const VuePrismEditor: Vue.Component
 
-type EventName =
-	| 'remove_animation'
-	| 'display_animation_frame'
-	| 'before_closing'
-	| 'create_session'
-	| 'join_session'
-	| 'quit_session'
-	| 'send_session_data'
-	| 'receive_session_data'
-	| 'user_joins_session'
-	| 'user_leaves_session'
-	| 'process_chat_message'
-	| 'update_settings'
-	| 'update_project_settings'
-	| 'save_project'
-	| 'load_project'
-	| 'new_project'
-	| 'reset_project'
-	| 'close_project'
-	| 'saved_state_changed'
-	| 'save_model_action'
-	| 'add_cube'
-	| 'add_mesh'
-	| 'add_group'
-	| 'add_texture_mesh'
-	| 'add_armature'
-	| 'add_armature_bone'
-	| 'group_elements'
-	| 'update_selection'
-	| 'compile_bedrock_animations'
-	| 'load_animation'
-	| 'load_animation_controller'
-	| 'update_keyframe_selection'
-	| 'select_all'
-	| 'added_to_selection'
-	| 'invert_selection'
-	| 'canvas_select'
-	| 'canvas_click'
-	| 'change_texture_path'
-	| 'add_texture'
-	| 'update_texture_selection'
-	| 'init_edit'
-	| 'finish_edit'
-	| 'finished_edit'
-	| 'undo'
-	| 'redo'
-	| 'load_undo_save'
-	| 'create_undo_save'
-	| 'change_color'
-	| 'select_mode'
-	| 'unselect_mode'
-	| 'change_active_panel'
-	| 'resize_window'
-	| 'press_key'
-	| 'select_format'
-	| 'convert_format'
-	| 'construct_format'
-	| 'delete_format'
-	| 'select_project'
-	| 'unselect_project'
-	| 'setup_project'
-	| 'update_project_resolution'
-	| 'merge_project'
-	| 'update_view'
-	| 'update_camera_position'
-	| 'render_frame'
-	| 'construct_model_loader'
-	| 'delete_model_loader'
-	| 'update_recent_project_data'
-	| 'update_recent_project_thumbnail'
-	| 'load_from_recent_project_data'
-	| 'edit_animation_properties'
-	| 'select_preview_scene'
-	| 'unselect_preview_scene'
-	| 'compile_bedrock_animation_controller_state'
-	| 'select_animation_controller_state'
-	| 'add_animation_controller_animation'
-	| 'add_animation_controller_transition'
-	| 'add_animation_controller_particle'
-	| 'add_animation_controller_sound'
-	| 'compile_bedrock_animation_controller'
-	| 'add_animation_controller'
-	| 'edit_animation_controller_properties'
-	| 'timeline_play'
-	| 'timeline_pause'
-	| 'unselect_interface'
-	| 'reset_layout'
-	| 'update_pressed_modifier_keys'
-	| 'open_bar_menu'
-	| 'unselect_all'
-	| 'quick_save_model'
-	| 'save_editor_state'
-	| 'load_editor_state'
-	| 'select_no_project'
-	| 'flip_node_name'
-	| 'update_scene_shading'
-	| 'edit_layer_properties'
-	| 'select_texture'
-	| 'compile_texture_mcmeta'
-	| 'register_element_type'
-	| 'edit_collection_properties'
+interface BlockbenchEventMap {
+	display_animation_frame: {in_loop: true}
+	display_default_pose: {reduced_updates: boolean}
+	interpolate_keyframes: {animator: BoneAnimator, t: number, time: number, use_quaternions: boolean, keyframe_before: BBKeyframe, keyframe_after: BBKeyframe}
+	pre_stack_node_animations: {node: OutlinerNode, animations: BBAnimation[], in_loop: boolean, controller_blend_values?: number}
+	before_closing: {}
+	create_session: {peer: Peer, token: string}
+	join_session: {conn: DataConnection}
+	quit_session: {}
+	send_session_data: {type: string, data: any}
+	receive_session_data: {type: string, data: any}
+	user_joins_session: EditSession.Client
+	user_leaves_session: EditSession.Client
+	process_chat_message: {text: string, color: string}
+	loaded_plugin: { plugin: BBPlugin }
+	unloaded_plugin: { plugin: BBPlugin }
+	installed_plugin: { plugin: BBPlugin }
+	uninstalled_plugin: { plugin: BBPlugin }
+	update_settings: {}
+	update_project_settings: Record<string, any>
+	save_project: {model: any, options?: any}
+	load_project: {model: any, path: string}
+	new_project: {project: ModelProject}
+	close_project: {project: ModelProject, on_quit?: boolean}
+	saved_state_changed: {project: ModelProject, saved: boolean}
+	get_outliner_node_classes: {node: OutlinerNode, classes: string[]}
+	add_cube: {object: Cube}
+	add_mesh: {object: Mesh}
+	add_group: {object: Group}
+	add_texture_mesh: {object: TextureMesh}
+	add_armature: {object: Armature}
+	add_armature_bone: {object: ArmatureBone}
+	add_bounding_box: {object: BoundingBox}
+	group_elements: {object: Group}
+	update_selection: void
+	compile_bedrock_animation: {animation: Animation, json: any}
+	load_animation: {animation: Animation, json: any}
+	load_animation_controller: {animation_controller: AnimationController, json: any}
+	update_keyframe_selection: void
+	select_all: {}
+	added_to_selection: {added: OutlinerElement[]}
+	invert_selection: {}
+	change_texture_path: {texture: Texture}
+	add_texture: {texture: Texture}
+	generate_texture_template: {
+		options: Record<string, any>
+		elements: OutlinerElement[]
+		texture: Texture
+		resolution_multiplier: number
+		data: {face_list: any, box_uv_templates: any}
+	}
+	update_texture_selection: void
+	init_edit: {aspects: UndoAspects, amended: boolean, save: UndoSave}
+	finish_edit: {aspects: UndoAspects, message: string}
+	finished_edit: {aspects: UndoAspects, message: string} | {remote: true}
+	init_selection_change: {aspects: UndoAspects, save: UndoSelectionSave}
+	finish_selection_change: {aspects: UndoAspects}
+	finished_selection_change: {aspects: UndoAspects}
+	cancel_selection_change: {selection_before: UndoSelectionSave}
+	undo: { entry: UndoEntry }
+	redo: { entry: UndoEntry }
+	load_undo_save: {save: UndoSave, reference: UndoSave, mode: undefined | 'session'}
+	create_undo_save: {save: UndoSave, aspects: UndoAspects}
+	drop_text: { text: string }
+	paste_text: { text: string }
+	change_color: {color: string, secondary?: boolean}
+	select_mode: { mode: Mode }
+	unselect_mode: { mode: Mode }
+	change_active_panel: {last_panel: Panel, panel: Panel}
+	resize_window: {event?: Event}
+	change_view_mode: {view_mode: string, previous_view_mode: string}
+	press_key: {input_in_focus?: HTMLElement, event: KeyboardEvent, capture: () => void}
+	select_format: {format: ModelFormat, project: ModelProject}
+	convert_format: {format: ModelFormat, old_format: ModelFormat}
+	construct_format: {format: ModelFormat}
+	delete_format: {format: ModelFormat}
+	select_project: { project: ModelProject }
+	unselect_project: { project: ModelProject }
+	setup_project: {project: ModelProject}
+	update_project_resolution: {project: ModelProject}
+	merge_project: {model: any, path: string}
+	display_model_stats: {stats: {label: string, value: number | string}[]}
+	update_view: UpdateViewOptions
+	update_camera_position: {preview: Preview}
+	render_frame: {}
+	construct_model_loader: {loader: ModelLoader}
+	delete_model_loader: {loader: ModelLoader}
+	update_recent_project_data: {data: RecentProjectData}
+	update_recent_project_thumbnail: {data: RecentProjectData, thumbnail: string}
+	load_from_recent_project_data: {data: RecentProjectData}
+	edit_animation_properties: {animation: BBAnimation}
+	select_preview_scene: {scene: PreviewScene}
+	unselect_preview_scene: {scene: PreviewScene}
+	select_animation: {animation: BBAnimation}
+	remove_animation: {animations: BBAnimation[]}
+	compile_bedrock_animation_controller_state: {state: AnimationControllerState, json: any}
+	select_animation_controller_state: {state: AnimationControllerState}
+	add_animation_controller_animation: {state: AnimationControllerState}
+	add_animation_controller_transition: {state: AnimationControllerState}
+	add_animation_controller_particle: {state: AnimationControllerState}
+	add_animation_controller_sound: {state: AnimationControllerState}
+	compile_bedrock_animation_controller: {state: AnimationController, json: any}
+	add_animation_controller: {state: AnimationController}
+	edit_animation_controller_properties: {state: AnimationController}
+	timeline_play: {}
+	timeline_pause: {}
+	unselect_interface: {event: Event}
+	reset_layout: {}
+	update_pressed_modifier_keys: {
+		before: {shift: boolean, alt: boolean, ctrl: boolean}
+		now: {shift: boolean, alt: boolean, ctrl: boolean}
+		event: KeyboardEvent
+	}
+	open_bar_menu: {menu: BarMenu}
+	unselect_all: {}
+	get_face_texture: {face: Face, element: OutlinerElement}
+	quick_save_model: {}
+	save_editor_state: { project: ModelProject }
+	load_editor_state: { project: ModelProject }
+	select_no_project: {}
+	flip_node_name: {pairs: Record<string, string>, node: OutlinerNode, axis: axisNumber, original_name?: string}
+	update_scene_shading: any
+	edit_layer_properties: {layer: TextureLayerItem}
+	select_texture: {texture: Texture, event: Event}
+	compile_texture_mcmeta: {mcmeta: any}
+	register_element_type: {id: string, constructor: any}
+	edit_collection_properties: {collection: Collection}
+}
 
-type IconString = string
+type BlockbenchEventName = keyof BlockbenchEventMap
 
+type IconString = string | HTMLElement
+
+declare const osfs: '\\' | '/'
 
 declare function updateSelection(): void
 
-/**
- * Returns a translated string in the current language
- * @param key Translation key
- * @param arguments Array of arguments that replace anchors (%0, etc.) in the translation. Items can be strings or anything that can be converted to strings
- */
-declare function tl(key: string, arguments?: any[]): string
-
-declare namespace Language {
-	/**
-	 * Translation data for the current language
-	 */
-	const data: {
-		[key: string]: string
-	}
-	/**
-	 * Language code indicating the currently selected language
-	 */
-	const code: string
-	/**
-	 * Add translations for custom translation strings
-	 * @param language Two letter language code, e. G. 'en'
-	 * @param strings Object listing the translation keys and values
-	 */
-	function addTranslations(language: string, strings: { [key: string]: string }): void
-}
-
-interface Object {
-	boneConfig: Record<string, Property<any> | undefined>
-}
-
 declare var LZUTF8: any
 
-declare function unselectAllElements(): void
-declare function updateCubeHighlights(hover_cube: Cube, force_off: boolean): void
+declare function unselectAllElements(exceptions?: OutlinerNode[]): void
 declare function getRescalingFactor(angle: number): number
+/**
+ * Get the world-space center of the selection
+ * @param all If true, calculate the center of all elements instead of just selected
+ */
+declare function getSelectionCenter(all: boolean = false): ArrayVector3
+declare function getSpatialInterval(event?: Event): number;
+declare function getRotationInterval(event?: Event): number;
 
 declare const Pressing: {
 	shift: boolean
@@ -175,7 +180,19 @@ declare const Pressing: {
 	}
 }
 
+declare const Prop = {
+	active_panel: string,
+	fps: number,
+	show_left_bar: boolean,
+	show_right_bar: boolean,
+}
+declare const Project: ModelProject
+declare const ColorPanel: any
+
 declare function isStringNumber(value: any): boolean
 
 declare function marked(text: string): string
 declare function pureMarked(text: string): string
+
+declare type SplineMesh = typeof OutlinerElement & Record<string, any>
+declare const SplineMesh: typeof OutlinerElement

@@ -98,14 +98,16 @@ BARS.defineActions(function() {
 			}},
 			sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: 8, min: 3, max: 48, color: "u"},
 			sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: 4, min: 1, max: 48, color: "v"},
-			radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: 2, min: 1, max: 8, color: "w"},
-			diameter: {label: 'dialog.add_spline.diameter', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["circle"].includes(shape)},
+			radius: {label: 'dialog.add_spline.radius', type: 'num_slider', interval_type: 'position', value: 2, min: 1, max: 8, color: "w"},
+			diameter: {label: 'dialog.add_spline.diameter', type: 'number', interval_type: 'position', value: 16, min: 4, max: 64, condition: ({shape}) => ["circle"].includes(shape)},
 			length: {label: 'dialog.add_spline.length', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["segment", "square"].includes(shape)},
 			width: {label: 'dialog.add_spline.width', type: 'number', value: 16, min: 4, max: 64, condition: ({shape}) => ["square"].includes(shape)},
 		},
 		onConfirm(result) {
 			let original_selection_group = Group.first_selected && Group.first_selected.uuid;
 			let iteration = 0;
+			const color = Math.floor(Math.random()*markerColors.length);
+
 			function runEdit(amended, result) {
 				let elements = [];
 				if (original_selection_group && !Group.first_selected) {
@@ -117,6 +119,7 @@ BARS.defineActions(function() {
 				Undo.initEdit({elements, selection: true}, amended);
 				let spline = new SplineMesh({
 					name: result.shape,
+					color,
 					vertices: {},
 					handles: {},
 					curves: {}
@@ -258,7 +261,7 @@ BARS.defineActions(function() {
 			Undo.amendEdit({
 				sides_radial: {label: 'dialog.add_spline.sides_radial', type: 'num_slider', value: result.sides_radial, min: 3, max: 48, color: "u"},
 				sides_tubular: {label: 'dialog.add_spline.sides_tubular', type: 'num_slider', value: result.sides_tubular, min: 1, max: 48, color: "v"},
-				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8, color: "w"},
+				radius: {label: 'dialog.add_spline.radius', type: 'num_slider', value: result.radius, min: 1, max: 8, interval_type: 'position', color: "w"},
 				diameter: {label: 'dialog.add_spline.diameter', type: 'num_slider', value: result.diameter, min: 4, max: 64, interval_type: 'position', condition: ["circle"].includes(result.shape)},
 				length: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.length, min: 4, max: 64, interval_type: 'position', condition: ["segment", "square"].includes(result.shape)},
 				width: {label: 'dialog.add_spline.length', type: 'num_slider', value: result.width, min: 4, max: 64, interval_type: 'position', condition: ["square"].includes(shape)},
@@ -333,7 +336,7 @@ BARS.defineActions(function() {
 			return (spline && selectedHandles.length && (isFirstSelected || isLastSelected));
 		}},
 		click() {
-			function runEdit(amended, extend = 1) {
+			function runEdit(amended, extend = getSpatialInterval()) {
 				Undo.initEdit({elements: SplineMesh.selected, selection: true}, amended);
 
 				function extrudeAlongSpline(spline, cKey, hKey, isEnd = false) {
@@ -527,7 +530,8 @@ BARS.defineActions(function() {
 		category: 'edit',
 		condition: {modes: ['edit'], features: ['splines'], method: () => {
 			let spline = SplineMesh.selected[0];
-			let selection = spline.getSelectedHandles(true);
+			let selection = spline?.getSelectedHandles(true);
+			if (!selection) return false;
 			let isFirstSelected = selection.includes(spline.getFirstHandle().key);
 			let isLastSelected = selection.includes(spline.getLastHandle().key);
 			return (spline && selection.length === 1 && !isFirstSelected && !isLastSelected)

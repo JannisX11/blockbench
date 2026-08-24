@@ -42,8 +42,11 @@ export default {
 		pointerDown(e1) {
 			let bounding_box = this.$refs.reference.getBoundingClientRect();
 			let onMove = (e2) => {
+				let snap = e2.ctrlOrCmd ? 1 : 5;
 				let x = e2.clientX - bounding_box.x;
 				let y = e2.clientY - bounding_box.y;
+				x = Math.snapToValues(x, [bounding_box.width/2], snap);
+				y = Math.snapToValues(y, [bounding_box.height/2], snap);
 				let color = new tinycolor({
 					r: (x / (this.width - 10)) * 255,
 					g: (1 - y / (this.height - 10)) * 255,

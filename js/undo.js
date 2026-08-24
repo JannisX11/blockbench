@@ -36,7 +36,7 @@ export class UndoSystem {
 		if (!this.current_save) return;
 		aspects = aspects || this.current_save.aspects
 		//After
-		Blockbench.dispatchEvent('finish_edit', {aspects})
+		Blockbench.dispatchEvent('finish_edit', {aspects, message});
 		var entry = {
 			before: this.current_save,
 			post: new UndoSystem.save(aspects),
@@ -55,6 +55,12 @@ export class UndoSystem {
 			}
 		}
 
+		// Just a fail-safe
+		if (entry.before._groups || entry.post._groups) {
+			console.warn('Group undo issue, potentially edited groups without tracking changes correctly in undo. Tracking all selected group changes as a fail-safe.')
+			entry.before.groups = entry.before._groups ?? [];
+			entry.post.groups = entry.post._groups ?? [];
+		}
 
 		if (this.history.length > this.index) {
 			this.history.length = this.index;
@@ -66,11 +72,27 @@ export class UndoSystem {
 		if (this.history.length > settings.undo_limit.value) {
 			this.history.shift()
 		}
-		this.index = this.history.length
+		this.index = this.history.length;
+
+		if (Collection.all.length) {
+			let nodes = [];
+			if (aspects.elements) nodes.push(...aspects.elements);
+			if (aspects.groups) nodes.push(...aspects.groups);
+			let a2 = entry.before.aspects;
+			if (a2 && a2 != aspects) {
+				if (a2.elements) nodes.push(...a2.elements);
+				if (a2.groups) nodes.push(...a2.groups);
+			}
+			for (let collection of Collection.all) {
+				if (nodes.some(node => node.scope == collection.scope)) {
+					collection.saved = false;
+				}
+			}
+		}
 		if (!aspects || !aspects.keep_saved) {
 			Project.saved = false;
 		}
-		Blockbench.dispatchEvent('finished_edit', {aspects})
+		Blockbench.dispatchEvent('finished_edit', {aspects, message})
 		if (Project.EditSession && Project.EditSession.active) {
 			Project.EditSession.sendEdit(entry)
 		}
@@ -301,6 +323,13 @@ UndoSystem.save = class {
 			this.groups = aspects.groups.map(group => group.getChildlessCopy(true));
 		} else if (aspects.group) {
 			this.groups = [aspects.group.getChildlessCopy(true)];
+		} else if (aspects.outliner && aspects.groups != null && (Undo.current_save ? Undo.current_save._groups : Group.first_selected)) {
+			// Just a fail-safe
+			let groups = Undo.current_save
+				? Undo.current_save.aspects._groups.filter(g => Group.all.includes(g))
+				: Group.all.filter(g => g.selected);
+			this._groups = groups.map(group => group.getChildlessCopy(true));
+			aspects._groups = groups;
 		}
 
 		if (aspects.collections) {
@@ -441,7 +470,8 @@ UndoSystem.save = class {
 				if (reference.elements.hasOwnProperty(uuid) && !this.elements.hasOwnProperty(uuid)) {
 					let obj = OutlinerNode.uuids[uuid]
 					if (obj) {
-						obj.remove()
+						if (obj.children instanceof Array) obj.children.empty();
+						obj.remove();
 					}
 				}
 			}
@@ -461,6 +491,7 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.groups) {
+			Group.multi_selected.empty();
 			for (let saved_group of this.groups) {
 				let group = OutlinerNode.uuids[saved_group.uuid];
 				if (group) {
@@ -477,10 +508,17 @@ UndoSystem.save = class {
 				} else {
 					group = new Group(saved_group, saved_group.uuid).init();
 				}
+				if (saved_group.primary_selected) {
+					group.multiSelect();
+				}
 			}
 			for (let group_data of reference.groups) {
 				if (!this.groups.find(g => g.uuid == group_data.uuid)) {
-					OutlinerNode.uuids[group_data.uuid]?.remove();
+					let group = OutlinerNode.uuids[group_data.uuid];
+					if (group) {
+						group.children.empty();
+						group.remove();
+					}
 				}
 			}
 		}
@@ -496,7 +534,6 @@ UndoSystem.save = class {
 		}*/
 
 		if (this.outliner) {
-			Group.multi_selected.empty();
 			Outliner.loadJSON(this.outliner)
 			if (is_session) {
 				function iterate(arr) {
@@ -839,7 +876,7 @@ UndoSystem.selectionSave = class {
 					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
-			} if (element instanceof SplineMesh) {
+			} else if (element instanceof SplineMesh) {
 				this.geometry[element.uuid] = {
 					vertices: element.getSelectedVertices().slice(),
 				}
@@ -906,13 +943,13 @@ UndoSystem.selectionSave = class {
 			for (let uuid in this.geometry) {
 				let geo_data = this.geometry[uuid];
 				let element = OutlinerNode.uuids[uuid];
+				if (!element) continue;
 				if (element instanceof Mesh) {
 					element.getSelectedFaces(true).replace(geo_data.faces);
 					element.getSelectedEdges(true).replace(geo_data.edges);
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
-				} 
-				if (element instanceof SplineMesh) {
+				} else if (element instanceof SplineMesh) {
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
 				} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {

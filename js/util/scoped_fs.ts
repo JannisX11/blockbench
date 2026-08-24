@@ -14,6 +14,14 @@ export function createScopedFS(scope?: string) {
 	}
 	return {
 		scope: scope_path,
+		access(path: string, mode, callback) {
+			checkPath(path);
+			return fs.access(path, mode, callback);
+		},
+		accessSync(path: string, mode) {
+			checkPath(path);
+			return fs.accessSync(path, mode);
+		},
 		copyFile(src: string, dest: string, mode, callback) {
 			checkPath(src);
 			checkPath(dest);
@@ -102,16 +110,32 @@ export function createScopedFS(scope?: string) {
 			checkPath(path);
 			return fs.unlinkSync(path);
 		},
-		stat(path: string, callback) {
+		stat(path: string, options, callback) {
 			checkPath(path);
-			return fs.stat(path, callback);
+			return fs.stat(path, options, callback);
 		},
-		statSync(path: string) {
+		statSync(path: string, options) {
 			checkPath(path);
-			return fs.statSync(path);
+			return fs.statSync(path, options);
+		},
+		watchFile(path: string, options, listener) {
+			checkPath(path);
+			return fs.watchFile(path, options, listener);
+		},
+		unwatchFile(path: string, listener) {
+			checkPath(path);
+			return fs.unwatchFile(path, listener);
+		},
+		watch(path: string, options, listener) {
+			checkPath(path);
+			return fs.watch(path, options, listener);
 		},
 
 		promises: {
+			access(path: string, mode) {
+				checkPath(path);
+				return fs.promises.access(path, mode);
+			},
 			copyFile(src: string, dest: string, mode) {
 				checkPath(src);
 				checkPath(dest);
@@ -154,70 +178,14 @@ export function createScopedFS(scope?: string) {
 				checkPath(path);
 				return fs.promises.unlink(path);
 			},
-			stat(path: string) {
+			stat(path: string, options) {
 				checkPath(path);
-				return fs.promises.stat(path);
+				return fs.promises.stat(path, options);
+			},
+			watch(path: string, options) {
+				checkPath(path);
+				return fs.promises.watch(path, options);
 			}
 		}
 	}
 }
-
-//cp: cp(src, dest, options, callback)
-//cpSync: cpSync(src, dest, options)
-//createReadStream: createReadStream(path, options)
-//createWriteStream: createWriteStream(path, options)
-//fchmod: fchmod(fd, mode, callback)
-//fchmodSync: fchmodSync(fd, mode)
-//fchown: fchown(fd, uid, gid, callback)
-//fchownSync: fchownSync(fd, uid, gid)
-//fdatasync: fdatasync(fd, callback)
-//fdatasyncSync: fdatasyncSync(fd)
-//fstat: fstat(fd, options = { bigint: false }, callback)
-//fstatSync: fstatSync(fd, options = { bigint: false })
-//fsync: fsync(fd, callback)
-//fsyncSync: fsyncSync(fd)
-//ftruncate: ftruncate(fd, len = 0, callback)
-//ftruncateSync: ftruncateSync(fd, len = 0)
-//futimes: futimes(fd, atime, mtime, callback)
-//futimesSync: futimesSync(fd, atime, mtime)
-//lchmod: defined
-//lchmodSync: defined
-//lchown: lchown(path, uid, gid, callback)
-//lchownSync: lchownSync(path, uid, gid)
-//link: link(existingPath, newPath, callback)
-//linkSync: linkSync(existingPath, newPath)
-//lstat: ,e,r)=> {…}
-//lstatSync: ,e)=> {…}
-//lutimes: lutimes(path, atime, mtime, callback)
-//lutimesSync: lutimesSync(path, atime, mtime)
-//mkdtemp: mkdtemp(prefix, options, callback)
-//mkdtempSync: mkdtempSync(prefix, options)
-//open: (...n)
-//openAsBlob: openAsBlob(path, options = kEmptyObject)
-//openSync: (...t)
-//opendir: ..)
-//opendirSync: ..)
-//promises: ..)
-//read: read(fd, buffer, offsetOrOptions, length, position, callback)
-//readSync: readSync(fd, buffer, offsetOrOptions, length, position)
-//readlink: readlink(path, options, callback)
-//readlinkSync: readlinkSync(path, options)
-//readv: readv(fd, buffers, position, callback)
-//readvSync: readvSync(fd, buffers, position)
-//realpath: (e,r,s)
-//realpathSync: (e,r)
-//statfs: statfs(path, options = { bigint: false }, callback)
-//statfsSync: statfsSync(path, options = { bigint: false })
-//symlink: symlink(target, path, type_, callback_)
-//symlinkSync: symlinkSync(target, path, type)
-//truncate: truncate(path, len, callback)
-//truncateSync: truncateSync(path, len)
-//unwatchFile: unwatchFile(filename, listener)
-//utimes: utimes(path, atime, mtime, callback)
-//utimesSync: utimesSync(path, atime, mtime)
-//watch: watch(filename, options, listener)
-//watchFile: watchFile(filename, options, listener)
-//write: write(fd, buffer, offsetOrOptions, length, position, callback)
-//writeSync: writeSync(fd, buffer, offsetOrOptions, length, position)
-//writev: writev(fd, buffers, position, callback)
-//writevSync: writevSync(fd, buffers, position)

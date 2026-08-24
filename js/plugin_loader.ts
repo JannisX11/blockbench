@@ -2,19 +2,17 @@ import { Blockbench } from "./api";
 import StateMemory from "./util/state_memory";
 import { Dialog } from "./interface/dialog";
 import { settings, Settings, SettingsProfile } from "./interface/settings";
-import { ModelLoader, StartScreen } from "./interface/start_screen";
+import { StartScreen } from "./interface/start_screen";
 import { sort_collator } from "./misc";
 import { separateThousands } from "./util/math_util";
 import { getDateDisplay } from "./util/util";
 import { Filesystem } from "./file_system";
-import { Panels } from "./interface/interface";
 import { app, fs, getPluginPermissions, getPluginScopedRequire, https, revokePluginPermissions } from "./native_apis";
+import { Panels } from "./interface/panels";
+import VersionUtil from './util/version_util'
+import { ModelLoader } from "./io/model_loader";
+import { markerColors } from "./marker_colors";
 
-interface FileResult {
-	name: string
-	path: string
-	content: string | ArrayBuffer
-}
 
 export const Plugins = {
 	/**
@@ -27,7 +25,8 @@ export const Plugins = {
 	 */
 	installed: [] as PluginInstallation[],
 	json: undefined,
-	download_stats: {},
+	download_stats: {} as Record<string, number>,
+	update_info: undefined as Record<string, {version: string, created: number, updated: number}> | undefined,
 	/**
 	 * All loaded plugins, including plugins from the store that are not installed
 	 */
@@ -72,8 +71,8 @@ export const Plugins = {
 	}
 }
 StateMemory.init('installed_plugins', 'array')
-// @ts-ignore
 Plugins.installed = StateMemory.installed_plugins = StateMemory.installed_plugins.filter(p => p && typeof p == 'object');
+let session_plugin_installations = 0;
 
 
 type PluginVariant = 'desktop'|'web'|'both';
@@ -157,8 +156,10 @@ interface PluginOptions {
 	 * Can be used to specify which features a plugin adds. This allows Blockbench to be aware of and suggest even plugins that are not installed.
 	 */
 	contributes?: {
-		formats: string[]
+		formats?: string[]
+		open_extensions?: string[]
 	}
+	creation_date?: string
 	has_changelog?: boolean
 	/**
 	 * In combination with a "Deprecated" tag, this can be used to provide context on why a plugin is deprecated
@@ -215,26 +216,34 @@ export class Plugin {
 	contributors: string[]
 	version: string
 	variant: PluginVariant
-	min_version: string
-	max_version: string
-	deprecation_note: string
+	min_version: string = '';
+	max_version: string = '';
+	deprecation_note: string = '';
 	path: string
-	website: string
+	website: string = '';
 	repository: string
 	bug_tracker: string
-	source: PluginSource
-	creation_date: string|number
-	contributes: {}
-	await_loading: boolean
-	has_changelog: boolean
-	changelog: null|PluginChangelog
-	about_fetched: boolean
-	changelog_fetched: boolean
-	disabled: boolean
-	new_repository_format: boolean
-	cache_version: number
+	source: PluginSource = 'store';
+	creation_date: number = 0
+	/**
+	 * Can be used to specify which features a plugin adds. This allows Blockbench to be aware of and suggest even plugins that are not installed.
+	 */
+	contributes?: {
+		formats?: string[]
+		open_extensions?: string[]
+	} = {};
+	await_loading: boolean = false;
+	has_changelog: boolean = false;
+	changelog: null|PluginChangelog = null;
+	about_fetched: boolean = false;
+	changelog_fetched: boolean = false;
+	update_available: false | string = false;
+	disabled: boolean = false;
+	new_repository_format: boolean = false;
+	cache_version: number = 0;
 	menu: Menu
-	details: null|PluginDetails
+	details: null|PluginDetails = null;
+	uuid: UUID
 
 	onload?: () => void
 	onunload?: () => void
@@ -242,8 +251,10 @@ export class Plugin {
 	onuninstall?: () => void
 
 	constructor(id: string = 'unknown', data?: PluginOptions | PluginSetupOptions) {
+		this.uuid = guid();
 		this.id = id;
 		this.installed = false;
+		this.path = '';
 		this.title = '';
 		this.author = '';
 		this.description = '';
@@ -254,22 +265,6 @@ export class Plugin {
 		this.contributors = [];
 		this.version = '0.0.1';
 		this.variant = 'both';
-		this.min_version = '';
-		this.max_version = '';
-		this.deprecation_note = '';
-		this.website = '';
-		this.source = 'store';
-		this.creation_date = 0;
-		this.contributes = {};
-		this.await_loading = false;
-		this.has_changelog = false;
-		this.changelog = null;
-		this.details = null;
-		this.about_fetched = false;
-		this.changelog_fetched = false;
-		this.disabled = false;
-		this.new_repository_format = false;
-		this.cache_version = 0;
 
 		this.extend(data)
 
@@ -300,7 +295,7 @@ export class Plugin {
 		if (data.dependencies instanceof Array) this.dependencies.safePush(...data.dependencies);
 
 		if (data.new_repository_format) this.new_repository_format = true;
-		if (this.min_version != '' && !compareVersions('4.8.0', this.min_version)) {
+		if (this.min_version != '' && VersionUtil.compare(this.min_version, '>=', '4.8.0')) {
 			this.new_repository_format = true;
 		}
 		if (typeof data.contributes == 'object') {
@@ -333,7 +328,21 @@ export class Plugin {
 			})
 			if (answer == 0) return;
 		}
-		return await this.download(true);
+		session_plugin_installations++;
+		if (session_plugin_installations >= 12) {
+			await new Promise<any>(resolve => Blockbench.showMessageBox({
+				icon: 'data_check',
+				title: 'data.plugin',
+				message: `You have already installed ${session_plugin_installations} plugins in this session.\n`+
+					`Please remember to check if you actually need a plugin before installing it. Running too many plugins can increase the chance of encountering compatibility issues or bugs.`
+			}, resolve))
+		}
+		try {
+			return await this.download(true);
+		} catch (err) {
+			console.error(err);
+			Blockbench.showQuickMessage(`Error installing plugin ${this.id}`);
+		}
 	}
 	async load(first: boolean = false, cb?: (this: Plugin) => void) {
 		var scope = this;
@@ -345,10 +354,11 @@ export class Plugin {
 			}
 			this.#runPluginFile(path).then((content) => {
 				if (cb) cb.bind(scope)()
-				if (first && scope.oninstall) {
-					scope.oninstall()
+				if (first) {
+					scope.oninstall?.()
+					Blockbench.dispatchEvent('installed_plugin', {plugin: scope});
+					Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				}
-				if (first) Blockbench.showQuickMessage(tl('message.installed_plugin', [this.title]));
 				resolve()
 			}).catch((error) => {
 				if (isApp) {
@@ -362,6 +372,13 @@ export class Plugin {
 			this.#remember()
 			scope.installed = true;
 		})
+	}
+	runOnLoad() {
+		if (typeof this.unload != 'function') return;
+		Plugins.currently_loading = this.id;
+		this.onload();
+		Plugins.currently_loading = '';
+		Blockbench.dispatchEvent('loaded_plugin', {plugin: this});
 	}
 	async installDependencies(first) {
 		let required_dependencies = [];
@@ -419,6 +436,8 @@ export class Plugin {
 		let response = await this.installDependencies(first);
 		if (response == false) return;
 
+		this.update_available = false;
+
 		var scope = this;
 		function register() {
 			if (!Plugins.json[scope.id]) return;
@@ -436,12 +455,20 @@ export class Plugin {
 		}
 
 		// Download files
-		async function copyFileToDrive(origin_filename?: string, target_filename?: string, callback?: () => void) {
-			var file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
-			// @ts-ignore
-			https.get(Plugins.api_path+'/'+origin_filename, function(response) {
-				response.pipe(file);
-				if (callback) response.on('end', callback);
+		async function copyFileToDrive(origin_filename?: string, target_filename?: string, end_callback?: () => void) {
+			let file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
+			let url = Plugins.api_path+'/'+origin_filename;
+			await new Promise<void>((resolve, reject) => {
+				https.get(url, function(response) {
+					if (!(response.statusCode >= 200 && response.statusCode < 300)) {
+						let error = new Error(`Could not load plugin resource "${origin_filename}" from "${url}", error ${response.statusCode}`);
+						reject(response);
+						throw error;
+					}
+					response.pipe(file);
+					if (end_callback) response.on('end', end_callback);
+					resolve();
+				});
 			});
 		}
 		return await new Promise<void>(async (resolve, reject) => {
@@ -453,7 +480,7 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
-				});
+				}).catch(reject);
 				if (this.hasImageIcon()) {
 					copyFileToDrive(`${this.id}/${this.icon}`, this.id + '.' + this.icon);
 				}
@@ -470,7 +497,7 @@ export class Plugin {
 						await scope.load(first);
 						resolve()
 					}, 20)
-				});
+				}).catch(reject);
 			}
 		});
 	}
@@ -543,9 +570,12 @@ export class Plugin {
 			// Save
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = fs.createWriteStream(Plugins.path+this.id+'.js')
-					// @ts-ignore
+					let file = fs.createWriteStream(Plugins.path+this.id+'.js');
 					https.get(url, (response) => {
+						if (!(response.statusCode >= 200 && response.statusCode < 300)) {
+							console.error(`Could not load plugin ${this.id} from`, url);
+							return;
+						}
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
@@ -574,9 +604,8 @@ export class Plugin {
 	uninstall() {
 		try {
 			this.unload();
-			if (this.onuninstall) {
-				this.onuninstall();
-			}
+			this.onuninstall?.();
+			Blockbench.dispatchEvent('uninstalled_plugin', {plugin: this});
 		} catch (err) {
 			console.error(`Error in unload or uninstall method of "${this.id}": `, err);
 		}
@@ -609,6 +638,7 @@ export class Plugin {
 		if (this.onunload) {
 			this.onunload()
 		}
+		Blockbench.dispatchEvent('unloaded_plugin', {plugin: this});
 		return this;
 	}
 	reload() {
@@ -638,6 +668,25 @@ export class Plugin {
 
 		return this;
 	}
+	installUpdate() {
+		this.cache_version++;
+		this.unload()
+		this.tags.empty();
+		this.contributors.empty();
+		this.dependencies.empty();
+		this.details = null;
+		let had_changelog = this.changelog_fetched;
+		this.changelog_fetched = false;
+
+		this.download();
+
+		this.fetchAbout(true);
+		if (had_changelog && this.has_changelog) {
+			this.fetchChangelog(true);
+		}
+
+		return this;
+	}
 	async #runPluginFile(path: string) {
 		let file_content: any;
 		if (path.startsWith('http')) {
@@ -657,10 +706,10 @@ export class Plugin {
 					}
 				});
 			})
-	
+
 		} else if (isApp) {
 			file_content = fs.readFileSync(path, {encoding: 'utf-8'});
-	
+
 		} else {
 			throw 'Failed to load plugin: Unknown URL format'
 		}
@@ -682,11 +731,13 @@ export class Plugin {
 	toggleDisabled() {
 		if (!this.disabled) {
 			this.disabled = true;
-			this.unload()
-		} else {
-			if (this.onload) {
-				this.onload()
+			try {
+				this.unload();
+			} catch (err) {
+				console.error(err);
 			}
+		} else {
+			this.runOnLoad();
 			this.disabled = false;
 		}
 		this.#remember();
@@ -699,10 +750,10 @@ export class Plugin {
 	}
 	isInstallable() {
 		var scope = this;
-		var result: string | boolean = 
+		var result: string | boolean =
 			scope.variant === 'both' ||
 			(
-				isApp === (scope.variant === 'desktop') && 
+				isApp === (scope.variant === 'desktop') &&
 				isApp !== (scope.variant === 'web')
 			);
 		if (result && scope.min_version) {
@@ -824,8 +875,8 @@ export class Plugin {
 			}
 		}
 
-		let trackDate = (input_date, key) => {
-			let date = getDateDisplay(input_date);
+		let trackDate = (input_date: number | string, key: string, display_time: boolean) => {
+			let date = getDateDisplay(input_date, display_time);
 			this.details[key] = date.short;
 			this.details[key + '_full'] = date.full;
 		}
@@ -845,22 +896,22 @@ export class Plugin {
 				if (!response) return;
 				let commits = await response.json().catch(err => console.error(err));
 				if (!commits || !commits.length) return;
-				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified');
+				trackDate(Date.parse(commits[0].commit.committer.date), 'last_modified', true);
 
 				if (!this.creation_date) {
-					trackDate(Date.parse(commits.last().commit.committer.date), 'creation_date');
+					trackDate(Date.parse(commits.last().commit.committer.date), 'creation_date', false);
 				}
 			});
 
 		}
 		if (this.creation_date) {
-			trackDate(this.creation_date, 'creation_date');
+			trackDate(this.creation_date, 'creation_date', false);
 		}
 		return this.details;
 	}
 
 	static selected: Plugin|null = null
-	
+
 	static menu = new Menu([
 		new MenuSeparator('general'),
 		{
@@ -961,12 +1012,10 @@ export class Plugin {
 			})
 			return;
 		};
-		plugin.extend(data)
+		plugin.extend(data);
 		if (plugin.isInstallable() == true && plugin.disabled == false) {
 			if (plugin.onload instanceof Function) {
-				Plugins.currently_loading = id;
-				plugin.onload();
-				Plugins.currently_loading = '';
+				plugin.runOnLoad();
 			}
 		}
 		return plugin;
@@ -976,7 +1025,7 @@ export class Plugin {
 
 // Alias for typescript
 export const BBPlugin = Plugin;
-
+export type BBPlugin = Plugin;
 
 if (isApp) {
 	Plugins.path = app.getPath('userData')+osfs+'plugins'+osfs
@@ -989,20 +1038,36 @@ if (isApp) {
 	Plugins.path = Plugins.api_path+'/';
 }
 
+ExperimentalSettings.add(
+	'plugin_load_timeout',
+	{type: 'number', label: 'Plugin load timeout', min: 0.5, value: 10}
+);
 Plugins.loading_promise = new Promise((resolve, reject) => {
+	const timeout_seconds = ExperimentalSettings.get('plugin_load_timeout') as number ?? 10;
 	$.ajax({
 		cache: false,
 		url: Plugins.api_path+'.json',
+		timeout: 1_000 * timeout_seconds,
 		dataType: 'json',
 		success(data) {
 			Plugins.json = data;
-				
+
 			resolve();
 			Plugins.loading_promise = null;
+			
+			$.ajax({
+				cache: false,
+				url: 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/updates.json',
+				timeout: timeout_seconds,
+				dataType: 'json',
+				success(data) {
+					Plugins.update_info = data;
+					resolve();
+				}
+			});
 		},
-		error() {
-			console.log('Could not connect to plugin server')
-			$('#plugin_available_empty').text('Could not connect to plugin server')
+		error(response, type) {
+			console.error('Could not connect to plugin server:', type, response)
 			resolve();
 			Plugins.loading_promise = null;
 
@@ -1010,8 +1075,16 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 				settings.cdn_mirror.set(true);
 				console.log('Switching to plugin CDN mirror. Restart to apply.');
 			}
+			if (Plugins.dialog) {
+				if (Plugins.dialog.content_vue) Plugins.dialog.content_vue._data.network_error = response.status;
+				Plugins.dialog.component.data.network_error = response.status;
+			}
 		}
 	});
+	setTimeout(() => {
+		if (!Plugins.loading_promise) return;
+		console.warn(`Connecting to plugin API is taking longer than expected. Plugins will not load until a connection is made or the request times out after ${timeout_seconds} seconds.`)
+	}, 3000);
 })
 
 $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
@@ -1027,6 +1100,7 @@ export async function loadInstalledPlugins() {
 	}
 	const install_promises = [];
 	const online_access = Plugins.json instanceof Object && navigator.onLine;
+	const allow_updates = settings.automatic_plugin_updates.value;
 
 	// Setup offers from store
 	if (online_access) {
@@ -1061,14 +1135,17 @@ export async function loadInstalledPlugins() {
 		}
 		for (let installation of Plugins.installed.slice()) {
 			if (installation.dependencies?.length) {
-				resolveDependencies(installation, 0);
+				try {
+					resolveDependencies(installation, 0);
+				} catch (err) {
+					console.error('Error resolving plugin dependencies', installation.id, err);
+				}
 			}
 		}
 
 		// Install plugins
 		var load_counter = 0;
-		Plugins.installed.slice().forEach(function loadPlugin(installation) {
-
+		function loadPlugin(installation: PluginInstallation) {
 			if (installation.source == 'file') {
 				// Dev Plugins
 				if (isApp && fs.existsSync(installation.path)) {
@@ -1097,16 +1174,28 @@ export async function loadInstalledPlugins() {
 				if (plugin) {
 					plugin.installed = true;
 					if (installation.disabled) plugin.disabled = true;
-					
-					if (isApp && (
-						(installation.version && plugin.version && !compareVersions(plugin.version, installation.version)) ||
-						Blockbench.isOlderThan(plugin.min_version)
-					)) {
-						// Get from file
-						let promise = plugin.load(false);
-						install_promises.push(promise);
+
+					if (isApp) {
+						let up_to_date = installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version);
+						let update_unsupported = plugin.min_version && Blockbench.isOlderThan(plugin.min_version);
+						let update_available = !up_to_date && !update_unsupported;
+
+						if (update_available && allow_updates) {
+							// Update
+							let promise = plugin.download();
+							if (plugin.await_loading) {
+								install_promises.push(promise);
+							}
+						} else {
+							if (update_available && !allow_updates) {
+								plugin.update_available = plugin.version;
+							}
+							// Get from local file
+							let promise = plugin.load(false);
+							install_promises.push(promise);
+						}
 					} else {
-						// Update
+						// Web app always loads from web
 						let promise = plugin.download();
 						if (plugin.await_loading) {
 							install_promises.push(promise);
@@ -1116,22 +1205,31 @@ export async function loadInstalledPlugins() {
 					console.log(`🧩🛒 Loaded plugin "${installation.id}" from store`);
 
 				} else if (Plugins.json instanceof Object && navigator.onLine) {
+					console.log(`🧩 The plugin "${installation.id}" seems to no longer exist in the repository, uninstalling it instead.`);
 					Plugins.installed.remove(installation);
 				}
 
 			} else if (isApp && installation.source == 'store') {
 				// Offline install store plugin
-				let plugin = new Plugin(installation.id); 
+				let plugin = new Plugin(installation.id);
 				let promise = plugin.load(false);
 				install_promises.push(promise);
 			} else {
 				Plugins.installed.remove(installation);
 			}
-		})
+		}
+
+		for (let installation of Plugins.installed.slice()) {
+			try {
+				loadPlugin(installation);
+			} catch (err) {
+				console.error('Error loading installed plugin', installation.id, err);
+			}
+		}
 		console.log(`Loaded ${load_counter} plugin${pluralS(load_counter)}`)
 	}
 	StateMemory.save('installed_plugins')
-	
+
 
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
@@ -1149,9 +1247,31 @@ BARS.defineActions(function() {
 		resizable: 'xy',
 		onOpen() {
 			if (!actions_setup) {
-				BarItems.load_plugin.toElement(document.getElementById('plugins_list_main_bar'));
-				BarItems.load_plugin_from_url.toElement(document.getElementById('plugins_list_main_bar'));
+				let bar = document.getElementById('plugins_list_main_bar');
+				let menu_action = new Action('plugins_window_menu', {
+					private: true,
+					icon: 'more_vert',
+					click(e) {
+						let target = ('target' in e && e.target) as HTMLElement | undefined;
+						new Menu('plugin_browser', this.children).open(target);
+					},
+					children: [
+						'copy_installed_plugins',
+						'install_plugins_from_list',
+					]
+				})
+
+				BarItems.load_plugin.toElement(bar);
+				BarItems.load_plugin_from_url.toElement(bar);
+				menu_action.toElement(bar);
 				actions_setup = true;
+
+				
+				for (let plugin of Plugins.all) {
+					if (!plugin.creation_date && Plugins.update_info?.[plugin.id]) {
+						plugin.creation_date = Plugins.update_info[plugin.id].created;
+					}
+				}
 			}
 		},
 		component: {
@@ -1166,47 +1286,54 @@ BARS.defineActions(function() {
 				settings: settings,
 				isMobile: Blockbench.isMobile,
 				isApp,
+				markerColors,
+				online: navigator.onLine,
+				network_error: null
 			},
 			computed: {
 				plugin_search() {
 					let search_name = this.search_term.toUpperCase();
+					let plugins: Plugin[] = this.items;
 					if (search_name) {
-						let filtered = this.items.filter(item => {
+						let filtered = plugins.filter(item => {
 							return (
 								item.id.toUpperCase().includes(search_name) ||
 								item.title.toUpperCase().includes(search_name) ||
 								item.description.toUpperCase().includes(search_name) ||
 								item.author.toUpperCase().includes(search_name) ||
-								item.tags.find(tag => tag.toUpperCase().includes(search_name))
+								item.tags.find(tag => tag.toUpperCase().includes(search_name)) ||
+								item.update_available && search_name.includes('UPDATE_AVAILABLE')
 							)
 						});
 						let installed = filtered.filter(p => p.installed);
 						let not_installed = filtered.filter(p => !p.installed);
 						return installed.concat(not_installed);
 					} else {
-						return this.items.filter(item => {
+						return plugins.filter(item => {
 							return (this.tab == 'installed') == item.installed;
 						})
 					}
 				},
 				suggested_rows() {
 					let tags = ["Animation"];
-					this.items.forEach(plugin => {
+					let plugins: Plugin[] = this.items;
+					plugins.forEach(plugin => {
 						if (!plugin.installed) return;
 						tags.safePush(...plugin.tags)
-					})
+					});
+					let suggestable_plugins = plugins.filter(plugin => !plugin.installed && !plugin.tags.includes('Deprecated'));
 					let rows = tags.map(tag => {
-						let plugins = this.items.filter(plugin => !plugin.installed && plugin.tags.includes(tag) && !plugin.tags.includes('Deprecated')).slice(0, 12);
+						let filtered = suggestable_plugins.filter(plugin => plugin.tags.includes(tag)).slice(0, 12);
 						return {
 							title: tag,
-							plugins,
+							plugins: filtered,
 						}
 					}).filter(row => row.plugins.length > 2);
 					//rows.sort((a, b) => a.plugins.length - b.plugins.length);
 					rows.sort(() => Math.random() - 0.5);
 
 					let cutoff = Date.now() - (3_600_000 * 24 * 28);
-					let new_plugins = this.items.filter(plugin => !plugin.installed && plugin.creation_date > cutoff && !plugin.tags.includes('Deprecated'));
+					let new_plugins = suggestable_plugins.filter(plugin => plugin.creation_date > cutoff);
 					if (new_plugins.length) {
 						new_plugins.sort((a, b) => a.creation_date - b.creation_date);
 						let new_row = {
@@ -1214,6 +1341,23 @@ BARS.defineActions(function() {
 							plugins: new_plugins.slice(0, 12)
 						}
 						rows.splice(0, 0, new_row);
+					}
+
+					// Recently updated
+					if (Plugins.update_info) {
+						let updated_plugins = suggestable_plugins.filter(plugin => {
+							if (new_plugins.includes(plugin)) return false;
+							let updated_date = Plugins.update_info[plugin.id]?.updated;
+							return updated_date > cutoff;
+						});
+						if (updated_plugins.length) {
+							updated_plugins.sort((a, b) => a.creation_date - b.creation_date);
+							let new_row = {
+								title: 'Recently Updated',
+								plugins: updated_plugins.slice(0, 12)
+							}
+							rows.splice(0, 0, new_row);
+						}
 					}
 
 					return rows.slice(0, 3);
@@ -1292,6 +1436,8 @@ BARS.defineActions(function() {
 						return 'plugin_tag_source'
 					} else if (tag.match(/^minecraft/i)) {
 						return 'plugin_tag_mc'
+					} else if (tag.match(/^hytale/i)) {
+						return 'plugin_tag_hytale'
 					} else if (tag.match(/^deprecated/i)) {
 						return 'plugin_tag_deprecated'
 					}
@@ -1311,7 +1457,7 @@ BARS.defineActions(function() {
 					return getDateDisplay(input_date).short;
 				},
 				printDateFull(input_date: number) {
-					return getDateDisplay(input_date).full;
+					return getDateDisplay(input_date, false).full;
 				},
 				formatChangelogLine(line) {
 					let content = [];
@@ -1530,6 +1676,10 @@ BARS.defineActions(function() {
 					//Element Types
 					return types;
 				},
+				loadImageIcon(event: Event) {
+					let img = event.target as HTMLImageElement;
+					img.style.imageRendering = img.naturalWidth < 48 ? '' : 'auto';
+				},
 
 				getIconNode: Blockbench.getIconNode,
 				pureMarked,
@@ -1553,7 +1703,7 @@ BARS.defineActions(function() {
 							<li v-for="plugin in viewed_plugins" :plugin="plugin.id" :class="{plugin: true, testing: plugin.fromFile, selected: plugin == selected_plugin, disabled_plugin: plugin.disabled, installed_plugin: plugin.installed, disabled_plugin: plugin.disabled, incompatible: plugin.isInstallable() !== true}" @click="selectPlugin(plugin)" @contextmenu="selectPlugin(plugin); plugin.showContextMenu($event)">
 								<div>
 									<div class="plugin_icon_area">
-										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 										<dynamic-icon v-else :icon="plugin.icon" />
 									</div>
 									<div>
@@ -1565,16 +1715,21 @@ BARS.defineActions(function() {
 								<div class="description">{{ plugin.description }}</div>
 								<ul class="plugin_tag_list">
 									<li v-for="tag in plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+									<li v-if="plugin.update_available" class="plugin_tag_update" :key="'update_available'" @click="search_term = 'update_available';">${tl('dialog.plugins.update_available')}</li>
 								</ul>
 							</li>
 							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'installed'">${tl('dialog.plugins.none_installed')}</div>
-							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'" id="plugin_available_empty">{{ tl(navigator.onLine ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}</div>
+							<div class="no_plugin_message tl" v-if="plugin_search.length < 1 && tab === 'available'">
+								{{ tl(online ? 'dialog.plugins.none_available' : 'dialog.plugins.offline') }}
+								<p v-if="online && network_error">Error {{ network_error }}</p>
+								<p v-if="online && network_error">This is not an issue with Blockbench itself, it is most likely caused by network issues or internet restrictions.</p>
+							</div>
 						</ul>
 						<ol class="pagination_numbers" v-if="pages.length > 1">
 							<li v-for="number in pages" :class="{selected: page == number}" @click="setPage(number)">{{ number+1 }}</li>
 						</ol>
 					</div>
-					
+
 					<div id="plugin_browser_page" v-if="selected_plugin" :class="{plugin_disabled: selected_plugin.disabled, plugin_installed: selected_plugin.installed}">
 						<div v-if="isMobile" @click="selectPlugin(null);" class="plugin_browser_back_button">
 							<i class="material-icons icon">arrow_back_ios</i>
@@ -1582,7 +1737,7 @@ BARS.defineActions(function() {
 						<div class="plugin_browser_page_header" :class="{disabled_plugin: selected_plugin.disabled}" @contextmenu="selected_plugin.showContextMenu($event)">
 							<div class="plugin_browser_page_titlebar" :class="{disabled_plugin: selected_plugin.disabled}">
 								<div class="plugin_icon_area">
-									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" />
+									<img v-if="selected_plugin.hasImageIcon()" :src="selected_plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 									<dynamic-icon v-else :icon="selected_plugin.icon" />
 								</div>
 								<div>
@@ -1599,6 +1754,14 @@ BARS.defineActions(function() {
 							</div>
 
 							<div class="button_bar" v-if="selected_plugin.installed || selected_plugin.isInstallable() == true">
+								<button type="button" @click="selected_plugin.installUpdate()"
+									v-if="selected_plugin.installed && selected_plugin.update_available"
+									style="color: var(--color-update);"
+									:title="tl('dialog.plugins.update_available') + ': ' + selected_plugin.update_available"
+								>
+									<i class="material-icons icon">update</i>
+									<span>${tl('dialog.plugins.update')}</span>
+								</button>
 								<button type="button" v-if="selected_plugin.installed" @click="selected_plugin.toggleDisabled()">
 									<i class="material-icons icon">bedtime</i>
 									<span>{{ selected_plugin.disabled ? '${tl('dialog.plugins.enable')}' : '${tl('dialog.plugins.disable')}' }}</span>
@@ -1619,6 +1782,7 @@ BARS.defineActions(function() {
 
 							<ul class="plugin_tag_list">
 								<li v-for="tag in selected_plugin.tags" :class="getTagClass(tag)" :key="tag" @click="search_term = tag;">{{tag}}</li>
+								<li v-if="selected_plugin.update_available" class="plugin_tag_update" :key="'update_available'" @click="search_term = 'update_available';">${tl('dialog.plugins.update_available')}</li>
 							</ul>
 
 							<div class="description" :class="{disabled_plugin: selected_plugin.disabled}">{{ selected_plugin.description }}</div>
@@ -1631,6 +1795,10 @@ BARS.defineActions(function() {
 							<div class="tiny plugin_compatibility_issue" v-if="selected_plugin.isInstallable() != true">
 								<i class="material-icons icon">error</i>
 								{{ selected_plugin.isInstallable() }}
+							</div>
+							<div class="tiny plugin_deprecation_note" v-if="selected_plugin.deprecation_note">
+								<i class="material-icons icon">warning</i>
+								{{ selected_plugin.deprecation_note }}
 							</div>
 						</div>
 
@@ -1726,7 +1894,7 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 						</ul>
-						
+
 						<ul class="settings_list plugin_browser_tabbed_page" v-if="page_tab == 'settings'">
 							<li v-for="(setting, key) in selected_plugin_settings" v-if="Condition(setting.condition)"
 								v-on="setting.click ? {click: setting.click} : {}"
@@ -1773,7 +1941,7 @@ BARS.defineActions(function() {
 								</template>
 							</li>
 						</ul>
-						
+
 						<ul v-if="page_tab == 'features'" class="features_list plugin_browser_tabbed_page">
 							<li v-for="type in getPluginFeatures(selected_plugin)" :key="type.id">
 								<h4>{{ type.name }}</h4>
@@ -1787,21 +1955,21 @@ BARS.defineActions(function() {
 								</ul>
 							</li>
 						</ul>
-						
+
 					</div>
-					
+
 					<div id="plugin_browser_start_page" v-if="!selected_plugin && !isMobile">
 						<h1>Blockbench Plugins</h1>
 						<img src="./assets/plugins.png" />
-						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a list of 100 community created plugins.</p>
+						<p>Plugins allow you to configure Blockbench beyond the default capabilities. Select from a catalog of community created plugins.</p>
 						<p>Want to write your own plugin? Check out the <a href="https://www.blockbench.net/wiki/docs/plugin" target="_blank">Plugin Documentation</a>.</p>
-						
+
 						<div v-for="row in suggested_rows" class="plugins_suggested_row">
 							<h3>{{row.title}}</h3>
 							<ul>
 								<li v-for="plugin in row.plugins" @click="selectPlugin(plugin)" class="elevated">
 									<div class="plugin_icon_area">
-										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" />
+										<img v-if="plugin.hasImageIcon()" :src="plugin.getIcon()" width="48" height="48px" @load="loadImageIcon($event)" />
 										<dynamic-icon v-else :icon="plugin.icon" />
 									</div>
 									<div class="title"><span>{{ plugin.title || plugin.id }}</span></div>
@@ -1810,7 +1978,7 @@ BARS.defineActions(function() {
 							</ul>
 						</div>
 					</div>
-					
+
 				</content>
 			`
 		}
@@ -1871,6 +2039,78 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	new Action('copy_installed_plugins', {
+		icon: 'assignment',
+		category: 'blockbench',
+		click() {
+			function getList(details: boolean): string {
+				let plugins = Plugins.all.filter(p => p.installed);
+				if (details) {
+					return plugins.map(p =>
+						(`${p.id}@${p.version}${p.source == 'store' ? '' : ('('+p.source+')')}`)
+					).join(', ');
+				} else {
+					return plugins.map(p => p.id).join(', ');
+				}
+			}
+			new Dialog({
+				title: 'action.copy_installed_plugins',
+				form: {
+					output: {type: 'text', value: getList(true), readonly: true, share_text: true},
+					details: {type: 'checkbox', label: 'dialog.copy_installed_plugins.details', value: true},
+				},
+				onFormChange(result) {
+					Dialog.open.form.setValues({
+						output: getList(result.details as boolean)
+					}, false);
+				},
+				singleButton: true,
+			}).show();
+		}
+	})
+	new Action('install_plugins_from_list', {
+		icon: 'list_alt_add',
+		category: 'blockbench',
+		click() {
+			new Dialog({
+				title: 'action.install_plugins_from_list',
+				form: {
+					about: {type: 'info', text: 'dialog.install_plugins_from_list.info'},
+					input: {type: 'text', label: 'dialog.install_plugins_from_list.ids'},
+				},
+				onConfirm(result) {
+					let entries = result.input.split(/,\s*/);
+					let plugins = [];
+					for (let entry of entries) {
+						let id = entry.match(/\w+/)?.[0];
+						let matches = id && Plugins.all.filter(plugin => plugin.id == id);
+						if (matches.length == 0 || matches.some(p => p.installed)) continue;
+						plugins.push(matches[0]);
+					}
+
+					// Confirm and install
+					let form = {}
+					plugins.forEach(plugin => {
+						form[plugin.id.replace(/\./g, '_')] = {type: 'checkbox', label: plugin.name, description: plugin.description, value: true}
+					})
+					new Dialog({
+						id: 'install_plugins_from_list_check',
+						title: 'action.install_plugins_from_list',
+						form,
+						buttons: ['dialog.plugins.install', 'dialog.cancel'],
+						onConfirm(result) {
+							plugins.forEach(plugin => {
+								if (result[plugin.id.replace(/\./g, '_')]) {
+									plugin.download();
+								}
+							})
+						}
+					}).show();
+
+				}
+			}).show();
+		}
+	})
 	new Action('add_plugin', {
 		icon: 'add',
 		category: 'blockbench',
@@ -1887,9 +2127,14 @@ BARS.defineActions(function() {
 	})
 })
 
-
-Object.assign(window, {
+const global = {
 	Plugins,
 	Plugin,
 	BBPlugin
-});
+};
+declare global {
+	const BBPlugin: typeof Plugin;
+	type BBPlugin = import('./plugin_loader').Plugin
+	const Plugins: typeof global.Plugins
+}
+Object.assign(window, global);

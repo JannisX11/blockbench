@@ -32,6 +32,5 @@
 	"background_color": "#21252b",
 	"theme_color": "#3e90ff",
 	"display": "standalone",
-	"display_override": ["window-controls-overlay"],
-	"orientation": "any"
+	"display_override": ["window-controls-overlay"]
 }

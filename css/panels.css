@@ -6,14 +6,15 @@
 		flex-direction: column;
 		position: relative;
 	}
-	.panel_container.hidden {
-		display: none !important;
-	}
 	.panel_container.grow {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
+		height: 40px;
 		min-height: 133px;
+	}
+	.panel_container.hidden {
+		display: none;
 	}
 
 	.panel {
@@ -35,19 +36,24 @@
 	}
 	.panel_container.floating {
 		position: absolute;
-		border: 1px solid var(--color-accent);
+		border: 1px solid var(--color-border);
 		box-shadow: 0 0 10px rgb(0 0 0 / 40%);
 		box-sizing: content-box;
 		z-index: 14;
+		border-radius: 5px;
 	}
 	.panel_container.floating > .panel_vue_wrapper:not(.list) {
 		overflow: hidden;
 	}
 	.panel_container.floating.dragging {
 		opacity: 0.6;
+		border-color: var(--color-accent);
 	}
 	.panel.attached {
 		min-height: var(--main-panel-height);
+	}
+	.panel.attached.grow {
+		height: var(--main-panel-height);
 	}
 	body.is_mobile .panel {
 		overflow-y: auto;
@@ -62,6 +68,25 @@
 		padding: 0;
 		align-items: center;
 		background-color: var(--color-back);
+		position: relative;
+	}
+	.panel_container.floating .panel_tab_bar {
+		border-top-left-radius: inherit;
+		border-top-right-radius: inherit;
+	}
+	.panel_container.floating > .panel {
+		border-bottom-left-radius: inherit;
+		border-bottom-right-radius: inherit;
+	}
+	#right_bar .panel_container.topmost_panel .panel_tab_bar:not(.single_tab)::before {
+		content: "";
+		position: absolute;
+		left: -10px;
+		top: 0;
+		width: 10px;
+		height: 10px;
+		background-color: var(--color-back);
+		pointer-events: none;
 	}
 	.panel_tab_bar.single_tab {
 		background-color: var(--color-ui);
@@ -77,9 +102,11 @@
 		height: calc(100% - 3px);
 		margin-top: 3px;
 	}
+	body.is_mobile .panel_tab_list {
+		flex-grow: 1;
+	}
 	.panel_tab_list > .panel_handle {
 		display: flex;
-		padding: 4px 4px;
 		flex: 1 1 auto;
 		min-width: 58px;
 		overflow: hidden;
@@ -91,6 +118,7 @@
 		border-top-left-radius: 5px;
 		border-top-right-radius: 5px;
 		cursor: pointer;
+		align-items: center;
 	}
 	.panel_tab_list > .panel_handle:hover {
 		color: var(--color-text);
@@ -181,8 +209,7 @@
 		text-align: center;
 		cursor: pointer;
 		color: var(--color-subtle_text);
-		height: 100%;
-		padding-top: 3px;
+		padding-top: 2px;
 		margin-right: -10px;
 	}
 	.panel_handle:not(.selected) .panel_menu_button {
@@ -216,7 +243,7 @@
 		flex-grow: 0;
 	}
 	.panel_container.folded > .panel {
-		display: none !important;
+		display: none;
 	}
 	.panel_container.fixed_height {
 		flex-grow: 0;
@@ -256,7 +283,7 @@
 		position: absolute;
 		z-index: 10;
 	}
-	.panel.bottommost_panel > .panel_sidebar_resize_handle {
+	.panel_container.bottommost_panel > .panel_sidebar_resize_handle {
 		top: -3px;
 		bottom: unset;
 	}
@@ -267,7 +294,7 @@
 		background-color: var(--color-accent);
 		opacity: 0.3;
 	}
-	.panel:not(.floating) > .panel_resize_handle_wrapper {
+	.panel_container:not(.floating) > .panel_resize_handle_wrapper {
 		display: none;
 	}
 	.panel_resize_side {
@@ -489,7 +516,7 @@
 	#display_settings p {
 		padding-left: 6px;
 	}
-	div#display_crosshair:after {
+	div.display_crosshair:after {
 		content: "";
 		width: 20px;
 		height: 2px;
@@ -498,7 +525,7 @@
 		margin-left: -9px;
 		margin-top: 9px;
 	}
-	div#display_crosshair {
+	div.display_crosshair {
 		width: 2px;
 		height: 20px;
 		background-color: var(--color-grid);
@@ -518,6 +545,7 @@
 		padding-top: 1px;
 		overflow-y: scroll;
 		--indentation-offset: 16px;
+		--color-scope: transparent;
 	}
 	#cubes_list > li:last-child {
 		margin-bottom: 180px;
@@ -556,6 +584,7 @@
 	}
 	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
+		border-left: 3px solid var(--color-scope);
 	}
 	.outliner_object:active {
 	    background-color: var(--color-ui);
@@ -649,6 +678,8 @@
 		padding-left: 5px;
 		pointer-events: none;
 		color: inherit;
+		-webkit-text-fill-color: unset;
+		opacity: 1; /* required on iOS */
 	}
 	input.cube_name.renaming {
 		pointer-events: auto;
@@ -702,6 +733,9 @@
 		gap: 5px;
 		align-items: center;
 		position: relative;
+		padding-left: 7px;
+		border-left: 3px solid var(--color-scope);
+		--color-scope: transparent;
 	}
 	.collection:active {
 		background-color: var(--color-ui);
@@ -721,7 +755,7 @@
 		width: 5px;
 		top: 0;
 		bottom: 0;
-		left: 0;
+		left: -3px;
 		margin-left: 0;
 		border-top-right-radius: 4px;
 		border-bottom-right-radius: 4px;
@@ -748,9 +782,10 @@
 		gap: 4px;
 		align-items: center;
 		border-radius: 10px;
-    	background-color: var(--color-ui);
+		background-color: var(--color-ui);
 		height: 22px;
 		padding: 0 7px;
+		white-space: nowrap;
 	}
 	.collection_content_list > li > i {
 		scale: 0.9;
@@ -772,9 +807,11 @@
 		white-space: nowrap;
 		position: relative;
 		vertical-align: middle;
-		padding-left: 8px;
+		padding-left: 5px;
 		padding-right: 8px;
 		box-sizing: border-box;
+		border-left: 3px solid var(--color-scope);
+		--color-scope: transparent;
 	}
 	.texture.multi_selected {
 		color: var(--color-light);
@@ -1010,6 +1047,7 @@
 		background-color: var(--color-back);
 		border: 1px solid var(--color-border);
 		border-bottom: none;
+		touch-action: none;
 	}
 	#texture_animation_timeline .texture_animation_frame {
 		flex-grow: 1;
@@ -1056,6 +1094,7 @@
 		box-sizing: border-box;
 		align-items: center;
 		gap: 6px;
+		padding-left: calc(8px + var(--indentation) * 20px)
 	}
 	.texture_layer:first-child {
 		margin-bottom: auto;
@@ -1070,18 +1109,26 @@
 		border: 2px dashed var(--color-accent);
 		font-style: italic;
 	}
-	.texture_layer .layer_icon_wrapper {
+	.texture_layer[layer_type="layer_group"] {
+		height: 30px;
+	}
+	.layer_icon_wrapper {
 		height: 40px;
 		width: 40px;
 		flex-grow: 0;
 		flex-shrink: 0;
 		overflow: hidden;
 	}
-	.texture_layer canvas {
+	.layer_icon_wrapper canvas {
 		width: 100%;
+	}
+	.texture_layer[layer_type="layer_group"] > i.icon-open-state {
+		width: 14px;
+		text-align: center;
 	}
 	.texture_layer > label {
 		flex-grow: 1;
+		overflow: hidden;
 	}
 	.texture_layer i.toggle_disabled {
 		color: var(--color-subtle_text);
@@ -1091,7 +1138,21 @@
 		margin-top: 1px;
 	}
 	.texture_layer.drag_hover[order]::before {
-		left: -6px;
+		left: 0;
+	}
+	#layers_list > .activate_layers_button {
+		display: flex;
+		height: 40px;
+		width: 100%;
+		margin: auto;
+		margin-top: 0;
+		align-items: center;
+		cursor: pointer;
+		text-align: center;
+		justify-content: center;
+	}
+	#layers_list > .activate_layers_button:hover {
+		text-decoration: underline;
 	}
 
 /*Animations*/
@@ -1106,6 +1167,9 @@
 		vertical-align: middle;
 		padding: 8px;
 		box-sizing: border-box;
+		padding-left: 5px;
+		border-left: 3px solid var(--color-scope);
+		--color-scope: transparent;
 	}
 	.animation:hover {
 		color: var(--color-light);
@@ -1134,13 +1198,6 @@
 	}
 	.in_list_button {
 		width: 22px;
-		color: var(--color-text);
-	}
-	.in_list_button:hover {
-		color: var(--color-light);
-	}
-	.in_list_button {
-		width: 22px;
 		height: 22px;
 		color: var(--color-text);
 	}
@@ -1148,7 +1205,7 @@
 		color: var(--color-light);
 	}
 	.in_list_button.unclickable {
-		color: var(--color-subtle_text) !important;
+		color: var(--color-subtle_text);
 		pointer-events: none;
 	}
 
@@ -1334,9 +1391,17 @@
 	}
 
 /* Placeholders */
+	#panel_variable_placeholders .prism-editor-component {
+		flex-shrink: 1;
+		flex-grow: 1;
+		height: 50%;
+	}
 	ul#placeholder_buttons {
 		max-height: 32%;
 		overflow: auto;
+	}
+	ul#placeholder_buttons:has(> li) {
+		min-height: 32px;
 	}
 	#placeholder_buttons li {
 		display: flex;
@@ -1388,6 +1453,7 @@
 		background-color: var(--color-ui);
 		display: flex;
 		flex-direction: column;
+		min-height: 120px;
 	}
 	#timeline_vue {
 		flex-grow: 1;
@@ -1403,21 +1469,40 @@
 	}
 	.timeline_marker {
 		position: absolute;
+		top: 11px;
 		margin-left: -9px;
 		z-index: 5;
-		height: 10px;
+		height: 16px;
 		width: 20px;
 		cursor: pointer;
 	}
 	.timeline_marker > i {
 		position: relative;
 		pointer-events: none;
-		left: 5px;
 		top: -4px;
+		font-size: 17px;
 		color: var(--color);
+	}
+	.timeline_marker > i::after {
+		content: "";
+		width: 9px;
+		height: 9px;
+		position: absolute;
+		top: 3px;
+		left: 5px;
+		background-color: var(--color);
 	}
 	.timeline_marker:hover > i {
 		top: -3px;
+	}
+	.timeline_marker:hover > .tooltip {
+		visibility: visible;
+		margin-top: -10px;
+		right: 0;
+		left: 0;
+	}
+	#timeline_time.holding_ctrl .timeline_marker {
+		cursor: ew-resize;
 	}
 	#timeline_playhead {
 		position: absolute;
@@ -1517,20 +1602,22 @@
 		font-size: 10px;
 		color: var(--color-back);
 		top: 3px;
-		left: 0;
+		left: -0.4px;
 		font-weight: 600;
 	}
 	#timeline_body .animator_head_bar .keyframe {
 		z-index: 1;
 		pointer-events: none;
 	}
+	#timeline_body .animator_head_bar .keyframe:not(.selected) i {
+		color: #495061;
+	}
 	#timeline_body .animator_head_bar .keyframe i {
 		transform: none;
 		font-size: 6pt;
-		color: var(--color-grid);
 	}
 	#panel_timeline .keyframe.selected i {
-		color: var(--color-accent) !important;
+		color: var(--color-accent);
 		z-index: 4;
 	}
 	#panel_timeline .keyframe:hover {
@@ -1577,9 +1664,9 @@
 		justify-content: space-between;
 		width: 144px;
 		flex-shrink: 0;
-		background-color: var(--color-back);
+		background-color: var(--color-ui);
 		z-index: 6;
-		border-bottom: 1px solid var(--color-border);
+		border-right: 1px solid var(--color-border);
 		height: calc(100% + 1px);
 	}
 	#timeline_timestamp {
@@ -1675,7 +1762,8 @@
 		z-index: 5;
 	}
 	#timeline_vue.graph_editor li.animator > div {
-		width: fit-content !important;
+		width: fit-content;
+		background-color: var(--color-ui);
 	}
 	.channel_head {
 		position: sticky;
@@ -1684,13 +1772,12 @@
 		width: 144px;
 		background-color: var(--color-ui);
 		border-right: 1px solid var(--color-border);
-	    border-left: 2px solid transparent;
 		box-shadow: 1px 8px 10px 0 #00000038;
 		z-index: 5;
 	}
 	#timeline_vue.graph_editor .channel_head {
 		flex-wrap: wrap;
-		justify-content: flex-end;
+		justify-content: flex-start;
 	}
 	.drag_hover[order]::before {
 		z-index: 7;
@@ -1724,11 +1811,13 @@
 	body:not(.is_mobile) #timeline_body li > .animator_channel_bar .channel_head {
 		padding-left: 16px;
 	}
-	.animator.selected .channel_head {
-	    border-left-color: var(--color-accent);
+	.animator.selected .animator_head_bar .channel_head {
+		border-radius: 5px;
+		background-color: var(--color-selected);
 	}
 	.channel_head.selected {
-		background-color: var(--color-selected);
+		background-color: var(--color-elevated);
+		border-radius: 5px;
 	}
 	.channel_head .text_button {
 		width: 26px;
@@ -1744,7 +1833,11 @@
 		color: var(--color-subtle_text);
 	}
 	.animator_channel_bar .channel_head .text_button .channel_mute {
-		font-size: 11pt;
+		font-size: 14pt;
+		margin-top: 3px;
+	}
+	.animator_channel_bar .channel_head .text_button .channel_mute.disabled {
+		color: var(--color-subtle_text);
 	}
 	.animator_channel_bar .channel_head .text_button .fa-eye-slash,
 	.animator_channel_bar .channel_head .text_button .fa-volume-mute {
@@ -1757,10 +1850,22 @@
 		font-size: 18px;
 		margin: 2px;
 	}
+	.channel_head > i {
+		font-size: 19px;
+		padding-top: 2px;
+	}
 	.channel_head span {
 		flex-grow: 1;
 		flex-shrink: 1;
 		overflow: hidden;
+		white-space: nowrap;
+	}
+	.channel_head span.timeline_animator_name {
+		padding-left: 5px;
+	}
+	.animator_channel_bar .channel_head span {
+		font-size: 0.93em;
+		line-height: 23px;
 	}
 	.animator_channel_bar .channel_head:not(.selected) span {
 		color: var(--color-subtle_text);
@@ -1812,6 +1917,7 @@
 		height: 100%;
 		margin-left: 9px;
 		pointer-events: none;
+		--color-loop_graph: #495061;
 	}
 	#timeline_graph_editor svg path {
 		stroke: #f72858;
@@ -1819,9 +1925,9 @@
 		fill: none;
 	}
 	#timeline_graph_editor svg text {
-		stroke: var(--color-subtle_text);
-		font-weight: 200;
+		fill: var(--color-subtle_text);
 		opacity: 0.8;
+		font-size: 0.9em;
 	}
 	#timeline_graph_editor svg .main_graph:not(.selected) {
 		opacity: 0.35;
@@ -1906,6 +2012,7 @@
 	border: 1px solid transparent;
 	transition: width 100ms ease-in-out;
 	position: relative;
+	border-radius: 6px;
 }
 #animation_controllers_wrapper .controller_state.selected {
 	width: min(100vw, 300px);
@@ -1920,7 +2027,9 @@
 }
 .controller_state_title_bar {
 	height: 30px;
-	background-color: var(--color-button);
+	background-color: var(--color-elevated);
+	border-radius: inherit;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 	display: flex;
 	cursor: pointer;
 	transition: background-color var(--blend-transition) linear, color var(--blend-transition) linear;
@@ -2255,6 +2364,7 @@ span.controller_state_section_info {
 		position: relative;
 		overflow: hidden;
 		scrollbar-color: var(--color-selected) var(--color-background);
+		touch-action: none;
 	}
 	#uv_frame {
 		height: 320px;
@@ -2264,6 +2374,7 @@ span.controller_state_section_info {
 		border: 4px solid var(--color-frame);
 		box-shadow: 0 0 0 1800px var(--color-background);
     	box-sizing: content-box;
+		touch-action: none;
 		--color-uv-unselected: var(--color-grid);
 		--color-uv-selected: white;
 		--color-uv-hover: var(--color-accent);
@@ -2284,6 +2395,7 @@ span.controller_state_section_info {
 	#uv_frame.overlay_mode .uv_face,
 	#uv_frame.overlay_mode .uv_face * {
 		pointer-events: none;
+		touch-action: none;
 	}
 
 	body[mode=paint] #uv_frame,
@@ -2306,6 +2418,9 @@ span.controller_state_section_info {
 		height: 300%;
 		margin-top: calc(-1 * var(--inner-height));
 		margin-left: calc(-1 * var(--inner-width));
+	}
+	body[mode="edit"] #uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas {
+		opacity: 0.3;
 	}
 	#uv_frame > #texture_canvas_wrapper > canvas.overlay_canvas[overlay_mode=onion_skin] {
 		width: 100%;
@@ -2341,26 +2456,28 @@ span.controller_state_section_info {
 	#uv_texture_grid path.bold_grid {
 		stroke-width: 0.86px;
 	}
-	div#uv_brush_outline {
+	div.brush_outline {
 		border: 2px solid white;
-		width: calc(var(--radius) * 2px);
-		height: calc(var(--radius) * 2px);
-		margin: calc(var(--radius) * -1px);
+		width: calc(var(--width) * 2px);
+		height: calc(var(--height) * 2px);
+		margin: calc(var(--height) * -1px) calc(var(--width) * -1px);
 		position: absolute;
 		pointer-events: none;
+		touch-action: none;
 		mix-blend-mode: difference;
 		z-index: 1;
 	}
-	div#uv_brush_outline.circle {
+	div.brush_outline.circle {
 		border-radius: 50%;
 	}
 	div#uv_copy_brush_outline {
 		border: 2px dashed white;
-		width: calc(var(--radius) * 2px);
-		height: calc(var(--radius) * 2px);
-		margin: calc(var(--radius) * -1px);
+		width: calc(var(--width) * 2px);
+		height: calc(var(--height) * 2px);
+		margin: calc(var(--height) * -1px) calc(var(--width) * -1px);
 		position: absolute;
 		pointer-events: none;
+		touch-action: none;
 		mix-blend-mode: difference;
 		z-index: 1;
 	}
@@ -2378,7 +2495,7 @@ span.controller_state_section_info {
 		width: 16px;
 	}
 	div#uv_brush_line_preview {
-		margin: calc(var(--radius) * 1px);
+		margin: calc(var(--height) * 1px - 2px) calc(var(--width) * 1px - 2px);
 		position: relative;
 		height: 2px;
 		transform-origin: left;
@@ -2518,7 +2635,7 @@ span.controller_state_section_info {
 
 	.face_properties_toggle {
 		width: 32px;
-		flex-grow: 0 !important;
+		flex-grow: 0;
 	}
 	.face_properties_toggle > i {
 		margin: 1px auto;
@@ -2647,6 +2764,8 @@ span.controller_state_section_info {
 		background-color: var(--color-uv-background);
 		text-align: center;
 		color: var(--color-subtle_text);
+		font-size: 13px;
+		touch-action: none;
 	}
 	.cube_uv_face:hover {
 		border-color: var(--color-uv-hover);
@@ -2660,12 +2779,11 @@ span.controller_state_section_info {
 	}
 	.cube_uv_face.unselected,
 	.cube_box_uv.unselected {
-		pointer-events: none;
 		z-index: 1;
 	}
 	.cube_uv_face.unselected > div,
 	.cube_box_uv.unselected > div {
-		border-color: var(--color-uv-unselected) !important;
+		border-color: var(--color-uv-unselected);
 	}
 
 	.uv_resize_side {
@@ -2711,6 +2829,7 @@ span.controller_state_section_info {
 	.mesh_uv_face {
 		position: absolute;
 		pointer-events: none;
+		touch-action: none;
 		z-index: 1;
 	}
 	.mesh_uv_face.selected {
@@ -2738,11 +2857,12 @@ span.controller_state_section_info {
 		position: absolute;
 		pointer-events: initial;
 		z-index: 3;
-		margin: -6px;
-		height: 9px;
-		width: 9px;
+		margin: -4px;
+		height: 10px;
+		width: 10px;
 		background-color:  white;
 		border: 1px solid black;
+		border-radius: 5px;
 		cursor: move;
 	}
 	.uv_mesh_vertex.selected {
@@ -2795,9 +2915,15 @@ span.controller_state_section_info {
 		content: "";
 		display: block;
 		margin: -2px;
+		height: 12px;
+		width: 12px;
+		border: 1px solid white;
+		border-radius: 5px;
+	}
+	.cube_uv_face > .main_corner::after {
 		height: 11px;
 		width: 11px;
-		border: 1px solid white;
+		border-radius: 2px;
 	}
 	.main_corner.selected::after {
 		border-color: var(--color-accent);
@@ -2837,7 +2963,7 @@ span.controller_state_section_info {
 		display: flex;
 		height: 28px;
 	}
-	#uv_cube_face_bar li {
+	#uv_cube_face_bar li:not(.face_properties_toggle) {
 		flex-grow: 1;
 		text-align: center;
 		padding: 2px;
@@ -2847,7 +2973,8 @@ span.controller_state_section_info {
 		color: var(--color-light);
 	}
 	#uv_cube_face_bar li.selected {
-		border-bottom: 3px solid var(--color-accent);
+		border-radius: 3px;
+		background: var(--color-selected);
 	}
 	#uv_cube_face_bar li.disabled {
 		color: var(--color-subtle_text);
@@ -2863,31 +2990,6 @@ span.controller_state_section_info {
 	}
 	#texture_selection_rect.ellipse {
 		border-radius: 50%;
-	}
-	#texture_pasting_overlay {
-		position: absolute;
-		pointer-events: initial !important;
-	}
-	#texture_pasting_overlay canvas {
-		pointer-events: initial !important;
-	}
-	#texture_pasting_overlay::before {
-		content: "";
-		display: block;
-		box-sizing: content-box;
-		position: absolute;
-		border: 1px dashed white;
-		margin: -1px;
-		pointer-events: none;
-		z-index: 6;
-		width: 100%;
-		height: 100%;
-	}
-	#texture_pasting_overlay > canvas {
-		box-shadow: 1px 1px 20px black;
-		cursor: move;
-		z-index: 5;
-		float: left;
 	}
 	.uv_transparent_face {
 		margin: 8px auto auto;
@@ -3077,7 +3179,6 @@ span.controller_state_section_info {
 	#palette_list {
 		padding: 2px;
 		min-height: 160px;
-		max-height: 232px;
 		line-height: 0;
 	}
 	#palette_list .color {

@@ -21,9 +21,10 @@ interface PropertyOptions {
 	reset?(instance: any): void
 	merge_validation?(value: any): boolean
 	inputs?: {
-		element_panel: {
+		[key: 'element_panel' | 'dialog' | string]: {
 			input: FormElementOptions,
-			onChange?: () => void
+			shared?: boolean
+			onChange?: (value: any, nodes: OutlinerNode[]) => void
 		}
 	}
 }
@@ -150,7 +151,7 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
 		} else if (this.isArray) {
-			return this.default ? this.default.slice() : [];
+			return this.default ? this.default.slice() : [] as any;
 		} else if (this.isObject) {
 			return Object.keys(this.default).length ? structuredClone(this.default) : {} as any;
 		} else {
@@ -243,4 +244,11 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 	}
 }
 
-Object.assign(window, {Property});
+const global = {
+	Property
+}
+declare global {
+	const Property: typeof global.Property
+	type Property = import('./property').Property<any>
+}
+Object.assign(window, global);

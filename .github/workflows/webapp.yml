@@ -27,7 +27,7 @@ jobs:
       - name: Build
         run: |
           npm install
-          npm run prepublish
+          npm run prepublish-web
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

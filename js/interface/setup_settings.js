@@ -1,3 +1,4 @@
+import { AutoBackup } from "../auto_backup";
 import { changeImageEditor } from "../desktop";
 import { currentwindow } from "../native_apis";
 import { Setting, Settings, SettingsProfile } from "./settings";
@@ -13,7 +14,6 @@ function setupSettings() {
 	new Setting('username', {value: '', type: 'text'});
 	new Setting('streamer_mode', {value: false, onChange() {
 		StartScreen.vue._data.redact_names = settings.streamer_mode.value;
-		// @ts-ignore
 		Interface.status_bar.vue.$data.streamer_mode = settings.streamer_mode.value;
 		updateStreamerModeNotification();
 	}});
@@ -47,12 +47,17 @@ function setupSettings() {
 	new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
 		Interface.status_bar.vue.show_modifier_keys = value;
 	}});
+	new Setting('status_bar_transform_sliders', {category: 'interface', value: true, condition: Blockbench.isTouch, onChange(value) {
+		updateInterface();
+	}});
 	new Setting('always_show_splash_art',{category: 'interface', value: true});
 	new Setting('origin_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 	new Setting('control_size',  		{category: 'interface', value: 10, type: 'number', min: 2, max: 40});
 	new Setting('motion_trails',  		{category: 'interface', value: true, onChange() {
 		if (Animator.open) {
-			scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			Canvas.scene[this.value ? 'add' : 'remove'](Animator.motion_trail);
+			Animator.showMotionTrail(null, true);
+			Animator.preview();
 		}
 	}});
 	new Setting('seethrough_outline', 	{category: 'interface', value: false, onChange(value) {
@@ -65,6 +70,14 @@ function setupSettings() {
 	}});
 	new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
 		UVEditor.vue.checkerboard = val;
+	}});
+	new Setting('display_uv', 			{category: 'interface', value: 'selected_elements', type: 'select', options: {
+		selected_faces: 'settings.display_uv.selected_faces',
+		selected_elements: 'settings.display_uv.selected_elements',
+		all_elements: 'settings.display_uv.all_elements',
+	}, onChange(value) {
+		BarItems.edit_mode_uv_overlay.value = value == 'all_elements';
+		BarItems.edit_mode_uv_overlay.updateEnabledState();
 	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
 		Timeline.vue.updateTimecodes();
@@ -92,6 +105,9 @@ function setupSettings() {
 			preview.camPers.updateProjectionMatrix();
 		});
 	}});
+	new Setting('maximum_zoom_distance',{category: 'preview', value: 4000, type: 'number', min: 16, onChange(val) {
+		Preview.all.forEach(preview => preview.controls.maxDistance = val);
+	}});
 	new Setting('render_sides', 			{category: 'preview', value: 'auto', type: 'select', options: {
 		'auto': tl('settings.render_sides.auto'),
 		'front': tl('settings.render_sides.front'),
@@ -99,14 +115,15 @@ function setupSettings() {
 	}, onChange() {
 		Canvas.updateRenderSides();
 	}});
+	new Setting('constant_outlines', 		{category: 'preview', value: false, onChange() { updateSelection() }});
 	new Setting('tone_mapping', 			{category: 'preview', value: 'none', type: 'select', options: {
 		none: tl('generic.none'),
 		linear: 'Linear',
 		reinhard: 'Reinhard',
 		cineon: 'Cineon',
 		aces_filmic: 'ACES Filmic',
-		agx: 'AgX',
-		neutral: 'Neutral',
+		// agx: 'AgX',
+		// neutral: 'Neutral',
 	}, onChange() {
 		for (let preview of Preview.all) {
 			preview.updateToneMapping();
@@ -116,18 +133,16 @@ function setupSettings() {
 			model.material.needsUpdate = true;
 		}
 	}});
-	new Setting('fps_limit',				{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
-	new Setting('background_rendering', 	{category: 'preview', value: true});
-	new Setting('texture_fps',   			{category: 'preview', value: 7, type: 'number', min: 0, max: 120, onChange() {
-		TextureAnimator.updateSpeed()
-	}});
-	new Setting('particle_tick_rate',		{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
+	new Setting('fps_limit',						{category: 'preview', value: 144, min: 10, max: 1024, type: 'number'});
+	new Setting('background_rendering', 			{category: 'preview', value: true});
+	new Setting('flipbook_textures_in_animation',	{category: 'preview', value: true});
+	new Setting('particle_tick_rate',				{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
 		WinterskyScene.global_options.tick_rate = this.value;
 	}});
-	new Setting('volume', 					{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
-	new Setting('audio_scrubbing',			{category: 'preview', value: true});
-	new Setting('save_view_per_tab',		{category: 'preview', value: true});
-	new Setting('display_skin',				{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
+	new Setting('volume', 							{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
+	new Setting('audio_scrubbing',					{category: 'preview', value: true});
+	new Setting('save_view_per_tab',				{category: 'preview', value: true});
+	new Setting('display_skin',						{category: 'preview', value: false, type: 'click', icon: 'icon-player', click: function() { changeDisplaySkin() }});
 
 	new Setting('viewport_rotate_speed',	{category: 'controls', value: 100, min: 10, max: 1000, type: 'number', onChange(value) {
 		Preview.all.forEach(viewport => viewport.controls.rotateSpeed = value / 100)
@@ -146,12 +161,14 @@ function setupSettings() {
 	new Setting('undo_selections',			{category: 'edit', value: false});
 	new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 	new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
-		updateCubeHighlights();
+		Canvas.updateCubeHighlights();
 	}});
 	new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
 		DisplayMode.vue.allow_mirroring = value;
 	}})
+	new Setting('local_position_values',	{category: 'edit', value: false});
+	new Setting('transform_cube_from_center',{category: 'edit', value: false});
 	new Setting('deactivate_size_limit',	{category: 'edit', value: false});
 	new Setting('modded_entity_integer_size',{category:'edit', value: true});
 	new Setting('vertex_merge_distance',	{category: 'edit', value: 0.1, step: 0.01, type: 'number', min: 0});
@@ -176,18 +193,27 @@ function setupSettings() {
 			Interface.Panels.color.vue.picker_type = value;
 		}
 	});
-	new Setting('brush_cursor_2d',			{category: 'paint', value: true});
-	new Setting('brush_cursor_3d',			{category: 'paint', value: true, onChange(value) {
+	new Setting('brush_cursor_2d',					{category: 'paint', value: true});
+	new Setting('brush_cursor_3d',					{category: 'paint', value: true, onChange(value) {
 		if (!value) scene.remove(Canvas.brush_outline);
 	}});
-	new Setting('outlines_in_paint_mode',		{category: 'paint', value: true});
-	new Setting('move_with_selection_tool',		{category: 'paint', value: true});
-	new Setting('pick_color_opacity',			{category: 'paint', value: false});
-	new Setting('pick_combined_color',			{category: 'paint', value: false});
-	new Setting('paint_through_transparency',	{category: 'paint', value: true});
-	new Setting('paint_side_restrict',			{category: 'paint', value: true});
-	new Setting('paint_with_stylus_only',		{category: 'paint', value: false});
-	new Setting('brush_opacity_modifier',		{category: 'paint', value: 'none', type: 'select', options: {
+	new Setting('outlines_in_paint_mode',			{category: 'paint', value: true});
+	new Setting('move_with_selection_tool',			{category: 'paint', value: true});
+	new Setting('pick_color_opacity',				{category: 'paint', value: false});
+	new Setting('pick_combined_color',				{category: 'paint', value: false});
+	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
+	new Setting('paint_through_transparency',		{category: 'paint', value: true});
+	new Setting('paint_side_restrict',				{category: 'paint', value: true});
+	new Setting('opacity_range',					{category: 'paint', value: '255', type: 'select', options: {
+		'255': '0-255',
+		'100': '0-100%',
+	}, onChange(value) {
+		BarItems.slider_brush_opacity.update();
+		BarItems.layer_opacity.update();
+	}});
+	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
+	new Setting('paint_with_stylus_only',			{category: 'paint', value: false});
+	new Setting('brush_opacity_modifier',			{category: 'paint', value: 'none', type: 'select', options: {
 		'pressure': tl('settings.brush_modifier.pressure'),
 		'tilt': tl('settings.brush_modifier.tilt'),
 		'none': tl('settings.brush_modifier.none'),
@@ -244,8 +270,16 @@ function setupSettings() {
 	new Setting('autouv',							{category: 'defaults', value: true});
 	new Setting('inherit_parent_color',				{category: 'defaults', value: false});
 	new Setting('create_rename', 					{category: 'defaults', value: false});
-	new Setting('show_only_selected_uv', 			{category: 'defaults', value: false});
 	new Setting('default_path', 					{category: 'defaults', value: false, type: 'click', condition: isApp, icon: 'burst_mode', click: function() { openDefaultTexturePath() }});
+	new Setting('default_bedrock_format',			{category: 'defaults', type: 'select', value: 'entity', options: {
+		entity: 'format.bedrock',
+		block: 'format.bedrock_block',
+	}});
+	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
+		latest: 'Latest',
+		'1.21.6': '1.21.6 - 1.21.10',
+		'1.9.0': '1.9 - 1.21.5',
+	}});
 	new Setting('animation_snap',					{category: 'defaults', value: 24, type: 'number'});
 	new Setting('default_keyframe_interpolation',	{category: 'defaults', value: 'linear', type: 'select', options: {
 		linear: 'action.keyframe_interpolation.linear',
@@ -256,10 +290,12 @@ function setupSettings() {
 	new Setting('uniform_keyframe',					{category: 'defaults', value: true});
 	
 	//Dialogs
+	new Setting('new_project_dialog',		{category: 'dialogs', value: true});
 	new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
 	new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
 	new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 	new Setting('dialog_invalid_characters',{category: 'dialogs', value: true, name: tl('message.invalid_characters.title'), description: tl('settings.dialog.desc', [tl('message.invalid_characters.title')])});
+	new Setting('dialog_generated_item_model', {category: 'dialogs', value: true, name: tl('message.generated_item_model.title'), description: tl('settings.dialog.desc', [tl('message.generated_item_model.title')])});
 	new Setting('dialog_save_codec',		{category: 'dialogs', value: true, name: tl('message.save_codec_selector.title'), description: tl('settings.dialog.desc', [tl('message.save_codec_selector.title')])});
 	
 	//Application
@@ -268,7 +304,9 @@ function setupSettings() {
 	new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 	new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
+	new Setting('automatic_plugin_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
+	new Setting('native_window_frame', {category: 'application', value: false, requires_restart: true, condition: isApp, launch_setting: true});
 	
 	//Export
 	new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {
@@ -303,6 +341,13 @@ function setupSettings() {
 	Blockbench.onUpdateTo('5.0.0', () => {
 		settings.antialiasing_bleed_fix.set(true);
 	})
+	// Fail-safe
+	setTimeout(() => {
+		if (Preview.selected && Preview.selected.renderer.capabilities.isWebGL2 == false) {
+			settings.antialiasing_bleed_fix.set(false);
+			console.warn('Downgrading settings to support WebGL 1');
+		}
+	}, 4*1000);
 }
 function setupSettingsProfiles() {
 	if (localStorage.getItem('settings_profiles') != null) {

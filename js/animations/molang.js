@@ -1,4 +1,5 @@
 import { isStringNumber } from "../util/math_util"
+import { EffectAnimator } from "./timeline_animators"
 
 Animator.MolangParser.context = {}
 Animator.MolangParser.global_variables = {
@@ -18,7 +19,7 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 	get 'query.time_stamp'() {
-		return Math.floor(Timeline.time * 20) / 20
+		return Math.floor(Timeline.time * 20);
 	},
 	get 'query.all_animations_finished'() {
 		if (AnimationController.selected?.selected_state) {
@@ -66,11 +67,11 @@ Animator.MolangParser.global_variables = {
 		return val
 	},
 	get 'query.distance_from_camera'() {
-		return Preview.selected.camera.position.length() / 16
+		return Preview.selected.camera.position.length() / Format.block_size
 	},
 	'query.lod_index'(indices) {
 		indices.sort((a, b) => a - b)
-		let distance = Preview.selected.camera.position.length() / 16
+		let distance = Preview.selected.camera.position.length() / Format.block_size
 		let index = indices.length
 		indices.forEachReverse((val, i) => {
 			if (distance < val) index = i
@@ -78,7 +79,7 @@ Animator.MolangParser.global_variables = {
 		return index
 	},
 	'query.camera_distance_range_lerp'(a, b) {
-		let distance = Preview.selected.camera.position.length() / 16
+		let distance = Preview.selected.camera.position.length() / Format.block_size
 		return Math.clamp(Math.getLerp(a, b, distance), 0, 1)
 	},
 	get 'query.is_first_person'() {
@@ -86,6 +87,14 @@ Animator.MolangParser.global_variables = {
 	},
 	get 'context.is_first_person'() {
 		return Project.bedrock_animation_mode == 'attachable_first' ? 1 : 0
+	},
+	'query.get_default_bone_pivot'(bone_name, axis) {
+		let group = Group.all.find(g => g.name.toLowerCase() == bone_name);
+		if (group && axis >= 0 && axis < 3) {
+			let value = group.origin[axis] ?? 0;
+			if (axis == 0) value *= -1;
+			return value;
+		}
 	},
 	get time() {
 		return Timeline.time
@@ -104,11 +113,11 @@ Animator.MolangParser.variableHandler = function (variable, variables, args) {
 	}
 
 	if (val.match(/^(slider|toggle|impulse)\(/)) {
-		let [type, content] = val.substring(0, val.length - 1).split(/\(/)
+		let [type, content] = val.substring(0, val.lastIndexOf(')')).split(/\(/)
 		let [id] = content.split(/\(|, */)
 		id = id.replace(/['"]/g, '')
 
-		let button = Interface.Panels.variable_placeholders.inside_vue.buttons.find(
+		let button = Panels.variable_placeholders.inside_vue.buttons.find(
 			(b) => b.id === id && b.type == type
 		)
 		return button ? parseFloat(button.value) : 0
@@ -211,7 +220,7 @@ export function getAllMolangExpressions() {
 }
 
 new ValidatorCheck('molang_syntax', {
-	condition: { features: ['animation_mode'] },
+	condition: { features: ['animation_mode', 'molang'] },
 	update_triggers: ['update_keyframe_selection', 'edit_animation_properties'],
 	run() {
 		let check = this
@@ -228,6 +237,13 @@ new ValidatorCheck('molang_syntax', {
 			}
 			if (clear_string.match(/^[+*/.,?=&<>|]/)) {
 				issues.push('Expression starts with an invalid character')
+			}
+			if (
+				clear_string.endsWith(';') &&
+				!clear_string.includes('return ') &&
+				!(instance instanceof Keyframe && instance.animator instanceof EffectAnimator)
+			) {
+				issues.push('Complex expression with no return value. Remove the semicolon or add a return statement')
 			}
 			if (
 				(clear_string.match(/[\w.]\s+[\w.]/) &&
@@ -1708,6 +1724,143 @@ export function sortAutocompleteResults(results, incomplete) {
 					id: 'hermite_blend',
 					arguments: ['0_to_1'],
 				})
+				.addQuery({
+					id: 'min_angle',
+					arguments: ['angle'],
+				})
+				.addQuery({
+					id: 'sign',
+					arguments: ['value'],
+				})
+				.addQuery({
+					id: 'copy_sign',
+					arguments: ['value', 'sign'],
+				})
+				.addQuery({
+					id: 'inverse_lerp',
+					arguments: ['start', 'end', 'value'],
+				})
+				.addQuery({
+					id: 'ease_in_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quad',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_cubic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quart',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_quint',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_sine',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_expo',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_circ',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_bounce',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_back',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+				.addQuery({
+					id: 'ease_in_out_elastic',
+					arguments: ['start', 'end', '0_to_1'],
+				})
+
 		)
 		.addNamespace(
 			new MolangAutocomplete.Namespace({

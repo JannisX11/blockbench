@@ -1,7 +1,14 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 
 import type { FSWatcher } from 'fs'
 import type { ShaderMaterial } from 'three'
+
+interface FileFormatOptions {
+	name: string
+	extensions: string[],
+	async encode?(texture: Texture): Uint8Array
+	async decode?(data: Uint8Array, texture: Texture): void
+}
 
 declare global {
 	interface TextureData {
@@ -24,7 +31,13 @@ declare global {
 		visible?: boolean
 		render_mode?: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides?: 'auto' | 'front' | 'double' | string
+		wrap_mode?: 'limited' | 'repeat' | 'clamp'
 		pbr_channel?: 'color' | 'normal' | 'height' | 'mer'
+		/**
+		 * UUID of the texture group that the texture is in
+		 */
+		group?: string
+		scope?: number
 
 		/**
 		 * Texture animation frame time
@@ -46,7 +59,7 @@ declare global {
 		/**
 		 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
 		 */
-		internal: boolean
+		internal?: boolean
 		/**
 		 * Flag to indicate that the texture was manually resized, and on load it should not try to automatically adjust UV size
 		 */
@@ -104,7 +117,12 @@ declare global {
 		particle: boolean
 		render_mode: 'default' | 'emissive' | 'additive' | 'layered' | string
 		render_sides: 'auto' | 'front' | 'double' | string
+		wrap_mode: 'limited' | 'repeat' | 'clamp'
 		pbr_channel: 'color' | 'normal' | 'height' | 'mer'
+		use_as_default: boolean
+		/** UUID of the TextureGroup that this texture is in, if set */
+		group: string
+		scope: number
 
 		/** Texture animation frame time */
 		frame_time: number
@@ -124,7 +142,7 @@ declare global {
 		 * Whether the texture is multi selected
 		 */
 		multi_selected: boolean
-		selected_layer: TextureLayer | null
+		selected_layer: TextureLayerItem | null
 		show_icon: boolean
 		error: number
 		/** Whether the texture is visible. Used for layered textures mode */
@@ -149,12 +167,16 @@ declare global {
 		 * Set a function that will run once the next time the texture is loaded
 		 */
 		load_callback?: null | ((texture: Texture) => void)
+		/**
+		 * Custom texture flags
+		 */
+		flags: Set
 
 		/**
 		 * Texture selection in paint mode
 		 */
 		selection: IntMatrix
-		layers: TextureLayer[]
+		layers: TextureLayerItem[]
 		layers_enabled: boolean
 		/**
 		 * The UUID of the project to sync the texture to
@@ -173,6 +195,7 @@ declare global {
 		 * Texture image element
 		 */
 		img: HTMLImageElement
+		readonly offset: ArrayVector2
 
 		relative_path?: string
 		get material(): THREE.ShaderMaterial
@@ -208,9 +231,9 @@ declare global {
 		 * @param cb Callback function
 		 */
 		load(cb?: () => {}): this
-		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string }): this
-		fromPath(path: string): this
+		fromJavaLink(link: string, path_array: string[], externalDataLoader?: (path) => any): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult, externalDataLoader?: (path) => any): this
+		fromPath(path: string, externalDataLoader?: (path) => any): this
 		/**
 		 * Loads file content **only**.
 		 *
@@ -257,7 +280,7 @@ declare global {
 		 * Adds texture to the textures list and initializes it
 		 * @param undo If true, an undo point is created
 		 */
-		add(undo?: boolean): Texture
+		add(undo?: boolean, uv_size_from_resolution?: boolean): Texture
 		/**
 		 * Removes the texture
 		 * @param no_update If true, the texture is silently removed. The interface is not updated, no undo point is created
@@ -269,6 +292,10 @@ declare global {
 		 * Enables 'particle' on this texture if it is not enabled on any other texture
 		 */
 		fillParticle(): this
+		/**
+		 * Select this as the default texture in supported formats
+		 */
+		setAsDefaultTexture()
 		/**
 		 * Applies the texture to the selected elements
 		 * @param all If true, the texture is applied to all faces of the elements. If 'blank', the texture is only applied to blank faces
@@ -282,6 +309,10 @@ declare global {
 		 * Opens the texture in the configured image editor
 		 */
 		openEditor(): this
+		/**
+		 * Opens the texture in an image editor tab inside Blockbench
+		 */
+		openInImageEditor(): this
 		showContextMenu(event: MouseEvent): void
 		openMenu(): void
 		resizeDialog(): this
@@ -358,9 +389,17 @@ declare global {
 		syncToOtherProject(): this
 
 		getUndoCopy(): Texture
+		/**
+		 * Return the texture group that the texture is attached to
+		 */
+		getGroup(): TextureGroup | undefined
 
 		static all: Texture[]
 		static getDefault(): Texture
+		static properties: Record<string, Property<any>>
+
+		static file_formats: Record<string, FileFormatOptions>
+		static getAllExtensions(): string[]
 	}
 	/**
 	 * Saves all textures
@@ -421,7 +460,7 @@ declare global {
 		 * Return the smallest possible rectangle that contains all of the selection
 		 * @param respect_empty If true, if there is no selection, the bounding box will still cover the entire area
 		 */
-		getBoundingRect(respect_empty: boolean): Rectangle
+		getBoundingRect(respect_empty: boolean = false): Rectangle
 		/**
 		 * Checks whether a selection is present and contains selected pixels
 		 */
@@ -486,5 +525,6 @@ declare global {
 		function nextFrame(): void
 		function reset(): void
 		function updateButton(): void
+		function playAnimationFrame(anim_time?: number): void
 	}
 }

@@ -1,11 +1,11 @@
 import * as GIFEnc from 'gifenc'
 import $ from 'jquery'
 import * as threejs from "three"
-import * as FIK from './fik'
 import Vue from 'vue/dist/vue.js'
 import JSZip from 'jszip'
 import Prism from 'prismjs'
-import GIF from 'gif.js'
+import 'prismjs/components/prism-json'
+import GIF from './gif'
 import vSortable from 'vue-sortable'
 import Sortable from 'sortablejs'
 import {marked} from 'marked'
@@ -28,7 +28,6 @@ export {
     THREE,
     $,
     $ as jQuery,
-    FIK,
     Vue,
     JSZip,
     Prism,
@@ -36,17 +35,16 @@ export {
     APNGencoder,
     DOMPurify,
 }
-Object.assign(window, {
+const global = {
     GIFEnc,
-    GIF,
     THREE,
     jQuery: $,
     $,
-    FIK,
     Vue,
     JSZip,
     Prism,
     marked,
     APNGencoder,
     DOMPurify,
-})
+}
+Object.assign(window, global);

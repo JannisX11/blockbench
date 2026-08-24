@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 interface UndoAspects {
 	selection?: boolean
 	elements?: OutlinerElement[]
@@ -28,13 +28,16 @@ interface UndoAspects {
 	 * Set to true to include the image content of the specified textures
 	 */
 	bitmap?: boolean
+	layers?: TextureLayerItem[]
 	settings?: {}
 	uv_mode?: boolean
-	animations?: _Animation[]
+	animations?: BBAnimation[]
 	animation_controllers?: AnimationController[]
-	keyframes?: _Keyframe[]
+	keyframes?: BBKeyframe[]
 	display_slots?: string[]
 	exploded_view?: boolean
+	mirror_modeling?: false
+	uv_only?: boolean
 }
 interface UndoSelectionAspects {
 	texture_selection?: boolean
@@ -126,7 +129,7 @@ declare class UndoSystem {
 	 * Starts an edit to the current project by saving the state of the provided aspects
 	 * @param aspects Aspects to save
 	 */
-	initEdit(aspects: UndoAspects): UndoEntry
+	initEdit(aspects: UndoAspects, amended: boolean = false): UndoEntry
 	/**
 	 * Finishes an edit by saving the state of the project after it was changed
 	 * @param action Description of the edit
@@ -135,12 +138,12 @@ declare class UndoSystem {
 	/**
 	 * Cancels an event before it was finished and reset the project to the state before
 	 */
-	cancelEdit(): void
+	cancelEdit(revert_changes?: boolean = false): void
 	/**
 	 * Add keyframes to the current edit that were indirectly removed by moving other keyframes to their position
 	 * @param keyframes
 	 */
-	addKeyframeCasualties(keyframes: _Keyframe[]): void
+	addKeyframeCasualties(keyframes: BBKeyframe[]): void
 	/**
 	 * Undoes the latest edit
 	 */

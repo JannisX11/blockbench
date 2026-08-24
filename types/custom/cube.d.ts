@@ -1,4 +1,4 @@
-/// <reference path="./blockbench.d.ts"/>
+/// <reference types="./blockbench"/>
 type CardinalDirection = 'north' | 'south' | 'east' | 'west' | 'up' | 'down'
 
 interface ICubeOptions {
@@ -13,6 +13,7 @@ interface ICubeOptions {
 	to?: ArrayVector3
 	rotation?: ArrayVector3
 	origin?: ArrayVector3
+	stretch?: ArrayVector3
 	box_uv?: boolean
 	/**
 	 * UV position for box UV mode
@@ -50,10 +51,13 @@ declare class Cube extends OutlinerElement {
 	 * Visibility of the cube in the viewport
 	 */
 	visibility: boolean
+	light_emission: number
+	shade_direction_override: any
 	from: ArrayVector3
 	to: ArrayVector3
 	rotation: ArrayVector3
 	origin: ArrayVector3
+	stretch: ArrayVector3
 	faces: {
 		[fkey: string]: CubeFace
 	}
@@ -80,8 +84,8 @@ declare class Cube extends OutlinerElement {
 	 */
 	size(axis: number, floored?: boolean): number
 	rotationAxis(): string
-	getUndoCopy(aspects?: any): void
-	getSaveCopy(project?: boolean): Cube
+	getUndoCopy(aspects?: any): any
+	getSaveCopy(): Cube
 	/**
 	 * Rotate the cube around axis in 90 degree steps
 	 * @param axis Axis index
@@ -122,25 +126,6 @@ declare class Cube extends OutlinerElement {
 interface FaceOptions {
 	texture?: Texture | UUID | false
 }
-declare class Face {
-	constructor()
-	texture: UUID | false | undefined
-
-	getTexture(): Texture | undefined
-	/**
-	 * Returns a 2D rectangle around the UV face
-	 */
-	getBoundingRect(): any
-	reset(): void
-	/**
-	 * Returns a save copy of the face, ready for serialization. Set project to true to save for a bbmodel project file
-	 */
-	getSaveCopy(project?: boolean): any
-	/**
-	 * Get a copy for undo tracking
-	 */
-	getUndoCopy(): Face
-}
 
 type CubeFaceDirection = 'north' | 'south' | 'east' | 'west' | 'up' | 'down'
 interface CubeFaceOptions extends FaceOptions {
@@ -163,6 +148,6 @@ declare class CubeFace extends Face {
 	material_name: string
 	enabled: boolean
 
-	extend(data: CubeFaceOptions): void
+	extend(data: CubeFaceOptions): this
 	getVertexIndices(): [number, number, number, number]
 }

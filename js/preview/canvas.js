@@ -31,7 +31,9 @@ export const Reusable = {
 	euler2: new THREE.Euler(),
 	euler3: new THREE.Euler(),
 }
-
+let lights = null;
+let scene = new THREE.Scene();
+let Sun = null;
 
 export const Canvas = {
 	// Stores various colors for the 3D scene
@@ -42,12 +44,18 @@ export const Canvas = {
 	pivot_marker: new THREE.Object3D(),
 	gizmos: [],
 	show_gizmos: true,
+	show_element_markers: true,
 	ground_animation: false,
 	outlineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 2,
 		depthTest: settings.seethrough_outline.value == false,
 		transparent: true,
 		color: gizmo_colors.outline
+	}),
+	outlineUnselectedMaterial: new THREE.LineBasicMaterial({
+		linewidth: 1,
+		transparent: true,
+		color: 0x000000
 	}),
 	splinePathLineMaterial: new THREE.LineBasicMaterial({
 		linewidth: 4,
@@ -209,6 +217,8 @@ export const Canvas = {
 		three_grid.name = 'grid_group'
 		gizmo_colors.grid.set(parseInt('0x'+CustomTheme.data.colors.grid.replace('#', ''), 16));
 
+		const block_size = Format.block_size ?? 16;
+
 		Canvas.northMarkMaterial.color = gizmo_colors.grid
 
 		function setupAxisLine(origin, length, axis) {
@@ -233,8 +243,8 @@ export const Canvas = {
 		//Axis Lines
 		if (settings.base_grid.value) {
 			var length = Format.centered_grid
-				? (settings.full_grid.value ? 24 : 8)
-				: 16
+				? (settings.full_grid.value ? block_size*1.5 : block_size/2)
+				: block_size
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'x')
 			setupAxisLine(new THREE.Vector3( 0, 0.01, 0), length, 'z')
 
@@ -243,25 +253,25 @@ export const Canvas = {
 		var side_grid = new THREE.Object3D()
 
 		if (settings.full_grid.value === true) {
-			//Grid
-			let size = settings.large_grid_size.value*16;
+			let size = settings.large_grid_size.value*block_size;
 			var grid = new THREE.GridHelper(size, size/canvasGridSize(), Canvas.gridMaterial);
 			if (Format.centered_grid) {
 				grid.position.set(0,0,0)
 			} else { 
-				grid.position.set(8,0,8)
+				grid.position.set(block_size/2,0,block_size/2)
 			}
 			grid.name = 'grid'
 			three_grid.add(grid)
 			side_grid.add(grid.clone())
 
 			//North
-			let geometry = new THREE.PlaneGeometry(5, 5)
+			let north_size = 5 * (block_size/16);
+			let geometry = new THREE.PlaneGeometry(north_size, north_size);
 			var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 			if (Format.centered_grid) {
 				north_mark.position.set(0,0, -3 - size/2)
 			} else {
-				north_mark.position.set(8, 0, 5 - size/2)
+				north_mark.position.set(block_size/2, 0, 5 - size/2)
 			}
 			north_mark.rotation.x = Math.PI / -2
 			three_grid.add(north_mark)
@@ -270,11 +280,11 @@ export const Canvas = {
 			if (settings.large_grid.value === true) {
 				//Grid
 				let size = settings.large_grid_size.value
-				var grid = new THREE.GridHelper(size*16, size, Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(size*block_size, size, Canvas.gridMaterial);
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
 				} else { 
-					grid.position.set(8,0,8)
+					grid.position.set(block_size/2,0,block_size/2)
 				}
 				grid.name = 'grid'
 				three_grid.add(grid)
@@ -283,24 +293,25 @@ export const Canvas = {
 
 			if (settings.base_grid.value === true) {
 				//Grid
-				var grid = new THREE.GridHelper(16, 16/canvasGridSize(), Canvas.gridMaterial);
+				var grid = new THREE.GridHelper(block_size, block_size/canvasGridSize(), Canvas.gridMaterial);
 
 				if (Format.centered_grid) {
 					grid.position.set(0,0,0)
 				} else { 
-					grid.position.set(8,0,8)
+					grid.position.set(block_size/2,0,block_size/2)
 				}
 				grid.name = 'grid'
 				three_grid.add(grid)
 				side_grid.add(grid.clone())
 
 				//North
-				let geometry = new THREE.PlaneGeometry(2.4, 2.4)
+				let north_size = 2.4 * (block_size/16);
+				let geometry = new THREE.PlaneGeometry(north_size, north_size);
 				var north_mark = new THREE.Mesh(geometry, Canvas.northMarkMaterial)
 				if (Format.centered_grid) {
-					north_mark.position.set(0,0,-9.5)
+					north_mark.position.set(0,0,-0.6*north_size - block_size/2);
 				} else {
-					north_mark.position.set(8,0,-1.5)
+					north_mark.position.set(block_size/2,0,-0.6*north_size);
 				}
 				north_mark.rotation.x = Math.PI / -2
 				three_grid.add(north_mark)
@@ -332,7 +343,7 @@ export const Canvas = {
 		Canvas.side_grids.x.name = 'side_grid_x'
 		Canvas.side_grids.x.visible = !Modes.display;
 		Canvas.side_grids.x.rotation.z = Math.PI/2;
-		Canvas.side_grids.x.position.y = Format.centered_grid ? 8 : 0;
+		Canvas.side_grids.x.position.y = Format.centered_grid ? block_size/2 : 0;
 		Canvas.side_grids.z.position.z = 0
 		Canvas.side_grids.x.children.forEach(el => {
 			el.layers.set(1)
@@ -343,157 +354,99 @@ export const Canvas = {
 		Canvas.side_grids.z.visible = !Modes.display;
 		Canvas.side_grids.z.rotation.z = Math.PI/2;
 		Canvas.side_grids.z.rotation.y = Math.PI/2
-		Canvas.side_grids.z.position.y = Format.centered_grid ? 8 : 0;
+		Canvas.side_grids.z.position.y = Format.centered_grid ? block_size/2 : 0;
 		Canvas.side_grids.z.position.z = 0
 		Canvas.side_grids.z.children.forEach(el => {
 			el.layers.set(3)
 		});
 	},
-	updateShading,
+	updateShading() {
+		Canvas.updateLayeredTextures();
+		Canvas.scene.remove(lights);
+		let settings_brightness = settings.brightness.value/50;
+		Sun.intensity = settings_brightness;
+		let view_mode = window.BarItems ? BarItems.view_mode?.value : 'textured';
+	
+		lights.add(Sun);
+		if (view_mode == 'material') {
+	
+			let light = Canvas.material_light;
+			if (!light) {
+				Canvas.material_light = light = new THREE.DirectionalLight();
+			}
+			light.color.copy(Canvas.global_light_color);
+			light.intensity = 0.7 * settings_brightness;
+	
+			Canvas.scene.add(light);
+			switch (Canvas.global_light_side) {
+				case 0: light.position.set(60, 100, 20); break;
+				case 1: light.position.set(-10, 20, 100); break;
+				case 2: light.position.set(10, 20, -100); break;
+				case 3: light.position.set(100, 20, -10); break;
+				case 4: light.position.set(-100, 20, 10); break;
+				case 5: light.position.set(20, -100, 0); break;
+			}
+	
+			scene.add(Sun);
+			Sun.intensity *= 0.5;
+	
+			TextureGroup.all.forEach(tg => {
+				if (tg.is_material) tg.updateMaterial();
+			})
+	
+		} else {
+			if (settings.shading.value === true) {
+				Sun.intensity *= 0.5;
+				let parent = scene;
+				parent.add(lights);
+				lights.position.copy(parent.position).multiplyScalar(-1);
+			} else {
+				Canvas.scene.add(Sun);
+			}
+			if (Canvas.material_light) {
+				Canvas.scene.remove(Canvas.material_light);
+			}
+			function updateShaderMaterial(material) {
+				let material = tex.getMaterial();
+				if (!material.uniforms) return;
+				material.uniforms.SHADE.value = settings.shading.value;
+				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
+				material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
+			}
+			Texture.all.forEach(tex => {
+				let material = tex.getMaterial();
+				updateShaderMaterial(material);
+			})
+			for (let id in PreviewModel.models) {
+				let model = PreviewModel.models[id];
+				if (model.material) updateShaderMaterial(model.material);
+			}
+			Canvas.emptyMaterials.forEach(material => {
+				material.uniforms.SHADE.value = settings.shading.value;
+				material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+			})
+			Canvas.coloredSolidMaterials.forEach(material => {
+				material.uniforms.SHADE.value = settings.shading.value;
+				material.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+			})
+		}
+		Canvas.monochromaticSolidMaterial.uniforms.SHADE.value = settings.shading.value;
+		Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
+		Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
+		Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
+		Blockbench.dispatchEvent('update_scene_shading');
+	},
+	updateCubeHighlights(hover_cube, force_off) {
+		Outliner.elements.forEach(element => {
+			if (element.visibility && element.mesh.geometry && element.preview_controller.updateHighlight) {
+				element.preview_controller.updateHighlight(element, hover_cube, force_off);
+			}
+		})
+	},
 
 	face_order: ['east', 'west', 'up', 'down', 'south', 'north'],
 	temp_vectors: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
 
-	setup() {
-		Canvas.updateMarkerColorMaterials();
-
-		//Light
-		Sun = new THREE.AmbientLight( 0xffffff );
-		Sun.name = 'sun'
-		Canvas.scene.add(Sun);
-		Sun.intensity = 0.5
-
-		lights = new THREE.Object3D()
-		lights.name = 'lights'
-		
-		lights.top = new THREE.DirectionalLight();
-		lights.top.name = 'light_top'
-		lights.top.position.set(0, 100, 0)
-		lights.add(lights.top);
-		
-		lights.top.intensity = 0.46
-		
-		lights.bottom = new THREE.DirectionalLight();
-		lights.bottom.name = 'light_bottom'
-		lights.bottom.position.set(0, -100, 0)
-		lights.add(lights.bottom);
-		
-		lights.bottom.intensity = -0.02
-
-		lights.north = new THREE.DirectionalLight();
-		lights.north.name = 'light_north'
-		lights.north.position.set(0, 0, -100)
-		lights.add(lights.north);
-
-		lights.south = new THREE.DirectionalLight();
-		lights.south.name = 'light_south'
-		lights.south.position.set(0, 0, 100)
-		lights.add(lights.south);
-
-		lights.north.intensity = lights.south.intensity = 0.3
-
-		lights.west = new THREE.DirectionalLight();
-		lights.west.name = 'light_west'
-		lights.west.position.set(-100, 0, 0)
-		lights.add(lights.west);
-
-		lights.east = new THREE.DirectionalLight();
-		lights.east.name = 'light_east'
-		lights.east.position.set(100, 0, 0)
-		lights.add(lights.east);
-
-		lights.west.intensity = lights.east.intensity = 0.1
-
-		Canvas.updateShading()
-
-		var img = new Image();
-		img.src = 'assets/north.png';
-		var tex = new THREE.Texture(img);
-		img.tex = tex;
-		img.tex.magFilter = THREE.NearestFilter;
-		img.tex.minFilter = THREE.NearestFilter;
-		img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
-		Canvas.northMarkMaterial = new THREE.MeshBasicMaterial({
-			map: tex,
-			transparent: true,
-			side: THREE.DoubleSide,
-			alphaTest: 0.2
-		})
-
-		let brush_outline_material = new THREE.ShaderMaterial({
-			transparent: true,
-			side: THREE.DoubleSide,
-			alphaTest: 0.01,
-			polygonOffset: true,
-			polygonOffsetUnits: 1,
-			polygonOffsetFactor: -1,
-			extensions: { derivatives: true },
-
-			uniforms: {
-				color: { value: new THREE.Color() },
-				width: { value: 2. },
-				SHAPE: { value: 0 },
-			},
-
-			vertexShader: prepareShader(BrushOutlineVertShader),
-			fragmentShader: prepareShader(BrushOutlineFragShader),
-		})
-		Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brush_outline_material);
-		Canvas.brush_outline.matrixAutoUpdate = false;
-		Canvas.gizmos.push(Canvas.brush_outline);
-
-		Canvas.gizmos.push(Canvas.hover_helper_line);
-		Canvas.gizmos.push(Canvas.hover_helper_vertex);
-
-		/*
-		// Vertex gizmos
-		var vertex_img = new Image();
-		vertex_img.src = 'assets/vertex.png';
-		vertex_img.tex = new THREE.Texture(vertex_img);
-		vertex_img.tex.magFilter = THREE.NearestFilter;
-		vertex_img.tex.minFilter = THREE.NearestFilter;
-		vertex_img.onload = function() {
-			this.tex.needsUpdate = true;
-		}
-		Canvas.meshVertexMaterial.map = vertex_img.tex;
-		Canvas.meshVertexMaterial.transparent = true;
-		*/
-
-		//Rotation Pivot
-		var helper1 = new THREE.AxesHelper(2)
-		var helper2 = new THREE.AxesHelper(2)
-		helper1.rotation.x = Math.PI / 1
-
-		helper2.rotation.x = Math.PI / -1
-		helper2.rotation.y = Math.PI / 1
-		helper2.scale.y = -1
-
-		Canvas.pivot_marker.add(helper1)
-		Canvas.pivot_marker.add(helper2)
-
-		Canvas.pivot_marker.name = 'pivot_marker';
-		Canvas.pivot_marker.rotation.order = 'ZYX';
-		Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
-		Canvas.pivot_marker.no_export = true;
-
-		Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
-			map: Canvas.emptyMaterials[0].uniforms.map.value,
-			color: CustomTheme.data.colors.back,
-			side: settings.ground_plane_double_side.value ? THREE.DoubleSide : THREE.FrontSide,
-			alphaTest: 0.2
-		})
-		let size = 4096;
-		Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
-		Canvas.ground_plane.rotation.x = -Math.PI/2;
-		Canvas.ground_plane.position.y = -0.025;
-		Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
-		Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
-		Canvas.ground_plane.visible = settings.ground_plane.value;
-		scene.add(Canvas.ground_plane);
-		Canvas.gizmos.push(Canvas.ground_plane);
-	},
 	//Misc
 	raycast(event) {
 		var preview = Canvas.getHoveredPreview()
@@ -532,7 +485,7 @@ export const Canvas = {
 		if (Modes.display && Canvas.ground_animation) {
 			Canvas.ground_animation = false
 		}
-		updateCubeHighlights(null, true);
+		Canvas.updateCubeHighlights(null, true);
 
 		try {
 			cb()
@@ -547,7 +500,7 @@ export const Canvas = {
 		if (Modes.display && ground_anim_before) {
 			Canvas.ground_animation = ground_anim_before
 		}
-		updateCubeHighlights();
+		Canvas.updateCubeHighlights();
 	},
 
 	/**
@@ -570,7 +523,8 @@ export const Canvas = {
 		if (options.elements) {
 			let aspects = options.element_aspects || {};
 			options.elements.forEach(element => {
-				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible);
+				// TODO: No longer update all when visibility changes, but test in beta to catch issues
+				let update_all = !options.element_aspects || (aspects.visibility && element.visibility && !element.mesh.visible && !(element.constructor.animator));
 				let controller = element.constructor.preview_controller
 				
 				if (aspects.transform || update_all) {
@@ -595,6 +549,9 @@ export const Canvas = {
 		}
 		if (options.groups) {
 			Canvas.updateAllBones(options.groups)
+			for (let group of options.groups) {
+				group.preview_controller.updateVisibility(group);
+			}
 		}
 		if (options.selection) {
 			updateSelection();
@@ -604,6 +561,7 @@ export const Canvas = {
 	updateViewMode() {
 		this.updateAllFaces();
 		this.updateShading();
+		updateSelection();
 	},
 	//Main updaters
 	clear() {
@@ -649,10 +607,13 @@ export const Canvas = {
 	},
 	updateVisibility() {
 		Canvas.updateView({elements: Outliner.elements, element_aspects: {visibility: true}})
+		Group.all.forEach(group => {
+			group.preview_controller.updateVisibility(group);
+		});
 	},
 	updateAllFaces(texture) {
 		Outliner.elements.forEach(function(obj) {
-			if (obj.faces || obj instanceof TextureMesh || obj instanceof SplineMesh) {
+			if (obj.preview_controller.updateFaces) {
 				var used = true;
 				if (texture && obj.faces && !Format.single_texture) {
 				 	used = false;
@@ -720,7 +681,7 @@ export const Canvas = {
 	},
 	updatePositions(leave_selection) {
 		updateNslideValues()
-		var arr = selected.slice()
+		var arr = Outliner.selected.slice()
 		if (Format.bone_rig && Group.first_selected) {
 			Canvas.updateAllBones();
 		}
@@ -765,43 +726,14 @@ export const Canvas = {
 	updateAllBones(bones = Group.all) {
 		if (Project) Project.model_3d.scale.set(1, 1, 1);
 		bones.forEach((obj) => {
-			let bone = obj.mesh
-			if (bone && obj instanceof Group) {
-
-				bone.rotation.order = 'ZYX';
-				bone.rotation.setFromDegreeArray(obj.rotation);
-				bone.position.fromArray(obj.origin);
-				bone.scale.x = bone.scale.y = bone.scale.z = 1;
-
-				if (obj.parent.type === 'group') {
-
-					bone.position.x -=  obj.parent.origin[0];
-					bone.position.y -=  obj.parent.origin[1];
-					bone.position.z -=  obj.parent.origin[2];
-
-					var parent_bone = obj.parent.mesh;
-					parent_bone.add(bone);
-				} else {
-					Project.model_3d.add(bone);
-				}
-
-				bone.fix_position = bone.position.clone();
-				bone.fix_rotation = bone.rotation.clone();
-			}
+			obj.preview_controller.updateTransform(obj);
 		})
-		if (bones == Group.all) {
-			scene.updateMatrixWorld();
-		} else {
-			bones.forEach(bone => {
-				bone.mesh.updateMatrixWorld();
-			})
-		}
 	},
 	updatePivotMarker() {
 		if (Canvas.pivot_marker.parent) {
 			Canvas.pivot_marker.parent.remove(Canvas.pivot_marker)
 		}
-		if (settings.origin_size.value > 0 && Canvas.show_gizmos) {
+		if (settings.origin_size.value > 0 && Canvas.show_gizmos && !Modes.paint) {
 			if (Group.first_selected && Format.bone_rig) {
 				if (Group.first_selected.visibility) {
 					Group.first_selected.mesh.add(Canvas.pivot_marker)
@@ -843,7 +775,7 @@ export const Canvas = {
 		}
 		return !!Canvas.pivot_marker.parent;
 	},
-	adaptObjectPosition(object, mesh) {
+	adaptObjectPosition(object) {
 		Canvas.updateView({
 			elements: [object],
 			element_aspects: {geometry: true, transform: true}
@@ -889,18 +821,18 @@ export const Canvas = {
 		})
 
 		var material_shh = new THREE.ShaderMaterial({
-		  uniforms: uniforms,
-		  vertexShader: prepareShader(LayeredVertShader),
-		  fragmentShader: prepareShader(LayeredFragShader),
-		  side: Canvas.getRenderSide(),
-		  transparent: true
+			uniforms: uniforms,
+			vertexShader: prepareShader(LayeredVertShader),
+			fragmentShader: prepareShader(LayeredFragShader),
+			side: Canvas.getRenderSide(),
+			transparent: true
 		});
 		Canvas.layered_material = material_shh;
 		return material_shh;
 	},
 	updateLayeredTextures() {
 		delete Canvas.layered_material;
-		if (Format.single_texture && Texture.all.length >= 2) {
+		if ((Format.single_texture || Format.single_texture_default) && Texture.all.length >= 2) {
 			Canvas.updateAllFaces();
 		}
 	},
@@ -916,7 +848,7 @@ export const Canvas = {
 		})
 	},
 
-	getModelSize() {
+	getModelBoundingBox() {
 		var visible_box = new THREE.Box3()
 		Canvas.withoutGizmos(() => {
 			Outliner.elements.forEach(element => {
@@ -924,7 +856,18 @@ export const Canvas = {
 					visible_box.expandByObject(element.mesh);
 				}
 			})
+			if (visible_box.isEmpty()) {
+				Outliner.elements.forEach(element => {
+					if (element.visibility != false && element.mesh && element.mesh.geometry) {
+						visible_box.expandByObject(element.mesh);
+					}
+				})
+			}
 		})
+		return visible_box;
+	},
+	getModelSize() {
+		var visible_box = Canvas.getModelBoundingBox();
 	
 		var offset = new THREE.Vector3(8,8,8);
 		visible_box.max.add(offset);
@@ -963,8 +906,175 @@ export const Canvas = {
 }
 Canvas.gizmos.push(Canvas.pivot_marker);
 
+
+export function initCanvas() {
+	//Objects
+	Canvas.scene.name = 'scene';
+
+	Canvas.outlines = new THREE.Object3D();
+	Canvas.outlines.name = 'outline_group'
+	Canvas.scene.add(Canvas.outlines)
+	Canvas.gizmos.push(Canvas.outlines)
+
+	//TransformControls
+	let main_preview = Preview.selected;
+	window.Transformer = new THREE.TransformControls(main_preview.camPers, main_preview.canvas);
+	window.SplineGizmos = new THREE.SplineGizmoController(main_preview.camPers, main_preview.canvas);
+	Transformer.setSize(0.5);
+	scene.add(Transformer);
+	scene.add(SplineGizmos);
+	Canvas.gizmos.push(Transformer);
+	Canvas.gizmos.push(SplineGizmos);
+	main_preview.occupyTransformer()
+
+	Canvas.updateMarkerColorMaterials();
+
+	//Light
+	Sun = new THREE.AmbientLight( 0xffffff );
+	Sun.name = 'sun'
+	Canvas.scene.add(Sun);
+	Sun.intensity = 0.5
+
+	lights = new THREE.Object3D()
+	lights.name = 'lights'
+	window.lights = lights;
+	
+	lights.top = new THREE.DirectionalLight();
+	lights.top.name = 'light_top'
+	lights.top.position.set(0, 100, 0)
+	lights.add(lights.top);
+	
+	lights.top.intensity = 0.46
+	
+	lights.bottom = new THREE.DirectionalLight();
+	lights.bottom.name = 'light_bottom'
+	lights.bottom.position.set(0, -100, 0)
+	lights.add(lights.bottom);
+	
+	lights.bottom.intensity = -0.02
+
+	lights.north = new THREE.DirectionalLight();
+	lights.north.name = 'light_north'
+	lights.north.position.set(0, 0, -100)
+	lights.add(lights.north);
+
+	lights.south = new THREE.DirectionalLight();
+	lights.south.name = 'light_south'
+	lights.south.position.set(0, 0, 100)
+	lights.add(lights.south);
+
+	lights.north.intensity = lights.south.intensity = 0.3
+
+	lights.west = new THREE.DirectionalLight();
+	lights.west.name = 'light_west'
+	lights.west.position.set(-100, 0, 0)
+	lights.add(lights.west);
+
+	lights.east = new THREE.DirectionalLight();
+	lights.east.name = 'light_east'
+	lights.east.position.set(100, 0, 0)
+	lights.add(lights.east);
+
+	lights.west.intensity = lights.east.intensity = 0.1
+
+	Canvas.updateShading()
+
+	var img = new Image();
+	img.src = 'assets/north.png';
+	var tex = new THREE.Texture(img);
+	img.tex = tex;
+	img.tex.magFilter = THREE.NearestFilter;
+	img.tex.minFilter = THREE.NearestFilter;
+	img.onload = function() {
+		this.tex.needsUpdate = true;
+	}
+	Canvas.northMarkMaterial = new THREE.MeshBasicMaterial({
+		map: tex,
+		transparent: true,
+		side: THREE.DoubleSide,
+		alphaTest: 0.2
+	})
+
+	let brush_outline_material = new THREE.ShaderMaterial({
+		transparent: true,
+		side: THREE.DoubleSide,
+		alphaTest: 0.01,
+		polygonOffset: true,
+		polygonOffsetUnits: 1,
+		polygonOffsetFactor: -1,
+		extensions: { derivatives: true },
+
+		uniforms: {
+			color: { value: new THREE.Color() },
+			width: { value: 2. },
+			SHAPE: { value: 0 },
+		},
+
+		vertexShader: prepareShader(BrushOutlineVertShader),
+		fragmentShader: prepareShader(BrushOutlineFragShader),
+	})
+	Canvas.brush_outline = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), brush_outline_material);
+	Canvas.brush_outline.matrixAutoUpdate = false;
+	Canvas.gizmos.push(Canvas.brush_outline);
+
+	Canvas.gizmos.push(Canvas.hover_helper_line);
+	Canvas.gizmos.push(Canvas.hover_helper_vertex);
+
+	/*
+	// Vertex gizmos
+	var vertex_img = new Image();
+	vertex_img.src = 'assets/vertex.png';
+	let vertex_tex = new THREE.Texture(vertex_img);
+	vertex_tex.magFilter = THREE.NearestFilter;
+	vertex_tex.minFilter = THREE.NearestFilter;
+	vertex_img.onload = () => vertex_tex.needsUpdate = true;
+	Canvas.meshVertexMaterial.map = vertex_tex;
+	Canvas.meshVertexMaterial.transparent = true;
+	*/
+
+	//Rotation Pivot
+	var helper1 = new THREE.AxesHelper(2)
+	var helper2 = new THREE.AxesHelper(2)
+	helper1.rotation.x = Math.PI / 1
+
+	helper2.rotation.x = Math.PI / -1
+	helper2.rotation.y = Math.PI / 1
+	helper2.scale.y = -1
+
+	Canvas.pivot_marker.add(helper1)
+	Canvas.pivot_marker.add(helper2)
+
+	Canvas.pivot_marker.name = 'pivot_marker';
+	Canvas.pivot_marker.rotation.order = 'ZYX';
+	Canvas.pivot_marker.base_scale = new THREE.Vector3(1, 1, 1);
+	Canvas.pivot_marker.no_export = true;
+
+	Canvas.groundPlaneMaterial = new THREE.MeshBasicMaterial({
+		map: Canvas.emptyMaterials[0].uniforms.map.value,
+		color: CustomTheme.data.colors.back,
+		side: settings.ground_plane_double_side.value ? THREE.DoubleSide : THREE.FrontSide,
+		alphaTest: 0.2
+	})
+	let size = 4096;
+	Canvas.ground_plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), Canvas.groundPlaneMaterial);
+	Canvas.ground_plane.rotation.x = -Math.PI/2;
+	Canvas.ground_plane.position.y = -0.025;
+	Canvas.ground_plane.geometry.attributes.uv.set([0, 4096/16, 4096/16, 4096/16, 0, 0, 4096/16, 0]);
+	Canvas.ground_plane.geometry.attributes.uv.needsUpdate = true;
+	Canvas.ground_plane.visible = settings.ground_plane.value;
+	scene.add(Canvas.ground_plane);
+	Canvas.gizmos.push(Canvas.ground_plane);
+
+	CustomTheme.updateColors();
+	resizeWindow();
+}
+
 Object.assign(window, {
 	Reusable,
 	Canvas,
-	buildGrid: Canvas.buildGrid
+	scene,
+	lights,
+	Sun,
+	buildGrid: Canvas.buildGrid,
+	updateShading: Canvas.updateShading,
 });

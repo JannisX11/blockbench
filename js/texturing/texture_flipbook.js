@@ -2,23 +2,16 @@ import { clipboard, nativeImage } from "../native_apis";
 
 export const TextureAnimator = {
 	isPlaying: false,
-	interval: false,
+	start_timecode: 0,
 	frame_total: 0,
 	start() {
-		clearInterval(TextureAnimator.interval)
 		TextureAnimator.isPlaying = true
 		TextureAnimator.frame_total = 0;
-		TextureAnimator.updateButton()
-		let frametime = 1000/settings.texture_fps.value;
-		if (Format.texture_mcmeta && Texture.getDefault()) {
-			let tex = Texture.getDefault();
-			frametime = Math.max(tex.frame_time, 1) * 50;
-		}
-		TextureAnimator.interval = setInterval(TextureAnimator.nextFrame, frametime)
+		TextureAnimator.start_timecode = performance.now();
+		TextureAnimator.updateButton();
 	},
 	stop() {
 		TextureAnimator.isPlaying = false
-		clearInterval(TextureAnimator.interval)
 		TextureAnimator.updateButton()
 	},
 	toggle() {
@@ -34,27 +27,37 @@ export const TextureAnimator = {
 			TextureAnimator.start()
 		}
 	},
-	nextFrame() {
-		var animated_textures = []
-		TextureAnimator.frame_total++;
-		Texture.all.forEach(tex => {
-			if (tex.frameCount > 1) {
-				let custom_indices = Format.texture_mcmeta && tex.getAnimationFrameIndices();
-				if (custom_indices) {
-					let index = custom_indices[TextureAnimator.frame_total % custom_indices.length];
-					tex.currentFrame = Math.clamp(typeof index == 'object' ? index.index : index, 0, tex.frameCount-1);
-
-				} else {
-					if (tex.currentFrame >= tex.frameCount-1) {
-						tex.currentFrame = 0
-					} else {
-						tex.currentFrame++;
-					}
-				}
-				animated_textures.push(tex)
+	playAnimationFrame(anim_time) {
+		if (anim_time == undefined) {
+			anim_time = (performance.now() - TextureAnimator.start_timecode) / 1000;
+		}
+		let animated_textures = [];
+		for (let texture of Texture.all) {
+			if (!(texture.frameCount > 1)) continue;
+			let fps = Format.texture_mcmeta
+				? 1000 / Math.max(16.66, 50 * texture.frame_time)
+				: Math.max(1, texture.fps);
+			let frame = Math.floor((anim_time) * fps);
+			if (texture.frame_order_type == 'custom' && texture.frame_order) {
+				let indices = texture.frame_order.split(/\s+/g).map(number => parseInt(number));
+				let frame_at_index = indices[frame%indices.length];
+				if (!isNaN(frame_at_index)) frame = frame_at_index;
+			} else if (texture.frame_order_type == 'backwards') {
+				frame = texture.frameCount - (frame % texture.frameCount) - 1;
+			} else if (texture.frame_order_type == 'back_and_forth') {
+				let length = texture.frameCount*2 - 2;
+				let mod = frame % length;
+				frame = (mod < texture.frameCount) ? mod : (length - (mod % texture.frameCount));
 			}
-		})
-		TextureAnimator.update(animated_textures);
+			frame = frame % texture.frameCount;
+			if (frame != texture.currentFrame) {
+				texture.currentFrame = frame;
+				animated_textures.push(texture);
+			}
+		}
+		if (animated_textures.length) {
+			TextureAnimator.update(animated_textures);
+		}
 	},
 	update(animated_textures) {
 		let maxFrame = 0;
@@ -74,7 +77,8 @@ export const TextureAnimator = {
 		BarItems.animated_texture_frame.update();
 		UVEditor.vue.updateTextureCanvas();
 		UVEditor.updateSelectionOutline(true);
-		Interface.Panels.textures.inside_vue._data.currentFrame = maxFrame;
+		let display_frame = TextureAnimator.isPlaying ? Texture.getDefault()?.currentFrame : maxFrame;
+		Interface.Panels.textures.inside_vue._data.currentFrame = display_frame;
 	},
 	reset() {
 		TextureAnimator.stop();
@@ -97,6 +101,10 @@ export const TextureAnimator = {
 
 	editor_dialog: null,
 }
+Blockbench.on('display_animation_frame', () => {
+	if (settings.flipbook_textures_in_animation.value == false) return;
+	TextureAnimator.playAnimationFrame(Timeline.time);
+});
 
 BARS.defineActions(function() {
 
@@ -144,11 +152,11 @@ BARS.defineActions(function() {
 		category: 'textures',
 		condition: textureAnimationCondition,
 		click() {
+			Texture.getDefault().propertiesDialog()
 			if (Format.texture_mcmeta && Texture.all.length) {
-				Texture.getDefault().openMenu()
 				$('dialog div.form_bar_frame_time input').trigger('focus');
 			} else {
-				settings.texture_fps.trigger();
+				$('dialog div.form_bar_fps input').trigger('focus');
 			}
 		}
 	})
@@ -160,7 +168,7 @@ BARS.defineActions(function() {
 		condition: () => Format.animated_textures && Texture.selected?.frameCount > 1,
 		click() {
 			let texture = Texture.selected;
-			let frametime = 1000/settings.texture_fps.value;
+			let frametime = 1000/Texture.getDefault().fps;
 			let gauge = texture.width;
 			let copied;
 			if (Format.texture_mcmeta && Texture.getDefault()) {
@@ -689,6 +697,7 @@ BARS.defineActions(function() {
 						texture.layers.empty();
 						UVEditor.vue.layer = null;
 					}
+					if (this.content_vue.$data.fps) texture.fps = this.content_vue.$data.fps;
 					
 					let i = 0;
 					for (let frame of frames) {

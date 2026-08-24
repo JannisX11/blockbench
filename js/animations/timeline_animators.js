@@ -1,5 +1,6 @@
 import Wintersky from 'wintersky';
 import { THREE } from '../lib/libs';
+import { fabrikIter } from './fabrik';
 
 export class GeneralAnimator {
 	constructor(uuid, animation) {
@@ -11,6 +12,9 @@ export class GeneralAnimator {
 		for (let channel in this.channels) {
 			this.muted[channel] = false;
 		}
+		for (let key in this.constructor.properties) {
+			this.constructor.properties[key].reset(this);
+		}
 	}
 	get keyframes() {
 		let array = [];
@@ -18,6 +22,28 @@ export class GeneralAnimator {
 			if (this[channel] && this[channel].length) array.push(...this[channel]);
 		}
 		return array;
+	}
+	get node() {
+		return this.group || this.element;
+	}
+	extend(data) {
+		for (var key in this.constructor.properties) {
+			this.constructor.properties[key].merge(this, data)
+		}
+	}
+	getUndoCopy(options) {
+		let copy = {
+			name: this.name,
+			type: this.type,
+		};
+		for (let key in this.constructor.properties) {
+			this.constructor.properties[key].copy(this, copy);
+		}
+		if (this.keyframes.length) copy.keyframes = [];
+		this.keyframes.forEach(kf => {
+			copy.keyframes.push(kf.getUndoCopy(true, {absolute_paths: options.absolute_paths}));
+		})
+		return copy;
 	}
 	select() {
 		var scope = this;
@@ -67,7 +93,7 @@ export class GeneralAnimator {
 		if (typeof time !== 'number') time = Timeline.time;
 		let keyframes = [];
 		if (undo) {
-			Undo.initEdit({keyframes})
+			Undo.initEdit({ keyframes })
 		}
 		let keyframe = new Keyframe({
 			channel: channel,
@@ -106,7 +132,7 @@ export class GeneralAnimator {
 	}
 	getOrMakeKeyframe(channel) {
 		let before, result;
-		let epsilon = Timeline.getStep()/2 || 0.01;
+		let epsilon = Timeline.getStep() / 2 || 0.01;
 		let has_before = false;
 
 		for (let kf of this[channel]) {
@@ -117,12 +143,14 @@ export class GeneralAnimator {
 				has_before = true;
 			}
 		}
-		result = before ? before : this.createKeyframe(null, Timeline.time, channel, false, false);
+		let value = null;
+		if (Timeline.time > Animation.selected.length && Animation.selected.loop == 'once') value = {};
+		result = before ? before : this.createKeyframe(value, Timeline.time, channel, false, false);
 		let new_keyframe;
 		if (settings.auto_keyframe.value && Timeline.snapTime(Timeline.time) != 0 && !before && !has_before) {
 			new_keyframe = this.createKeyframe({}, 0, channel, false, false);
 		}
-		return {before, result, new_keyframe};
+		return { before, result, new_keyframe };
 	}
 	showContextMenu(event) {
 		Prop.active_panel = 'timeline'
@@ -153,31 +181,33 @@ export class GeneralAnimator {
 			}
 			if (offset + el.clientHeight > scroll_top + height) {
 				$(timeline).animate({
-					scrollTop: offset - (height-el.clientHeight-20)
+					scrollTop: offset - (height - el.clientHeight - 20)
 				}, 200);
 			}
 		}
 	}
 }
-GeneralAnimator.addChannel = function(channel, options) {
+GeneralAnimator.addChannel = function (channel, options) {
 	this.prototype.channels[channel] = {
 		name: options.name || channel,
+		condition: options.condition,
 		transform: options.transform || false,
 		mutable: typeof options.mutable === 'boolean' ? options.mutable : true,
-		max_data_points: options.max_data_points || 0
+		max_data_points: options.max_data_points || 0,
+		displayFrame: options.displayFrame
 	}
 	ModelProject.all.forEach(project => {
 		if (!project.animations)
-		project.animations.forEach(animation => {
-			animation.animators.forEach(animator => {
-				if (animator instanceof this && !animator[channel]) {
-					Vue.set(animator, channel, []);
-					if (this.prototype.channels[channel].mutable) {
-						Vue.set(animator.muted, channel, false);
+			project.animations.forEach(animation => {
+				animation.animators.forEach(animator => {
+					if (animator instanceof this && !animator[channel]) {
+						Vue.set(animator, channel, []);
+						if (this.prototype.channels[channel].mutable) {
+							Vue.set(animator.muted, channel, false);
+						}
 					}
-				}
+				})
 			})
-		})
 	})
 	Timeline.vue.$forceUpdate();
 }
@@ -193,7 +223,7 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 	}
 	get name() {
-		var group = this.getGroup();
+		let group = this.getGroup();
 		if (group) return group.name;
 		return this._name;
 	}
@@ -211,13 +241,14 @@ export class BoneAnimator extends GeneralAnimator {
 		}
 		if (this.group.locked) return;
 
-		var duplicates;
 		for (var key in this.animation.animators) {
 			this.animation.animators[key].selected = false;
 		}
 		if (group_is_selected !== true && this.group) {
 			this.group.select();
 		}
+		/*
+		var duplicates;
 		Group.all.forEach(group => {
 			if (group.name == Group.first_selected.name && group != Group.first_selected) {
 				duplicates = true;
@@ -240,7 +271,7 @@ export class BoneAnimator extends GeneralAnimator {
 				translateKey: 'duplicate_groups',
 				icon: 'folder',
 			});
-		}
+		}*/
 		super.select();
 		
 		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this) && !Blockbench.hasFlag('loading_selection_save')) {
@@ -299,7 +330,7 @@ export class BoneAnimator extends GeneralAnimator {
 					let e = keyframe.channel == 'scale' ? 1e4 : 1e2
 					ref.forEach((r, a) => {
 						if (!isNaN(r)) {
-							ref[a] = Math.round(parseFloat(r)*e)/e
+							ref[a] = Math.round(parseFloat(r) * e) / e
 						}
 					})
 				}
@@ -336,7 +367,7 @@ export class BoneAnimator extends GeneralAnimator {
 	}
 	doRender() {
 		this.getGroup()
-		if (this.group && this.group.children && this.group.mesh) {
+		if (this.group && this.group.children) {
 			let mesh = this.group.mesh
 			return (mesh && mesh.fix_rotation)
 		}
@@ -345,8 +376,11 @@ export class BoneAnimator extends GeneralAnimator {
 		var bone = this.group.mesh
 
 		if (arr) {
+			if (this.animation.override) {
+				if (bone.fix_rotation) bone.rotation.copy(bone.fix_rotation);
+			}
 			if (arr.length === 4) {
-				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), Format.euler_order)
 				bone.rotation.x += added_rotation.x * multiplier
 				bone.rotation.y += added_rotation.y * multiplier
 				bone.rotation.z += added_rotation.z * multiplier
@@ -360,13 +394,16 @@ export class BoneAnimator extends GeneralAnimator {
 			let quat = bone.parent.getWorldQuaternion(Reusable.quat1);
 			quat.invert();
 			bone.quaternion.premultiply(quat);
-			
+
 		}
 		return this;
 	}
 	displayPosition(arr, multiplier = 1) {
 		var bone = this.group.mesh
 		if (arr) {
+			if (this.animation.override) {
+				if (bone.fix_position) bone.position.copy(bone.fix_position);
+			}
 			bone.position.x += arr[0] * multiplier;
 			bone.position.y += arr[1] * multiplier;
 			bone.position.z += arr[2] * multiplier;
@@ -376,6 +413,9 @@ export class BoneAnimator extends GeneralAnimator {
 	displayScale(arr, multiplier = 1) {
 		if (!arr) return this;
 		var bone = this.group.mesh;
+		if (this.animation.override && this.channels?.scale) {
+			bone.scale.x = bone.scale.y = bone.scale.z = 1;
+		}
 		bone.scale.x *= (1 + (arr[0] - 1) * multiplier) || 0.00001;
 		bone.scale.y *= (1 + (arr[1] - 1) * multiplier) || 0.00001;
 		bone.scale.z *= (1 + (arr[2] - 1) * multiplier) || 0.00001;
@@ -383,10 +423,16 @@ export class BoneAnimator extends GeneralAnimator {
 	}
 	interpolate(channel, allow_expression, axis) {
 		let time = this.animation.time;
-		var before = false
-		var after = false
-		var result = false
+		let before = false;
+		let after = false;
+		let before_time = 0;
+		let after_time = 0;
+		let result = false;
 		let epsilon = 1/1200;
+		let use_quaternions = false;
+		if (channel == 'rotation') {
+			use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+		}
 
 		function mapAxes(cb) {
 			if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
@@ -403,23 +449,34 @@ export class BoneAnimator extends GeneralAnimator {
 			}
 		}
 
-		let i = 0;
-		for (var keyframe of this[channel]) {
-
-			if (keyframe.time < time) {
-				if (!before || keyframe.time > before.time) {
+		for (let keyframe of this[channel]) {
+			let kf_time = keyframe.time;
+			if (kf_time < time) {
+				if (!before || kf_time > before_time) {
 					before = keyframe
+					before_time = before.time;
 				}
-			} else  {
-				if (!after || keyframe.time < after.time) {
+			} else {
+				if (!after || kf_time < after_time) {
 					after = keyframe
+					after_time = after.time;
 				}
 			}
-			i++;
 		}
-		if (before && Math.epsilon(before.time, time, epsilon)) {
+		if (Format.animation_loop_wrapping && this.animation.loop == 'loop' && this[channel].length >= 2) {
+			let anim_length = this.animation.length;
+			if (!before) {
+				before = this[channel].findHighest(kf => kf.time);
+				before_time = before.time - anim_length;
+			}
+			if (!after) {
+				after = this[channel].findHighest(kf => -kf.time);
+				after_time = after.time + anim_length;
+			}
+		}
+		if (before && Math.epsilon(before_time, time, epsilon)) {
 			result = before
-		} else if (after && Math.epsilon(after.time, time, epsilon)) {
+		} else if (after && Math.epsilon(after_time, time, epsilon)) {
 			result = after
 		} else if (before && before.interpolation == Keyframe.interpolation.step) {
 			result = before
@@ -431,10 +488,51 @@ export class BoneAnimator extends GeneralAnimator {
 			//
 		} else {
 			let no_interpolations = Blockbench.hasFlag('no_interpolations')
-			let alpha = Math.getLerp(before.time, after.time, time)
+			let alpha = Math.getLerp(before_time, after_time, time)
 			let {linear, step, catmullrom, bezier} = Keyframe.interpolation;
 
-			if (no_interpolations || (
+			let event_result = Blockbench.dispatchEvent('interpolate_keyframes', {
+				animator: this,
+				t: alpha,
+				time,
+				use_quaternions,
+				keyframe_before: before,
+				keyframe_after: after
+			});
+			let result_args = event_result?.length ? event_result.find(a => typeof a == 'object') : null;
+			if (result_args) {
+				if (result_args.value instanceof Array) return result_args.value;
+
+				if (typeof result_args.t == 'number') alpha = result_args.t;
+				if (typeof result_args.use_quaternions == 'boolean') use_quaternions = result_args.use_quaternions;
+				if (result_args.keyframe_before) before = result_args.keyframe_before;
+				if (result_args.keyframe_after) after = result_args.keyframe_after;
+			}
+
+			if (use_quaternions) {
+				let quat_before = before.getFixed(1, true);
+				let quat_after = after.getFixed(0, true);
+
+				let slerp = quat_before.slerp(quat_after, alpha);
+				Reusable.euler2.order = this.group.scene_object.rotation.order;
+				let euler = Reusable.euler2.setFromQuaternion(slerp);
+				let fix = this.group.scene_object.fix_rotation;
+				euler.x -= fix.x;
+				euler.y -= fix.y;
+				euler.z -= fix.z;
+				
+				if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
+				if (axis) {
+					let value = Math.radToDeg(euler[axis]);
+					Animator._last_values[channel][getAxisNumber(axis)] = value;
+					return value;
+				} else {
+					let array = euler.toArray().slice(0, 3).map(Math.radToDeg);
+					Animator._last_values[channel] = array;
+					return array;
+				}
+
+			} else if (no_interpolations || (
 				before.interpolation === linear &&
 				(after.interpolation === linear || after.interpolation === step)
 			)) {
@@ -447,8 +545,8 @@ export class BoneAnimator extends GeneralAnimator {
 
 				let sorted = this[channel].slice().sort((kf1, kf2) => (kf1.time - kf2.time));
 				let before_index = sorted.indexOf(before);
-				let before_plus = sorted[before_index-1];
-				let after_plus = sorted[before_index+2];
+				let before_plus = sorted[before_index - 1];
+				let after_plus = sorted[before_index + 2];
 				if (this.animation.loop == 'loop' && sorted.length >= 3) {
 					if (!before_plus) before_plus = sorted.at(-2);
 					if (!after_plus) after_plus = sorted[1];
@@ -464,9 +562,29 @@ export class BoneAnimator extends GeneralAnimator {
 		if (result && result instanceof Keyframe) {
 			let keyframe = result
 			let method = allow_expression ? 'get' : 'calc'
-			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length-1;
+			let dp_index = (keyframe.time > time || Math.epsilon(keyframe.time, time, epsilon)) ? 0 : keyframe.data_points.length - 1;
 
-			return mapAxes(axis => keyframe[method](axis, dp_index));
+			if (use_quaternions) {
+				let quat = keyframe.getFixed(dp_index, true);
+				let fix = this.group.scene_object.fix_rotation;
+				let euler = Reusable.euler2.setFromQuaternion(quat, fix.order);
+				euler.x -= fix.x;
+				euler.y -= fix.y;
+				euler.z -= fix.z;
+				
+				if (!Animator._last_values[channel]) Animator._last_values[channel] = [0, 0, 0];
+				if (axis) {
+					let value = Math.radToDeg(euler[axis]);
+					Animator._last_values[channel][getAxisNumber(axis)] = value;
+					return value;
+				} else {
+					let array = euler.toArray().slice(0, 3).map(Math.radToDeg);
+					Animator._last_values[channel] = array;
+					return array;
+				}
+			} else {
+				return mapAxes(axis => keyframe[method](axis, dp_index));
+			}
 		}
 		return false;
 	}
@@ -478,10 +596,17 @@ export class BoneAnimator extends GeneralAnimator {
 		if (!this.muted.rotation) this.displayRotation(this.interpolate('rotation'), multiplier)
 		if (!this.muted.position) this.displayPosition(this.interpolate('position'), multiplier)
 		if (!this.muted.scale) this.displayScale(this.interpolate('scale'), multiplier)
+
+		for (let channel in this.channels) {
+			let channel_config = this.channels[channel];
+			if (channel_config.displayFrame) {
+				channel_config.displayFrame(this, multiplier);
+			}
+		}
 	}
 	applyAnimationPreset(preset) {
 		let keyframes = [];
-		Undo.initEdit({keyframes});
+		Undo.initEdit({ keyframes });
 		let current_time = Timeline.snapTime(Timeline.time);
 		for (let channel in this.channels) {
 			let timeline = preset[channel];
@@ -489,12 +614,14 @@ export class BoneAnimator extends GeneralAnimator {
 				let data = {};
 				let value = timeline[timecode];
 				if (value instanceof Array) {
-					data = {x: value[0], y: value[1], z: value[2]};
+					data = { x: value[0], y: value[1], z: value[2] };
 				} else if (value.pre) {
-					data = {data_points: [
-						{x: value.pre[0], y: value.pre[1], z: value.pre[2]},
-						{x: value.post[0], y: value.post[1], z: value.post[2]},
-					]}
+					data = {
+						data_points: [
+							{ x: value.pre[0], y: value.pre[1], z: value.pre[2] },
+							{ x: value.post[0], y: value.post[1], z: value.post[2] },
+						]
+					}
 				} else {
 					data = {
 						x: value.post[0], y: value.post[1], z: value.post[2],
@@ -535,19 +662,30 @@ export class BoneAnimator extends GeneralAnimator {
 				Animator.preview();
 			}
 		},
+		{
+			id: 'quaternion_interpolation',
+			name: 'menu.animator.quaternion_interpolation',
+			condition: animator => animator instanceof BoneAnimator && Format.per_animator_rotation_interpolation,
+			icon: (animator) => animator.quaternion_interpolation == true,
+			click(animator) {
+				Undo.initEdit({animations: [Animation.selected]});
+				animator.quaternion_interpolation = !animator.quaternion_interpolation;
+				Undo.finishEdit('Toggle quaternion interpolation');
+				Animator.preview();
+			}
+		},
 		new MenuSeparator('presets'),
 		'apply_animation_preset'
 	])
 // -
+new Property(BoneAnimator, 'boolean', 'rotation_global', {default: false});
+new Property(BoneAnimator, 'boolean', 'quaternion_interpolation', {default: () => Format.quaternion_interpolation});
 
 class ArmatureBoneAnimator extends BoneAnimator {
 	constructor(uuid, animation, name) {
 		super(uuid, animation);
 		this.uuid = uuid;
 		this._name = name;
-
-		this.solver = new FIK.Structure3D(scene);
-		this.chain = new FIK.Chain3D();
 
 		this.position = [];
 	}
@@ -574,7 +712,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 			this.element.select();
 		}
 		GeneralAnimator.prototype.select.call(this);
-		
+
 		if (this[Toolbox.selected.animation_channel] && (Timeline.selected.length == 0 || Timeline.selected[0].animator != this)) {
 			var nearest;
 			this[Toolbox.selected.animation_channel].forEach(kf => {
@@ -609,7 +747,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		var mesh = this.element.mesh
 		if (arr) {
 			if (arr.length === 4) {
-				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), 'ZYX')
+				var added_rotation = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().fromArray(arr), Format.euler_order)
 				mesh.rotation.x += added_rotation.x * multiplier
 				mesh.rotation.y += added_rotation.y * multiplier
 				mesh.rotation.z += added_rotation.z * multiplier
@@ -642,7 +780,7 @@ class ArmatureBoneAnimator extends BoneAnimator {
 		if (!this.muted.scale) {
 			this.displayScale(this.interpolate('scale'), multiplier);
 		}
-		this.element.scene_object.updateMatrixWorld();
+		this.element.scene_object.matrixWorldNeedsUpdate = true;
 	}
 }
 	ArmatureBoneAnimator.prototype.type = 'armature_bone';
@@ -658,9 +796,6 @@ export class NullObjectAnimator extends BoneAnimator {
 		super(uuid, animation);
 		this.uuid = uuid;
 		this._name = name;
-
-		this.solver = new FIK.Structure3D(scene);
-		this.chain = new FIK.Chain3D();
 
 		this.position = [];
 	}
@@ -720,24 +855,25 @@ export class NullObjectAnimator extends BoneAnimator {
 	}
 	displayIK(get_samples) {
 		let null_object = this.getElement();
-		let target = [...Group.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
+		let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
+		let pole = [...Group.all, ...Locator.all, ...NullObject.all].find(node => node.uuid == null_object.ik_pole);
 		if (!null_object || !target) return;
 
 		let bones = [];
-		let ik_target = new THREE.Vector3().copy(null_object.getWorldCenter(true));
+		let ik_target = null_object.getWorldCenter(true).clone();
 		let bone_references = [];
-		let current = target.parent;
+		let current = target;
 
 		let source;
 		if (null_object.ik_source) {
-			source = [...Group.all].find(node => node.uuid == null_object.ik_source);
+			source = [...Group.all, ...ArmatureBone.all].find(node => node.uuid == null_object.ik_source);
 		} else {
 			source = null_object.parent;
 		}
 		if (!source) return;
 		if (!target.isChildOf(source) && source != 'root') return;
 		let target_original_quaternion = null_object.lock_ik_target_rotation &&
-			target instanceof Group &&
+			(target instanceof Group || target instanceof ArmatureBone) &&
 			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
 		while (current !== source) {
@@ -749,62 +885,68 @@ export class NullObjectAnimator extends BoneAnimator {
 		}
 		if (!bones.length) return;
 		bones.reverse();
-		
+
 		bones.forEach(bone => {
-			if (bone.mesh.fix_rotation) bone.mesh.rotation.copy(bone.mesh.fix_rotation);
-		})
+			let scene_object = bone.scene_object; 
+			if (scene_object.fix_rotation) scene_object.rotation.copy(scene_object.fix_rotation);
+		});
 
+		let bone_pos = [];
 		bones.forEach((bone, i) => {
-			let startPoint = new FIK.V3(0,0,0).copy(bone.mesh.getWorldPosition(new THREE.Vector3()));
-			let endPoint = new FIK.V3(0,0,0).copy(bones[i+1] ? bones[i+1].mesh.getWorldPosition(new THREE.Vector3()) : null_object.getWorldCenter(false));
+			let scene_object = bone.scene_object; 
+			let pos = scene_object.getWorldPosition(new THREE.Vector3());
 
-			let ik_bone = new FIK.Bone3D(startPoint, endPoint);
-			this.chain.addBone(ik_bone);
+			bone_pos.push(pos);
 
-			bone_references.push({
-				bone,
-				last_diff: new THREE.Vector3(
-					(bones[i+1] ? bones[i+1] : target).origin[0] - bone.origin[0],
-					(bones[i+1] ? bones[i+1] : target).origin[1] - bone.origin[1],
-					(bones[i+1] ? bones[i+1] : target).origin[2] - bone.origin[2]
-				).normalize()
-			})
-		})
+			if (i != bones.length - 1) {
+				let last_diff = bones[i + 1].mesh.getWorldPosition(new THREE.Vector3());
+				scene_object.parent.worldToLocal(last_diff).sub(scene_object.position).normalize();
 
-		this.solver.add(this.chain, ik_target , true);
-		this.solver.meshChains[0].forEach(mesh => {
-			mesh.visible = false;
-		})
+				bone_references.push({
+					bone,
+					last_diff,
+				});
+			}
+		});
 
-		this.solver.update();
-		
+		let pole_pos;
+		if (pole) {
+			pole_pos = pole.mesh.getWorldPosition(new THREE.Vector3());
+		}
+
+		fabrikIter(bone_pos, ik_target, pole_pos);
+
 		let results = {};
-		bone_references.forEach((bone_ref, i) => {
-			let start = Reusable.vec1.copy(this.solver.chains[0].bones[i].start);
-			let end = Reusable.vec2.copy(this.solver.chains[0].bones[i].end);
-			bones[i].mesh.worldToLocal(start);
-			bones[i].mesh.worldToLocal(end);
+		for (let i = 0; i < bone_references.length; i++) {
+			let bone_ref = bone_references[i];
+			let scene_object = bone_ref.bone.scene_object; 
 
-			Reusable.quat1.setFromUnitVectors(bone_ref.last_diff, end.sub(start).normalize());
-			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
-			rotation.setFromQuaternion(Reusable.quat1, 'ZYX');
+			let end = bone_pos[i + 1];
+			scene_object.parent
+				.worldToLocal(end)
+				.sub(scene_object.position)
+				.normalize();
 
-			bone_ref.bone.mesh.rotation.x += rotation.x;
-			bone_ref.bone.mesh.rotation.y += rotation.y;
-			bone_ref.bone.mesh.rotation.z += rotation.z;
-			bone_ref.bone.mesh.updateMatrixWorld();
+			Reusable.quat1.setFromUnitVectors(
+				bone_ref.last_diff,
+				end,
+			);
+
+			scene_object.applyQuaternion(Reusable.quat1);
+			scene_object.updateMatrixWorld();
 
 			if (get_samples) {
+				let rotation = new THREE.Euler().setFromQuaternion(Reusable.quat1, Format.euler_order);
 				results[bone_ref.bone.uuid] = {
 					euler: rotation,
 					array: [
-						Math.radToDeg(-rotation.x),
-						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.x),
+						Math.radToDeg(rotation.y),
 						Math.radToDeg(rotation.z),
 					]
 				}
 			}
-		})
+		}
 
 		if (target_original_quaternion) {
 			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
@@ -823,17 +965,13 @@ export class NullObjectAnimator extends BoneAnimator {
 				results[target.uuid] = {
 					euler: rotation,
 					array: [
-						Math.radToDeg(-rotation.x),
-						Math.radToDeg(-rotation.y),
+						Math.radToDeg(rotation.x),
+						Math.radToDeg(rotation.y),
 						Math.radToDeg(rotation.z),
 					]
 				}
 			}
 		}
-
-		this.solver.clear();
-		this.chain.clear();
-		this.chain.lastTargetLocation.set(1e9, 0, 0);
 
 		if (get_samples) return results;
 	}
@@ -843,15 +981,16 @@ export class NullObjectAnimator extends BoneAnimator {
 
 		if (!this.muted.position) {
 			this.displayPosition(this.interpolate('position'), multiplier);
-			this.displayIK();
+			// displayIK needs to be called separately.
+			// This is so null object positions get updated before IK so they can be used as pole
 		}
 	}
 }
-	NullObjectAnimator.prototype.type = 'null_object';
-	NullObjectAnimator.prototype.channels = {
-		position: {name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2},
-	}
-	NullObject.animator = NullObjectAnimator;
+NullObjectAnimator.prototype.type = 'null_object';
+NullObjectAnimator.prototype.channels = {
+	position: { name: tl('timeline.position'), mutable: true, transform: true, max_data_points: 2 },
+}
+NullObject.animator = NullObjectAnimator;
 
 export class EffectAnimator extends GeneralAnimator {
 	constructor(animation) {
@@ -877,15 +1016,15 @@ export class EffectAnimator extends GeneralAnimator {
 				if (diff < 0) return;
 
 				let media = Timeline.playing_sounds.find(s => s.keyframe_id == kf.uuid);
-				if (diff >= 0 && diff < (1/30) * (Timeline.playback_speed/100) && !media) {
+				if (diff >= 0 && diff < (1 / 30) * (Timeline.playback_speed / 100) && !media) {
 					if (kf.data_points[0].file && !kf.cooldown) {
 						media = new Audio(kf.data_points[0].file);
 						media.keyframe_id = kf.uuid;
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
-						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
-						media.play().catch(() => {});
+						media.playbackRate = Math.clamp(Timeline.playback_speed / 100, 0.1, 4.0);
+						media.volume = Math.clamp(settings.volume.value / 100, 0, 1);
+						media.play().catch(() => { });
 						Timeline.playing_sounds.push(media);
-						media.onended = function() {
+						media.onended = function () {
 							Timeline.playing_sounds.remove(media);
 							Timeline.paused_sounds.safePush(media);
 						}
@@ -894,13 +1033,13 @@ export class EffectAnimator extends GeneralAnimator {
 						setTimeout(() => {
 							delete kf.cooldown;
 						}, 400)
-					} 
+					}
 				} else if (diff > 0 && media) {
 					if (Math.abs(media.currentTime - diff) > 0.18 && diff < media.duration) {
 						console.log('Resyncing sound')
 						// Resync
 						media.currentTime = Math.clamp(diff + 0.08, 0, media.duration);
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
+						media.playbackRate = Math.clamp(Timeline.playback_speed / 100, 0.1, 4.0);
 					}
 				}
 			})
@@ -908,7 +1047,10 @@ export class EffectAnimator extends GeneralAnimator {
 
 		if (!this.muted.particle) {
 			this.particle.forEach(kf => {
-				let diff = this.animation.time - kf.time;
+				// Using the timeline time instead of animation to not stop after animation end in some loop modes.
+				// To be changed when implementing separate play times for animations
+				// let diff = this.animation.time - kf.time;
+				let diff = Timeline.time - kf.time;
 				let i = 0;
 				for (let data_point of kf.data_points) {
 					let particle_effect = data_point.file && Animator.particle_effects[data_point.file]
@@ -919,14 +1061,14 @@ export class EffectAnimator extends GeneralAnimator {
 								let i_here = i;
 								let anim_uuid = this.animation.uuid;
 								emitter = particle_effect.emitters[kf.uuid + i] = new Wintersky.Emitter(WinterskyScene, particle_effect.config);
-								
+
 								let old_variable_handler = emitter.Molang.variableHandler;
 								emitter.Molang.variableHandler = (key, params) => {
 									let curve_result = old_variable_handler.call(emitter, key, params);
 									if (curve_result !== undefined) return curve_result;
 									return Animator.MolangParser.variableHandler(key);
 								}
-								emitter.on('start', ({params}) => {
+								emitter.on('start', ({ params }) => {
 									let animation = Animation.all.find(a => a.uuid === anim_uuid);
 									let kf_now = animation?.animators.effects?.particle.find(kf2 => kf2.uuid == kf.uuid);
 									let data_point_now = kf_now && kf_now.data_points[i_here];
@@ -943,18 +1085,18 @@ export class EffectAnimator extends GeneralAnimator {
 							} else {
 								emitter.parent_mode = 'entity';
 							}
-							scene.add(emitter.global_space);
+							Canvas.scene.add(emitter.global_space);
 							emitter.jumpTo(diff);
 
 						} else if (emitter && emitter.enabled) {
 							emitter.stop(true);
 						}
-					} 
+					}
 					i++;
 				}
 			})
 		}
-		
+
 		if (!this.muted.timeline) {
 			this.timeline.forEach(kf => {
 				if ((kf.time > this.last_displayed_time && kf.time <= this.animation.time) || Math.epsilon(kf.time, this.animation.time, 0.01)) {
@@ -973,13 +1115,13 @@ export class EffectAnimator extends GeneralAnimator {
 					var diff = kf.time - this.animation.time;
 					if (diff < 0 && Timeline.waveforms[kf.data_points[0].file] && Timeline.waveforms[kf.data_points[0].file].duration > -diff) {
 						var media = new Audio(kf.data_points[0].file);
-						media.playbackRate = Math.clamp(Timeline.playback_speed/100, 0.1, 4.0);
-						media.volume = Math.clamp(settings.volume.value/100, 0, 1);
+						media.playbackRate = Math.clamp(Timeline.playback_speed / 100, 0.1, 4.0);
+						media.volume = Math.clamp(settings.volume.value / 100, 0, 1);
 						media.currentTime = -diff;
 						media.keyframe_id = kf.uuid;
-						media.play().catch(() => {});
+						media.play().catch(() => { });
 						Timeline.playing_sounds.push(media);
-						media.onended = function() {
+						media.onended = function () {
 							Timeline.playing_sounds.remove(media);
 							Timeline.paused_sounds.safePush(media);
 						}
@@ -988,18 +1130,18 @@ export class EffectAnimator extends GeneralAnimator {
 						setTimeout(() => {
 							delete kf.cooldown;
 						}, 400)
-					} 
+					}
 				}
 			})
 		}
 	}
 }
-	EffectAnimator.prototype.type = 'effect';
-	EffectAnimator.prototype.channels = {
-		particle: {name: tl('timeline.particle'), mutable: true, max_data_points: 1000},
-		sound: {name: tl('timeline.sound'), mutable: true, max_data_points: 1000},
-		timeline: {name: tl('timeline.timeline'), mutable: true, max_data_points: 1},
-	}
+EffectAnimator.prototype.type = 'effect';
+EffectAnimator.prototype.channels = {
+	particle: { name: tl('timeline.particle'), mutable: true, max_data_points: 1000 },
+	sound: { name: tl('timeline.sound'), mutable: true, max_data_points: 1000 },
+	timeline: { name: tl('timeline.timeline'), mutable: true, max_data_points: 1 },
+}
 
 StateMemory.init('animation_presets', 'array');
 
@@ -1008,7 +1150,7 @@ BARS.defineActions(() => {
 		condition: () => Modes.animate && Timeline.selected_animator && Timeline.selected_animator.applyAnimationPreset,
 		icon: 'library_books',
 		click: function (e) {
-			new Menu('apply_animation_preset', this.children(), {searchable: true}).open(e.target);
+			new Menu('apply_animation_preset', this.children(), { searchable: true }).open(e.target);
 		},
 		children() {
 			let animator = Timeline.selected_animator;
@@ -1033,17 +1175,19 @@ BARS.defineActions(() => {
 						animator.applyAnimationPreset(preset);
 					},
 					children: [
-						{icon: 'delete', name: 'generic.delete', click: () => {
-							Blockbench.showMessageBox({
-								title: 'generic.delete',
-								message: 'generic.confirm_delete',
-								buttons: ['dialog.confirm', 'dialog.cancel'],
-							}, result => {
-								if (result == 1) return;
-								StateMemory.animation_presets.remove(preset);
-								StateMemory.save('animation_presets');
-							})
-						}}
+						{
+							icon: 'delete', name: 'generic.delete', click: () => {
+								Blockbench.showMessageBox({
+									title: 'generic.delete',
+									message: 'generic.confirm_delete',
+									buttons: ['dialog.confirm', 'dialog.cancel'],
+								}, result => {
+									if (result == 1) return;
+									StateMemory.animation_presets.remove(preset);
+									StateMemory.save('animation_presets');
+								})
+							}
+						}
 					]
 				}
 				entries.push(entry);
@@ -1054,17 +1198,17 @@ BARS.defineActions(() => {
 	new Action('save_animation_preset', {
 		icon: 'playlist_add',
 		condition: () => Modes.animate && Keyframe.selected.length && Keyframe.selected.allAre(kf => kf.animator == Keyframe.selected[0].animator),
-		click(event) {	
+		click(event) {
 			let dialog = new Dialog({
 				id: 'save_animation_preset',
 				title: 'action.save_animation_preset',
 				width: 540,
 				form: {
-					name: {label: 'generic.name'},
+					name: { label: 'generic.name' },
 				},
-				onConfirm: function(formResult) {
+				onConfirm: function (formResult) {
 					if (!formResult.name) return;
-	
+
 					let preset = {
 						uuid: guid(),
 						name: formResult.name,
