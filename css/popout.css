@@ -1,0 +1,122 @@
+/* [Popout] Visual trimming and dedicated title-bar styles for when a panel/preview
+   viewport is popped out into a separate window.
+
+   Key constraint: every rule in this file must be scoped under body.solo-panel-mode,
+   otherwise it leaks into the main window. #popout_title_bar uses an ID selector
+   (higher specificity than .hidden's display:none), so without scoping, this
+   title bar - which should stay hidden in the main window - would use
+   position:absolute to cover the real menu bar, causing "the main window's menu
+   disappeared entirely". The main-window title bar (<header>) and the child-window
+   title bar (#popout_title_bar) are intentionally distinguished: the main window
+   keeps its native menu bar; the child window is a frameless, self-drawn title bar
+   with an accent-colored left border and a centered panel name, instantly
+   distinguishable from the main window. */
+@layer base {
+	/* ---- Visual trimming: only hide the main UI and expose the popout content inside the popout window ---- */
+	body.solo-panel-mode {
+		background-image: none;
+	}
+	body.solo-panel-mode > header:not(#popout_title_bar),
+	body.solo-panel-mode #page_wrapper,
+	body.solo-panel-mode #dialog_wrapper,
+	body.solo-panel-mode #loading_error_message {
+		display: none !important;
+	}
+	body.solo-panel-mode #popout_content {
+		position: absolute;
+		top: var(--menu-bar-height);
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	body.solo-panel-mode #popout_content .panel_container {
+		flex-grow: 1;
+		height: 100%;
+		width: 100%;
+	}
+	body.solo-panel-mode #popout_content .panel_container .panel.grow {
+		height: calc(100% - 40px);
+	}
+
+	/* ---- Child-window dedicated title bar (only shown under solo-panel-mode) ---- */
+	body.solo-panel-mode #popout_title_bar {
+		display: flex !important;
+		background-color: var(--color-frame);
+		border-top: 2px solid var(--color-accent);
+		box-sizing: border-box;
+		overflow: hidden;
+		white-space: nowrap;
+		height: var(--menu-bar-height);
+		width: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: 20;
+	}
+	body.solo-panel-mode #popout_title_bar_drag_region {
+		flex-grow: 1;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 10px;
+		overflow: hidden;
+		color: var(--color-text);
+		-webkit-app-region: drag;
+	}
+	body.solo-panel-mode #popout_title_bar_text {
+		font-size: 13px;
+		font-weight: 500;
+		letter-spacing: 0.3px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	body.solo-panel-mode #popout_pin_button {
+		width: 34px;
+		height: 100%;
+		text-align: center;
+		flex-shrink: 0;
+		cursor: pointer;
+		padding-top: 3px;
+		-webkit-app-region: no-drag;
+	}
+	body.solo-panel-mode #popout_pin_button:hover {
+		color: var(--color-light);
+		background-color: var(--color-selected);
+	}
+	body.solo-panel-mode #popout_pin_button.active {
+		color: var(--color-accent);
+	}
+	body.solo-panel-mode #popout_window_controls {
+		flex-shrink: 0;
+		display: flex;
+		-webkit-app-region: no-drag;
+	}
+	body.solo-panel-mode #popout_window_controls li {
+		display: block;
+		width: 42px;
+		height: 100%;
+		text-align: center;
+	}
+	body.solo-panel-mode #popout_window_controls li:hover {
+		color: var(--color-light);
+		background-color: var(--color-selected);
+	}
+	body.solo-panel-mode #popout_window_controls li.wwm_r:hover {
+		color: var(--color-accent_text);
+		background-color: var(--color-close);
+	}
+	body.solo-panel-mode #popout_window_controls svg {
+		margin-top: 5px;
+	}
+	body.solo-panel-mode:not(.maximized) #popout_window_controls svg.restore {
+		display: none;
+	}
+	body.solo-panel-mode.maximized #popout_window_controls svg.maximize {
+		display: none;
+	}
+}

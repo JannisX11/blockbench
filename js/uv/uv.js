@@ -2675,6 +2675,17 @@ BARS.defineActions(function() {
 
 Interface.definePanels(function() {
 
+	// [Popout] Align the UV panel size to the popout window's available area (total
+	// height minus the custom-drawn title bar), then trigger updateSize() to
+	// recompute the viewport, reused below by popout.onPopoutReady/onPopoutResize.
+	function fitUVToPopout(panel, width, height) {
+		let title_bar = document.getElementById('popout_title_bar');
+		let title_bar_height = title_bar && !title_bar.classList.contains('hidden') ? title_bar.clientHeight : 0;
+		panel.width = width;
+		panel.height = height - title_bar_height;
+		Vue.nextTick(() => UVEditor.vue.updateSize());
+	}
+
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',
 		expand_button: true,
@@ -2711,6 +2722,21 @@ Interface.definePanels(function() {
 			Vue.nextTick(() => {
 				UVEditor.vue.updateSize();
 			})
+		},
+		popout: {
+			// [Popout] After the UV editor is popped out, the panel's width/height is no
+			// longer driven by the main window's dock/float layout (that logic doesn't run
+			// in a popout window), yet updateSize() sizes the viewport directly from
+			// UVEditor.panel.width/height. Align the panel size to the popout window's
+			// available area (minus the custom-drawn title bar height), then trigger
+			// updateSize() once, otherwise the viewport stays at the default 320 and leaves
+			// a large blank area at the bottom of the window.
+			onPopoutReady(panel, info) {
+				fitUVToPopout(panel, info.width, info.height);
+			},
+			onPopoutResize(panel, width, height) {
+				fitUVToPopout(panel, width, height);
+			},
 		},
 		onFold: function() {
 			Vue.nextTick(() => {

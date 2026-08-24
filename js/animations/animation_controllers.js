@@ -1070,6 +1070,11 @@ export class AnimationController extends AnimationItem {
 			updateInterface();
 			BarItems.slider_animation_controller_speed.update();
 		}
+		// [Popout] AnimationController.select() originally did not dispatch any event,
+		// unlike Animation.select() (which dispatches 'select_animation'). Add one here
+		// so the animation_controllers panel's popout.syncState can trigger a
+		// cross-window broadcast.
+		Blockbench.dispatchEvent('select_animation_controller', {animation_controller: this});
 		return this;
 	}
 	clickSelect() {
@@ -1449,6 +1454,25 @@ Interface.definePanels(() => {
 		},
 		growable: true,
 		resizable: true,
+		popout: {
+			// [Popout] Same as the Animations panel: the currently selected
+			// AnimationController is just a process-local global reference, so after
+			// popout it won't agree across windows. Sync by uuid; the receiving end calls
+			// the target controller's .select() (inherited from AnimationItem) to reuse
+			// the full selection side effects.
+			syncState: {
+				events: ['select_animation_controller'],
+				get() {
+					return {uuid: AnimationController.selected ? AnimationController.selected.uuid : null};
+				},
+				apply(panel, state) {
+					if (!state || !state.uuid) return;
+					if (AnimationController.selected && AnimationController.selected.uuid == state.uuid) return;
+					let controller = AnimationController.all.find(c => c.uuid == state.uuid);
+					if (controller) controller.select();
+				},
+			},
+		},
 		onResize() {
 			if (this.inside_vue) this.inside_vue.updateConnectionWrapperOffset();
 		},

@@ -2100,6 +2100,8 @@
 	"action.split_screen.triple_right": "Triple Right",
 	"action.split_screen.triple_top": "Triple Top",
 	"action.split_screen.triple_bottom": "Triple Bottom",
+	"action.popout_preview": "Pop Out to Window",
+	"action.popout_preview.desc": "Open the current viewport in a separate window",
 	"action.toggle_camera_projection": "Toggle Camera Projection",
 	"action.toggle_camera_projection.desc": "Toggle the camera projection between perspective and orthographic",
 	"action.load_camera_angle": "Camera Angle: %0",
@@ -2551,6 +2553,9 @@
 	"menu.preview.perspective.reset": "Reset Camera",
 	"menu.preview.quadview": "Quad View",
 	"menu.preview.maximize": "Maximize",
+	"menu.preview.popout": "Pop Out to Window",
+	"menu.preview.popout_title": "Preview",
+	"menu.popout.follow_main_window": "Follow Main Window",
 	"menu.preview.stop_drag": "Stop Background Positioning",
 
 	"menu.uv.export": "Export UV Mapping",
@@ -2569,6 +2574,7 @@
 	"menu.panel.move_to.bottom": "Bottom",
 	"menu.panel.move_to.float": "Float",
 	"menu.panel.move_to.hidden": "Hide",
+	"menu.panel.move_to.window": "Pop Out to Window",
 	"menu.panel.fold": "Collapse",
 
 	"menu.mirror_painting.enabled": "Enabled",

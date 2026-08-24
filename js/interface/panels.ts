@@ -45,6 +45,41 @@ interface PanelOptions {
 	 * Adds a button to the panel that allows users to pop-out and expand the panel on click
 	 */
 	expand_button?: boolean
+	/**
+	 * [Popout] Specialized adaptation hooks for when the panel is popped out into
+	 * a standalone window (Electron BrowserWindow). If not provided, the generic
+	 * default behavior (applyPanelPopout) is used. All panels are poppable by
+	 * default; individual panels can explicitly forbid it via allowPopout.
+	 */
+	popout?: {
+		/** Called once the popout window is ready and the panel container has been mounted into the new window's document */
+		onPopoutReady?(panel: Panel, info: {width: number, height: number}): void
+		/** Called when the popout window resizes, to supplement default CSS auto-fit with imperative logic */
+		onPopoutResize?(panel: Panel, width: number, height: number): void
+		/** Called before the panel is pulled back to the main window, before the popout window closes, to clean up popout-only state */
+		onPopoutClose?(panel: Panel): void
+		/** Whether popping out is allowed; defaults to true */
+		allowPopout?: boolean | (() => boolean)
+		/**
+		 * [Popout] Cross-window sync of panel runtime state. Used to cover
+		 * same-process global singletons / local Vue state that is not part of
+		 * ModelProject's structured data but still affects the panel's actual
+		 * usability (e.g. the color picker's main_color, the Timeline's
+		 * playhead/playback state). Once declared, popout_sync_hub.ts takes over
+		 * subscription/debounced-broadcast/apply centrally, so the panel itself
+		 * does not need to worry about cross-window transport details.
+		 */
+		syncState?: {
+			/** List of Blockbench event names that trigger a re-broadcast */
+			events: string[]
+			/** Debounce time (ms), defaults to 150 */
+			debounce?: number
+			/** Read out the current state to sync; must be a JSON-serializable value */
+			get(panel: Panel): any
+			/** Apply received remote state to the local panel */
+			apply(panel: Panel, state: any): void
+		}
+	}
 	toolbars?:
 		| {
 				[id: string]: Toolbar
@@ -96,6 +131,11 @@ export class Panel extends EventSystem {
 	plugin?: string
 	onResize: () => void
 	onFold: () => void
+	/** [Popout] Specialized adaptation hooks for when popped out into a standalone window, see PanelOptions.popout */
+	popout_config?: PanelOptions['popout']
+	/** [Popout] Whether this panel is currently mounted into a popout window's #popout_content. When true,
+	 *  update()/updateSidebarOrder() skip it and no longer stuff it back into its (hidden) sidebar slot. */
+	popout_active?: boolean
 
 	previous_slot: PanelSlot
 	width: number
@@ -145,6 +185,7 @@ export class Panel extends EventSystem {
 
 		this.onResize = data.onResize;
 		this.onFold = data.onFold;
+		this.popout_config = data.popout;
 		this.events = {};
 		this.toolbars = [];
 
@@ -886,6 +927,13 @@ export class Panel extends EventSystem {
 		return this;
 	}
 	updateSlot(): this {
+		// [Popout] A panel popped out to a standalone window stays mounted in
+		// #popout_content and does not participate in slot layout. Mode.select()
+		// calls updateSlot() on every panel, moving panels not belonging to the
+		// current mode into the 'hidden' slot => container.remove(), which is
+		// exactly the culprit that drags the popped-out panel out of the popout
+		// window and causes the "flash then blank". Short-circuit here.
+		if (this.popout_active) return this;
 		let slot = this.slot;
 
 		this.container.classList.remove('floating');
@@ -939,6 +987,11 @@ export class Panel extends EventSystem {
 		return this;
 	}
 	update(dragging: boolean = false) {
+		// [Popout] A panel popped out to a standalone window stays mounted in
+		// #popout_content and does not participate in the main interface's
+		// visibility/slot layout, otherwise updateInterface() would drag it back
+		// from the popout window into the hidden sidebar.
+		if (this.popout_active) return;
 		let show = BARS.condition(this.condition);
 		if (!Blockbench.isMobile) {
 			// Hide panel if its in host panel
@@ -1084,9 +1137,45 @@ export class Panel extends EventSystem {
 		this.container.remove();
 		updateInterfacePanels();
 	}
+	/**
+	 * [Popout] Whether this panel is allowed to be popped out into a standalone window; defaults to true
+	 */
+	canPopout(): boolean {
+		if (!isApp) return false;
+		let allow = this.popout_config?.allowPopout;
+		if (typeof allow == 'function') return allow();
+		return allow !== false;
+	}
+	/**
+	 * [Popout] Request that this panel be popped out into a standalone Electron
+	 * window. If the panel is currently attached (attached_to), detach it first;
+	 * if other panels are attached to it, detach those too and record their host
+	 * before detaching, so the tab group can be restored on recovery.
+	 */
+	requestPanelPopout(): void {
+		if (!this.canPopout()) return;
+		let attached_panels = this.getAttachedPanels();
+		if (this.attached_to) {
+			panelPopoutDetachHistory.set(this.id, this.attached_to);
+			this.moveTo('float');
+		}
+		for (let attached of attached_panels) {
+			panelPopoutDetachHistory.set(attached.id, this.id);
+			attached.moveTo('float');
+		}
+		let default_size: [number, number] = this.position_data.float_size ?? [400, 400];
+		requestPopout('panel', this.id, default_size);
+		this.moveTo('hidden');
+	}
 	static selected: Panel | undefined
 	static floating_panel_z_order: string[] = []
 }
+/**
+ * [Popout] panelId -> hostPanelId. Records the attachment relationship before a
+ * panel is popped out, so the tab group can be restored on recovery via
+ * hostPanel.attachPanel(panel).
+ */
+export const panelPopoutDetachHistory = new Map<string, string>();
 export interface Panel {
 	snap_menu: Menu
 }
@@ -1151,6 +1240,15 @@ Panel.prototype.snap_menu = new Menu([
 				click: (panel) => {
 					panel.fixed_height = false;
 					panel.moveTo('hidden');
+				}
+			},
+			'_',
+			{
+				name: 'menu.panel.move_to.window',
+				icon: 'open_in_new',
+				condition: (panel: Panel) => panel.canPopout(),
+				click: (panel) => {
+					panel.requestPanelPopout();
 				}
 			}
 		])
@@ -1316,7 +1414,7 @@ export function updateSidebarOrder() {
 	['left_bar', 'right_bar'].forEach(bar => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
 		let current_panels = Array.from(bar_node.childNodes).map(panel_node => (panel_node as HTMLElement).getAttribute('panel_id')).filter(panel_id => {
-			return Panels[panel_id] && Condition(Panels[panel_id].condition) && !Panels[panel_id].attached_to;
+			return Panels[panel_id] && Condition(Panels[panel_id].condition) && !Panels[panel_id].attached_to && !Panels[panel_id].popout_active;
 		});
 
 		let target_order = Interface.calculateSidebarOrder(bar) as string[];
@@ -1324,6 +1422,10 @@ export function updateSidebarOrder() {
 		let panel_count = 0;
 		target_order.forEach((panel_id: string) => {
 			let panel: Panel = Panels[panel_id];
+			// [Popout] A popped-out panel stays in its popout window; do not lay it
+			// out in the main interface sidebar and do not remove() it (remove
+			// would pull it out of the popout window's #popout_content).
+			if (panel.popout_active) return;
 			panel.container.classList.remove('bottommost_panel');
 			panel.container.classList.remove('topmost_panel');
 			if (!panel.attached_to && Condition(panel.condition)) {

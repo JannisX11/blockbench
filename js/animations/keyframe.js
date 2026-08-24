@@ -1299,6 +1299,30 @@ Interface.definePanels(function() {
 			height: 400,
 			sidebar_index: 4,
 		},
+		popout: {
+			// [Popout] The Keyframe panel shows Timeline.selected (a global singleton).
+			// After popout it can't agree with the Timeline panel (possibly in another
+			// window) on which keyframes are selected; the popped-out Keyframe panel would
+			// forever show "nothing selected" or an old reference this window never saw.
+			// Broadcast the selected set by uuid; the receiver scans all animators to resolve them.
+			syncState: {
+				events: ['update_keyframe_selection'],
+				get() {
+					return {uuids: Timeline.selected.map(kf => kf.uuid)};
+				},
+				apply(panel, state) {
+					if (!state) return;
+					let all_keyframes = [];
+					Timeline.animators.forEach(animator => all_keyframes.push(...animator.keyframes));
+					let matched = state.uuids.map(uuid => all_keyframes.find(kf => kf.uuid == uuid)).filter(Boolean);
+					let current_uuids = Timeline.selected.map(kf => kf.uuid).sort().join(',');
+					if (current_uuids == state.uuids.slice().sort().join(',')) return;
+					Timeline.selected.replace(matched);
+					Timeline.keyframes.forEach(kf => kf.selected = matched.includes(kf));
+					updateKeyframeSelection();
+				},
+			},
+		},
 		toolbars: [
 			new Toolbar({
 				id: 'keyframe',

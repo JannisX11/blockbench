@@ -1128,6 +1128,42 @@ Interface.definePanels(function() {
 				]
 			})
 		],
+		popout: {
+			// [Popout] After the variable placeholder panel is popped out, the text/button
+			// values are just this process's local state, yet they directly affect the
+			// animation preview (anim_time_update, blend_weight and other expressions all
+			// depend on these variables). Without syncing, the popout and main window would
+			// show inconsistent animation.
+			syncState: {
+				events: ['edit_variable_placeholders'],
+				debounce: 100,
+				get(panel) {
+					return {
+						text: panel.inside_vue.text,
+						buttons: JSON.parse(JSON.stringify(panel.inside_vue.buttons)),
+					};
+				},
+				apply(panel, state) {
+					if (!state) return;
+					if (typeof state.text == 'string' && panel.inside_vue.text != state.text) {
+						panel.inside_vue.text = state.text;
+					}
+					if (Array.isArray(state.buttons)) {
+						panel.inside_vue.buttons.replace(state.buttons);
+						if (Project) Project.variable_placeholder_buttons.replace(state.buttons);
+						state.buttons.forEach(button => {
+							if (!button.variable) return;
+							if (button.type == 'toggle' || button.type == 'impulse') {
+								Animator.MolangParser.variables[button.variable] = button.value;
+							} else if (button.type == 'slider') {
+								Animator.MolangParser.variables[button.variable] = button.value;
+							}
+						});
+						Animator.preview();
+					}
+				},
+			},
+		},
 		component: {
 			name: 'panel-placeholders',
 			components: {VuePrismEditor},
@@ -1189,15 +1225,18 @@ Interface.definePanels(function() {
 						button.value = 1;
 						setTimeout(() => {
 							button.value = 0;
+							Blockbench.dispatchEvent('edit_variable_placeholders', {buttons: this.buttons});
 						}, Math.clamp(button.duration, 0, 1) * 1000);
 					}
 					if (button.variable) {
 						delete Animator.MolangParser.variables[button.variable];
 					}
 					Animator.preview();
+					Blockbench.dispatchEvent('edit_variable_placeholders', {buttons: this.buttons});
 				},
 				slideButton(button, e1) {
 					convertTouchEvent(e1);
+					let vue = this;
 					let last_event = e1;
 					let started = false;
 					let move_calls = 0;
@@ -1208,7 +1247,7 @@ Interface.definePanels(function() {
 						started = true;
 						if (!e1.touches && last_event == e1 && e1.target.requestPointerLock) e1.target.requestPointerLock();
 					}
-		
+
 					function move(e2) {
 						convertTouchEvent(e2);
 						if (!started && Math.abs(e2.clientX - e1.clientX) > 5) {
@@ -1230,7 +1269,7 @@ Interface.definePanels(function() {
 								difference *= canvasGridSize(e2.shiftKey || Pressing.overrides.shift, e2.ctrlOrCmd || Pressing.overrides.ctrl);
 							}
 
-							
+
 							button.value = Math.clamp(Math.roundTo((parseFloat(button.value) || 0) + difference, 4), button.min, button.max);
 
 							last_val = val;
@@ -1240,6 +1279,7 @@ Interface.definePanels(function() {
 
 							Animator.preview()
 							Blockbench.setStatusBarText(trimFloatNumber(total));
+							Blockbench.dispatchEvent('edit_variable_placeholders', {buttons: vue.buttons});
 						}
 					}
 					function off(e2) {
@@ -1278,6 +1318,12 @@ Interface.definePanels(function() {
 						this.updateButtons();
 						Project.variable_placeholder_buttons.replace(this.buttons);
 						Timeline.vue.updateGraph();
+						// [Popout] When the variable placeholder panel is popped out, this text edit
+						// only changes this process's Project.variable_placeholders and MolangParser
+						// variables; the Timeline/Animator in other windows can't read them, so the
+						// preview looks out of sync. Dispatch an event for popout.syncState to trigger
+						// a cross-window broadcast.
+						Blockbench.dispatchEvent('edit_variable_placeholders', {text});
 					}
 				}
 			},

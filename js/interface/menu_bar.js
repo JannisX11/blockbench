@@ -531,6 +531,7 @@ export const MenuBar = {
 			},
 			'toggle_sidebars',
 			'split_screen',
+			'popout_preview',
 			new MenuSeparator('viewport'),
 			'view_mode',
 			'toggle_shading',

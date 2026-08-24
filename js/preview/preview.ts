@@ -1945,6 +1945,7 @@ export class Preview {
 	 */
 	static all: Preview[] = [];
 
+
 	/**
 	 * Utility regarding split screen preview mode
 	 */
@@ -2113,9 +2114,111 @@ Preview.prototype.menu = new Menu([
 	'split_screen',
 	{icon: 'fullscreen', name: 'menu.preview.maximize', condition: function(preview) {return Preview.split_screen.enabled && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
 		preview.fullscreen();
+	}},
+	{icon: 'open_in_new', name: 'menu.preview.popout', condition: function(preview) {return isApp && !SoloMode && !ReferenceImageMode.active && !Modes.display}, click: function(preview) {
+		requestPreviewPopout(preview);
 	}}
 ])
 
+
+// [Popout] Pops a preview split-screen cell out into a separate window. It follows the same
+// main-process IPC contract as panel popouts (kind: 'preview', targetId: split-screen index),
+// but because Preview is not a Panel subclass, its mount/reclaim/independent render loop are
+// implemented separately and do not reuse applyPanelPopout.
+let popout_preview_animation_frame = null;
+
+/**
+ * [Popout] Requests popping a split-screen cell out into a separate window. preview must be
+ * one of the cells in the current split_screen (index 0 is main_preview).
+ */
+// [Popout] Index counter for popout preview child windows. The preview cell inside the child
+// window is a brand-new independent instance (kind:'preview' targetId); it uses high indices
+// >=100 to avoid the main window's split-screen indices 0..3, preventing index collisions with
+// split-screen cells (the main process deduplicates popout-request by kind:targetId).
+let next_popout_preview_index = 100;
+
+// [Popout] Split-screen "step down": the target layout for the main window's remaining cells
+// after one cell is popped out. Intentionally narrowed - only the common single/double cases
+// are guaranteed clean; triple/quad step-down keeps the fixed grid-area layout (popping out a
+// middle cell may leave an empty slot), which is a known limitation.
+function reduceSplitScreenMode(mode) {
+	if (mode == 'quad') return 'triple_left';
+	if (mode.startsWith('triple')) return 'double_horizontal';
+	if (mode.startsWith('double')) return 'single';
+	return 'single';
+}
+
+/**
+ * [Popout] Requests popping the "preview" out into a separate child window. Two scenarios:
+ * - Single view: the main window stays unchanged, and an additional brand-new view child window is popped out.
+ * - Split screen: the clicked cell is removed from the main window (split-screen steps down, e.g.
+ *   in a left/right double view clicking the right cell -> the main window becomes single view),
+ *   while a brand-new view child window is popped out.
+ * The preview inside the child window is a brand-new instance (default camera angle), with model
+ * content synced via MessagePort; it does not inherit the clicked cell's camera state
+ * (an implementation trade-off, see [[popout-feature]]).
+ */
+function requestPreviewPopout(preview) {
+	// Split-screen scenario: first step down the main window's split screen (change() syncs the dropdown display and triggers setMode).
+	if (Preview.split_screen.enabled) {
+		// The popped-out cell no longer needs to stay in the main window; reset the selection back to the
+		// main preview to avoid Preview.selected.fullscreen() inside setMode referencing the about-to-be-removed cell.
+		if (Preview.selected === preview && preview !== main_preview) {
+			Preview.selected = main_preview;
+		}
+		let target_mode = reduceSplitScreenMode(Preview.split_screen.mode);
+		BarItems.split_screen.change(target_mode);
+	}
+
+	// Whether single view or split screen, the child window uses a brand-new independent preview cell with a high index.
+	let popout_index = next_popout_preview_index++;
+	requestPopout('preview', String(popout_index), [480, 480]);
+}
+
+/**
+ * [Popout] Called on the popout window's renderer side: mounts the target split-screen cell's
+ * canvas into #popout_content and starts a dedicated minimal render loop for it (only
+ * preview.render(), not reusing the unrelated Timeline/effect-update logic in the main window's
+ * animate()). The `canvas.isConnected` check in the main window's animate() loop naturally skips
+ * this cell, so no extra patch is needed.
+ */
+Blockbench.on('popout_mount_preview', ({index}) => {
+	let preview = Preview.split_screen.lazyLoadPreview(index);
+	let content = document.getElementById('popout_content');
+	content.append(preview.node);
+	preview.node.classList.remove('hidden', 'fixed_ratio');
+
+	document.getElementById('popout_title_bar_text').textContent = tl('menu.preview.popout_title') || 'Preview';
+
+	function renderLoop() {
+		popout_preview_animation_frame = requestAnimationFrame(renderLoop);
+		if (preview.canvas.isConnected) preview.render();
+	}
+	renderLoop();
+
+	window.addEventListener('resize', () => preview.resize());
+	preview.resize();
+})
+
+/**
+ * [Popout] Called on the main-window side: after the popout window closes, reclaims the
+ * corresponding split-screen cell's canvas back to its original split_screen_wrapper grid
+ * position (if split-screen mode is still enabled), otherwise discards the reference and waits
+ * for the next lazyLoadPreview to recreate the wrapper container.
+ */
+Blockbench.on('popout_recover_preview', ({index}) => {
+	let preview = Preview.split_screen.previews[index];
+	if (!preview) return;
+	if (Preview.split_screen.enabled) {
+		let wrapper = Interface.createElement('div', {class: `split_screen_wrapper split_screen_wrapper_${index}`}, preview.node);
+		wrapper.style.gridArea = `preview_${index}`;
+		Interface.preview.append(wrapper);
+		preview.node.classList.remove('hidden');
+		preview.resize();
+	} else {
+		preview.node.classList.add('hidden');
+	}
+})
 
 Blockbench.on('update_camera_position', e => {
 	let scale = Preview.selected.calculateControlScale(Transformer.position) || 0.8;
@@ -2717,6 +2820,18 @@ BARS.defineActions(function() {
 		}
 	})
 	let uvEditorActive = () => (Prop.active_panel == 'uv' || document.querySelector('#UVEditor:hover'));
+	// [Popout] The "Pop Out to Window" entry in the top "View" menu: pops the currently selected
+	// preview cell out into a separate window. Shares requestPreviewPopout with the same-named item
+	// in the preview cell's context menu (see Preview.prototype.menu).
+	new Action('popout_preview', {
+		icon: 'open_in_new',
+		category: 'view',
+		condition: () => isApp && !Modes.display && !Format.image_editor && !ReferenceImageMode.active,
+		click() {
+			let preview = Preview.selected || main_preview;
+			if (preview) requestPreviewPopout(preview);
+		}
+	})
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',

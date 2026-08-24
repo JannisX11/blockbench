@@ -55,6 +55,8 @@ interface BlockbenchEventMap {
 	add_bounding_box: {object: BoundingBox}
 	group_elements: {object: Group}
 	update_selection: void
+	popout_mount_preview: {index: number}
+	popout_recover_preview: {index: number}
 	compile_bedrock_animation: {animation: Animation, json: any}
 	load_animation: {animation: Animation, json: any}
 	load_animation_controller: {animation_controller: AnimationController, json: any}

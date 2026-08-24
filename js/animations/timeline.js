@@ -245,6 +245,13 @@ export const Timeline = {
 			Timeline.updateSize()
 		}
 		Timeline.revealTime(seconds)
+		// [Popout] After the Timeline is popped out, the playhead position
+		// (Timeline.time) is a process-local global, fully independent of the render
+		// loops in other windows (main window / other popped-out panels). Dispatch an
+		// event here for cross-window sync. setTime is called every frame during
+		// playback, but syncState debounces it (see panels.ts
+		// popout_config.syncState.debounce), so it won't actually send a message per frame.
+		Blockbench.dispatchEvent('timeline_set_time', {seconds});
 	},
 	playAudioStutter() {
 		if (!settings.audio_scrubbing.value) return;
@@ -811,6 +818,39 @@ Interface.definePanels(() => {
 		},
 		growable: true,
 		resizable: true,
+		popout: {
+			// [Popout] After the Timeline is popped out, the playhead/playback state is a
+			// process-local global (Timeline.time/playing/playback_speed), advancing
+			// independently of the render loops (js/preview/preview.js animate()) in other
+			// windows, unaware of each other -- so playing/scrubbing in the popout won't
+			// move the model in other windows at all. After syncing, each window's local
+			// animate() loop still advances via its own Timeline.loop() (we don't forward
+			// frames); only the playing/time origin needs to be aligned.
+			syncState: {
+				events: ['timeline_play', 'timeline_pause', 'timeline_set_time', 'select_animation'],
+				get() {
+					return {
+						playing: Timeline.playing,
+						time: Timeline.time,
+						playback_speed: Timeline.playback_speed,
+					};
+				},
+				apply(panel, state) {
+					if (!state || !Animation.selected) return;
+					if (typeof state.playback_speed == 'number') {
+						Timeline.playback_speed = state.playback_speed;
+					}
+					if (typeof state.time == 'number' && Math.abs(Timeline.time - state.time) > 0.02) {
+						Timeline.setTime(state.time);
+					}
+					if (state.playing && !Timeline.playing) {
+						Timeline.start();
+					} else if (!state.playing && Timeline.playing) {
+						Timeline.pause();
+					}
+				},
+			},
+		},
 		toolbars: [
 			new Toolbar('timeline', {
 				children: [

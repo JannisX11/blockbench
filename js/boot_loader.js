@@ -9,6 +9,8 @@ import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
 import { AutoBackup } from "./auto_backup";
 import { initReferenceImages } from "./preview/reference_images";
 import { initCanvas } from "./preview/canvas";
+import { initPopoutMode } from "./interface/popout";
+import { registerPanelStateSync } from "./io/popout_sync_hub";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
@@ -170,7 +172,16 @@ localStorage.setItem('last_version', Blockbench.version);
 		}
 		proceeded = true;
 	}
-	loadInstalledPlugins().then(proceed);
+	// [Popout] loadInstalledPlugins() stores its returned Promise on
+	// Plugins.install_promise, so popout.ts can reuse it to wait when a target panel
+	// is "registered by a plugin but not yet in place" inside a popout window (it must
+	// not call loadInstalledPlugins() again -- that is not idempotent and would re-run
+	// the plugin install/load side effects). Here we additionally wait for it to resolve,
+	// then re-scan once via registerPanelStateSync() to add the late plugin panels'
+	// cross-window sync subscriptions.
+	let install_promise = loadInstalledPlugins();
+	install_promise.then(() => registerPanelStateSync());
+	install_promise.then(proceed);
 	setTimeout(proceed, 1200);
 })()
 
@@ -183,5 +194,9 @@ if (Blockbench.isMobile) {
 }
 
 document.getElementById('page_wrapper').classList.remove('invisible');
+
+// [Popout] After the full boot sequence completes, run a one-time SoloMode
+// detection and visual cropping, or (in non-popout windows) register the reclaim listener.
+initPopoutMode();
 
 Blockbench.setup_successful = true;

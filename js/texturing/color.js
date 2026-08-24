@@ -512,6 +512,29 @@ Interface.definePanels(() => {
 			height: 400,
 			sidebar_index: 4,
 		},
+		popout: {
+			// [Popout] Once the color palette is popped out into a separate window,
+			// main_color/second_color are just that process's local Vue state, while the
+			// main window's Painter reads its own copy -- so picking colors in the popout
+			// won't affect what the main window can paint. Broadcast the color state both
+			// ways so a color picked in the popout is immediately usable in the main window and vice versa.
+			syncState: {
+				events: ['change_color'],
+				get(panel) {
+					return {
+						main_color: panel.vue.main_color,
+						second_color: panel.vue.second_color,
+						second_color_selected: panel.vue.second_color_selected,
+					};
+				},
+				apply(panel, state) {
+					if (!state) return;
+					if (typeof state.main_color == 'string') panel.vue.main_color = state.main_color;
+					if (typeof state.second_color == 'string') panel.vue.second_color = state.second_color;
+					if (typeof state.second_color_selected == 'boolean') panel.vue.second_color_selected = state.second_color_selected;
+				},
+			},
+		},
 		toolbars: [
 			new Toolbar('color_picker', {
 				children: [

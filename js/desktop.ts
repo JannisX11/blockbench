@@ -663,6 +663,14 @@ document.getElementById('window_controls_button_close').addEventListener('click'
 
 //Close
 window.onbeforeunload = function (event) {
+	// [Popout] A popped-out child window is just a mirror view of the main window's
+	// project; it has no notion of "unsaved project" (saving is the main window's
+	// job). Allow the close directly, otherwise it hits the unsaved check below ->
+	// a dialog hidden by solo-panel-mode + shell.beep(), which looks like "can't
+	// close, just beeps".
+	if (typeof SoloMode != 'undefined' && SoloMode) {
+		return undefined;
+	}
 	try {
 		updateRecentProjectData()
 	} catch(err) {}

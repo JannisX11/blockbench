@@ -1721,6 +1721,27 @@ Interface.definePanels(function() {
 			height: 400,
 			sidebar_index: 0,
 		},
+		popout: {
+			// [Popout] When the Animations panel is popped out, the "currently selected
+			// animation" is just this process's Animation.selected global reference; panels
+			// living elsewhere (Timeline/Animator/etc.) read their own process-local copy,
+			// so they never agree. Sync the selected animation uuid, and on the receiving
+			// end call that animation instance's .select() (instead of assigning
+			// Animation.selected directly) to reuse its full reset logic for Timeline /
+			// bone animator / MolangParser.
+			syncState: {
+				events: ['select_animation'],
+				get() {
+					return {uuid: Animation.selected ? Animation.selected.uuid : null};
+				},
+				apply(panel, state) {
+					if (!state || !state.uuid) return;
+					if (Animation.selected && Animation.selected.uuid == state.uuid) return;
+					let anim = Animation.all.find(a => a.uuid == state.uuid);
+					if (anim) anim.select();
+				},
+			},
+		},
 		toolbars: [
 			new Toolbar('animations', {
 				children: [

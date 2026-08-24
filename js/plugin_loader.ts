@@ -35,6 +35,14 @@ export const Plugins = {
 	currently_loading: '',
 	loading_promise: null as null | Promise<void>,
 	/**
+	 * [Popout] loadInstalledPlugins() is not idempotent -- each call re-runs the whole
+	 * plugin install/load flow. boot_loader.js calls it exactly once and stores the
+	 * returned Promise here; anywhere that needs to "wait for plugins to finish loading"
+	 * (such as the retry logic when a plugin panel is not yet in place inside a popout
+	 * window) should await this field rather than calling loadInstalledPlugins() again.
+	 */
+	install_promise: null as null | Promise<any>,
+	/**
 	 * The currently used path to the plugin API
 	 */
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
@@ -1095,6 +1103,11 @@ $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
 })
 
 export async function loadInstalledPlugins() {
+	let promise = loadInstalledPluginsInner();
+	Plugins.install_promise = promise;
+	return await promise;
+}
+async function loadInstalledPluginsInner() {
 	if (Plugins.loading_promise) {
 		await Plugins.loading_promise;
 	}
