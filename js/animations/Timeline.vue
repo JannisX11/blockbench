@@ -56,7 +56,7 @@
 			<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 		</div>
 		<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-			<aside id="timeline_body_headers" :style="{width: head_width+'px'}">
+			<aside id="timeline_body_headers">
 				<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 					<div class="animator_head_bar">
 						<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
@@ -108,7 +108,7 @@
 				</li>
 			</aside>
 
-			<canvas id="timeline_body_canvas" :width="(size * length)" />
+			<canvas id="timeline_body_canvas" @contextmenu.stop="openContextMenu($event)"/>
 
 			{{ refreshTimelineCanvas() }}
 
@@ -386,22 +386,19 @@ export default {
 			if (!Animation.selected) return;
 			if (!this.animators.length) return;
 
+			let body = $('#timeline_body').get(0);
+			let timelineStyle = window.getComputedStyle(body);
+			let channelFill = timelineStyle.getPropertyValue("--color-ui").trim();
+			let channelBorder = timelineStyle.getPropertyValue("--color-border").trim();
+
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
 			let channelHeight = 24;
 			let heightAccumulator = 0;
-
-			// Collect height info to set the canvas's height dynamically.
-			for (let i = 0; i < this.animators.length; i++) {
-				let animator = this.animators[i];
-				let channelKeys = Object.keys(animator.channels);
-				heightAccumulator++;
-
-				for (let j = 0; j < channelKeys.length; j++) {
-					heightAccumulator++;
-				}
-			}
-			bodyCanvas.height = heightAccumulator * channelHeight;
+			let scrollOffsetY = body.scrollTop;
+			let scrollOffsetX = body.scrollLeft;
+			bodyCanvas.height = body.clientHeight;
+			bodyCanvas.width = body.clientWidth - this.head_width;
 
 			function drawLine(from, to, thickness, color) {
 				context.beginPath();
@@ -417,17 +414,6 @@ export default {
 				context.fillStyle = color;
 				context.fillRect(position[0], position[1], size[0], size[1]);
 				context.closePath();
-			}
-
-			function drawText(content, position, font, size, color) {
-				context.font = `${size} ${font}`;
-				context.fillStyle = color;
-				context.fillText(content, position[0], position[1]);
-			}
-
-			function drawAnimatorChannel(position, height, fillColor) {
-				let size = [bodyCanvas.width, height];
-				drawRect(position, size, fillColor);
 			}
 
 			function drawKeyframeChannel(position, height, thickness, fillColor, lineColor) {
@@ -446,23 +432,23 @@ export default {
 			for (let i = 0; i < this.animators.length; i++) {
 				let animator = this.animators[i];
 				let channelKeys = Object.keys(animator.channels);
-				// let animatorY = channelHeight * heightAccumulator;
-				// let position = [this.head_width, animatorY];
-				// let titlePosition = [0, animatorY + (channelHeight / 2.0)];
-
-				// drawAnimatorChannel(position, channelHeight, "#181b1f");
-				// drawText(animator.name, titlePosition, "Assistant, segoe ui, sans-serif", "16px", "#fff");
 				heightAccumulator++;
 
 				for (let j = 0; j < channelKeys.length; j++) {
-					// let channel = animator.channels[channelKeys[j]];
-					let channelY = channelHeight * heightAccumulator;
+					let channel = animator.channels[channelKeys[j]];
+					let channelY = channelHeight * heightAccumulator - scrollOffsetY;
 					let position = [0, channelY];
-					// let titlePosition = [0, channelY + (channelHeight / 2.0)];
-
-					drawKeyframeChannel(position, channelHeight, 1, "#1e2127", "#101316");
-					// drawText(channel.name, titlePosition, "Assistant, segoe ui, sans-serif", "16px", "#fff");
 					heightAccumulator++;
+
+					// drawKeyframeChannel(position, channelHeight, 1, "#1e2127", "#101316");
+					drawKeyframeChannel(position, channelHeight, 1, channelFill, channelBorder);
+
+					for (let keyframe of animator[channelKeys[j]]) {
+						let posX = (8 + keyframe.time * this.size) - 8;
+						let color = this.getColor(keyframe.color) || "#fff";
+
+						drawRect([posX - scrollOffsetX, channelY + (channelHeight / 2.0) - 8], [16, 16], color);
+					}
 				}
 			}
 		},
@@ -583,6 +569,7 @@ export default {
 		updateScroll() {
 			this.scroll_left = this.$refs.timeline_body ? this.$refs.timeline_body.scrollLeft : 0;
 			this.scroll_top = this.$refs.timeline_body ? this.$refs.timeline_body.scrollTop : 0;
+			this.refreshTimelineCanvas();
 		},
 		openContextMenu(event) {
 			if (event.target.nodeName == 'KEYFRAME' || event.target.parentElement.nodeName == 'KEYFRAME') return;
@@ -1148,6 +1135,11 @@ export default {
     position: sticky;
     left: 0px;
     z-index: 10;
+}
+#timeline_body_canvas {
+    position: sticky;
+	top: 0px;
+    left: 0px;
 }
 #timeline_body {
     display: flex;
