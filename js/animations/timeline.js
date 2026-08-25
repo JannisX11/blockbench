@@ -788,19 +788,6 @@ StateMemory.init("timeline_channels", "object", {
 });
 
 Interface.definePanels(() => {
-	function eventTargetToAnimator(target) {
-		let target_node = target;
-		let i = 0;
-		while (target_node && target_node.classList && !target_node.classList.contains('animator')) {
-			if (i < 3 && target_node) {
-				target_node = target_node.parentNode;
-				i++;
-			} else {
-				return [];
-			}
-		}
-		return [Timeline.animators.find(animator => animator.uuid == target_node.attributes.uuid.value), target_node];
-	}
 	Timeline.panel = new Panel('timeline', {
 		icon: 'timeline',
 		condition: {modes: ['animate'], method: () => !AnimationController.selected},
