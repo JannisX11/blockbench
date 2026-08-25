@@ -88,6 +88,7 @@ declare class BBKeyframe {
 	replaceOthers(save: any): void
 	select(event?: any): this
 	callPlayhead(): this
+	showInTimeline(): void
 	showContextMenu(event: Event): this
 	remove(): void
 	forSelected(callback: (keyframe: BBKeyframe) => void, undo_tag: any): this[]
