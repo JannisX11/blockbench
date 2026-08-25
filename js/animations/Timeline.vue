@@ -108,7 +108,7 @@
 				</li>
 			</aside>
 
-			<canvas id="timeline_body_canvas" @contextmenu.stop="openContextMenu($event)"/>
+			<canvas id="timeline_body_canvas" @click.stop="clickTimelineCanvas($event)" @contextmenu.stop="openContextMenu($event)"/>
 
 			{{ refreshTimelineCanvas() }}
 
@@ -381,6 +381,11 @@ export default {
 	},
 	methods: {
 		tl,
+		clearTimelineCanvas() {
+			let bodyCanvas = $('#timeline_body_canvas').get(0);
+			let context = bodyCanvas.getContext("2d");
+			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
+		},
 		refreshTimelineCanvas() {
 			if (!this._isMounted) return;
 			if (!Animation.selected) return;
@@ -397,15 +402,17 @@ export default {
 			// Collect data & setup variables used for rendering only
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
-			let channelHeight = 24;
+			let channelHeight = 24; // Hardcoded for now, there is no variable for this afaik
 			let heightAccumulator = 0;
-			let scale = 2.0;
+			let scale = 3.0;
 
 			// Over-sample keyframe view, to avoid cut-off lines and odd blurs
-			bodyCanvas.height = body.clientHeight * scale;
-			bodyCanvas.width = (body.clientWidth - this.head_width) * scale;
-			bodyCanvas.style.height = `${body.clientHeight}px`;
-			bodyCanvas.style.width = `${(body.clientWidth - this.head_width)}px`;
+			let rectHeight = body.clientHeight;
+			let rectWidth = body.clientWidth - this.head_width;
+			bodyCanvas.height = rectHeight * scale;
+			bodyCanvas.width = rectWidth * scale;
+			bodyCanvas.style.height = `${rectHeight}px`;
+			bodyCanvas.style.width = `${rectWidth}px`;
 
 			function drawLine(from, to, thickness, color) {
 				context.beginPath();
@@ -434,7 +441,7 @@ export default {
 			}
 
 			// Clear canvas, and re-draw keyframes.
-			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
+			this.clearTimelineCanvas();
 			heightAccumulator = 0;
 			for (let i = 0; i < this.animators.length; i++) {
 				let animator = this.animators[i];
@@ -447,17 +454,36 @@ export default {
 					let position = [0, channelY];
 					heightAccumulator++;
 
-					// drawKeyframeChannel(position, channelHeight, 1, "#1e2127", "#101316");
+					// Stop early if channel is out of frame vertically
+					if (channelY < -channelHeight / 2.0) continue;
+					if (channelY > rectHeight - (channelHeight / 2.0)) break;
+
 					drawKeyframeChannel(position, channelHeight, 1, channelFill, channelBorder);
 
 					for (let keyframe of animator[channelKeys[j]]) {
 						let posX = (8 + keyframe.time * this.size) - 8;
 						let color = this.getColor(keyframe.color) || "#fff";
 
+						// Stop early if keyframe is out of frame horizontally
+						if (posX < 0) continue;
+						if (posX > rectWidth) break;
+
 						drawRect([posX - scrollOffsetX, channelY + (channelHeight / 2.0) - 8], [16, 16], color);
 					}
 				}
 			}
+		},
+		// https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
+		clickTimelineCanvas(event) {
+			console.log("clicked canvas!")
+			let bodyCanvas = $('#timeline_body_canvas').get(0);
+    		let left = bodyCanvas.offsetLeft + bodyCanvas.clientLeft;
+    		let top = bodyCanvas.offsetTop + bodyCanvas.clientTop;
+
+		    let x = event.pageX - left;
+		    let y = event.pageY - top;
+
+			console.log(x, y);
 		},
 		eventTargetToAnimator(target) {
 			let target_node = target;
