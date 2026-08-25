@@ -568,7 +568,7 @@ export const Timeline = {
 
 			} else if (is_zoom_gesture || Keybinds.extra.uv_editor_scroll_zoom.keybind.isTriggered(event)) {
 
-				let offset = $('#timeline_body_inner').offset()
+				let offset = $('#timeline_body').offset()
 				let offsetX = event.clientX - offset.left - Timeline.vue._data.head_width;
 				
 				var zoom = 1 - event.deltaY / (is_zoom_gesture ? 160 : 600)
