@@ -386,25 +386,32 @@ export default {
 			if (!Animation.selected) return;
 			if (!this.animators.length) return;
 
+			// Collect body style & scroll data
 			let body = $('#timeline_body').get(0);
 			let timelineStyle = window.getComputedStyle(body);
 			let channelFill = timelineStyle.getPropertyValue("--color-ui").trim();
 			let channelBorder = timelineStyle.getPropertyValue("--color-border").trim();
+			let scrollOffsetY = body.scrollTop;
+			let scrollOffsetX = body.scrollLeft;
 
+			// Collect data & setup variables used for rendering only
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
 			let channelHeight = 24;
 			let heightAccumulator = 0;
-			let scrollOffsetY = body.scrollTop;
-			let scrollOffsetX = body.scrollLeft;
-			bodyCanvas.height = body.clientHeight;
-			bodyCanvas.width = body.clientWidth - this.head_width;
+			let scale = 2.0;
+
+			// Over-sample keyframe view, to avoid cut-off lines and odd blurs
+			bodyCanvas.height = body.clientHeight * scale;
+			bodyCanvas.width = (body.clientWidth - this.head_width) * scale;
+			bodyCanvas.style.height = `${body.clientHeight}px`;
+			bodyCanvas.style.width = `${(body.clientWidth - this.head_width)}px`;
 
 			function drawLine(from, to, thickness, color) {
 				context.beginPath();
-				context.moveTo(from[0], from[1]);
-				context.lineTo(to[0], to[1]);
-				context.lineWidth = thickness;
+				context.moveTo(from[0] * scale, from[1] * scale);
+				context.lineTo(to[0] * scale, to[1] * scale);
+				context.lineWidth = thickness * scale;
 				context.strokeStyle = color;
 				context.stroke();
 			}
@@ -412,7 +419,7 @@ export default {
 			function drawRect(position, size, color) {
 				context.beginPath();
 				context.fillStyle = color;
-				context.fillRect(position[0], position[1], size[0], size[1]);
+				context.fillRect(position[0] * scale, position[1] * scale, size[0] * scale, size[1] * scale);
 				context.closePath();
 			}
 
