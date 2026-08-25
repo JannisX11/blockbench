@@ -624,6 +624,7 @@ export const Timeline = {
 		Timeline.selected.empty();
 		Timeline.vue.markers = [];
 		Timeline.vue.animation_length = 0;
+		Timeline.vue.clearTimelineCanvas();
 		updateKeyframeSelection();
 	},
 	start() {
@@ -1090,6 +1091,7 @@ BARS.defineActions(function() {
 		condition: {modes: ['animate']},
 		click: function () {
 			Timeline.vue._data.animators.purge();
+			Timeline.vue.clearTimelineCanvas();
 			unselectAllElements();
 		}
 	})

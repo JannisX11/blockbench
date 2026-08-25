@@ -56,7 +56,6 @@
 			<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 		</div>
 		<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-
 			<aside id="timeline_body_headers">
 				<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 					<div class="animator_head_bar">
@@ -113,7 +112,7 @@
 
 			{{ refreshTimelineCanvas() }}
 
-			<div id="timeline_body_padding" :style="{width: (size*length + head_width)+'px'}" />
+			<div id="timeline_body_padding" :style="{width: `${(size * length) + head_width}px`}" />
 		</div>
 	</div>
 </template>
@@ -165,18 +164,18 @@ export default {
 
 		keyframeIcons: {
 			"linear": {
-				normal: getKeyframeImage("icons/icomoon/keyframe.svg"),
-				discontinuous: getKeyframeImage("icons/icomoon/keyframe_discontinuous.svg")
+				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe.svg"),
+				discontinuous: getKeyframeImage("icons/icomoon/keyframes/keyframe_discontinuous.svg")
 			},
 			"catmullrom": {
-				normal: getKeyframeImage("icons/icomoon/keyframe_smooth.svg"),
+				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_smooth.svg"),
 			},
 			"bezier": {
-				normal: getKeyframeImage("icons/icomoon/keyframe_bezier.svg"),
-				discontinuous: getKeyframeImage("icons/icomoon/keyframe_discontinuous_bezier.svg")
+				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_bezier.svg"),
+				discontinuous: getKeyframeImage("icons/icomoon/keyframes/keyframe_discontinuous_bezier.svg")
 			},
 			"step": {
-				normal: getKeyframeImage("icons/icomoon/keyframe_step.svg"),
+				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_step.svg"),
 			}
 		}
 	}},
@@ -414,10 +413,22 @@ export default {
 			for (let i = 0; i < this.animators.length; i++) {
 				let animator = this.animators[i];
 				let channelKeys = Object.keys(animator.channels);
+				let animatorY = channelHeight * heightAccumulator - scrollOffsetY;
+				let position = [0, animatorY];
 				heightAccumulator++;
+				
+				drawKeyframeChannel(position, channelHeight, 1, "transparent", channelBorder);
 
 				for (let j = 0; j < channelKeys.length; j++) {
-					let channel = animator.channels[channelKeys[j]];
+					let channel = channelKeys[j];
+					let channelOptions = animator.channels[channel];
+
+					// Stop early if channel is hidden
+					if (!(animator.expanded && this.channels[channel] != false && Condition(channelOptions.condition, animator) && (!this.channels.hide_empty || animator[channel].length))) {
+						continue;
+					}
+
+					// Get our remaining data
 					let channelY = channelHeight * heightAccumulator - scrollOffsetY;
 					let position = [0, channelY];
 					heightAccumulator++;
@@ -426,29 +437,38 @@ export default {
 					if (channelY < -channelHalfHeight) continue;
 					if (channelY > rectHeight - channelHalfHeight) break;
 
+					// Draw channel if all above checks failed :D
 					drawKeyframeChannel(position, channelHeight, 1, channelFill, channelBorder);
 
-					let keyframes = [...animator[channelKeys[j]]].sort((a, b) => a.time < b.time);
+					let keyframes = animator[channel];
 					for (let keyframe of keyframes) {
 						let posX = (keyframe.time * this.size) - scrollOffsetX;
 						let posY = channelY + channelHalfHeight - keyFrameHalfRadius;
+						let isSelected = keyframe.selected;
+						let hasExpressions = keyframe.has_expressions;
 						
 						// Stop early if keyframe is out of frame horizontally
 						if (posX < -keyFrameHalfRadius) continue;
 						if (posX > rectWidth - keyFrameHalfRadius) continue;
 
-						// drawRect([posX, channelY + channelHalfHeight - keyFrameHalfRadius], [keyFrameRadius, keyFrameRadius], color);
-						drawKeyframe(keyframe, [posX, posY]);
+						if (isSelected) {
+							if (hasExpressions) drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#0ff");
+							else drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#0f0");
+						}
+						else {
+							if (hasExpressions) drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#00f");
+							else drawKeyframe(keyframe, [posX, posY]);
+						}
 					}
 				}
 			}
 		},
 		// https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
 		clickTimelineCanvas(event) {
-			console.log("clicked canvas!")
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
-    		let left = bodyCanvas.offsetLeft + bodyCanvas.clientLeft;
-    		let top = bodyCanvas.offsetTop + bodyCanvas.clientTop;
+    		let rect = bodyCanvas.getBoundingClientRect()
+    		let left = rect.left;
+    		let top = rect.top;
 
 		    let x = event.pageX - left;
 		    let y = event.pageY - top;
@@ -1137,7 +1157,10 @@ export default {
 #timeline_body_padding {
 	flex-grow: 1;
     flex-shrink: 0;
-    height: stretch;
+    height: 100%;
+	position: absolute;
+	left: 0;
+	top: 0;
 }
 #timeline_body_headers {
     position: sticky;
