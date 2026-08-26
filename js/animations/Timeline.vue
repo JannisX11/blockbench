@@ -56,7 +56,7 @@
 			<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 		</div>
 		<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-			<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}" @contextmenu.stop="openContextMenu($event)">
+			<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}">
 				<aside id="timeline_body_headers">
 					<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
 						<div class="animator_head_bar">
@@ -117,6 +117,7 @@
 					@dblclick="callPlayHeadToKeyframeOnCanvas($event)" 
 					@mousedown="dragKeyframesOnCanvas($event)" 
 					@touchstart="dragKeyframesOnCanvas($event)"
+					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
 				>
 					{{ refreshTimelineCanvas() }}
 				</canvas>
@@ -654,6 +655,14 @@ export default {
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) return;
 			this.dragKeyframes(keyframe, event);
+		},
+		openKeyframeContextMenuOnCanvas(event) {
+			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			if (!keyframe) {
+				this.openContextMenu(event)
+				return;
+			}
+			keyframe.showContextMenu(event)
 		},
 		eventTargetToAnimator(target) {
 			let target_node = target;
