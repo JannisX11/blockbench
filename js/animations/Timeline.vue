@@ -762,19 +762,16 @@ export default {
 			return false;
 		},
 		clickKeyframeOnCanvas(event) {
-			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) return;
 			keyframe.clickSelect(event);
 		},
 		callPlayHeadToKeyframeOnCanvas(event) {
-			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) return;
 			keyframe.callPlayhead();
 		},
 		dragKeyframesOnCanvas(event) {
-			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
 				// console.log("no keyframes to drag");
@@ -785,7 +782,6 @@ export default {
 			this.dragKeyframes(keyframe, event);
 		},
 		openKeyframeContextMenuOnCanvas(event) {
-			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
 				this.openContextMenu(event);
