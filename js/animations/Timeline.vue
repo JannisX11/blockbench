@@ -118,6 +118,8 @@
 					@mousedown="dragKeyframesOnCanvas($event)" 
 					@touchstart="dragKeyframesOnCanvas($event)"
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
+					@mousemove="hoverKeyframeOnCanvas($event)"
+					@mouseleave="mouseLeftCanvas($event)"
 				>
 					{{ refreshTimelineCanvas() }}
 				</canvas>
@@ -196,11 +198,17 @@
 
 <script lang="js">
 import { tl } from '../languages';
+const domParser = new DOMParser();
 
-function getKeyframeImage(uri) {
-	let image = new Image();
-	image.src = uri;
-	return image;
+async function getKeyframeImage(uri) {
+	let svg = new Document();
+
+	await fetch(uri).then(r => r.text()).then(r => {
+		svg = domParser.parseFromString(r, "image/svg+xml");
+		// console.log(svg);
+	})
+
+	return svg;
 }
 
 export default {
@@ -244,20 +252,27 @@ export default {
 		keyFrameRadius: 16, // Hardcoded for now, there is no variable for this afaik
 		samplingScale: 3.0,
 
+		keyframeHoverUuid: "",
 		keyframeIcons: {
 			"linear": {
-				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe.svg"),
-				discontinuous: getKeyframeImage("icons/icomoon/keyframes/keyframe_discontinuous.svg")
+				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_molang_blank.svg"),
+				discontinuous: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_discontinuous_blank.svg"),
+				discontinuousMolang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_discontinuous_molang_blank.svg")
 			},
 			"catmullrom": {
-				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_smooth.svg"),
+				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_molang_blank.svg"),
 			},
 			"bezier": {
-				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_bezier.svg"),
-				discontinuous: getKeyframeImage("icons/icomoon/keyframes/keyframe_discontinuous_bezier.svg")
+				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_molang_blank.svg"),
+				discontinuous: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_discontinuous_blank.svg"),
+				discontinuousMolang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_discontinuous_molang_blank.svg")
 			},
 			"step": {
-				normal: getKeyframeImage("icons/icomoon/keyframes/keyframe_step.svg"),
+				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_molang_blank.svg"),
 			}
 		}
 	}},
@@ -436,6 +451,8 @@ export default {
 			let channelHh = this.channelHeight / 2.0;
 			let keyframeS = this.keyFrameRadius;
 			let keyframeSh = this.keyFrameRadius / 2.0;
+			let icons = this.keyframeIcons;
+			let hoveredKeyframe = this.keyframeHoverUuid;
 
 			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
@@ -447,6 +464,8 @@ export default {
 			let channelFill = timelineStyle.getPropertyValue("--color-ui").trim();
 			let channelBorder = timelineStyle.getPropertyValue("--color-border").trim();
 			let keyframeColor = timelineStyle.getPropertyValue("--color-text").trim();
+			let keyframeSelectedColor = timelineStyle.getPropertyValue("--color-accent").trim();
+			let keyframeHoveredColor = timelineStyle.getPropertyValue("--color-light").trim();
 			let scrollOffsetY = body.scrollTop;
 			let scrollOffsetX = body.scrollLeft;
 
@@ -494,19 +513,41 @@ export default {
 			}
 
 			function drawKeyframe(keyframe, position) {
-				let discontinuous = keyframe.data_points?.length == 1 || false;
-				let iconData = Timeline.vue.keyframeIcons[keyframe.interpolation || "linear"];
-				let color = Timeline.vue.getColor(keyframe.color) || keyframeColor;
-				let image = (discontinuous ? iconData?.normal : iconData.discontinuous) || iconData.normal;
+				let continuous = keyframe.data_points?.length == 1 || false;
+				let isMolang = keyframe.has_expressions;
+				let isSelected = keyframe.selected;
+				let isHovered = hoveredKeyframe === keyframe.uuid;
+				let iconData = icons[keyframe.interpolation || "linear"];
+				let keyScale = keyframeS * scale; // Intended, over-sampled scale of keyframe
 				
-				context.fillStyle = "#f00";
-				context.drawImage(
-					image, 
-					position[0] * scale, 
-					position[1] * scale, 
-					keyframeS * scale, 
-					keyframeS * scale
-				);
+				let svg = isMolang ? iconData.molang : iconData.normal;
+				if (!continuous) {
+					svg = isMolang ? iconData.discontinuousMolang : iconData.discontinuous;
+				}
+				
+				let markerColor = Timeline.vue.getColor(keyframe.color, isHovered);
+				let color = markerColor || keyframeColor
+				if (isSelected) color = keyframeSelectedColor;
+				else if (isHovered) color = markerColor || keyframeHoveredColor;
+				
+				svg.then(r => {
+					let viewBoxData = r.querySelector("svg").getAttribute("viewBox").split(" ");
+					let width = Number(viewBoxData[2]);
+					let height = Number(viewBoxData[3]);
+					let svgScale = [keyScale * (1 / width), keyScale * (1 / height)] // re-Scale the over-sampled scale for this key, to obtain the real, visual scale.
+					r.querySelectorAll("path").forEach(n => {
+						let pathData = n.getAttribute("d");
+						let path = new Path2D(pathData);
+
+						context.scale(svgScale[0], svgScale[1]);
+						// We also need to scale position to the over-sampled scale, so the keys are positioned propertly
+						// ...and then scale it down to the SVG scale's favtor, because for some reason context.scale() only allows us to scale from (0, 0)
+						context.translate((position[0] * scale) / svgScale[0], (position[1] * scale) / svgScale[1]);
+						context.fillStyle = color;
+						context.fill(path);
+						context.resetTransform();
+					})
+				});
 			}
 
 			// Clear canvas, and re-draw keyframes.
@@ -519,7 +560,7 @@ export default {
 				let position = [0, animatorY];
 				heightAccumulator++;
 				
-				drawKeyframeChannel(position, channelH, 1, "transparent", channelBorder);
+				// drawKeyframeChannel(position, channelH, 1, "transparent", channelBorder);
 
 				for (let j = 0; j < channelKeys.length; j++) {
 					let channel = channelKeys[j];
@@ -542,27 +583,18 @@ export default {
 					if (channelY > rectHeight - channelHh) break;
 
 					// Draw channel if all above checks failed :D
-					drawKeyframeChannel(position, channelH, 1, channelFill, channelBorder);
+					// drawKeyframeChannel(position, channelH, 1, channelFill, channelBorder);
 					// context.dra
 
 					let keyframes = animator[channel];
 					for (let keyframe of keyframes) {
 						let posX = (keyframe.time * this.size) - scrollOffsetX;
 						let posY = channelY + channelHh - keyframeSh;
-						let isSelected = keyframe.selected;
-						let hasExpressions = keyframe.has_expressions;
 						
 						// Stop early if keyframe is out of frame horizontally
 						if ((posX < -keyframeSh) || (posX > rectWidth - keyframeSh)) continue;
 						
-						if (isSelected) {
-							if (hasExpressions) drawRect([posX, posY], [keyframeS, keyframeS], "#0ff");
-							else drawRect([posX, posY], [keyframeS, keyframeS], "#0f0");
-						}
-						else {
-							if (hasExpressions) drawRect([posX, posY], [keyframeS, keyframeS], "#00f");
-							else drawKeyframe(keyframe, [posX, posY]);
-						}
+						drawKeyframe(keyframe, [posX, posY]);
 					}
 				}
 			}
@@ -659,10 +691,25 @@ export default {
 		openKeyframeContextMenuOnCanvas(event) {
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) {
-				this.openContextMenu(event)
+				this.openContextMenu(event);
 				return;
 			}
-			keyframe.showContextMenu(event)
+			keyframe.showContextMenu(event);
+		},
+		hoverKeyframeOnCanvas(event) {
+			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			if (!keyframe) {
+				this.keyframeHoverUuid = "";
+				return;
+			}
+			if (keyframe.uuid === this.keyframeHoverUuid) return;
+
+			this.keyframeHoverUuid = keyframe.uuid;
+			this.refreshTimelineCanvas();
+		},
+		mouseLeftCanvas(event) {
+			this.keyframeHoverUuid = "";
+			this.refreshTimelineCanvas();
 		},
 		eventTargetToAnimator(target) {
 			let target_node = target;
@@ -738,7 +785,7 @@ export default {
 		},
 		removeAnimator(animator) {
 			Timeline.animators.remove(animator);
-			
+
 			if (Timeline.animators.length ===0) {
 				this.clearTimelineCanvas();
 			}
@@ -769,9 +816,10 @@ export default {
 			this.graph_editor_channel = channel;
 			Undo.finishSelection('Select animation channel');
 		},
-		getColor(index) {
+		getColor(index, pastel = false) {
 			if (index == -1 || index == undefined) return;
-			return markerColors[index % markerColors.length].standard;
+			let color = markerColors[index % markerColors.length];
+			return pastel ? color.pastel : color.standard;
 		},
 		getWaveformPoints(samples, size) {
 			let height = 23;
