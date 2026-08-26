@@ -119,12 +119,10 @@
 					@touchstart="dragKeyframesOnCanvas($event)"
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
 					@mousemove="hoverKeyframeOnCanvas($event)"
-					@mouseleave="mouseLeftCanvas()"
+					@mouseleave="clearHoveredKeyframe()"
 				>
 					{{ refreshTimelineCanvas() }}
 				</canvas>
-
-				<div id="timeline_body_padding" v-if="!graph_editor_open" :style="{width: `${(size * length) + head_width}px`}" />
 
 				<div id="timeline_selector" class="selection_rectangle"></div>
 				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
@@ -686,31 +684,45 @@ export default {
 			
 			// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
 		},
+		getKeyframeFromUuid(uuid) {
+			if (uuid === "") return false;
+
+			for (let animator of this.animators) {
+				for (let channel of Object.keys(animator.channels)) {
+					for (let keyframe of animator[channel]) {
+						if (keyframe.uuid === uuid) return keyframe;
+					}
+				}
+			}
+			
+			return false;
+		},
 		clickKeyframeOnCanvas(event) {
 			// Can very likely be optimised by grabbing this.keyframeHoverUuid
-			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) return;
 			keyframe.clickSelect(event);
 		},
 		callPlayHeadToKeyframeOnCanvas(event) {
 			// Can very likely be optimised by grabbing this.keyframeHoverUuid
-			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) return;
 			keyframe.callPlayhead();
 		},
 		dragKeyframesOnCanvas(event) {
 			// Can very likely be optimised by grabbing this.keyframeHoverUuid
-			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
-				console.log("no keyframes to drag");
+				// console.log("no keyframes to drag");
+				event.preventDefault()
 				return;
 			}
-			console.log("dragging keyframe(s)");
+			// console.log("dragging keyframe(s)");
 			this.dragKeyframes(keyframe, event);
 		},
 		openKeyframeContextMenuOnCanvas(event) {
 			// Can very likely be optimised by grabbing this.keyframeHoverUuid
-			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
 				this.openContextMenu(event);
 				return;
@@ -728,7 +740,7 @@ export default {
 			this.keyframeHoverUuid = keyframe.uuid;
 			this.refreshTimelineCanvas();
 		},
-		mouseLeftCanvas() {
+		clearHoveredKeyframe() {
 			this.keyframeHoverUuid = "";
 			this.refreshTimelineCanvas();
 		},
@@ -1434,14 +1446,5 @@ export default {
     position: sticky;
 	top: 0;
     z-index: 2;
-}
-
-#timeline_body_padding {
-	flex-grow: 1;
-    flex-shrink: 0;
-    height: 100%;
-	position: absolute;
-	left: 0;
-	top: 0;
 }
 </style>
