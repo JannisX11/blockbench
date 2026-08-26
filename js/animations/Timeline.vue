@@ -119,7 +119,7 @@
 					@touchstart="dragKeyframesOnCanvas($event)"
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
 					@mousemove="hoverKeyframeOnCanvas($event)"
-					@mouseleave="mouseLeftCanvas($event)"
+					@mouseleave="mouseLeftCanvas()"
 				>
 					{{ refreshTimelineCanvas() }}
 				</canvas>
@@ -249,7 +249,8 @@ export default {
 
 		
 		channelHeight: 24, // Hardcoded for now, there is no variable for this afaik
-		keyFrameRadius: 16, // Hardcoded for now, there is no variable for this afaik
+		keyFrameSmallRadius: 16, // Hardcoded for now, there is no variable for this afaik
+		keyFrameRadius: 20, // Hardcoded for now, there is no variable for this afaik
 		samplingScale: 3.0,
 
 		keyframeHoverUuid: "",
@@ -446,11 +447,14 @@ export default {
 			if (this.graph_editor_open) return;
 
 			// Store stuff, yk
+			let size = this.size;
 			let scale = this.samplingScale;
 			let channelH = this.channelHeight;
+			let keyRadius = this.keyFrameSmallRadius;
+			let keyBaseRadius = this.keyFrameRadius;
 			let channelHh = this.channelHeight / 2.0;
-			let keyframeS = this.keyFrameRadius;
-			let keyframeSh = this.keyFrameRadius / 2.0;
+			let keyHalfRadius = this.keyFrameSmallRadius / 2.0;
+			let keyBaseHalfradius = this.keyFrameRadius / 2.0;
 			let icons = this.keyframeIcons;
 			let hoveredKeyframe = this.keyframeHoverUuid;
 
@@ -502,8 +506,9 @@ export default {
 				context.closePath();
 			}
 
-			function drawKeyframeChannel(position, height, thickness, fillColor, lineColor) {
+			function drawKeyframeChannel(position, height, fillColor, lineColor) {
 				let size = [bodyCanvas.width, height];
+				let thickness = 1.5;
 				let fromX = position[0];
 				let toX = position[0] + size[0];
 				let toY = position[1] + size[1] - (thickness / 2.0);
@@ -512,24 +517,38 @@ export default {
 				drawLine([fromX, toY], [toX, toY], thickness, lineColor);
 			}
 
-			function drawKeyframe(keyframe, position) {
-				let continuous = keyframe.data_points?.length == 1 || false;
-				let isMolang = keyframe.has_expressions;
-				let isSelected = keyframe.selected;
+			function drawKeyframe(keyframe, channelY) {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
-				let iconData = icons[keyframe.interpolation || "linear"];
-				let keyScale = keyframeS * scale; // Intended, over-sampled scale of keyframe
+				let keyHalfScale = isHovered ? keyBaseHalfradius : keyHalfRadius;
+				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
+				let posY = channelY + channelHh - keyHalfScale;
 				
+				// Stop early if keyframe is out of frame horizontally
+				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
+				
+				// Get SVG data
+				let isMolang = keyframe.has_expressions;
+				let continuous = keyframe.data_points?.length == 1 || false;
+				let iconData = icons[keyframe.interpolation || "linear"];
 				let svg = isMolang ? iconData.molang : iconData.normal;
 				if (!continuous) {
 					svg = isMolang ? iconData.discontinuousMolang : iconData.discontinuous;
 				}
-				
+
+				// Set color & scale for hovering and selection
+				let isSelected = keyframe.selected;
+				let keyScale = keyRadius * scale; // Over-sampled scale of keyframe
 				let markerColor = Timeline.vue.getColor(keyframe.color, isHovered);
-				let color = markerColor || keyframeColor
-				if (isSelected) color = keyframeSelectedColor;
-				else if (isHovered) color = markerColor || keyframeHoveredColor;
+				let color = (markerColor || keyframeColor);
+				if (isSelected) {
+					color = keyframeSelectedColor;
+				}
+				if (isHovered) {
+					color = isSelected ? keyframeSelectedColor : (markerColor || keyframeHoveredColor);
+					keyScale = keyBaseRadius * scale;
+				}
 				
+				// Render SVG to canvas
 				svg.then(r => {
 					let viewBoxData = r.querySelector("svg").getAttribute("viewBox").split(" ");
 					let width = Number(viewBoxData[2]);
@@ -542,7 +561,7 @@ export default {
 						context.scale(svgScale[0], svgScale[1]);
 						// We also need to scale position to the over-sampled scale, so the keys are positioned propertly
 						// ...and then scale it down to the SVG scale's favtor, because for some reason context.scale() only allows us to scale from (0, 0)
-						context.translate((position[0] * scale) / svgScale[0], (position[1] * scale) / svgScale[1]);
+						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
 						context.fillStyle = color;
 						context.fill(path);
 						context.resetTransform();
@@ -560,7 +579,7 @@ export default {
 				let position = [0, animatorY];
 				heightAccumulator++;
 				
-				// drawKeyframeChannel(position, channelH, 1, "transparent", channelBorder);
+				drawKeyframeChannel(position, channelH, "transparent", channelBorder);
 
 				for (let j = 0; j < channelKeys.length; j++) {
 					let channel = channelKeys[j];
@@ -583,18 +602,12 @@ export default {
 					if (channelY > rectHeight - channelHh) break;
 
 					// Draw channel if all above checks failed :D
-					// drawKeyframeChannel(position, channelH, 1, channelFill, channelBorder);
+					drawKeyframeChannel(position, channelH, channelFill, channelBorder);
 					// context.dra
 
 					let keyframes = animator[channel];
 					for (let keyframe of keyframes) {
-						let posX = (keyframe.time * this.size) - scrollOffsetX;
-						let posY = channelY + channelHh - keyframeSh;
-						
-						// Stop early if keyframe is out of frame horizontally
-						if ((posX < -keyframeSh) || (posX > rectWidth - keyframeSh)) continue;
-						
-						drawKeyframe(keyframe, [posX, posY]);
+						drawKeyframe(keyframe, channelY);
 					}
 				}
 			}
@@ -674,21 +687,29 @@ export default {
 			// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
 		},
 		clickKeyframeOnCanvas(event) {
+			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) return;
 			keyframe.clickSelect(event);
 		},
 		callPlayHeadToKeyframeOnCanvas(event) {
+			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) return;
 			keyframe.callPlayhead();
 		},
 		dragKeyframesOnCanvas(event) {
+			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
-			if (!keyframe) return;
+			if (!keyframe) {
+				console.log("no keyframes to drag");
+				return;
+			}
+			console.log("dragging keyframe(s)");
 			this.dragKeyframes(keyframe, event);
 		},
 		openKeyframeContextMenuOnCanvas(event) {
+			// Can very likely be optimised by grabbing this.keyframeHoverUuid
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) {
 				this.openContextMenu(event);
@@ -707,7 +728,7 @@ export default {
 			this.keyframeHoverUuid = keyframe.uuid;
 			this.refreshTimelineCanvas();
 		},
-		mouseLeftCanvas(event) {
+		mouseLeftCanvas() {
 			this.keyframeHoverUuid = "";
 			this.refreshTimelineCanvas();
 		},
