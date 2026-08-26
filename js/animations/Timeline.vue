@@ -109,7 +109,16 @@
 					</li>
 				</aside>
 
-				<canvas id="timeline_body_canvas" v-if="!graph_editor_open" @click.stop="clickTimelineCanvas($event)" :style="{left: `${head_width}px`}">{{ refreshTimelineCanvas() }}</canvas>
+				<canvas 
+					id="timeline_body_canvas" 
+					v-if="!graph_editor_open" 
+					:style="{left: `${head_width}px`}"
+					@click.stop="clickTimelineCanvas($event)" 
+					@mousedown="dragInsideTimelineCanvas($event)" 
+					@touchstart="dragInsideTimelineCanvas($event)"
+				>
+					{{ refreshTimelineCanvas() }}
+				</canvas>
 
 				<div id="timeline_body_padding" v-if="!graph_editor_open" :style="{width: `${(size * length) + head_width}px`}" />
 
@@ -227,6 +236,11 @@ export default {
 		onion_skin_time: 0,
 
 		channels: StateMemory.timeline_channels,
+
+		
+		channelHeight: 24, // Hardcoded for now, there is no variable for this afaik
+		keyFrameRadius: 16, // Hardcoded for now, there is no variable for this afaik
+		samplingScale: 3.0,
 
 		keyframeIcons: {
 			"linear": {
@@ -414,8 +428,15 @@ export default {
 			if (!this.animators.length) return;
 			if (this.graph_editor_open) return;
 
+			// Store stuff, yk
+			let scale = this.samplingScale;
+			let channelH = this.channelHeight;
+			let channelHh = this.channelHeight / 2.0;
+			let keyframeS = this.keyFrameRadius;
+			let keyframeSh = this.keyFrameRadius / 2.0;
+
+			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
-			let bodyInner = $('#timeline_body_inner').get(0);
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
 			if (!bodyCanvas) return;
 
@@ -429,12 +450,7 @@ export default {
 
 			// Collect data & setup variables used for rendering only
 			let context = bodyCanvas.getContext("2d");
-			let channelHeight = 24; // Hardcoded for now, there is no variable for this afaik
-			let keyFrameRadius = 16; // Hardcoded for now, there is no variable for this afaik
-			let channelHalfHeight = channelHeight / 2.0;
-			let keyFrameHalfRadius = keyFrameRadius / 2.0;
 			let heightAccumulator = 0;
-			let scale = 3.0;
 
 			// Over-sample keyframe view, to avoid cut-off lines and odd blurs
 			let rectHeight = body.clientHeight;
@@ -456,7 +472,12 @@ export default {
 			function drawRect(position, size, color) {
 				context.beginPath();
 				context.fillStyle = color;
-				context.fillRect(position[0] * scale, position[1] * scale, size[0] * scale, size[1] * scale);
+				context.fillRect(
+					position[0] * scale, 
+					position[1] * scale, 
+					size[0] * scale, 
+					size[1] * scale
+				);
 				context.closePath();
 			}
 
@@ -477,7 +498,13 @@ export default {
 				let image = (discontinuous ? iconData?.normal : iconData.discontinuous) || iconData.normal;
 				
 				context.fillStyle = "#f00";
-				context.drawImage(image, position[0] * scale, position[1] * scale, keyFrameRadius * scale, keyFrameRadius * scale);
+				context.drawImage(
+					image, 
+					position[0] * scale, 
+					position[1] * scale, 
+					keyframeS * scale, 
+					keyframeS * scale
+				);
 			}
 
 			// Clear canvas, and re-draw keyframes.
@@ -486,68 +513,134 @@ export default {
 			for (let i = 0; i < this.animators.length; i++) {
 				let animator = this.animators[i];
 				let channelKeys = Object.keys(animator.channels);
-				let animatorY = channelHeight * heightAccumulator - scrollOffsetY;
+				let animatorY = channelH * heightAccumulator - scrollOffsetY;
 				let position = [0, animatorY];
 				heightAccumulator++;
 				
-				drawKeyframeChannel(position, channelHeight, 1, "transparent", channelBorder);
+				drawKeyframeChannel(position, channelH, 1, "transparent", channelBorder);
 
 				for (let j = 0; j < channelKeys.length; j++) {
 					let channel = channelKeys[j];
 					let channelOptions = animator.channels[channel];
 
-					// Stop early if channel is hidden
-					if (!(animator.expanded && this.channels[channel] != false && Condition(channelOptions.condition, animator) && (!this.channels.hide_empty || animator[channel].length))) {
-						continue;
-					}
+					// Stop early if channel should be hidden
+					let isExpanded = animator.expanded;
+					let channelExists = this.channels[channel] != false;
+					let isConditionMet = Condition(channelOptions.condition, animator);
+					let shouldHide = (!this.channels.hide_empty || animator[channel].length);
+					if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
 
 					// Get our remaining data
-					let channelY = channelHeight * heightAccumulator - scrollOffsetY;
+					let channelY = channelH * heightAccumulator - scrollOffsetY;
 					let position = [0, channelY];
 					heightAccumulator++;
 
 					// Stop early if channel is out of frame vertically
-					if (channelY < -channelHalfHeight) continue;
-					if (channelY > rectHeight - channelHalfHeight) break;
+					if (channelY < -channelHh) continue;
+					if (channelY > rectHeight - channelHh) break;
 
 					// Draw channel if all above checks failed :D
-					drawKeyframeChannel(position, channelHeight, 1, channelFill, channelBorder);
-					context.dra
+					drawKeyframeChannel(position, channelH, 1, channelFill, channelBorder);
+					// context.dra
 
 					let keyframes = animator[channel];
 					for (let keyframe of keyframes) {
 						let posX = (keyframe.time * this.size) - scrollOffsetX;
-						let posY = channelY + channelHalfHeight - keyFrameHalfRadius;
+						let posY = channelY + channelHh - keyframeSh;
 						let isSelected = keyframe.selected;
 						let hasExpressions = keyframe.has_expressions;
 						
 						// Stop early if keyframe is out of frame horizontally
-						if (posX < -keyFrameHalfRadius) continue;
-						if (posX > rectWidth - keyFrameHalfRadius) continue;
-
+						if ((posX < -keyframeSh) || (posX > rectWidth - keyframeSh)) continue;
+						
 						if (isSelected) {
-							if (hasExpressions) drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#0ff");
-							else drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#0f0");
+							if (hasExpressions) drawRect([posX, posY], [keyframeS, keyframeS], "#0ff");
+							else drawRect([posX, posY], [keyframeS, keyframeS], "#0f0");
 						}
 						else {
-							if (hasExpressions) drawRect([posX, posY], [keyFrameRadius, keyFrameRadius], "#00f");
+							if (hasExpressions) drawRect([posX, posY], [keyframeS, keyframeS], "#00f");
 							else drawKeyframe(keyframe, [posX, posY]);
 						}
 					}
 				}
 			}
 		},
-		// https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
 		clickTimelineCanvas(event) {
+			let body = $('#timeline_body').get(0);
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
-    		let rect = bodyCanvas.getBoundingClientRect()
-    		let left = rect.left;
-    		let top = rect.top;
 
-		    let x = event.pageX - left;
-		    let y = event.pageY - top;
+			// Mouse position
+    		let rect = bodyCanvas.getBoundingClientRect();
+		    let x = event.pageX - rect.left;
+		    let y = event.pageY - rect.top;
 
-			console.log(x, y);
+			// Dom info
+			let channelH = this.channelHeight;
+			let channelHh = this.channelHeight / 2.0;
+			let keyframeSh = this.keyFrameRadius / 2.0;
+			let rectHeight = body.clientHeight;
+			let rectWidth = body.clientWidth - this.head_width;
+			let scrollOffsetY = body.scrollTop;
+			let scrollOffsetX = body.scrollLeft;
+
+			// Find closest keyframe to mouse
+			let shortestDist = Infinity;
+			let shortestUuid = "";
+			let heightAccumulator = 0;
+			for (let i = 0; i < this.animators.length; i++) {
+				let animator = this.animators[i];
+				let channelKeys = Object.keys(animator.channels);
+				heightAccumulator++;
+
+				for (let j = 0; j < channelKeys.length; j++) {
+					let channel = channelKeys[j];
+					let channelOptions = animator.channels[channel];
+
+					// Stop early if channel should be hidden
+					let isExpanded = animator.expanded;
+					let channelExists = this.channels[channel] != false;
+					let isConditionMet = Condition(channelOptions.condition, animator);
+					let shouldHide = (!this.channels.hide_empty || animator[channel].length);
+					if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
+
+					// Get our remaining data
+					let channelY = channelH * heightAccumulator - scrollOffsetY;
+					heightAccumulator++;
+
+					// Stop early if channel is out of frame vertically
+					if (channelY < -channelHh) continue;
+					if (channelY > rectHeight - channelHh) break;
+
+					let keyframes = animator[channel];
+					for (let keyframe of keyframes) {
+						let posX = (keyframe.time * this.size) - scrollOffsetX;
+						let posY = channelY + channelHh - keyframeSh;
+						
+						// Stop early if keyframe is out of frame horizontally
+						if ((posX < -keyframeSh) || (posX > rectWidth - keyframeSh)) continue;
+
+						let positionVec = [posX, posY].V2_add([keyframeSh, keyframeSh]);
+						let mouseVec = [x, y];
+						let distance = mouseVec.V2_subtract(positionVec).V2_toThree().length()
+						if (distance < shortestDist) {
+							shortestDist = distance;
+							shortestUuid = keyframe.uuid;
+						}
+					}
+				}
+			}
+
+			// Select keyframe
+			let cloestKeyframe = Timeline.keyframes.find(keyframe => keyframe.uuid === shortestUuid);
+			if (shortestDist < channelH * 0.75) {
+				// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
+				cloestKeyframe.clickSelect(event);
+				return cloestKeyframe;
+			}
+		},
+		dragInsideTimelineCanvas(event) {
+			let keyframe = this.clickTimelineCanvas(event);
+			this.dragKeyframes(keyframe, event);
 		},
 		eventTargetToAnimator(target) {
 			let target_node = target;
