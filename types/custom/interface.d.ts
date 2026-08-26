@@ -46,7 +46,7 @@ declare namespace Interface {
 	}
 	const status_bar: {
 		menu: Menu
-		vue: Vue.Component
+		vue: Vue
 	}
 	let tab_bar: Vue
 	const Panels: {

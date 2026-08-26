@@ -15,6 +15,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["@types/spectrum"],
     "strict": false,
     "skipLibCheck": true,
     "allowJs": true,

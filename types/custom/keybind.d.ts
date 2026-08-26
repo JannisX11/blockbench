@@ -54,9 +54,9 @@ declare global {
 		clear(): this
 		/**
 		 * Save any changes to local storage
-		 * @param save Save all keybinding changes to local storage. Set to fales if updating multiple at once
+		 * @param save Save all keybinding changes to local storage. Set to false if updating multiple at once
 		 */
-		save(save?: false): this
+		save(save?: boolean): this
 		/**
 		 * Assign an action to the keybind
 		 * @param id ID of the action
@@ -136,6 +136,7 @@ declare global {
 	 * Stores and handles keybinds
 	 */
 	namespace Keybinds {
+		let dialog: Dialog
 		const actions: BarItem[]
 		const stored: Record<string, { key: number; ctrl: boolean; shift: boolean }>
 		const extra: Record<string, KeybindItem>
