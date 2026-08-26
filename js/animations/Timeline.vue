@@ -113,9 +113,10 @@
 					id="timeline_body_canvas" 
 					v-if="!graph_editor_open" 
 					:style="{left: `${head_width}px`}"
-					@click.stop="clickTimelineCanvas($event)" 
-					@mousedown="dragInsideTimelineCanvas($event)" 
-					@touchstart="dragInsideTimelineCanvas($event)"
+					@click.stop="clickKeyframeOnCanvas($event)" 
+					@dblclick="callPlayHeadToKeyframeOnCanvas($event)" 
+					@mousedown="dragKeyframesOnCanvas($event)" 
+					@touchstart="dragKeyframesOnCanvas($event)"
 				>
 					{{ refreshTimelineCanvas() }}
 				</canvas>
@@ -565,7 +566,7 @@ export default {
 				}
 			}
 		},
-		clickTimelineCanvas(event) {
+		tryGetKeyframeClosestToMouse(event) {
 			let body = $('#timeline_body').get(0);
 			let bodyCanvas = $('#timeline_body_canvas').get(0);
 
@@ -633,13 +634,25 @@ export default {
 			// Select keyframe
 			let cloestKeyframe = Timeline.keyframes.find(keyframe => keyframe.uuid === shortestUuid);
 			if (shortestDist < channelH * 0.75) {
-				// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
-				cloestKeyframe.clickSelect(event);
 				return cloestKeyframe;
 			}
+			return false;
+			
+			// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
 		},
-		dragInsideTimelineCanvas(event) {
-			let keyframe = this.clickTimelineCanvas(event);
+		clickKeyframeOnCanvas(event) {
+			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			if (!keyframe) return;
+			keyframe.clickSelect(event);
+		},
+		callPlayHeadToKeyframeOnCanvas(event) {
+			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			if (!keyframe) return;
+			keyframe.callPlayhead();
+		},
+		dragKeyframesOnCanvas(event) {
+			let keyframe = this.tryGetKeyframeClosestToMouse(event);
+			if (!keyframe) return;
 			this.dragKeyframes(keyframe, event);
 		},
 		eventTargetToAnimator(target) {
