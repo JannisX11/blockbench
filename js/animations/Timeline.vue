@@ -738,6 +738,10 @@ export default {
 		},
 		removeAnimator(animator) {
 			Timeline.animators.remove(animator);
+			
+			if (Timeline.animators.length ===0) {
+				this.clearTimelineCanvas();
+			}
 		},
 		toggleGlobalSpace(animator) {
 			Undo.initEdit({animations: [Animation.selected]});
