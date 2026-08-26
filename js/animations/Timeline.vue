@@ -247,9 +247,10 @@ export default {
 
 		
 		channelHeight: 24, // Hardcoded for now, there is no variable for this afaik
+		keyFrameSmallestRadius: 12, // Hardcoded for now, there is no variable for this afaik
 		keyFrameSmallRadius: 16, // Hardcoded for now, there is no variable for this afaik
 		keyFrameRadius: 20, // Hardcoded for now, there is no variable for this afaik
-		samplingScale: 3.0,
+		samplingScale: 4.0,
 
 		keyframeHoverUuid: "",
 		keyframeIcons: {
@@ -261,7 +262,7 @@ export default {
 			},
 			"catmullrom": {
 				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_blank.svg"),
-				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_molang_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_molang_blank.svg")
 			},
 			"bezier": {
 				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_blank.svg"),
@@ -271,7 +272,12 @@ export default {
 			},
 			"step": {
 				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_blank.svg"),
-				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_molang_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_molang_blank.svg")
+			},
+			hidden: {
+				normal: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_blank.svg"),
+				molang: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_molang_blank.svg"),
+				discontinuous: getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_discontinuous_blank.svg")
 			}
 		}
 	}},
@@ -450,9 +456,11 @@ export default {
 			let channelH = this.channelHeight;
 			let keyRadius = this.keyFrameSmallRadius;
 			let keyBaseRadius = this.keyFrameRadius;
-			let channelHh = this.channelHeight / 2.0;
-			let keyHalfRadius = this.keyFrameSmallRadius / 2.0;
-			let keyBaseHalfradius = this.keyFrameRadius / 2.0;
+			let keyHiddenRadius = this.keyFrameSmallestRadius;
+			let channelHh = channelH / 2.0;
+			let keyHalfRadius = keyRadius / 2.0;
+			let keyBaseHalfradius = keyBaseRadius / 2.0;
+			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
 			let icons = this.keyframeIcons;
 			let hoveredKeyframe = this.keyframeHoverUuid;
 
@@ -468,6 +476,7 @@ export default {
 			let keyframeColor = timelineStyle.getPropertyValue("--color-text").trim();
 			let keyframeSelectedColor = timelineStyle.getPropertyValue("--color-accent").trim();
 			let keyframeHoveredColor = timelineStyle.getPropertyValue("--color-light").trim();
+			let keyframeCollapsedColor = "#495061";
 			let scrollOffsetY = body.scrollTop;
 			let scrollOffsetX = body.scrollLeft;
 
@@ -515,9 +524,9 @@ export default {
 				drawLine([fromX, toY], [toX, toY], thickness, lineColor);
 			}
 
-			function drawKeyframe(keyframe, channelY) {
+			function drawKeyframe(keyframe, channelY, isCollapsed) {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
-				let keyHalfScale = isHovered ? keyBaseHalfradius : keyHalfRadius;
+				let keyHalfScale = isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
 				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
 				let posY = channelY + channelHh - keyHalfScale;
 				
@@ -532,6 +541,11 @@ export default {
 				if (!continuous) {
 					svg = isMolang ? iconData.discontinuousMolang : iconData.discontinuous;
 				}
+				if (isCollapsed) {
+					if (isMolang) svg = icons.hidden.molang;
+					else if (!continuous) svg = icons.hidden.discontinuous;
+					else svg = icons.hidden.normal;
+				}
 
 				// Set color & scale for hovering and selection
 				let isSelected = keyframe.selected;
@@ -539,12 +553,19 @@ export default {
 				let markerColor = Timeline.vue.getColor(keyframe.color, isHovered);
 				let color = (markerColor || keyframeColor);
 				if (isSelected) {
+					// Selection color
 					color = keyframeSelectedColor;
 				}
 				if (isHovered) {
+					// Hovering scale & color (unless selected, then we use selection color) 
 					color = isSelected ? keyframeSelectedColor : (markerColor || keyframeHoveredColor);
 					keyScale = keyBaseRadius * scale;
 				}
+				if (isCollapsed) {
+					// Hidden scale & color 
+					color = keyframeCollapsedColor
+					keyScale = keyHiddenRadius * scale;
+				};
 				
 				// Render SVG to canvas
 				svg.then(r => {
@@ -552,18 +573,62 @@ export default {
 					let width = Number(viewBoxData[2]);
 					let height = Number(viewBoxData[3]);
 					let svgScale = [keyScale * (1 / width), keyScale * (1 / height)] // re-Scale the over-sampled scale for this key, to obtain the real, visual scale.
+					
+					// The ways of handle SVG seen below absolutely DO NOT support 
+					// clipping paths atm, as it would complicate the implementation quite a bit.
+					
+					// Handle all paths
 					r.querySelectorAll("path").forEach(n => {
+						let style = n.getAttribute("style");
+						if (style.includes("fill:none;")) return;
+
 						let pathData = n.getAttribute("d");
 						let path = new Path2D(pathData);
 
 						context.scale(svgScale[0], svgScale[1]);
 						// We also need to scale position to the over-sampled scale, so the keys are positioned propertly
-						// ...and then scale it down to the SVG scale's favtor, because for some reason context.scale() only allows us to scale from (0, 0)
+						// ...and then scale it down to the SVG scale's favtor, because for some reason 
+						// context.scale() only allows us to scale from (0, 0)
 						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
 						context.fillStyle = color;
 						context.fill(path);
 						context.resetTransform();
-					})
+					});
+					// Handle all circles
+					r.querySelectorAll("circle").forEach(n => {
+						let style = n.getAttribute("style");
+						if (style.includes("fill:none;")) return;
+
+						let x = n.getAttribute("cx");
+						let y = n.getAttribute("cy");
+						let radius = n.getAttribute("r");
+
+						context.beginPath();
+						context.scale(svgScale[0], svgScale[1]);
+						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
+						context.fillStyle = color;
+						context.arc(x, y, radius, 0, 2 * Math.PI);
+						context.fill();
+						context.closePath();
+						context.resetTransform();
+					});
+					// Handle all rectangles
+					r.querySelectorAll("rect").forEach(n => {
+						let style = n.getAttribute("style");
+						if (style.includes("fill:none;")) return;
+
+						let x = n.getAttribute("x");
+						let y = n.getAttribute("y");
+						let width = n.getAttribute("width");
+						let height = n.getAttribute("height");
+
+						context.beginPath();
+						context.scale(svgScale[0], svgScale[1]);
+						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
+						context.fillStyle = color;
+						context.fillRect(x, y, width, height);
+						context.resetTransform();
+					});
 				});
 			}
 
@@ -574,10 +639,10 @@ export default {
 				let animator = this.animators[i];
 				let channelKeys = Object.keys(animator.channels);
 				let animatorY = channelH * heightAccumulator - scrollOffsetY;
-				let position = [0, animatorY];
+				// let position = [0, animatorY];
 				heightAccumulator++;
 				
-				drawKeyframeChannel(position, channelH, "transparent", channelBorder);
+				// drawKeyframeChannel(position, channelH, "transparent", channelBorder);
 
 				for (let j = 0; j < channelKeys.length; j++) {
 					let channel = channelKeys[j];
@@ -588,24 +653,26 @@ export default {
 					let channelExists = this.channels[channel] != false;
 					let isConditionMet = Condition(channelOptions.condition, animator);
 					let shouldHide = (!this.channels.hide_empty || animator[channel].length);
-					if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
+					let shouldCollapseKeys = !(isExpanded && channelExists && shouldHide);
+					if (shouldCollapseKeys && !isConditionMet) continue;
 
 					// Get our remaining data
 					let channelY = channelH * heightAccumulator - scrollOffsetY;
-					let position = [0, channelY];
-					heightAccumulator++;
+					if (shouldCollapseKeys) channelY = animatorY;
+					else heightAccumulator++;
+					// let position = [0, channelY];
 
 					// Stop early if channel is out of frame vertically
 					if (channelY < -channelHh) continue;
 					if (channelY > rectHeight - channelHh) break;
 
 					// Draw channel if all above checks failed :D
-					drawKeyframeChannel(position, channelH, channelFill, channelBorder);
+					// drawKeyframeChannel(position, channelH, channelFill, channelBorder);
 					// context.dra
 
 					let keyframes = animator[channel];
 					for (let keyframe of keyframes) {
-						drawKeyframe(keyframe, channelY);
+						drawKeyframe(keyframe, channelY, shouldCollapseKeys);
 					}
 				}
 			}
@@ -694,7 +761,7 @@ export default {
 					}
 				}
 			}
-			
+
 			return false;
 		},
 		clickKeyframeOnCanvas(event) {
