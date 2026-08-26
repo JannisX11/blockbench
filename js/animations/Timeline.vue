@@ -573,6 +573,7 @@ export default {
 					let width = Number(viewBoxData[2]);
 					let height = Number(viewBoxData[3]);
 					let svgScale = [keyScale * (1 / width), keyScale * (1 / height)] // re-Scale the over-sampled scale for this key, to obtain the real, visual scale.
+					let svgPosition = [(posX * scale) / svgScale[0], (posY * scale) / svgScale[1]] // We also need to scale position to the over-sampled scale, so the keys are positioned propertly ... and then scale it down to the SVG scale's favtor, because for some reason context.scale() only allows us to scale from (0, 0)
 					
 					// The ways of handle SVG seen below absolutely DO NOT support 
 					// clipping paths atm, as it would complicate the implementation quite a bit.
@@ -586,10 +587,7 @@ export default {
 						let path = new Path2D(pathData);
 
 						context.scale(svgScale[0], svgScale[1]);
-						// We also need to scale position to the over-sampled scale, so the keys are positioned propertly
-						// ...and then scale it down to the SVG scale's favtor, because for some reason 
-						// context.scale() only allows us to scale from (0, 0)
-						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
+						context.translate(svgPosition[0], svgPosition[1]);
 						context.fillStyle = color;
 						context.fill(path);
 						context.resetTransform();
@@ -605,7 +603,7 @@ export default {
 
 						context.beginPath();
 						context.scale(svgScale[0], svgScale[1]);
-						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
+						context.translate(svgPosition[0], svgPosition[1]);
 						context.fillStyle = color;
 						context.arc(x, y, radius, 0, 2 * Math.PI);
 						context.fill();
@@ -622,9 +620,8 @@ export default {
 						let width = n.getAttribute("width");
 						let height = n.getAttribute("height");
 
-						context.beginPath();
 						context.scale(svgScale[0], svgScale[1]);
-						context.translate((posX * scale) / svgScale[0], (posY * scale) / svgScale[1]);
+						context.translate(svgPosition[0], svgPosition[1]);
 						context.fillStyle = color;
 						context.fillRect(x, y, width, height);
 						context.resetTransform();
