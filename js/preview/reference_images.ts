@@ -1322,6 +1322,7 @@ export const ReferenceImageMode = {
 			let ref = new ReferenceImage({
 				source: file.content as string,
 				name: file.name,
+				layer: options.layer,
 				view_mode: options.view_mode
 			});
 			if (Format.image_editor) {
