@@ -764,6 +764,7 @@ export default {
 		clickKeyframeOnCanvas(event) {
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) return;
+			if (Timeline.selector.selecting) return;
 			keyframe.clickSelect(event);
 		},
 		callPlayHeadToKeyframeOnCanvas(event) {
@@ -774,11 +775,9 @@ export default {
 		dragKeyframesOnCanvas(event) {
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
-				// console.log("no keyframes to drag");
-				event.preventDefault()
 				return;
 			}
-			// console.log("dragging keyframe(s)");
+			event.stopPropagation();
 			this.dragKeyframes(keyframe, event);
 		},
 		openKeyframeContextMenuOnCanvas(event) {
@@ -790,6 +789,7 @@ export default {
 			keyframe.showContextMenu(event);
 		},
 		hoverKeyframeOnCanvas(event) {
+			if (Timeline.selector.selecting) return;
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) {
 				this.keyframeHoverUuid = "";
