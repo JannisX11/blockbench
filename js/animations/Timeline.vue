@@ -158,7 +158,7 @@
 					<template v-if="graph_editor_animator">
 						<div
 							v-for="keyframe in graph_editor_animator[graph_editor_channel]"
-							v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color)}"
+							v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color), '--hover-color': getColor(keyframe.color, true)}"
 							class="keyframe graph_keyframe"
 							v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
 							v-bind:id="keyframe.uuid"
@@ -168,10 +168,10 @@
 							@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
 							@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
 						>
-							<i class="icon-keyframe_smooth" v-if="keyframe.interpolation == 'catmullrom'"></i>
-							<i class="icon-keyframe_step" v-else-if="keyframe.interpolation == 'step'"></i>
+							<i v-if="keyframe.interpolation == 'catmullrom'" :class="'icon-keyframe_smooth' + (keyframe.has_expressions ? '_molang' : '')"></i>
+							<i v-else-if="keyframe.interpolation == 'step'" :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_step' : 'icon-keyframe_step_discontinuous') + (keyframe.has_expressions ? '_molang' : '')"></i>
 							<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
-							<i :class="keyframe.data_points.length == 1 ? 'icon-keyframe' : 'icon-keyframe_discontinuous'" v-else></i>
+							<i :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_linear' : 'icon-keyframe_linear_discontinuous') + (keyframe.has_expressions ? '_molang' : '')" v-else></i>
 
 							<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">
 								<div class="keyframe_bezier_handle"
@@ -250,60 +250,36 @@ export default {
 		samplingScale: 4.0,
 
 		keyframeHoverUuid: "",
-		keyframeIcons: {
-			"linear": {
-				normal: new Document(),
-				molang: new Document(),
-				discontinuous: new Document(),
-				discontinuousMolang: new Document()
+		keyframeIcons: { // There has to be a better way to do these, but this is the best I found for now - Aza
+			linear: {
+			  	default: "",
+			  	discontinuous:  "",
+				molang: "",
+				discontinuous_molang: ""
 			},
-			"catmullrom": {
-				normal: new Document(),
-				molang: new Document()
+			bezier: {
+			 	default: "",
+				discontinuous: "",
+			 	molang: "",
+				discontinuous_molang: ""
 			},
-			"bezier": {
-				normal: new Document(),
-				molang: new Document(),
-				discontinuous: new Document(),
-				discontinuousMolang: new Document()
+			smooth: {
+			  	default: "",
+			  	molang: ""
 			},
-			"step": {
-				normal: new Document(),
-				molang: new Document(),
-				discontinuous: new Document(),
-				discontinuousMolang: new Document()
+			step: {
+			  	default: "",
+			  	discontinuous: "",
+				molang: "",
+				discontinuous_molang: ""
 			},
 			hidden: {
-				normal: new Document(),
-				molang: new Document(),
-				discontinuous: new Document()
+			  	default: "",
+				discontinuous: "",
+				molang: ""
 			}
 		}
 	}},
-	created() {
-		// Get and set linear keyframe icons
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_blank.svg").then(d => this.keyframeIcons.linear.normal = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_molang_blank.svg").then(d => this.keyframeIcons.linear.molang = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_discontinuous_blank.svg").then(d => this.keyframeIcons.linear.discontinuous = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_linear_discontinuous_molang_blank.svg").then(d => this.keyframeIcons.linear.discontinuousMolang = d)
-		// Get and set smooth keyframe icons
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_blank.svg").then(d => this.keyframeIcons.catmullrom.normal = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_smooth_molang_blank.svg").then(d => this.keyframeIcons.catmullrom.molang = d)
-		// Get and set bezier keyframe icons
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_blank.svg").then(d => this.keyframeIcons.bezier.normal = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_molang_blank.svg").then(d => this.keyframeIcons.bezier.molang = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_discontinuous_blank.svg").then(d => this.keyframeIcons.bezier.discontinuous = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_bezier_discontinuous_molang_blank.svg").then(d => this.keyframeIcons.bezier.discontinuousMolang = d)
-		// Get and set step keyframe icons
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_blank.svg").then(d => this.keyframeIcons.step.normal = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_molang_blank.svg").then(d => this.keyframeIcons.step.molang = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_discontinuous_blank.svg").then(d => this.keyframeIcons.step.discontinuous = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_step_discontinuous_molang_blank.svg").then(d => this.keyframeIcons.step.discontinuousMolang = d)
-		// Get and set hidden keyframe icons
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_blank.svg").then(d => this.keyframeIcons.hidden.normal = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_molang_blank.svg").then(d => this.keyframeIcons.hidden.molang = d)
-		getKeyframeImage("icons/icomoon/keyframes/blank/keyframe_hidden_discontinuous_blank.svg").then(d => this.keyframeIcons.hidden.discontinuous = d)
-	},
 	watch: {
 		size() {this.updateTimecodes()},
 		length() {this.updateTimecodes()},
@@ -460,24 +436,6 @@ export default {
 	},
 	methods: {
 		tl,
-		getKeyframeIcon(keyframe, isCollapsed) {
-			let isMolang = keyframe.has_expressions;
-			let continuous = keyframe.data_points?.length == 1 || false;
-			let iconData = this.keyframeIcons[keyframe.interpolation || "linear"];
-			let svg = isMolang ? iconData.molang : iconData.normal;
-
-			if (!continuous) {
-				svg = isMolang ? iconData.discontinuousMolang : iconData.discontinuous;
-			}
-
-			if (isCollapsed) {
-				if (isMolang) svg = icons.hidden.molang;
-				else if (!continuous) svg = icons.hidden.discontinuous;
-				else svg = icons.hidden.normal;
-			}
-			
-			return svg;
-		},
 		clearTimelineCanvas() {
 			if (this.graph_editor_open) return;
 
@@ -503,6 +461,7 @@ export default {
 			let keyBaseHalfradius = keyBaseRadius / 2.0;
 			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
 			let hoveredKeyframe = this.keyframeHoverUuid;
+			let icons = this.keyframeIcons;
 
 			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
@@ -538,7 +497,6 @@ export default {
 				
 				// Stop early if keyframe is out of frame horizontally
 				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
-				let svg = Timeline.vue.getKeyframeIcon(keyframe, isCollapsed);
 				
 				// Set color & scale for hovering and selection
 				let isSelected = keyframe.selected;
@@ -559,70 +517,47 @@ export default {
 					color = keyframeCollapsedColor
 					keyScale = keyHiddenRadius * scale;
 				};
-				
-				// Render SVG to canvas
-				if (svg) {
-					let viewBoxData = svg.querySelector("svg").getAttribute("viewBox").split(" ");
-					let width = Number(viewBoxData[2]);
-					let height = Number(viewBoxData[3]);
-					let svgScale = [keyScale * (1 / width), keyScale * (1 / height)] // re-Scale the over-sampled scale for this key, to obtain the real, visual scale.
-					let svgPosition = [(posX * scale) / svgScale[0], (posY * scale) / svgScale[1]] // We also need to scale position to the over-sampled scale, so the keys are positioned propertly ... and then scale it down to the SVG scale's favtor, because for some reason context.scale() only allows us to scale from (0, 0)
-					
-					// The ways of handle SVG seen below absolutely DO NOT support 
-					// clipping paths atm, as it would complicate the implementation quite a bit.
-					let paths = svg.querySelectorAll("path");
-					let circles = svg.querySelectorAll("circle");
-					// let rectangles = svg.querySelectorAll("rect");
-					
-					// Handle all paths
-					if (paths && paths.length) paths.forEach(n => {
-						let style = n.getAttribute("style");
-						if (style?.includes("fill:none;")) return;
 
-						let pathData = n.getAttribute("d");
-						let path = new Path2D(pathData);
+				function pickIcon(iconData, continuousOnly = false) {
+					if (continuousOnly) {
+						if (isMolang) return iconData.molang;
+						else return iconData.default;
+					}
 
-						context.scale(svgScale[0], svgScale[1]);
-						context.translate(svgPosition[0], svgPosition[1]);
-						context.fillStyle = color;
-						context.fill(path);
-						context.resetTransform();
-					});
-					// Handle all circles
-					if (circles && circles.length) circles.forEach(n => {
-						let style = n.getAttribute("style");
-						if (style?.includes("fill:none;")) return;
+					if (isMolang && !isContinuous) return iconData.discontinuous_molang;
+					else if (isMolang) return iconData.molang;
+					else if (!isContinuous) return iconData.discontinuous;
+					else return iconData.default;
+				} 
 
-						let x = n.getAttribute("cx");
-						let y = n.getAttribute("cy");
-						let radius = n.getAttribute("r");
-
-						context.beginPath();
-						context.scale(svgScale[0], svgScale[1]);
-						context.translate(svgPosition[0], svgPosition[1]);
-						context.fillStyle = color;
-						context.arc(x, y, radius, 0, 2 * Math.PI);
-						context.fill();
-						context.closePath();
-						context.resetTransform();
-					});
-					// Handle all rectangles
-					// if (rectangles && rectangles.length) rectangles.forEach(n => {
-						// let style = n.getAttribute("style");
-						// if (style?.includes("fill:none;")) return;
-
-						// let x = n.getAttribute("x");
-						// let y = n.getAttribute("y");
-						// let width = n.getAttribute("width");
-						// let height = n.getAttribute("height");
-
-						// context.scale(svgScale[0], svgScale[1]);
-						// context.translate(svgPosition[0], svgPosition[1]);
-						// context.fillStyle = color;
-						// context.fillRect(x, y, width, height);
-						// context.resetTransform();
-					// });
+				let txtPosition = [(posX * scale), (posY * scale)];
+				let icon = "";
+				let isMolang = keyframe.has_expressions;
+				let isContinuous = keyframe.data_points?.length == 1 || false;
+				switch (keyframe.interpolation) {
+					case "step": { 
+						icon = pickIcon(icons.step);
+						break; 
+					}
+					case "bezier": { 
+						icon = pickIcon(icons.bezier);
+						break; 
+					}
+					case "catmullrom": { 
+						icon = pickIcon(icons.smooth, true);
+						break; 
+					}
+					default: { 
+						icon = pickIcon(icons.linear);
+						break; 
+					}
 				}
+
+				
+				context.font = `${keyScale}px icomoon`;
+				context.fillStyle = color;
+				context.textBaseline  = "top"; // Top as if it were images, starting at (0, 0) (left, top)
+				context.fillText(icon, txtPosition[0], txtPosition[1]);
 			}
 
 			// Clear canvas, and re-draw keyframes.
