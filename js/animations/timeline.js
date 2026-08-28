@@ -1145,6 +1145,7 @@ BARS.defineActions(function() {
 						click() {
 							Vue.set(channels, id, channels[id] == false);
 							StateMemory.save('timeline_channels');
+							Timeline.vue.refreshTimelineCanvas();
 						}
 					})
 				}
@@ -1155,6 +1156,7 @@ BARS.defineActions(function() {
 				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {
 					Vue.set(channels, 'hide_empty', !channels.hide_empty);
 					StateMemory.save('timeline_channels');
+					Timeline.vue.refreshTimelineCanvas();
 				}},
 			]
 		}
