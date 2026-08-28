@@ -402,12 +402,11 @@ export class Keyframe {
 			return points.length <= 1 ? points[0] : points;
 		}
 	}
-	replaceOthers(save) {
-		var scope = this;
-		var arr = this.animator[this.channel];
-		arr.forEach(kf => {
-			if (kf != scope && Math.abs(kf.time - scope.time) < 0.0001) {
-				save.push(kf);
+	replaceOthers(save_array) {
+		let all = this.animator[this.channel].slice();
+		all.forEach(kf => {
+			if (kf != this && Math.abs(kf.time - this.time) < 0.0001) {
+				save_array.push(kf);
 				kf.remove();
 			}
 		})
