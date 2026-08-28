@@ -474,6 +474,7 @@ export class Keyframe {
 
 		if (this.transform) Timeline.vue.graph_editor_channel = this.channel;
 
+		Timeline.vue.refreshTimelineCanvas();
 		return this;
 	}
 	clickSelect(event) {
@@ -681,6 +682,9 @@ export function updateKeyframeSelection() {
 	}
 	BARS.updateConditions()
 	Blockbench.dispatchEvent('update_keyframe_selection');
+
+	// If the selector isn't the one calling this, framerate drops dramatically.
+	if (!Timeline.selector.selecting) Timeline.vue.refreshTimelineCanvas(); 
 }
 export function selectAllKeyframes() {
 	if (!Animation.selected) return;
@@ -878,6 +882,8 @@ BARS.defineActions(function() {
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('Move keyframes back')
+			
+			Timeline.vue.refreshTimelineCanvas();
 		}
 	})
 	new Action('move_keyframe_forth', {
@@ -894,6 +900,8 @@ BARS.defineActions(function() {
 			Animator.preview()
 			BarItems.slider_keyframe_time.update()
 			Undo.finishEdit('Move keyframes forwards')
+			
+			Timeline.vue.refreshTimelineCanvas();
 		}
 	})
 	function slideKeyframes(difference, event) {

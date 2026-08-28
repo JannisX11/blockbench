@@ -209,6 +209,7 @@ export const Timeline = {
 			}
 
 			updateKeyframeSelection()
+			Timeline.vue.refreshTimelineCanvas();
 		},
 		end(e) {
 			e.stopPropagation();
@@ -234,6 +235,8 @@ export const Timeline = {
 					.hide();
 				Undo.finishSelection('Select keyframes');
 			}
+
+			Timeline.vue.refreshTimelineCanvas();
 		},
 	},
 	setTime(seconds, editing) {
@@ -583,6 +586,7 @@ export const Timeline = {
 				body.scrollTop += event.deltaY/4;
 			}
 			Timeline.updateSize()
+			Timeline.vue.refreshTimelineCanvas();
 			event.preventDefault();
 		});
 
@@ -1064,6 +1068,7 @@ BARS.defineActions(function() {
 					ba.addToTimeline();
 				}
 			}
+			Timeline.vue.refreshTimelineCanvas();
 		}
 	})
 	new Action('add_all_to_timeline', {
@@ -1076,6 +1081,7 @@ BARS.defineActions(function() {
 				let ba = Animation.selected.getBoneAnimator(node);
 				if (ba) ba.addToTimeline();
 			})
+			Timeline.vue.refreshTimelineCanvas();
 		}
 	})
 	new Action('fold_all_animations', {
@@ -1086,7 +1092,7 @@ BARS.defineActions(function() {
 			for (var animator of Timeline.animators) {
 				animator.expanded = false;
 			}
-
+			Timeline.vue.refreshTimelineCanvas();
 		}
 	})
 	new Action('clear_timeline', {

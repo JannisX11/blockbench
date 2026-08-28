@@ -107,6 +107,7 @@
 							</div>
 						</div>
 					</li>
+					<div id="timeline_empty_head" class="channel_head" v-bind:style="{width: head_width+'px'}" />
 				</aside>
 
 				<canvas 
@@ -120,9 +121,7 @@
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
 					@mousemove="hoverKeyframeOnCanvas($event)"
 					@mouseleave="clearHoveredKeyframe()"
-				>
-					{{ refreshTimelineCanvas() }}
-				</canvas>
+				/>
 
 				<div id="timeline_selector" class="selection_rectangle"></div>
 				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{left: head_width + 'px', top: scroll_top + 'px'}">
@@ -577,11 +576,14 @@ export default {
 					
 					// The ways of handle SVG seen below absolutely DO NOT support 
 					// clipping paths atm, as it would complicate the implementation quite a bit.
+					let paths = r.querySelectorAll("path");
+					let circles = r.querySelectorAll("circle");
+					// let rectangles = r.querySelectorAll("rect");
 					
 					// Handle all paths
-					r.querySelectorAll("path").forEach(n => {
+					if (paths && paths.length) paths.forEach(n => {
 						let style = n.getAttribute("style");
-						if (style.includes("fill:none;")) return;
+						if (style?.includes("fill:none;")) return;
 
 						let pathData = n.getAttribute("d");
 						let path = new Path2D(pathData);
@@ -593,9 +595,9 @@ export default {
 						context.resetTransform();
 					});
 					// Handle all circles
-					r.querySelectorAll("circle").forEach(n => {
+					if (circles && circles.length) circles.forEach(n => {
 						let style = n.getAttribute("style");
-						if (style.includes("fill:none;")) return;
+						if (style?.includes("fill:none;")) return;
 
 						let x = n.getAttribute("cx");
 						let y = n.getAttribute("cy");
@@ -611,21 +613,21 @@ export default {
 						context.resetTransform();
 					});
 					// Handle all rectangles
-					r.querySelectorAll("rect").forEach(n => {
-						let style = n.getAttribute("style");
-						if (style.includes("fill:none;")) return;
+					// if (rectangles && rectangles.length) rectangles.forEach(n => {
+						// let style = n.getAttribute("style");
+						// if (style?.includes("fill:none;")) return;
 
-						let x = n.getAttribute("x");
-						let y = n.getAttribute("y");
-						let width = n.getAttribute("width");
-						let height = n.getAttribute("height");
+						// let x = n.getAttribute("x");
+						// let y = n.getAttribute("y");
+						// let width = n.getAttribute("width");
+						// let height = n.getAttribute("height");
 
-						context.scale(svgScale[0], svgScale[1]);
-						context.translate(svgPosition[0], svgPosition[1]);
-						context.fillStyle = color;
-						context.fillRect(x, y, width, height);
-						context.resetTransform();
-					});
+						// context.scale(svgScale[0], svgScale[1]);
+						// context.translate(svgPosition[0], svgPosition[1]);
+						// context.fillStyle = color;
+						// context.fillRect(x, y, width, height);
+						// context.resetTransform();
+					// });
 				});
 			}
 
@@ -766,6 +768,7 @@ export default {
 			if (!keyframe) return;
 			if (Timeline.selector.selecting) return;
 			keyframe.clickSelect(event);
+			this.refreshTimelineCanvas();
 		},
 		callPlayHeadToKeyframeOnCanvas(event) {
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
@@ -792,7 +795,10 @@ export default {
 			if (Timeline.selector.selecting) return;
 			let keyframe = this.tryGetKeyframeClosestToMouse(event);
 			if (!keyframe) {
-				this.keyframeHoverUuid = "";
+				if (this.keyframeHoverUuid !== "") {
+					this.keyframeHoverUuid = "";
+					this.refreshTimelineCanvas();
+				}
 				return;
 			}
 			if (keyframe.uuid === this.keyframeHoverUuid) return;
@@ -875,6 +881,7 @@ export default {
 		},
 		toggleAnimator(animator) {
 			animator.expanded = !animator.expanded;
+			this.refreshTimelineCanvas();
 		},
 		removeAnimator(animator) {
 			Timeline.animators.remove(animator);
@@ -994,6 +1001,7 @@ export default {
 					}
 				}
 				last_event = e2;
+				Timeline.vue.refreshTimelineCanvas();
 			}
 			function off(e2) {
 				if (helper) helper.remove();
@@ -1016,6 +1024,7 @@ export default {
 					Timeline.animators.remove(animator);
 					Timeline.animators.splice(index, 0, animator);
 					Undo.finishSelection('Rearrange animators in timeline');
+					Timeline.vue.refreshTimelineCanvas();
 				}
 			}
 
@@ -1188,6 +1197,7 @@ export default {
 				BarItems.slider_keyframe_time.update()
 				Animator.showMotionTrail(null, true)
 				Animator.preview()
+				Timeline.vue.refreshTimelineCanvas();
 
 			}
 			function off() {
@@ -1215,6 +1225,8 @@ export default {
 					setTimeout(() => {
 						Timeline.dragging_keyframes = false;
 					}, 20);
+
+					Timeline.vue.refreshTimelineCanvas();
 				}
 			}
 			addEventListeners(document, 'mousemove touchmove', slide, {passive: false});
@@ -1497,9 +1509,12 @@ export default {
 }
 
 #timeline_body_headers {
+	display: flex;
+	flex-direction: column;
     position: sticky;
     left: 0px;
     z-index: 4;
+    min-height: stretch;
 }
 
 #timeline_body_canvas {
