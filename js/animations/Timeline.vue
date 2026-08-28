@@ -519,15 +519,18 @@ export default {
 				};
 
 				function pickIcon(iconData, continuousOnly = false) {
+					let data = iconData;
+					if (isCollapsed) data = icons.hidden;
+
 					if (continuousOnly) {
-						if (isMolang) return iconData.molang;
-						else return iconData.default;
+						if (isMolang) return data.molang;
+						else return data.default;
 					}
 
-					if (isMolang && !isContinuous) return iconData.discontinuous_molang;
-					else if (isMolang) return iconData.molang;
-					else if (!isContinuous) return iconData.discontinuous;
-					else return iconData.default;
+					if (isMolang && !isContinuous && !isCollapsed) return data.discontinuous_molang;
+					else if (isMolang) return data.molang;
+					else if (!isContinuous) return data.discontinuous;
+					else return data.default;
 				} 
 
 				let txtPosition = [(posX * scale), (posY * scale)];
