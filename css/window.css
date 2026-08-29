@@ -100,6 +100,7 @@
 
 		--color-solid: #c1c1c1;
 		--color-outline: var(--color-accent);
+		--color-constant-outline: #000;
 		--color-gizmohover: var(--color-outline);
 		--color-ground: var(--color-back);
 		--color-brush-outline: #ffffff;

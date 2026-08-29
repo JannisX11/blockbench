@@ -902,6 +902,7 @@
 	.color_field .desc {
 		width: calc(100% - 60px);
 		display: inline-block;
+		line-height: initial;
 	}
 	.color_field p {
 		margin: 0;
