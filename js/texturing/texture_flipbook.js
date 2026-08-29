@@ -649,7 +649,10 @@ BARS.defineActions(function() {
 										@click="select(i, $event);"
 										@dblclick="setFrame(i)"
 									>
-										<label>{{ i }}</label>
+										<label>
+											{{ i }}
+											<p>({{ frame.initial_index }})</p>
+										</label>
 										<img class="checkerboard" :src="frame.data_url" width="105">
 									</li>
 								</ul>

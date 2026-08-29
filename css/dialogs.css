@@ -2649,7 +2649,8 @@
 	.flipbook_frame.viewing {
 		background-color: var(--color-back);
 	}
-	.flipbook_frame.selected {
+	.flipbook_frame.selected,
+	.flipbook_frame.selected > label > p {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
@@ -2663,6 +2664,9 @@
 		flex-grow: 1;
 		flex-shrink: 0;
 		text-align: center;
+	}
+	.flipbook_frame > label > p {
+		color: var(--color-subtle_text);
 	}
 	#flipbook_editor_timeline {
 		display: flex;
