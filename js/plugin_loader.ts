@@ -256,7 +256,7 @@ export class Plugin {
 		this.installed = false;
 		this.path = '';
 		this.title = '';
-		this.author = '';
+		this.author = 'unknown';
 		this.description = '';
 		this.about = '';
 		this.icon = '';
