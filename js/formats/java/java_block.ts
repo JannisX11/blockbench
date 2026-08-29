@@ -495,6 +495,15 @@ const codec = new Codec('java_block', {
 			model.elements.forEach((obj: ElementTemplate) => {
 				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
+
+				// Shade backwards compatibility
+				if (obj.shade == false && Format.java_cube_shade_direction_override) {
+					base_cube.shade_direction_override = 'up';
+				} else if (obj.shade_direction_override && !Format.java_cube_shade_direction_override) {
+					base_cube.shade = false;
+				}
+
+				// Rotation
 				if (typeof obj.rotation == 'object') {
 					if (obj.rotation.origin) {
 						base_cube.extend({origin: obj.rotation.origin});
