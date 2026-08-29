@@ -137,13 +137,13 @@ const codec = new Codec('java_block', {
 					element.to[i] += s.inflate;
 				}
 			}
-			if (s.shade === false) {
+			if (Format.java_cube_shading_properties && !Format.java_cube_shade_direction_override && s.shade === false) {
 				element.shade = false
 			}
 			if (s.light_emission) {
 				element.light_emission = s.light_emission;
 			}
-			if (s.shade_direction_override) {
+			if (Format.java_cube_shade_direction_override && s.shade_direction_override) {
 				element.shade_direction_override = s.shade_direction_override;
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
@@ -416,6 +416,9 @@ const codec = new Codec('java_block', {
 		if (!import_to_current_project && typeof model.format_version == 'string') {
 			Project.java_block_version = model.format_version;
 		}
+		if (!Format.java_cube_shade_direction_override && model.elements instanceof Array && model.elements.find(element => element.shade_direction_override)) {
+			Project.java_block_version = '26.3';
+		}
 
 		//Load
 		if (typeof (model.credit || model.__comment) == 'string') Project.credit = (model.credit || model.__comment);
@@ -492,6 +495,15 @@ const codec = new Codec('java_block', {
 			model.elements.forEach((obj: ElementTemplate) => {
 				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
+
+				// Shade backwards compatibility
+				if (obj.shade == false && Format.java_cube_shade_direction_override) {
+					base_cube.shade_direction_override = 'up';
+				} else if (obj.shade_direction_override && !Format.java_cube_shade_direction_override) {
+					base_cube.shade = false;
+				}
+
+				// Rotation
 				if (typeof obj.rotation == 'object') {
 					if (obj.rotation.origin) {
 						base_cube.extend({origin: obj.rotation.origin});
@@ -901,6 +913,15 @@ Object.defineProperty(format, 'rotation_limit', {
 			return !VersionUtil.compare(Project.java_block_version, '>=', '1.21.11');
 		} catch (err) {
 			return true;
+		}
+	}
+})
+Object.defineProperty(format, 'java_cube_shade_direction_override', {
+	get() {
+		try {
+			return VersionUtil.compare(Project.java_block_version, '>=', '26.3');
+		} catch (err) {
+			return false;
 		}
 	}
 })
