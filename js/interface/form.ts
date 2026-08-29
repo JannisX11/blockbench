@@ -8,12 +8,7 @@ import { getStringWidth, pathToExtension, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
 type ReadType = Filesystem.ReadType;
-interface FileResult {
-	name: string
-	path: string
-	content: string | ArrayBuffer
-	no_file?: boolean
-}
+
 export enum FormInputType {
 	Text = 'text',
 	Password = 'password',
@@ -156,7 +151,7 @@ export interface FormElementOptions {
 	 * Runs when any of the buttons is pressed
 	 * @param button_index Index of the clicked button in the buttons list
 	 */
-	click?: (button_index: number) => void
+	click?: (button_index: number, event: PointerEvent) => void
 
 	readtype?: ReadType | ((file: string) => ReadType)
 	resource_id?: string
@@ -916,7 +911,7 @@ FormElement.types.buttons = class FormElementButtons extends FormElement {
 			let button = document.createElement('button');
 			button.innerText = tl(button_text);
 			button.addEventListener('click', e => {
-				this.options.click(index);
+				this.options.click(index, e);
 			})
 			list.append(button);
 		})
