@@ -1080,6 +1080,7 @@
 		left: 0;
 		pointer-events: none;
 		border-radius: 7px;
+		z-index: 1;
 	}
 	.reference_image[reference_layer=viewport] {
 		z-index: 2;

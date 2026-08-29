@@ -2650,6 +2650,15 @@ BARS.defineActions(function() {
 	})
 	new Toggle('uv_checkerboard', {
 		icon: 'fas.fa-chess-board',
+		condition: () => !Format.image_editor,
+		category: 'view',
+		linked_setting: 'uv_checkerboard'
+	})
+	new Toggle('image_editor_checkerboard', {
+		name: 'action.image_editor_checkerboard',
+		description: 'action.image_editor_checkerboard.desc',
+		icon: 'fas.fa-chess-board',
+		condition: () => Format.image_editor,
 		category: 'view',
 		linked_setting: 'uv_checkerboard'
 	})

@@ -910,7 +910,7 @@ FormElement.types.buttons = class FormElementButtons extends FormElement {
 		this.options.buttons.forEach((button_text, index) => {
 			let button = document.createElement('button');
 			button.innerText = tl(button_text);
-			button.addEventListener('click', e => {
+			button.addEventListener('click', (e: PointerEvent) => {
 				this.options.click(index, e);
 			})
 			list.append(button);

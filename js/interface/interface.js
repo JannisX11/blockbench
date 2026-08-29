@@ -285,7 +285,7 @@ export function setupInterface() {
 		if (!reference) return;
 		if (document.querySelector('.preview > canvas:hover')) {
 			if (Preview.selected.raycast(event)) return;
-		} else if (document.querySelector('#preview:hover')) {
+		} else if (document.querySelector('#preview:hover') && !Format.image_editor) {
 			return;
 		}
 		reference.select();
