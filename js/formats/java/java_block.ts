@@ -137,7 +137,7 @@ const codec = new Codec('java_block', {
 					element.to[i] += s.inflate;
 				}
 			}
-			if (Format.java_cube_shade_toggle && s.shade === false) {
+			if (Format.java_cube_shading_properties && !Format.java_cube_shade_direction_override && s.shade === false) {
 				element.shade = false
 			}
 			if (s.light_emission) {
@@ -902,15 +902,6 @@ Object.defineProperty(format, 'rotation_limit', {
 	get() {
 		try {
 			return !VersionUtil.compare(Project.java_block_version, '>=', '1.21.11');
-		} catch (err) {
-			return true;
-		}
-	}
-})
-Object.defineProperty(format, 'java_cube_shade_toggle', {
-	get() {
-		try {
-			return !VersionUtil.compare(Project.java_block_version, '>=', '26.3');
 		} catch (err) {
 			return true;
 		}
