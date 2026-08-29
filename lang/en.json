@@ -2706,7 +2706,7 @@
 	"cube.rescale": "Rotation Rescale",
 	"cube.rescale.desc": "Rescale cube to compensate for the rotation angle",
 	"cube.shade_direction_override": "Shade Direction Override",
-	"cube.shade_direction_override.desc": "Defines the direction of the light source to cast a shading effect on the faces. If not specified, no shading will be applied. This does not affect ambient occlusion or shading based on light level.",
+	"cube.shade_direction_override.desc": "Shade every face of the cube as if it was facing this direction. If not set, each face is shaded based on the direction it actually faces. This does not affect ambient occlusion or shading based on light level.",
 	"cube.color.light_blue": "Light Blue",
 	"cube.color.yellow": "Yellow",
 	"cube.color.orange": "Orange",
