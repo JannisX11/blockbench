@@ -1226,6 +1226,7 @@
 	}
 	#preview > .reference_image_toolbar {
 		margin-bottom: 5px;
+		z-index: 12;
 	}
 
 	.reference_image_import_preview {
