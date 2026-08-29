@@ -111,7 +111,8 @@
 				</aside>
 
 				<canvas 
-					id="timeline_body_canvas" 
+					id="timeline_keyframe_canvas" 
+					ref="keyframe_canvas"
 					v-if="!graph_editor_open" 
 					:style="{left: `${head_width}px`}"
 					@click.stop="clickKeyframeOnCanvas($event)" 
@@ -122,6 +123,31 @@
 					@mousemove="hoverKeyframeOnCanvas($event)"
 					@mouseleave="clearHoveredKeyframe()"
 				/>
+
+				<section id="timeline_keyframe_backdrop">
+					<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid">
+						<div class="animator_head_bar" />
+						<div class="animator_channel_bar"
+							v-for="(channel_options, channel) in animator.channels"
+							v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition, animator) && (!channels.hide_empty || animator[channel].length)"
+							:style="graph_editor_open ? {} : {width: (size*length + head_width)+'px'}"
+						>
+							<div class="keyframe_section" v-if="!graph_editor_open">
+								<div
+									v-for="keyframe in animator[channel]"
+									class="keyframe"
+									:class="{[keyframe.channel]: true, selected: keyframe.selected, has_expressions: keyframe.has_expressions}"
+									:id="keyframe.uuid"
+									:style="{left: (8 + keyframe.time * size) + 'px'}"
+								>
+									<svg class="keyframe_waveform" v-if="keyframe.channel == 'sound' && keyframe.data_points[0].file && waveforms[keyframe.data_points[0].file]" :style="{width: waveforms[keyframe.data_points[0].file].duration * size}">
+										<polygon :points="getWaveformPoints(waveforms[keyframe.data_points[0].file].samples, size)"></polygon>
+									</svg>
+								</div>
+							</div>
+						</div>
+					</li>
+				</section>
 
 				<div id="timeline_selector" class="selection_rectangle" :style="{display: 'none', width: '0', height: '0', left: '0', top: '0'}"></div>
 				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{display: 'block', width: '100%', height: '100%', left: head_width + 'px', top: scroll_top + 'px'}">
@@ -439,7 +465,7 @@ export default {
 		clearTimelineCanvas() {
 			if (this.graph_editor_open) return;
 
-			let bodyCanvas = $('#timeline_body_canvas').get(0);
+			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
 			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
 		},
@@ -465,7 +491,8 @@ export default {
 
 			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
-			let bodyCanvas = $('#timeline_body_canvas').get(0);
+			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
+			let bodyBackdrop = $('#timeline_keyframe_backdrop').get(0);
 			if (!bodyCanvas) return;
 
 			// Collect body style & scroll data
@@ -488,6 +515,7 @@ export default {
 			bodyCanvas.width = rectWidth * scale;
 			bodyCanvas.style.height = `${rectHeight}px`;
 			bodyCanvas.style.width = `${rectWidth}px`;
+			bodyBackdrop.style.translate = `-${rectWidth}px 0`;
 
 			function drawKeyframe(keyframe, channelY, isCollapsed) {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
@@ -610,7 +638,7 @@ export default {
 		},
 		tryGetKeyframeClosestToMouse(event) {
 			let body = $('#timeline_body').get(0);
-			let bodyCanvas = $('#timeline_body_canvas').get(0);
+			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
 
 			// Mouse position
     		let rect = bodyCanvas.getBoundingClientRect();
@@ -1449,10 +1477,18 @@ export default {
     min-height: stretch;
 }
 
-#timeline_body_canvas {
+#timeline_keyframe_canvas {
     position: sticky;
 	top: 0;
     z-index: 2;
+}
+
+#timeline_keyframe_backdrop {
+    position: sticky;
+	top: 0;
+    z-index: 0;
+	width: stretch;
+	height: stretch;
 }
 
 .keyframe.graph_keyframe > svg {
