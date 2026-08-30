@@ -111,3 +111,4 @@ declare class Group extends OutlinerNode {
 	compile(undo: boolean): any
 	forEachChild(callback: (any: OutlinerNode) => void, type?: any, for_self?: boolean): void
 }
+declare function getAllGroups(): Group[]

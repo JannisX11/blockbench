@@ -589,7 +589,7 @@ export class CustomTheme {
 		let gizmo_colors = Canvas.gizmo_colors;
 		if (typeof gizmo_colors != 'undefined') {
 			let preview_style = window.getComputedStyle(document.getElementById('preview'));
-			function update(three_color, variable) {
+			function update(three_color: THREE.Color, variable: string) {
 				let string = preview_style.getPropertyValue(variable).trim();
 				three_color.set(string);
 			}

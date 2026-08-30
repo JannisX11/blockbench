@@ -157,10 +157,6 @@ export class PreviewScene {
 		}
 		if (PreviewScene.active) PreviewScene.active.unselect();
 
-		Canvas.global_light_side = this.light_side;
-		Canvas.scene.background = this.cubemap;
-		Canvas.scene.fog = this.fog;
-
 		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
@@ -168,12 +164,9 @@ export class PreviewScene {
 		PreviewModel.getActiveModels().forEach(model => {
 			model.update();
 		});
-		this.preview_models.forEach(model => {
-			model.enable();
-		})
 		PreviewScene.active = this;
 		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
-		Canvas.updateShading();
+		PreviewScene.updateVisibility();
 	}
 	/**
 	 * Unselects this preview scene
@@ -183,14 +176,26 @@ export class PreviewScene {
 			model.disable();
 		})
 
-		Canvas.global_light_side = 0;
-		if (this.cubemap) scene.background = null;
-		if (this.fog) scene.fog = null;
 		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.all.forEach(preview => preview.setFOV(settings.fov.value as number));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
 		PreviewScene.active = null;
+		PreviewScene.updateVisibility();
+	}
+	static updateVisibility() {
+		let scene = PreviewScene.active;
+		let show = !!scene && !(Modes.display && DisplayMode.display_slot == 'gui');
+		PreviewScene.shown = show ? scene : null;
+		scene?.preview_models.forEach(model => show ? model.enable() : model.disable());
+		Canvas.global_light_side = 0;
+		Canvas.scene.background = null;
+		Canvas.scene.fog = null;
+		if (show) {
+			Canvas.global_light_side = scene.light_side;
+			Canvas.scene.background = scene.cubemap;
+			Canvas.scene.fog = scene.fog;
+		}
 		Canvas.updateShading();
 	}
 	delete() {
@@ -206,6 +211,10 @@ export class PreviewScene {
 	 * The currently active scene
 	 */
 	static active: PreviewScene | null = null;
+	/**
+	 * The active scene, unless it is currently hidden
+	 */
+	static shown: PreviewScene | null = null;
 	static select_options = {};
 	/**
 	 * The URL to the source repository that scenes are pulled from

@@ -17,7 +17,6 @@
 /// <reference types="./group" />
 /// <reference types="./interface" />
 /// <reference types="./keyframe" />
-/// <reference types="./menu_bar" />
 /// <reference types="./mesh" />
 /// <reference types="./spline_mesh" />
 /// <reference types="./misc" />

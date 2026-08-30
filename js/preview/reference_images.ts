@@ -211,9 +211,6 @@ export class ReferenceImage {
 			this.enableBlueprintMode();
 			this.changeLayer('background');
 		}
-		if (Format.image_editor) {
-			this.changeLayer('viewport');
-		}
 		this.scope = 'project';
 		this.update();
 		if (save) this.save();
@@ -224,9 +221,6 @@ export class ReferenceImage {
 		if (Preview.selected && Preview.selected.angle) {
 			this.enableBlueprintMode();
 			this.changeLayer('background');
-		}
-		if (Format.image_editor) {
-			this.changeLayer('viewport');
 		}
 		this.scope = 'global';
 		this.update();
@@ -650,7 +644,8 @@ export class ReferenceImage {
 				}
 				return 'custom';
 			}
-			let dialog = new ConfigDialog('test', {
+			let dialog = new ConfigDialog('reference_image_billboard_rotation', {
+				// TODO: localization
 				title: 'Rotation',
 				width: 360,
 				form: {
@@ -679,7 +674,6 @@ export class ReferenceImage {
 			}).show();
 
 			dialog.form.addListener('change', ({result, cause, changed_keys}) => {
-				console.log({result, cause, changed_keys})
 				if (changed_keys.includes('side')) {
 					let value = snap_sides[result.side];
 					if (value) {
@@ -931,8 +925,9 @@ export class ReferenceImage {
 					value: this.source,
 					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
 				},
-				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, options: {
+				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, condition: () => !Format.image_editor, options: {
 					flat_image: 'reference_image.view_mode.flat_image',
+					//blueprint: 'reference_image.view_mode.blueprint',
 					billboard: 'reference_image.view_mode.billboard',
 				}},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
@@ -944,7 +939,7 @@ export class ReferenceImage {
 					project: 'reference_image.scope.project',
 					global: 'reference_image.scope.global',
 				}},
-				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode == 'flat_image'},
+				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode != 'billboard'},
 				billboard_position: {type: 'vector', label: 'reference_image.position', dimensions: 3, value: this.billboard_position, condition: (form) => form.view_mode == 'billboard'},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
@@ -1069,6 +1064,7 @@ ReferenceImage.prototype.menu = new Menu([
 	{
 		name: 'reference_image.view_mode',
 		icon: 'pin_end',
+		condition: () => !Format.image_editor,
 		children: (reference) => {
 			let view_mode = {
 				flat_image: 'reference_image.view_mode.flat_image',
@@ -1284,6 +1280,7 @@ export const ReferenceImageMode = {
 					view_mode: {
 						type: 'inline_select',
 						label: 'reference_image.view_mode',
+						condition: () => !Format.image_editor,
 						options: {
 							flat_image: 'reference_image.view_mode.flat_image',
 							billboard: 'reference_image.view_mode.billboard',
@@ -1319,11 +1316,9 @@ export const ReferenceImageMode = {
 			let ref = new ReferenceImage({
 				source: file.content as string,
 				name: file.name,
+				layer: options.layer,
 				view_mode: options.view_mode
 			});
-			if (Format.image_editor) {
-				ref.layer = 'viewport';
-			}
 			if (options.global) {
 				ref.addAsGlobalReference(true);
 			} else {

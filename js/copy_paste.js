@@ -233,6 +233,7 @@ export const Clipbench = {
 			return;
 		}
 		arr.forEach(function(element) {
+			if (element.getTypeBehavior('duplicatable') == false) return;
 			Clipbench.elements.push(element.getSaveCopy())
 		})
 		if (isApp) {

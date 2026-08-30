@@ -366,7 +366,7 @@ export const Canvas = {
 		let shading_mode = ShadingMode.getActive();
 		shading_mode.apply();
 		Canvas.global_light_color.copy(shading_mode.color);
-		if (PreviewScene.active) Canvas.global_light_color.multiply(PreviewScene.active.light_color);
+		if (PreviewScene.shown) Canvas.global_light_color.multiply(PreviewScene.shown.light_color);
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
@@ -850,7 +850,7 @@ export const Canvas = {
 		})
 	},
 
-	getModelSize() {
+	getModelBoundingBox() {
 		var visible_box = new THREE.Box3()
 		Canvas.withoutGizmos(() => {
 			Outliner.elements.forEach(element => {
@@ -858,7 +858,18 @@ export const Canvas = {
 					visible_box.expandByObject(element.mesh);
 				}
 			})
+			if (visible_box.isEmpty()) {
+				Outliner.elements.forEach(element => {
+					if (element.visibility != false && element.mesh && element.mesh.geometry) {
+						visible_box.expandByObject(element.mesh);
+					}
+				})
+			}
 		})
+		return visible_box;
+	},
+	getModelSize() {
+		var visible_box = Canvas.getModelBoundingBox();
 	
 		var offset = new THREE.Vector3(8,8,8);
 		visible_box.max.add(offset);

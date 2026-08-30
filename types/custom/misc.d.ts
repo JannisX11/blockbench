@@ -187,6 +187,7 @@ declare const Prop = {
 	show_right_bar: boolean,
 }
 declare const Project: ModelProject
+declare const ColorPanel: any
 
 declare function isStringNumber(value: any): boolean
 

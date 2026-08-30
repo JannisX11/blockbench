@@ -2082,6 +2082,8 @@ declare global {
 	const BarItems: BarItemRegistry
     interface BarItemRegistry {
 		[key: string]: BarItem
+		undo: Action
+		redo: Action
 	}
 }
 Object.assign(window, global);

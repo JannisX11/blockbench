@@ -4,6 +4,7 @@ declare class AnimationItem {
 	static all: BBAnimation[]
 	static selected: BBAnimation | null
 	getUndoCopy?(options?: any, save?: any): AnimationOptions
+	getShortName(): string
 }
 
 interface AnimationOptions {
@@ -105,6 +106,9 @@ declare class BBAnimation extends AnimationItem {
 	type: string
 	menu: Menu
 	file_menu: Menu
+
+	static all: BBAnimation[]
+	static selected: BBAnimation | null
 }
 interface MolangAutoCompletionItem {
 	text: string

@@ -612,12 +612,13 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 });
 new Property(ModelProject, 'string', 'java_block_version', {
 	label: 'dialog.project.java_block_version',
-	default: () => settings.default_java_block_version.value == 'latest' ? '1.21.11' : settings.default_java_block_version.value,
+	default: () => settings.default_java_block_version.value == 'latest' ? '26.3' : settings.default_java_block_version.value,
 	condition: {formats: ['java_block']},
 	options: {
 		'1.9.0': '1.9 - 1.21.5',
 		'1.21.6': '1.21.6 - 1.21.10',
-		'1.21.11': '1.21.11+',
+		'1.21.11': '1.21.11 - 26.2',
+		'26.3': '26.3+',
 	}
 });
 new Property(ModelProject, 'string', 'credit', {
@@ -1267,6 +1268,7 @@ BARS.defineActions(function() {
 					Blockbench.dispatchEvent('update_project_settings', formResult);
 
 					BARS.updateConditions()
+					updateSelection()
 					if (Project.EditSession) {
 						let metadata = {
 							texture_width: Project.texture_width,

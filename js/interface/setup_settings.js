@@ -281,6 +281,7 @@ function setupSettings() {
 	}});
 	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
 		latest: 'Latest',
+		'1.21.11': '1.21.11 - 26.2',
 		'1.21.6': '1.21.6 - 1.21.10',
 		'1.9.0': '1.9 - 1.21.5',
 	}});
@@ -299,6 +300,7 @@ function setupSettings() {
 	new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
 	new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 	new Setting('dialog_invalid_characters',{category: 'dialogs', value: true, name: tl('message.invalid_characters.title'), description: tl('settings.dialog.desc', [tl('message.invalid_characters.title')])});
+	new Setting('dialog_generated_item_model', {category: 'dialogs', value: true, name: tl('message.generated_item_model.title'), description: tl('settings.dialog.desc', [tl('message.generated_item_model.title')])});
 	new Setting('dialog_save_codec',		{category: 'dialogs', value: true, name: tl('message.save_codec_selector.title'), description: tl('settings.dialog.desc', [tl('message.save_codec_selector.title')])});
 	
 	//Application

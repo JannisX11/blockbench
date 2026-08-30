@@ -1358,7 +1358,6 @@ var codec = new Codec('bedrock', {
 				name: 'bb_main'
 			});
 			group.children.push(...loose_elements);
-			group.is_catch_bone = true;
 			group.createUniqueName();
 			groups.splice(0, 0, group);
 		}

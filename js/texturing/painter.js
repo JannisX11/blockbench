@@ -79,37 +79,43 @@ export const Painter = {
 		}
 		return input_texture;
 	},
+	attemptReferenceImageColorPick(event) {
+		let projections = {};
+		let references = ReferenceImage.active.filter(reference => {
+			let result = reference.projectMouseCursor(event.clientX, event.clientY);
+			if (result) {
+				projections[reference.uuid] = result;
+				return true;
+			}
+		});
+		if (references.length > 1) {
+			let z_indices = {background: 1, viewport: 2, blueprint: 0, float: 4};
+			references.sort((a, b) => z_indices[a.layer] - z_indices[b.layer]);
+		}
+
+		if (references.length) {
+			let projection = projections[references.last().uuid];
+			var ctx = Painter.getCanvas(references.last().img).getContext('2d');
+			let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
+			if (settings.pick_color_opacity.value) {
+				let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 100.4));
+				for (let id in BarItems) {
+					let tool = BarItems[id];
+					if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
+						tool.tool_settings.brush_opacity = opacity;
+					}
+				}
+				BarItems.slider_brush_opacity.update();
+			}
+			ColorPanel.set(color, event.button == 2);
+			return true;
+		}
+		return false;
+	},
 	startPaintToolCanvas(data, e) {
 		if (!data.intersects && Toolbox.selected.id == 'color_picker') {
-			let projections = {};
-			let references = ReferenceImage.active.filter(reference => {
-				let result = reference.projectMouseCursor(e.clientX, e.clientY);
-				if (result) {
-					projections[reference.uuid] = result;
-					return true;
-				}
-			});
-			if (references.length > 1) {
-				let z_indices = {background: 1, viewport: 2, blueprint: 0, float: 4};
-				references.sort((a, b) => z_indices[a.layer] - z_indices[b.layer]);
-			}
-
-			if (references.length) {
-				let projection = projections[references.last().uuid];
-				var ctx = Painter.getCanvas(references.last().img).getContext('2d');
-				let color = Painter.getPixelColor(ctx, projection[0], projection[1]);
-				if (settings.pick_color_opacity.value) {
-					let opacity = Math.floor(color.getAlpha() * (settings.opacity_range.value == '255' ? 256 : 100.4));
-					for (let id in BarItems) {
-						let tool = BarItems[id];
-						if (tool.tool_settings && tool.tool_settings.brush_opacity >= 0) {
-							tool.tool_settings.brush_opacity = opacity;
-						}
-					}
-					BarItems.slider_brush_opacity.update();
-				}
-				ColorPanel.set(color, e.button == 2);
-			}
+			let picked = Painter.attemptReferenceImageColorPick(e);
+			if (picked) return;
 		}
 		if (!data.intersects || (data.element.locked && !Toolbox.selected.click_locked_elements)) return;
 		var texture = Painter.getTextureToEdit(data.element.faces[data.face].getTexture())
@@ -3160,6 +3166,8 @@ BARS.defineActions(function() {
 			if (data.element) return false;
 		},
 		onTextureEditorClick(texture, x, y, event) {
+			let picked = Painter.attemptReferenceImageColorPick(event);
+			if (picked) return false;
 			if (texture) {
 				Painter.startPaintTool(texture, x, y, undefined, event);
 			}

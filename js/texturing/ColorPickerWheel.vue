@@ -215,6 +215,6 @@ export default {
 			linear-gradient(to bottom, hsl(var(--hue), 100%, 50%) 0, transparent 100%),
 			linear-gradient(300deg, white 0, transparent 66.6%)
 			black;
-		clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+		clip-path: polygon(50% 0%, 0% 99.8%, 100% 99.8%);
     }
 </style>

@@ -1,4 +1,4 @@
-import { isMac } from './keyboard';
+import { isMac, updateKeybindConflicts } from './keyboard';
 import { BARS } from './toolbars';
 
 
@@ -10,7 +10,8 @@ BARS.defineActions(() => {
 		category: 'blockbench',
 		click: function () {
 			Keybinds.dialog.show();
-			document.querySelector('dialog#keybindings .search_bar > input').focus();
+			let input = document.querySelector('dialog#keybindings .search_bar > input') as HTMLInputElement;
+			input.focus();
 		}
 	})
 	new Action('load_keymap', {
@@ -18,7 +19,7 @@ BARS.defineActions(() => {
 		category: 'blockbench',
 		work_in_dialog: true,
 		click(e) {
-			new Menu(this.children).open(e.target);
+			new Menu(this.children).open(e.target as HTMLElement);
 		},
 		children: [
 			'import_keymap',
@@ -40,7 +41,7 @@ BARS.defineActions(() => {
 				extensions: ['bbkeymap'],
 				type: 'Blockbench Keymap'
 			}, function(files) {
-				let {keys} = JSON.parse(files[0].content);
+				let {keys} = JSON.parse(files[0].content as string);
 
 				Keybinds.actions.forEach(keybind_item => {
 					if (keys[keybind_item.id] === null) {
@@ -66,7 +67,7 @@ BARS.defineActions(() => {
 		category: 'blockbench',
 		work_in_dialog: true,
 		click() {
-			var keys = {}
+			let keys = {};
 
 			Keybinds.actions.forEach(item => {
 				if (Keybinds.stored[item.id]) {
@@ -146,8 +147,8 @@ onVueSetup(function() {
 				} 
 			}},
 			methods: {
-				record(item, sub_id) {
-					if (sub_id) {
+				record(item: KeybindItem | Action, sub_id?: string) {
+					if (sub_id && "sub_keybinds" in item) {
 						item.sub_keybinds[sub_id].keybind.record();
 
 					} else {
@@ -155,8 +156,8 @@ onVueSetup(function() {
 						item.keybind.record();
 					}
 				},
-				reset(item, sub_id) {
-					if (sub_id) {
+				reset(item: KeybindItem | Action, sub_id?: string) {
+					if (sub_id && "sub_keybinds" in item) {
 						let sub_keybind = item.sub_keybinds[sub_id];
 						if (sub_keybind.default_keybind) {
 							sub_keybind.keybind.set(sub_keybind.default_keybind);
@@ -174,8 +175,8 @@ onVueSetup(function() {
 						item.keybind.save(true);
 					}
 				},
-				clear(item, sub_id) {
-					if (sub_id) {
+				clear(item: KeybindItem | Action, sub_id?: string) {
+					if (sub_id && "sub_keybinds" in item) {
 						item.sub_keybinds[sub_id].keybind.clear().save(true);
 
 					} else if (item.keybind) {
@@ -184,57 +185,55 @@ onVueSetup(function() {
 				},
 				toggleCategory(category) {
 					if (!category.open) {
-						for (var ct in Keybinds.structure) {
+						for (let ct in Keybinds.structure) {
 							Keybinds.structure[ct].open = false
 						}
 						
 					}
 					category.open = !category.open
 				},
-				hasSubKeybinds(item) {
-					return item.sub_keybinds && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
+				hasSubKeybinds(item: KeybindItem) {
+					return "sub_keybinds" in item && typeof item.sub_keybinds === 'object' && Object.keys(item.sub_keybinds).length > 0;
 				},
-				hasVariationConflict(keybind, variation_key) {
+				hasVariationConflict(keybind, variation_key?: string) {
 					return keybind[keybind.variations[variation_key]];
 				},
-				getVariationText(action, variation) {
+				getVariationText(action, variation?: string) {
 					return tl(action.variations?.[variation]?.name, null, action.variations?.[variation]?.name ?? variation);
 				},
-				getVariationDescription(action, variation) {
+				getVariationDescription(action: Action, variation?: string) {
 					return action.variations?.[variation]?.description ? tl(action.variations[variation].description, null, '') : '';
 				},
 			},
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
-						var actions = [];
+						let keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
+						let actions = [];
 
-						for (var action of Keybinds.actions) {
+						for (let action of Keybinds.actions) {
 			
-							if (true) {;
-								var missmatch = false;
-								for (var word of keywords) {
-									if (
-										!missmatch &&
-										!action.name.toLowerCase().includes(word) &&
-										!action.id.toLowerCase().includes(word) &&
-										!action.keybind.label.toLowerCase().includes(word) 
-									) {
-										missmatch = true;
-									}
-									if (missmatch && action.sub_keybinds) {
-										for (let key in action.sub_keybinds) {
-											if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
-												missmatch = false;
-											}
+							let missmatch = false;
+							for (let word of keywords) {
+								if (
+									!missmatch &&
+									!action.name.toLowerCase().includes(word) &&
+									!action.id.toLowerCase().includes(word) &&
+									!action.keybind.label.toLowerCase().includes(word) 
+								) {
+									missmatch = true;
+								}
+								if (missmatch && action.sub_keybinds) {
+									for (let key in action.sub_keybinds) {
+										if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
+											missmatch = false;
 										}
 									}
-									if (missmatch) break;
 								}
-								if (!missmatch) {
-									actions.push(action)
-								}
+								if (missmatch) break;
+							}
+							if (!missmatch) {
+								actions.push(action)
 							}
 						}
 						return actions;
@@ -299,3 +298,12 @@ onVueSetup(function() {
 		}
 	})
 })
+
+declare global {
+	interface BarItemRegistry {
+		keybindings_window: Action
+		load_keymap: Action
+		import_keymap: Action
+		export_keymap: Action
+	}
+}

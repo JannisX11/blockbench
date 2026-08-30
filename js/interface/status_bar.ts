@@ -1,4 +1,5 @@
 import { Blockbench } from "../api";
+import { openTouchKeyboardModifierMenu } from "./interface";
 import { isMac } from "./keyboard";
 
 onVueSetup(function() {
@@ -22,7 +23,7 @@ onVueSetup(function() {
 			keyboard_menu_in_status_bar: Blockbench.isTouch && !Blockbench.isMobile
 		},
 		methods: {
-			showContextMenu(event) {
+			showContextMenu(event: MouseEvent) {
 				Interface.status_bar.menu.show(event);
 			},
 			toggleStreamerMode() {
@@ -30,7 +31,7 @@ onVueSetup(function() {
 			},
 			updateSelectionInfo() {
 				let selection_mode = BarItems.selection_mode.value;
-				let spline_selection_mode = BarItems.spline_selection_mode.value;
+				let spline_selection_mode = (BarItems.spline_selection_mode as BarSelect).value;
 				if (Modes.edit && Mesh.selected.length && selection_mode !== 'object') {
 					if (selection_mode == 'face') {
 						let total = 0, selected = 0;
@@ -67,8 +68,8 @@ onVueSetup(function() {
 				} else if (Modes.edit && SplineMesh.selected.length && spline_selection_mode !== 'object') {
 					if (spline_selection_mode == 'handles') {
 						let total = 0, selected = 0;
-						SplineMesh.selected.forEach(spline => total += Object.keys(spline.vertices).length);
-						SplineMesh.selected.forEach(spline => selected += spline.getSelectedVertices().length);
+						SplineMesh.selected.forEach((spline: SplineMesh) => total += Object.keys(spline.vertices).length);
+						SplineMesh.selected.forEach((spline: SplineMesh) => selected += spline.getSelectedVertices().length);
 						this.selection_info = tl('status_bar.selection.vertices', `${selected} / ${total}`);
 					}
 					if (spline_selection_mode == "tilt") {
@@ -155,10 +156,10 @@ onVueSetup(function() {
 	})
 
 	Interface.addSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.modifier_keys[key].safePush(text);
+		Interface.status_bar.vue.$data.modifier_keys[key].safePush(text);
 	};
 	Interface.removeSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.modifier_keys[key].remove(text);
+		Interface.status_bar.vue.$data.modifier_keys[key].remove(text);
 	};
 
 	

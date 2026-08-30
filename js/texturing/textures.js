@@ -120,7 +120,8 @@ export class Texture {
 			}
 			self.currentFrame = Math.min(self.currentFrame, (self.frameCount||1)-1)
 
-			if (img.update_from_canvas) {
+			let update_from_canvas = img.update_from_canvas;
+			if (update_from_canvas) {
 				delete img.update_from_canvas;
 			} else if (!self.layers_enabled) {
 				self.canvas.width = self.width;
@@ -192,6 +193,12 @@ export class Texture {
 					TextureAnimator.updateButton()
 					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(self)
+				} else if (!update_from_canvas) {
+					Outliner.elements.forEach(element => {
+						if (element instanceof TextureMesh) {
+							element.preview_controller.updateGeometry(element);
+						}
+					})
 				}
 				if (typeof self.load_callback === 'function') {
 					self.load_callback(self);
@@ -1099,6 +1106,29 @@ export class Texture {
 		Filesystem.showFileInFolder(this.path)
 		return this;
 	}
+	openInImageEditor() {
+		let existing_tab, tex2;
+		for (let project of ModelProject.all) {
+			if (!project.format.image_editor) continue;
+			tex2 = project.textures.find(t => t.uuid == this.uuid || (t.path && t.path == this.path));
+			if (tex2) {
+				existing_tab = project;
+				break;
+			}
+		}
+		if (existing_tab) {
+			existing_tab.select();
+			tex2.select();
+		} else {
+			let original_uuid = Project.uuid;
+			let copy = this.getUndoCopy(true);
+			Codecs.image.load(copy, this.path, [this.uv_width, this.uv_height]);
+			// Sync
+			this.sync_to_project = Project.uuid;
+			if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
+		}
+		return this;
+	}
 	openEditor() {
 		var scope = this;
 		if (!settings.image_editor.value) {
@@ -1974,6 +2004,7 @@ export class Texture {
 					}
 				}
 			}),
+			'extrude_texture_to_model',
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',
@@ -2100,26 +2131,7 @@ export class Texture {
 				name: 'menu.texture.edit_in_blockbench',
 				condition: (texture) => !Format.image_editor,
 				click(texture) {
-					let existing_tab, tex2;
-					for (let project of ModelProject.all) {
-						if (!project.format.image_editor) continue;
-						tex2 = project.textures.find(t => t.uuid == texture.uuid || (t.path && t.path == texture.path));
-						if (tex2) {
-							existing_tab = project;
-							break;
-						}
-					}
-					if (existing_tab) {
-						existing_tab.select();
-						tex2.select();
-					} else {
-						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy(true);
-						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
-						// Sync
-						texture.sync_to_project = Project.uuid;
-						if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
-					}
+					texture.openInImageEditor();
 				}
 			},
 			{
