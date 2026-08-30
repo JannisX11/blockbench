@@ -153,17 +153,13 @@ export class ShadingMode {
 		ShadingMode.updateSelectOptions();
 	}
 	/**
-	 * Shading mode that display mode and other contexts render with, overriding every other source
-	 */
-	static override: string | null = null;
-	/**
 	 * Resolves the shading mode to render with, in order of priority
 	 */
 	static getActive(): ShadingMode {
-		return ShadingModes[ShadingMode.override]
-			|| ShadingModes[Format?.shading_mode]
+		return ShadingModes[settings.shading_mode?.value as string]
 			|| ShadingModes[PreviewScene.active?.shading_mode]
-			|| ShadingModes[settings.shading_mode?.value as string]
+			|| ShadingModes[Modes.display ? DisplayMode.getShadingMode() : '']
+			|| ShadingModes[Format?.shading_mode]
 			|| ShadingModes.minecraft_world;
 	}
 	static updateSelectOptions() {
@@ -172,7 +168,7 @@ export class ShadingMode {
 		}
 	}
 	static getSelectOptions(): Record<string, string> {
-		let options: Record<string, string> = {};
+		let options: Record<string, string> = {auto: tl('settings.shading_mode.auto')};
 		for (let id in ShadingModes) {
 			options[id] = tl(ShadingModes[id].name);
 		}

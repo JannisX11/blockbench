@@ -874,7 +874,6 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
-	ShadingMode.override = null;
 	Canvas.updateShading();
 	scene.remove(display_area)
 	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
@@ -1048,17 +1047,14 @@ Blockbench.on('update_scene_shading', () => {
 		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 	}
 });
+DisplayMode.getShadingMode = function() {
+	if (DisplayMode.display_slot != 'gui') return 'minecraft_entity';
+	if (Format.id == 'java_block' && Project.front_gui_light) return 'minecraft_gui_front';
+	return 'minecraft_gui_side';
+}
 DisplayMode.updateGUILight = function() {
-	if (!Modes.display) return;
-	if (DisplayMode.display_slot != 'gui') {
-		ShadingMode.override = 'minecraft_entity';
-	} else if (Format.id == 'java_block' && Project.front_gui_light) {
-		ShadingMode.override = 'minecraft_gui_front';
-	} else {
-		ShadingMode.override = 'minecraft_gui_side';
-	}
 	Canvas.updateShading();
-} 
+}
 
 export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	DisplayMode.display_slot = key

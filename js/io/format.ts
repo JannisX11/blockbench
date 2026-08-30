@@ -247,7 +247,7 @@ export interface FormatFeatures {
 	 */
 	display_mode: boolean
 	/**
-	 * ID of a shading mode to render this format with, overriding the Default Shading Mode setting
+	 * ID of the shading mode this format prefers, used when no setting or preview scene picks one
 	 */
 	shading_mode: string
 	/**
