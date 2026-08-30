@@ -448,6 +448,13 @@
 		--color-spline-handle-aligned: #F0B000;
 		--color-spline-handle-free: #00D123;
 		
+		--color-keyframe: var(--color-text);
+		--color-keyframe-selected: var(--color-accent);
+		--color-keyframe-hovered: var(--color-light);
+		--color-keyframe-collapsed: #495061;
+		--color-keyframe-bezier-handle-dot: var(--color-back);
+		--color-keyframe-bezier-handle-line: var(--color-grid);
+		
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';

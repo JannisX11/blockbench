@@ -480,10 +480,12 @@ export default {
 
 			// Collect body style & scroll data
 			let timelineStyle = window.getComputedStyle(body);
-			let keyframeColor = timelineStyle.getPropertyValue("--color-text").trim();
-			let keyframeSelectedColor = timelineStyle.getPropertyValue("--color-accent").trim();
-			let keyframeHoveredColor = timelineStyle.getPropertyValue("--color-light").trim();
-			let keyframeCollapsedColor = "#495061";
+			let keyframeColor = timelineStyle.getPropertyValue("--color-keyframe").trim();
+			let keyframeSelectedColor = timelineStyle.getPropertyValue("--color-keyframe-selected").trim();
+			let keyframeHoveredColor = timelineStyle.getPropertyValue("--color-keyframe-hovered").trim();
+			let keyframeCollapsedColor = timelineStyle.getPropertyValue("--color-keyframe-collapsed").trim();;
+			let bezierHandleColor = timelineStyle.getPropertyValue("--color-keyframe-bezier-handle-dot").trim();
+			let bezierHandleLineColor = timelineStyle.getPropertyValue("--color-keyframe-bezier-handle-line").trim();
 			let scrollOffsetY = body.scrollTop;
 			let scrollOffsetX = body.scrollLeft;
 
@@ -500,8 +502,9 @@ export default {
 			bodyBackdrop.style.translate = `-${rectWidth}px 0`;
 
 			function drawKeyframe(keyframe, settings = { offset: 0, isCollapsed: false, isGraph: false }) {
-				let isHovered = hoveredKeyframe === keyframe.uuid;
-				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
+				let isHovered = (hoveredKeyframe === keyframe.uuid);
+				let anyHandleHovered = (hoveredBezierHandle.keyUuid === keyframe.uuid);
+				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : ((isHovered || anyHandleHovered) ? keyBaseHalfradius : keyHalfRadius);
 				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
 				let posY = settings.offset - keyHalfScale;
 				
@@ -518,13 +521,13 @@ export default {
 				// Set color & scale for hovering and selection
 				let isSelected = keyframe.selected;
 				let keyScale = keyRadius * scale; // Over-sampled scale of keyframe
-				let markerColor = Timeline.vue.getColor(keyframe.color, isHovered);
+				let markerColor = Timeline.vue.getColor(keyframe.color, isHovered || anyHandleHovered);
 				let color = (markerColor || keyframeColor);
 				if (isSelected) {
 					// Selection color
 					color = keyframeSelectedColor;
 				}
-				if (isHovered) {
+				if (isHovered || anyHandleHovered) {
 					// Hovering scale & color (unless selected, then we use selection color) 
 					color = isSelected ? keyframeSelectedColor : (markerColor || keyframeHoveredColor);
 					keyScale = keyBaseRadius * scale;
@@ -587,8 +590,8 @@ export default {
 						let leftOffsetY = -keyframe[`bezier_left_value`][axis] * graphSize * scale;
 						let rightOffsetX = keyframe[`bezier_right_time`][axis] * size * scale;
 						let rightOffsetY = -keyframe[`bezier_right_value`][axis] * graphSize * scale;
-						let handleSize = 10 * scale;
-						let handleHalfSize = handleSize / 2.0;
+						let handleDiameter = 10 * scale;
+						let handleRadius = handleDiameter / 2.0;
 
 						// Hover data
 						let canBeHovered = hoveredBezierHandle.keyUuid === keyframe.uuid;
@@ -597,21 +600,33 @@ export default {
 
 						context.lineWidth = 3 * scale;
 						
-						context.fillStyle = isLeftHovered ? "#f00" : "#fff";
-						context.strokeStyle = isLeftHovered ? "#f00" : "#fff";
-						context.beginPath();
+						context.strokeStyle = (isLeftHovered || isHovered) ? keyframeSelectedColor : bezierHandleLineColor;
+						context.beginPath(); // Handle line start
 						context.moveTo(keyX, keyY);
 						context.lineTo(leftOffsetX + keyX, leftOffsetY + keyY);
 						context.stroke();
-						context.fillRect((leftOffsetX + keyX) - handleHalfSize, (leftOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+						context.closePath();
+						context.strokeStyle = (isLeftHovered || isHovered) ? keyframeSelectedColor : keyframeColor;
+						context.fillStyle = bezierHandleColor;
+						context.beginPath(); // Handle dot start
+						context.arc((leftOffsetX + keyX), (leftOffsetY + keyY), handleRadius, 0, 2 * Math.PI);
+						context.fill();
+						context.stroke();
+						context.closePath();
 
-						context.fillStyle = isRightHovered ? "#f00" : "#fff";
-						context.strokeStyle = isRightHovered ? "#f00" : "#fff";
-						context.beginPath();
+						context.strokeStyle = (isRightHovered || isHovered) ? keyframeSelectedColor : bezierHandleLineColor;
+						context.beginPath(); // Handle line start
 						context.moveTo(keyX, keyY);
 						context.lineTo(rightOffsetX + keyX, rightOffsetY + keyY);
 						context.stroke();
-						context.fillRect((rightOffsetX + keyX) - handleHalfSize, (rightOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+						context.closePath();
+						context.strokeStyle = (isRightHovered || isHovered) ? keyframeSelectedColor : keyframeColor;
+						context.fillStyle = bezierHandleColor;
+						context.beginPath(); // Handle dot start
+						context.arc((rightOffsetX + keyX), (rightOffsetY + keyY), handleRadius, 0, 2 * Math.PI);
+						context.fill();
+						context.stroke();
+						context.closePath();
 					}
 				}
 				
@@ -680,6 +695,8 @@ export default {
 			let mouseVec = [x, y];
 
 			// Dom info
+			let size = this.size;
+			let graphSize = this.graph_size;
 			let channelH = this.channelHeight;
 			let channelHh = this.channelHeight / 2.0;
 			let keyRadius = this.keyFrameSmallRadius;
@@ -699,8 +716,8 @@ export default {
 				let keyframes = this.graph_editor_animator[this.graph_editor_channel];
 				for (let keyframe of keyframes) {
 					// Key position
-					let posX = (keyframe.time * this.size) + keyHalfRadius - scrollOffsetX;
-					let posY = this.graph_offset - (keyframe.display_value * this.graph_size) - channelHh - scrollOffsetY;
+					let posX = (keyframe.time * size) + keyHalfRadius - scrollOffsetX;
+					let posY = this.graph_offset - (keyframe.display_value * graphSize) - channelHh - scrollOffsetY;
 				
 					// Stop early if keyframe is out of frame
 					if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
@@ -708,10 +725,10 @@ export default {
 
 					// Handle positions
 					let axis = getAxisNumber(this.graph_editor_axis);
-					let leftOffsetX = keyframe[`bezier_left_time`][axis] * this.size;
-					let leftOffsetY = -keyframe[`bezier_left_value`][axis] * this.graph_size;
-					let rightOffsetX = keyframe[`bezier_right_time`][axis] * this.size;
-					let rightOffsetY = -keyframe[`bezier_right_value`][axis] * this.graph_size;
+					let leftOffsetX = keyframe[`bezier_left_time`][axis] * size;
+					let leftOffsetY = -keyframe[`bezier_left_value`][axis] * graphSize;
+					let rightOffsetX = keyframe[`bezier_right_time`][axis] * size;
+					let rightOffsetY = -keyframe[`bezier_right_value`][axis] * graphSize;
 
 					if (keyframe.interpolation === "bezier") {
 						let leftHandleVec = [leftOffsetX, leftOffsetY].V2_add([posX, posY]);
@@ -768,7 +785,7 @@ export default {
 
 						let keyframes = animator[channel];
 						for (let keyframe of keyframes) {
-							let posX = (keyframe.time * this.size) - scrollOffsetX;
+							let posX = (keyframe.time * size) - scrollOffsetX;
 							let posY = channelY + channelHh - keyHalfRadius;
 
 							// Stop early if keyframe is out of frame horizontally
@@ -871,15 +888,6 @@ export default {
 					this.refreshTimelineCanvas();
 					break;
 				}
-				case "fail": {
-					if (this.keyframeHoverUuid !== "" || this.bezierHandleHover.keyUuid !== "") {
-						this.keyframeHoverUuid = "";
-						this.bezierHandleHover.keyUuid = "";
-						this.bezierHandleHover.side = "";
-						this.refreshTimelineCanvas();
-					}
-					break;
-				}
 				case "bezier_handle": {
 					if (!result.target) break;
 					if (result.target.uuid === this.bezierHandleHover.keyUuid) break;
@@ -892,7 +900,17 @@ export default {
 					this.bezierHandleHover.keyUuid = result.target.uuid;
 					this.bezierHandleHover.side = result.handle;
 					this.refreshTimelineCanvas();
+					break;
 					// console.log(`hitting handle on the ${result.handle} of key at ${result.target.time}`)
+				}
+				case "fail": {
+					if (this.keyframeHoverUuid !== "" || this.bezierHandleHover.keyUuid !== "") {
+						this.keyframeHoverUuid = "";
+						this.bezierHandleHover.keyUuid = "";
+						this.bezierHandleHover.side = "";
+						this.refreshTimelineCanvas();
+					}
+					break;
 				}
 			}
 		},
