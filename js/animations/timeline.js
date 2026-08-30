@@ -95,7 +95,7 @@ export const Timeline = {
 				!e.target.classList.contains('keyframe_section') &&
 				!e.target.classList.contains('animator_head_bar') &&
 				e.target.id !== 'timeline_graph_editor' &&
-				e.target.id !== 'timeline_keyframe_canvas' &&
+				e.target.id !== 'timeline_body_keyframe_canvas' &&
 				Timeline.vue.keyframeHoverUuid !== ""
 			)) {
 				return

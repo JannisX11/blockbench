@@ -1,7 +1,7 @@
 <template>
 	<div id="timeline_vue" :class="{graph_editor: graph_editor_open}" :style="{'--timeline-height': timeline_height + 'px'}">
 		<div id="timeline_header">
-			<div id="timeline_corner" v-bind:style="{width: head_width+'px'}">
+			<div id="timeline_corner" :style="{width: head_width+'px'}">
 				<div id="timeline_timestamp">{{ timestamp }}</div>
 				<span>/</span>
 				<div id="timeline_framenumber">{{ framenumber }}</div>
@@ -12,9 +12,9 @@
 				</div>
 			</div>
 			<div id="timeline_time_wrapper">
-			<div id="timeline_time" v-bind:style="{width: (size*length)+'px', left: -scroll_left+'px'}">
+			<div id="timeline_time" :style="{width: (size*length)+'px', left: -scroll_left+'px'}">
 					<div id="timeline_custom_range_indicator" v-if="custom_range[1]"
-						v-bind:style="{left: (custom_range[0] * size) + 'px', width: ((custom_range[1] - custom_range[0]) * size) + 'px'}"
+						:style="{left: (custom_range[0] * size) + 'px', width: ((custom_range[1] - custom_range[0]) * size) + 'px'}"
 					/>
 					<div v-for="timecode in timecodes" class="timeline_timecode" :key="timecode.text" :style="{left: (timecode.time * size) + 'px', width: (timecode.width * size) + 'px'}">
 						<span>{{ timecode.text }}</span>
@@ -23,14 +23,14 @@
 						</div>
 					</div>
 					<div id="timeline_playhead"
-						v-bind:style="{left: (playhead * size) + 'px'}"
+						:style="{left: (playhead * size) + 'px'}"
 					/>
 					<div id="timeline_onion_skin_point"
 						v-if="onion_skin_selectable"
-						v-bind:style="{left: (onion_skin_time * size) + 'px'}"
+						:style="{left: (onion_skin_time * size) + 'px'}"
 					/>
 					<div id="timeline_endbracket"
-						v-bind:style="{left: (animation_length * size) + 'px'}"
+						:style="{left: (animation_length * size) + 'px'}"
 					/>
 					<div
 						v-for="marker in markers"
@@ -39,7 +39,7 @@
 						:uuid="marker.uuid"
 						@contextmenu.prevent="marker.showContextMenu($event)"
 						@dblclick.prevent="marker.propertiesDialog()"
-						v-on:click="marker.callPlayhead()"
+						@click="marker.callPlayhead()"
 					>
 						<i class="material-icons icon">beenhere</i>
 						<div class="tooltip" v-if="marker.name">{{ marker.name }}</div>
@@ -56,76 +56,85 @@
 			<div @mousedown="slideGraphAmplify($event, 1)" @touchstart="slideGraphAmplify($event, 1)"></div>
 		</div>
 		<div id="timeline_body" ref="timeline_body" @scroll="updateScroll($event)">
-			<div id="timeline_body_inner" v-bind:style="{width: (size*length + head_width)+'px'}">
-				<aside id="timeline_body_headers">
-					<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid" v-on:click="animator.clickSelect();">
+			<div id="timeline_body_inner" :style="{width: (size*length + head_width)+'px'}">
+				<aside id="timeline_body_channel_headers">
+					<li 
+						v-for="animator in animators" 
+						class="animator" 
+						:class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" 
+						:uuid="animator.uuid" 
+					>
 						<div class="animator_head_bar">
-							<div class="channel_head" v-bind:style="{left: '0px', width: head_width+'px'}" v-on:dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
-								<div class="text_button" v-on:click.stop="toggleAnimator(animator)">
-									<i class="icon-open-state fa" v-bind:class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
+							<div class="channel_head" :style="{left: '0px', width: head_width+'px'}" @dblclick.stop="toggleAnimator(animator)" @contextmenu.stop="animator.showContextMenu($event)">
+								<div class="text_button" @click.stop="toggleAnimator(animator)">
+									<i class="icon-open-state fa" :class="{'fa-angle-right': !animator.expanded, 'fa-angle-down': animator.expanded}"></i>
 								</div>
 								<dynamic-icon v-if="animator.node" :icon="animator.node.icon.replace('fa ', '').replace(/ /g, '.')" :color="getNodeColor(animator.node)" />
 								<dynamic-icon v-else-if="animator.particle" :icon="'wand_shine'" />
 								<dynamic-icon v-else :icon="'help'" style="color: var(--color-error)" />
-								<span class="timeline_animator_name" v-on:click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
+								<span class="timeline_animator_name" @click.stop="animator.clickSelect();" @mousedown="dragAnimator(animator, $event)" @touchstart="dragAnimator(animator, $event)">
 									{{animator.name}}
 								</span>
-								<div class="text_button" v-on:click.stop="removeAnimator(animator)">
+								<div class="text_button" @click.stop="removeAnimator(animator)">
 									<i class="material-icons">remove</i>
 								</div>
 							</div>
 						</div>
 						<div class="animator_channel_bar"
-							v-bind:style="graph_editor_open ? {} : {width: head_width+'px'}"
 							v-for="(channel_options, channel) in animator.channels"
 							v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition, animator) && (!channels.hide_empty || animator[channel].length)"
+							:style="graph_editor_open ? {} : {width: head_width+'px'}"
 						>
 							<div class="channel_head"
 								:class="{selected: graph_editor_open && animator.selected && graph_editor_channel == channel}"
-								v-bind:style="{left: '0px', width: head_width+'px'}"
+								:style="{left: '0px', width: head_width+'px'}"
 								@click.stop="selectChannel(animator, channel);"
 								@contextmenu.stop="animator.showContextMenu($event)"
 							>
-								<div class="text_button" v-if="channel_options.mutable" v-on:click.stop="animator.toggleMuted(channel)">
+								<div class="text_button" v-if="channel_options.mutable" @click.stop="animator.toggleMuted(channel)">
 									<i class="icon material-icons channel_mute" :class="{disabled: animator.muted[channel]}">
 										{{ channel === 'sound' ? (animator.muted[channel] ? 'volume_off' : 'volume_up') : (animator.muted[channel] ? 'visibility_off' : 'visibility') }}
 									</i>
 								</div>
 								<div class="text_button" v-else></div>
 								<span>{{ channel_options.name }}</span>
-								<div
-									class="text_button rotation_global" :class="{off: !animator.rotation_global}"
+								<div class="text_button rotation_global" :class="{off: !animator.rotation_global}"
 									v-if="channel == 'rotation' && animator.type == 'bone'"
 									title="${tl('menu.animator.rotation_global')}"
 									@click.stop="toggleGlobalSpace(animator)"
 								>
 									<i class="material-icons">{{ animator.rotation_global ? 'public' : 'public_off' }}</i>
 								</div>
-								<div class="text_button" v-on:click.stop="animator.createKeyframe(null, null, channel, true)">
+								<div class="text_button" @click.stop="animator.createKeyframe(null, null, channel, true)">
 									<i class="material-icons">add</i>
 								</div>
 							</div>
 						</div>
 					</li>
-					<div id="timeline_empty_head" class="channel_head" v-bind:style="{width: head_width+'px'}" />
+					<div id="timeline_empty_head" class="channel_head" :style="{width: head_width+'px'}" />
 				</aside>
 
 				<canvas 
-					id="timeline_keyframe_canvas" 
+					id="timeline_body_keyframe_canvas" 
 					ref="keyframe_canvas"
-					v-if="!graph_editor_open" 
 					:style="{left: `${head_width}px`}"
 					@click.stop="clickKeyframeOnCanvas($event)" 
 					@dblclick="callPlayHeadToKeyframeOnCanvas($event)" 
 					@mousedown="dragKeyframesOnCanvas($event)" 
 					@touchstart="dragKeyframesOnCanvas($event)"
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
-					@mousemove="hoverKeyframeOnCanvas($event)"
+					@mousemove="hoverOnCanvas($event)"
 					@mouseleave="clearHoveredKeyframe()"
 				/>
 
-				<section id="timeline_keyframe_backdrop">
-					<li v-for="animator in animators" class="animator" :class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" :uuid="animator.uuid">
+				<section id="timeline_body_keyframe_backdrop">
+					<li 
+						v-for="animator in animators" 
+						v-if="!graph_editor_open" 
+						class="animator" 
+						:class="{selected: animator.selected, boneless: animator.displayPosition && !animator.node}" 
+						:uuid="animator.uuid"
+					>
 						<div class="animator_head_bar" />
 						<div class="animator_channel_bar"
 							v-for="(channel_options, channel) in animator.channels"
@@ -148,9 +157,7 @@
 						</div>
 					</li>
 				</section>
-
-				<div id="timeline_selector" class="selection_rectangle" :style="{display: 'none', width: '0', height: '0', left: '0', top: '0'}"></div>
-				<div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{display: 'block', width: '100%', height: '100%', left: head_width + 'px', top: scroll_top + 'px'}">
+				<section v-if="graph_editor_open" id="timeline_graph_editor" ref="graph_editor" :style="{translate: '0 0', left: head_width + 'px', top: scroll_top + 'px'}">
 					<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 						<path :d="zero_line" style="stroke: var(--color-grid);"></path>
 						<path :d="one_line" style="stroke: var(--color-grid); stroke-dasharray: 6;" v-if="graph_editor_channel == 'scale'"></path>
@@ -181,39 +188,43 @@
 							:style="{stroke: 'var(--color-axis-' + graph_editor_axis + ')'}"
 						></path>
 					</svg>
-					<template v-if="graph_editor_animator">
-						<div
-							v-for="keyframe in graph_editor_animator[graph_editor_channel]"
-							v-bind:style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color), '--hover-color': getColor(keyframe.color, true)}"
-							class="keyframe graph_keyframe"
-							v-bind:class="[keyframe.channel, keyframe.selected?'selected':'']"
-							v-bind:id="keyframe.uuid"
-							v-on:click.stop="keyframe.clickSelect($event)"
-							v-on:dblclick="keyframe.callPlayhead()"
-							:title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)"
-							@mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)"
-							@contextmenu.prevent.stop="keyframe.showContextMenu($event)"
-						>
-							<i v-if="keyframe.interpolation == 'catmullrom'" :class="'icon-keyframe_smooth' + (keyframe.has_expressions ? '_molang' : '')"></i>
-							<i v-else-if="keyframe.interpolation == 'step'" :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_step' : 'icon-keyframe_step_discontinuous') + (keyframe.has_expressions ? '_molang' : '')"></i>
-							<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
-							<i :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_linear' : 'icon-keyframe_linear_discontinuous') + (keyframe.has_expressions ? '_molang' : '')" v-else></i>
+				</section>
 
-							<template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)">
-								<div class="keyframe_bezier_handle"
-									:style="getBezierHandleStyle(keyframe, 'left')"
-									:title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])"
-									@mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)"
-								></div>
-								<div class="keyframe_bezier_handle"
-									:style="getBezierHandleStyle(keyframe, 'right')"
-									:title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])"
-									@mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)"
-								></div>
-							</template>
-						</div>
-					</template>
-				</div>
+				<div id="timeline_selector" class="selection_rectangle"></div>
+				<!-- <div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{display: 'block', width: '100%', height: '100%', left: head_width + 'px', top: scroll_top + 'px'}"> -->
+					<!-- <template v-if="graph_editor_animator"> -->
+						<!-- <div -->
+							<!-- v-for="keyframe in graph_editor_animator[graph_editor_channel]" -->
+							<!-- :style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color), '--hover-color': getColor(keyframe.color, true)}" -->
+							<!-- class="keyframe graph_keyframe" -->
+							<!-- :class="[keyframe.channel, keyframe.selected?'selected':'']" -->
+							<!-- :id="keyframe.uuid" -->
+							<!-- :title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)" -->
+							<!-- @click.stop="keyframe.clickSelect($event)" -->
+							<!-- @dblclick="keyframe.callPlayhead()" -->
+							<!-- @mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)" -->
+							<!-- @contextmenu.prevent.stop="keyframe.showContextMenu($event)" -->
+						<!-- > -->
+							<!-- <i v-if="keyframe.interpolation == 'catmullrom'" :class="'icon-keyframe_smooth' + (keyframe.has_expressions ? '_molang' : '')"></i> -->
+							<!-- <i v-else-if="keyframe.interpolation == 'step'" :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_step' : 'icon-keyframe_step_discontinuous') + (keyframe.has_expressions ? '_molang' : '')"></i> -->
+							<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
+							<!-- <i :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_linear' : 'icon-keyframe_linear_discontinuous') + (keyframe.has_expressions ? '_molang' : '')" v-else></i> -->
+
+							<!-- <template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)"> -->
+								<!-- <div class="keyframe_bezier_handle" -->
+									<!-- :style="getBezierHandleStyle(keyframe, 'left')" -->
+									<!-- :title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])" -->
+									<!-- @mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)" -->
+								<!-- ></div> -->
+								<!-- <div class="keyframe_bezier_handle" -->
+									<!-- :style="getBezierHandleStyle(keyframe, 'right')" -->
+									<!-- :title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])" -->
+									<!-- @mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)" -->
+								<!-- ></div> -->
+							<!-- </template> -->
+						<!-- </div> -->
+					<!-- </template> -->
+				<!-- </div> -->
 			</div>
 		</div>
 	</div>
@@ -221,17 +232,6 @@
 
 <script lang="js">
 import { tl } from '../languages';
-const domParser = new DOMParser();
-
-async function getKeyframeImage(uri) {
-	let svg = new Document();
-
-	await fetch(uri).then(r => r.text()).then(r => {
-		svg = domParser.parseFromString(r, "image/svg+xml");
-	})
-
-	return svg;
-}
 
 export default {
 	name: 'panel-timeline',
@@ -276,7 +276,7 @@ export default {
 		samplingScale: 4.0,
 
 		keyframeHoverUuid: "",
-		keyframeIcons: { // There has to be a better way to do these, but this is the best I found for now - Aza
+		keyframeIcons: { // There has to be a better way to type these characters, but this is the best I found for now - Aza
 			linear: {
 			  	default: "",
 			  	discontinuous:  "",
@@ -465,34 +465,38 @@ export default {
 		clearTimelineCanvas() {
 			if (this.graph_editor_open) return;
 
-			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
+			let bodyCanvas = $('#timeline_body_keyframe_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
 			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
 		},
 		refreshTimelineCanvas() {
 			if (!this._isMounted) return;
 			if (!Animation.selected) return;
-			if (!this.animators.length) return;
-			if (this.graph_editor_open) return;
+			if (!this.animators.length || (this.graph_editor_open && !this.graph_editor_animator)) return;
 
 			// Store stuff, yk
-			let size = this.size;
-			let scale = this.samplingScale;
-			let channelH = this.channelHeight;
-			let keyRadius = this.keyFrameSmallRadius;
-			let keyBaseRadius = this.keyFrameRadius;
-			let keyHiddenRadius = this.keyFrameSmallestRadius;
-			let channelHh = channelH / 2.0;
-			let keyHalfRadius = keyRadius / 2.0;
-			let keyBaseHalfradius = keyBaseRadius / 2.0;
-			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
-			let hoveredKeyframe = this.keyframeHoverUuid;
-			let icons = this.keyframeIcons;
+			const size = this.size;
+			const scale = this.samplingScale;
+			const channelH = this.channelHeight;
+			const keyRadius = this.keyFrameSmallRadius;
+			const keyBaseRadius = this.keyFrameRadius;
+			const keyHiddenRadius = this.keyFrameSmallestRadius;
+			const channelHh = channelH / 2.0;
+			const keyHalfRadius = keyRadius / 2.0;
+			const keyBaseHalfradius = keyBaseRadius / 2.0;
+			const keyHiddenHalfRadius = keyHiddenRadius / 2.0;
+			const hoveredKeyframe = this.keyframeHoverUuid;
+			const icons = this.keyframeIcons;
+			const isGraph = this.graph_editor_open;
+			const graphOffset = this.graph_offset;
+			const graphSize = this.graph_size;
+			const graphShowAllHandles = this.show_all_handles;
+			const graphAxis = this.graph_editor_axis;
 
 			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
-			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
-			let bodyBackdrop = $('#timeline_keyframe_backdrop').get(0);
+			let bodyCanvas = $('#timeline_body_keyframe_canvas').get(0);
+			let bodyBackdrop = $('#timeline_body_keyframe_backdrop').get(0);
 			if (!bodyCanvas) return;
 
 			// Collect body style & scroll data
@@ -517,11 +521,17 @@ export default {
 			bodyCanvas.style.width = `${rectWidth}px`;
 			bodyBackdrop.style.translate = `-${rectWidth}px 0`;
 
-			function drawKeyframe(keyframe, channelY, isCollapsed) {
+			function drawKeyframe(keyframe, settings = { offset: 0, isCollapsed: false, isGraph: false }) {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
-				let keyHalfScale = isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
+				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
 				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
-				let posY = channelY + channelHh - keyHalfScale;
+				let posY = 0;
+				if (settings.isGraph) {
+					posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
+				}
+				else {
+					posY = settings.offset + channelHh - keyHalfScale;
+				}
 				
 				// Stop early if keyframe is out of frame horizontally
 				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
@@ -540,7 +550,7 @@ export default {
 					color = isSelected ? keyframeSelectedColor : (markerColor || keyframeHoveredColor);
 					keyScale = keyBaseRadius * scale;
 				}
-				if (isCollapsed) {
+				if (settings.isCollapsed) {
 					// Hidden scale & color 
 					color = keyframeCollapsedColor
 					keyScale = keyHiddenRadius * scale;
@@ -548,14 +558,14 @@ export default {
 
 				function pickIcon(iconData, continuousOnly = false) {
 					let data = iconData;
-					if (isCollapsed) data = icons.hidden;
+					if (settings.isCollapsed) data = icons.hidden;
 
 					if (continuousOnly) {
 						if (isMolang) return data.molang;
 						else return data.default;
 					}
 
-					if (isMolang && !isContinuous && !isCollapsed) return data.discontinuous_molang;
+					if (isMolang && !isContinuous && !settings.isCollapsed) return data.discontinuous_molang;
 					else if (isMolang) return data.molang;
 					else if (!isContinuous) return data.discontinuous;
 					else return data.default;
@@ -571,7 +581,7 @@ export default {
 						break; 
 					}
 					case "bezier": { 
-						icon = pickIcon(icons.bezier);
+						icon = pickIcon(settings.isGraph ? icons.linear : icons.bezier);
 						break; 
 					}
 					case "catmullrom": { 
@@ -584,6 +594,34 @@ export default {
 					}
 				}
 
+				if (settings.isGraph) {
+					let displayHandles = (keyframe.interpolation == "bezier") && (graphShowAllHandles || keyframe.selected);
+
+					if (displayHandles) {
+						// Get keyframe X and Y without the text box offset
+						let keyX = ((keyframe.time * size) - scrollOffsetX) * scale;
+						let keyY = (graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY) * scale;
+
+						// Handle position info
+						let axis = getAxisNumber(graphAxis);
+						let leftOffsetX = -keyframe[`bezier_left_time`][axis] * size * scale;
+						let leftOffsetY = -keyframe[`bezier_left_value`][axis] * graphSize * scale;
+						let rightOffsetX = -keyframe[`bezier_right_time`][axis] * size * scale;
+						let rightOffsetY = -keyframe[`bezier_right_value`][axis] * graphSize * scale;
+						let handleSize = 10 * scale;
+						let handleHalfSize = handleSize / 2.0;
+
+						context.fillStyle = "#fff";
+						context.strokeStyle = "#fff";
+						context.lineWidth = 3 * scale;
+						context.beginPath();
+						context.moveTo(leftOffsetX + keyX, leftOffsetY + keyY);
+						context.lineTo(rightOffsetX + keyX, rightOffsetY + keyY);
+						context.stroke();
+						context.fillRect((leftOffsetX + keyX) - handleHalfSize, (leftOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+						context.fillRect((rightOffsetX + keyX) - handleHalfSize, (rightOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+					}
+				}
 				
 				context.font = `${keyScale}px icomoon`;
 				context.fillStyle = color;
@@ -593,52 +631,52 @@ export default {
 
 			// Clear canvas, and re-draw keyframes.
 			this.clearTimelineCanvas();
-			heightAccumulator = 0;
-			for (let i = 0; i < this.animators.length; i++) {
-				let animator = this.animators[i];
-				let channelKeys = Object.keys(animator.channels);
-				let animatorY = channelH * heightAccumulator - scrollOffsetY;
-				// let position = [0, animatorY];
-				heightAccumulator++;
-				
-				// drawKeyframeChannel(position, channelH, "transparent", channelBorder);
+			if (isGraph) {
+				let keyframes = this.graph_editor_animator[this.graph_editor_channel];
+				for (let keyframe of keyframes) {
+					drawKeyframe(keyframe, { isGraph: true });
+				}
+			}
+			else {
+				heightAccumulator = 0;
+				for (let i = 0; i < this.animators.length; i++) {
+					let animator = this.animators[i];
+					let channelKeys = Object.keys(animator.channels);
+					let animatorY = channelH * heightAccumulator - scrollOffsetY;
+					heightAccumulator++;
 
-				for (let j = 0; j < channelKeys.length; j++) {
-					let channel = channelKeys[j];
-					let channelOptions = animator.channels[channel];
+					for (let j = 0; j < channelKeys.length; j++) {
+						let channel = channelKeys[j];
+						let channelOptions = animator.channels[channel];
 
-					// Stop early if channel should be hidden
-					let isExpanded = animator.expanded;
-					let channelExists = this.channels[channel] != false;
-					let isConditionMet = Condition(channelOptions.condition, animator);
-					let shouldHide = (!this.channels.hide_empty || animator[channel].length);
-					let shouldCollapseKeys = !(isExpanded && channelExists && shouldHide);
-					if (shouldCollapseKeys && !isConditionMet) continue;
+						// Stop early if channel should be hidden
+						let isExpanded = animator.expanded;
+						let channelExists = this.channels[channel] != false;
+						let isConditionMet = Condition(channelOptions.condition, animator);
+						let shouldHide = (!this.channels.hide_empty || animator[channel].length);
+						let shouldCollapseKeys = !(isExpanded && channelExists && shouldHide);
+						if (shouldCollapseKeys && !isConditionMet) continue;
 
-					// Get our remaining data
-					let channelY = channelH * heightAccumulator - scrollOffsetY;
-					if (shouldCollapseKeys) channelY = animatorY;
-					else heightAccumulator++;
-					// let position = [0, channelY];
+						// Get our remaining data
+						let channelY = channelH * heightAccumulator - scrollOffsetY;
+						if (shouldCollapseKeys) channelY = animatorY;
+						else heightAccumulator++;
 
-					// Stop early if channel is out of frame vertically
-					if (channelY < -channelHh) continue;
-					if (channelY > rectHeight - channelHh) break;
+						// Stop early if channel is out of frame vertically
+						if (channelY < -channelHh) continue;
+						if (channelY > rectHeight - channelHh) break;
 
-					// Draw channel if all above checks failed :D
-					// drawKeyframeChannel(position, channelH, channelFill, channelBorder);
-					// context.dra
-
-					let keyframes = animator[channel];
-					for (let keyframe of keyframes) {
-						drawKeyframe(keyframe, channelY, shouldCollapseKeys);
+						let keyframes = animator[channel];
+						for (let keyframe of keyframes) {
+							drawKeyframe(keyframe, { offset: channelY, isCollapsed: shouldCollapseKeys });
+						}
 					}
 				}
 			}
 		},
 		tryGetKeyframeClosestToMouse(event) {
 			let body = $('#timeline_body').get(0);
-			let bodyCanvas = $('#timeline_keyframe_canvas').get(0);
+			let bodyCanvas = $('#timeline_body_keyframe_canvas').get(0);
 
 			// Mouse position
     		let rect = bodyCanvas.getBoundingClientRect();
@@ -648,7 +686,8 @@ export default {
 			// Dom info
 			let channelH = this.channelHeight;
 			let channelHh = this.channelHeight / 2.0;
-			let keyHalfRadius = this.keyFrameRadius / 2.0;
+			let keyRadius = this.keyFrameSmallRadius;
+			let keyHalfRadius = keyRadius / 2.0;
 			let rectHeight = body.clientHeight;
 			let rectWidth = body.clientWidth - this.head_width;
 			let scrollOffsetY = body.scrollTop;
@@ -686,13 +725,17 @@ export default {
 					for (let keyframe of keyframes) {
 						let posX = (keyframe.time * this.size) - scrollOffsetX;
 						let posY = channelY + channelHh - keyHalfRadius;
+
+						if (this.graph_editor_open) {
+							posY = this.graph_offset - (keyframe.display_value * this.graph_size) - channelHh - scrollOffsetY;
+						}
 						
 						// Stop early if keyframe is out of frame horizontally
 						if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
 
-						let positionVec = [posX, posY].V2_add([keyHalfRadius, keyHalfRadius]);
+						let keyframeVec = [posX, posY].V2_add([keyHalfRadius, keyHalfRadius]);
 						let mouseVec = [x, y];
-						let distance = mouseVec.V2_subtract(positionVec).V2_toThree().length()
+						let distance = mouseVec.V2_subtract(keyframeVec).V2_toThree().length();
 						if (distance < shortestDist) {
 							shortestDist = distance;
 							shortestUuid = keyframe.uuid;
@@ -704,10 +747,13 @@ export default {
 			// Check if our closest keyframe is within the selection radius before we return it
 			let closestKeyframe = Timeline.keyframes.find(keyframe => keyframe.uuid === shortestUuid);
 			if (shortestDist < channelH * 0.75) {
-				return closestKeyframe;
+				return {
+					target: closestKeyframe,
+					type: "keyframe"
+				};
 			}
-			return false;
 			
+			return { type: "fail" };
 			// console.log(`[${[x, y]}], ${shortestDist}, ${shortestUuid}`);
 		},
 		getKeyframeFromUuid(uuid) {
@@ -751,20 +797,30 @@ export default {
 			}
 			keyframe.showContextMenu(event);
 		},
-		hoverKeyframeOnCanvas(event) {
+		hoverOnCanvas(event) {
 			if (Timeline.selector.selecting) return;
-			let keyframe = this.tryGetKeyframeClosestToMouse(event);
-			if (!keyframe) {
-				if (this.keyframeHoverUuid !== "") {
-					this.keyframeHoverUuid = "";
-					this.refreshTimelineCanvas();
-				}
-				return;
-			}
-			if (keyframe.uuid === this.keyframeHoverUuid) return;
+			let result = this.tryGetKeyframeClosestToMouse(event);
 
-			this.keyframeHoverUuid = keyframe.uuid;
-			this.refreshTimelineCanvas();
+			switch (result.type) {
+				case "keyframe": {
+					if (!result.target) break;
+					if (result.target.uuid === this.keyframeHoverUuid) break;
+
+					this.keyframeHoverUuid = result.target.uuid;
+					this.refreshTimelineCanvas();
+					break;
+				}
+				case "fail": {
+					if (this.keyframeHoverUuid !== "") {
+						this.keyframeHoverUuid = "";
+						this.refreshTimelineCanvas();
+					}
+					break;
+				}
+				case "bezier_handle": {
+					break;
+				}
+			}
 		},
 		clearHoveredKeyframe() {
 			this.keyframeHoverUuid = "";
@@ -1468,7 +1524,7 @@ export default {
     align-items: flex-start;
 }
 
-#timeline_body_headers {
+#timeline_body_channel_headers {
 	display: flex;
 	flex-direction: column;
     position: sticky;
@@ -1477,13 +1533,13 @@ export default {
     min-height: stretch;
 }
 
-#timeline_keyframe_canvas {
+#timeline_body_keyframe_canvas {
     position: sticky;
 	top: 0;
     z-index: 2;
 }
 
-#timeline_keyframe_backdrop {
+#timeline_body_keyframe_backdrop {
     position: sticky;
 	top: 0;
     z-index: 0;
@@ -1494,5 +1550,9 @@ export default {
 .keyframe.graph_keyframe > svg {
 	margin: none;
 	pointer-events: inherit;
+}
+
+.animator_channel_bar {
+	overflow: clip;
 }
 </style>
