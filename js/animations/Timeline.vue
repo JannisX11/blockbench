@@ -113,20 +113,24 @@
 					</li>
 					<div id="timeline_empty_head" class="channel_head" :style="{width: head_width+'px'}" />
 				</aside>
-
+				<!-- --------------------------------------------------------------------- -->
+				<!-- Timeline keyframe canvas overlay (for all keyframes, graph & channel) -->
+				<!-- --------------------------------------------------------------------- -->
 				<canvas 
 					id="timeline_body_keyframe_canvas" 
 					ref="keyframe_canvas"
 					:style="{left: `${head_width}px`}"
 					@click.stop="clickKeyframeOnCanvas($event)" 
 					@dblclick="callPlayHeadToKeyframeOnCanvas($event)" 
-					@mousedown="dragKeyframesOnCanvas($event)" 
-					@touchstart="dragKeyframesOnCanvas($event)"
+					@mousedown="dragOnCanvas($event)" 
+					@touchstart="dragOnCanvas($event)"
 					@contextmenu.prevent.stop="openKeyframeContextMenuOnCanvas($event)"
 					@mousemove="hoverOnCanvas($event)"
 					@mouseleave="clearHoveredKeyframe()"
 				/>
-
+				<!-- ----------------------------- -->
+				<!-- Timeline regular channels DOM -->
+				<!-- ----------------------------- -->
 				<section id="timeline_body_keyframe_backdrop">
 					<li 
 						v-for="animator in animators" 
@@ -157,6 +161,9 @@
 						</div>
 					</li>
 				</section>
+				<!-- ------------------------- -->
+				<!-- Timeline Graph editor DOM -->
+				<!-- ------------------------- -->
 				<section v-if="graph_editor_open" id="timeline_graph_editor" ref="graph_editor" :style="{translate: '0 0', left: head_width + 'px', top: scroll_top + 'px'}">
 					<svg :style="{'margin-left': clamp(scroll_left, 9, Infinity) + 'px'}">
 						<path :d="zero_line" style="stroke: var(--color-grid);"></path>
@@ -191,40 +198,6 @@
 				</section>
 
 				<div id="timeline_selector" class="selection_rectangle"></div>
-				<!-- <div id="timeline_graph_editor" ref="graph_editor" v-if="graph_editor_open" :style="{display: 'block', width: '100%', height: '100%', left: head_width + 'px', top: scroll_top + 'px'}"> -->
-					<!-- <template v-if="graph_editor_animator"> -->
-						<!-- <div -->
-							<!-- v-for="keyframe in graph_editor_animator[graph_editor_channel]" -->
-							<!-- :style="{left: (10 + keyframe.time * size) + 'px', top: (graph_offset - keyframe.display_value * graph_size - 8) + 'px', color: getColor(keyframe.color), '--hover-color': getColor(keyframe.color, true)}" -->
-							<!-- class="keyframe graph_keyframe" -->
-							<!-- :class="[keyframe.channel, keyframe.selected?'selected':'']" -->
-							<!-- :id="keyframe.uuid" -->
-							<!-- :title="trimFloatNumber(keyframe.time, 2) + ' ⨉ ' + trimFloatNumber(keyframe.display_value || 0)" -->
-							<!-- @click.stop="keyframe.clickSelect($event)" -->
-							<!-- @dblclick="keyframe.callPlayhead()" -->
-							<!-- @mousedown="dragKeyframes(keyframe, $event)" @touchstart="dragKeyframes(keyframe, $event)" -->
-							<!-- @contextmenu.prevent.stop="keyframe.showContextMenu($event)" -->
-						<!-- > -->
-							<!-- <i v-if="keyframe.interpolation == 'catmullrom'" :class="'icon-keyframe_smooth' + (keyframe.has_expressions ? '_molang' : '')"></i> -->
-							<!-- <i v-else-if="keyframe.interpolation == 'step'" :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_step' : 'icon-keyframe_step_discontinuous') + (keyframe.has_expressions ? '_molang' : '')"></i> -->
-							<!--i :class="keyframe.data_points.length == 1 ? 'icon-keyframe_bezier' : 'icon-keyframe_discontinuous_bezier'" v-else-if="keyframe.interpolation == 'bezier'"></i (looks better without hourglass in graph editor) -->
-							<!-- <i :class="(keyframe.data_points.length == 1 ? 'icon-keyframe_linear' : 'icon-keyframe_linear_discontinuous') + (keyframe.has_expressions ? '_molang' : '')" v-else></i> -->
-
-							<!-- <template v-if="keyframe.interpolation == 'bezier' && (show_all_handles || keyframe.selected)"> -->
-								<!-- <div class="keyframe_bezier_handle" -->
-									<!-- :style="getBezierHandleStyle(keyframe, 'left')" -->
-									<!-- :title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_left_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_left_value[graph_editor_axis_number])" -->
-									<!-- @mousedown="dragBezierHandle(keyframe, 'left', $event)" @touchstart="dragBezierHandle('left', $event)" -->
-								<!-- ></div> -->
-								<!-- <div class="keyframe_bezier_handle" -->
-									<!-- :style="getBezierHandleStyle(keyframe, 'right')" -->
-									<!-- :title="`${tl('generic.left')}:` + trimFloatNumber(keyframe.bezier_right_time[graph_editor_axis_number], 2) + ' ⨉ ' + trimFloatNumber(keyframe.bezier_right_value[graph_editor_axis_number])" -->
-									<!-- @mousedown="dragBezierHandle(keyframe, 'right', $event)" @touchstart="dragBezierHandle('right', $event)" -->
-								<!-- ></div> -->
-							<!-- </template> -->
-						<!-- </div> -->
-					<!-- </template> -->
-				<!-- </div> -->
 			</div>
 		</div>
 	</div>
@@ -276,6 +249,10 @@ export default {
 		samplingScale: 4.0,
 
 		keyframeHoverUuid: "",
+		bezierHandleHover: {
+			keyUuid: "",
+			side: ""
+		},
 		keyframeIcons: { // There has to be a better way to type these characters, but this is the best I found for now - Aza
 			linear: {
 			  	default: "",
@@ -486,6 +463,7 @@ export default {
 			const keyBaseHalfradius = keyBaseRadius / 2.0;
 			const keyHiddenHalfRadius = keyHiddenRadius / 2.0;
 			const hoveredKeyframe = this.keyframeHoverUuid;
+			const hoveredBezierHandle = this.bezierHandleHover;
 			const icons = this.keyframeIcons;
 			const isGraph = this.graph_editor_open;
 			const graphOffset = this.graph_offset;
@@ -525,17 +503,18 @@ export default {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
 				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
 				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
-				let posY = 0;
-				if (settings.isGraph) {
-					posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
-				}
-				else {
-					posY = settings.offset + channelHh - keyHalfScale;
-				}
+				let posY = settings.offset + channelHh - keyHalfScale;
 				
 				// Stop early if keyframe is out of frame horizontally
 				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
-				
+
+				if (settings.isGraph) {
+					posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
+
+					// Stop early if keyframe is out of frame vertically (necessary here, because the graph editor doesn't have channel lines)
+					if ((posY < -keyHalfScale) || (posY > rectHeight - keyHalfScale)) return;
+				}
+
 				// Set color & scale for hovering and selection
 				let isSelected = keyframe.selected;
 				let keyScale = keyRadius * scale; // Over-sampled scale of keyframe
@@ -611,14 +590,20 @@ export default {
 						let handleSize = 10 * scale;
 						let handleHalfSize = handleSize / 2.0;
 
-						context.fillStyle = "#fff";
+						// Hover data
+						let canBeHovered = hoveredBezierHandle.keyUuid === keyframe.uuid;
+						let isLeftHovered = hoveredBezierHandle.side === "left" && canBeHovered;
+						let isRightHovered = hoveredBezierHandle.side === "right" && canBeHovered;
+
 						context.strokeStyle = "#fff";
 						context.lineWidth = 3 * scale;
 						context.beginPath();
 						context.moveTo(leftOffsetX + keyX, leftOffsetY + keyY);
 						context.lineTo(rightOffsetX + keyX, rightOffsetY + keyY);
 						context.stroke();
+						context.fillStyle = isLeftHovered ? "#f00" : "#fff";
 						context.fillRect((leftOffsetX + keyX) - handleHalfSize, (leftOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+						context.fillStyle = isRightHovered ? "#f00" : "#fff";
 						context.fillRect((rightOffsetX + keyX) - handleHalfSize, (rightOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
 					}
 				}
@@ -682,6 +667,7 @@ export default {
     		let rect = bodyCanvas.getBoundingClientRect();
 		    let x = event.pageX - rect.left;
 		    let y = event.pageY - rect.top;
+			let mouseVec = [x, y];
 
 			// Dom info
 			let channelH = this.channelHeight;
@@ -696,49 +682,94 @@ export default {
 			// Find closest keyframe to mouse
 			let shortestDist = Infinity;
 			let shortestUuid = "";
-			let heightAccumulator = 0;
-			for (let i = 0; i < this.animators.length; i++) {
-				let animator = this.animators[i];
-				let channelKeys = Object.keys(animator.channels);
-				heightAccumulator++;
+			let shortestHandle = "";
+			if (this.graph_editor_open) {
+				if (!this.graph_editor_animator) return;
 
-				for (let j = 0; j < channelKeys.length; j++) {
-					let channel = channelKeys[j];
-					let channelOptions = animator.channels[channel];
+				let keyframes = this.graph_editor_animator[this.graph_editor_channel];
+				for (let keyframe of keyframes) {
+					// Key position
+					let posX = (keyframe.time * this.size) - scrollOffsetX;
+					let posY = this.graph_offset - (keyframe.display_value * this.graph_size) - channelHh - scrollOffsetY;
+				
+					// Stop early if keyframe is out of frame
+					if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
+					if ((posY < -keyHalfRadius) || (posY > rectHeight - keyHalfRadius)) continue;
 
-					// Stop early if channel should be hidden
-					let isExpanded = animator.expanded;
-					let channelExists = this.channels[channel] != false;
-					let isConditionMet = Condition(channelOptions.condition, animator);
-					let shouldHide = (!this.channels.hide_empty || animator[channel].length);
-					if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
+					// Handle positions
+					let axis = getAxisNumber(this.graph_editor_axis);
+					let leftOffsetX = -keyframe[`bezier_left_time`][axis] * this.size;
+					let leftOffsetY = -keyframe[`bezier_left_value`][axis] * this.graph_size;
+					let rightOffsetX = -keyframe[`bezier_right_time`][axis] * this.size;
+					let rightOffsetY = -keyframe[`bezier_right_value`][axis] * this.graph_size;
 
-					// Get our remaining data
-					let channelY = channelH * heightAccumulator - scrollOffsetY;
+					if (keyframe.interpolation === "bezier") {
+						let leftHandleVec = [leftOffsetX, leftOffsetY].V2_add([posX, posY]);
+						let rightHandleVec = [rightOffsetX, rightOffsetY].V2_add([posX, posY]);
+						let distanceToLeft = [...mouseVec].V2_subtract(leftHandleVec).V2_toThree().length();
+						let distanceToRight = [...mouseVec].V2_subtract(rightHandleVec).V2_toThree().length();
+
+						if (distanceToLeft < shortestDist) {
+							shortestDist = distanceToLeft;
+							shortestUuid = keyframe.uuid;
+							shortestHandle = "left";
+						}
+						if (distanceToRight < shortestDist) {
+							shortestDist = distanceToRight;
+							shortestUuid = keyframe.uuid;
+							shortestHandle = "right";
+						}
+					}
+
+					let keyframeVec = [posX, posY].V2_add([keyHalfRadius, keyHalfRadius]);
+					let distanceToKey = [...mouseVec].V2_subtract(keyframeVec).V2_toThree().length();
+					if (distanceToKey < shortestDist) {
+						shortestDist = distanceToKey;
+						shortestUuid = keyframe.uuid;
+						shortestHandle = "";
+					}
+				}
+			}
+			else {
+				let heightAccumulator = 0;
+				for (let i = 0; i < this.animators.length; i++) {
+					let animator = this.animators[i];
+					let channelKeys = Object.keys(animator.channels);
 					heightAccumulator++;
 
-					// Stop early if channel is out of frame vertically
-					if (channelY < -channelHh) continue;
-					if (channelY > rectHeight - channelHh) break;
+					for (let j = 0; j < channelKeys.length; j++) {
+						let channel = channelKeys[j];
+						let channelOptions = animator.channels[channel];
 
-					let keyframes = animator[channel];
-					for (let keyframe of keyframes) {
-						let posX = (keyframe.time * this.size) - scrollOffsetX;
-						let posY = channelY + channelHh - keyHalfRadius;
+						// Stop early if channel should be hidden
+						let isExpanded = animator.expanded;
+						let channelExists = this.channels[channel] != false;
+						let isConditionMet = Condition(channelOptions.condition, animator);
+						let shouldHide = (!this.channels.hide_empty || animator[channel].length);
+						if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
 
-						if (this.graph_editor_open) {
-							posY = this.graph_offset - (keyframe.display_value * this.graph_size) - channelHh - scrollOffsetY;
-						}
-						
-						// Stop early if keyframe is out of frame horizontally
-						if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
+						// Get our remaining data
+						let channelY = channelH * heightAccumulator - scrollOffsetY;
+						heightAccumulator++;
 
-						let keyframeVec = [posX, posY].V2_add([keyHalfRadius, keyHalfRadius]);
-						let mouseVec = [x, y];
-						let distance = mouseVec.V2_subtract(keyframeVec).V2_toThree().length();
-						if (distance < shortestDist) {
-							shortestDist = distance;
-							shortestUuid = keyframe.uuid;
+						// Stop early if channel is out of frame vertically
+						if (channelY < -channelHh) continue;
+						if (channelY > rectHeight - channelHh) break;
+
+						let keyframes = animator[channel];
+						for (let keyframe of keyframes) {
+							let posX = (keyframe.time * this.size) - scrollOffsetX;
+							let posY = channelY + channelHh - keyHalfRadius;
+
+							// Stop early if keyframe is out of frame horizontally
+							if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
+
+							let keyframeVec = [posX, posY].V2_add([keyHalfRadius, keyHalfRadius]);
+							let distance = [...mouseVec].V2_subtract(keyframeVec).V2_toThree().length();
+							if (distance < shortestDist) {
+								shortestDist = distance;
+								shortestUuid = keyframe.uuid;
+							}
 						}
 					}
 				}
@@ -747,6 +778,14 @@ export default {
 			// Check if our closest keyframe is within the selection radius before we return it
 			let closestKeyframe = Timeline.keyframes.find(keyframe => keyframe.uuid === shortestUuid);
 			if (shortestDist < channelH * 0.75) {
+				if (shortestHandle !== "") {
+					return {
+						target: closestKeyframe,
+						handle: shortestHandle,
+						type: "bezier_handle"
+					};
+				}
+
 				return {
 					target: closestKeyframe,
 					type: "keyframe"
@@ -781,9 +820,14 @@ export default {
 			if (!keyframe) return;
 			keyframe.callPlayhead();
 		},
-		dragKeyframesOnCanvas(event) {
+		dragOnCanvas(event) {
 			let keyframe = this.getKeyframeFromUuid(this.keyframeHoverUuid);
 			if (!keyframe) {
+				if (this.bezierHandleHover.keyUuid !== "") {
+					keyframe = this.getKeyframeFromUuid(this.bezierHandleHover.keyUuid);
+					event.stopPropagation();
+					this.dragBezierHandle(keyframe, this.bezierHandleHover.side, event);
+				}
 				return;
 			}
 			event.stopPropagation();
@@ -800,25 +844,45 @@ export default {
 		hoverOnCanvas(event) {
 			if (Timeline.selector.selecting) return;
 			let result = this.tryGetKeyframeClosestToMouse(event);
+			if (!result) return;
 
 			switch (result.type) {
 				case "keyframe": {
 					if (!result.target) break;
 					if (result.target.uuid === this.keyframeHoverUuid) break;
 
+					// Make sure no handle is accidentally hovered
+					if (this.bezierHandleHover.keyUuid !== "") {
+						this.bezierHandleHover.keyUuid = "";
+						this.bezierHandleHover.side = "";
+					}
+
 					this.keyframeHoverUuid = result.target.uuid;
 					this.refreshTimelineCanvas();
 					break;
 				}
 				case "fail": {
-					if (this.keyframeHoverUuid !== "") {
+					if (this.keyframeHoverUuid !== "" || this.bezierHandleHover.keyUuid !== "") {
 						this.keyframeHoverUuid = "";
+						this.bezierHandleHover.keyUuid = "";
+						this.bezierHandleHover.side = "";
 						this.refreshTimelineCanvas();
 					}
 					break;
 				}
 				case "bezier_handle": {
-					break;
+					if (!result.target) break;
+					if (result.target.uuid === this.bezierHandleHover.keyUuid) break;
+					
+					// Make sure no keyframe is accidentally hovered
+					if (this.keyframeHoverUuid !== "") {
+						this.keyframeHoverUuid = "";
+					}
+
+					this.bezierHandleHover.keyUuid = result.target.uuid;
+					this.bezierHandleHover.side = result.handle;
+					this.refreshTimelineCanvas();
+					// console.log(`hitting handle on the ${result.handle} of key at ${result.target.time}`)
 				}
 			}
 		},
@@ -1297,7 +1361,7 @@ export default {
 						return;
 					}
 				}
-				let difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
+				let difference_time = Math.clamp(-offset[0] / Timeline.vue._data.size, -256, 256);
 				let difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
 				if (e2.shiftKey || Pressing.overrides.shift) {
 					if (lock_direction) {
@@ -1355,6 +1419,7 @@ export default {
 				Timeline.vue.show_zero_line = !Timeline.vue.show_zero_line;
 				Animator.showMotionTrail(null, true)
 				Animator.preview()
+				Timeline.vue.refreshTimelineCanvas();
 			}
 			function off() {
 				removeEventListeners(document, 'mousemove touchmove', slide);
