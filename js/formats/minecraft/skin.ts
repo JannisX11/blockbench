@@ -308,6 +308,7 @@ export const format = new ModelFormat('skin', {
 	rotate_cubes: false,
 	edit_mode: false,
 	pose_mode: true,
+	shading_mode: 'minecraft_entity',
 	codec
 })
 format.new = function() {

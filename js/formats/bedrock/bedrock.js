@@ -1592,6 +1592,7 @@ var entity_format = new ModelFormat({
 	texture_meshes: true,
 	bounding_boxes: true,
 	pbr: true,
+	shading_mode: 'minecraft_entity',
 	codec,
 	animation_codec,
 	onSetup(project) {

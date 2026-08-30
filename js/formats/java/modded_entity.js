@@ -1124,6 +1124,7 @@ var format = new ModelFormat({
 			}
 		]
 	},
+	shading_mode: 'minecraft_entity',
 	codec,
 	animation_codec,
 	node_name_regex: '\\w',

@@ -399,6 +399,7 @@ var format = new ModelFormat({
 	texture_folder: true,
 	molang: false,
 	pbr: true,
+	shading_mode: 'minecraft_entity',
 	codec
 })
 Object.defineProperty(format, 'integer_size', {get: _ => Project.box_uv})
