@@ -384,13 +384,17 @@ export const Canvas = {
 			light.intensity = 0.7 * settings_brightness;
 	
 			Canvas.scene.add(light);
-			switch (Canvas.global_light_side) {
-				case 0: light.position.set(60, 100, 20); break;
-				case 1: light.position.set(-10, 20, 100); break;
-				case 2: light.position.set(10, 20, -100); break;
-				case 3: light.position.set(100, 20, -10); break;
-				case 4: light.position.set(-100, 20, 10); break;
-				case 5: light.position.set(20, -100, 0); break;
+			if (shading_mode.type == 'directional') {
+				light.position.fromArray(shading_mode.lights[0]).normalize().multiplyScalar(100);
+			} else {
+				switch (Canvas.global_light_side) {
+					case 0: light.position.set(60, 100, 20); break;
+					case 1: light.position.set(-10, 20, 100); break;
+					case 2: light.position.set(10, 20, -100); break;
+					case 3: light.position.set(100, 20, -10); break;
+					case 4: light.position.set(-100, 20, 10); break;
+					case 5: light.position.set(20, -100, 0); break;
+				}
 			}
 	
 			scene.add(Sun);
