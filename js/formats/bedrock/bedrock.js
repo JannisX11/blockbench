@@ -1765,6 +1765,10 @@ var block_format = new ModelFormat({
 			}
 		}
 	},
+	shading_mode() {
+		if (!Modes.display) return;
+		return DisplayMode.display_slot == 'gui' ? 'minecraft_gui_side' : 'minecraft_entity';
+	},
 	codec,
 	onSetup(project) {
 		if (isApp) {

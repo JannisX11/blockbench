@@ -776,6 +776,11 @@ const format = new ModelFormat('java_block', {
 			})
 		}
 	},
+	shading_mode() {
+		if (!Modes.display) return;
+		if (DisplayMode.display_slot != 'gui') return 'minecraft_entity';
+		return Project.front_gui_light ? 'minecraft_gui_front' : 'minecraft_gui_side';
+	},
 	codec
 })
 codec.format = format;

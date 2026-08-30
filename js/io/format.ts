@@ -247,9 +247,9 @@ export interface FormatFeatures {
 	 */
 	display_mode: boolean
 	/**
-	 * ID of the shading mode this format prefers, used when no setting or preview scene picks one
+	 * ID of the shading mode this format prefers, or a function returning one, used when no setting or preview scene picks one
 	 */
-	shading_mode: string
+	shading_mode: string | (() => string | undefined)
 	/**
 	 * Emaböes animation mode
 	 */
@@ -379,6 +379,7 @@ export class ModelFormat implements FormatOptions {
 		this.cube_size_limiter = data.cube_size_limiter;
 
 		this.codec = data.codec;
+		this.shading_mode = data.shading_mode;
 		this.animation_codec = data.animation_codec;
 		this.onSetup = data.onSetup;
 		this.onFormatPage = data.onFormatPage;
@@ -709,7 +710,6 @@ new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
-new Property(ModelFormat, 'string', 'shading_mode');
 
 
 const global = {

@@ -1047,11 +1047,6 @@ Blockbench.on('update_scene_shading', () => {
 		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 	}
 });
-DisplayMode.getShadingMode = function() {
-	if (DisplayMode.display_slot != 'gui') return 'minecraft_entity';
-	if (Format.id == 'java_block' && Project.front_gui_light) return 'minecraft_gui_front';
-	return 'minecraft_gui_side';
-}
 DisplayMode.updateGUILight = function() {
 	Canvas.updateShading();
 }

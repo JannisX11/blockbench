@@ -156,10 +156,11 @@ export class ShadingMode {
 	 * Resolves the shading mode to render with, in order of priority
 	 */
 	static getActive(): ShadingMode {
+		let format_mode = Format?.shading_mode;
+		if (typeof format_mode == 'function') format_mode = format_mode();
 		return ShadingModes[settings.shading_mode?.value as string]
 			|| ShadingModes[PreviewScene.active?.shading_mode]
-			|| ShadingModes[Modes.display ? DisplayMode.getShadingMode() : '']
-			|| ShadingModes[Format?.shading_mode]
+			|| ShadingModes[format_mode]
 			|| ShadingModes.minecraft_world;
 	}
 	static updateSelectOptions() {
