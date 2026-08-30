@@ -874,8 +874,6 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
-	lights.rotation.set(0, 0, 0);
-	Canvas.global_light_side = 0;
 	ShadingMode.override = null;
 	Canvas.updateShading();
 	scene.remove(display_area)
@@ -1052,24 +1050,12 @@ Blockbench.on('update_scene_shading', () => {
 });
 DisplayMode.updateGUILight = function() {
 	if (!Modes.display) return;
-	if (Format.id == 'bedrock_block') {
-		Canvas.global_light_side = 0;
-		Canvas.updateShading();
-	} else if (DisplayMode.display_slot == 'gui' && Project.front_gui_light == true) {
-		lights.rotation.set(-Math.PI, 0.6, 0);
-		Canvas.global_light_side = 4;
+	if (DisplayMode.display_slot != 'gui') {
+		ShadingMode.override = 'minecraft_entity';
+	} else if (Format.id == 'java_block' && Project.front_gui_light) {
+		ShadingMode.override = 'minecraft_gui_front';
 	} else {
-		lights.rotation.set(0, 0, 0);
-		Canvas.global_light_side = 0;
-	}
-	if (Format.id == 'java_block') {
-		if (DisplayMode.display_slot == 'gui') {
-			ShadingMode.override = Project.front_gui_light ? 'minecraft_gui_front' : 'minecraft_gui_side';
-		} else {
-			ShadingMode.override = 'minecraft_entity';
-		}
-	} else {
-		ShadingMode.override = null;
+		ShadingMode.override = 'minecraft_gui_side';
 	}
 	Canvas.updateShading();
 } 
