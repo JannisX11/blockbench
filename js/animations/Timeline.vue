@@ -247,6 +247,7 @@ export default {
 		keyFrameSmallRadius: 16, // Hardcoded for now, there is no variable for this afaik
 		keyFrameRadius: 20, // Hardcoded for now, there is no variable for this afaik
 		samplingScale: 4.0,
+		keyframeBezierHandleDiameter: 10,
 
 		keyframeHoverUuid: "",
 		bezierHandleHover: {
@@ -449,6 +450,65 @@ export default {
 			let context = bodyCanvas.getContext("2d");
 			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
 		},
+		shouldCullKeyframeOnGraph(keyframe) {
+			if (!this.graph_editor_open) return false;
+			let body = $('#timeline_body').get(0);
+			let rectHeight = body.clientHeight;
+			let rectWidth = body.clientWidth - this.head_width;
+			let scrollOffsetY = body.scrollTop;
+			let scrollOffsetX = body.scrollLeft;
+
+			let keyBaseHalfradius = this.keyFrameRadius / 2.0;
+			let keyHalfRadius = this.keyFrameRadius / 2.0;
+			let handleRadius = this.keyframeBezierHandleDiameter / 2.0;
+			let size = this.size;
+			let graphSize = this.graph_size;
+			let graphOffset = this.graph_offset;
+			let graphAxis = this.graph_editor_axis;
+			let hoveredKeyframe = this.keyframeHoverUuid;
+			let hoveredBezierHandle = this.bezierHandleHover;
+
+			let timeStamp = keyframe.time;
+			let isHovered = (hoveredKeyframe === keyframe.uuid);
+			let anyHandleHovered = (hoveredBezierHandle.keyUuid === keyframe.uuid);
+			let keyHalfScale = (isHovered || anyHandleHovered) ? keyBaseHalfradius : keyHalfRadius;
+
+			// Get keyframe X and Y without the text box offset
+			let keyX = ((timeStamp * size) + keyHalfRadius - scrollOffsetX);
+			let keyY = (graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY);
+			
+			// Get keyframe X and Y with the text box offset
+			let posX = (timeStamp * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
+			let posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
+			
+			// Handle position info
+			let axis = getAxisNumber(graphAxis);
+			let leftOffsetX = (keyframe[`bezier_left_time`][axis] * size) + keyX;
+			let rightOffsetX = (keyframe[`bezier_right_time`][axis] * size) + keyX;
+			let leftOffsetY = (-keyframe[`bezier_left_value`][axis] * graphSize) + keyY;
+			let rightOffsetY = (-keyframe[`bezier_right_value`][axis] * graphSize) + keyY;
+
+			// Checks
+			let leftHandleOutOnLeft = (leftOffsetX < (handleRadius / 2.0));
+			let leftHandleOutOnTop = (leftOffsetY < (handleRadius / 2.0));
+			let leftHandleOutOnRight = (leftOffsetX > rectWidth + (handleRadius / 2.0));
+			let leftHandleOutOnBottom = (leftOffsetY > rectHeight + (handleRadius / 2.0));
+			let rightHandleOutOnLeft = (rightOffsetX < (handleRadius / 2.0));
+			let rightHandleOutOnTop = (rightOffsetY < (handleRadius / 2.0));
+			let rightHandleOutOnRight = (rightOffsetX > rectWidth + (handleRadius / 2.0));
+			let rightHandleOutOnBottom = (rightOffsetY > rectHeight + (handleRadius / 2.0));
+			let keyOutOnLeft = (posX < -keyHalfScale);
+			let keyOutOnTop = (posY < -keyHalfScale);
+			let keyOutOnRight = (posX > rectWidth - keyHalfScale);
+			let keyOutOnBottom = (posY > rectHeight - keyHalfScale);
+
+			let allOutOnLeft = keyOutOnLeft && leftHandleOutOnLeft && rightHandleOutOnLeft;
+			let allOutOnTop = keyOutOnTop && leftHandleOutOnTop && rightHandleOutOnTop;
+			let allOutOnRight = keyOutOnRight && leftHandleOutOnRight && rightHandleOutOnRight;
+			let allOutOnBottom = keyOutOnBottom && leftHandleOutOnBottom && rightHandleOutOnBottom;
+			if (allOutOnLeft || allOutOnRight || allOutOnTop || allOutOnBottom) return true;
+			return false;
+		},
 		refreshTimelineCanvas() {
 			if (!this._isMounted) return;
 			if (!Animation.selected) { this.clearTimelineCanvas(); return; }
@@ -465,6 +525,7 @@ export default {
 			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
 			let hoveredKeyframe = this.keyframeHoverUuid;
 			let hoveredBezierHandle = this.bezierHandleHover;
+			let handleDiameter = this.keyframeBezierHandleDiameter;
 			let icons = this.keyframeIcons;
 			let isGraph = this.graph_editor_open;
 			let graphOffset = this.graph_offset;
@@ -505,18 +566,18 @@ export default {
 				let isHovered = (hoveredKeyframe === keyframe.uuid);
 				let anyHandleHovered = (hoveredBezierHandle.keyUuid === keyframe.uuid);
 				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : ((isHovered || anyHandleHovered) ? keyBaseHalfradius : keyHalfRadius);
-				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
+				let timeStamp = keyframe.time;
+				let posX = (timeStamp * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
 				let posY = settings.offset - keyHalfScale;
 				
-				// Stop early if keyframe is out of frame horizontally
-				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
-
 				if (settings.isGraph) {
 					posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
 
-					// Stop early if keyframe is out of frame vertically (necessary here, because the graph editor doesn't have channel lines)
-					if ((posY < -keyHalfScale) || (posY > rectHeight - keyHalfScale)) return;
+					// Stop early if keyframe is out of frame
+					if (Timeline.vue.shouldCullKeyframeOnGraph(keyframe)) return;
 				}
+				// Stop early if keyframe is out of frame horizontally
+				else if (((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale))) return;
 
 				// Set color & scale for hovering and selection
 				let isSelected = keyframe.selected;
@@ -581,16 +642,15 @@ export default {
 
 					if (displayHandles) {
 						// Get keyframe X and Y without the text box offset
-						let keyX = ((keyframe.time * size) + keyHalfRadius - scrollOffsetX) * scale;
-						let keyY = (graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY) * scale;
+						let keyX = (timeStamp * size) + keyHalfRadius - scrollOffsetX;
+						let keyY = graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY;
 
 						// Handle position info
 						let axis = getAxisNumber(graphAxis);
-						let leftOffsetX = keyframe[`bezier_left_time`][axis] * size * scale;
-						let leftOffsetY = -keyframe[`bezier_left_value`][axis] * graphSize * scale;
-						let rightOffsetX = keyframe[`bezier_right_time`][axis] * size * scale;
-						let rightOffsetY = -keyframe[`bezier_right_value`][axis] * graphSize * scale;
-						let handleDiameter = 10 * scale;
+						let leftOffsetX = (keyframe[`bezier_left_time`][axis] * size) + keyX;
+						let rightOffsetX = (keyframe[`bezier_right_time`][axis] * size) + keyX;
+						let leftOffsetY = (-keyframe[`bezier_left_value`][axis] * graphSize) + keyY;
+						let rightOffsetY = (-keyframe[`bezier_right_value`][axis] * graphSize) + keyY;
 						let handleRadius = handleDiameter / 2.0;
 
 						// Hover data
@@ -600,30 +660,32 @@ export default {
 
 						context.lineWidth = 3 * scale;
 						
+						// Left bezier
 						context.strokeStyle = (isLeftHovered || isHovered) ? keyframeSelectedColor : bezierHandleLineColor;
 						context.beginPath(); // Handle line start
-						context.moveTo(keyX, keyY);
-						context.lineTo(leftOffsetX + keyX, leftOffsetY + keyY);
+						context.moveTo(keyX * scale, keyY * scale);
+						context.lineTo(leftOffsetX * scale, leftOffsetY * scale);
 						context.stroke();
 						context.closePath();
 						context.strokeStyle = (isLeftHovered || isHovered) ? keyframeSelectedColor : keyframeColor;
 						context.fillStyle = bezierHandleColor;
 						context.beginPath(); // Handle dot start
-						context.arc((leftOffsetX + keyX), (leftOffsetY + keyY), handleRadius, 0, 2 * Math.PI);
+						context.arc(leftOffsetX * scale, leftOffsetY * scale, handleRadius * scale, 0, 2 * Math.PI);
 						context.fill();
 						context.stroke();
 						context.closePath();
 
+						// Right bezier
 						context.strokeStyle = (isRightHovered || isHovered) ? keyframeSelectedColor : bezierHandleLineColor;
 						context.beginPath(); // Handle line start
-						context.moveTo(keyX, keyY);
-						context.lineTo(rightOffsetX + keyX, rightOffsetY + keyY);
+						context.moveTo(keyX * scale, keyY * scale);
+						context.lineTo(rightOffsetX * scale, rightOffsetY * scale);
 						context.stroke();
 						context.closePath();
 						context.strokeStyle = (isRightHovered || isHovered) ? keyframeSelectedColor : keyframeColor;
 						context.fillStyle = bezierHandleColor;
 						context.beginPath(); // Handle dot start
-						context.arc((rightOffsetX + keyX), (rightOffsetY + keyY), handleRadius, 0, 2 * Math.PI);
+						context.arc(rightOffsetX * scale, rightOffsetY * scale, handleRadius * scale, 0, 2 * Math.PI);
 						context.fill();
 						context.stroke();
 						context.closePath();
@@ -720,8 +782,7 @@ export default {
 					let posY = this.graph_offset - (keyframe.display_value * graphSize) - channelHh - scrollOffsetY;
 				
 					// Stop early if keyframe is out of frame
-					if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
-					if ((posY < -keyHalfRadius) || (posY > rectHeight - keyHalfRadius)) continue;
+					if (this.shouldCullKeyframeOnGraph(keyframe)) continue;
 
 					// Handle positions
 					let axis = getAxisNumber(this.graph_editor_axis);
