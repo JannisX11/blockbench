@@ -585,6 +585,7 @@
 	div.outliner_object { /* Higher prio to override older themes */
 		padding-left: calc(var(--indentation) * var(--indentation-offset));
 		border-left: 3px solid var(--color-scope);
+		height: 28px;
 	}
 	.outliner_object:active {
 	    background-color: var(--color-ui);
