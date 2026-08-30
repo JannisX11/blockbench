@@ -6,9 +6,9 @@
 				<span>/</span>
 				<div id="timeline_framenumber">{{ framenumber }}</div>
 				<div class="channel_axis_selector" v-if="graph_editor_open">
-					<div @click="graph_editor_axis = 'x';" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
-					<div @click="graph_editor_axis = 'y';" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
-					<div @click="graph_editor_axis = 'z';" :class="{selected: graph_editor_axis == 'z'}" style="color: var(--color-axis-z);">Z</div>
+					<div @click="setGraphEditorAxis('x');" :class="{selected: graph_editor_axis == 'x'}" style="color: var(--color-axis-x);">X</div>
+					<div @click="setGraphEditorAxis('y');" :class="{selected: graph_editor_axis == 'y'}" style="color: var(--color-axis-y);">Y</div>
+					<div @click="setGraphEditorAxis('z');" :class="{selected: graph_editor_axis == 'z'}" style="color: var(--color-axis-z);">Z</div>
 				</div>
 			</div>
 			<div id="timeline_time_wrapper">
@@ -430,7 +430,8 @@ export default {
 					}
 				})
 			}
-
+			
+			this.refreshTimelineCanvas();
 			return graphs;
 		},
 		graph_editor_axis_number() {
@@ -439,37 +440,37 @@ export default {
 	},
 	methods: {
 		tl,
+		setGraphEditorAxis(axis) {
+			this.graph_editor_axis = axis; 
+			this.refreshTimelineCanvas();
+		},
 		clearTimelineCanvas() {
-			if (this.graph_editor_open) return;
-
 			let bodyCanvas = $('#timeline_body_keyframe_canvas').get(0);
 			let context = bodyCanvas.getContext("2d");
 			context.clearRect(0, 0, bodyCanvas.width, bodyCanvas.height);
 		},
 		refreshTimelineCanvas() {
 			if (!this._isMounted) return;
-			if (!Animation.selected) return;
-			if (!this.animators.length || (this.graph_editor_open && !this.graph_editor_animator)) return;
+			if (!Animation.selected) { this.clearTimelineCanvas(); return; }
+			if (!this.animators.length || (this.graph_editor_open && !this.graph_editor_animator)) { this.clearTimelineCanvas(); return; }
 
 			// Store stuff, yk
-			const size = this.size;
-			const scale = this.samplingScale;
-			const channelH = this.channelHeight;
-			const keyRadius = this.keyFrameSmallRadius;
-			const keyBaseRadius = this.keyFrameRadius;
-			const keyHiddenRadius = this.keyFrameSmallestRadius;
-			const channelHh = channelH / 2.0;
-			const keyHalfRadius = keyRadius / 2.0;
-			const keyBaseHalfradius = keyBaseRadius / 2.0;
-			const keyHiddenHalfRadius = keyHiddenRadius / 2.0;
-			const hoveredKeyframe = this.keyframeHoverUuid;
-			const hoveredBezierHandle = this.bezierHandleHover;
-			const icons = this.keyframeIcons;
-			const isGraph = this.graph_editor_open;
-			const graphOffset = this.graph_offset;
-			const graphSize = this.graph_size;
-			const graphShowAllHandles = this.show_all_handles;
-			const graphAxis = this.graph_editor_axis;
+			let size = this.size;
+			let scale = this.samplingScale;
+			let keyRadius = this.keyFrameSmallRadius;
+			let keyBaseRadius = this.keyFrameRadius;
+			let keyHiddenRadius = this.keyFrameSmallestRadius;
+			let keyHalfRadius = keyRadius / 2.0;
+			let keyBaseHalfradius = keyBaseRadius / 2.0;
+			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
+			let hoveredKeyframe = this.keyframeHoverUuid;
+			let hoveredBezierHandle = this.bezierHandleHover;
+			let icons = this.keyframeIcons;
+			let isGraph = this.graph_editor_open;
+			let graphOffset = this.graph_offset;
+			let graphSize = this.graph_size;
+			let graphShowAllHandles = this.show_all_handles;
+			let graphAxis = this.graph_editor_axis;
 
 			// Get required elements, stop if canvas is missing, we can't draw on nothing.
 			let body = $('#timeline_body').get(0);
@@ -488,7 +489,6 @@ export default {
 
 			// Collect data & setup variables used for rendering only
 			let context = bodyCanvas.getContext("2d");
-			let heightAccumulator = 0;
 
 			// Over-sample keyframe view, to avoid cut-off lines and odd blurs
 			let rectHeight = body.clientHeight;
@@ -503,7 +503,7 @@ export default {
 				let isHovered = hoveredKeyframe === keyframe.uuid;
 				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : (isHovered ? keyBaseHalfradius : keyHalfRadius);
 				let posX = (keyframe.time * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
-				let posY = settings.offset + channelHh - keyHalfScale;
+				let posY = settings.offset - keyHalfScale;
 				
 				// Stop early if keyframe is out of frame horizontally
 				if ((posX < -keyHalfScale) || (posX > rectWidth - keyHalfScale)) return;
@@ -578,14 +578,14 @@ export default {
 
 					if (displayHandles) {
 						// Get keyframe X and Y without the text box offset
-						let keyX = ((keyframe.time * size) - scrollOffsetX) * scale;
+						let keyX = ((keyframe.time * size) + keyHalfRadius - scrollOffsetX) * scale;
 						let keyY = (graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY) * scale;
 
 						// Handle position info
 						let axis = getAxisNumber(graphAxis);
-						let leftOffsetX = -keyframe[`bezier_left_time`][axis] * size * scale;
+						let leftOffsetX = keyframe[`bezier_left_time`][axis] * size * scale;
 						let leftOffsetY = -keyframe[`bezier_left_value`][axis] * graphSize * scale;
-						let rightOffsetX = -keyframe[`bezier_right_time`][axis] * size * scale;
+						let rightOffsetX = keyframe[`bezier_right_time`][axis] * size * scale;
 						let rightOffsetY = -keyframe[`bezier_right_value`][axis] * graphSize * scale;
 						let handleSize = 10 * scale;
 						let handleHalfSize = handleSize / 2.0;
@@ -595,15 +595,22 @@ export default {
 						let isLeftHovered = hoveredBezierHandle.side === "left" && canBeHovered;
 						let isRightHovered = hoveredBezierHandle.side === "right" && canBeHovered;
 
-						context.strokeStyle = "#fff";
 						context.lineWidth = 3 * scale;
+						
+						context.fillStyle = isLeftHovered ? "#f00" : "#fff";
+						context.strokeStyle = isLeftHovered ? "#f00" : "#fff";
 						context.beginPath();
-						context.moveTo(leftOffsetX + keyX, leftOffsetY + keyY);
+						context.moveTo(keyX, keyY);
+						context.lineTo(leftOffsetX + keyX, leftOffsetY + keyY);
+						context.stroke();
+						context.fillRect((leftOffsetX + keyX) - handleHalfSize, (leftOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
+
+						context.fillStyle = isRightHovered ? "#f00" : "#fff";
+						context.strokeStyle = isRightHovered ? "#f00" : "#fff";
+						context.beginPath();
+						context.moveTo(keyX, keyY);
 						context.lineTo(rightOffsetX + keyX, rightOffsetY + keyY);
 						context.stroke();
-						context.fillStyle = isLeftHovered ? "#f00" : "#fff";
-						context.fillRect((leftOffsetX + keyX) - handleHalfSize, (leftOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
-						context.fillStyle = isRightHovered ? "#f00" : "#fff";
 						context.fillRect((rightOffsetX + keyX) - handleHalfSize, (rightOffsetY + keyY) - handleHalfSize, handleSize, handleSize);
 					}
 				}
@@ -614,7 +621,7 @@ export default {
 				context.fillText(icon, txtPosition[0], txtPosition[1]);
 			}
 
-			// Clear canvas, and re-draw keyframes.
+			// re-draw keyframes.
 			this.clearTimelineCanvas();
 			if (isGraph) {
 				let keyframes = this.graph_editor_animator[this.graph_editor_channel];
@@ -623,7 +630,10 @@ export default {
 				}
 			}
 			else {
-				heightAccumulator = 0;
+				let channelH = this.channelHeight;
+				let channelHh = channelH / 2.0;
+				let heightAccumulator = 0;
+
 				for (let i = 0; i < this.animators.length; i++) {
 					let animator = this.animators[i];
 					let channelKeys = Object.keys(animator.channels);
@@ -653,7 +663,7 @@ export default {
 
 						let keyframes = animator[channel];
 						for (let keyframe of keyframes) {
-							drawKeyframe(keyframe, { offset: channelY, isCollapsed: shouldCollapseKeys });
+							drawKeyframe(keyframe, { offset: channelY + channelHh, isCollapsed: shouldCollapseKeys });
 						}
 					}
 				}
@@ -689,7 +699,7 @@ export default {
 				let keyframes = this.graph_editor_animator[this.graph_editor_channel];
 				for (let keyframe of keyframes) {
 					// Key position
-					let posX = (keyframe.time * this.size) - scrollOffsetX;
+					let posX = (keyframe.time * this.size) + keyHalfRadius - scrollOffsetX;
 					let posY = this.graph_offset - (keyframe.display_value * this.graph_size) - channelHh - scrollOffsetY;
 				
 					// Stop early if keyframe is out of frame
@@ -698,9 +708,9 @@ export default {
 
 					// Handle positions
 					let axis = getAxisNumber(this.graph_editor_axis);
-					let leftOffsetX = -keyframe[`bezier_left_time`][axis] * this.size;
+					let leftOffsetX = keyframe[`bezier_left_time`][axis] * this.size;
 					let leftOffsetY = -keyframe[`bezier_left_value`][axis] * this.graph_size;
-					let rightOffsetX = -keyframe[`bezier_right_time`][axis] * this.size;
+					let rightOffsetX = keyframe[`bezier_right_time`][axis] * this.size;
 					let rightOffsetY = -keyframe[`bezier_right_value`][axis] * this.graph_size;
 
 					if (keyframe.interpolation === "bezier") {
@@ -1361,7 +1371,7 @@ export default {
 						return;
 					}
 				}
-				let difference_time = Math.clamp(-offset[0] / Timeline.vue._data.size, -256, 256);
+				let difference_time = Math.clamp(offset[0] / Timeline.vue._data.size, -256, 256);
 				let difference_value = Math.clamp(-offset[1] / Timeline.vue.graph_size, -256, 256);
 				if (e2.shiftKey || Pressing.overrides.shift) {
 					if (lock_direction) {
@@ -1491,7 +1501,7 @@ export default {
 				Blockbench.setStatusBarText(text);
 				Animator.showMotionTrail(null, true)
 				Animator.preview()
-
+				Timeline.vue.refreshTimelineCanvas();
 			}
 			function off() {
 				removeEventListeners(document, 'mousemove touchmove', slide);
