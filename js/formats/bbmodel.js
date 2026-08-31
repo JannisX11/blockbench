@@ -274,6 +274,8 @@ var codec = new Codec('project', {
 				}
 				filterList(model.outliner);
 			}
+		} else {
+			model.skin_pose_data = Codecs.skin_model.getPoseData();
 		}
 
 		function handleAssetPath(object, key, relative_key) {
@@ -475,7 +477,7 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
-			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose);
+			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose, model.skin_pose_data);
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
