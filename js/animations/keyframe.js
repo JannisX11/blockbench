@@ -18,6 +18,9 @@ export class KeyframeDataPoint {
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
 		}
+		if (isApp && data.file && !PathModule.isAbsolute(data.file)) {
+			this.file = PathModule.resolve(PathModule.dirname(Project.save_path), data.file);
+		}
 		if (isApp && data.file && !file_value_before) {
 			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
 				Timeline.visualizeAudioFile(this.file);

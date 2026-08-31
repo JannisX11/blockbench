@@ -316,6 +316,13 @@ var codec = new Codec('project', {
 				let a = animation.getUndoCopy({absolute_paths: options.absolute_paths}, true);
 				model.animations.push(a);
 				handleAssetPath(a, 'path');
+				if (a.animators?.effects?.keyframes) {
+					for (let kf of a.animators.effects.keyframes) {
+						for (let data_point of kf.data_points) {
+							handleAssetPath(data_point, 'file');
+						}
+					}
+				}
 			})
 		}
 		if (AnimationController.all.length) {
