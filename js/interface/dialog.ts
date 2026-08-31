@@ -1087,10 +1087,15 @@ export class ConfigDialog extends Dialog {
 	constructor(id: string, options: ConfigDialogOptions) {
 		super(id, options);
 	}
+	anchor_tool?: HTMLElement
+
 	show(anchor?: HTMLElement) {
 		super.show()
 		$('#blackout').hide();
-		
+
+		this.anchor_tool = anchor instanceof HTMLElement ? anchor.closest('.tool') : null;
+		this.anchor_tool?.classList.add('menu_open');
+
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
 			let left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30));
@@ -1102,6 +1107,11 @@ export class ConfigDialog extends Dialog {
 			this.object.style.left = left + 'px';
 		}
 		return this;
+	}
+	hide() {
+		this.anchor_tool?.classList.remove('menu_open');
+		this.anchor_tool = null;
+		return super.hide();
 	}
 	build() {
 		if (this.object) this.object.remove();
