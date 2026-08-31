@@ -8,6 +8,8 @@
 
 import { MenuOpenPositionAnchor } from './menu'
 
+let toolbar_menu_anchor: HTMLElement = null;
+
 /**
  * Registry of all toolbars
  */
@@ -123,7 +125,13 @@ export class Toolbar {
 		this.previously_enabled = true;
 
 		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
+		let menu_was_open = false;
+		toolbar_menu.addEventListener('mousedown', () => {
+			menu_was_open = toolbar_menu_anchor == toolbar_menu && open_menu == this.menu;
+		})
 		toolbar_menu.addEventListener('click', event => {
+			if (menu_was_open) return;
+			toolbar_menu_anchor = toolbar_menu;
 			this.contextmenu(event);
 		})
 		this.node = Interface.createElement('div', {class: 'toolbar', toolbar_id: this.id}, [
