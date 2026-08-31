@@ -13,7 +13,7 @@ import { sameMeshEdge } from '../modeling/mesh/util';
 const background_scene = new THREE.Scene();
 const background_camera = new THREE.PerspectiveCamera(45, 1, 1, 10);
 
-interface AnglePreset {
+export interface AnglePreset {
 	name?: string
 	id?: string
 	color?: string
@@ -30,7 +30,7 @@ interface AnglePreset {
 	locked_angle?: number
 }
 
-type PreviewAnnotation = {
+export type PreviewAnnotation = {
 	node: HTMLElement
 	object: THREE.Object3D
 }
