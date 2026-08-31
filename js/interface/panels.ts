@@ -257,16 +257,19 @@ export class Panel extends EventSystem {
 				addEventListeners(this.sidebar_resize_handle, 'mousedown touchstart', (event: MouseEvent) => {
 					let all_panels: Panel[] = this.slot == 'right_bar' ? Interface.getRightPanels() : Interface.getLeftPanels();
 					let self_index = all_panels.indexOf(this);
-					let resizable_static_height_panels = all_panels.filter(panel => panel.resizable && !panel.growable);
+					let handle_above = self_index == all_panels.length-1;
+					let neighbor = all_panels[handle_above ? self_index-1 : self_index+1];
 					if (all_panels.length == 1 && all_panels[0].growable) {
 						// Only one panel in sidebar, make it fill the entire sidebar
 						return makeSidebarFilled(all_panels);
-					} else if (this.growable && resizable_static_height_panels.length) {
-						// This panel can dynamically expand, but another panel in the list is fixed height, so resize that one instead
-						resizable_static_height_panels.last().resize(event);
-					} else if (event.ctrlKey && all_panels[self_index+1]?.resizable) {
+					} else if (this.growable && neighbor?.resizable && !neighbor.growable) {
+						// This panel can dynamically expand, so resize the fixed height panel on the other side of the handle instead
+						neighbor.resize(event, handle_above ? 1 : -1);
+					} else if (event.ctrlKey && neighbor?.resizable) {
 						// Holding control resizes the other panel
-						all_panels[self_index+1].resize(event);
+						neighbor.resize(event, handle_above ? 1 : -1);
+					} else if (this.growable && !all_panels.find(panel => panel != this && panel.growable)) {
+						return;
 					} else {
 						// By default, resize the panel itself
 						this.resize(event);
@@ -686,13 +689,15 @@ export class Panel extends EventSystem {
 		this.dispatchEvent('fold', {});
 		return this;
 	}
-	resize(e1: MouseEvent | TouchEvent) {
+	resize(e1: MouseEvent | TouchEvent, direction?: number) {
 		e1 = convertTouchEvent(e1);
 		let height_before = this.container.clientHeight;
 		let started = false;
-		let direction = 1;
-		if (this.container.classList.contains('bottommost_panel') && !this.container.classList.contains('topmost_panel')) {
-			direction = -1;
+		if (direction == undefined) {
+			direction = 1;
+			if (this.container.classList.contains('bottommost_panel') && !this.container.classList.contains('topmost_panel')) {
+				direction = -1;
+			}
 		}
 
 		let other_panels: Panel[] = this.slot == 'right_bar' ? Interface.getRightPanels() : Interface.getLeftPanels();
