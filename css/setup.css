@@ -454,6 +454,14 @@
 		--color-keyframe-collapsed: #495061;
 		--color-keyframe-bezier-handle-dot: var(--color-back);
 		--color-keyframe-bezier-handle-line: var(--color-grid);
+
+		/* values below are used in js, so the pixel suffix is not use */ 
+		--timeline-channel-height: 24;
+		--keyframe-radius: 16;
+		--keyframe-radius-hover: 20;
+		--keyframe-radius-hidden: 12;
+		--keyframe-bezier-handle-diameter: 10;
+		--keyframe-bezier-stroke-width: 3;
 		
 		--font-custom-main: '';
 		--font-custom-headline: '';

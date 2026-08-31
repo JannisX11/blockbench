@@ -242,12 +242,7 @@ export default {
 
 		channels: StateMemory.timeline_channels,
 
-		channelHeight: 24, // Hardcoded for now, there is no variable for this afaik
-		keyFrameSmallestRadius: 12, // Hardcoded for now, there is no variable for this afaik
-		keyFrameSmallRadius: 16, // Hardcoded for now, there is no variable for this afaik
-		keyFrameRadius: 20, // Hardcoded for now, there is no variable for this afaik
 		samplingScale: 4.0,
-		keyframeBezierHandleDiameter: 10,
 
 		keyframeHoverUuid: "",
 		bezierHandleHover: {
@@ -453,14 +448,18 @@ export default {
 		shouldCullKeyframeOnGraph(keyframe) {
 			if (!this.graph_editor_open) return false;
 			let body = $('#timeline_body').get(0);
+			let timelineStyle = window.getComputedStyle(body);
 			let rectHeight = body.clientHeight;
 			let rectWidth = body.clientWidth - this.head_width;
 			let scrollOffsetY = body.scrollTop;
 			let scrollOffsetX = body.scrollLeft;
 
-			let keyBaseHalfradius = this.keyFrameRadius / 2.0;
-			let keyHalfRadius = this.keyFrameRadius / 2.0;
-			let handleRadius = this.keyframeBezierHandleDiameter / 2.0;
+			let keyRadius = timelineStyle.getPropertyValue("--keyframe-radius").trim();
+			let keyHoveredRadius = timelineStyle.getPropertyValue("--keyframe-radius-hover").trim();
+			let handleDiameter = timelineStyle.getPropertyValue("--keyframe-bezier-handle-diameter").trim();
+			let keyHoveredHalfradius = keyHoveredRadius / 2.0;
+			let keyHalfRadius = keyRadius / 2.0;
+			let handleRadius = handleDiameter / 2.0;
 			let size = this.size;
 			let graphSize = this.graph_size;
 			let graphOffset = this.graph_offset;
@@ -471,14 +470,14 @@ export default {
 			let timeStamp = keyframe.time;
 			let isHovered = (hoveredKeyframe === keyframe.uuid);
 			let anyHandleHovered = (hoveredBezierHandle.keyUuid === keyframe.uuid);
-			let keyHalfScale = (isHovered || anyHandleHovered) ? keyBaseHalfradius : keyHalfRadius;
+			let keyHalfScale = (isHovered || anyHandleHovered) ? keyHoveredHalfradius : keyHalfRadius;
 
 			// Get keyframe X and Y without the text box offset
 			let keyX = ((timeStamp * size) + keyHalfRadius - scrollOffsetX);
 			let keyY = (graphOffset - (keyframe.display_value * graphSize) - scrollOffsetY);
 			
 			// Get keyframe X and Y with the text box offset
-			let posX = (timeStamp * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
+			let posX = (timeStamp * size) - (keyHalfScale - keyHoveredHalfradius) - scrollOffsetX;
 			let posY = graphOffset - (keyframe.display_value * graphSize) - keyHalfScale - scrollOffsetY;
 			
 			// Handle position info
@@ -517,15 +516,8 @@ export default {
 			// Store stuff, yk
 			let size = this.size;
 			let scale = this.samplingScale;
-			let keyRadius = this.keyFrameSmallRadius;
-			let keyBaseRadius = this.keyFrameRadius;
-			let keyHiddenRadius = this.keyFrameSmallestRadius;
-			let keyHalfRadius = keyRadius / 2.0;
-			let keyBaseHalfradius = keyBaseRadius / 2.0;
-			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
-			let hoveredKeyframe = this.keyframeHoverUuid;
-			let hoveredBezierHandle = this.bezierHandleHover;
-			let handleDiameter = this.keyframeBezierHandleDiameter;
+			let hoveredKeyframe = this.keyframeHoverUuid; 
+			let hoveredBezierHandle = this.bezierHandleHover; 
 			let icons = this.keyframeIcons;
 			let isGraph = this.graph_editor_open;
 			let graphOffset = this.graph_offset;
@@ -541,6 +533,14 @@ export default {
 
 			// Collect body style & scroll data
 			let timelineStyle = window.getComputedStyle(body);
+			let keyRadius = timelineStyle.getPropertyValue("--keyframe-radius").trim();
+			let keyHoveredRadius = timelineStyle.getPropertyValue("--keyframe-radius-hover").trim();
+			let keyHiddenRadius = timelineStyle.getPropertyValue("--keyframe-radius-hidden").trim();
+			let handleDiameter = timelineStyle.getPropertyValue("--keyframe-bezier-handle-diameter").trim();
+			let handleStrokeWidth = timelineStyle.getPropertyValue("--keyframe-bezier-stroke-width").trim();
+			let keyHalfRadius = keyRadius / 2.0;
+			let keyHoveredHalfradius = keyHoveredRadius / 2.0;
+			let keyHiddenHalfRadius = keyHiddenRadius / 2.0;
 			let keyframeColor = timelineStyle.getPropertyValue("--color-keyframe").trim();
 			let keyframeSelectedColor = timelineStyle.getPropertyValue("--color-keyframe-selected").trim();
 			let keyframeHoveredColor = timelineStyle.getPropertyValue("--color-keyframe-hovered").trim();
@@ -565,9 +565,9 @@ export default {
 			function drawKeyframe(keyframe, settings = { offset: 0, isCollapsed: false, isGraph: false }) {
 				let isHovered = (hoveredKeyframe === keyframe.uuid);
 				let anyHandleHovered = (hoveredBezierHandle.keyUuid === keyframe.uuid);
-				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : ((isHovered || anyHandleHovered) ? keyBaseHalfradius : keyHalfRadius);
+				let keyHalfScale = settings.isCollapsed ? keyHiddenHalfRadius : ((isHovered || anyHandleHovered) ? keyHoveredHalfradius : keyHalfRadius);
 				let timeStamp = keyframe.time;
-				let posX = (timeStamp * size) - (keyHalfScale - keyBaseHalfradius) - scrollOffsetX;
+				let posX = (timeStamp * size) - (keyHalfScale - keyHoveredHalfradius) - scrollOffsetX;
 				let posY = settings.offset - keyHalfScale;
 				
 				if (settings.isGraph) {
@@ -591,7 +591,7 @@ export default {
 				if (isHovered || anyHandleHovered) {
 					// Hovering scale & color (unless selected, then we use selection color) 
 					color = isSelected ? keyframeSelectedColor : (markerColor || keyframeHoveredColor);
-					keyScale = keyBaseRadius * scale;
+					keyScale = keyHoveredRadius * scale;
 				}
 				if (settings.isCollapsed) {
 					// Hidden scale & color 
@@ -658,7 +658,7 @@ export default {
 						let isLeftHovered = hoveredBezierHandle.side === "left" && canBeHovered;
 						let isRightHovered = hoveredBezierHandle.side === "right" && canBeHovered;
 
-						context.lineWidth = 3 * scale;
+						context.lineWidth = handleStrokeWidth * scale;
 						
 						// Left bezier
 						context.strokeStyle = (isLeftHovered || isHovered) ? keyframeSelectedColor : bezierHandleLineColor;
@@ -707,14 +707,14 @@ export default {
 				}
 			}
 			else {
-				let channelH = this.channelHeight;
-				let channelHh = channelH / 2.0;
+				let channelHeight = timelineStyle.getPropertyValue("--timeline-channel-height").trim();
+				let channelHalfHeight = channelHeight / 2.0;
 				let heightAccumulator = 0;
 
 				for (let i = 0; i < this.animators.length; i++) {
 					let animator = this.animators[i];
 					let channelKeys = Object.keys(animator.channels);
-					let animatorY = channelH * heightAccumulator - scrollOffsetY;
+					let animatorY = channelHeight * heightAccumulator - scrollOffsetY;
 					heightAccumulator++;
 
 					for (let j = 0; j < channelKeys.length; j++) {
@@ -730,17 +730,17 @@ export default {
 						if (shouldCollapseKeys && !isConditionMet) continue;
 
 						// Get our remaining data
-						let channelY = channelH * heightAccumulator - scrollOffsetY;
+						let channelY = channelHeight * heightAccumulator - scrollOffsetY;
 						if (shouldCollapseKeys) channelY = animatorY;
 						else heightAccumulator++;
 
 						// Stop early if channel is out of frame vertically
-						if (channelY < -channelHh) continue;
-						if (channelY > rectHeight - channelHh) break;
+						if (channelY < -channelHalfHeight) continue;
+						if (channelY > rectHeight - channelHalfHeight) break;
 
 						let keyframes = animator[channel];
 						for (let keyframe of keyframes) {
-							drawKeyframe(keyframe, { offset: channelY + channelHh, isCollapsed: shouldCollapseKeys });
+							drawKeyframe(keyframe, { offset: channelY + channelHalfHeight, isCollapsed: shouldCollapseKeys });
 						}
 					}
 				}
@@ -749,6 +749,9 @@ export default {
 		tryGetKeyframeClosestToMouse(event) {
 			let body = $('#timeline_body').get(0);
 			let bodyCanvas = $('#timeline_body_keyframe_canvas').get(0);
+			let timelineStyle = window.getComputedStyle(body);
+			let keyRadius = timelineStyle.getPropertyValue("--keyframe-radius").trim();
+			let channelHeight = timelineStyle.getPropertyValue("--timeline-channel-height").trim();
 
 			// Mouse position
     		let rect = bodyCanvas.getBoundingClientRect();
@@ -759,9 +762,7 @@ export default {
 			// Dom info
 			let size = this.size;
 			let graphSize = this.graph_size;
-			let channelH = this.channelHeight;
-			let channelHh = this.channelHeight / 2.0;
-			let keyRadius = this.keyFrameSmallRadius;
+			let channelHalfHeight = channelHeight / 2.0;
 			let keyHalfRadius = keyRadius / 2.0;
 			let rectHeight = body.clientHeight;
 			let rectWidth = body.clientWidth - this.head_width;
@@ -779,7 +780,7 @@ export default {
 				for (let keyframe of keyframes) {
 					// Key position
 					let posX = (keyframe.time * size) + keyHalfRadius - scrollOffsetX;
-					let posY = this.graph_offset - (keyframe.display_value * graphSize) - channelHh - scrollOffsetY;
+					let posY = this.graph_offset - (keyframe.display_value * graphSize) - channelHalfHeight - scrollOffsetY;
 				
 					// Stop early if keyframe is out of frame
 					if (this.shouldCullKeyframeOnGraph(keyframe)) continue;
@@ -837,17 +838,17 @@ export default {
 						if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
 
 						// Get our remaining data
-						let channelY = channelH * heightAccumulator - scrollOffsetY;
+						let channelY = channelHeight * heightAccumulator - scrollOffsetY;
 						heightAccumulator++;
 
 						// Stop early if channel is out of frame vertically
-						if (channelY < -channelHh) continue;
-						if (channelY > rectHeight - channelHh) break;
+						if (channelY < -channelHalfHeight) continue;
+						if (channelY > rectHeight - channelHalfHeight) break;
 
 						let keyframes = animator[channel];
 						for (let keyframe of keyframes) {
 							let posX = (keyframe.time * size) - scrollOffsetX;
-							let posY = channelY + channelHh - keyHalfRadius;
+							let posY = channelY + channelHalfHeight - keyHalfRadius;
 
 							// Stop early if keyframe is out of frame horizontally
 							if ((posX < -keyHalfRadius) || (posX > rectWidth - keyHalfRadius)) continue;
@@ -865,7 +866,7 @@ export default {
 
 			// Check if our closest keyframe is within the selection radius before we return it
 			let closestKeyframe = Timeline.keyframes.find(keyframe => keyframe.uuid === shortestUuid);
-			if (shortestDist < channelH * 0.75) {
+			if (shortestDist < channelHeight * 0.75) {
 				if (shortestHandle !== "") {
 					return {
 						target: closestKeyframe,
