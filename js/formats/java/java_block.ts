@@ -505,7 +505,7 @@ const codec = new Codec('java_block', {
 					icon: 'info',
 					message: tl('message.child_model_only.message', [model.parent]),
 					commands: can_open && {
-						open: 'message.child_model_only.open'
+						resolve: 'message.child_model_only.resolve'
 					}
 				}, result => {
 					if (typeof result == 'string') {
