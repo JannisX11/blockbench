@@ -247,7 +247,8 @@ export class Panel extends EventSystem {
 				this.fold();
 			})
 
-			this.tab_bar.firstElementChild.addEventListener('dblclick', e => {
+			this.tab_bar.firstElementChild.addEventListener('click', (e: MouseEvent) => {
+				if (e.detail < 2 || e.detail % 2 || (e.target as HTMLElement).closest('.panel_menu_button')) return;
 				this.fold();
 			})
 
@@ -422,6 +423,9 @@ export class Panel extends EventSystem {
 					this.dispatchEvent('drag', {event: e2, target_before, attach_to, target_panel, target_slot});
 				}
 				let stop = e2 => {
+					removeEventListeners(document, 'mousemove touchmove', drag);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					if (!started) return;
 					convertTouchEvent(e2);
 					this.container.classList.remove('dragging');
 					Interface.center_screen.removeAttribute('snapside');
@@ -449,9 +453,6 @@ export class Panel extends EventSystem {
 					setTimeout(() => {
 						this.update();
 					}, 0);
-					
-					removeEventListeners(document, 'mousemove touchmove', drag);
-					removeEventListeners(document, 'mouseup touchend', stop);
 				}
 				addEventListeners(document, 'mousemove touchmove', drag);
 				addEventListeners(document, 'mouseup touchend', stop);
