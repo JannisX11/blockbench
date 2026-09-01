@@ -403,6 +403,7 @@ export class Dialog {
 	toolbars: Record<string, Toolbar>
 	form_config: InputFormConfig
 	width: number
+	default_width?: number
 	draggable: boolean
 	darken: boolean
 	cancel_on_click_outside: boolean
@@ -449,6 +450,7 @@ export class Dialog {
 		}
 
 		this.width = options.width
+		this.default_width = options.width
 		this.draggable = options.draggable
 		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
@@ -680,6 +682,18 @@ export class Dialog {
 				}
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
+			})
+			resize_handle.addEventListener('dblclick', () => {
+				let center = this.object.offsetLeft + this.object.clientWidth / 2;
+				this.width = this.default_width;
+				this.object.style.width = this.width ? this.width+'px' : '';
+				this.object.style.height = '';
+				if (this.draggable !== false) {
+					this.object.style.left = Math.clamp(center - this.object.clientWidth / 2, 0, window.innerWidth - this.object.clientWidth) + 'px';
+				}
+				if (typeof this.onResize == 'function') {
+					this.onResize();
+				}
 			})
 		}
 		let sanitizePosition = () => {
