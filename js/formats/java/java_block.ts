@@ -479,6 +479,45 @@ const codec = new Codec('java_block', {
 
 		this.dispatchEvent('parse', {model});
 
+		if (!model.elements && model.parent && path && args.resolve_parent !== false && !ITEM_PARENTS.includes(model.parent)) {
+			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
+			let child_args = {...args, resolve_parent: false};
+
+			let openParentModel = () => {
+				let stack = collectParentModels(model, path, args);
+				if (stack.length > 1) {
+					let merged = mergeParentModels(stack);
+					merged.parent = model.parent;
+					this.parse(merged, path, child_args);
+				} else {
+					this.parse(model, path, child_args);
+				}
+			}
+
+			if (args.resolve_parent) {
+				if (can_open) {
+					openParentModel();
+					return;
+				}
+			} else {
+				Blockbench.showMessageBox({
+					translateKey: 'child_model_only',
+					icon: 'info',
+					message: tl('message.child_model_only.message', [model.parent]),
+					commands: can_open && {
+						open: 'message.child_model_only.open'
+					}
+				}, result => {
+					if (typeof result == 'string') {
+						openParentModel();
+					} else {
+						this.parse(model, path, child_args);
+					}
+				})
+				return;
+			}
+		}
+
 		// Backwards compatibility with the old "add" third argument
 		const import_to_current_project = typeof args === "boolean" ? args : args.import_to_current_project
 
@@ -807,55 +846,6 @@ const codec = new Codec('java_block', {
 				})
 			}
 
-		} else if (!model.elements && model.parent) {
-			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
-
-			let openParentModel = (mode: string) => {
-				let parent_path = getParentModelPath(model.parent, path);
-				let stack = collectParentModels(model, path, args);
-				if (mode == 'open') stack = stack.slice(1);
-
-				if (stack.length) {
-					loadModelFile({
-						name: PathModule.basename(parent_path),
-						path: parent_path,
-						content: JSON.stringify(mergeParentModels(stack))
-					}, args);
-					return;
-				}
-
-				Blockbench.read([parent_path], {}, files => {
-					loadModelFile(files[0], args);
-
-					if (mode == 'open_with_textures') {
-						Texture.all.forEachReverse(tex => {
-							if (tex.error == 3 && tex.name.startsWith('#')) {
-								let loaded_tex = texture_ids[tex.name.replace(/#/, '')];
-								if (loaded_tex) {
-									tex.fromPath(loaded_tex.path, args.externalDataLoader);
-									tex.namespace = loaded_tex.namespace;
-								}
-							}
-						})
-					}
-				});
-			}
-
-			if (typeof args.resolve_parent == 'string') {
-				if (can_open) openParentModel(args.resolve_parent);
-			} else if (args.resolve_parent !== false) {
-				Blockbench.showMessageBox({
-					translateKey: 'child_model_only',
-					icon: 'info',
-					message: tl('message.child_model_only.message', [model.parent]),
-					commands: can_open && {
-						open: 'message.child_model_only.open',
-						open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
-					}
-				}, result => {
-					if (typeof result == 'string') openParentModel(result);
-				})
-			}
 		}
 		updateSelection()
 

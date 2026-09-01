@@ -9,7 +9,7 @@ import { fs } from "../native_apis";
 export interface LoadOptions {
 	import_to_current_project?: boolean
 	externalDataLoader?: (path: string) => any
-	resolve_parent?: false | 'open' | 'open_with_textures'
+	resolve_parent?: boolean
 	[key: string]: unknown
 }
 export interface CodecOptions {
