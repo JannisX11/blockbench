@@ -916,8 +916,9 @@ export class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let source_vertices = typeof val == 'number' ? this.temp_data.oldVertices : this.vertices;
-		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+		let mesh_vertices = this.vertices;
+		let source_vertices = typeof val == 'number' ? this.temp_data.oldVertices : mesh_vertices;
+		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(mesh_vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
@@ -937,12 +938,25 @@ export class Mesh extends OutlinerElement {
 		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
 		if (scale < 0 && !allow_negative) scale = 0;
 		
-		selected_vertices.forEach(key => {
+		function transformVertex(key) {
 			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
-			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+			vec2.fromArray(mesh_vertices[key]).applyEuler(rotation_inverted);
 			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
 			vec2.applyEuler(Transformer.rotation_selection);
-			this.vertices[key].replace(vec2.toArray())
+			return vec2;
+		}
+		selected_vertices.forEach(key => {
+			let vec2 = transformVertex(key);
+			mesh_vertices[key].replace(vec2.toArray());
+		})
+		ProportionalEdit.editVertices(this, (vkey, blend) => {
+			let initial = mesh_vertices[vkey].slice();
+			let vec2 = transformVertex(vkey);
+			mesh_vertices[vkey].V3_set(
+				Math.lerp(source_vertices[vkey][0], vec2.x, blend),
+				Math.lerp(source_vertices[vkey][1], vec2.y, blend),
+				Math.lerp(source_vertices[vkey][2], vec2.z, blend),
+			);
 		})
 		this.preview_controller.updateGeometry(this);
 	}
