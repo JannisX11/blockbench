@@ -100,10 +100,21 @@ function confirmGeneratedItemConversion(placeholders: GeneratedItemMesh[]) {
 	})
 }
 
-function getParentModelPath(parent: string, path: string): string {
-	let parent_id = parent.replace(/\w+:/, '');
+function getResourcePackRoot(path: string): string {
 	let path_arr = path.split(osfs);
-	let index = path_arr.length - path_arr.indexOf('models');
+	let models_index = path_arr.lastIndexOf('models');
+	if (models_index < 2 || path_arr[models_index-2] != 'assets') return null;
+	return path_arr.slice(0, models_index-2).join(osfs);
+}
+
+function getParentModelPath(parent: string, path: string, pack_root: string): string {
+	let namespace = parent.includes(':') ? parent.split(':')[0] : 'minecraft';
+	let parent_id = parent.replace(/\w+:/, '');
+	if (pack_root) {
+		return [pack_root, 'assets', namespace, 'models', ...parent_id.split('/')].join(osfs) + '.json';
+	}
+	let path_arr = path.split(osfs);
+	let index = path_arr.length - path_arr.lastIndexOf('models');
 	path_arr.splice(-index);
 	path_arr.push('models', ...parent_id.split('/'));
 	return path_arr.join(osfs) + '.json';
@@ -133,9 +144,10 @@ function collectParentModels(model: any, path: string, args: LoadOptions): any[]
 	let stack = [model];
 	let current = model;
 	let current_path = path;
+	let pack_root = getResourcePackRoot(path);
 	while (current?.parent && stack.length < 32) {
 		if (current.parent.replace(/\w+:/, '').startsWith('builtin')) break;
-		let parent_path = getParentModelPath(current.parent, current_path);
+		let parent_path = getParentModelPath(current.parent, current_path, pack_root);
 		let parent_model = readParentModel(parent_path, args);
 		if (!parent_model) break;
 		stack.push(parent_model);
