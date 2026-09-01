@@ -573,7 +573,7 @@ const codec = new Codec('java_block', {
 			//Create Path Array to fetch textures
 			let path_arr = path.split(osfs)
 			if (!path_arr.includes('cit')) {
-				let index = path_arr.length - path_arr.indexOf('models')
+				let index = path_arr.length - path_arr.lastIndexOf('models')
 				path_arr.splice(-index)
 			}
 
