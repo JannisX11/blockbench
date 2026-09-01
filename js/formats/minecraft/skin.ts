@@ -269,19 +269,23 @@ export const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
-codec.rebuild = function(model_id: string, pose?: string) {
+codec.rebuild = function(model_id: string, pose?: string, pose_data?: SkinPoseData) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
 	let model = JSON.parse(model_raw);
 	// @ts-ignore
 	codec.parse(model, undefined, true, pose && pose !== 'none');
-	if (pose && pose !== 'none' && pose !== 'natural') {
+	if (pose_data) {
+		loadPose(pose_data);
+		Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ?? '';
+	} else if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
 			setDefaultPose(pose);
 		}, 1)
 	}
 }
+codec.getPoseData = getPoseData;
 
 
 export const format = new ModelFormat('skin', {
