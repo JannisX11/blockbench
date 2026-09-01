@@ -2,6 +2,7 @@ import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
 import { convertTextureMeshesToCubes, GeneratedItemMesh } from "./../../outliner/types/texture_mesh"
 import { LoadOptions } from "./../../io/codec"
+import { fs } from "../../native_apis"
 
 const ITEM_LAYER_LIMIT = 5
 const ITEM_PARENTS = [
@@ -97,6 +98,87 @@ function confirmGeneratedItemConversion(placeholders: GeneratedItemMesh[]) {
 		if (result != 0) return;
 		convertTextureMeshesToCubes(placeholders);
 	})
+}
+
+function getParentModelPath(parent: string, path: string): string {
+	let parent_id = parent.replace(/\w+:/, '');
+	let path_arr = path.split(osfs);
+	let index = path_arr.length - path_arr.indexOf('models');
+	path_arr.splice(-index);
+	path_arr.push('models', ...parent_id.split('/'));
+	return path_arr.join(osfs) + '.json';
+}
+
+function readParentModel(file_path: string, args: LoadOptions): any {
+	let content: string;
+	if (args?.externalDataLoader) {
+		let external = args.externalDataLoader(file_path.replaceAll('\\', '/'));
+		if (external instanceof Uint8Array) external = new TextDecoder().decode(external);
+		if (typeof external == 'string') content = external;
+	}
+	if (!content && isApp) {
+		try {
+			content = fs.readFileSync(file_path, 'utf8');
+		} catch (err) {}
+	}
+	if (!content) return null;
+	try {
+		return autoParseJSON(content, {file_path});
+	} catch (err) {
+		return null;
+	}
+}
+
+function collectParentModels(model: any, path: string, args: LoadOptions): any[] {
+	let stack = [model];
+	let current = model;
+	let current_path = path;
+	while (current?.parent && stack.length < 32) {
+		if (current.parent.replace(/\w+:/, '').startsWith('builtin')) break;
+		let parent_path = getParentModelPath(current.parent, current_path);
+		let parent_model = readParentModel(parent_path, args);
+		if (!parent_model) break;
+		stack.push(parent_model);
+		current = parent_model;
+		current_path = parent_path;
+	}
+	return stack;
+}
+
+function mergeParentModels(stack: any[]): any {
+	let merged: any = {};
+	for (let layer of stack) {
+		for (let key in layer) {
+			if (key == 'textures' || key == 'display') {
+				if (!merged[key]) merged[key] = {};
+				for (let slot in layer[key]) {
+					if (merged[key][slot] === undefined) merged[key][slot] = layer[key][slot];
+				}
+			} else if (merged[key] === undefined) {
+				merged[key] = layer[key];
+			}
+		}
+	}
+	for (let key in merged.textures) {
+		let value = merged.textures[key];
+		let seen = new Set([key]);
+		while (typeof value == 'string' && value.startsWith('#')) {
+			let reference = value.substring(1);
+			if (seen.has(reference)) {
+				value = undefined;
+				break;
+			}
+			seen.add(reference);
+			value = merged.textures[reference];
+		}
+		if (typeof value == 'string') {
+			merged.textures[key] = value;
+		} else {
+			delete merged.textures[key];
+		}
+	}
+	delete merged.parent;
+	return merged;
 }
 
 const codec = new Codec('java_block', {
@@ -455,6 +537,8 @@ const codec = new Codec('java_block', {
 					let texture;
 					if (texture_by_link[link]) {
 						texture = texture_by_link[link]
+					} else if (link.startsWith('#')) {
+						texture = new Texture({id: key, name: link}).add(false).loadEmpty(3);
 					} else {
 						texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
 					}
@@ -725,62 +809,53 @@ const codec = new Codec('java_block', {
 
 		} else if (!model.elements && model.parent) {
 			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
-			Blockbench.showMessageBox({
-				translateKey: 'child_model_only',
-				icon: 'info',
-				message: tl('message.child_model_only.message', [model.parent]),
-				commands: can_open && {
-					open: 'message.child_model_only.open',
-					open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
+
+			let openParentModel = (mode: string) => {
+				let parent_path = getParentModelPath(model.parent, path);
+				let stack = collectParentModels(model, path, args);
+				if (mode == 'open') stack = stack.slice(1);
+
+				if (stack.length) {
+					loadModelFile({
+						name: PathModule.basename(parent_path),
+						path: parent_path,
+						content: JSON.stringify(mergeParentModels(stack))
+					}, args);
+					return;
 				}
-			}, async result => {
-				if (typeof result == 'string') {
-					let parent = model.parent.replace(/\w+:/, '');
-					let path_arr = path.split(osfs);
-					let index = path_arr.length - path_arr.indexOf('models');
-					path_arr.splice(-index);
-					path_arr.push('models', ...parent.split('/'));
-					let parent_path = path_arr.join(osfs) + '.json';
 
-					function loadParentModel(file) {
-						loadModelFile(file, args);
+				Blockbench.read([parent_path], {}, files => {
+					loadModelFile(files[0], args);
 
-						if (result == 'open_with_textures') {
-							Texture.all.forEachReverse(tex => {
-								if (tex.error == 3 && tex.name.startsWith('#')) {
-									let loaded_tex = texture_ids[tex.name.replace(/#/, '')];
-									if (loaded_tex) {
-										tex.fromPath(loaded_tex.path, args.externalDataLoader);
-										tex.namespace = loaded_tex.namespace;
-									}
+					if (mode == 'open_with_textures') {
+						Texture.all.forEachReverse(tex => {
+							if (tex.error == 3 && tex.name.startsWith('#')) {
+								let loaded_tex = texture_ids[tex.name.replace(/#/, '')];
+								if (loaded_tex) {
+									tex.fromPath(loaded_tex.path, args.externalDataLoader);
+									tex.namespace = loaded_tex.namespace;
 								}
-							})
-						}
-					}
-
-					let loaded;
-					if (args.externalDataLoader) {
-						let external = args.externalDataLoader(parent_path.replaceAll("\\", "/"));
-						if (external) {
-							if (external instanceof Uint8Array) {
-								external = new TextDecoder().decode(external);
 							}
-							try {
-								loadParentModel({
-									name: PathModule.basename(parent_path),
-									path: parent_path,
-									content: external
-								});
-								loaded = true;
-							} catch {}
-						}
+						})
 					}
+				});
+			}
 
-					if (!loaded) {
-						Blockbench.read([parent_path], {}, files => loadParentModel(files[0]));
+			if (typeof args.resolve_parent == 'string') {
+				if (can_open) openParentModel(args.resolve_parent);
+			} else if (args.resolve_parent !== false) {
+				Blockbench.showMessageBox({
+					translateKey: 'child_model_only',
+					icon: 'info',
+					message: tl('message.child_model_only.message', [model.parent]),
+					commands: can_open && {
+						open: 'message.child_model_only.open',
+						open_with_textures: {text: 'message.child_model_only.open_with_textures', condition: Texture.all.length > 0}
 					}
-				}
-			})
+				}, result => {
+					if (typeof result == 'string') openParentModel(result);
+				})
+			}
 		}
 		updateSelection()
 
