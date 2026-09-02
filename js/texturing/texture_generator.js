@@ -894,39 +894,46 @@ export const TextureGenerator = {
 							max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
 						}
 					}
-					// Center island if it faces front of back
-					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
-						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += offset_x;
-							}
+					let island_points = [];
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							island_points.push(vertex_uvs[fkey][vkey]);
 						}
 					}
-					// ... or on the side
-					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
-						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
+					let isSymmetric = (axis) => {
+						let other = axis ? 0 : 1;
+						let mirror = Math.min(...island_points.map(point => point[axis])) + Math.max(...island_points.map(point => point[axis]));
+						return island_points.every(point => island_points.some(candidate => {
+							return Math.epsilon(candidate[axis], mirror - point[axis], 0.001) && Math.epsilon(candidate[other], point[other], 0.001);
+						}));
+					};
+					let offsetIsland = (axis, offset) => {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += offset_x;
+								vertex_uvs[fkey][vkey][axis] += offset;
 							}
 						}
+					};
+
+					// Center the island on any axis it is symmetrical about, otherwise align it to the model
+					if (isSymmetric(0)) {
+						offsetIsland(0, (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2);
+					}
+					// Center island if it faces front, back or the side
+					else if (Math.epsilon(face_group.normal[0], 0, 0.08) || Math.epsilon(face_group.normal[2], 0, 0.05)) {
+						offsetIsland(0, (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2);
 					}
 					// Or align right if face points to right side of model
 					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
-							}
-						}
+						offsetIsland(0, Math.ceil(max_x*res_multiple)/res_multiple - max_x);
+					}
+
+					if (isSymmetric(1)) {
+						offsetIsland(1, (Math.ceil(max_z*res_multiple)/res_multiple - max_z) / 2);
 					}
 					// Align bottom if face points downwards
-					if (face_group.normal[1] < 0) {
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
-							}
-						}
+					else if (face_group.normal[1] < 0) {
+						offsetIsland(1, Math.ceil(max_z*res_multiple)/res_multiple - max_z);
 					}
 					face_group.posx = 0;
 					face_group.posy = 0;
