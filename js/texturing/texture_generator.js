@@ -900,12 +900,35 @@ export const TextureGenerator = {
 							island_points.push(vertex_uvs[fkey][vkey]);
 						}
 					}
+					let edge_uses = {};
+					face_group.faces.forEach((face, face_index) => {
+						let face_uvs = vertex_uvs[face_group.keys[face_index]];
+						let sorted_vertices = face.getSortedVertices();
+						sorted_vertices.forEach((vkey, vi) => {
+							let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
+							let id = [vkey, vkey2].sort().join('.');
+							if (!edge_uses[id]) edge_uses[id] = {uses: 0, points: [face_uvs[vkey], face_uvs[vkey2]]};
+							edge_uses[id].uses++;
+						});
+					});
+					let outline = Object.values(edge_uses).filter(edge => edge.uses == 1).map(edge => edge.points);
+					const pointOnEdge = (point, [a, b]) => {
+						let dx = b[0] - a[0];
+						let dy = b[1] - a[1];
+						let length = dx*dx + dy*dy;
+						if (!length) return false;
+						let position = ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / length;
+						if (position < 0 || position > 1) return false;
+						return Math.epsilon(a[0] + dx*position, point[0], 0.002) && Math.epsilon(a[1] + dy*position, point[1], 0.002);
+					};
 					let isSymmetric = (axis) => {
 						let other = axis ? 0 : 1;
 						let mirror = Math.min(...island_points.map(point => point[axis])) + Math.max(...island_points.map(point => point[axis]));
-						return island_points.every(point => island_points.some(candidate => {
-							return Math.epsilon(candidate[axis], mirror - point[axis], 0.001) && Math.epsilon(candidate[other], point[other], 0.001);
-						}));
+						return island_points.every(point => {
+							let target = axis ? [point[0], mirror - point[1]] : [mirror - point[0], point[1]];
+							if (island_points.some(candidate => Math.epsilon(candidate[0], target[0], 0.001) && Math.epsilon(candidate[1], target[1], 0.001))) return true;
+							return outline.some(edge => pointOnEdge(target, edge));
+						});
 					};
 					let offsetIsland = (axis, offset) => {
 						for (let fkey in vertex_uvs) {
