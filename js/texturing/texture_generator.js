@@ -855,23 +855,34 @@ export const TextureGenerator = {
 					}
 	
 					// Round
-					if (face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) {
-						let sorted_vertices = face_group.faces[0].getSortedVertices();
+					let rounded_uvs = {};
+					face_group.faces.forEach((face, face_index) => {
+						if (face.vertices.length != 4) return;
+						let face_uvs = vertex_uvs[face_group.keys[face_index]];
+						let sorted_vertices = face.getSortedVertices();
 						sorted_vertices.forEach((vkey, vi) => {
 							let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
 							let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
-							let snap = res_multiple;
-							let vertex_uvs_1 = vertex_uvs[face_group.keys[0]];
-	
-							if (Math.epsilon(vertex_uvs_1[vkey][0], vertex_uvs_1[vkey2][0], 0.001)) {
-								let min = vertex_uvs_1[vkey][0] > vertex_uvs_1[vkey0][0] ? 1 : 0;
-								vertex_uvs_1[vkey][0] = vertex_uvs_1[vkey2][0] = Math.round(Math.max(min, vertex_uvs_1[vkey][0] * snap)) / snap;
-							}
-							if (Math.epsilon(vertex_uvs_1[vkey][1], vertex_uvs_1[vkey2][1], 0.001)) {
-								let min = vertex_uvs_1[vkey][1] > vertex_uvs_1[vkey0][1] ? 1 : 0;
-								vertex_uvs_1[vkey][1] = vertex_uvs_1[vkey2][1] = Math.round(Math.max(min, vertex_uvs_1[vkey][1] * snap)) / snap;
+							// snapping a seam between two faces would stretch one and squash the other
+							if (face_group.faces.some(other => other != face && other.vertices.includes(vkey) && other.vertices.includes(vkey2))) return;
+
+							for (let axis = 0; axis < 2; axis++) {
+								if (!Math.epsilon(face_uvs[vkey][axis], face_uvs[vkey2][axis], 0.001)) continue;
+								let original = face_uvs[vkey][axis];
+								let value = Math.round(Math.max(face_uvs[vkey][axis] > face_uvs[vkey0][axis] ? 1 : 0, original * res_multiple)) / res_multiple;
+								rounded_uvs[`${vkey}_${axis}`] = rounded_uvs[`${vkey2}_${axis}`] = {original, value};
 							}
 						})
+					})
+					for (let fkey of face_group.keys) {
+						for (let vkey in vertex_uvs[fkey]) {
+							for (let axis = 0; axis < 2; axis++) {
+								let rounded = rounded_uvs[`${vkey}_${axis}`];
+								if (rounded && Math.epsilon(vertex_uvs[fkey][vkey][axis], rounded.original, 0.001)) {
+									vertex_uvs[fkey][vkey][axis] = rounded.value;
+								}
+							}
+						}
 					}
 	
 	
