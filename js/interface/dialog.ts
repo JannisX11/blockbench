@@ -1118,7 +1118,11 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	build() {
-		if (this.object) this.object.remove();
+		if (this.object) {
+			this.form?.delete();
+			delete this.form;
+			this.object.remove();
+		}
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog config_dialog';
 
@@ -1176,6 +1180,8 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	delete() {
+		this.form?.delete();
+		delete this.form;
 		if (this.object) this.object.remove()
 		this.object = null;
 	}
