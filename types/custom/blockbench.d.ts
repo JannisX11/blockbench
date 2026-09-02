@@ -10,6 +10,7 @@
 /// <reference types="./animation_controller" />
 /// <reference types="./canvas_frame" />
 /// <reference types="./canvas" />
+/// <reference types="./copy_paste" />
 /// <reference types="./cube" />
 /// <reference types="./desktop" />
 /// <reference types="./display_mode" />
