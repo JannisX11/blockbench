@@ -812,6 +812,9 @@ Object.assign(Clipbench, {
 
 				if (data.animator) {
 					var animator = Animation.selected.animators[data.animator];
+					if (!animator && data.animator == 'effects') {
+						animator = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
+					}
 					if (animator && !Timeline.animators.includes(animator)) {
 						animator.addToTimeline();
 					}
