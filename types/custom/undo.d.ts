@@ -20,6 +20,7 @@ interface UndoAspects {
 	 */
 	textures?: Texture[]
 	texture_order?: boolean
+	texture_groups?: TextureGroup[]
 	/**
 	 * Save which texture is selected
 	 */
