@@ -1244,7 +1244,7 @@ export const TextureGenerator = {
 								|| pointInsidePolygon(x+0.00001, y+0.99999)
 								|| pointInsidePolygon(x+0.99999, y+0.99999));
 					if (!inside) {
-						let px_rect = [[x, y], [x+0.99999, y+0.99999]]
+						let px_rect = [[x+0.00001, y+0.00001], [x+0.99999, y+0.99999]]
 						faces:
 						for (let vertex_uvs of vertex_uv_faces) {
 							let i = 0;
