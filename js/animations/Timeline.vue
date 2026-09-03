@@ -722,17 +722,16 @@ export default {
 						let channelOptions = animator.channels[channel];
 
 						// Stop early if channel should be hidden
-						let isExpanded = animator.expanded;
 						let channelExists = this.channels[channel] != false;
 						let isConditionMet = Condition(channelOptions.condition, animator);
-						let shouldHide = (!this.channels.hide_empty || animator[channel].length);
-						let shouldCollapseKeys = !(isExpanded && channelExists && shouldHide);
-						if (shouldCollapseKeys && !isConditionMet) continue;
+						let canShow = (!this.channels.hide_empty || animator[channel].length);
+						let isExpanded = animator.expanded && channelExists && canShow
+						if (!(isExpanded || isConditionMet)) continue;
 
 						// Get our remaining data
 						let channelY = channelHeight * heightAccumulator - scrollOffsetY;
-						if (shouldCollapseKeys) channelY = animatorY;
-						else heightAccumulator++;
+						if (!isExpanded) channelY = animatorY;
+						else if (isConditionMet) heightAccumulator++; // Add to total channel height stack if this channel is able to display
 
 						// Stop early if channel is out of frame vertically
 						if (channelY < -channelHalfHeight) continue;
@@ -740,7 +739,7 @@ export default {
 
 						let keyframes = animator[channel];
 						for (let keyframe of keyframes) {
-							drawKeyframe(keyframe, { offset: channelY + channelHalfHeight, isCollapsed: shouldCollapseKeys });
+							drawKeyframe(keyframe, { offset: channelY + channelHalfHeight, isCollapsed: !isExpanded });
 						}
 					}
 				}
@@ -834,8 +833,8 @@ export default {
 						let isExpanded = animator.expanded;
 						let channelExists = this.channels[channel] != false;
 						let isConditionMet = Condition(channelOptions.condition, animator);
-						let shouldHide = (!this.channels.hide_empty || animator[channel].length);
-						if (!(isExpanded && channelExists && isConditionMet && shouldHide)) continue;
+						let canShow = (!this.channels.hide_empty || animator[channel].length);
+						if (!(isExpanded && channelExists && isConditionMet && canShow)) continue; // This channel is not displayed atm, so we can stop.
 
 						// Get our remaining data
 						let channelY = channelHeight * heightAccumulator - scrollOffsetY;
