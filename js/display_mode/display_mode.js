@@ -979,6 +979,19 @@ DisplayMode.updateDisplayBase = function(slot) {
 }
 
 
+// Extracted from a Bedrock 1.26.50.27 APK
+DisplayMode.bedrock_defaults = {
+	gui:                   { translation: [0, 0, 0],   rotation: [30, 45, 0],  scale: [0.625, 0.625, 0.625], fit_to_frame: true },
+	firstperson_righthand: { translation: [0, 0, 0],   rotation: [0, 45, 0],   scale: [0.4, 0.4, 0.4] },
+	firstperson_lefthand:  { translation: [0, 0, 0],   rotation: [0, -135, 0], scale: [0.4, 0.4, 0.4] },
+	thirdperson_righthand: { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	thirdperson_lefthand:  { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	ground:                { translation: [0, 3, 0],   rotation: [0, 0, 0],    scale: [0.25, 0.25, 0.25] },
+	fixed:                 { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+	head:                  { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [1, 1, 1] },
+	embedded:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.75, 0.75, 0.75] },
+	on_shelf:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+}
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
 	var slots = [DisplayMode.display_slot];
@@ -1006,10 +1019,12 @@ DisplayMode.applyPreset = function(preset, all) {
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
 }
-DisplayMode.loadJSON = function(data) {
-	for (var slot in data) {
+DisplayMode.loadJSON = function(data, defaults) {
+	for (let slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
+			let display_slot = new DisplaySlot(slot);
+			if (defaults && defaults[slot]) display_slot.extend(defaults[slot]);
+			Project.display_settings[slot] = display_slot.extend(data[slot]);
 		}
 	}
 }

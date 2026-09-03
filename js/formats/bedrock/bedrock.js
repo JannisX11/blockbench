@@ -885,12 +885,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 
 		if (data.object.item_display_transforms !== undefined) {
-			DisplayMode.loadJSON(data.object.item_display_transforms)
-			if (data.object.item_display_transforms.gui) {
-				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
-					Project.display_settings.gui.fit_to_frame = true;
-				}
-			}
+			DisplayMode.loadJSON(data.object.item_display_transforms, DisplayMode.bedrock_defaults)
 		}
 
 		var bones = {}
