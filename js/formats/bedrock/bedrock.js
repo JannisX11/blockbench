@@ -834,7 +834,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 				parent_group = match;
 			} else {
 				parent_list.forEach(function(ib) {
-					if (ib.name === b.parent) {
+					if (ib.name.toLowerCase() === b.parent.toLowerCase()) {
 						ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
 					}
 				})
