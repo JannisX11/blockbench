@@ -202,6 +202,9 @@ var codec = new Codec('project', {
 			if (ModelProject.properties[key].export == false) continue;
 			ModelProject.properties[key].copy(Project, model)
 		}
+		if (options.collection_only && Format.model_identifier) {
+			model.model_identifier = options.collection_only.model_identifier;
+		}
 
 		if (Project.overrides) {
 			model.overrides = Project.overrides;
