@@ -257,7 +257,7 @@ export const Clipbench = {
 		})
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			if (face.isSelected(fkey)) {
+			if (face.isSelected(fkey) && face.vertices.allAre(vkey => this.vertices[vkey])) {
 				this.faces[fkey] = new MeshFace(null, face);
 			}
 		}
