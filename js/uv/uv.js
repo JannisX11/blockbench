@@ -4210,8 +4210,9 @@ Interface.definePanels(function() {
 					}
 				},
 				isScalingAvailable() {
-					if (this.mappable_elements[0]?.getTypeBehavior('cube_faces')) {
-						return UVEditor.isFaceUV() && !!UVEditor.getReferenceFace();
+					let element = this.mappable_elements[0];
+					if (element?.getTypeBehavior('cube_faces')) {
+						return UVEditor.isFaceUV() && UVEditor.getSelectedFaces(element).some(fkey => element.faces[fkey] && element.faces[fkey].texture !== null);
 
 					} else if (this.mappable_elements[0] instanceof Mesh) {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
