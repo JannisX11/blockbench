@@ -455,14 +455,18 @@
 		--color-keyframe-bezier-handle-dot: var(--color-back);
 		--color-keyframe-bezier-handle-line: var(--color-grid);
 
-		/* values below are used in js, so the pixel suffix is not use */ 
+		/* values for keyframe and timeline styling are used in js, so the pixel suffix is not use */ 
 		--timeline-channel-height: 24;
 		--keyframe-radius: 16;
 		--keyframe-radius-hover: 20;
 		--keyframe-radius-hidden: 12;
+		
+		--keyframe-graph-radius: 12;
+		--keyframe-graph-radius-hover: 16;
 		--keyframe-bezier-handle-diameter: 10;
 		--keyframe-bezier-stroke-width: 3;
-		
+		/* end of timeline & keyframe values */
+
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';
