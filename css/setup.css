@@ -184,144 +184,180 @@
 	}
 
 
-	.icon-keyframe_discontinuous_bezier:before {
-		content: "\e92d";
-	}
-	.icon-keyframe_smooth:before {
-		content: "\e92c";
-	}
-	.icon-keyframe_step:before {
-		content: "\e92b";
-	}
-	.icon-keyframe_bezier:before {
-		content: "\e92a";
-	}
 	.icon-collada:before {
-		content: "\e926";
+  	  content: "\e926";
 	}
 	.icon-fbx:before {
-		content: "\e927";
+	  content: "\e927";
 	}
 	.icon-format_bedrock_block:before {
-		content: "\e928";
+	  content: "\e928";
 	}
 	.icon-format_bedrock_entity:before {
-		content: "\e929";
-	}
-	.icon-keyframe:before {
-		content: "\e924";
-	}
-	.icon-keyframe_discontinuous:before {
-		content: "\e925";
+	  content: "\e929";
 	}
 	.icon-gizmo:before {
-		content: "\e922";
+	  content: "\e922";
 	}
 	.icon-gltf:before {
-		content: "\e923";
+	  content: "\e923";
 	}
 	.icon-format_bedrock_legacy:before {
-		content: "\e91a";
+	  content: "\e91a";
 	}
 	.icon-crossbow:before {
-		content: "\e91b";
+	  content: "\e91b";
 	}
 	.icon-format_bedrock:before {
-		content: "\e91c";
+	  content: "\e91c";
 	}
 	.icon-format_block:before {
-		content: "\e91d";
+	  content: "\e91d";
 	}
 	.icon-format_free:before {
-		content: "\e91e";
+	  content: "\e91e";
 	}
 	.icon-format_hytale:before {
-		content: "\e91f";
+	  content: "\e91f";
 	}
 	.icon-format_java:before {
-		content: "\e920";
+	  content: "\e920";
 	}
 	.icon-format_optifine:before {
-		content: "\e921";
+	  content: "\e921";
 	}
 	.icon-sketchfab:before {
-		content: "\e919";
+	  content: "\e919";
 	}
 	.icon-blockbench_file:before {
-		content: "\e900";
+	  content: "\e900";
 	}
 	.icon-vertexsnap:before {
-		content: "\e901";
+	  content: "\e901";
 	}
 	.icon-create_bitmap:before {
-		content: "\e902";
+	  content: "\e907";
 	}
 	.icon-objects:before {
-		content: "\e903";
+	  content: "\e908";
 	}
 	.icon-bow:before {
-		content: "\e904";
+	  content: "\e90b";
 	}
 	.icon-bb_interface:before {
-		content: "\e905";
+	  content: "\e90d";
 	}
 	.icon-blockbench:before {
-		content: "\e906";
+	  content: "\e911";
 	}
 	.icon-x11:before {
-		content: "\e907";
+	  content: "\e912";
 	}
 	.icon-baby_zombie:before {
-		content: "\e908";
+	  content: "\e913";
 	}
 	.icon-armor_stand:before {
-		content: "\e909";
+	  content: "\e914";
 	}
 	.icon-armor_stand_small:before {
-		content: "\e90a";
+	  content: "\e915";
 	}
 	.icon-ground:before {
-		content: "\e90b";
+	  content: "\e916";
 	}
 	.icon-hud:before {
-		content: "\e90c";
+	  content: "\e917";
 	}
 	.icon-inventory_full:before {
-		content: "\e90d";
+	  content: "\e918";
 	}
 	.icon-inventory_nine:before {
-		content: "\e90e";
+	  content: "\e924";
 	}
 	.icon-inventory_single:before {
-		content: "\e90f";
+	  content: "\e925";
 	}
 	.icon-player_head:before {
-		content: "\e910";
+	  content: "\e92a";
 	}
 	.icon-zombie:before {
-		content: "\e911";
+	  content: "\e92b";
 	}
 	.icon-blockbench_inverted:before {
-		content: "\e912";
+	  content: "\e92c";
 	}
 	.icon-optifine_file:before {
-		content: "\e913";
+	  content: "\e92d";
 	}
 	.icon-saved:before {
-		content: "\e914";
+	  content: "\e92e";
 	}
 	.icon-player:before {
-		content: "\e915";
+	  content: "\e92f";
 	}
 	.icon-mirror_x:before {
-		content: "\e916";
+	  content: "\e930";
 	}
 	.icon-mirror_y:before {
-		content: "\e917";
+	  content: "\e931";
 	}
 	.icon-mirror_z:before {
-		content: "\e918";
+	  content: "\e932";
 	}
+
+	
+	.icon-keyframe_linear:before {
+	  content: "\e933";
+	}
+	.icon-keyframe_bezier:before {
+	  content: "\e934";
+	}
+	.icon-keyframe_smooth:before {
+	  content: "\e935";
+	}
+	.icon-keyframe_step:before {
+	  content: "\e936";
+	}
+	.icon-keyframe_linear_discontinuous:before {
+	  content: "\e937";
+	}
+	.icon-keyframe_bezier_discontinuous:before {
+	  content: "\e938";
+	}
+	.icon-keyframe_step_discontinuous:before {
+	  content: "\e90e";
+	}
+	.icon-keyframe_linear_molang:before {
+	  content: "\e90a";
+	}
+	.icon-keyframe_smooth_molang:before {
+	  content: "\e90c";
+	}
+	.icon-keyframe_bezier_molang:before {
+	  content: "\e903";
+	}
+	.icon-keyframe_step_molang:before {
+	  content: "\e910";
+	}
+	.icon-keyframe_linear_discontinuous_molang:before {
+	  content: "\e909";
+	}
+	.icon-keyframe_bezier_discontinuous_molang:before {
+	  content: "\e902";
+	}
+	.icon-keyframe_step_discontinuous_molang:before {
+	  content: "\e90f";
+	}
+	.icon-keyframe_hidden:before {
+	  content: "\e904";
+	}
+	.icon-keyframe_hidden_discontinuous:before {
+	  content: "\e905";
+	}
+	.icon-keyframe_hidden_molang:before {
+	  content: "\e906";
+	}
+
 
 
 	
@@ -412,6 +448,25 @@
 		--color-spline-handle-aligned: #F0B000;
 		--color-spline-handle-free: #00D123;
 		
+		--color-keyframe: var(--color-text);
+		--color-keyframe-selected: var(--color-accent);
+		--color-keyframe-hovered: var(--color-light);
+		--color-keyframe-collapsed: #495061;
+		--color-keyframe-bezier-handle-dot: var(--color-back);
+		--color-keyframe-bezier-handle-line: var(--color-grid);
+
+		/* values for keyframe and timeline styling are used in js, so the pixel suffix is not use */ 
+		--timeline-channel-height: 24;
+		--keyframe-radius: 16;
+		--keyframe-radius-hover: 20;
+		--keyframe-radius-hidden: 12;
+		
+		--keyframe-graph-radius: 12;
+		--keyframe-graph-radius-hover: 16;
+		--keyframe-bezier-handle-diameter: 10;
+		--keyframe-bezier-stroke-width: 3;
+		/* end of timeline & keyframe values */
+
 		--font-custom-main: '';
 		--font-custom-headline: '';
 		--font-custom-code: '';
