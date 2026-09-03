@@ -393,15 +393,32 @@ export class TextureLayer extends TextureLayerItem {
 		if (undo) {
 			Undo.initEdit({textures: [this.texture], bitmap: true});
 		}
-		down_layer.expandTo(this.offset, this.offset.slice().V2_add(this.width, this.height));
-		down_layer.ctx.imageSmoothingEnabled = false;
-		down_layer.ctx.filter = `opacity(${this.opacity / 100})`;
-		down_layer.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(this.blend_mode);
+		if (this.blend_mode == 'alpha_mask') {
+			let opacity_factor = this.opacity / 100;
+			let mask = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+			let target = down_layer.ctx.getImageData(0, 0, down_layer.canvas.width, down_layer.canvas.height);
+			for (let y = 0; y < down_layer.canvas.height; y++) {
+				let mask_y = y + down_layer.offset[1] - this.offset[1];
+				if (mask_y < 0 || mask_y >= this.canvas.height) continue;
+				for (let x = 0; x < down_layer.canvas.width; x++) {
+					let mask_x = x + down_layer.offset[0] - this.offset[0];
+					if (mask_x < 0 || mask_x >= this.canvas.width) continue;
+					let value = mask.data[(mask_y * this.canvas.width + mask_x) * 4];
+					target.data[(y * down_layer.canvas.width + x) * 4 + 3] *= (value / 255) * opacity_factor;
+				}
+			}
+			down_layer.ctx.putImageData(target, 0, 0);
+		} else {
+			down_layer.expandTo(this.offset, this.offset.slice().V2_add(this.width, this.height));
+			down_layer.ctx.imageSmoothingEnabled = false;
+			down_layer.ctx.filter = `opacity(${this.opacity / 100})`;
+			down_layer.ctx.globalCompositeOperation = Painter.getBlendModeCompositeOperation(this.blend_mode);
 
-		down_layer.ctx.drawImage(this.canvas, this.offset[0] - down_layer.offset[0], this.offset[1] - down_layer.offset[1], this.scaled_width, this.scaled_height);
+			down_layer.ctx.drawImage(this.canvas, this.offset[0] - down_layer.offset[0], this.offset[1] - down_layer.offset[1], this.scaled_width, this.scaled_height);
 
-		down_layer.ctx.filter = '';
-		down_layer.ctx.globalCompositeOperation = 'source-over';
+			down_layer.ctx.filter = '';
+			down_layer.ctx.globalCompositeOperation = 'source-over';
+		}
 
 		let index = this.texture.layers.indexOf(this);
 		this.texture.layers.splice(index, 1);
