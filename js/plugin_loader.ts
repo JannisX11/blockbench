@@ -574,6 +574,7 @@ export class Plugin {
 			}
 		} else {
 			this.#runCode(file.content as string);
+			Plugins.source_cache.save(this.id, file.content as string);
 			if (first && scope.oninstall) {
 				scope.oninstall()
 			}
@@ -581,6 +582,24 @@ export class Plugin {
 		this.installed = true;
 		this.#remember();
 		Plugins.sort();
+	}
+	async loadFromCache(source: PluginSource, path = '') {
+		let cached = await Plugins.source_cache.get(this.id);
+		if (!cached) {
+			Plugins.installed.remove(Plugins.installed.find(installation => installation.id == this.id));
+			StateMemory.save('installed_plugins');
+			return this;
+		}
+		Plugins.registered[this.id] = this;
+		Plugins.all.safePush(this);
+		this.source = source;
+		this.path = path;
+		this.tags.safePush(source == 'url' ? 'Remote' : 'Local');
+		this.#runCode(cached);
+		this.installed = true;
+		this.#remember();
+		Plugins.sort();
+		return this;
 	}
 	async loadFromURL(url: string, first: boolean = false) {
 		if (first) {
@@ -600,6 +619,12 @@ export class Plugin {
 		let content = await this.#runPluginFile(url).catch(async (error) => {
 			if (isApp) {
 				await this.load();
+			} else {
+				let cached = await Plugins.source_cache.get(this.id);
+				if (cached) {
+					this.#runCode(cached);
+					return cached;
+				}
 			}
 			console.error(error);
 		})
@@ -612,6 +637,9 @@ export class Plugin {
 			this.#remember()
 			Plugins.sort()
 			// Save
+			if (!isApp) {
+				Plugins.source_cache.save(this.id, content);
+			}
 			if (isApp) {
 				await new Promise((resolve, reject) => {
 					let file = fs.createWriteStream(Plugins.path+this.id+'.js');
@@ -1208,6 +1236,11 @@ export async function loadInstalledPlugins() {
 				if (isApp && fs.existsSync(installation.path)) {
 					var instance = new Plugin(installation.id, {disabled: installation.disabled});
 					install_promises.push(instance.loadFromFile({path: installation.path, name: installation.path, content: ''}, false));
+					load_counter++;
+					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
+				} else if (!isApp) {
+					let cached_instance = new Plugin(installation.id, {disabled: installation.disabled, version: installation.version});
+					install_promises.push(cached_instance.loadFromCache('file', installation.path));
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
 				} else {
