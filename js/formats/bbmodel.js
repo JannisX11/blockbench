@@ -306,9 +306,11 @@ var codec = new Codec('project', {
 		}
 
 		let collections = [];
-		for (let collection of Collection.all) {
-			let copy = collection.getSaveCopy();
-			collections.push(copy);
+		if (!options.collection_only) {
+			for (let collection of Collection.all) {
+				let copy = collection.getSaveCopy();
+				collections.push(copy);
+			}
 		}
 		if (collections.length) model.collections = collections;
 
