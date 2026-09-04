@@ -589,6 +589,24 @@ export const Painter = {
 		let {element, offset} = Painter.current;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
 
+		// UV panel doesn't set element
+		// Look up element from click position
+		if (!element && UVEditor) {
+			let hit = UVEditor.findFaceAtUV(texture, x, y, uvFactorX, uvFactorY);
+			if (hit) {
+				if (fill_mode === 'face' || fill_mode === 'element') {
+					Painter.current.element = hit.element;
+					Painter.current.face = hit.faceKey;
+					element = hit.element;
+				} else if (fill_mode === 'color' || fill_mode === 'color_connected') {
+					let r = hit.region;
+					rect = [r.minX, r.minY, r.maxX, r.maxY];
+					w = r.maxX - r.minX;
+					h = r.maxY - r.minY;
+				}
+			}
+		}
+
 		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
 			ctx.globalAlpha = b_opacity;
 			ctx.fillStyle = 'white';
