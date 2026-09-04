@@ -574,6 +574,7 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {
 			modes: ['edit'],
+			selected: {mesh: false, spline: false},
 			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected())
 		},
 		click: function () {

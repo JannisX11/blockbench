@@ -328,13 +328,18 @@ BARS.defineActions(function() {
 		icon: 'upload',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], features: ['splines'], selected: {spline: true}, method: () => {
-			let spline = SplineMesh.selected[0];
-			let selectedHandles = spline.getSelectedHandles(true);
-			let isFirstSelected = selectedHandles.includes(spline.getFirstHandle().key);
-			let isLastSelected = selectedHandles.includes(spline.getLastHandle().key);
-			return (spline && selectedHandles.length && (isFirstSelected || isLastSelected));
-		}},
+		condition: {
+			modes: ['edit'],
+			features: ['splines'],
+			selected: {spline: true, mesh: false, armature_bone: false},
+			method: () => {
+				let spline = SplineMesh.selected[0];
+				let selectedHandles = spline.getSelectedHandles(true);
+				let isFirstSelected = selectedHandles.includes(spline.getFirstHandle().key);
+				let isLastSelected = selectedHandles.includes(spline.getLastHandle().key);
+				return (spline && selectedHandles.length && (isFirstSelected || isLastSelected));
+			}
+		},
 		click() {
 			function runEdit(amended, extend = getSpatialInterval()) {
 				Undo.initEdit({elements: SplineMesh.selected, selection: true}, amended);
