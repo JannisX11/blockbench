@@ -165,10 +165,6 @@ export const Painter = {
 				}
 				if (BarItems.brush_lock_mode.value == 'element' && Painter.current.element !== data.element) return;
 				if (BarItems.brush_lock_mode.value == 'face') return;
-				if (BarItems.brush_lock_mode.value == 'selected_faces') {
-					let selected_faces = UVEditor.getSelectedFaces(data.element);
-					if (selected_faces && !selected_faces.includes(data.face)) return;
-				}
 				Painter.current.x = x
 				Painter.current.y = y
 				Painter.current.face = data.face
@@ -2015,8 +2011,7 @@ export const Painter = {
 
 		Painter.current.render_target_snapshot ??= new RenderTargetSnapshot(preview).takeSnapshot(objects);
 		let snapshot = Painter.current.render_target_snapshot;
-		let face_keys_map = {};
-		let textures_map = {};
+		let element_caches = {};
 
 		const pixel_intensities = {};
 		const pixel_hits = {};
@@ -2034,10 +2029,10 @@ export const Painter = {
 			);
 			if (!intersect) return;
 
-			face_keys_map[intersect.face_index] ??= getFaceKeyFromIndex(elements[0], intersect.face_index);
-			let fkey = face_keys_map[intersect.face_index];
-			textures_map[fkey] ??= elements[objects.indexOf(intersect.object)].faces[fkey]?.getTexture() || 0;
-			let hit_texture = textures_map[fkey];
+			let element = OutlinerElement.uuids[intersect.object.name];
+			let cache_data = element_caches[element.uuid] ??= {textures_map: {}, face_keys_map: {}};
+			let fkey = cache_data.face_keys_map[intersect.face_index] ??= getFaceKeyFromIndex(element, intersect.face_index);
+			let hit_texture = cache_data.textures_map[fkey] ??= element.faces[fkey]?.getTexture() || 0;
 
 			if (hit_texture != texture) return;
 

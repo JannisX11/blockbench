@@ -1058,6 +1058,7 @@ export class Preview {
 				Toolbox.selected.selectElements &&
 				Modes.selected instanceof Mode &&
 				Modes.selected.selectElements &&
+				!(Modes.paint && (BarItems.brush_lock_mode as BarSelect).value == 'selected_faces') &&
 				(data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))
 			) {
 				Undo.initSelection();
