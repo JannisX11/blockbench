@@ -2920,6 +2920,11 @@ Interface.definePanels(function() {
 				}
 			},
 			watch: {
+				elements() {
+					Vue.nextTick(() => {
+						this.updateSize(); // Update size to reflect different UI parts being visible depending on selection
+					})
+				},
 				texture() {
 					this.uv_resolution.splice(0, 2,
 						UVEditor.getUVWidth(),
