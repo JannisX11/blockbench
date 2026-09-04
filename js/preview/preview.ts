@@ -2,7 +2,7 @@ import { THREE } from '../lib/libs';
 import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
-import { toSnakeCase } from '../util/util';
+import { getFaceKeyFromIndex, toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
 import { Pressing } from '../misc';
 import { CSS3DRenderer } from '../lib/CSS3DRenderer';
@@ -644,43 +644,12 @@ export class Preview {
 		let intersect_object = intersect.object;
 
 		if (intersect_object.isElement) {
-			let element, face;
+			let element: OutlinerElement;
+			let face: string;
 			let rejected_intersects = [];
 			while (true) {
-				element = OutlinerNode.uuids[intersect_object.name];
-				if (element.getTypeBehavior('cube_faces')) {
-					if (element.getTypeBehavior('select_faces')) {
-						// @ts-expect-error
-						face = intersect_object.geometry.faces[Math.floor(intersects[0].faceIndex / 2)];
-					} else {
-						face = Object.keys(element.faces)[0];
-					}
-				} else if (element instanceof Mesh) {
-					let index = intersects[0].faceIndex;
-					for (let key in element.faces) {
-						let {vertices} = element.faces[key];
-						if (vertices.length < 3) continue;
-
-						if (index == 0 || (index == 1 && vertices.length == 4)) {
-							face = key;
-							break; 
-						}
-						if (vertices.length == 3) index -= 1;
-						if (vertices.length == 4) index -= 2;
-					}
-				} else if (element instanceof SplineMesh) {
-					let index = intersects[0].faceIndex;
-					for (let key in element.faces) {
-						let {vertices} = element.faces[key];
-
-						if (index == 0 || (index == 1 && vertices.length == 4)) {
-							face = key;
-							break; 
-						}
-						
-						index -= 2;
-					}
-				}
+				element = OutlinerNode.uuids[intersect_object.name] as OutlinerElement;
+				face = getFaceKeyFromIndex(element, intersects[0].faceIndex);
 
 				if (Modes.paint && (Toolbox.selected.id == 'color_picker' || (Painter.lock_alpha && Settings.get('paint_through_transparency')))) {
 					let texture = element.faces[face].getTexture();
