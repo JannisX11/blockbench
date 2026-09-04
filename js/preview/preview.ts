@@ -1092,7 +1092,7 @@ export class Preview {
 				(data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))
 			) {
 				Undo.initSelection();
-				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh' && data.element.type != 'spline') {
+				if (Toolbox.selected.selectFace && data.face && data.element.type != 'mesh' && data.element.type != 'spline' && !Modes.paint) {
 					let face_selection = UVEditor.getSelectedFaces(data.element, true);
 					if (data.element.selected && (multi_select || group_select)) {
 						face_selection.safePush(data.face);
