@@ -164,6 +164,10 @@ export const Painter = {
 				}
 				if (BarItems.brush_lock_mode.value == 'element' && Painter.current.element !== data.element) return;
 				if (BarItems.brush_lock_mode.value == 'face') return;
+				if (BarItems.brush_lock_mode.value == 'selected_faces') {
+					let selected_faces = UVEditor.getSelectedFaces(data.element);
+					if (selected_faces && !selected_faces.includes(data.face)) return;
+				}
 				Painter.current.x = x
 				Painter.current.y = y
 				Painter.current.face = data.face
@@ -194,6 +198,12 @@ export const Painter = {
 		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
 		if (!Painter.current.uv_islands[fkey]) {
 			Painter.current.uv_islands[fkey] = face.getUVIsland(48);
+			if (BarItems.brush_lock_mode.value == 'selected_faces') {
+				let selected_faces = UVEditor.getSelectedFaces(face.element);
+				Painter.current.uv_islands[fkey] = Painter.current.uv_islands[fkey].filter(fkey => {
+					return selected_faces.includes(fkey);
+				})
+			}
 		}
 		return Painter.current.uv_islands[fkey];
 	},
@@ -430,6 +440,10 @@ export const Painter = {
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
 		let use_screen_projection = Painter.current.use_screen_projection;
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y && !use_screen_projection) return;
+		if (BarItems.brush_lock_mode.value == 'selected_faces' && Painter.current.element) {
+			let selected_faces = UVEditor.getSelectedFaces(Painter.current.element);
+			if (selected_faces && !selected_faces.includes(Painter.current.face)) return;
+		}
 		Painter.currentPixel = [x, y];
 		Painter.brushChanges = true;
 		if (!is_opposite) {
@@ -3434,6 +3448,7 @@ BARS.defineActions(function() {
 		options: {
 			none: true,
 			element: true,
+			selected_faces: true,
 			face: true
 		}
 	})
