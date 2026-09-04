@@ -1951,6 +1951,27 @@ export const UVEditor = {
 			})
 			return arr;
 		}}
+	]),
+	menu_image_editor: new Menu([
+		'screenshot_model',
+		new MenuSeparator('references'),
+		'add_reference_image',
+		'reference_image_from_clipboard',
+		'toggle_all_reference_images',
+		'edit_reference_images',
+		'preview_scene',
+		'preview_models',
+		new MenuSeparator('interface'),
+		{name: 'menu.view.zoom', id: 'zoom', icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
+		'painting_grid',
+		'image_editor_checkerboard',
+		new MenuSeparator('copypaste'),
+		'copy',
+		'paste',
 	])
 }
 
@@ -2679,7 +2700,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		expand_button: true,
 		condition: {modes: ['edit', 'paint'], method: () => !Format.image_editor},
-		display_condition: () => UVEditor.hasElements() || Modes.paint,
+		display_condition: () => UVEditor.hasElements() || TextureMesh.selected.length > 0 || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -2920,7 +2941,10 @@ Interface.definePanels(function() {
 				},
 				updateTexture() {
 					let texture;
-					if (Format.single_texture) {
+					let texture_meshes = TextureMesh.selected;
+					if (texture_meshes.length && !UVEditor.getMappableElements().length) {
+						texture = texture_meshes[0].getTexture();
+					} else if (Format.single_texture) {
 						texture = Texture.getDefault();
 					} else {
 						let elements = UVEditor.getMappableElements();
@@ -3126,8 +3150,11 @@ Interface.definePanels(function() {
 				},
 				onPointerDown(event) {
 					if (this.touches_count) return;
+
 					setActivePanel('uv');
 					if (Menu.open) Menu.open.hide();
+					if (ReferenceImageMode.active) ReferenceImageMode.deactivate();
+
 					UVEditor.total_zoom_offset = [6, 6];
 					if (event.which === 2 ||
 						(Keybinds.extra.preview_drag.keybind.isTriggered(event) && event.which != 1)
@@ -3352,7 +3379,11 @@ Interface.definePanels(function() {
 				contextMenu(event) {
 					setActivePanel('uv');
 					if (Blockbench.hasFlag('no_context_menu')) return;
-					UVEditor.menu.open(event);
+					if (Format.image_editor) {
+						UVEditor.menu_image_editor.open(event);
+					} else {
+						UVEditor.menu.open(event);
+					}
 				},
 				selectTextureMenu(event) {
 					let menu = new Menu(Texture.all.map(tex => {
@@ -4939,14 +4970,17 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
+						<div id="uv_background" :style="{
+							padding: (getFrameMargin()[1]) + 'px ' + (getFrameMargin()[0]) + 'px',
+							width: (inner_width + 8 + getFrameMargin()[0]*2)+'px',
+							height: (inner_height + 8 + getFrameMargin()[1]*2)+'px',
+						}"></div>
 						<div id="uv_frame" ref="frame"
 							v-if="texture !== null"
 							@click.stop="reverseSelect($event)"
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true), '--inner-width': inner_width + 'px', '--inner-height': inner_height + 'px'}"
 						>
-							<div id="uv_frame_spacer" :style="{left: (inner_width+getFrameMargin()[0])+'px', top: (inner_height+getFrameMargin()[1])+'px'}"></div>
-
 							<template v-for="element in getDisplayedUVElements()">
 
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
@@ -5155,6 +5189,11 @@ Interface.definePanels(function() {
 				</div>
 			`
 		}
+	})
+	Object.defineProperty(UVEditor.panel, 'icon', {
+		get() {
+			return Modes.paint ? 'note_alt' : 'photo_size_select_large'
+		},
 	})
 	UVEditor.panel.on('move_to', (data) => {
 		if (!Blockbench.isMobile) {

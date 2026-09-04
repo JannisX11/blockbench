@@ -105,7 +105,7 @@ export class Codec extends EventSystem {
 	/**
 	 * Creates a new codec
 	 * @param id Codec ID
-	 * @param options Codec options
+	 * @param data Codec options
 	 */
 	constructor(id: string, data: CodecOptions = {}) {
 		super();

@@ -98,6 +98,20 @@ export class ArmatureBone extends OutlinerElement {
 			weights[weightkey] = weight;
 		}
 	}
+	_upgradeVertexWeights() {
+		let meshes = this.getArmature()?.children.filter(c => c instanceof Mesh);
+		if (!meshes || meshes.length == 0) return;
+		for (let key of Object.keys(this.vertex_weights)) {
+			if (key.length > 6) continue;
+			let weight = this.vertex_weights[key];
+			for (let mesh of meshes) {
+				if (mesh.vertices[key]) {
+					this.setVertexWeight(mesh, key, weight);
+				}
+			}
+			delete this.vertex_weights[key];
+		}
+	}
 	init(): this {
 		super.init();
 		if (!this.mesh || !this.mesh.parent) {
@@ -218,8 +232,8 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		this.preview_controller.updateTransform(this);
 	}
-	setColor(index) {
-		this.color = index;
+	setColor(color: number) {
+		this.color = color;
 		this.preview_controller.updateFaces(this);
 		let armature = this.getArmature();
 		// Update vertex colors
@@ -243,17 +257,7 @@ export class ArmatureBone extends OutlinerElement {
 		return copy;
 	}
 	getUndoCopy(): any {
-		let copy = {
-			isOpen: this.isOpen,
-			uuid: this.uuid,
-			type: this.type,
-			name: this.name,
-			children: this.children.map(c => c.uuid),
-		};
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(copy, this);
-		}
-		return copy;
+		return this.getSaveCopy();
 	}
 	getChildlessCopy(keep_uuid: boolean = false) {
 		let base_bone = new ArmatureBone({name: this.name}, keep_uuid ? this.uuid : null);

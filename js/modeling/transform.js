@@ -704,16 +704,30 @@ export function rotateOnAxis(modify, axis, slider) {
 			let verts;
 			if (mesh_cond) verts = Project.mesh_selection[obj.uuid].vertices
 			if (spline_cond) verts = Project.spline_selection[obj.uuid].vertices
-			verts.forEach(key => {
-				vector.fromArray(obj.vertices[key]);
+			verts.forEach(vkey => {
+				vector.fromArray(obj.vertices[vkey]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);
 				vector.add(local_pivot);
-				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+				obj.vertices[vkey].V3_set(vector.x, vector.y, vector.z);
 				if (obj instanceof SplineMesh) {
-					obj.applyHandleModeOnVertex(key);
+					obj.applyHandleModeOnVertex(vkey);
 				}
 			})
+			if (obj instanceof Mesh) {
+				ProportionalEdit.editVertices(obj, (vkey, blend) => {
+					let initial = obj.vertices[vkey].slice();
+					vector.fromArray(initial);
+					vector.sub(local_pivot);
+					vector.applyQuaternion(q);
+					vector.add(local_pivot);
+					obj.vertices[vkey].V3_set(
+						Math.lerp(initial[0], vector.x, blend),
+						Math.lerp(initial[1], vector.y, blend),
+						Math.lerp(initial[2], vector.z, blend)
+					);
+				})
+			}
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
@@ -1065,6 +1079,7 @@ BARS.defineActions(function() {
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
 			}
 		})
+		if (ArmatureBone.hasSelected()) updateNslideValues();
 	}
 	new NumSlider('slider_size_x', {
 		name: tl('action.slider_size', ['X']),
@@ -1855,7 +1870,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => Format.java_cube_shading_properties && Modes.edit,
+		condition: () => Format.java_cube_shading_properties && !Format.java_cube_shade_direction_override && Modes.edit,
 		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {

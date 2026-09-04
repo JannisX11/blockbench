@@ -1,7 +1,9 @@
 import { ModelFormat } from "../../io/format"
 import { getTexturesById } from "../../texturing/textures"
+import { convertTextureMeshesToCubes, GeneratedItemMesh } from "./../../outliner/types/texture_mesh"
 import { LoadOptions } from "./../../io/codec"
 
+const ITEM_LAYER_LIMIT = 5
 const ITEM_PARENTS = [
 	'item/generated', 	'minecraft:item/generated',
 	'item/handheld', 	'minecraft:item/handheld',
@@ -27,6 +29,76 @@ interface CompileOptions {
 	prevent_dialog?: boolean
 	raw?: boolean
 }
+const resolved_conflicts = new WeakSet<object>();
+
+function removeGeneratedItemPlaceholders() {
+	let placeholders = GeneratedItemMesh.all.slice();
+	if (!placeholders.length) return;
+	Undo.initEdit({elements: placeholders, outliner: true, selection: true});
+	placeholders.forEach(placeholder => placeholder.remove());
+	Undo.finishEdit('Remove generated item model', {elements: [], outliner: true, selection: true});
+	updateSelection();
+}
+
+function hasOwnElements() {
+	return !!Outliner.elements.find(element => element instanceof GeneratedItemMesh == false);
+}
+
+function resolveGeneratedItemConflict() {
+	if (!GeneratedItemMesh.all.length || !hasOwnElements()) return;
+	if (resolved_conflicts.has(Project)) return;
+	resolved_conflicts.add(Project);
+
+	let project = Project;
+	Blockbench.showMessageBox({
+		translateKey: 'generated_item_model_conflict',
+		icon: 'wallpaper',
+		width: 512,
+		commands: {
+			convert: {
+				text: 'message.generated_item_model_conflict.convert',
+				description: 'message.generated_item_model_conflict.convert.desc',
+				icon: 'eject'
+			},
+			remove: {
+				text: 'message.generated_item_model_conflict.remove',
+				description: 'message.generated_item_model_conflict.remove.desc',
+				icon: 'delete'
+			},
+			keep: {
+				text: 'message.generated_item_model_conflict.keep',
+				description: 'message.generated_item_model_conflict.keep.desc',
+				icon: 'visibility'
+			}
+		},
+		buttons: ['dialog.cancel'],
+		cancel: 0
+	}, result => {
+		if (result == 'convert') {
+			convertTextureMeshesToCubes(GeneratedItemMesh.all.slice());
+		} else if (result == 'remove') {
+			removeGeneratedItemPlaceholders();
+		} else if (result != 'keep') {
+			resolved_conflicts.delete(project);
+			if (Project == project) Undo.undo();
+		}
+	})
+}
+
+function confirmGeneratedItemConversion(placeholders: GeneratedItemMesh[]) {
+	Blockbench.showMessageBox({
+		translateKey: 'convert_generated_item_model',
+		icon: 'eject',
+		width: 512,
+		buttons: ['message.convert_generated_item_model.confirm', 'dialog.cancel'],
+		confirm: 0,
+		cancel: 1
+	}, result => {
+		if (result != 0) return;
+		convertTextureMeshesToCubes(placeholders);
+	})
+}
+
 const codec = new Codec('java_block', {
 	name: 'Java Block/Item Model',
 	remember: true,
@@ -65,13 +137,13 @@ const codec = new Codec('java_block', {
 					element.to[i] += s.inflate;
 				}
 			}
-			if (s.shade === false) {
+			if (Format.java_cube_shading_properties && !Format.java_cube_shade_direction_override && s.shade === false) {
 				element.shade = false
 			}
 			if (s.light_emission) {
 				element.light_emission = s.light_emission;
 			}
-			if (s.shade_direction_override) {
+			if (Format.java_cube_shade_direction_override && s.shade_direction_override) {
 				element.shade_direction_override = s.shade_direction_override;
 			}
 			if (!s.rotation.allEqual(0) || (!s.origin.allEqual(0) && settings.java_export_pivots.value)) {
@@ -344,6 +416,9 @@ const codec = new Codec('java_block', {
 		if (!import_to_current_project && typeof model.format_version == 'string') {
 			Project.java_block_version = model.format_version;
 		}
+		if (!Format.java_cube_shade_direction_override && model.elements instanceof Array && model.elements.find(element => element.shade_direction_override)) {
+			Project.java_block_version = '26.3';
+		}
 
 		//Load
 		if (typeof (model.credit || model.__comment) == 'string') Project.credit = (model.credit || model.__comment);
@@ -420,6 +495,15 @@ const codec = new Codec('java_block', {
 			model.elements.forEach((obj: ElementTemplate) => {
 				let base_cube = new Cube(obj);
 				if (obj.__comment) base_cube.name = obj.__comment
+
+				// Shade backwards compatibility
+				if (obj.shade == false && Format.java_cube_shade_direction_override) {
+					base_cube.shade_direction_override = 'up';
+				} else if (obj.shade_direction_override && !Format.java_cube_shade_direction_override) {
+					base_cube.shade = false;
+				}
+
+				// Rotation
 				if (typeof obj.rotation == 'object') {
 					if (obj.rotation.origin) {
 						base_cube.extend({origin: obj.rotation.origin});
@@ -583,22 +667,61 @@ const codec = new Codec('java_block', {
 		if (import_group) {
 			import_group.addTo().select()
 		}
+		let item_layers = [];
+		while (item_layers.length < ITEM_LAYER_LIMIT && typeof model.textures?.['layer' + item_layers.length] === 'string') {
+			item_layers.push('layer' + item_layers.length);
+		}
 		if (
 			!model.elements &&
 			ITEM_PARENTS.includes(model.parent) &&
-			model.textures &&
-			typeof model.textures.layer0 === 'string'
+			item_layers.length
 		) {
-			let texture_mesh = new TextureMesh({
-				name: model.textures.layer0,
-				rotation: [90, 180, 0],
-				local_pivot: [0, -7.5, -16],
-				locked: true,
-				export: false
-			}).init();
-			texture_mesh.locked = true;
+			let placeholders = item_layers.map(key => {
+				let layer_texture = texture_ids[key];
+				return new GeneratedItemMesh({
+					name: model.textures[key],
+					texture_name: layer_texture ? layer_texture.name : '',
+					rotation: [90, 180, 0],
+					local_pivot: [0, -7.5, -16],
+					export: false
+				}).init();
+			});
 
-			new_cubes.push(texture_mesh);
+			new_cubes.push(...placeholders);
+
+			let layer0 = texture_ids[item_layers[0]];
+			if (settings.dialog_generated_item_model.value && !hasOwnElements()) {
+				Blockbench.showMessageBox({
+					translateKey: 'generated_item_model',
+					icon: 'wallpaper',
+					width: 512,
+					commands: {
+						edit_texture: {
+							text: 'message.generated_item_model.edit_texture',
+							icon: 'draw',
+							condition: !!(layer0 && !layer0.error)
+						},
+						convert: {
+							text: 'message.generated_item_model.convert',
+							icon: 'eject',
+							condition: !!(layer0 && !layer0.error)
+						}
+					},
+					checkboxes: {
+						dont_show_again: {value: false, text: 'dialog.dontshowagain'}
+					},
+					buttons: ['dialog.close']
+				}, (result, checkboxes: any = {}) => {
+					if (checkboxes.dont_show_again) {
+						settings.dialog_generated_item_model.set(false);
+					}
+					if (result == 'edit_texture') {
+						layer0.openInImageEditor();
+					} else if (result == 'convert') {
+						confirmGeneratedItemConversion(placeholders);
+					}
+				})
+			}
 
 		} else if (!model.elements && model.parent) {
 			let can_open = isApp && !model.parent.replace(/\w+:/, '').startsWith('builtin');
@@ -793,6 +916,15 @@ Object.defineProperty(format, 'rotation_limit', {
 		}
 	}
 })
+Object.defineProperty(format, 'java_cube_shade_direction_override', {
+	get() {
+		try {
+			return VersionUtil.compare(Project.java_block_version, '>=', '26.3');
+		} catch (err) {
+			return false;
+		}
+	}
+})
 
 
 BARS.defineActions(function() {
@@ -832,3 +964,37 @@ declare global {
 		import_java_block_model: Action
 	}
 }
+
+Blockbench.on('finished_edit', () => {
+	if (Format?.id != 'java_block') return;
+	setTimeout(resolveGeneratedItemConflict, 0);
+})
+
+new ValidatorCheck('generated_item_model_elements', {
+	condition: () => Format?.id == 'java_block' && GeneratedItemMesh.all.length > 0,
+	update_triggers: ['finished_edit', 'undo', 'redo'],
+	run() {
+		if (!hasOwnElements()) return;
+		this.warn({
+			message: 'This model has a generated item model and its own elements. Minecraft only uses the elements, so the generated shape is ignored in game.',
+			buttons: [
+				{
+					name: 'Convert to Extruded Model',
+					icon: 'eject',
+					click() {
+						Validator.dialog.hide();
+						convertTextureMeshesToCubes(GeneratedItemMesh.all.slice());
+					}
+				},
+				{
+					name: 'Remove Generated Model',
+					icon: 'delete',
+					click() {
+						Validator.dialog.hide();
+						removeGeneratedItemPlaceholders();
+					}
+				}
+			]
+		})
+	}
+})

@@ -350,9 +350,9 @@ export class Toolbar {
 		let has_content = false;
 		this.children.forEach(function(item, i) {
 			if (typeof item === 'string') {
-				var last = content.find('> :last-child')
+				let last = content[0].lastElementChild;
 				let type = item[0] == '_' ? 'border' : (item[0] == '+' ? 'spacer' : 'linebreak');
-				if ((last.length === 0 || last.hasClass('toolbar_separator') || i == scope.children.length-1) && type !== 'spacer') {
+				if ((!last || last.classList.contains('toolbar_separator') || i == scope.children.length-1) && type !== 'spacer') {
 					return this;
 				}
 				let sep = separators[type].shift();
@@ -374,8 +374,8 @@ export class Toolbar {
 				}
 			}
 		})
-		var last = content.find('> :last-child')
-		if (last.length && last.hasClass('toolbar_separator') && !last.hasClass('spacer')) {
+		let last = content[0].lastElementChild;
+		if (last && last.classList.contains('toolbar_separator') && !last.classList.contains('spacer')) {
 			last.remove()
 		}
 		if (this.label_node) {

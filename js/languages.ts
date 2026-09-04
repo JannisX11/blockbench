@@ -1,3 +1,4 @@
+import ar from '../lang/ar.json';
 import cz from '../lang/cz.json';
 import de from '../lang/de.json';
 import en from '../lang/en.json';
@@ -21,26 +22,27 @@ import zh_tw from '../lang/zh_tw.json';
 
 type Language = Record<string, string>;
 export const data: Record<string, Language> = {
-	cz: cz,
-	de: de,
-	en: en,
-	es: es,
-	fr: fr,
-	it: it,
-	ja: ja,
-	ko: ko,
-	nl: nl,
-	pl: pl,
-	pt: pt,
-	pt_br: pt_br,
-	ru: ru,
-	sv: sv,
-	th: th,
-	tr: tr,
-	uk: uk,
-	vi: vi,
-	zh: zh,
-	zh_tw: zh_tw,
+	ar,
+	cz,
+	de,
+	en,
+	es,
+	fr,
+	it,
+	ja,
+	ko,
+	nl,
+	pl,
+	pt,
+	pt_br,
+	ru,
+	sv,
+	th,
+	tr,
+	uk,
+	vi,
+	zh,
+	zh_tw,
 };
 
 // @ts-ignore
@@ -95,6 +97,7 @@ export const Language = {
 	code: 'en',
 	options: {
 		en: 'English',
+		ar: 'العربية - Arabic',
 		cz: 'Čeština - Czech',
 		de: 'Deutsch - German',
 		es: 'Espa\u00F1ol - Spanish',

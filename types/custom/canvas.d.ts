@@ -237,6 +237,7 @@ declare namespace Canvas {
 	/**
 	 * Calculate the size of the model, in the currently displayed shape. Returns [width, height] in blockbench units
 	 */
+	function getModelBoundingBox(): THREE.Box3
 	function getModelSize(): [number, number]
 	function getSelectionBounds(): THREE.Box3
 }

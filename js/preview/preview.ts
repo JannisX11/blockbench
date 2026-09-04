@@ -10,7 +10,10 @@ import { PointerTarget } from '../interface/pointer_target';
 import { unselectInterface } from '../interface/interface';
 import { sameMeshEdge } from '../modeling/mesh/util';
 
-interface AnglePreset {
+const background_scene = new THREE.Scene();
+const background_camera = new THREE.PerspectiveCamera(45, 1, 1, 10);
+
+export interface AnglePreset {
 	name?: string
 	id?: string
 	color?: string
@@ -27,7 +30,7 @@ interface AnglePreset {
 	locked_angle?: number
 }
 
-type PreviewAnnotation = {
+export type PreviewAnnotation = {
 	node: HTMLElement
 	object: THREE.Object3D
 }
@@ -344,7 +347,7 @@ export class Preview {
 		//Controls
 		this.controls = new OrbitControls(this.camPers, this);
 		this.controls.minDistance = 1;
-		this.controls.maxDistance = 3960;
+		this.controls.maxDistance = settings.maximum_zoom_distance.value as number;
 		this.controls.enableKeys = false;
 		this.controls.zoomSpeed = (settings.viewport_zoom_speed.value as number) / 100 * 1.5;
 		this.controls.rotateSpeed = (settings.viewport_rotate_speed.value as number) / 100;
@@ -755,7 +758,26 @@ export class Preview {
 	}
 	render() {
 		this.controls.update();
-		this.renderer.render(Canvas.scene, this.camera);
+		let background = Canvas.scene.background as THREE.CubeTexture;
+		if (this.isOrtho && background?.isCubeTexture) {
+			Canvas.scene.background = null;
+			background_scene.background = background;
+			background_camera.aspect = this.width / this.height;
+			background_camera.fov = this.camPers.fov;
+			background_camera.updateProjectionMatrix();
+			background_camera.quaternion.copy(this.camera.quaternion);
+			try {
+				this.renderer.render(background_scene, background_camera);
+				this.renderer.autoClear = false;
+				this.renderer.render(Canvas.scene, this.camera);
+			} finally {
+				this.renderer.autoClear = true;
+				background_scene.background = null;
+				Canvas.scene.background = background;
+			}
+		} else {
+			this.renderer.render(Canvas.scene, this.camera);
+		}
 		if (this.css_renderer) {
 			this.css_renderer.render(Canvas.scene, this.camera, this == Preview.selected);
 		}
@@ -1797,7 +1819,7 @@ export class Preview {
 			]
 		}
 
-		unselectAllElements()
+		unselectAllElements();
 		Outliner.elements.forEach((element) => {
 			let isSelected: boolean;
 			let select_in_object_mode = (element instanceof Mesh == false || selection_mode == 'object') && (element instanceof SplineMesh == false || spline_selection_mode == "object");
@@ -1805,10 +1827,19 @@ export class Preview {
 				isSelected = true
 
 			} else if (element.visibility != false && element.preview_controller?.viewportRectangleOverlap) {
-				if (this.selection.click_target?.element == element) {
+				if (BarItems.selection_mode.value != 'object' && Format.meshes && this.selection.old_selected.some(el => el instanceof Mesh)) {
+					// Mesh component selection
+					if (element instanceof Mesh == false || !this.selection.old_selected.includes(element)) {
+						isSelected = false;
+					} else {
+						isSelected = element.preview_controller.viewportRectangleOverlap(
+							element,
+							{projectPoint, extend_selection, rect_start, rect_end, preview: this}
+						);
+					}
+
+				} else if (this.selection.click_target?.element == element) {
 					isSelected = true;
-				} else if (BarItems.selection_mode.value != 'object' && Format.meshes && (element instanceof Mesh == false) && this.selection.old_selected.some(el => el instanceof Mesh)) {
-					isSelected = false;
 				} else {
 					isSelected = element.preview_controller.viewportRectangleOverlap(
 						element,
@@ -2628,6 +2659,15 @@ BARS.defineActions(function() {
 	})
 	new Toggle('uv_checkerboard', {
 		icon: 'fas.fa-chess-board',
+		condition: () => !Format.image_editor,
+		category: 'view',
+		linked_setting: 'uv_checkerboard'
+	})
+	new Toggle('image_editor_checkerboard', {
+		name: 'action.image_editor_checkerboard',
+		description: 'action.image_editor_checkerboard.desc',
+		icon: 'fas.fa-chess-board',
+		condition: () => Format.image_editor,
 		category: 'view',
 		linked_setting: 'uv_checkerboard'
 	})

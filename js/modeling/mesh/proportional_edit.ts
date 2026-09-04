@@ -95,7 +95,7 @@ export const ProportionalEdit = {
 			if (selected_vertices.includes(vkey)) continue;
 	
 			let blend = ProportionalEdit.vertex_weights[mesh.uuid][vkey];
-			per_vertex(vkey, blend);
+			if (blend) per_vertex(vkey, blend);
 		}
 	}
 }

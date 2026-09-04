@@ -144,6 +144,15 @@ export namespace Filesystem {
 		}
 	}
 
+
+	// MARK: Image Source
+	let image_version = 0;
+	export function getImageSource(file: FileResult | string): string {
+		let source = typeof file == 'string' ? file : (file.content ?? file.path);
+		if (typeof source != 'string' || source.startsWith('data:')) return source as string;
+		if (!isApp) return source;
+		return source.replace(/#/g, '%23').replace(/\?\d+$/, '') + '?' + (++image_version);
+	}
 	
 	// MARK: Read
 	export function readFile(files: string[] | FileList, options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {

@@ -224,7 +224,7 @@ onVueSetup(async function() {
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
 			viewed_format: null,
-			recent: isApp ? recent_projects : [],
+			recent: isApp ? recent_projects : [] as RecentProjectData[],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
 			redacted: tl('generic.redacted'),
@@ -280,14 +280,17 @@ onVueSetup(async function() {
 				})
 			},
 			updateThumbnails(model_paths?: string[]) {
-				this.recent.forEach(project => {
+				let thumbnail_dir = PathModule.join(app.getPath('userData'), 'thumbnails');
+				let thumbnail_dir_files = fs.readdirSync(thumbnail_dir);
+				this.recent.forEach((project: RecentProjectData) => {
 					if (model_paths && !model_paths.includes(project.path)) return;
 					let hash = project.path.hashCode().toString().replace(/^-/, '0');
-					let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-					if (!fs.existsSync(path)) {
-						delete this.thumbnails[project.path];
-					} else {
+					let file_name = `${hash}.png`;
+					if (thumbnail_dir_files.includes(file_name)) {
+						let path = PathModule.join(thumbnail_dir, file_name);
 						this.thumbnails[project.path] = path + '?' + Math.round(Math.random()*255);
+					} else {
+						delete this.thumbnails[project.path];
 					}
 				})
 				this.$forceUpdate();
@@ -579,7 +582,7 @@ onVueSetup(async function() {
 									@click="openProject(project, $event)"
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
-									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" />
+									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" loading="lazy" />
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">

@@ -274,6 +274,8 @@ var codec = new Codec('project', {
 				}
 				filterList(model.outliner);
 			}
+		} else {
+			model.skin_pose_data = Codecs.skin_model.getPoseData();
 		}
 
 		function handleAssetPath(object, key, relative_key) {
@@ -316,6 +318,13 @@ var codec = new Codec('project', {
 				let a = animation.getUndoCopy({absolute_paths: options.absolute_paths}, true);
 				model.animations.push(a);
 				handleAssetPath(a, 'path');
+				if (a.animators?.effects?.keyframes) {
+					for (let kf of a.animators.effects.keyframes) {
+						for (let data_point of kf.data_points) {
+							handleAssetPath(data_point, 'file');
+						}
+					}
+				}
 			})
 		}
 		if (AnimationController.all.length) {
@@ -475,7 +484,7 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
-			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose);
+			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose, model.skin_pose_data);
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();
@@ -572,6 +581,11 @@ var codec = new Codec('project', {
 		if (model.history) {
 			Undo.history = model.history.slice()
 			Undo.index = model.history_index;
+		}
+		if (ArmatureBone.all.length) {
+			try {
+				ArmatureBone.all.forEach(bone => bone._upgradeVertexWeights());
+			} catch (err) {}
 		}
 		Canvas.updateAllBones()
 		Canvas.updateAllPositions()

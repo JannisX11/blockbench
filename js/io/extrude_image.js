@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 //Extruder
 export const Extruder = {
 	dialog: new Dialog({
@@ -21,8 +22,15 @@ export const Extruder = {
 				type: 'select',
 				options: {
 					upright: 'dialog.extrude.orientation.upright',
+					upright_z: 'dialog.extrude.orientation.upright_z',
 					flat: 'dialog.extrude.orientation.flat',
 				}
+			},
+			depth: {
+				label: 'dialog.extrude.depth',
+				type: 'number',
+				value: 1,
+				min: 0
 			},
 			scan_tolerance: {
 				label: 'dialog.extrude.opacity',
@@ -38,13 +46,25 @@ export const Extruder = {
 			Extruder.startConversion(formResult);
 		}
 	}),
+	getPixelSize() {
+		return (Format.cube_size_limiter && !Format.integer_size) ? 16 / Extruder.width : 1;
+	},
 	drawImage(file) {
+		Extruder.image_file = file;
+		Extruder.source_texture = null;
+		Extruder.loadSource(Filesystem.getImageSource(file));
+	},
+	drawTexture(texture) {
+		Extruder.image_file = null;
+		Extruder.source_texture = texture;
+		Extruder.loadSource(texture.source);
+	},
+	loadSource(source) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
 		var ctx = Extruder.canvas.getContext('2d')
 
 		Extruder.ext_img = new Image()
-		Extruder.ext_img.src = isApp ? file.path.replace(/#/g, '%23') : file.content
-		Extruder.image_file = file
+		Extruder.ext_img.src = source
 		Extruder.ext_img.style.imageRendering = 'pixelated'
 		Extruder.canvas.style.imageRendering = 'pixelated'
 
@@ -57,6 +77,7 @@ export const Extruder = {
 			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
 			Extruder.width = Extruder.ext_img.naturalWidth;
 			Extruder.height = Extruder.ext_img.naturalHeight;
+			Extruder.dialog.setFormValues({depth: Extruder.getPixelSize()});
 
 			if (Extruder.width > 128) return;
 
@@ -76,178 +97,196 @@ export const Extruder = {
 			ctx.stroke();
 		}
 	},
-	startConversion(formResult) {
-		var scan_mode = formResult.mode;
-		var pixel_opacity_tolerance = Math.round(formResult.scan_tolerance);
-
-		//Undo
-		Undo.initEdit({elements: Outliner.selected, outliner: true, textures: []})
-		var texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
-
-		//var ext_x, ext_y;
-		var ctx = Painter.getCanvas(texture).getContext('2d')
-
-		var c = document.createElement('canvas')
-		var ctx = c.getContext('2d');
-		c.width = Extruder.ext_img.naturalWidth;
-		c.height = Extruder.ext_img.naturalHeight;
-		ctx.drawImage(Extruder.ext_img, 0, 0)
-		var image_data = ctx.getImageData(0, 0, c.width, c.height).data
-		texture.uv_width = c.width;
-		texture.uv_height = c.height;
-
-		var finished_pixels = {}
-		var cube_nr = 0;
-		var cube_name = texture.name.split('.')[0]
-		Outliner.selected.empty()
-
-		//Scale Index
-		var scale_i = 1;
-		if (Format.cube_size_limiter && !Format.integer_size) {
-			scale_i = 16 / Extruder.width;
-		}
-		let uv_scale_x = Project.getUVWidth(texture) / Extruder.width;
-		let uv_scale_y = Project.getUVHeight(texture) / Extruder.height;
+	scanAreas(image_data, width, height, options = {}) {
+		let mode = options.mode || 'areas';
+		let tolerance = Math.round(options.scan_tolerance ?? 255);
+		let finished_pixels = {};
+		let areas = [];
 
 		function isOpaquePixel(px_x, px_y) {
-			var opacity = image_data[(px_x + ctx.canvas.width * px_y) * 4 + 3]
-			return Math.isBetween(px_x, 0, Extruder.width-1)
-				&& Math.isBetween(px_y, 0, Extruder.height-1)
-				&& opacity >= pixel_opacity_tolerance;
-		}
-		function finishPixel(x, y) {
-			if (finished_pixels[x] === undefined) {
-				finished_pixels[x] = {}
-			}
-			finished_pixels[x][y] = true
+			let opacity = image_data[(px_x + width * px_y) * 4 + 3];
+			return Math.isBetween(px_x, 0, width-1)
+				&& Math.isBetween(px_y, 0, height-1)
+				&& opacity >= tolerance;
 		}
 		function isPixelFinished(x, y) {
-			return (finished_pixels[x] !== undefined && finished_pixels[x][y] === true)
+			return (finished_pixels[x] !== undefined && finished_pixels[x][y] === true);
 		}
 
-		//Scanning
-		let ext_y = 0;
-		while (ext_y < Extruder.height) {
+		for (let y = 0; y < height; y++) {
+			for (let x = 0; x < width; x++) {
+				if (isPixelFinished(x, y) || !isOpaquePixel(x, y)) continue;
 
-			let ext_x = 0;
-			while (ext_x < Extruder.width) {
-				if (isPixelFinished(ext_x, ext_y) === false && isOpaquePixel(ext_x, ext_y) === true) {
-
-					//Search From New Pixel
-					var loop = true;
-					var rect = {x: ext_x, y: ext_y, x2: ext_x, y2: ext_y}
-					var safety_limit = 5000
-
-					//Expanding Loop
-					while (loop === true && safety_limit) {
-						var y_check, x_check, canExpandX, canExpandY;
-						//Expand X
-						if (scan_mode === 'areas' || scan_mode === 'lines') {
-							y_check = rect.y
-							x_check = rect.x2 + 1
-							canExpandX = true
-							while (y_check <= rect.y2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandX = false;
-								}
-								y_check += 1
-							}
-							if (canExpandX === true) {
-								rect.x2 += 1
-							}
-						} else {
-							canExpandX = false;
+				let rect = {x, y, x2: x, y2: y};
+				let loop = true;
+				let safety_limit = 5000;
+				while (loop && safety_limit) {
+					let can_expand_x = false;
+					let can_expand_y = false;
+					if (mode === 'areas' || mode === 'lines') {
+						can_expand_x = true;
+						for (let check = rect.y; check <= rect.y2; check++) {
+							if (!isOpaquePixel(rect.x2 + 1, check) || isPixelFinished(rect.x2 + 1, check)) can_expand_x = false;
 						}
-						//Expand Y
-						if (scan_mode === 'areas' || scan_mode === 'columns') {
-							x_check = rect.x
-							y_check = rect.y2 + 1
-							canExpandY = true
-							while (x_check <= rect.x2) {
-								//Check If Row is Free
-								if (isOpaquePixel(x_check, y_check) === false || isPixelFinished(x_check, y_check) === true) {
-									canExpandY = false
-								}
-								x_check += 1
-							}
-							if (canExpandY === true) {
-								rect.y2 += 1
-							}
-						} else {
-							canExpandY = false;
-						}
-						//Conclusion
-						if (canExpandX === false && canExpandY === false) {
-							loop = false;
-						}
-						safety_limit--;
+						if (can_expand_x) rect.x2++;
 					}
-
-					//Draw Rectangle
-					var draw_x = rect.x
-					var draw_y = rect.y
-					while (draw_y <= rect.y2) {
-						draw_x = rect.x
-						while (draw_x <= rect.x2) {
-							finishPixel(draw_x, draw_y)
-							draw_x++;
+					if (mode === 'areas' || mode === 'columns') {
+						can_expand_y = true;
+						for (let check = rect.x; check <= rect.x2; check++) {
+							if (!isOpaquePixel(check, rect.y2 + 1) || isPixelFinished(check, rect.y2 + 1)) can_expand_y = false;
 						}
-						draw_y++;
+						if (can_expand_y) rect.y2++;
 					}
-
-					// Generate cube
-					let from, to, faces;
-					if (formResult.orientation == 'upright')  {
-						from = [rect.x*scale_i, 16 - (rect.y2+1)*scale_i, 0];
-						to = [(rect.x2+1)*scale_i, 16 - rect.y*scale_i, scale_i];
-						faces = {
-							south:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-						};
-					} else {
-						from = [rect.x*scale_i, 0, rect.y*scale_i];
-						to = [(rect.x2+1)*scale_i, scale_i, (rect.y2+1)*scale_i];
-						faces = {
-							up:		{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							down:	{uv: [rect.x*uv_scale_x, (rect.y2+1)*uv_scale_y, (rect.x2+1)*uv_scale_x, rect.y*uv_scale_y], texture: texture},
-							north:	{uv: [(rect.x2+1)*uv_scale_x, rect.y*uv_scale_y, rect.x*uv_scale_x, (rect.y+1)*uv_scale_y], texture: texture},
-							south:	{uv: [rect.x*uv_scale_x, rect.y2*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture},
-							east:	{uv: [rect.x2*uv_scale_x, rect.y*uv_scale_y, (rect.x2+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 90},
-							west:	{uv: [rect.x*uv_scale_x, rect.y*uv_scale_y, (rect.x+1)*uv_scale_x, (rect.y2+1)*uv_scale_y], texture: texture, rotation: 270},
-						};
-					}
-					var current_cube = new Cube({
-						name: cube_name+'_'+cube_nr,
-						autouv: 0, box_uv: false,
-						from, to, faces
-					}).init();
-					Outliner.selected.push(current_cube);
-					cube_nr++;
+					if (!can_expand_x && !can_expand_y) loop = false;
+					safety_limit--;
 				}
-
-				ext_x++;
+				for (let fy = rect.y; fy <= rect.y2; fy++) {
+					for (let fx = rect.x; fx <= rect.x2; fx++) {
+						if (finished_pixels[fx] === undefined) finished_pixels[fx] = {};
+						finished_pixels[fx][fy] = true;
+					}
+				}
+				areas.push(rect);
 			}
-			ext_y++;
+		}
+		return areas;
+	},
+	startConversion(formResult) {
+		let groups = [];
+		Undo.initEdit({elements: Outliner.selected, groups, outliner: true, textures: []});
+		let texture = Extruder.source_texture;
+		let added_texture = !texture;
+		if (added_texture) {
+			texture = new Texture().fromFile(Extruder.image_file).add(false).fillParticle();
+			texture.uv_width = Extruder.ext_img.naturalWidth;
+			texture.uv_height = Extruder.ext_img.naturalHeight;
 		}
 
-		var group = new Group(cube_name).init().addTo()
-		Outliner.selected.forEach(function(s) {
-			s.addTo(group).init()
-		})
+		let pixel_size = Extruder.getPixelSize();
+		let result = Extruder.extrudeTexture(texture, Object.assign({
+			image: Extruder.ext_img,
+			pixel_size: [pixel_size, pixel_size],
+			depth: pixel_size,
+			group: texture.name.split('.')[0]
+		}, formResult));
+		if (result.group) groups.push(result.group);
 
 		Undo.finishEdit(
 			'Add extruded texture',
-			{elements: Outliner.selected, outliner: true, textures: [Texture.all[Texture.all.length-1]]}
+			{elements: Outliner.selected, groups, outliner: true, textures: added_texture ? [texture] : []}
 		)
+	},
+	extrudeTexture(texture, options = {}) {
+		let image = options.image || texture.img;
+		let canvas = document.createElement('canvas');
+		canvas.width = image.naturalWidth || texture.width;
+		canvas.height = image.naturalHeight || texture.height;
+		let ctx = canvas.getContext('2d');
+		ctx.drawImage(image, 0, 0);
+		let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+		let orientation = options.orientation || 'flat';
+		let mirror_x = options.mirror_x == true;
+		let pixel_size = options.pixel_size || [1, 1];
+		let depth = options.depth ?? 1;
+		let offset = options.offset || [0, 0, 0];
+		let origin = options.origin || [0, 0, 0];
+		let rotation_steps = (options.rotation || [0, 0, 0]).map(angle => ((Math.round(angle / 90) % 4) + 4) % 4);
+		let can_roll = (options.rotation || [0, 0, 0]).allAre(angle => Math.abs(angle % 90) < 0.0001);
+
+		let uv_scale_x = Project.getUVWidth(texture) / canvas.width;
+		let uv_scale_y = Project.getUVHeight(texture) / canvas.height;
+
+		let cubes = [];
+		for (let rect of Extruder.scanAreas(image_data, canvas.width, canvas.height, options)) {
+			let x1 = rect.x * uv_scale_x;
+			let x2 = (rect.x2 + 1) * uv_scale_x;
+			let y1 = rect.y * uv_scale_y;
+			let y2 = (rect.y2 + 1) * uv_scale_y;
+			let sprite_x1 = mirror_x ? x2 : x1;
+			let sprite_x2 = mirror_x ? x1 : x2;
+
+			let east_uv = [x2 - uv_scale_x, y1, x2, y2];
+			let west_uv = [x1, y1, x1 + uv_scale_x, y2];
+			if (mirror_x) [east_uv, west_uv] = [west_uv, east_uv];
+
+			let from, to, faces;
+			if (orientation == 'upright') {
+				from = [rect.x * pixel_size[0], 16 - (rect.y2+1) * pixel_size[1], 0];
+				to = [(rect.x2+1) * pixel_size[0], 16 - rect.y * pixel_size[1], depth];
+				faces = {
+					south:	{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					north:	{uv: [sprite_x2, y1, sprite_x1, y2], texture},
+					up:		{uv: [sprite_x1, y1, sprite_x2, y1 + uv_scale_y], texture},
+					down:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture},
+					east:	{uv: east_uv, texture},
+					west:	{uv: west_uv, texture},
+				};
+			} else if (orientation == 'upright_z') {
+				from = [0, 16 - (rect.y2+1) * pixel_size[1], 16 - (rect.x2+1) * pixel_size[0]];
+				to = [depth, 16 - rect.y * pixel_size[1], 16 - rect.x * pixel_size[0]];
+				faces = {
+					east:	{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					west:	{uv: [sprite_x2, y1, sprite_x1, y2], texture},
+					up:		{uv: [sprite_x1, y1, sprite_x2, y1 + uv_scale_y], texture, rotation: 270},
+					down:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture, rotation: 90},
+					north:	{uv: east_uv, texture},
+					south:	{uv: west_uv, texture},
+				};
+			} else {
+				from = [rect.x * pixel_size[0], 0, rect.y * pixel_size[1]];
+				to = [(rect.x2+1) * pixel_size[0], depth, (rect.y2+1) * pixel_size[1]];
+				faces = {
+					up:		{uv: [sprite_x1, y1, sprite_x2, y2], texture},
+					down:	{uv: [sprite_x1, y2, sprite_x2, y1], texture},
+					north:	{uv: [sprite_x2, y1, sprite_x1, y1 + uv_scale_y], texture},
+					south:	{uv: [sprite_x1, y2 - uv_scale_y, sprite_x2, y2], texture},
+					east:	{uv: east_uv, texture, rotation: 90},
+					west:	{uv: west_uv, texture, rotation: 270},
+				};
+			}
+			if (mirror_x) {
+				let sprite_axis = orientation == 'upright_z' ? 2 : 0;
+				[from[sprite_axis], to[sprite_axis]] = [-to[sprite_axis], -from[sprite_axis]];
+			}
+
+			let cube = new Cube({
+				name: options.name || texture.name.split('.')[0],
+				autouv: 0, box_uv: false,
+				from: from.map((value, axis) => Math.roundTo(value + offset[axis], 4)),
+				to: to.map((value, axis) => Math.roundTo(value + offset[axis], 4)),
+				origin: origin.slice(),
+				rotation: can_roll ? [0, 0, 0] : (options.rotation || [0, 0, 0]).slice(),
+				faces
+			}).init();
+			if (can_roll) {
+				rotation_steps.forEach((steps, axis) => {
+					if (steps) cube.roll(axis, steps, origin);
+				})
+			}
+			cubes.push(cube);
+		}
+
+		let group = null;
+		if (options.group) {
+			group = new Group({name: options.group}).init().addTo(options.parent);
+			cubes.forEach(cube => cube.addTo(group));
+		}
+		Outliner.selected.replace(cubes);
+		return {cubes, group};
 	}
 }
 
 BARS.defineActions(() => {
+	new Action('extrude_texture_to_model', {
+		icon: 'eject',
+		category: 'textures',
+		condition: () => Texture.selected && !Texture.selected.error && Project && (!Project.box_uv || Format.optional_box_uv),
+		click() {
+			Extruder.dialog.show();
+			Extruder.drawTexture(Texture.selected);
+		}
+	})
 	new Action('extrude_texture', {
 		icon: 'eject',
 		category: 'file',

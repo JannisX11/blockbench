@@ -403,6 +403,7 @@ export class Dialog {
 	toolbars: Record<string, Toolbar>
 	form_config: InputFormConfig
 	width: number
+	default_width?: number
 	draggable: boolean
 	darken: boolean
 	cancel_on_click_outside: boolean
@@ -449,6 +450,7 @@ export class Dialog {
 		}
 
 		this.width = options.width
+		this.default_width = options.width
 		this.draggable = options.draggable
 		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
@@ -681,6 +683,18 @@ export class Dialog {
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
+			resize_handle.addEventListener('dblclick', () => {
+				let center = this.object.offsetLeft + this.object.clientWidth / 2;
+				this.width = this.default_width;
+				this.object.style.width = this.width ? this.width+'px' : '';
+				this.object.style.height = '';
+				if (this.draggable !== false) {
+					this.object.style.left = Math.clamp(center - this.object.clientWidth / 2, 0, window.innerWidth - this.object.clientWidth) + 'px';
+				}
+				if (typeof this.onResize == 'function') {
+					this.onResize();
+				}
+			})
 		}
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
@@ -752,8 +766,14 @@ export class Dialog {
 		let blackout = document.getElementById('blackout');
 		blackout.style.display = 'block';
 		blackout.classList.toggle('darken', this.darken);
-		blackout.style.zIndex = (20 + Dialog.stack.length * 2).toString();
-		this.object.style.zIndex = (21 + Dialog.stack.length * 2).toString();
+		let zindex = Math.min(21 + Dialog.stack.length, 29)
+		blackout.style.zIndex = (zindex-1).toString();
+		this.object.style.zIndex = zindex.toString();
+		for (let dialog of Dialog.stack) {
+			if (parseInt(dialog.object.style.zIndex) > (zindex-2)) {
+				dialog.object.style.zIndex = (zindex-2).toString();
+			}
+		}
 
 		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';
@@ -1098,7 +1118,11 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	build() {
-		if (this.object) this.object.remove();
+		if (this.object) {
+			this.form?.delete();
+			delete this.form;
+			this.object.remove();
+		}
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog config_dialog';
 
@@ -1156,6 +1180,8 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	delete() {
+		this.form?.delete();
+		delete this.form;
 		if (this.object) this.object.remove()
 		this.object = null;
 	}

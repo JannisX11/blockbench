@@ -133,7 +133,7 @@
 		]
 	},
 	"scripts": {
-		"dev": "concurrently --raw \"electron --remote-debugging-port=9223 .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
+		"dev": "node ./build.js --target=electron --watch --launch",
 		"serve": "node ./build.js --target=web --serve",
 		"electron": "electron .",
 		"build-web": "node ./build.js --target=web",
@@ -162,7 +162,6 @@
 		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"command-line-args": "^6.0.1",
-		"concurrently": "^9.1.2",
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
 		"electron": "^43.4.0",

@@ -811,21 +811,23 @@ BARS.defineActions(function() {
 	new Action('collapse_groups', {
 		icon: 'format_indent_decrease',
 		category: 'edit',
-		condition: () => Group.all.length > 0,
+		condition: () => Group.all.length > 0 || Outliner.elements.some(e => e.children),
 		click: function() {
-			Group.all.forEach(function(g) {
-				g.isOpen = false;
-			})
+			Group.all.forEach(g => g.isOpen = false);
+			Outliner.elements.forEach(element => {
+				if ('isOpen' in element) element.isOpen = false;
+			});
 		}
 	})
 	new Action('unfold_groups', {
 		icon: 'format_indent_increase',
 		category: 'edit',
-		condition: () => Group.all.length > 0,
+		condition: () => Group.all.length > 0 || Outliner.elements.some(e => e.children),
 		click: function() {
-			Group.all.forEach(function(g) {
-				g.isOpen = true;
-			})
+			Group.all.forEach(g => g.isOpen = true);
+			Outliner.elements.forEach(element => {
+				if ('isOpen' in element) element.isOpen = true;
+			});
 		}
 	})
 	new Action('edit_bedrock_binding', {

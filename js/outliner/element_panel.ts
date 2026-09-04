@@ -63,7 +63,9 @@ Interface.definePanels(function() {
 		for (let type_id in OutlinerElement.types) {
 			let type = OutlinerElement.types[type_id];
 			for (let prop_id in type.properties) {
-				registerInput(type_id, prop_id, type.properties[prop_id]);
+				let property = type.properties[prop_id];
+				if (property.class && property.class !== type) continue;
+				registerInput(type_id, prop_id, property);
 			}
 		}
 		for (let prop_id in Group.properties) {

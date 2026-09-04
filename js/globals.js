@@ -1,5 +1,7 @@
 import { Blockbench } from "./api";
 
+// Deprecated
+
 Blockbench.Outliner = Outliner;
 Blockbench.OutlinerNode = OutlinerNode;
 Blockbench.OutlinerElement = OutlinerElement;

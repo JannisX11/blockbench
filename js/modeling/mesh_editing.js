@@ -855,6 +855,7 @@ BARS.defineActions(function() {
 					const face_new_uvs = new Map()
 					const face_side_data = new Map()  // face -> [{a, b, orig_a, orig_b, uv_a, uv_b}, ...]
 					selected_faces.forEach(face => {
+						if (face.vertices.length < 3) return;
 						// Save original vertex keys
 						let orig_keys = [...face.vertices]
 						face_orig_keys.set(face, orig_keys)
@@ -917,6 +918,7 @@ BARS.defineActions(function() {
 
 					// Now modify faces using pre-computed cap UVs
 					selected_faces.forEach(face => {
+						if (face.vertices.length < 3) return;
 						let cap_uvs = face_new_uvs.get(face)
 						face.vertices.forEach((key, index) => {
 							const new_vertex_key = new_vertices[original_vertices.indexOf(key)];
@@ -929,6 +931,7 @@ BARS.defineActions(function() {
 					// Create side quads from pre-computed data
 					let remaining_vertices = new_vertices.slice();
 					selected_faces.forEach((face, face_index) => {
+						if (face.vertices.length < 3) return;
 						let old_uvs = face_old_uvs.get(face)
 						let side_quads = face_side_data.get(face)
 						side_quads.forEach(q => {
@@ -1211,7 +1214,7 @@ BARS.defineActions(function() {
 					original_vertices = original_vertices.slice();
 					let new_vertices;
 					let selected_face_keys = mesh.getSelectedFaces();
-					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]);
+					let selected_faces = selected_face_keys.map(fkey => mesh.faces[fkey]).filter(face => face.vertices.length >= 3);
 					let modified_face_keys = selected_face_keys.slice();
 	
 					new_vertices = mesh.addVertices(...original_vertices.map(vkey => {

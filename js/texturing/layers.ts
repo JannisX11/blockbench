@@ -1,3 +1,4 @@
+import { Filesystem } from "../file_system";
 import { getFocusedTextInput } from "../interface/keyboard"
 import { Property } from "../util/property"
 
@@ -871,7 +872,7 @@ BARS.defineActions(() => {
 				for (let file of files) {
 					let img = new Image();
 					await new Promise((resolve, reject) => {
-						img.src = isApp ? file.path : file.content as string;
+						img.src = Filesystem.getImageSource(file);
 						img.onload = resolve;
 						img.onerror = reject;
 					})

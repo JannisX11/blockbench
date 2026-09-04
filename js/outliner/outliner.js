@@ -56,7 +56,7 @@ export const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
+			condition: {modes: ['edit'], features: ['java_cube_shading_properties'], method: () => !Format.java_cube_shade_direction_override},
 			title: tl('switches.shade'),
 			icon: 'fa-star',
 			icon_off: 'far.fa-star',
@@ -818,7 +818,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('duplicate', {
 	subject: 'outliner',
-	condition: () => Modes.edit && Outliner.selected.length,
+	condition: () => Modes.edit && Outliner.selected.find(element => element.getTypeBehavior('duplicatable') != false),
 	priority: -2,
 	run() {
 		let added_elements = [];
@@ -827,6 +827,10 @@ SharedActions.add('duplicate', {
 		Outliner.selected.empty();
 		list.forEachReverse(function(obj, i) {
 			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
+			if (obj.getTypeBehavior('duplicatable') == false) {
+				obj.markAsSelected();
+				return;
+			}
 			let copy = obj.duplicate();
 			added_elements.push(copy);
 			if ('forEachChild' in copy) {
@@ -838,7 +842,7 @@ SharedActions.add('duplicate', {
 		})
 		// Remap references
 		let map = Clipbench.duplicate_map;
-		map.forEach((copy) => {
+		map.forEach((copy, orig) => {
 			if (copy instanceof NullObject) {
 				for (let property of ['ik_source', 'ik_target', 'ik_pole']) {
 					let uuid = copy[property];
@@ -847,6 +851,18 @@ SharedActions.add('duplicate', {
 					if (previous) {
 						copy[property] = map.get(previous)?.uuid ?? '';
 					}
+				}
+			} else if (copy instanceof ArmatureBone) {
+				let orig_armature = orig.getArmature();
+				let orig_meshes = orig_armature.children.filter(c => c instanceof Mesh);
+				for (let key in orig.vertex_weights) {
+					let [mesh_id, vkey] = key.split(':');
+					if (!vkey) continue;
+					let weight = orig.vertex_weights[key];
+					let mesh = orig_meshes.find(m => m.uuid.startsWith(mesh_id));
+					if (!mesh) continue;
+					copy.setVertexWeight(map.get(mesh), vkey, weight);
+					copy.vertex_weights[key];
 				}
 			}
 		});

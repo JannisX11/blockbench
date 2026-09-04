@@ -256,7 +256,7 @@ export class Plugin {
 		this.installed = false;
 		this.path = '';
 		this.title = '';
-		this.author = '';
+		this.author = 'unknown';
 		this.description = '';
 		this.about = '';
 		this.icon = '';
@@ -519,14 +519,14 @@ export class Plugin {
 		this.tags.safePush('Local');
 
 		if (isApp) {
+			scope.path = file.path;
 			let content = await this.#runPluginFile(file.path).catch((error) => {
-				console.error(error);
+				console.error(`Could not load plugin "${scope.id}" from "${file.path}":`, error);
 			});
 			if (content) {
 				if (first && scope.oninstall) {
 					scope.oninstall()
 				}
-				scope.path = file.path;
 			}
 		} else {
 			this.#runCode(file.content as string);

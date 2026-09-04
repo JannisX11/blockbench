@@ -394,6 +394,8 @@ class CSS3DRenderer {
 
 		function renderObject( object, scene, camera, cameraCSSMatrix ) {
 
+			if (object.isElement || object.isGroup) return;
+
 			if ( object.visible === false ) {
 
 				hideObject( object );

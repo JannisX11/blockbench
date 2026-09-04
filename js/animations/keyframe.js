@@ -18,6 +18,9 @@ export class KeyframeDataPoint {
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
 		}
+		if (isApp && data.file && !PathModule.isAbsolute(data.file)) {
+			this.file = PathModule.resolve(PathModule.dirname(Project.save_path), data.file);
+		}
 		if (isApp && data.file && !file_value_before) {
 			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
 				Timeline.visualizeAudioFile(this.file);
@@ -402,12 +405,11 @@ export class Keyframe {
 			return points.length <= 1 ? points[0] : points;
 		}
 	}
-	replaceOthers(save) {
-		var scope = this;
-		var arr = this.animator[this.channel];
-		arr.forEach(kf => {
-			if (kf != scope && Math.abs(kf.time - scope.time) < 0.0001) {
-				save.push(kf);
+	replaceOthers(save_array) {
+		let all = this.animator[this.channel].slice();
+		all.forEach(kf => {
+			if (kf != this && Math.abs(kf.time - this.time) < 0.0001) {
+				save_array.push(kf);
 				kf.remove();
 			}
 		})
@@ -810,6 +812,9 @@ Object.assign(Clipbench, {
 
 				if (data.animator) {
 					var animator = Animation.selected.animators[data.animator];
+					if (!animator && data.animator == 'effects') {
+						animator = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
+					}
 					if (animator && !Timeline.animators.includes(animator)) {
 						animator.addToTimeline();
 					}
