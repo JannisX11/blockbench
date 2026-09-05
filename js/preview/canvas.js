@@ -703,16 +703,15 @@ export const Canvas = {
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
-			var mesh = obj.mesh;
+			let mesh = obj.mesh;
 			if (!mesh || !mesh.geometry || !mesh.outline) return;
 
-			var copy = mesh.outline.clone();
+			let copy = mesh.outline.clone();
 			copy.geometry = mesh.outline.geometry.clone();
-
-			THREE.fastWorldPosition(mesh, copy.position);
-			copy.position.sub(scene.position);
-			copy.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
-			mesh.getWorldScale(copy.scale);
+			copy.geometry.applyMatrix4(mesh.matrixWorld);
+			copy.position.set(0, 0, 0);
+			copy.rotation.set(0, 0, 0);
+			copy.scale.set(1, 1, 1);
 
 			copy.name = obj.uuid+'_ghost_outline';
 			Canvas.outlines.add(copy);
