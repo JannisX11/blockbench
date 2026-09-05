@@ -127,6 +127,7 @@ export class Menu implements Deletable {
 	onClose?(): void
 	node: HTMLUListElement
 	highlight_action?: MenuItem
+	anchor_tool?: HTMLElement
 
 	public type = 'menu'
 
@@ -317,6 +318,9 @@ export class Menu implements Deletable {
 			open_menu.hide()
 		}
 		document.body.append(this.node);
+
+		this.anchor_tool = position instanceof HTMLElement ? position.closest('.tool') : null;
+		this.anchor_tool?.classList.add('menu_open');
 
 		ctxmenu.replaceChildren();
 
@@ -740,6 +744,8 @@ export class Menu implements Deletable {
 	 * Closes the menu if it's open
 	 */
 	hide(): this {
+		this.anchor_tool?.classList.remove('menu_open');
+		this.anchor_tool = null;
 		if (this.onClose) this.onClose();
 		$(this.node).find('li.highlighted').removeClass('highlighted');
 		this.node.remove()

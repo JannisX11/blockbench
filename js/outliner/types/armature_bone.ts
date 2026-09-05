@@ -574,7 +574,8 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {
 			modes: ['edit'],
-			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected() || (Outliner.selected[0]?.parent) instanceof Armature)
+			selected: {mesh: false, spline: false},
+			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected())
 		},
 		click: function () {
 			Undo.initEdit({outliner: true, elements: [], selection: true});

@@ -933,7 +933,7 @@ GLTFExporter.prototype = {
 					color: 0xffffff,
 					map: original.map,
 					transparent: true,
-					side: Canvas.getRenderSide(),
+					side: original.side,
 					alphaTest: 0.05
 				});
 				cachedMaterials[original.uuid] = material;

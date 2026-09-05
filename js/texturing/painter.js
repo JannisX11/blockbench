@@ -2,6 +2,7 @@ import { PointerTarget } from "../interface/pointer_target";
 import { clipboard, nativeImage } from "../native_apis";
 import { RenderTargetSnapshot } from "../preview/render_target";
 import { Dynamic2DMap } from "../util/dynamic_2d_map";
+import { getFaceKeyFromIndex } from "../util/util";
 
 StateMemory.init('brush_presets', 'array')
 
@@ -194,6 +195,12 @@ export const Painter = {
 		if (!Painter.current.uv_islands) Painter.current.uv_islands = {};
 		if (!Painter.current.uv_islands[fkey]) {
 			Painter.current.uv_islands[fkey] = face.getUVIsland(48);
+			if (BarItems.brush_lock_mode.value == 'selected_faces') {
+				let selected_faces = UVEditor.getSelectedFaces(face.element);
+				Painter.current.uv_islands[fkey] = Painter.current.uv_islands[fkey].filter(fkey => {
+					return selected_faces.includes(fkey);
+				})
+			}
 		}
 		return Painter.current.uv_islands[fkey];
 	},
@@ -430,6 +437,10 @@ export const Painter = {
 	useBrushlike(texture, x, y, event, uvTag, no_update, is_opposite) {
 		let use_screen_projection = Painter.current.use_screen_projection;
 		if (Painter.currentPixel[0] === x && Painter.currentPixel[1] === y && !use_screen_projection) return;
+		if (BarItems.brush_lock_mode.value == 'selected_faces' && Painter.current.element) {
+			let selected_faces = UVEditor.getSelectedFaces(Painter.current.element);
+			if (selected_faces && !selected_faces.includes(Painter.current.face)) return;
+		}
 		Painter.currentPixel = [x, y];
 		Painter.brushChanges = true;
 		if (!is_opposite) {
@@ -588,6 +599,24 @@ export const Painter = {
 		let blend_mode = BarItems.blend_mode.value;
 		let {element, offset} = Painter.current;
 		let {rect, uvFactorX, uvFactorY, w, h} = area;
+
+		// UV panel doesn't set element
+		// Look up element from click position
+		if (!element && UVEditor) {
+			let hit = UVEditor.findFaceAtUV(texture, x, y, uvFactorX, uvFactorY);
+			if (hit) {
+				if (fill_mode === 'face' || fill_mode === 'element') {
+					Painter.current.element = hit.element;
+					Painter.current.face = hit.faceKey;
+					element = hit.element;
+				} else if (fill_mode === 'color' || fill_mode === 'color_connected') {
+					let r = hit.region;
+					rect = [r.minX, r.minY, r.maxX, r.maxY];
+					w = r.maxX - r.minX;
+					h = r.maxY - r.minY;
+				}
+			}
+		}
 
 		if (Painter.erase_mode && (fill_mode === 'element' || fill_mode === 'face')) {
 			ctx.globalAlpha = b_opacity;
@@ -1954,17 +1983,22 @@ export const Painter = {
 		let objects = [];
 		let elements = Outliner.elements;
 		const lock_mode = BarItems.brush_lock_mode.value;
-		if ((lock_mode == 'element' || lock_mode == 'face') && Painter.current.element) {
+		if ((lock_mode == 'element' || lock_mode == 'face' || lock_mode == 'selected_faces') && Painter.current.element) {
 			elements = [Painter.current.element];
 		}
-		for (let element of elements) {
-			if (!element._static.properties.faces) continue;
-			if (element.visibility === false || element.locked === true) continue;
+		elements = elements.filter(element => {
+			if (!element._static.properties.faces) return false;
+			if (element.visibility === false || element.locked === true) return false;
 			let mesh = element.mesh;
-			if (!mesh || mesh.visible == false || !mesh.geometry) continue;
+			if (!mesh || mesh.visible == false || !mesh.geometry) return false;
 			// Paint through transparency
-			if (Painter.current.rejected_intersects?.some(i => i.object == mesh)) continue;
+			if (Painter.current.rejected_intersects?.some(i => i.object == mesh)) return false;
 			objects.push(mesh);
+			return true;
+		});
+		let selected_faces;
+		if (lock_mode == 'selected_faces') {
+			selected_faces = UVEditor.getSelectedFaces(elements[0]);
 		}
 
 		// Calculate brush size on onscreen-pixels
@@ -1974,10 +2008,10 @@ export const Painter = {
 		preview.mouse.x = (mouse_canvas_offset[0] / preview.width) * 2 - 1;
 		preview.mouse.y = - (mouse_canvas_offset[1] / preview.height) * 2 + 1;
 		preview.raycaster.setFromCamera( preview.mouse, preview.camera );
-		// Calculate sampling resolution
 
 		Painter.current.render_target_snapshot ??= new RenderTargetSnapshot(preview).takeSnapshot(objects);
 		let snapshot = Painter.current.render_target_snapshot;
+		let element_caches = {};
 
 		const pixel_intensities = {};
 		const pixel_hits = {};
@@ -1994,6 +2028,21 @@ export const Painter = {
 				mouse_canvas_offset[1] + offset[1]
 			);
 			if (!intersect) return;
+
+			let element = OutlinerElement.uuids[intersect.object.name];
+			let cache_data = element_caches[element.uuid] ??= {textures_map: {}, face_keys_map: {}};
+			let fkey = cache_data.face_keys_map[intersect.face_index] ??= getFaceKeyFromIndex(element, intersect.face_index);
+			let hit_texture = cache_data.textures_map[fkey] ??= element.faces[fkey]?.getTexture() || 0;
+
+			if (hit_texture != texture) return;
+
+			if (lock_mode == 'face' || lock_mode == 'selected_faces') {
+				if (lock_mode == 'face') {
+					if (fkey != Painter.current.face) return;
+				} else {
+					if (!selected_faces.includes(fkey)) return;
+				}
+			}
 
 			let coords = [
 				Math.floor(intersect.uv.x * texture.img.naturalWidth),
@@ -3416,6 +3465,7 @@ BARS.defineActions(function() {
 		options: {
 			none: true,
 			element: true,
+			selected_faces: true,
 			face: true
 		}
 	})

@@ -68,6 +68,8 @@ interface PanelOptions {
 }
 type PanelEvent = 'drag' | 'fold' | 'change_zindex' | 'move_to' | 'moved_to' | 'update'
 
+let panel_menu_anchor: HTMLElement = null;
+
 const DEFAULT_POSITION_DATA: PanelPositionData = {
 	slot: 'left_bar',
 	float_position: [0, 0],
@@ -237,7 +239,13 @@ export class Panel extends EventSystem {
 
 			let menu_button = Interface.createElement('div', {class: 'light_on_hover panel_menu_button'}, Blockbench.getIconNode('more_vert'))
 			this.handle.append(menu_button);
+			let menu_was_open = false;
+			menu_button.addEventListener('mousedown', () => {
+				menu_was_open = panel_menu_anchor == menu_button && open_menu == this.snap_menu;
+			})
 			menu_button.addEventListener('click', (e) => {
+				if (menu_was_open) return;
+				panel_menu_anchor = menu_button;
 				this.snap_menu.open(menu_button, this);
 			})
 

@@ -6,7 +6,9 @@
  * @module
  */
 
-import { MenuOpenPositionAnchor } from './menu'
+
+let toolbar_menu_anchor: HTMLElement = null;
+
 
 /**
  * Registry of all toolbars
@@ -123,7 +125,13 @@ export class Toolbar {
 		this.previously_enabled = true;
 
 		let toolbar_menu = Interface.createElement('div', {class: 'tool toolbar_menu'}, Interface.createElement('i', {class: 'material-icons'}, this.vertical ? 'more_horiz' : 'more_vert'))
+		let menu_was_open = false;
+		toolbar_menu.addEventListener('mousedown', () => {
+			menu_was_open = toolbar_menu_anchor == toolbar_menu && open_menu == this.menu;
+		})
 		toolbar_menu.addEventListener('click', event => {
+			if (menu_was_open) return;
+			toolbar_menu_anchor = toolbar_menu;
 			this.contextmenu(event);
 		})
 		this.node = Interface.createElement('div', {class: 'toolbar', toolbar_id: this.id}, [
@@ -240,15 +248,7 @@ export class Toolbar {
 		return this;
 	}
 	contextmenu(event: MouseEvent) {
-		let offset = $(this.node).find('.toolbar_menu').offset();
-		let position: MenuOpenPositionAnchor = event;
-		if (offset) {
-			position = {
-				clientX: offset.left+7,
-				clientY: offset.top+28,
-			}
-		}
-		this.menu.open(position, this);
+		this.menu.open(this.node.querySelector<HTMLElement>('.toolbar_menu') ?? event, this);
 	}
 	editMenu(): this {
 		BARS.editing_bar = this;

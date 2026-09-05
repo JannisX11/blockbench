@@ -202,6 +202,9 @@ var codec = new Codec('project', {
 			if (ModelProject.properties[key].export == false) continue;
 			ModelProject.properties[key].copy(Project, model)
 		}
+		if (options.collection_only && Format.model_identifier) {
+			model.model_identifier = options.collection_only.model_identifier;
+		}
 
 		if (Project.overrides) {
 			model.overrides = Project.overrides;
@@ -306,9 +309,11 @@ var codec = new Codec('project', {
 		}
 
 		let collections = [];
-		for (let collection of Collection.all) {
-			let copy = collection.getSaveCopy();
-			collections.push(copy);
+		if (!options.collection_only) {
+			for (let collection of Collection.all) {
+				let copy = collection.getSaveCopy();
+				collections.push(copy);
+			}
 		}
 		if (collections.length) model.collections = collections;
 
