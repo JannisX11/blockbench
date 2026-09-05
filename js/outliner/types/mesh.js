@@ -404,7 +404,7 @@ export class MeshFace extends Face {
 		let uvb = new THREE.Vector2().fromArray(this.uv[vertices[1]]);
 		let uvc = new THREE.Vector2().fromArray(this.uv[vertices[2]]);
 
-		let uv = THREE.Triangle.getUV(vector, va, vb, vc, uva, uvb, uvc, new THREE.Vector2());
+		let uv = THREE.Triangle.getInterpolation(vector, va, vb, vc, uva, uvb, uvc, new THREE.Vector2());
 		return uv.toArray();
 	}
 	getCenter() {

@@ -439,7 +439,7 @@ export class ReferenceImage {
 				this.node.style.top  = '0';
 				this.scene_object.discardCopyElements();
 				this.scene_object.position.fromArray(this.billboard_position);
-				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
+				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)) as ArrayVector3);
 				let scale = Format.block_size / 128;
 				this.scene_object.scale.set(scale, scale, scale);
 			}

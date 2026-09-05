@@ -394,6 +394,7 @@ export class Preview {
 				alpha: true,
 				preserveDrawingBuffer: true
 			});
+			this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 		} catch (err) {
 			let error_element = document.querySelector('#loading_error_detail')
 			error_element.innerHTML = `Error creating WebGL context. Try to update your ${isApp ? 'graphics drivers' : 'web browser'}.`

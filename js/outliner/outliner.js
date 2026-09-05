@@ -2,7 +2,6 @@ import { Blockbench } from "../api"
 import StateMemory from "../util/state_memory"
 import { OutlinerNode } from "./abstract/outliner_node"
 import { OutlinerElement } from "./abstract/outliner_element"
-import { radToDeg } from "three/src/math/MathUtils"
 import { PointerTarget } from "../interface/pointer_target"
 import { markerColors } from "../marker_colors"
 import { ScopeColors } from "../multi_file_editing"
@@ -522,7 +521,7 @@ export function moveOutlinerSelectionTo(item, target, order = 0, options = {}) {
 			if (obj.getTypeBehavior('rotatable')) {
 				let new_rotation = Reusable.euler1;
 				new_rotation.setFromQuaternion(quaternion, scene_object.rotation.order);
-				obj.rotation.V3_set(new_rotation.toArray().map(radToDeg));
+				obj.rotation.V3_set(new_rotation.toArray().map(v => Math.radToDeg(v)));
 			}
 			updateTransformRecursive(obj);
 

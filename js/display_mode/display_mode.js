@@ -1369,24 +1369,27 @@ export function updateDisplaySkin(feedback) {
 	function setPSkin(skin, slim) {
 		if (displayReferenceObjects.refmodels.player.material) {
 			let {material} = displayReferenceObjects.refmodels.player;
+			let map = material.map ?? material.uniforms.map.value;
 	
-			material.map.image.src = skin;
-			material.map.needsUpdate = true;
-			material.map.onUpdate = function() {
-				material.map.onUpdate = null;
+			map.image.src = skin;
+			map.needsUpdate = true;
+			map.onUpdate = function() {
+				map.onUpdate = null;
 				displayReferenceObjects.refmodels.player.setModelVariant(slim ? 'alex' : 'steve')
 			};
 		}
 		if (PreviewModel.models.attachable_reference_player) {
 			let {material} = PreviewModel.models.attachable_reference_player;
-			material.map.image.src = skin;
-			material.map.needsUpdate = true;
+			let map = material.uniforms.map.value;
+			map.image.src = skin;
+			map.needsUpdate = true;
 			PreviewModel.models.attachable_reference_player.updateArmVariant(slim);
 		}
 		if (PreviewModel.models.minecraft_player) {
 			let {material} = PreviewModel.models.minecraft_player;
-			material.map.image.src = skin;
-			material.map.needsUpdate = true;
+			let map = material.uniforms.map.value;
+			map.image.src = skin;
+			map.needsUpdate = true;
 			PreviewModel.models.minecraft_player.updateArmVariant(slim);
 		}
 	}

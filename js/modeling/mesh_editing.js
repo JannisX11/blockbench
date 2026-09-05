@@ -887,7 +887,7 @@ BARS.defineActions(function() {
 						_ouvc.fromArray(old_uvs[tri[2]]);
 						_fn.crossVectors(_ovb.clone().sub(_ova), _ovc.clone().sub(_ova)).normalize();
 						function oldFaceUV(world_pos, target) {
-							return THREE.Triangle.getUV(world_pos, _ova, _ovb, _ovc, _ouva, _ouvb, _ouvc, target);
+							return THREE.Triangle.getInterpolation(world_pos, _ova, _ovb, _ovc, _ouva, _ouvb, _ouvc, target);
 						}
 						sorted.forEach((orig_a, i) => {
 							let orig_b = sorted[i+1] || sorted[0];

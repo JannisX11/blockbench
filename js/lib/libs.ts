@@ -19,7 +19,8 @@ Vue.directive('sortable', {
     }
 })
 
-const THREE = Object.assign({}, threejs);
+threejs.ColorManagement.enabled = false;
+const THREE = Object.assign({}, threejs) as typeof import('three');
 
 export {
     GIFEnc,
@@ -46,4 +47,8 @@ const global = {
     APNGencoder,
     DOMPurify,
 }
+declare global {
+    const THREE: typeof threejs;
+}
 Object.assign(window, global);
+
