@@ -11,6 +11,7 @@ export abstract class OutlinerNode {
 	scope: number
 	parent: (OutlinerNode & OutlinerNodeParentTraits) | 'root'
 	selected: boolean
+	visibility?: boolean
 	readonly _static: {
 		properties: any
 		temp_data: Record<string, any>

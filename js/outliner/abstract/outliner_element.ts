@@ -15,6 +15,7 @@ interface OutlinerElementData {
 
 export abstract class OutlinerElement extends OutlinerNode {
 	allow_mirror_modeling?: boolean
+	declare faces?: Record<string, Face>
 	static animator?: BoneAnimator
 	static isParent: false
 	static all: OutlinerElement[]
@@ -95,6 +96,7 @@ export abstract class OutlinerElement extends OutlinerNode {
 	}
 	duplicate() {
 		let copy = new (this.constructor as ElementTypeConstructor)(this);
+		Clipbench.duplicate_map.set(this, copy);
 		//Numeration
 		let number: number | undefined;
 		let matches = copy.name.match(/[0-9]+$/);

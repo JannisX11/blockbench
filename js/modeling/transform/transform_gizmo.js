@@ -4,7 +4,7 @@
  */
 
 import { PointerTarget } from "../../interface/pointer_target";
-import { getRotationObjects } from "../transform";
+import { selectSplinePoints } from "../transform";
 import { TransformerModule } from "./transform_modules";
 
  ( function () {
@@ -857,36 +857,37 @@ import { TransformerModule } from "./transform_modules";
 				this.handleMode = newMode;
 				this.updateAllGizmoTransforms();
 			}
-			this.refreshGizmos = function(scope) {
+			this.refreshGizmos = function() {
 				let spline = SplineMesh.selected[0];
 
 				// Dispose of previous gizmos
-				this.clear();
+				let isValid = this.verifyValidity(true);
 	
 				// Create new Gizmos
-				for (let hKey in spline.handles) {
-					let data = {};
-					data.joint = spline.vertices[spline.handles[hKey].joint];
-					data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
-					data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
-					data.vKeyJoint = spline.handles[hKey].joint;
-					data.vKeyCtrl1 = spline.handles[hKey].control1;
-					data.vKeyCtrl2 = spline.handles[hKey].control2;
-					data.uuid = spline.uuid;
-					data.hKey = hKey
-					data.c1Arrow = hKey == spline.getFirstHandle().key;
-					data.c2Arrow = hKey == spline.getLastHandle().key;
+				if (isValid) {
+					for (let hKey in spline.handles) {
+						let data = {};
+						data.joint = spline.vertices[spline.handles[hKey].joint];
+						data.ctrl1 = spline.vertices[spline.handles[hKey].control1];
+						data.ctrl2 = spline.vertices[spline.handles[hKey].control2];
+						data.vKeyJoint = spline.handles[hKey].joint;
+						data.vKeyCtrl1 = spline.handles[hKey].control1;
+						data.vKeyCtrl2 = spline.handles[hKey].control2;
+						data.uuid = spline.uuid;
+						data.hKey = hKey
+						data.c1Arrow = hKey == spline.getFirstHandle().key;
+						data.c2Arrow = hKey == spline.getLastHandle().key;
 
-					this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
-				}
+						this.spline_handles.push(new THREE.TransformGizmoSplineHandle(data));
+					}
 	
-				// Add new Gizmos to parent
-				this.add(...this.spline_handles);
-				this.traverse((kid) => {
-					kid.renderOrder = 999;
-				});
+					// Add new Gizmos to parent
+					this.add(...this.spline_handles);
+					this.traverse((kid) => {
+						kid.renderOrder = 999;
+					});
+				}
 
-				if (scope) scope.attach(spline);
 				this.spline = spline;
 			}
 			this.tryAssignIndex = function(object) {
@@ -913,7 +914,7 @@ import { TransformerModule } from "./transform_modules";
 					gizmo.select();
 				});
 			}
-			this.selectSplinePoints = function(scope) {
+			this.selectPoints = function(scope) {
 				let gizmo = this.getCurrent();
 				let spline = OutlinerNode.uuids[gizmo.spline];
 				let handle = OutlinerNode.uuids[gizmo.spline].handles[gizmo.handle];
@@ -930,10 +931,16 @@ import { TransformerModule } from "./transform_modules";
 				this.updateAllGizmoTransforms();
 				// this.reportStatus();
 			}
-			this.verifyValidity = function() {
-				if (!SplineMesh.selected.length || this.spline != SplineMesh.selected[0] || BarItems.spline_selection_mode.value === "object" || !Modes.edit) {
-					this.clear();
-				}
+			this.verifyValidity = function(fromRefresh) {
+				let noSplinesSelected = !SplineMesh.hasSelected();
+				let anotherSplineSelected = (this.spline != SplineMesh.selected[0]) && !fromRefresh; //Refresh will always return true for this, so we exclude it.
+				let notHandleMode = BarItems.spline_selection_mode.value === "object";
+				let gizmosAreHidden = !Canvas.show_gizmos;
+
+				let shouldInvalidate = noSplinesSelected || anotherSplineSelected || notHandleMode || gizmosAreHidden || !Modes.edit;
+				if (shouldInvalidate || fromRefresh) this.clear();
+
+				return !shouldInvalidate;
 			}
 			this.clear = function() {
 				this.remove(...this.spline_handles);
@@ -991,7 +998,6 @@ import { TransformerModule } from "./transform_modules";
 			domElement = ( domElement !== undefined ) ? domElement : document;
 
 			this.camera = cam
-			this.elements = [];
 			this.visible = false;
 			this.space = "world";
 			this.size = 1;
@@ -1052,33 +1058,17 @@ import { TransformerModule } from "./transform_modules";
 				var pointerVector = new THREE.Vector2();
 
 				var point = new THREE.Vector3();
-				var originalPoint = new THREE.Vector3();
 				var offset = new THREE.Vector3();
 				var scale = 1;
 				var eye = new THREE.Vector3();
 
 				var tempMatrix = new THREE.Matrix4();
-				var originalValue = null;
-				var previousValue = 0;
 
 				var worldPosition = new THREE.Vector3();
 				var worldRotation = new THREE.Euler();
 				var camPosition = new THREE.Vector3();
 
 
-			this.attach = function ( object ) {
-				if (Canvas.show_gizmos == false) return;
-				this.elements.safePush(object);
-				this.visible = true;
-			};
-
-			this.detach = function () {
-				this.elements.length = 0
-				this.visible = false;
-				this.axis = null;
-				this.hoverAxis = null;
-				SplineGizmos.verifyValidity();
-			};
 			this.setMode = function ( mode ) {
 				if (mode === 'hidden') {
 					return;
@@ -1122,9 +1112,6 @@ import { TransformerModule } from "./transform_modules";
 				if (!object) {
 					object = this.rotation_ref;
 				}
-				if (scope.elements.length == 0) {
-					this.detach()
-				}
 				this.getWorldPosition(worldPosition)
 				this.setScale(this.getScale());
 
@@ -1144,7 +1131,7 @@ import { TransformerModule } from "./transform_modules";
 					eye.copy( camPosition ).normalize();
 				}
 
-				if (scope.elements.length == 0) return;
+				if (!this.visible) return;
 
 				if (object) {
 					if (!this.dragging) worldRotation.setFromRotationMatrix( tempMatrix.extractRotation( object.matrixWorld ) );
@@ -1178,7 +1165,6 @@ import { TransformerModule } from "./transform_modules";
 			};
 			this.fadeInControls = function(frames) {
 				if (!frames || typeof frames !== 'number') frames = 10
-				var scope = Transformer;
 				scale = this.getScale()
 				var old_scale = Transformer.scale.x
 				var diff = (scale - old_scale) / frames
@@ -1215,32 +1201,8 @@ import { TransformerModule } from "./transform_modules";
 			}
 
 			this.updateSelection = function() {
-				this.elements.empty()
-				if (Toolbox.selected && Toolbox.selected.transformerMode !== 'hidden') {
-					if (Modes.edit || Modes.pose || Toolbox.selected.id == 'pivot_tool') {
-						if (SplineMesh.hasSelected() && (BarItems.spline_selection_mode.value !== 'object')) {
-							SplineGizmos.refreshGizmos(scope);
-						} else if (Outliner.selected.length) {
-							Outliner.selected.forEach(element => {
-								if (
-									(element.getTypeBehavior('movable') && Toolbox.selected.transformerMode == 'translate') ||
-									((element.getTypeBehavior('resizable')) && (Toolbox.selected.transformerMode == 'scale' || Toolbox.selected.transformerMode == 'stretch')) ||
-									(element.getTypeBehavior('rotatable') && Toolbox.selected.transformerMode == 'rotate')
-								) {
-									scope.attach(element);
-								}
-							})
-						} else if (Group.first_selected && getRotationObjects()?.equals(Group.multi_selected)) {
-							scope.attach(Group.first_selected)
-						} else {
-							this.update()
-							return this;
-						}
-					}
-					this.center()
-				}
 				SplineGizmos.verifyValidity();
-				this.update()
+				this.center()
 				return this;
 			}
 			Object.defineProperty(this, 'dragging', {
@@ -1254,8 +1216,14 @@ import { TransformerModule } from "./transform_modules";
 
 				let module = TransformerModule.active;
 				if (module) {
-					module.updateGizmo({});
+					let result = module.updateGizmo({});
+					this.visible = (result !== false) && Canvas.show_gizmos;
+					if (!this.visible) {
+						this.axis = this.hoverAxis = null;
+					}
 					Transformer.update();
+				} else {
+					this.visible = false;
 				}
 			}
 			this.cancelMovement = function(event, keep_changes = false) {
@@ -1304,7 +1272,7 @@ import { TransformerModule } from "./transform_modules";
 
 			function onPointerHover( event ) {
 
-				if ( scope.elements.length === 0 || ( event.button !== undefined && event.button !== 0 ) ) return;
+				if ( !scope.visible || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var intersect = intersectObjects( pointer, _gizmo[ _mode ].pickers.children ) || SplineGizmos.interesct(pointer, intersectObjects);
@@ -1331,7 +1299,7 @@ import { TransformerModule } from "./transform_modules";
 				
 				document.addEventListener( "mouseup", onPointerUp, false );
 
-				if ( scope.elements.length === 0 || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
+				if ( !scope.visible || _dragging === true || ( event.button !== undefined && event.button !== 0  ) ) return;
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				if ( pointer.button === 0 || pointer.button === undefined ) {
 
@@ -1342,7 +1310,7 @@ import { TransformerModule } from "./transform_modules";
 							// Spline Gizmos cannot and should not trigger draggin states.
 							PointerTarget.endTarget();
 							
-							SplineGizmos.selectSplinePoints(scope);
+							SplineGizmos.selectPoints(scope);
 							SplineGizmos.hideOtherGizmos(_gizmo, _mode);
 							
 							event.preventDefault();
@@ -1397,7 +1365,7 @@ import { TransformerModule } from "./transform_modules";
 			}
 			function onPointerMove( event ) {
 
-				if ( scope.elements.length == 0 || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
+				if ( !scope.visible || scope.axis === null || _dragging === false || ( event.button !== undefined && event.button !== 0 ) ) return;
 
 				var pointer = event.changedTouches ? event.changedTouches[ 0 ] : event;
 				var planeIntersect = intersectObjects( pointer, [ _gizmo[ _mode ].activePlane ] );
@@ -1487,7 +1455,6 @@ import { TransformerModule } from "./transform_modules";
 					scope.dispatchEvent( mouseUpEvent );
 					scope.orbit_controls.stopMovement();
 					Canvas.outlines.children.length = 0;
-					originalValue = null;
 
 					extendTransformLine(false);
 
@@ -1529,6 +1496,12 @@ import { TransformerModule } from "./transform_modules";
 
 				pointerVector.set( ( x * 2 ) - 1, - ( y * 2 ) + 1 );
 				ray.setFromCamera( pointerVector, scope.camera );
+
+				// Fix for orthographic: use near plane as ray origin instead of camera plane
+				if (scope.camera && scope.camera.isOrthographicCamera) {
+					ray.ray.origin.set(pointerVector.x, pointerVector.y, -1).unproject(scope.camera);
+					ray.far = scope.camera.far - scope.camera.near;
+				}
 
 				var intersections = ray.intersectObjects( objects, true );
 				return intersections[ 0 ] ? intersections[ 0 ] : false;

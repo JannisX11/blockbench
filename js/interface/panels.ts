@@ -5,6 +5,7 @@ import { Interface, openTouchKeyboardModifierMenu, resizeWindow, updateInterface
 import {Toolbar} from './toolbars'
 import { Vue } from "../lib/libs";
 import { Blockbench } from "../api";
+import { CustomMenuItem } from "./menu";
 
 interface PanelPositionData {
 	slot: PanelSlot
@@ -66,6 +67,8 @@ interface PanelOptions {
 	onFold?(): void
 }
 type PanelEvent = 'drag' | 'fold' | 'change_zindex' | 'move_to' | 'moved_to' | 'update'
+
+let panel_menu_anchor: HTMLElement = null;
 
 const DEFAULT_POSITION_DATA: PanelPositionData = {
 	slot: 'left_bar',
@@ -236,7 +239,13 @@ export class Panel extends EventSystem {
 
 			let menu_button = Interface.createElement('div', {class: 'light_on_hover panel_menu_button'}, Blockbench.getIconNode('more_vert'))
 			this.handle.append(menu_button);
+			let menu_was_open = false;
+			menu_button.addEventListener('mousedown', () => {
+				menu_was_open = panel_menu_anchor == menu_button && open_menu == this.snap_menu;
+			})
 			menu_button.addEventListener('click', (e) => {
+				if (menu_was_open) return;
+				panel_menu_anchor = menu_button;
 				this.snap_menu.open(menu_button, this);
 			})
 
@@ -246,7 +255,8 @@ export class Panel extends EventSystem {
 				this.fold();
 			})
 
-			this.tab_bar.firstElementChild.addEventListener('dblclick', e => {
+			this.tab_bar.firstElementChild.addEventListener('click', (e: MouseEvent) => {
+				if (e.detail < 2 || e.detail % 2 || (e.target as HTMLElement).closest('.panel_menu_button')) return;
 				this.fold();
 			})
 
@@ -421,6 +431,9 @@ export class Panel extends EventSystem {
 					this.dispatchEvent('drag', {event: e2, target_before, attach_to, target_panel, target_slot});
 				}
 				let stop = e2 => {
+					removeEventListeners(document, 'mousemove touchmove', drag);
+					removeEventListeners(document, 'mouseup touchend', stop);
+					if (!started) return;
 					convertTouchEvent(e2);
 					this.container.classList.remove('dragging');
 					Interface.center_screen.removeAttribute('snapside');
@@ -448,9 +461,6 @@ export class Panel extends EventSystem {
 					setTimeout(() => {
 						this.update();
 					}, 0);
-					
-					removeEventListeners(document, 'mousemove touchmove', drag);
-					removeEventListeners(document, 'mouseup touchend', stop);
 				}
 				addEventListeners(document, 'mousemove touchmove', drag);
 				addEventListeners(document, 'mouseup touchend', stop);
@@ -889,18 +899,23 @@ export class Panel extends EventSystem {
 
 		this.container.classList.remove('floating');
 
+		let safeAppend = (target: HTMLElement, element: HTMLElement) => {
+			if ([...target.children].includes(element)) return;
+			target.append(element);
+		}
+
 		if (slot == 'left_bar' || slot == 'right_bar') {
 
-			document.getElementById(slot)!.append(this.container);
+			safeAppend(document.getElementById(slot)!, this.container);
 
 		} else if (slot == 'top') {
-			document.getElementById('top_slot')!.append(this.container);
+			safeAppend(document.getElementById('top_slot')!, this.container);
 
 		} else if (slot == 'bottom') {
-			document.getElementById('bottom_slot')!.append(this.container);
+			safeAppend(document.getElementById('bottom_slot')!, this.container);
 
 		} else if (slot == 'float' && !Blockbench.isMobile) {
-			Interface.work_screen.append(this.container);
+			safeAppend(Interface.work_screen, this.container);
 			this.container.classList.add('floating');
 			this.dispatchEvent('change_zindex', {zindex: 14});
 			if (!this.resize_handles) {
@@ -1266,24 +1281,26 @@ export function updateInterfacePanels() {
 	if (!Blockbench.isMobile) {
 		Interface.left_bar.style.display = Prop.show_left_bar ? 'flex' : 'none';
 		Interface.right_bar.style.display = Prop.show_right_bar ? 'flex' : 'none';
-	}
 
-	Interface.work_screen.style.setProperty(
-		'grid-template-columns',
-		Interface.left_bar_width+'px auto '+ Interface.right_bar_width +'px'
-	)
+		Interface.work_screen.style.setProperty(
+			'grid-template-columns',
+			Interface.left_bar_width+'px auto '+ Interface.right_bar_width +'px'
+		)
+	}
 	for (var key in Interface.Panels) {
 		var panel: Panel = Panels[key];
 		panel.update();
 	}
-	var left_width = Interface.left_bar.querySelector('.panel_container:not(.hidden)') ? Interface.left_bar_width : 0;
-	var right_width = Interface.right_bar.querySelector('.panel_container:not(.hidden)') ? Interface.right_bar_width : 0;
+	if (!Blockbench.isMobile) {
+		var left_width = Interface.left_bar.querySelector('.panel_container:not(.hidden)') ? Interface.left_bar_width : 0;
+		var right_width = Interface.right_bar.querySelector('.panel_container:not(.hidden)') ? Interface.right_bar_width : 0;
 
-	if (!left_width || !right_width) {
-		Interface.work_screen.style.setProperty(
-			'grid-template-columns',
-			left_width+'px auto '+ right_width +'px'
-		)
+		if (!left_width || !right_width) {
+			Interface.work_screen.style.setProperty(
+				'grid-template-columns',
+				left_width+'px auto '+ right_width +'px'
+			)
+		}
 	}
 
 	Interface.preview.style.visibility = Interface.preview.clientHeight > 80 ? 'visible' : 'hidden';
@@ -1392,6 +1409,9 @@ export function setupMobilePanelSelector() {
 			openKeyboardMenu() {
 				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 			},
+			getMainColor() {
+				return ColorPanel.get();
+			},
 			Condition,
 			getIconNode: Blockbench.getIconNode
 		},
@@ -1402,6 +1422,7 @@ export function setupMobilePanelSelector() {
 				</div>
 				<div class="panel_selector" :class="{selected: selected == panel.id}" v-for="panel in panels()" v-if="Condition(panel.condition)" @click="select(panel)">
 					<div class="icon_wrapper" v-html="getIconNode(panel.icon).outerHTML"></div>
+					<div class="panel_selector_color_preview" v-if="panel.id == 'color'" :style="{backgroundColor: getMainColor()}"></div>
 				</div>
 				<div id="mobile_keyboard_menu" @click="openKeyboardMenu()" ref="mobile_keyboard_menu" :class="{enabled: modifiers.ctrl || modifiers.shift || modifiers.alt}">
 					<i class="material-icons">keyboard</i>

@@ -3,11 +3,12 @@ import { updateStreamerModeNotification } from "./interface/setup_settings";
 import { loadThemes } from "./interface/themes";
 import { translateUI } from "./languages";
 import { loadInstalledPlugins } from "./plugin_loader";
-import { animate } from "./preview/preview";
+import { animate, setupPreviews } from "./preview/preview";
 import { ipcRenderer, SystemInfo } from "./native_apis";
 import { initializeDesktopApp, loadOpenWithBlockbenchFile } from "./desktop";
 import { AutoBackup } from "./auto_backup";
 import { initReferenceImages } from "./preview/reference_images";
+import { initCanvas } from "./preview/canvas";
 
 Interface.page_wrapper = document.getElementById('page_wrapper');
 Interface.work_screen = document.getElementById('work_screen');
@@ -19,9 +20,6 @@ Interface.preview = document.getElementById('preview');
 CustomTheme.setup();
 
 StateMemory.init('dialog_paths', 'object')
-
-initCanvas()
-animate()
 
 Blockbench.browser = 'electron'
 if (isApp === false) {
@@ -52,6 +50,9 @@ if (isApp === false) {
 } else {
 	$('.web_only').remove()
 }
+
+setupPreviews()
+initCanvas()
 BARS.setupActions()
 BARS.setupToolbars()
 BARS.setupVue()
@@ -59,6 +60,8 @@ MenuBar.setup()
 translateUI()
 loadThemes()
 initReferenceImages()
+
+animate()
 
 console.log(`Three.js r${THREE.REVISION}`)
 console.log('%cBlockbench ' + Blockbench.version + (isApp

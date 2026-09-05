@@ -25,6 +25,7 @@ type DialogLineOptions = (
 )
 
 function buildForm(dialog: Dialog) {
+	dialog.form?.delete();
 	dialog.form = new InputForm(dialog.form_config);
 	let dialog_content = $(dialog.object).find('.dialog_content');
 	dialog_content.append(dialog.form.node);
@@ -402,6 +403,7 @@ export class Dialog {
 	toolbars: Record<string, Toolbar>
 	form_config: InputFormConfig
 	width: number
+	default_width?: number
 	draggable: boolean
 	darken: boolean
 	cancel_on_click_outside: boolean
@@ -448,6 +450,7 @@ export class Dialog {
 		}
 
 		this.width = options.width
+		this.default_width = options.width
 		this.draggable = options.draggable
 		this.resizable = options.resizable === true ? 'xy' : options.resizable;
 		this.darken = options.darken !== false
@@ -520,7 +523,11 @@ export class Dialog {
 		this.hide();
 	}
 	build() {
-		if (this.object) this.object.remove();
+		if (this.object) {
+			this.form?.delete();
+			delete this.form;
+			this.object.remove();
+		}
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog';
 		this.object.id = this.id;
@@ -676,6 +683,18 @@ export class Dialog {
 				addEventListeners(document, 'mousemove touchmove', move);
 				addEventListeners(document, 'mouseup touchend', stop);
 			})
+			resize_handle.addEventListener('dblclick', () => {
+				let center = this.object.offsetLeft + this.object.clientWidth / 2;
+				this.width = this.default_width;
+				this.object.style.width = this.width ? this.width+'px' : '';
+				this.object.style.height = '';
+				if (this.draggable !== false) {
+					this.object.style.left = Math.clamp(center - this.object.clientWidth / 2, 0, window.innerWidth - this.object.clientWidth) + 'px';
+				}
+				if (typeof this.onResize == 'function') {
+					this.onResize();
+				}
+			})
 		}
 		let sanitizePosition = () => {
 			if (this.object.clientHeight + this.object.offsetTop - 26 > Interface.page_wrapper.clientHeight) {
@@ -747,8 +766,14 @@ export class Dialog {
 		let blackout = document.getElementById('blackout');
 		blackout.style.display = 'block';
 		blackout.classList.toggle('darken', this.darken);
-		blackout.style.zIndex = (20 + Dialog.stack.length * 2).toString();
-		this.object.style.zIndex = (21 + Dialog.stack.length * 2).toString();
+		let zindex = Math.min(21 + Dialog.stack.length, 29)
+		blackout.style.zIndex = (zindex-1).toString();
+		this.object.style.zIndex = zindex.toString();
+		for (let dialog of Dialog.stack) {
+			if (parseInt(dialog.object.style.zIndex) > (zindex-2)) {
+				dialog.object.style.zIndex = (zindex-2).toString();
+			}
+		}
 
 		Prop._previous_active_panel = Prop.active_panel;
 		Prop.active_panel = 'dialog';
@@ -778,6 +803,8 @@ export class Dialog {
 		return this;
 	}
 	delete() {
+		this.form?.delete();
+		delete this.form;
 		$(this.object).remove()
 		if (this.content_vue) {
 			this.content_vue.$destroy();
@@ -884,7 +911,7 @@ type MessageBoxCommandOptions = string |  {
 }
 type MessageBoxCheckbox = string | {
 	value?: boolean
-	condition: ConditionResolvable
+	condition?: ConditionResolvable
 	text: string
 }
 export interface MessageBoxOptions {
@@ -981,10 +1008,12 @@ export class MessageBox extends Dialog {
 					let label = Interface.createElement('li', {class: 'dialog_message_box_command_category'}, tl(category));
 					list.append(label);
 				}
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'});
+				let title = Interface.createElement('span', {}, text);
+				entry.append(title);
 				if (typeof command == 'object') {
 					if (command.icon) {
-						entry.prepend(Blockbench.getIconNode(command.icon));
+						title.prepend(Blockbench.getIconNode(command.icon));
 					}
 					if (command.description) {
 						let label = Interface.createElement('label', {}, tl(command.description));
@@ -1074,19 +1103,38 @@ export class ConfigDialog extends Dialog {
 	constructor(id: string, options: ConfigDialogOptions) {
 		super(id, options);
 	}
-	show(anchor: HTMLElement) {
+	anchor_tool?: HTMLElement
+
+	show(anchor?: HTMLElement) {
 		super.show()
 		$('#blackout').hide();
-		
+
+		this.anchor_tool = anchor instanceof HTMLElement ? anchor.closest('.tool') : null;
+		this.anchor_tool?.classList.add('menu_open');
+
 		if (anchor instanceof HTMLElement) {
 			let anchor_position = $(anchor).offset();
-			this.object.style.top = (anchor_position.top+anchor.offsetHeight) + 'px';
-			this.object.style.left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30)) + 'px';
+			let left = Math.clamp(anchor_position.left - 30, 0, window.innerWidth-this.object.clientWidth - (this.title ? 0 : 30));
+			let top = anchor_position.top+anchor.offsetHeight;
+			if (top > (Interface.work_screen.clientHeight - this.object.clientHeight)) {
+				top = anchor_position.top - this.object.clientHeight;
+			}
+			this.object.style.top = top + 'px';
+			this.object.style.left = left + 'px';
 		}
 		return this;
 	}
+	hide() {
+		this.anchor_tool?.classList.remove('menu_open');
+		this.anchor_tool = null;
+		return super.hide();
+	}
 	build() {
-		if (this.object) this.object.remove();
+		if (this.object) {
+			this.form?.delete();
+			delete this.form;
+			this.object.remove();
+		}
 		this.object = document.createElement('dialog');
 		this.object.className = 'dialog config_dialog';
 
@@ -1144,6 +1192,8 @@ export class ConfigDialog extends Dialog {
 		return this;
 	}
 	delete() {
+		this.form?.delete();
+		delete this.form;
 		if (this.object) this.object.remove()
 		this.object = null;
 	}

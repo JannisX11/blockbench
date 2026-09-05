@@ -46,7 +46,6 @@ export class Mode extends KeybindItem {
 			data = id;
 			id = data.id;
 		}
-		// @ts-ignore
 		super(id, data)
 		this.id = id;
 		this.name = data.name || tl('mode.'+this.id);
@@ -80,6 +79,10 @@ export class Mode extends KeybindItem {
 	}
 	/**Selects the mode */
 	select() {
+		if (Toolbox.original instanceof Tool) {
+			Toolbox.original.select();
+			delete Toolbox.original;
+		}
 		if (Modes.selected instanceof Mode) {
 			Modes.selected.unselect();
 		}

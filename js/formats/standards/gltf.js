@@ -274,7 +274,7 @@ export function buildSkinnedMeshFromGroup(root_group) {
 
 	return skinned_mesh;
 }
-export function buildSkinnedMesh(armature, scale) {
+export function buildSkinnedMeshMerged(armature, scale) {
 	let skinIndices = [];
 	let skinWeights = [];
 	let position_array = [];
@@ -397,6 +397,83 @@ export function buildSkinnedMesh(armature, scale) {
 
 	return skinned_mesh;
 }
+export function buildSkinnedMesh(armature, scale) {
+	let bones = [], root_bones = [], bones_by_uuid = {};
+
+	let armature_bones = armature.getAllBones();
+	let meshes = armature.children.filter(c => c instanceof Mesh);
+
+	for (let armature_bone of armature_bones) {
+		let bone = new THREE.Bone();
+		bone.position.copy(armature_bone.mesh.position);
+		//bone.position.multiplyScalar(1/scale);
+		bone.rotation.copy(armature_bone.mesh.rotation);
+		bone.name = armature_bone.name;
+		bone.uuid = armature_bone.mesh.uuid;
+		if (bones_by_uuid[armature_bone.parent.uuid]) {
+			bones_by_uuid[armature_bone.parent.uuid].add(bone);
+		}
+		bones.push(bone);
+		if (armature_bone.parent instanceof Armature) root_bones.push(bone);
+		bones_by_uuid[armature_bone.uuid] = bone;
+	}
+	let skeleton = new THREE.Skeleton(bones);
+	skeleton.name = armature.name;
+
+	let group = new THREE.Group();
+	group.name = armature.name;
+	root_bones.forEach(bone => group.add(bone));
+	group.updateMatrixWorld();
+
+	for (let mesh_obj of meshes) {
+		if (!mesh_obj.faces || mesh_obj.export == false) continue;
+
+		let skinIndices = [];
+		let skinWeights = [];
+
+		let geometry = mesh_obj.mesh.geometry.clone();
+
+		geometry.applyMatrix4(mesh_obj.mesh.matrix);
+
+		// Set skin weights
+		for (let key in mesh_obj.faces) {
+			let face = mesh_obj.faces[key];
+			if (face.vertices.length >= 3) {
+				face.vertices.forEach((vkey) => {
+					let influencing_bones = armature_bones.filter(ab => ab.getVertexWeight(mesh_obj, vkey));
+					influencing_bones.sort((a, b) => b.getVertexWeight(mesh_obj, vkey) - a.getVertexWeight(mesh_obj, vkey)).slice(0, 4);
+					let weight_sum = 0;
+					for (let i = 0; i < 4; i++) {
+						if (influencing_bones[i]) {
+							weight_sum += influencing_bones[i].getVertexWeight(mesh_obj, vkey);
+						}
+					}
+					for (let i = 0; i < 4; i++) {
+						if (influencing_bones[i]) {
+							skinIndices.push(armature_bones.indexOf(influencing_bones[i]));
+							skinWeights.push(influencing_bones[i].getVertexWeight(mesh_obj, vkey) / weight_sum);
+						} else {
+							skinIndices.push(0);
+							skinWeights.push(0);
+						}
+					}
+				})
+			}
+		}
+		
+		if (geometry) {
+			geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
+			geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
+		}
+
+		let skinned_mesh = new THREE.SkinnedMesh(geometry, mesh_obj.mesh.material);
+		skinned_mesh.name = mesh_obj.name;
+		skinned_mesh.bind(skeleton);
+		group.add(skinned_mesh);
+	}
+
+	return group;
+}
 function optimizeMaterialGroups(materials, geometry, face_vertex_counts) {
 	if (materials.allEqual(materials[0])) materials = materials[0];
 
@@ -440,6 +517,7 @@ var codec = new Codec('gltf', {
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
 		embed_textures: {type: 'checkbox', label: 'codec.common.embed_textures', value: true},
 		armature: {type: 'checkbox', label: tl('codec.common.armature'), value: false},
+		merge_armature: {type: 'checkbox', label: tl('codec.common.merge_armature_mesh'), value: false, condition: () => Armature.hasAny()},
 		animations: {label: 'codec.common.export_animations', type: 'checkbox', value: true}
 	},
 	async compile(options) {
@@ -468,7 +546,9 @@ var codec = new Codec('gltf', {
 		const remove_later = [];
 		const add_back_later = [];
 		for (let armature of Armature.all) {
-			let skinned_mesh = buildSkinnedMesh(armature, options.scale);
+			let skinned_mesh = options.merge_armature
+				? buildSkinnedMeshMerged(armature, options.scale)
+				: buildSkinnedMesh(armature, options.scale);
 			if (armature.parent == Outliner.ROOT) {
 				gl_scene.add(skinned_mesh);
 				remove_later.push([gl_scene, skinned_mesh]);
@@ -555,5 +635,6 @@ BARS.defineActions(function() {
 Object.assign(window, {
 	buildAnimationTracks,
 	buildSkinnedMesh,
+	buildSkinnedMeshMerged,
 	buildSkinnedMeshFromGroup
 })

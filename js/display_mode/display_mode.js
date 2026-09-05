@@ -752,7 +752,7 @@ export const displayReferenceObjects = {
 			models: []
 		})
 	},
-	active: '',
+	active: null,
 	bar: function(buttons) {
 		buttons = buttons.filter(id => Condition(this.refmodels[id]));
 		$('#display_ref_bar').html('');
@@ -783,7 +783,7 @@ export const displayReferenceObjects = {
 		}
 	},
 	clear: function() {
-		if (displayReferenceObjects.active && displayReferenceObjects.active.shelf_displays) {
+		if (displayReferenceObjects.active?.shelf_displays) {
 			displayReferenceObjects.active.shelf_displays.forEach(display => {
 				display_area.remove(display);
 			});
@@ -792,8 +792,8 @@ export const displayReferenceObjects = {
 				displayReferenceObjects.active.shelf_groups = null;
 			}
 		}
-		scene.remove(displayReferenceObjects.active.model)
-		displayReferenceObjects.active = false
+		scene.remove(displayReferenceObjects.active?.model)
+		displayReferenceObjects.active = null
 	},
 	ref_indexes: {
 		thirdperson_righthand: 0,
@@ -889,6 +889,7 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	}
 
 	main_preview.fullscreen()
+	PreviewScene.updateVisibility();
 
 	resizeWindow()
 	ReferenceImage.updateAll()
@@ -947,7 +948,7 @@ DisplayMode.updateDisplayBase = function(slot) {
 		display_base.position.add(scale_piv_offset)
 	}
 
-	if (displayReferenceObjects.active && displayReferenceObjects.active.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
+	if (displayReferenceObjects.active?.id === 'shelf' && displayReferenceObjects.active.shelf_displays) {
 
 		displayReferenceObjects.active.shelf_displays.forEach((slotGroup, index) => {
 			let slotOffset = new THREE.Vector3(index === 0 ? -20 : 20, 0, 0);
@@ -978,12 +979,26 @@ DisplayMode.updateDisplayBase = function(slot) {
 }
 
 
+// Extracted from a Bedrock 1.26.50.27 APK
+DisplayMode.bedrock_defaults = {
+	gui:                   { translation: [0, 0, 0],   rotation: [30, 45, 0],  scale: [0.625, 0.625, 0.625], fit_to_frame: true },
+	firstperson_righthand: { translation: [0, 0, 0],   rotation: [0, 45, 0],   scale: [0.4, 0.4, 0.4] },
+	firstperson_lefthand:  { translation: [0, 0, 0],   rotation: [0, -135, 0], scale: [0.4, 0.4, 0.4] },
+	thirdperson_righthand: { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	thirdperson_lefthand:  { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	ground:                { translation: [0, 3, 0],   rotation: [0, 0, 0],    scale: [0.25, 0.25, 0.25] },
+	fixed:                 { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+	head:                  { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [1, 1, 1] },
+	embedded:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.75, 0.75, 0.75] },
+	on_shelf:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+}
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
+	let areas = (preset.id == 'block' && Format.id == 'bedrock_block') ? DisplayMode.bedrock_defaults : preset.areas;
 	var slots = [DisplayMode.display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
-	} else if (preset.areas[DisplayMode.display_slot] == undefined) {
+	} else if (areas[DisplayMode.display_slot] == undefined) {
 		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
@@ -992,23 +1007,22 @@ DisplayMode.applyPreset = function(preset, all) {
 		if (!Project.display_settings[sl]) {
 			Project.display_settings[sl] = new DisplaySlot(sl)
 		}
-		let preset_values = preset.areas[sl];
+		let preset_values = areas[sl];
 		if (preset_values) {
 			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
 			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
-			Project.display_settings[sl].extend(preset.areas[sl]);
-			if (preset.id == 'block' && Format.id == 'bedrock_block' && sl == 'gui') {
-				Project.display_settings[sl].rotation[1] = 45;
-			}
+			Project.display_settings[sl].extend(preset_values);
 		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
 }
-DisplayMode.loadJSON = function(data) {
-	for (var slot in data) {
+DisplayMode.loadJSON = function(data, defaults) {
+	for (let slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
+			let display_slot = new DisplaySlot(slot);
+			if (defaults && defaults[slot]) display_slot.extend(defaults[slot]);
+			Project.display_settings[slot] = display_slot.extend(data[slot]);
 		}
 	}
 }
@@ -1072,7 +1086,6 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 		Project.display_settings[key] = new DisplaySlot(key)
 		if (key == 'embedded') Project.display_settings[key].scale_pivot[1] = -0.5;
 	}
-	display_preview.force_locked_angle = false;
 	DisplayMode.vue._data.slot = Project.display_settings[key]
 	DisplayMode.slot = Project.display_settings[key]
 	DisplayMode.updateDisplayBase();
@@ -1080,6 +1093,7 @@ export function loadDisp(key) {	//Loads The Menu and slider values, common for a
 	DisplayMode.updateGUILight();
 	Toolbars.display.update();
 	updateGUISlotCrop();
+	PreviewScene.updateVisibility();
 }
 DisplayMode.loadThirdRight = function() {	//Loader
 	loadDisp('thirdperson_righthand')
@@ -1194,7 +1208,7 @@ DisplayMode.loadShelf = function() {		//Loader
 DisplayMode.updateShelfAlignment = function() {
 	if (!Modes.display || DisplayMode.display_slot !== 'on_shelf') return;
 
-	if (displayReferenceObjects.active && displayReferenceObjects.active.updateBasePosition) {
+	if (displayReferenceObjects.active?.updateBasePosition) {
 		displayReferenceObjects.active.updateBasePosition();
 	}
 
@@ -1441,8 +1455,6 @@ new TransformerModule('display', {
 	updateGizmo() {
 
 		let transformer_mode = Toolbox.selected.transformerMode;
-
-		Transformer.attach(display_base)
 
 		display_base.getWorldPosition(Transformer.position);
 		Transformer.position.sub(scene.position);

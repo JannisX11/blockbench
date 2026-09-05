@@ -6,6 +6,7 @@ import { MultiFileRuleset } from "../multi_file_editing";
 import { currentwindow, ipcRenderer, shell } from "../native_apis";
 import { ReferenceImage, ReferenceImageMode } from "../preview/reference_images";
 import { Property } from "../util/property";
+import { silentReject, wait } from "../util/util";
 import { editUVSizeDialog } from "../uv/uv_size";
 import { ModelFormat } from "./format";
 
@@ -66,7 +67,7 @@ export class ModelProject {
 	textures: Texture[]
 	selected_texture: Texture | null
 	outliner: OutlinerNode[]
-	animations: _Animation[]
+	animations: BBAnimation[]
 	timeline_animators: []
 	display_settings: {
 		[slot: string]: {
@@ -107,7 +108,7 @@ export class ModelProject {
 	selected_groups: any
 	spline_selection: any
 	texture_groups: any
-	collections: any
+	collections: Collection[]
 	animation_controllers: any
 
 	constructor(options: ModelProjectOptions = {}, uuid?: UUID) {
@@ -184,7 +185,6 @@ export class ModelProject {
 		ModelProject.all.push(this);
 
 		ProjectData[this.uuid] = {
-			// @ts-ignore
 			model_3d: new THREE.Object3D(),
 			nodes_3d: {}
 		}
@@ -277,7 +277,7 @@ export class ModelProject {
 		return (texture && Format.per_texture_uv_size) ? texture.uv_height : this.texture_height;
 	}
 	openSettings() {
-		if (this.selected) (BarItems.project_window as Action).click();
+		if (this.selected) BarItems.project_window.click();
 	}
 	whenNextOpen(callback: () => void) {
 		if (Project == this) {
@@ -372,8 +372,8 @@ export class ModelProject {
 
 		(BarItems.lock_motion_trail as Toggle).set(!!Project.motion_trail_lock);
 
-		(BarItems.mirror_modeling as Toggle).set(!!Project.mirror_modeling_enabled);
-		(BarItems.mirror_animating as Toggle).set(!!Project.mirror_animating_enabled);
+		BarItems.mirror_modeling.set(!!Project.mirror_modeling_enabled);
+		BarItems.mirror_animating.set(!!Project.mirror_animating_enabled);
 
 		Blockbench.dispatchEvent('load_editor_state', {project: this});
 		return this;
@@ -477,7 +477,7 @@ export class ModelProject {
 			if (isApp) {
 				updateRecentProjectData();
 			}
-			Blockbench.dispatchEvent('close_project', {on_quit: true});
+			Blockbench.dispatchEvent('close_project', {project: this, on_quit: true});
 
 		} catch (err) {
 			console.error(err);
@@ -612,12 +612,13 @@ new Property(ModelProject, 'string', 'modded_entity_version', {
 });
 new Property(ModelProject, 'string', 'java_block_version', {
 	label: 'dialog.project.java_block_version',
-	default: () => settings.default_java_block_version.value == 'latest' ? '1.21.11' : settings.default_java_block_version.value,
+	default: () => settings.default_java_block_version.value == 'latest' ? '26.3' : settings.default_java_block_version.value,
 	condition: {formats: ['java_block']},
 	options: {
 		'1.9.0': '1.9 - 1.21.5',
 		'1.21.6': '1.21.6 - 1.21.10',
-		'1.21.11': '1.21.11+',
+		'1.21.11': '1.21.11 - 26.2',
+		'26.3': '26.3+',
 	}
 });
 new Property(ModelProject, 'string', 'credit', {
@@ -699,6 +700,8 @@ ModelProject.prototype.menu = new Menu([
 	'duplicate_project',
 	'convert_project',
 	'close_project',
+	'close_other_projects',
+	'close_projects_to_right',
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
@@ -789,6 +792,82 @@ export function updateTabBarVisibility() {
 	document.getElementById('tab_bar').style.display = hidden ? 'none' : 'flex';
 	document.getElementById('title_bar_home_button').style.display = hidden ? 'block' : 'none';
 }
+// Close Projects
+/**
+ * 
+ * @param projects 
+ * @returns Promise: true if all projects were saved, otherwise false
+ */
+export function showUnsavedWorkDialog(projects = ModelProject.all) {
+	return new Promise<boolean>((resolve, reject) => {
+		let ul = Interface.createElement('ul', {class: 'list unsaved_models_list'});
+		let dialog: Dialog;
+
+		async function saveProject(project) {
+			project.select();
+			if (Project.save_path) {
+				(BarItems.save_project as Action).trigger();
+			} else if (Project.export_path)  {
+				await (BarItems.export_over as Action).click();
+			} else {
+				await (BarItems.export_over as Action).click();
+			}
+		}
+
+		projects.forEach(project => {
+			if (project.saved) return;
+			let li = Interface.createElement('li', {class: 'unsaved_model'}, [
+				Blockbench.getIconNode(project.format?.icon),
+				Interface.createElement('span', {}, project.getDisplayName(true)),
+				Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('save')),
+			]);
+			li.addEventListener('click', event => {
+				project.select();
+			})
+			li.lastChild.addEventListener('click', async (event) => {
+				await saveProject(project);
+				if (Project.saved) {
+					li.remove();
+					if (ul.childElementCount == 0) {
+						wait(200);
+						resolve(true);
+					}
+				}
+			})
+			ul.append(li);
+		})
+
+		dialog = new Dialog('close', {
+			title: 'dialog.unsaved_work.title',
+			lines: [
+				Interface.createElement('p', {}, tl('dialog.unsaved_work.text')),
+				ul
+			],
+			buttons: [tl('dialog.unsaved_work.save_all'), tl('dialog.unsaved_work.discard_all'), tl('dialog.cancel')],
+			cancel_on_click_outside: false,
+			onButton(button) {
+				if (button == 0) {
+					(async function() {
+						for (let project of projects.slice()) {
+							await saveProject(project);
+							if (!project.saved) return;
+						}
+						resolve(true);
+					})();
+
+				} else if (button == 1) {
+					resolve(false);
+				} else {
+					reject();
+				}
+			}
+		})
+		dialog.show();
+		if (isApp && Blockbench.platform == 'win32') {
+			shell.beep();
+		}
+	})
+}
 
 // Resolution
 export function updateProjectResolution() {
@@ -871,7 +950,7 @@ onVueSetup(() => {
 				selectNoProject();
 			},
 			tabOverview() {
-				(BarItems.tab_overview as Action).trigger();
+				BarItems.tab_overview.trigger();
 			},
 			mouseDown(tab, e1) {
 				convertTouchEvent(e1);
@@ -1189,6 +1268,7 @@ BARS.defineActions(function() {
 					Blockbench.dispatchEvent('update_project_settings', formResult);
 
 					BARS.updateConditions()
+					updateSelection()
 					if (Project.EditSession) {
 						let metadata = {
 							texture_width: Project.texture_width,
@@ -1214,6 +1294,37 @@ BARS.defineActions(function() {
 		condition: () => !!Project,
 		click: function () {
 			Project.close();
+		}
+	})
+	new Action('close_other_projects', {
+		icon: 'tab_close',
+		category: 'file',
+		condition: () => !!Project,
+		async click() {
+			let projects = ModelProject.all.filter(p => p != Project);
+			if (projects.some(p => !p.saved)) {
+				await showUnsavedWorkDialog(projects).catch(silentReject);
+			}
+			for (let project of projects) {
+				if (!ModelProject.all.includes(project)) continue;
+				await project.close(true);
+			}
+		}
+	})
+	new Action('close_projects_to_right', {
+		icon: 'tab_close_right',
+		category: 'file',
+		condition: () => ModelProject.all.length > 2 && ModelProject.all.indexOf(Project) != ModelProject.all.length-1,
+		async click() {
+			let index = ModelProject.all.indexOf(Project);
+			let projects = ModelProject.all.slice(index+1);
+			if (projects.some(p => !p.saved)) {
+				await showUnsavedWorkDialog(projects).catch(silentReject);
+			}
+			for (let project of projects) {
+				if (!ModelProject.all.includes(project)) continue;
+				await project.close(true);
+			}
 		}
 	})
 	new Action('duplicate_project', {
@@ -1381,6 +1492,7 @@ const global = {
 	updateTabBarVisibility,
 	updateProjectResolution,
 	setStartScreen,
+	showUnsavedWorkDialog
 };
 declare global {
 	type ModelProject = import('./project').ModelProject
@@ -1392,5 +1504,14 @@ declare global {
 	const updateTabBarVisibility: typeof global.updateTabBarVisibility
 	const updateProjectResolution: typeof global.updateProjectResolution
 	const setStartScreen: typeof global.setStartScreen
+	const showUnsavedWorkDialog: typeof global.showUnsavedWorkDialog
+	interface BarItemRegistry {
+		project_window: Action
+		close_project: Action
+		duplicate_project: Action
+		convert_project: Action
+		switch_tabs: Action
+		tab_overview: Action
+	}
 }
 Object.assign(window, global);

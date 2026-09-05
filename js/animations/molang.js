@@ -19,7 +19,7 @@ Animator.MolangParser.global_variables = {
 		return Timeline.time
 	},
 	get 'query.time_stamp'() {
-		return Math.floor(Timeline.time * 20) / 20
+		return Math.floor(Timeline.time * 20);
 	},
 	get 'query.all_animations_finished'() {
 		if (AnimationController.selected?.selected_state) {
@@ -220,7 +220,7 @@ export function getAllMolangExpressions() {
 }
 
 new ValidatorCheck('molang_syntax', {
-	condition: { features: ['animation_mode'] },
+	condition: { features: ['animation_mode', 'molang'] },
 	update_triggers: ['update_keyframe_selection', 'edit_animation_properties'],
 	run() {
 		let check = this
@@ -1730,7 +1730,7 @@ export function sortAutocompleteResults(results, incomplete) {
 				})
 				.addQuery({
 					id: 'sign',
-					arguments: ['vaule'],
+					arguments: ['value'],
 				})
 				.addQuery({
 					id: 'copy_sign',

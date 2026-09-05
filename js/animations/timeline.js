@@ -464,7 +464,7 @@ export const Timeline = {
 			if (Timeline.dragging_playhead) {
 				delete Timeline.dragging_playhead;
 				Interface.removeSuggestedModifierKey('ctrl', 'modifier_actions.drag_without_snapping');
-				Timeline.pause();
+				if (Timeline.playing) Timeline.pause();
 
 			} else if (Timeline.dragging_endbracket) {
 				Undo.finishEdit('Change Animation Length')
@@ -608,10 +608,6 @@ export const Timeline = {
 	updateSize() {
 		Timeline.vue.updateTimecodes();
 	},
-	updateScroll(e) {
-		$('.channel_head').css('left', scroll_amount+'px')
-		$('#timeline_time').css('left', -scroll_amount+'px')
-	},
 	unselect(e) {
 		if (!Animation.selected) return;
 		Timeline.keyframes.forEach((kf) => {
@@ -671,19 +667,21 @@ export const Timeline = {
 
 		if (time < max_time) {
 			Timeline.setTime(time);
+			Animator.preview(true);
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
 				Timeline.setTime(Timeline.custom_range[0]);
+				Animator.preview(true);
 			} else if (Animation.selected.loop == 'once') {
 				Timeline.setTime(Timeline.custom_range[0]);
-				Animator.preview()
-				Timeline.pause()
+				Animator.preview(false);
+				Timeline.pause();
 			} else if (Animation.selected.loop == 'hold') {
 				Timeline.setTime(max_time);
-				Timeline.pause()
+				Animator.preview(false);
+				Timeline.pause();
 			}
 		}
-		Animator.preview(true);
 	},
 	pause() {
 		Animator.preview();
@@ -783,6 +781,13 @@ export const Timeline = {
 	])
 }
 
+StateMemory.init("timeline_channels", "object", {
+	rotation: true,
+	position: true,
+	scale: true,
+	hide_empty: false,
+});
+
 Interface.definePanels(() => {
 	function eventTargetToAnimator(target) {
 		let target_node = target;
@@ -867,12 +872,7 @@ Interface.definePanels(() => {
 				onion_skin_selectable: BarItems.animation_onion_skin.value,
 				onion_skin_time: 0,
 
-				channels: {
-					rotation: true,
-					position: true,
-					scale: true,
-					hide_empty: false,
-				}
+				channels: StateMemory.timeline_channels
 			}},
 			computed: {
 				graph_editor_animator() {
@@ -1232,8 +1232,9 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off, {passive: false});
 				},
 				dragKeyframes(clicked, e1) {
-					convertTouchEvent(e1);
 					if (e1.target.classList.contains('keyframe_bezier_handle')) return;
+					if (e1.button > 0) return;
+					convertTouchEvent(e1);
 					let dragging_range;
 					let dragging_restriction;
 					let originalValue;
@@ -1423,6 +1424,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				dragBezierHandle(clicked, side, e1) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let values_changed;
 					let is_setup = false;
@@ -1549,6 +1551,7 @@ Interface.definePanels(() => {
 					addEventListeners(document, 'mouseup touchend', off);
 				},
 				slideGraphAmplify(e1, anchor_side) {
+					if (e1.button > 0) return;
 					convertTouchEvent(e1);
 					let original_values = {};
 					let values_changed;
@@ -1778,7 +1781,7 @@ Interface.definePanels(() => {
 									</div>
 								</div>
 								<div class="animator_channel_bar"
-									v-bind:style="{width: (size*length + head_width)+'px'}"
+									v-bind:style="graph_editor_open ? {} : {width: (size*length + head_width)+'px'}"
 									v-for="(channel_options, channel) in animator.channels"
 									v-if="animator.expanded && channels[channel] != false && Condition(channel_options.condition, animator) && (!channels.hide_empty || animator[channel].length)"
 								>
@@ -2210,6 +2213,7 @@ BARS.defineActions(function() {
 						icon: channels[id] != false ? on : off,
 						click() {
 							Vue.set(channels, id, channels[id] == false);
+							StateMemory.save('timeline_channels');
 						}
 					})
 				}
@@ -2217,7 +2221,10 @@ BARS.defineActions(function() {
 			return [
 				...menu_list,
 				'_',
-				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {channels.hide_empty	 = !channels.hide_empty}},
+				{name: 'action.timeline_focus.hide_empty', icon: channels.hide_empty ? on : off, click() {
+					Vue.set(channels, 'hide_empty', !channels.hide_empty);
+					StateMemory.save('timeline_channels');
+				}},
 			]
 		}
 	})

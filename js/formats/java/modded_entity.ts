@@ -1,13 +1,14 @@
+import { InputFormConfig } from "../../interface/form";
 import { fs } from "../../native_apis";
 
-function F(num) {
+function F(num: number): string {
 	var s = trimFloatNumber(num) + '';
 	if (!s.includes('.')) {
 		s += '.0';
 	}
 	return s+'F';
 }
-function I(num) {
+function I(num: number): number {
 	return Math.floor(num)
 }
 export const Templates = {
@@ -405,7 +406,7 @@ export const AnimationTemplates = {
 	}
 };
 
-function getIdentifier() {
+function getIdentifier(): string {
 	return (Project.geometry_name && Project.geometry_name.replace(/[\s-]+/g, '_')) || Project.name || 'CustomModel';
 }
 
@@ -415,11 +416,39 @@ function askToSaveProject() {
 		translateKey: 'cannot_re_import',
 		buttons: ['dialog.save', 'dialog.cancel']
 	}, button => {
-		if (button == 0) BarItems.save_project.click();
+		if (button == 0) (BarItems.save_project as Action).click();
 	})
 }
 
-var codec = new Codec('modded_entity', {
+function convertPositionsFromLocalToGlobal(/** @type {Group} */ parent: Group | null, offset: ArrayVector3 = [0, 0, 0], seenElements=new WeakSet()) {
+	if (parent == null) return;
+	if (seenElements.has(parent)) {
+		// Circular reference detection
+		// There are already checks elsewhere that prevent circular groups, but it doesn't hurt to be extra safe
+		console.warn('Circular reference detected when converting group "%s" (uuid %s) to global coordinates.', parent.name, parent.uuid);
+		return;
+	}
+	
+	seenElements.add(parent);
+
+	const newParentOrigin = Array.from(parent.origin).V3_add(offset);
+	parent.transferOrigin(newParentOrigin);
+
+	parent.children.forEach(child => {
+		if (child instanceof Cube) {
+			child.from.V3_add(offset);
+			child.to.V3_add(offset);
+			// Set the cube's origin to the parent's origin
+			// Cubes never get their origin set otherwise (so we're not losing any information), and this makes "Resolve Group" more accurate
+			child.origin.V3_set(newParentOrigin);
+		} else if(child instanceof Group) {
+			// Recursively adjust child groups as well
+			convertPositionsFromLocalToGlobal(child, newParentOrigin, seenElements)
+		}
+	})
+}
+
+const codec = new Codec('modded_entity', {
 	name: 'Java Class',
 	extension: 'java',
 	remember: true,
@@ -443,7 +472,6 @@ var codec = new Codec('modded_entity', {
 			let group = new Group({
 				name: 'bb_main'
 			});
-			group.is_catch_bone = true;
 			group.createUniqueName()
 			all_groups.push(group)
 			group.children.replace(loose_cubes)
@@ -498,7 +526,7 @@ var codec = new Codec('modded_entity', {
 			let usesLayerDef = Templates.get('use_layer_definition')
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if ((group instanceof Group === false) || !group.export) continue;
 				if (group.is_rotation_subgroup && Templates.get('model_part')) continue;
 				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let snippet = Templates.get('field')
@@ -513,7 +541,7 @@ var codec = new Codec('modded_entity', {
 			let group_snippets = [];
 			for (var group of all_groups) {
 
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if ((group instanceof Group === false) || !group.export) continue;
 				let snippet = Templates.get('bone')
 
 					.replace(R('bone'), group.name)
@@ -549,7 +577,7 @@ var codec = new Codec('modded_entity', {
 					.replace(/(?:\n|^)\?\(has_no_parent\).+/, group.parent instanceof Group ? '' : Templates.keepLine)
 					.replace(/(?:\n|^)%\(remove_n\)/g, '')
 					.trim()
-					.replace(R('parent'), group.parent.name)
+					.replace(R('parent'), (group.parent instanceof Group) ? group.parent.name : '')
 
 					.replace(R('cubes'), () => {
 
@@ -610,7 +638,7 @@ var codec = new Codec('modded_entity', {
 
 			let group_snippets = [];
 			for (let group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if ((group instanceof Group === false) || !group.export) continue;
 				if (group.is_rotation_subgroup) continue;
 				//if (usesLayerDef && group.parent instanceof Group) continue;
 				let modelPart = snippet
@@ -619,7 +647,7 @@ var codec = new Codec('modded_entity', {
 					.replace(/(?:\n|^)\?\(has_parent\).+/, group.parent instanceof Group ? Templates.keepLine : '')
 					.replace(/(?:\n|^)\?\(has_no_parent\).+/, group.parent instanceof Group ? '' : Templates.keepLine)
 					.trim()
-					.replace(R('parent'), group.parent.name)
+					.replace(R('parent'), group.parent instanceof Group ? group.parent.name : '')
 				group_snippets.push(modelPart);
 			}
 			return group_snippets.join('\n\t\t')
@@ -628,7 +656,7 @@ var codec = new Codec('modded_entity', {
 		model = model.replace(R('renderers'), () => {
 			let group_snippets = [];
 			for (var group of all_groups) {
-				if ((group instanceof Group === false && !group.is_catch_bone) || !group.export) continue;
+				if ((group instanceof Group === false) || !group.export) continue;
 				if (!Templates.get('render_subgroups') && group.parent instanceof Group) continue;
 
 				let snippet = Templates.get('renderer')
@@ -653,7 +681,7 @@ var codec = new Codec('modded_entity', {
 			}
 		})
 
-		function parseScheme(scheme, input) {
+		function parseScheme(scheme: string, input: string): boolean {
 			scheme = scheme.replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/\./g, '\\.');
 			var parts = scheme.split('$');
 			var results = [];
@@ -662,12 +690,12 @@ var codec = new Codec('modded_entity', {
 			for (var part of parts) {
 				if (i == 0) {
 					var partmatch = new RegExp('^'+part).exec(input);
-					if (partmatch == null) return;
+					if (partmatch == null) return false;
 
 					location = partmatch[0].length;
 				} else {
-					var key = part.substr(0, 1);
-					part = part.substr(1);
+					var key = part.substring(0, 1);
+					part = part.substring(1);
 					var key_regex = '';
 					switch (key) {
 						case 'v': key_regex = '^[a-zA-Z_][a-zA-Z0-9_]+'; break;
@@ -676,11 +704,11 @@ var codec = new Codec('modded_entity', {
 						case 'd': key_regex = '^-?\\d+\\.?\\d*'; break;
 						case 'b': key_regex = '^true|false'; break;
 					}
-					var partmatch = new RegExp(key_regex+part).exec(input.substr(location));
-					if (partmatch == null) return;
+					var partmatch = new RegExp(key_regex+part).exec(input.substring(location));
+					if (partmatch == null) return false;
 
 
-					var variable = new RegExp(key_regex).exec(input.substr(location))[0];
+					var variable = new RegExp(key_regex).exec(input.substring(location))[0];
 					switch (key) {
 						case 'v': results.push(variable); break;
 						case 'i': results.push(parseInt(variable)); break;
@@ -696,12 +724,14 @@ var codec = new Codec('modded_entity', {
 			match = results;
 			return true;
 		}
-		var scope = 0,
-			bones = {},
-			geo_name,
+		var scope: number = 0,
+			bones: Record<string, Group> = {},
+			geo_name: string,
 			match,
 			last_uv;
 
+		// Add all groups and cubes in local coordinates
+		// We will apply parent transformations in the next step
 		lines.forEach(line => {
 			if (scope == 0) {
 				if (/^public class/.test(line)) {
@@ -710,13 +740,13 @@ var codec = new Codec('modded_entity', {
 				}
 			} else if (scope == 1) {
 				line = line.replace(/public |static |final |private |void /g, '').trim();
-				if (line.substr(0, 13) == 'ModelRenderer' || line.substr(0, 13) == 'RendererModel') {
+				if (line.substring(0, 13) == 'ModelRenderer' || line.substring(0, 13) == 'RendererModel') {
 					let name = line.split(' ')[1];
 					bones[name] = new Group({
 						name,
 						origin: [0, 24, 0]
 					}).init();
-				} else if (line.substr(0, geo_name.length) == geo_name) {
+				} else if (line.substring(0, geo_name.length) == geo_name) {
 					scope = 2;
 				}
 
@@ -770,32 +800,36 @@ var codec = new Codec('modded_entity', {
 				} else
 				
 				if (parseScheme('$v.setRotationPoint($f, $f, $f)', line) || parseScheme('$v.setPos($f, $f, $f)', line)) {
+					/** @type {Group} */
 					var bone = bones[match[0]]
 					if (bone) {
-						bone.extend({origin: [-match[1], 24-match[2], match[3]]});
+						// Don't explode the model by reapplying the origin multiple times
+						bone.children.forEach(cube => {
+							if (cube instanceof Cube) {
+								cube.from[0] -= bone.origin[0]; cube.to[0] -= bone.origin[0];
+								cube.from[1] -= bone.origin[1]; cube.to[1] -= bone.origin[1];
+								cube.from[2] -= bone.origin[2]; cube.to[2] -= bone.origin[2];
+							}
+						});
+						
+						bone.extend({origin: [-match[1], -match[2], match[3]]});
+
 						bone.children.forEach(cube => {
 							if (cube instanceof Cube) {
 								cube.from[0] += bone.origin[0]; cube.to[0] += bone.origin[0];
-								cube.from[1] += bone.origin[1]-24; cube.to[1] += bone.origin[1]-24;
+								cube.from[1] += bone.origin[1]; cube.to[1] += bone.origin[1];
 								cube.from[2] += bone.origin[2]; cube.to[2] += bone.origin[2];
 							}
-						})
+						});
 					}
 				} else
 				
 				if (parseScheme('$v.addChild($v)', line.replace(/\(this\./g, '('))) {
 					var child = bones[match[1]], parent = bones[match[0]];
 					child.addTo(parent);
-					child.origin.V3_add(parent.origin)
-					child.origin[1] -= 24;
 
-					child.children.forEach(cube => {
-						if (cube instanceof Cube) {
-							cube.from[0] += parent.origin[0]; cube.to[0] += parent.origin[0];
-							cube.from[1] += parent.origin[1]-24; cube.to[1] += parent.origin[1]-24;
-							cube.from[2] += parent.origin[2]; cube.to[2] += parent.origin[2];
-						}
-					})
+					// We'll adjust the position of all cubes in the next step
+					// For now, we don't want any unnecessary confusion in the coordinate system
 				} else
 				
 				//Cubes
@@ -944,11 +978,21 @@ var codec = new Codec('modded_entity', {
 					var group = bones[match[0]];
 					group.mirror_uv = match[1];
 					group.children.forEach(cube => {
+						if (cube instanceof Cube == false) return;
 						cube.mirror_uv = match[1];
 					});
 				}
 			}
 		})
+		
+		// All the cubes and groups are in local coordinates right now, we need to turn that into global coordinates
+		/** @type {Array<Group>} */
+		let rootElements = Object.values(bones).filter(bone => bone.parent == 'root');
+		rootElements.forEach(bone => {
+			// Root elements need to have 24 added to their origin y
+			convertPositionsFromLocalToGlobal(bone, [0, 24, 0])
+		})
+
 		Project.geometry_name = geo_name;
 		this.dispatchEvent('parsed', {model});
 		Canvas.updateAllBones();
@@ -957,7 +1001,7 @@ var codec = new Codec('modded_entity', {
 	afterDownload(path) {
 		if (this.remember) {
 			Project.saved = true;
-		} else if (!open_interface) {
+		} else if (!Dialog.open) {
 			askToSaveProject();
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [path ? pathToName(path, true) : this.fileName()]));
@@ -977,7 +1021,7 @@ var codec = new Codec('modded_entity', {
 				icon: this.id == 'project' ? 'icon-blockbench_file' : Format.icon
 			});
 			updateRecentProjectThumbnail();
-		} else if (!open_interface) {
+		} else if (!Dialog.open) {
 			askToSaveProject();
 		}
 		Blockbench.showQuickMessage(tl('message.save_file', [name]));
@@ -996,7 +1040,7 @@ Object.defineProperty(codec, 'remember', {
 
 const animation_codec = new AnimationCodec('modded_entity', {
 	multiple_per_file: true,
-	compileFile(animations = Animation.all) {
+	compileFile(animations: BBAnimation[] = BBAnimation.all) {
 		let R = Templates.getVariableRegex;
 		let identifier = getIdentifier();
 		let interpolations = AnimationTemplates.get('interpolations');
@@ -1007,7 +1051,7 @@ const animation_codec = new AnimationCodec('modded_entity', {
 		file = file.replace(R('identifier'), identifier);
 
 		let anim_strings = [];
-		animations.forEach(animation => {
+		animations.forEach((animation: BBAnimation) => {
 			let anim_string = AnimationTemplates.get('animation');
 			anim_string = anim_string.replace(R('name'), animation.name);
 			anim_string = anim_string.replace(R('length'), F(animation.length));
@@ -1023,7 +1067,7 @@ const animation_codec = new AnimationCodec('modded_entity', {
 					if (!(animator[channel_id] && animator[channel_id].length)) continue;
 					let keyframes = animator[channel_id].slice().sort((a, b) => a.time - b.time);
 					let keyframe_strings = [];
-					function addKeyframe(time, x, y, z, interpolation) {
+					function addKeyframe(time: number, x: number, y: number, z: number, interpolation) {
 						if (channel_id == 'position') {
 							x *= -1;
 						}
@@ -1040,7 +1084,7 @@ const animation_codec = new AnimationCodec('modded_entity', {
 						keyframe_strings.push(kf_string);
 					}
 					
-					keyframes.forEach((kf, i) => {
+					keyframes.forEach((kf: BBKeyframe, i: number) => {
 						addKeyframe(kf.time, kf.calc('x'), kf.calc('y'), kf.calc('z'), kf.interpolation);
 						if (kf.data_points[1]) {
 							addKeyframe(kf.time+0.001, kf.calc('x', 1), kf.calc('y', 1), kf.calc('z', 1), kf.interpolation);
@@ -1068,8 +1112,7 @@ const animation_codec = new AnimationCodec('modded_entity', {
 	}
 })
 
-var format = new ModelFormat({
-	id: 'modded_entity',
+var format = new ModelFormat('modded_entity', {
 	icon: 'icon-format_java',
 	category: 'minecraft',
 	target: 'Minecraft: Java Edition',
@@ -1094,13 +1137,14 @@ var format = new ModelFormat({
 	animation_mode: true,
 	pbr: true,
 })
-Object.defineProperty(format, 'integer_size', {get: _ => Templates.get('integer_size') || settings.modded_entity_integer_size.value});
+Object.defineProperty(format, 'integer_size', {
+	get: () => Templates.get('integer_size') || settings.modded_entity_integer_size.value
+});
 codec.format = format;
 
 
 BARS.defineActions(function() {
-	new Action({
-		id: 'export_class_entity',
+	new Action('export_class_entity', {
 		icon: 'free_breakfast',
 		category: 'file',
 		condition: () => Format == format,
@@ -1113,9 +1157,9 @@ BARS.defineActions(function() {
 		category: 'file',
 		condition: () => Format == format,
 		click() {
-			let form = {};
+			let form: InputFormConfig = {};
 			let keys = [];
-			let animations = Animation.all.slice();
+			let animations = BBAnimation.all.slice();
 			if (Format.animation_files) animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode());
 			animations.forEach(animation => {
 				let key = animation.name;
@@ -1129,7 +1173,7 @@ BARS.defineActions(function() {
 				onConfirm(form_result) {
 					dialog.hide();
 					keys = keys.filter(key => form_result[key.hashCode()]);
-					let animations = keys.map(k => Animation.all.find(anim => anim.name == k));
+					let animations = keys.map(k => BBAnimation.all.find(anim => anim.name == k));
 					let content = AnimationCodec.codecs.modded_entity.compileFile(animations);
 					Blockbench.export({
 						resource_id: 'modded_animation',

@@ -5,6 +5,7 @@ import commandLineArgs from 'command-line-args'
 import path from 'path';
 import { writeFileSync } from 'fs';
 import fs from 'node:fs';
+import { spawn } from 'child_process';
 import vuePlugin from 'esbuild-vue/src/index.js';
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
@@ -13,6 +14,7 @@ const options = commandLineArgs([
     {name: 'target', type: String},
     {name: 'watch', type: Boolean},
     {name: 'serve', type: Boolean},
+    {name: 'launch', type: Boolean},
     {name: 'host', type: String},
     {name: 'port', type: Number},
     {name: 'analyze', type: Boolean},
@@ -63,6 +65,28 @@ function createJsonPlugin(ext_suffix, namespace) {
     };
 };
 
+let electron_process = null;
+function createElectronPlugin() {
+    if (!isApp || !options.launch) return null;
+    return {
+        name: 'electron-launcher',
+        setup(build) {
+            build.onEnd((result) => {
+                if (result.errors.length > 0) return;
+
+                if (!electron_process) {
+                    electron_process = spawn('electron', ['.', '--remote-debugging-port=9223'], {
+                        stdio: 'inherit',
+                        shell: true,
+                    });
+                    
+                    electron_process.on('close', () => process.exit(0));
+                }
+            });
+        }
+    }
+}
+
 const isApp = options.target == 'electron';
 const dev_mode = options.watch || options.serve;
 const minify = !dev_mode;
@@ -106,14 +130,15 @@ const config = {
         }),
         conditionalImportPlugin(1, {
             filter: /desktop/,
-            file: isApp ? 'desktop.js' : 'web.js'
+            file: isApp ? 'desktop.ts' : 'web.ts'
         }),
         createJsonPlugin('.bbkeymap', 'bbkeymap'),
         vuePlugin(),
         glsl({
             minify
-        })
-    ],
+        }),
+        createElectronPlugin()
+    ].filter(plugin => plugin != null),
     sourcemap: true,
 }
 

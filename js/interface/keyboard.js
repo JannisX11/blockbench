@@ -607,6 +607,10 @@ function isSwapToolsHoldKey(key) {
 }
 
 window.addEventListener('blur', event => {
+	let release = { bubbles: true, clientX: mouse_pos.x, clientY: mouse_pos.y };
+	document.dispatchEvent(new PointerEvent('pointerup', release));
+	document.dispatchEvent(new MouseEvent('mouseup', release));
+
 	if (isSwapToolsEnabled()) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()
@@ -858,6 +862,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			used = true;
 		}
 	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+		// TODO: Use to transform layer
 		switch (e.which) {
 			case 37: Painter.selection.x -= 1; break;//<
 			case 38: Painter.selection.y -= 1; break;//UP
@@ -866,7 +871,6 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		}
 		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
 		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-		UVEditor.updatePastingOverlay();
 		e.preventDefault();
 
 	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {

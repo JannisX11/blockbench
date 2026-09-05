@@ -14,7 +14,6 @@ function setupSettings() {
 	new Setting('username', {value: '', type: 'text'});
 	new Setting('streamer_mode', {value: false, onChange() {
 		StartScreen.vue._data.redact_names = settings.streamer_mode.value;
-		// @ts-ignore
 		Interface.status_bar.vue.$data.streamer_mode = settings.streamer_mode.value;
 		updateStreamerModeNotification();
 	}});
@@ -106,6 +105,9 @@ function setupSettings() {
 			preview.camPers.updateProjectionMatrix();
 		});
 	}});
+	new Setting('maximum_zoom_distance',{category: 'preview', value: 4000, type: 'number', min: 16, onChange(val) {
+		Preview.all.forEach(preview => preview.controls.maxDistance = val);
+	}});
 	new Setting('render_sides', 			{category: 'preview', value: 'auto', type: 'select', options: {
 		'auto': tl('settings.render_sides.auto'),
 		'front': tl('settings.render_sides.front'),
@@ -113,14 +115,15 @@ function setupSettings() {
 	}, onChange() {
 		Canvas.updateRenderSides();
 	}});
+	new Setting('constant_outlines', 		{category: 'preview', value: false, onChange() { updateSelection() }});
 	new Setting('tone_mapping', 			{category: 'preview', value: 'none', type: 'select', options: {
 		none: tl('generic.none'),
 		linear: 'Linear',
 		reinhard: 'Reinhard',
 		cineon: 'Cineon',
 		aces_filmic: 'ACES Filmic',
-		agx: 'AgX',
-		neutral: 'Neutral',
+		// agx: 'AgX',
+		// neutral: 'Neutral',
 	}, onChange() {
 		for (let preview of Preview.all) {
 			preview.updateToneMapping();
@@ -158,7 +161,7 @@ function setupSettings() {
 	new Setting('undo_selections',			{category: 'edit', value: false});
 	new Setting('undo_limit',				{category: 'edit', value: 256, type: 'number', min: 1});
 	new Setting('highlight_cubes',  		{category: 'edit', value: true, onChange() {
-		updateCubeHighlights();
+		Canvas.updateCubeHighlights();
 	}});
 	new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
@@ -201,6 +204,13 @@ function setupSettings() {
 	new Setting('color_picker_tool_switch',			{category: 'paint', value: true});
 	new Setting('paint_through_transparency',		{category: 'paint', value: true});
 	new Setting('paint_side_restrict',				{category: 'paint', value: true});
+	new Setting('opacity_range',					{category: 'paint', value: '255', type: 'select', options: {
+		'255': '0-255',
+		'100': '0-100%',
+	}, onChange(value) {
+		BarItems.slider_brush_opacity.update();
+		BarItems.layer_opacity.update();
+	}});
 	new Setting('limit_brush_opacity_per_stroke',	{category: 'paint', value: true});
 	new Setting('paint_with_stylus_only',			{category: 'paint', value: false});
 	new Setting('brush_opacity_modifier',			{category: 'paint', value: 'none', type: 'select', options: {
@@ -267,6 +277,7 @@ function setupSettings() {
 	}});
 	new Setting('default_java_block_version',		{category: 'defaults', type: 'select', value: 'latest', options: {
 		latest: 'Latest',
+		'1.21.11': '1.21.11 - 26.2',
 		'1.21.6': '1.21.6 - 1.21.10',
 		'1.9.0': '1.9 - 1.21.5',
 	}});
@@ -280,10 +291,12 @@ function setupSettings() {
 	new Setting('uniform_keyframe',					{category: 'defaults', value: true});
 	
 	//Dialogs
+	new Setting('new_project_dialog',		{category: 'dialogs', value: true});
 	new Setting('dialog_larger_cubes', 		{category: 'dialogs', value: true, name: tl('message.model_clipping.title'), description: tl('settings.dialog.desc', [tl('message.model_clipping.title')])});
 	new Setting('dialog_rotation_limit', 	{category: 'dialogs', value: true, name: tl('message.rotation_limit.title'), description: tl('settings.dialog.desc', [tl('message.rotation_limit.title')])});
 	new Setting('dialog_loose_texture', 	{category: 'dialogs', value: true, name: tl('message.loose_texture.title'), description: tl('settings.dialog.desc', [tl('message.loose_texture.title')])});
 	new Setting('dialog_invalid_characters',{category: 'dialogs', value: true, name: tl('message.invalid_characters.title'), description: tl('settings.dialog.desc', [tl('message.invalid_characters.title')])});
+	new Setting('dialog_generated_item_model', {category: 'dialogs', value: true, name: tl('message.generated_item_model.title'), description: tl('settings.dialog.desc', [tl('message.generated_item_model.title')])});
 	new Setting('dialog_save_codec',		{category: 'dialogs', value: true, name: tl('message.save_codec_selector.title'), description: tl('settings.dialog.desc', [tl('message.save_codec_selector.title')])});
 	
 	//Application
@@ -292,7 +305,9 @@ function setupSettings() {
 	new Setting('backup_retain', {category: 'application', value: 30, type: 'number', min: 0, condition: isApp});
 	new Setting('automatic_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('update_to_prereleases', {category: 'application', value: false, condition: isApp, launch_setting: true});
+	new Setting('automatic_plugin_updates', {category: 'application', value: true, condition: isApp});
 	new Setting('hardware_acceleration', {category: 'application', value: true, requires_restart: true, condition: isApp, launch_setting: true});
+	new Setting('native_window_frame', {category: 'application', value: false, requires_restart: true, condition: isApp, launch_setting: true});
 	
 	//Export
 	new Setting('json_indentation',		{category: 'export', value: 'tabs', type: 'select', options: {

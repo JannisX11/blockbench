@@ -69,8 +69,8 @@ export class Texture {
 		img.src = 'assets/missing.png'
 
 		let tex = new THREE.Texture(this.canvas);
-		tex.magFilter = THREE.NearestFilter
-		tex.minFilter = THREE.NearestFilter
+		tex.magFilter = THREE.NearestFilter // Pixelated rendering
+		tex.minFilter = THREE.NearestFilter // Distance
 		tex.name = this.name;
 		img.tex = tex;
 
@@ -119,7 +119,8 @@ export class Texture {
 			}
 			self.currentFrame = Math.min(self.currentFrame, (self.frameCount||1)-1)
 
-			if (img.update_from_canvas) {
+			let update_from_canvas = img.update_from_canvas;
+			if (update_from_canvas) {
 				delete img.update_from_canvas;
 			} else if (!self.layers_enabled) {
 				self.canvas.width = self.width;
@@ -191,6 +192,12 @@ export class Texture {
 					TextureAnimator.updateButton()
 					if (UVEditor.vue && UVEditor.vue.texture == this) UVEditor.vue.updateTexture()
 					Canvas.updateAllFaces(self)
+				} else if (!update_from_canvas) {
+					Outliner.elements.forEach(element => {
+						if (element instanceof TextureMesh) {
+							element.preview_controller.updateGeometry(element);
+						}
+					})
 				}
 				if (typeof self.load_callback === 'function') {
 					self.load_callback(self);
@@ -352,7 +359,8 @@ export class Texture {
 					layer.extend(layer_template);
 					old_layers.remove(layer);
 				} else {
-					layer = new TextureLayer(layer_template, this, layer_template.uuid);
+					let constructor = TextureLayerItem.types[layer_template.type] || TextureLayer;
+					layer = new constructor(layer_template, this, layer_template.uuid);
 				}
 				this.layers.push(layer);
 			})
@@ -1097,6 +1105,29 @@ export class Texture {
 		Filesystem.showFileInFolder(this.path)
 		return this;
 	}
+	openInImageEditor() {
+		let existing_tab, tex2;
+		for (let project of ModelProject.all) {
+			if (!project.format.image_editor) continue;
+			tex2 = project.textures.find(t => t.uuid == this.uuid || (t.path && t.path == this.path));
+			if (tex2) {
+				existing_tab = project;
+				break;
+			}
+		}
+		if (existing_tab) {
+			existing_tab.select();
+			tex2.select();
+		} else {
+			let original_uuid = Project.uuid;
+			let copy = this.getUndoCopy(true);
+			Codecs.image.load(copy, this.path, [this.uv_width, this.uv_height]);
+			// Sync
+			this.sync_to_project = Project.uuid;
+			if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
+		}
+		return this;
+	}
 	openEditor() {
 		var scope = this;
 		if (!settings.image_editor.value) {
@@ -1389,6 +1420,7 @@ export class Texture {
 
 					if (scope.layers_enabled && scope.layers.length) {
 						for (let layer of scope.layers) {
+							if (layer.type != 'pixel_layer') continue;
 							if (formResult.mode == 'scale') {
 								resizeCanvas(layer.ctx);
 								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
@@ -1481,7 +1513,7 @@ export class Texture {
 	//Layers
 	getActiveLayer() {
 		if (this.layers_enabled) {
-			return this.selected_layer || this.layers[0];
+			return this.layers.find(l => l instanceof TextureLayer && l.selected) || this.layers[0];
 		}
 	}
 	activateLayers(undo) {
@@ -1534,7 +1566,11 @@ export class Texture {
 			})
 		}
 
-		let new_layer = new TextureLayer({name: 'selection', offset: new_offset}, texture);
+		let new_layer = new TextureLayer({
+			name: 'selection',
+			offset: new_offset,
+			parent_uuid: texture.selected_layer?.parent_uuid,
+		}, texture);
 		new_layer.setSize(copy_canvas.width, copy_canvas.height);
 		new_layer.ctx.drawImage(copy_canvas, 0, 0);
 		texture.layers.splice(texture.layers.indexOf(texture.selected_layer)+1, 0, new_layer);
@@ -1782,7 +1818,7 @@ export class Texture {
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
-			if (layer.visible == false || layer.opacity == 0) continue;
+			if (layer.type != 'pixel_layer' || layer.visible == false || layer.opacity == 0) continue;
 			if (layer.blend_mode == 'alpha_mask') {
 				let opacity_factor = layer.opacity / 100;
 				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
@@ -1967,6 +2003,7 @@ export class Texture {
 					}
 				}
 			}),
+			'extrude_texture_to_model',
 			new MenuSeparator('settings'),
 			{
 				icon: 'list',
@@ -2093,26 +2130,7 @@ export class Texture {
 				name: 'menu.texture.edit_in_blockbench',
 				condition: (texture) => !Format.image_editor,
 				click(texture) {
-					let existing_tab, tex2;
-					for (let project of ModelProject.all) {
-						if (!project.format.image_editor) continue;
-						tex2 = project.textures.find(t => t.uuid == texture.uuid || (t.path && t.path == texture.path));
-						if (tex2) {
-							existing_tab = project;
-							break;
-						}
-					}
-					if (existing_tab) {
-						existing_tab.select();
-						tex2.select();
-					} else {
-						let original_uuid = Project.uuid;
-						let copy = texture.getUndoCopy(true);
-						Codecs.image.load(copy, texture.path, [texture.uv_width, texture.uv_height]);
-						// Sync
-						texture.sync_to_project = Project.uuid;
-						if (Texture.all[0]) Texture.all[0].sync_to_project = original_uuid;
-					}
+					texture.openInImageEditor();
 				}
 			},
 			{
@@ -2319,7 +2337,7 @@ export function getTexturesById(id) {
 function getTextureDataWithAccurateAlpha(texture) {
 	let data = texture.ctx.createImageData(texture.canvas.width, texture.canvas.height);
 	for (let layer of texture.layers) {
-		if (layer.visible == false || layer.opacity == 0) continue;
+		if (layer.type != 'pixel_layer' || layer.visible == false || layer.opacity == 0) continue;
 
 		let layer_data = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
 		

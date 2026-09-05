@@ -333,6 +333,43 @@ window.BedrockEntityManager = class BedrockEntityManager {
 			})
 		}
 	}
+	getParticleFile(short_name) {
+		let particle_id = this.client_entity?.description?.particle_effects?.[short_name];
+		if (!particle_id) return;
+		let particle_dir = PathModule.join(this.root_path, 'particles');
+		let no_namespace = particle_id.replace(/^.+:/, '');
+		return Filesystem.findFileFromContent(
+			[particle_dir],
+			{
+				filter_regex: /\.json$/i,
+				priority_regex: new RegExp(no_namespace, 'i'),
+				recursive: true,
+				json: true,
+				read_file: true,
+			},
+			(path, content) => {
+				if (content?.particle_effect?.description?.identifier == particle_id) {
+					return path;
+				}
+			}
+		);
+	}
+	getSoundFile(short_name) {
+		let sound_id = this.client_entity?.description?.sound_effects?.[short_name];
+		if (!sound_id) return;
+		let sound_dir = PathModule.join(this.root_path, 'sounds');
+		try {
+			let sound_file_content = fs.readFileSync(PathModule.join(sound_dir, 'sound_definitions.json'), 'utf-8');
+			let content = autoParseJSON(sound_file_content, false);
+			let entry = content.sound_definitions[sound_id];
+			if (!entry?.sounds) return;
+			let name = typeof entry.sounds[0] == 'string' ? entry.sounds[0] : entry.sounds[0].name;
+			if (!name.match(/\.\w+$/)) name += '.ogg';
+			return PathModule.join(sound_dir, '..', name);
+		} catch (err) {
+			console.error(err);
+		}
+	}
 	findEntityTexture(mob, return_path, externalDataLoader) {
 		if (!mob) return;
 		var textures = {
@@ -725,7 +762,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 			color: Group.all.length%markerColors.length
 		}).init()
 		group.createUniqueName();
-		bones[b.name] = group
+		bones[b.name.toLowerCase()] = group
 		if (b.pivot) {
 			group.origin[0] *= -1
 		}
@@ -792,11 +829,12 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 		var parent_group = 'root';
 		if (b.parent) {
-			if (bones[b.parent]) {
-				parent_group = bones[b.parent]
+			let match = bones[b.parent.toLowerCase()];
+			if (match) {
+				parent_group = match;
 			} else {
 				parent_list.forEach(function(ib) {
-					if (ib.name === b.parent) {
+					if (ib.name.toLowerCase() === b.parent.toLowerCase()) {
 						ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
 					}
 				})
@@ -847,12 +885,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 
 		if (data.object.item_display_transforms !== undefined) {
-			DisplayMode.loadJSON(data.object.item_display_transforms)
-			if (data.object.item_display_transforms.gui) {
-				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
-					Project.display_settings.gui.fit_to_frame = true;
-				}
-			}
+			DisplayMode.loadJSON(data.object.item_display_transforms, DisplayMode.bedrock_defaults)
 		}
 
 		var bones = {}
@@ -1320,7 +1353,6 @@ var codec = new Codec('bedrock', {
 				name: 'bb_main'
 			});
 			group.children.push(...loose_elements);
-			group.is_catch_bone = true;
 			group.createUniqueName();
 			groups.splice(0, 0, group);
 		}
@@ -1549,6 +1581,7 @@ var entity_format = new ModelFormat({
 	animation_mode: true,
 	animation_controllers: true,
 	bone_binding_expression: true,
+	molang: true,
 	locators: true,
 	texture_meshes: true,
 	bounding_boxes: true,
@@ -1583,7 +1616,7 @@ var block_format = new ModelFormat({
 		]
 	},
 	node_name_regex: '\\w.-',
-	show_on_start_screen: new Date().dayOfYear() >= 298 || new Date().getYear() > 122,
+	show_on_start_screen: true,
 	rotate_cubes: true,
 	box_uv: false,
 	optional_box_uv: true,
@@ -1597,6 +1630,7 @@ var block_format = new ModelFormat({
 	display_mode: true,
 	texture_meshes: true,
 	bounding_boxes: true,
+	molang: true,
 	pbr: true,
 	cube_size_limiter: {
 		rotation_affected: true,

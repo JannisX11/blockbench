@@ -12,6 +12,7 @@ interface ResizeLineOptions {
 	horizontal?: boolean
 	condition: ConditionResolvable
 	width?: number
+	parent_element?: HTMLElement
 	get: (this: ResizeLine) => number
 	set: (this: ResizeLine, original: number, difference: number) => void
 	reset?: (this: ResizeLine) => void
@@ -23,6 +24,7 @@ export interface ResizeLine extends ResizeLineOptions {}
 export class ResizeLine implements ResizeLineOptions {
 	before?: number
 	node: HTMLDivElement
+	parent_element: HTMLElement
 
 	constructor(id: string, data: ResizeLineOptions) {
 		var scope = this;
@@ -39,9 +41,12 @@ export class ResizeLine implements ResizeLineOptions {
 		this.get = data.get;
 		this.set = data.set;
 		this.reset = data.reset;
+		this.parent_element = data.parent_element ?? document.getElementById('work_screen');
 		this.node = document.createElement('div');
 		this.node.className = 'resizer '+(data.horizontal ? 'horizontal' : 'vertical');
 		this.node.id = 'resizer_'+this.id;
+
+
 
 		this.node.addEventListener('pointerdown', (event: PointerEvent) => {
 			this.before = this.get();
@@ -66,6 +71,8 @@ export class ResizeLine implements ResizeLineOptions {
 			document.addEventListener('pointermove', move, false);
 			document.addEventListener('pointerup', stop, false);
 		})
+		this.parent_element.append(this.node);
+
 		if (this.reset) {
 			this.node.addEventListener('dblclick', event => {
 				this.reset();
@@ -280,7 +287,7 @@ export function setupResizeLines() {
 		position() {
 			let offset = $(Panels.timeline.vue.$el).offset();
 			this.setPosition({
-				left: offset.left + 2 + Interface.data.timeline_head,
+				left: offset.left + Interface.data.timeline_head - 1,
 				top: offset.top - Interface.work_screen.offsetTop + 30,
 				bottom: Interface.work_screen.clientHeight - offset.top + Interface.work_screen.offsetTop - Panels.timeline.vue.$el.clientHeight + 10
 			})

@@ -28,6 +28,7 @@ export class KnifeToolContext {
 
 		this.mesh_3d.add(this.points_mesh);
 		this.mesh_3d.add(this.lines_mesh);
+		Canvas.gizmos.push(this.points_mesh, this.lines_mesh);
 
 		this.unselect_listener = Blockbench.on('unselect_project', context => {
 			if (this == KnifeToolContext.current) {
@@ -533,6 +534,8 @@ export class KnifeToolContext {
 			this.mesh_3d.remove(this.points_mesh);
 			this.mesh_3d.remove(this.lines_mesh);
 		}
+		Canvas.gizmos.remove(this.points_mesh);
+		Canvas.gizmos.remove(this.lines_mesh);
 		delete this.mesh;
 		delete this.mesh_3d;
 		if (this.toast) this.toast.delete();
@@ -564,6 +567,8 @@ export class KnifeToolCubeContext {
 				color: Canvas.outlineMaterial.color
 			}),
 		);
+
+		Canvas.gizmos.push(this.preview_mesh, this.cross_mesh);
 
 		this.unselect_listener = Blockbench.on('unselect_project', context => {
 			if (this == KnifeToolContext.current) {
@@ -690,6 +695,8 @@ export class KnifeToolCubeContext {
 		if (this.preview_mesh.parent) {
 			this.preview_mesh.parent.remove(this.preview_mesh);
 		}
+		Canvas.gizmos.remove(this.preview_mesh);
+		Canvas.gizmos.remove(this.cross_mesh);
 		delete this.cube;
 		delete this.cross_mesh;
 		delete this.precross_meshview_mesh;

@@ -13,8 +13,7 @@ new TransformerModule('animation', {
 	use_condition: () => Animation.selected && Animation.selected.getBoneAnimator(),
 	updateGizmo() {
 		let target_node = Group.first_selected || Outliner.selected[0];
-		if (!target_node) return;
-		Transformer.attach(target_node);
+		if (!target_node) return false;
 
 		if (target_node.getWorldCenter) {
 			Transformer.position.copy(target_node.getWorldCenter(true));
@@ -44,6 +43,7 @@ new TransformerModule('animation', {
 		} else {
 			Transformer.rotation_ref = target_node.mesh.parent;
 		}
+		return true;
 	},
 	calculateOffset(context) {
 		let {point, axis, angle} = context;
@@ -75,7 +75,8 @@ new TransformerModule('animation', {
 		}
 		transform_keyframes = [];
 		var animator = Animation.selected.getBoneAnimator();
-		if (!animator) return;
+		let channel = Toolbox.selected.animation_channel;
+		if (!animator || !animator.channels[channel]) return false;
 
 		var {before, result, new_keyframe} = animator.getOrMakeKeyframe(Toolbox.selected.animation_channel);
 
@@ -85,6 +86,7 @@ new TransformerModule('animation', {
 		if (new_keyframe) transform_keyframes.push(new_keyframe)
 	},
 	onMove(context) {
+		if (!transform_keyframes[0]) return;
 		let {point, axis, axis_number, value} = context;
 		let tool_id = Toolbox.selected.id;
 

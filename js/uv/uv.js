@@ -357,7 +357,7 @@ export const UVEditor = {
 		if (zoom instanceof Event) {
 			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
 		}
-		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox(true);
 		if (min_x == Infinity) return;
 		if (zoom) {
 			let width = (max_x-min_x) / UVEditor.getUVWidth();
@@ -673,6 +673,60 @@ export const UVEditor = {
 			updateSelection();
 		}
 		return matches;
+	},
+	// Find which element face is at a given pixel coordinate in texture space
+	findFaceAtUV(texture, x, y, uvFactorX, uvFactorY) {
+		let animOffset = texture.display_height * texture.currentFrame;
+
+		for (let cube of Cube.all.concat(Billboard.all)) {
+			for (let faceKey in cube.faces) {
+				let face = cube.faces[faceKey];
+				let faceTexture = face.getTexture();
+				if (!faceTexture || Painter.getTextureToEdit(faceTexture) !== texture) continue;
+
+				let uv = face.uv;
+				if (!uv) continue;
+
+				let minX = Math.floor(Math.min(uv[0], uv[2]) * uvFactorX);
+				let maxX = Math.ceil(Math.max(uv[0], uv[2]) * uvFactorX);
+				let minY = Math.floor(Math.min(uv[1], uv[3]) * uvFactorY) + animOffset;
+				let maxY = Math.ceil(Math.max(uv[1], uv[3]) * uvFactorY) + animOffset;
+
+				if (x >= minX && x < maxX && y >= minY && y < maxY) {
+					return { element: cube, faceKey, region: { minX, minY, maxX, maxY } };
+				}
+			}
+		}
+
+		for (let mesh of Mesh.all) {
+			for (let faceKey in mesh.faces) {
+				let face = mesh.faces[faceKey];
+				let faceTexture = face.getTexture();
+				if (!faceTexture || Painter.getTextureToEdit(faceTexture) !== texture) continue;
+				if (face.vertices.length < 3) continue;
+
+				let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+				for (let vkey in face.uv) {
+					let uv = face.uv[vkey];
+					minX = Math.min(minX, uv[0] * uvFactorX);
+					maxX = Math.max(maxX, uv[0] * uvFactorX);
+					minY = Math.min(minY, uv[1] * uvFactorY);
+					maxY = Math.max(maxY, uv[1] * uvFactorY);
+				}
+
+				minX = Math.floor(minX);
+				minY = Math.floor(minY) + animOffset;
+				maxX = Math.ceil(maxX);
+				maxY = Math.ceil(maxY) + animOffset;
+
+				let polygon = face.getSortedVertices().map(vkey => face.uv[vkey]);
+				if (pointInPolygon([x, y], polygon)) {
+					return { element: mesh, faceKey, region: { minX, minY, maxX, maxY } };
+				}
+			}
+		}
+
+		return null;
 	},
 	forCubes(cb) {
 		for (let element of Outliner.selected) {
@@ -1864,7 +1918,7 @@ export const UVEditor = {
 		{
 			name: 'menu.uv.flip_x',
 			icon: () => (UVEditor.isSelectedFaceMirrored(0) ? 'check_box' : 'check_box_outline_blank'),
-			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			condition: () => Modes.edit && !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
 				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorX(event);
@@ -1874,7 +1928,7 @@ export const UVEditor = {
 		{
 			name: 'menu.uv.flip_y',
 			icon: () => (UVEditor.isSelectedFaceMirrored(1) ? 'check_box' : 'check_box_outline_blank'),
-			condition: () => !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
+			condition: () => Modes.edit && !UVEditor.isBoxUV() && UVEditor.getReferenceFace(),
 			click(event) {
 				Undo.initEdit({elements: UVEditor.getMappableElements(), uv_only: true});
 				UVEditor.mirrorY(event);
@@ -1951,6 +2005,27 @@ export const UVEditor = {
 			})
 			return arr;
 		}}
+	]),
+	menu_image_editor: new Menu([
+		'screenshot_model',
+		new MenuSeparator('references'),
+		'add_reference_image',
+		'reference_image_from_clipboard',
+		'toggle_all_reference_images',
+		'edit_reference_images',
+		'preview_scene',
+		'preview_models',
+		new MenuSeparator('interface'),
+		{name: 'menu.view.zoom', id: 'zoom', icon: 'search', children: [
+			'zoom_in',
+			'zoom_out',
+			'zoom_reset'
+		]},
+		'painting_grid',
+		'image_editor_checkerboard',
+		new MenuSeparator('copypaste'),
+		'copy',
+		'paste',
 	])
 }
 
@@ -2016,7 +2091,7 @@ BARS.defineActions(function() {
 
 	new BarSlider('uv_rotation', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.uv_rotation && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.uv_rotation && Cube.selected.length,
 		min: 0, max: 270, step: 90, width: 80, circular: true,
 		onBefore: () => {
 			let do_move_texture = !!(BarItems.move_texture_with_uv.value && UVEditor.texture);
@@ -2076,7 +2151,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('uv_grid', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		min_width: 68,
 		value: 'auto',
 		options: {
@@ -2096,7 +2171,7 @@ BARS.defineActions(function() {
 	new Action('uv_maximize', {
 		icon: 'zoom_out_map',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2112,7 +2187,7 @@ BARS.defineActions(function() {
 	new Action('uv_turn_mapping', {
 		icon: 'screen_rotation',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2128,7 +2203,7 @@ BARS.defineActions(function() {
 	new Action('uv_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => (UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length,
+		condition: () => Modes.edit && ((UVEditor.isFaceUV() && Cube.selected.length) || Mesh.selected.length),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2144,7 +2219,7 @@ BARS.defineActions(function() {
 	new Action('uv_project_from_view', {
 		icon: 'view_in_ar',
 		category: 'uv',
-		condition: () => (UVEditor.isFaceUV() && Mesh.selected.length),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected.length,
 		click(event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 
@@ -2208,7 +2283,7 @@ BARS.defineActions(function() {
 	new Action('uv_rel_auto', {
 		icon: 'brightness_auto',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2224,7 +2299,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_x', {
 		icon: 'icon-mirror_x',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2246,7 +2321,7 @@ BARS.defineActions(function() {
 	new Action('uv_mirror_y', {
 		icon: 'icon-mirror_y',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2268,7 +2343,7 @@ BARS.defineActions(function() {
 	new Action('uv_rotate_left', {
 		icon: 'rotate_left',
 		category: 'uv',
-		condition: () => Mesh.selected.length,
+		condition: () => Modes.edit && Mesh.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2284,7 +2359,7 @@ BARS.defineActions(function() {
 	new Action('uv_rotate_right', {
 		icon: 'rotate_right',
 		category: 'uv',
-		condition: () => Mesh.selected.length,
+		condition: () => Modes.edit && Mesh.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2300,7 +2375,7 @@ BARS.defineActions(function() {
 	new Action('uv_transparent', {
 		icon: 'clear',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2314,7 +2389,7 @@ BARS.defineActions(function() {
 	new Action('uv_reset', {
 		icon: 'replay',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2330,7 +2405,7 @@ BARS.defineActions(function() {
 	new Action('uv_apply_all', {
 		icon: 'format_color_fill',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Cube.selected.length,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Cube.selected.length,
 		click: function (e) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.applyAll(e)
@@ -2339,7 +2414,7 @@ BARS.defineActions(function() {
 	})
 	new BarSelect('cullface', { 
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		label: true,
 		options: {
 			off: tl('uv_editor.no_faces'),
@@ -2359,7 +2434,7 @@ BARS.defineActions(function() {
 	new Action('auto_cullface', {
 		icon: 'block',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.cullfaces && Cube.selected.length && UVEditor.getReferenceFace(),
 		keybind: new Keybind({}, {
 			all_faces: 'shift'
 		}),
@@ -2374,7 +2449,7 @@ BARS.defineActions(function() {
 	})
 	new Action('face_tint', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
 		click: function (event) {
 			Undo.initEdit({elements: Cube.selected, uv_only: true})
 			UVEditor.forSelection('switchTint', event)
@@ -2383,7 +2458,7 @@ BARS.defineActions(function() {
 	})
 	new NumSlider('slider_face_tint', {
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Format.java_face_properties && Cube.selected.length && UVEditor.getReferenceFace(),
 		getInterval(event) {
 			return 1;
 		},
@@ -2425,7 +2500,7 @@ BARS.defineActions(function() {
 	new Action('merge_uv_vertices', {
 		icon: 'close_fullscreen',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			Mesh.selected.forEach(mesh => {
@@ -2460,7 +2535,7 @@ BARS.defineActions(function() {
 	new Action('connect_uv_faces', {
 		icon: 'move_up',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
+		condition: () => Modes.edit && UVEditor.isFaceUV() && Mesh.selected[0] && UVEditor.getSelectedFaces(Mesh.selected[0]).length >= 2,
 		click: function (event) {
 			Undo.initEdit({elements: Mesh.selected, uv_only: true})
 			Mesh.selected.forEach(mesh => {
@@ -2551,7 +2626,7 @@ BARS.defineActions(function() {
 	new Action('snap_uv_to_pixels', {
 		icon: 'grid_goldenratio',
 		category: 'uv',
-		condition: () => UVEditor.isFaceUV() && UVEditor.hasElements(),
+		condition: () => Modes.edit && UVEditor.isFaceUV() && UVEditor.hasElements(),
 		click: function (event) {
 			let elements = UVEditor.getMappableElements();
 			Undo.initEdit({elements, uv_only: true})
@@ -2599,7 +2674,7 @@ BARS.defineActions(function() {
 	new Action('uv_cycle', {
 		icon: 'fa-arrows-spin',
 		category: 'uv',
-		condition: () => Mesh.hasSelected(),
+		condition: () => Modes.edit && Mesh.hasSelected(),
 		click(event) {
 			let elements = Mesh.selected;
 			Undo.initEdit({elements, uv_only: true})
@@ -2625,7 +2700,7 @@ BARS.defineActions(function() {
 	new Action('uv_cycle_invert', {
 		icon: 'fa-group-arrows-rotate',
 		category: 'uv',
-		condition: () => Mesh.hasSelected(),
+		condition: () => Modes.edit && Mesh.hasSelected(),
 		click(event) {
 			let elements = Mesh.selected;
 			Undo.initEdit({elements, uv_only: true})
@@ -2679,7 +2754,7 @@ Interface.definePanels(function() {
 		icon: 'photo_size_select_large',
 		expand_button: true,
 		condition: {modes: ['edit', 'paint'], method: () => !Format.image_editor},
-		display_condition: () => UVEditor.hasElements() || Modes.paint,
+		display_condition: () => UVEditor.hasElements() || TextureMesh.selected.length > 0 || Modes.paint,
 		default_position: {
 			slot: 'left_bar',
 			float_position: [300, 0],
@@ -2845,6 +2920,11 @@ Interface.definePanels(function() {
 				}
 			},
 			watch: {
+				elements() {
+					Vue.nextTick(() => {
+						this.updateSize(); // Update size to reflect different UI parts being visible depending on selection
+					})
+				},
 				texture() {
 					this.uv_resolution.splice(0, 2,
 						UVEditor.getUVWidth(),
@@ -2920,7 +3000,10 @@ Interface.definePanels(function() {
 				},
 				updateTexture() {
 					let texture;
-					if (Format.single_texture) {
+					let texture_meshes = TextureMesh.selected;
+					if (texture_meshes.length && !UVEditor.getMappableElements().length) {
+						texture = texture_meshes[0].getTexture();
+					} else if (Format.single_texture) {
 						texture = Texture.getDefault();
 					} else {
 						let elements = UVEditor.getMappableElements();
@@ -3060,7 +3143,8 @@ Interface.definePanels(function() {
 					let original_margin = this.getFrameMargin();
 					let offset = $(this.$refs.viewport).offset();
 					UVEditor.total_zoom_offset = [6, 6];
-					if (event.touches && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
+					let force = event.touches?.[0]?.force;
+					if (event.touches && (!force || force == 0.5) && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
 						// Drag (touch only)
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
@@ -3125,8 +3209,11 @@ Interface.definePanels(function() {
 				},
 				onPointerDown(event) {
 					if (this.touches_count) return;
+
 					setActivePanel('uv');
 					if (Menu.open) Menu.open.hide();
+					if (ReferenceImageMode.active) ReferenceImageMode.deactivate();
+
 					UVEditor.total_zoom_offset = [6, 6];
 					if (event.which === 2 ||
 						(Keybinds.extra.preview_drag.keybind.isTriggered(event) && event.which != 1)
@@ -3351,7 +3438,11 @@ Interface.definePanels(function() {
 				contextMenu(event) {
 					setActivePanel('uv');
 					if (Blockbench.hasFlag('no_context_menu')) return;
-					UVEditor.menu.open(event);
+					if (Format.image_editor) {
+						UVEditor.menu_image_editor.open(event);
+					} else {
+						UVEditor.menu.open(event);
+					}
 				},
 				selectTextureMenu(event) {
 					let menu = new Menu(Texture.all.map(tex => {
@@ -3523,13 +3614,17 @@ Interface.definePanels(function() {
 				dragFace(element, face_key, event) {
 					if (event.which == 2 || event.which == 3) return;
 
+					if (element && !element.selected) {
+						element.select(event);
+						UVEditor.getSelectedFaces(element, true).empty();
+					}
+
 					let faces_selected_before = UVEditor.getSelectedFaces(element).slice();
 					if (element && face_key) this.selectFace(element, face_key, event, true);
 					let elements = UVEditor.getMappableElements();
 					Undo.initEdit({
 						elements,
 						uv_only: true,
-
 					});
 					let total_diff = [0, 0];
 					let do_move_uv = !!(BarItems.move_texture_with_uv.value && this.texture);
@@ -4174,8 +4269,9 @@ Interface.definePanels(function() {
 					}
 				},
 				isScalingAvailable() {
-					if (this.mappable_elements[0]?.getTypeBehavior('cube_faces')) {
-						return UVEditor.isFaceUV() && !!UVEditor.getReferenceFace();
+					let element = this.mappable_elements[0];
+					if (element?.getTypeBehavior('cube_faces')) {
+						return UVEditor.isFaceUV() && UVEditor.getSelectedFaces(element).some(fkey => element.faces[fkey] && element.faces[fkey].texture !== null);
 
 					} else if (this.mappable_elements[0] instanceof Mesh) {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
@@ -4189,13 +4285,13 @@ Interface.definePanels(function() {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
 					}
 				},
-				getSelectedUVBoundingBox() {
+				getSelectedUVBoundingBox(all_faces) {
 					if (!Project) return [0, 0, 0, 0];
 					let min = [Infinity, Infinity];
 					let max = [-Infinity, -Infinity];
 					this.mappable_elements.forEach(element => {
 						let faces = UVEditor.getSelectedFaces(element);
-						if (element instanceof Cube && element.box_uv) {
+						if ((element instanceof Cube && element.box_uv) || (all_faces && !faces.length)) {
 							faces = Object.keys(element.faces);
 						}
 						faces.forEach(fkey => {
@@ -4234,9 +4330,10 @@ Interface.definePanels(function() {
 						left = (left + offset) * pixel_size;
 						top =  (top + offset) * pixel_size;
 						//size
-						var radius = (BarItems.slider_brush_size.get()/2) * pixel_size;
+						let dimensions = Painter.getBrushDimensions();
 						return {
-							'--radius': radius,
+							'--width': (dimensions[0]/2) * pixel_size,
+							'--height': (dimensions[1]/2) * pixel_size,
 							left: left+'px',
 							top: top+'px'
 						}
@@ -4252,9 +4349,10 @@ Interface.definePanels(function() {
 						let left = (this.copy_brush_source.x + offset) * pixel_size;
 						let top =  (this.copy_brush_source.y + offset) * pixel_size;
 						//size
-						var radius = (this.copy_brush_source.size/2) * pixel_size;
+						let dimensions = Painter.getBrushDimensions(this.copy_brush_source.size);
 						return {
-							'--radius': radius,
+							'--width': (dimensions[0]/2) * pixel_size,
+							'--height': (dimensions[1]/2) * pixel_size,
 							left: left+'px',
 							top: top+'px'
 						}
@@ -4932,14 +5030,17 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
+						<div id="uv_background" :style="{
+							padding: (getFrameMargin()[1]) + 'px ' + (getFrameMargin()[0]) + 'px',
+							width: (inner_width + 8 + getFrameMargin()[0]*2)+'px',
+							height: (inner_height + 8 + getFrameMargin()[1]*2)+'px',
+						}"></div>
 						<div id="uv_frame" ref="frame"
 							v-if="texture !== null"
 							@click.stop="reverseSelect($event)"
 							:class="{overlay_mode: uv_overlay && mode == 'paint'}"
 							:style="{width: inner_width + 'px', height: inner_height + 'px', margin: getFrameMargin(true), '--inner-width': inner_width + 'px', '--inner-height': inner_height + 'px'}"
 						>
-							<div id="uv_frame_spacer" :style="{left: (inner_width+getFrameMargin()[0])+'px', top: (inner_height+getFrameMargin()[1])+'px'}"></div>
-
 							<template v-for="element in getDisplayedUVElements()">
 
 								<template v-if="element.getTypeBehavior('cube_faces') && !element.box_uv">
@@ -5054,7 +5155,7 @@ Interface.definePanels(function() {
 							<div v-if="helper_lines.x >= 0" class="uv_helper_line_x" :style="{left: toPixels(helper_lines.x)}"></div>
 							<div v-if="helper_lines.y >= 0" class="uv_helper_line_y" :style="{top: toPixels(helper_lines.y)}"></div>
 
-							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="brush_type" :style="getBrushOutlineStyle()">
+							<div id="uv_brush_outline" v-if="mode == 'paint' && mouse_coords.active" :class="['brush_outline', brush_type]" :style="getBrushOutlineStyle()">
 								<div v-if="mouse_coords.line_preview" id="uv_brush_line_preview" :style="getLinePreviewStyle()"></div>
 							</div>
 
@@ -5148,6 +5249,11 @@ Interface.definePanels(function() {
 				</div>
 			`
 		}
+	})
+	Object.defineProperty(UVEditor.panel, 'icon', {
+		get() {
+			return Modes.paint ? 'note_alt' : 'photo_size_select_large'
+		},
 	})
 	UVEditor.panel.on('move_to', (data) => {
 		if (!Blockbench.isMobile) {

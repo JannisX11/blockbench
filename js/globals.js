@@ -1,5 +1,7 @@
 import { Blockbench } from "./api";
 
+// Deprecated
+
 Blockbench.Outliner = Outliner;
 Blockbench.OutlinerNode = OutlinerNode;
 Blockbench.OutlinerElement = OutlinerElement;
@@ -75,4 +77,5 @@ Blockbench.Reusable = Reusable;
 
 Blockbench.Texture = Texture;
 Blockbench.TextureLayer = TextureLayer;
+Blockbench.TextureLayerGroup = TextureLayerGroup;
 Blockbench.SharedActions = SharedActions;

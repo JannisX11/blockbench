@@ -153,7 +153,6 @@ export const codec = new Codec('skin_model', {
 			let cubes = []
 			for (let obj of g.children) {
 				if (obj.export && obj instanceof Cube) {
-					// @ts-ignore
 					let template = Codecs.bedrock.compileCube(obj, g);
 					cubes.push(template)
 				}
@@ -261,7 +260,7 @@ export const codec = new Codec('skin_model', {
 		}
 		if (data.camera_angle) {
 			// @ts-ignore
-			main_preview.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
+			Preview.selected.loadAnglePreset(DefaultCameraPresets.find(p => p.id == data.camera_angle))
 		}
 		Canvas.updateAllBones()
 		Canvas.updateVisibility()
@@ -270,19 +269,23 @@ export const codec = new Codec('skin_model', {
 	},
 })
 codec.export = null;
-codec.rebuild = function(model_id: string, pose?: string) {
+codec.rebuild = function(model_id: string, pose?: string, pose_data?: SkinPoseData) {
 	let [preset_id, variant] = model_id.split('.');
 	let preset = skin_presets[preset_id];
 	let model_raw = preset.model || (variant == 'java' ? preset.model_java : preset.model_bedrock) || preset.variants[variant].model;
 	let model = JSON.parse(model_raw);
 	// @ts-ignore
 	codec.parse(model, undefined, true, pose && pose !== 'none');
-	if (pose && pose !== 'none' && pose !== 'natural') {
+	if (pose_data) {
+		loadPose(pose_data);
+		Panels.skin_pose.inside_vue.pose = Project.skin_pose = pose ?? '';
+	} else if (pose && pose !== 'none' && pose !== 'natural') {
 		setTimeout(() => {
 			setDefaultPose(pose);
 		}, 1)
 	}
 }
+codec.getPoseData = getPoseData;
 
 
 export const format = new ModelFormat('skin', {
@@ -806,7 +809,6 @@ BARS.defineActions(function() {
 	})
 })
 
-// @ts-ignore
 Interface.definePanels(function() {
 	new Panel('skin_pose', {
 		icon: 'icon-player',
@@ -4101,6 +4103,24 @@ skin_presets.creeper = {
 				"pivot": [2, 6, -4],
 				"cubes": [
 					{"name": "leg3", "origin": [0, 0, -6], "size": [4, 6, 4], "uv": [0, 16]}
+				]
+			}
+		]
+	}`
+};
+skin_presets.cushion = {
+	display_name: 'Cushion',
+	model: `{
+		"name": "cushion",
+		"texturewidth": 64,
+		"textureheight": 64,
+		"external_textures": ["entity/cushion/white_cushion.png"],
+		"bones": [
+			{
+				"name": "cushion",
+				"pivot": [23, 0, -7],
+				"cubes": [
+					{"origin": [-8, -0.125, -8], "size": [16, 4, 16], "inflate": -0.01, "uv": [0, 0]}
 				]
 			}
 		]

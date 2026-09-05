@@ -36,7 +36,7 @@ declare namespace Screencam {
 	/**
 	 * Provided preview with anti aliasing disabled that can be used for screenshots
 	 */
-	const NoAAPreview: Preview
+	let NoAAPreview: Preview
 	/**
 	 * Whether a timelapse is currently being recorded
 	 */

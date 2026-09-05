@@ -1,6 +1,8 @@
 import MolangParser from "molangjs";
 import { isMac, Keybinds } from "./keyboard";
 import tinycolor from "tinycolor2";
+import { RaycastResult } from "../preview/preview";
+import { MenuItem } from "./menu";
 
 type ActionEventName =
 	| 'delete'
@@ -15,7 +17,8 @@ type ActionEventName =
 	| 'open'
 	| 'modify_color'
 
-export const BarItems: Record<string, BarItem> = {};
+export const BarItems: any = {};
+
 
 //Bars
 type SubKeybind = {
@@ -25,6 +28,7 @@ type SubKeybind = {
 	trigger: (event: Event) => void
 }
 export interface KeybindItemOptions {
+	id?: string
 	name?: string
 	description?: string
 	category?: string
@@ -59,7 +63,6 @@ export interface BarItemOptions extends KeybindItemOptions {
 }
 /**
  * BarItem, the base abstract class for anything that can be added to a toolbar
- * @module Actions
  */
 export abstract class BarItem extends EventSystem {
 	static constructing: BarItem | undefined;
@@ -67,7 +70,7 @@ export abstract class BarItem extends EventSystem {
 	id: string
 	name: string
 	description: string
-	icon?: IconString | (() => IconString)
+	icon?: IconString | ((context?: any) => IconString)
 	category?: string
 	color?: string
 	condition: ConditionResolvable
@@ -213,6 +216,7 @@ export abstract class BarItem extends EventSystem {
 				}
 			}, {passive: true})
 			action.node.addEventListener('touchstart', () => {
+				if (tooltip.closest('.dialog_bar.form_bar')) return;
 				tooltip.style.display = 'none';
 				let show_tooltip = setTimeout(() => {
 					tooltip.style.display = 'block';
@@ -314,7 +318,7 @@ export class KeybindItem {
 	variations?: {
 		[key: string]: { name: string; description?: string }
 	}
-	constructor(id: string, data: KeybindItemOptions & {id: string}) {
+	constructor(id: string, data: KeybindItemOptions) {
 		if (typeof id == 'object') {
 			data = id;
 			id = data.id;
@@ -389,6 +393,7 @@ export class Action extends BarItem {
 	 * Provide a menu that belongs to the action, and gets displayed as a small arrow next to it in toolbars.
 	 */
 	side_menu?: ActionOptions['side_menu']
+	side_menu_anchor?: HTMLElement
 	menus: {menu: Menu, path: string}[]
 	/**
 	 * Provide a window with additional configutation related to the action
@@ -405,7 +410,6 @@ export class Action extends BarItem {
 	constructor(id: string, data: ActionSpecificOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		super(id, data)
@@ -473,21 +477,32 @@ export class Action extends BarItem {
 			
 			let open_node = Blockbench.getIconNode('arrow_drop_down');
 			open_node.classList.add('action_more_options');
-			open_node.onclick = e => {
-				e.stopPropagation();
-				if (this.side_menu instanceof Menu) {
-					this.side_menu.open((e.target as HTMLElement).parentElement);
-				} else if (this.side_menu instanceof ToolConfig) {
-					this.side_menu.show(this.node);
-				} else if (this.side_menu instanceof Dialog) {
-					this.side_menu.show();
-				}
-			}
+			this.setupSideMenuButton(open_node, this.node);
 			this.node.append(open_node);
 		}
 
 		this.node.onclick = (e) => {
 			scope.trigger(e)
+		}
+	}
+	setupSideMenuButton(open_node: HTMLElement, tool_node: HTMLElement): void {
+		let was_open = false;
+		open_node.addEventListener('mousedown', () => {
+			was_open = this.side_menu_anchor == open_node && (this.side_menu instanceof Menu
+				? open_menu == this.side_menu
+				: Dialog.open == this.side_menu);
+		});
+		open_node.onclick = e => {
+			e.stopPropagation();
+			if (was_open) return;
+			this.side_menu_anchor = open_node;
+			if (this.side_menu instanceof Menu) {
+				this.side_menu.open(open_node.parentElement);
+			} else if (this.side_menu instanceof ToolConfig) {
+				this.side_menu.show(tool_node);
+			} else if (this.side_menu instanceof Dialog) {
+				this.side_menu.show();
+			}
 		}
 	}
 	/**
@@ -537,16 +552,7 @@ export class Action extends BarItem {
 		if (this.side_menu) {
 			let options = clone.querySelector('.action_more_options') as HTMLDivElement;
 			if (options && !options.onclick) {
-				options.onclick = e => {
-					e.stopPropagation();
-					if (this.side_menu instanceof Menu) {
-						this.side_menu.open((e.target as HTMLElement).parentElement);
-					} else if (this.side_menu instanceof ToolConfig) {
-						this.side_menu.show(clone);
-					} else if (this.side_menu instanceof Dialog) {
-						this.side_menu.show();
-					}
-				}
+				this.setupSideMenuButton(options, clone);
 			}
 		}
 		this.dispatchEvent('get_node', {node: clone});
@@ -649,6 +655,10 @@ export interface BrushOptions {
 	 */
 	opacity: boolean
 	/**
+	 * Enable the toggle for screen space when this tool is selected
+	 */
+	screen_space: boolean
+	/**
 	 * When the brush size is an even number, offset the snapping by half a pixel so that even size brush strokes can be correctly centered
 	 */
 	offset_even_radius: boolean
@@ -723,7 +733,8 @@ export interface BrushOptions {
 interface ToolSpecificOptions {
 	selectFace?: boolean
 	selectElements?: boolean
-	transformerMode?: 'translate' | 'hidden' | ''
+	click_locked_elements?: boolean
+	transformerMode?: 'translate' | 'scale' | 'rotate' | 'stretch' | 'hidden' | ''
 	cursor?: string,
 	animation_channel?: string
 	toolbar?: string
@@ -740,7 +751,7 @@ interface ToolSpecificOptions {
 	onCanvasClick?(raycast_data: RaycastResult): void
 	onSelect?(): void
 	onUnselect?(): void
-	onCanvasMouseMove?(raycast_data: RaycastResult)
+	onCanvasMouseMove?(raycast_data: RaycastResult | false)
 	onCanvasRightClick?(raycast_data: RaycastResult)
 	onTextureEditorClick?(raycast_data: RaycastResult)
 }
@@ -757,7 +768,6 @@ export class Tool extends Action implements ToolSpecificOptions {
 	constructor(id: string, data: ToolOptions) {
 		if (typeof id == 'object') {
 			data = id;
-			// @ts-expect-error
 			id = data.id;
 		}
 		// @ts-expect-error
@@ -769,6 +779,7 @@ export class Tool extends Action implements ToolSpecificOptions {
 		this.alt_tool = data.alt_tool;
 		this.modes = data.modes;
 		this.selectFace = data.selectFace;
+		this.click_locked_elements = data.click_locked_elements == true;
 		this.cursor = data.cursor;
 		this.selectElements = data.selectElements !== false;
 		this.paintTool = data.paintTool;
@@ -990,13 +1001,13 @@ export abstract class Widget extends BarItem {
 		this.type = 'widget';
 	}
 }
-type NumSliderOptions = WidgetOptions & {
+export type NumSliderOptions = WidgetOptions & {
 	private?: boolean
 	settings?: {
 		default?: number
 		min?: number
 		max?: number
-		interval?: number
+		interval?: number | (() => number)
 		step?: number
 		show_bar?: boolean
 		limit?: boolean
@@ -1473,6 +1484,8 @@ export class NumSlider extends Widget {
 		if (typeof value === 'string') {
 			value = parseFloat(value)
 		}
+		if (this.settings?.min) value = Math.max(value, this.settings.min);
+		if (this.settings?.max) value = Math.min(value, this.settings.max);
 		if (trim === false) {
 			this.value = value
 		} else if (typeof value === 'number') {
@@ -1658,7 +1671,7 @@ export class BarSlider extends Widget {
 type BarSelectPropertyFormat = string | boolean | {
 	name: string | true
 	condition?: ConditionResolvable
-	icon?: string
+	icon?: IconString
 }
 interface BarSelectOptions extends WidgetOptions {
 	value?: string
@@ -2012,6 +2025,10 @@ export class ColorPicker extends Widget {
 		// @ts-expect-error
 		this.jq.spectrum('cancel');
 	}
+	delete() {
+		this.jq.spectrum('destroy');
+		super.delete();
+	}
 	confirm() {
 		this.jq.spectrum('hide');
 	}
@@ -2025,7 +2042,6 @@ export class ColorPicker extends Widget {
 		return this.value;
 	}
 }
-
 
 
 const global = {
@@ -2066,7 +2082,11 @@ declare global {
 	const BarText: typeof global.BarText
 	type ColorPicker = import('./actions').ColorPicker
 	const ColorPicker: typeof global.ColorPicker
-	const BarItems: typeof global.BarItems
+	const BarItems: BarItemRegistry
+    interface BarItemRegistry {
+		[key: string]: BarItem
+		undo: Action
+		redo: Action
+	}
 }
 Object.assign(window, global);
-

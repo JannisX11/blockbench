@@ -14,7 +14,7 @@ interface ArmatureOptions {
 export class Armature extends OutlinerElement {
 	declare children: (ArmatureBone|Mesh|NullObject)[]
 	isOpen: boolean
-	visibility: boolean
+	visibility: boolean = true
 	origin: ArrayVector3
 
 	static preview_controller: NodePreviewController
@@ -110,17 +110,7 @@ export class Armature extends OutlinerElement {
 		return copy;
 	}
 	getUndoCopy(): any {
-		let copy = {
-			isOpen: this.isOpen,
-			uuid: this.uuid,
-			type: this.type,
-			name: this.name,
-			children: this.children.map(c => c.uuid),
-		};
-		for (let key in Armature.properties) {
-			Armature.properties[key].merge(copy, this);
-		}
-		return copy;
+		return this.getSaveCopy();
 	}
 	getChildlessCopy(keep_uuid?: boolean) {
 		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);
@@ -141,7 +131,6 @@ export class Armature extends OutlinerElement {
 		}
 		while (i < this.children.length) {
 			if (!type || (type instanceof Array ? type.find(t2 => this.children[i] instanceof t2) : this.children[i] instanceof type)) {
-				// @ts-ignore
 				cb(this.children[i])
 			}
 			if ('forEachChild' in this.children[i]) {
@@ -233,7 +222,7 @@ export class Armature extends OutlinerElement {
 		movable: false,
 		rotatable: false,
 		parent: true,
-		child_types: ['armature_bone', 'mesh', 'null_object'],
+		child_types: ['armature_bone', 'mesh', 'locator', 'null_object'],
 	}
 	
 	public title = tl('data.armature');
@@ -313,7 +302,6 @@ BARS.defineActions(function() {
 			let bone = new ArmatureBone();
 			bone.addTo(armature).init();
 
-			// @ts-ignore
 			Undo.finishEdit('Add armature', {outliner: true, elements: [armature, bone]});
 			Vue.nextTick(function() {
 				updateSelection()

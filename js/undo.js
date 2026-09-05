@@ -876,7 +876,7 @@ UndoSystem.selectionSave = class {
 					edges: element.getSelectedEdges().map(edge => edge.slice()),
 					vertices: element.getSelectedVertices().slice(),
 				}
-			} if (element instanceof SplineMesh) {
+			} else if (element instanceof SplineMesh) {
 				this.geometry[element.uuid] = {
 					vertices: element.getSelectedVertices().slice(),
 				}
@@ -943,13 +943,13 @@ UndoSystem.selectionSave = class {
 			for (let uuid in this.geometry) {
 				let geo_data = this.geometry[uuid];
 				let element = OutlinerNode.uuids[uuid];
+				if (!element) continue;
 				if (element instanceof Mesh) {
 					element.getSelectedFaces(true).replace(geo_data.faces);
 					element.getSelectedEdges(true).replace(geo_data.edges);
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
-				} 
-				if (element instanceof SplineMesh) {
+				} else if (element instanceof SplineMesh) {
 					element.getSelectedVertices(true).replace(geo_data.vertices);
 
 				} else if (element.getTypeBehavior('select_faces') && !element.box_uv) {

@@ -868,23 +868,25 @@ export class Mesh extends OutlinerElement {
 		this.preview_controller.updateUV(this);
 		return this;
 	}
-	flipSelection(axis, center) {
+	flipSelection(axis, center = 0) {
 		let object_mode = BarItems.selection_mode.value == 'object' || !!Group.first_selected;
 		let selected_vertices = this.getSelectedVertices();
-		for (let vkey in this.vertices) {
+		const flip = value => center-value+center;
+		let {vertices, faces} = this;
+		for (let vkey in vertices) {
 			if (object_mode || selected_vertices.includes(vkey)) {
-				this.vertices[vkey][axis] *= -1;
+				vertices[vkey][axis] *= -1;
 			}
 		}
-		for (let key in this.faces) {
-			let face = this.faces[key];
+		for (let key in faces) {
+			let face = faces[key];
 			if (object_mode || face.isSelected(key) || face.vertices.allAre(vkey => selected_vertices.includes(vkey))) {
 				face.invert();
 			}
 		}
 
 		if (object_mode) {
-			this.origin[axis] *= -1;
+			this.origin[axis] = flip(this.origin[axis]);
 			this.rotation.forEach((n, i) => {
 				if (i != axis) this.rotation[i] = -n;
 			})
@@ -914,8 +916,9 @@ export class Mesh extends OutlinerElement {
 		TickUpdates.selection = true;
 	}
 	resize(val, axis, negative, allow_negative, bidirectional) {
-		let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
-		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(this.vertices);
+		let mesh_vertices = this.vertices;
+		let source_vertices = typeof val == 'number' ? this.temp_data.oldVertices : mesh_vertices;
+		let selected_vertices = Project.mesh_selection[this.uuid]?.vertices || Object.keys(mesh_vertices);
 		let range = [Infinity, -Infinity];
 		let {vec1, vec2} = Reusable;
 		let rotation_inverted = new THREE.Euler().copy(Transformer.rotation_selection).invert();
@@ -935,12 +938,25 @@ export class Mesh extends OutlinerElement {
 		if (isNaN(scale) || Math.abs(scale) == Infinity) scale = 1;
 		if (scale < 0 && !allow_negative) scale = 0;
 		
-		selected_vertices.forEach(key => {
+		function transformVertex(key) {
 			vec1.fromArray(source_vertices[key]).applyEuler(rotation_inverted);
-			vec2.fromArray(this.vertices[key]).applyEuler(rotation_inverted);
+			vec2.fromArray(mesh_vertices[key]).applyEuler(rotation_inverted);
 			vec2.setComponent(axis, (vec1.getComponent(axis) - center) * scale + center);
 			vec2.applyEuler(Transformer.rotation_selection);
-			this.vertices[key].replace(vec2.toArray())
+			return vec2;
+		}
+		selected_vertices.forEach(key => {
+			let vec2 = transformVertex(key);
+			mesh_vertices[key].replace(vec2.toArray());
+		})
+		ProportionalEdit.editVertices(this, (vkey, blend) => {
+			let initial = mesh_vertices[vkey].slice();
+			let vec2 = transformVertex(vkey);
+			mesh_vertices[vkey].V3_set(
+				Math.lerp(source_vertices[vkey][0], vec2.x, blend),
+				Math.lerp(source_vertices[vkey][1], vec2.y, blend),
+				Math.lerp(source_vertices[vkey][2], vec2.z, blend),
+			);
 		})
 		this.preview_controller.updateGeometry(this);
 	}
@@ -1092,6 +1108,51 @@ new Property(Mesh, 'enum', 'render_order', {
 
 OutlinerElement.registerType(Mesh, 'mesh');
 
+const PLAIN_VERTEX_COLOR = [0, 0.03, 0.08];
+function VertexWeightColorGenerator(element) {
+	let all_armature_bones = element.getArmature().getAllBones();
+	let armature_bone = ArmatureBone.selected.find(ab => all_armature_bones.includes(ab));
+	let bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+
+	this.getVertexColor = function(vkey) {
+		let weight = armature_bone?.getVertexWeight(element, vkey) ?? 0;
+		let weight_sum = 0;
+		all_armature_bones.forEach((bone) => weight_sum += (bone.getVertexWeight(element, vkey) ?? 0));
+
+
+		if (Project.view_mode === 'weighted_bone_colors') {
+			let color = [0, 0, 0];
+			for (let bone of all_armature_bones) {
+				let bone_weight = bone.getVertexWeight(element, vkey);
+				let bone_color = bone_marker_colors[bone.color%markerColors.length];
+				if (bone_weight > 0.02) {
+					let amount = bone_weight / weight_sum;
+					color[0] += bone_color.r * amount;
+					color[1] += bone_color.g * amount;
+					color[2] += bone_color.b * amount;
+				}
+			}
+			return color;
+		} else {
+			if (weight_sum > weight) weight = weight / weight_sum;
+			if (!weight) {
+				return null;
+			} else if (weight < 0.25) {
+				return [0, 0, weight * 4];
+			} else if (weight < 0.5) {
+				let fade = (weight-0.25) * 4;
+				return [0, fade, 1-fade];
+			} else if (weight < 0.75) {
+				let fade = (weight-0.5) * 4;
+				return [fade, 1, 0];
+			} else {
+				let fade = (weight-0.75) * 4;
+				return [1, 1-fade, 0];
+			}
+		}
+	}
+}
+
 new NodePreviewController(Mesh, {
 	setup(element) {
 		let mesh = element.mesh;
@@ -1136,35 +1197,35 @@ new NodePreviewController(Mesh, {
 		this.dispatchEvent('setup', {element});
 	},
 	displayDeformation(element, vertex_offsets) {
-		let position_array = [];
-		let outline_positions = [];
-		let {vertices, faces} = element;
-		
-		if (vertex_offsets) {
-			vertices = {};
-			for (let vkey in element.vertices) {
-				vertices[vkey] = element.vertices[vkey].slice();
-				if (vertex_offsets[vkey] instanceof Array) {
-					vertices[vkey].V3_add(vertex_offsets[vkey])
-				}
+		if (!vertex_offsets) return;
+		let position_index = 0;
+		let outline_position_index = 0;
+		let {vertices, faces, mesh} = element;
+
+		let transformed_vertices = {};
+		for (let vkey in vertices) {
+			transformed_vertices[vkey] = vertices[vkey].slice();
+			if (vertex_offsets[vkey] instanceof Array) {
+				transformed_vertices[vkey].V3_add(vertex_offsets[vkey])
 			}
 		}
-		if (vertex_offsets) {
-			for (let key in faces) {
-				let face = faces[key];
-				if (face.vertices.length <= 2) continue;
-				face.vertices.forEach((vkey, i) => {
-					position_array.push(...vertices[vkey]);
-				})
+		for (let key in faces) {
+			let face = faces[key];
+			if (face.vertices.length <= 2) continue;
+			for (let vkey of face.vertices) {
+				let pos = transformed_vertices[vkey];
+				mesh.geometry.attributes.position.array.set(pos, position_index);
+				position_index += 3;
 			}
-			element.mesh.outline.vertex_order.forEach(key => {
-				outline_positions.push(...vertices[key]);
-			})
-			element.mesh.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(position_array), 3));
-			element.mesh.outline.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(outline_positions), 3));
-			element.mesh.frustumCulled = false;
-			return;
 		}
+		mesh.outline.vertex_order.forEach(key => {
+			let pos = transformed_vertices[key];
+			mesh.outline.geometry.attributes.position.array.set(pos, outline_position_index);
+			outline_position_index += 3;
+		})
+		mesh.geometry.attributes.position.needsUpdate = true;
+		mesh.outline.geometry.attributes.position.needsUpdate = true;
+		mesh.frustumCulled = false;
 	},
 	updateGeometry(element, vertex_offsets) {
 		
@@ -1179,60 +1240,17 @@ new NodePreviewController(Mesh, {
 		let {vertices, faces} = element;
 		let cached_face_vertices = {};
 		
-		let armature_bone;
-		let all_armature_bones = [];
-		let bone_marker_colors;
+		let weight_color_generator;
 		if ((Toolbox.selected.id === 'weight_brush' || Project.view_mode === 'vertex_weight' || Project.view_mode === 'weighted_bone_colors') && ArmatureBone.all[0] && element.getArmature()) {
-			all_armature_bones = element.getArmature().getAllBones();
-			armature_bone = ArmatureBone.selected.find(ab => all_armature_bones.includes(ab));
-			bone_marker_colors = markerColors.map(c => new THREE.Color().set(c.standard));
+			weight_color_generator = new VertexWeightColorGenerator(element);
 		}
-
-		const PLAIN_VERTEX_COLOR = [0, 0.03, 0.08];
 
 		function addVertexPosition(vkey, normal) {
 			let vertex = vertices[vkey];
 			position_array.push(vertex[0], vertex[1], vertex[2]);
 			normal_array.push(normal[0], normal[1], normal[2]);
-			if (armature_bone) {
-				let weight = armature_bone.getVertexWeight(element, vkey) ?? 0;
-				let weight_sum = 0;
-				all_armature_bones.forEach((bone) => weight_sum += (bone.getVertexWeight(element, vkey) ?? 0));
-
-
-				if (Project.view_mode === 'weighted_bone_colors') {
-					let color = [0, 0, 0];
-					for (let bone of all_armature_bones) {
-						let bone_weight = bone.getVertexWeight(element, vkey);
-						let bone_color = bone_marker_colors[bone.color%markerColors.length];
-						if (bone_weight > 0.02) {
-							let amount = bone_weight / weight_sum;
-							color[0] += bone_color.r * amount;
-							color[1] += bone_color.g * amount;
-							color[2] += bone_color.b * amount;
-						}
-					}
-					color_array.push(...color);
-				} else {
-					if (weight_sum > weight) weight = weight / weight_sum;
-					if (!weight) {
-						color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
-					} else if (weight < 0.25) {
-						color_array.push(0, 0, weight * 4);
-					} else if (weight < 0.5) {
-						let fade = (weight-0.25) * 4;
-						color_array.push(0, fade, 1-fade);
-					} else if (weight < 0.75) {
-						let fade = (weight-0.5) * 4;
-						color_array.push(fade, 1, 0);
-					} else {
-						let fade = (weight-0.75) * 4;
-						color_array.push(1, 1-fade, 0);
-					}
-				}
-			} else {
-				color_array.push(PLAIN_VERTEX_COLOR[0], PLAIN_VERTEX_COLOR[1], PLAIN_VERTEX_COLOR[2]);
-			}
+			let color = weight_color_generator?.getVertexColor(vkey) ?? PLAIN_VERTEX_COLOR;
+			color_array.push(color[0], color[1], color[2]);
 		}
 
 		if (vertex_offsets) {
@@ -1558,77 +1576,100 @@ new NodePreviewController(Mesh, {
 		let selected_edges = element.getSelectedEdges();
 		let selected_faces = element.getSelectedFaces();
 
-		if (BarItems.selection_mode.value == 'vertex') {
-			let colors = [];
-			for (let key in element.vertices) {
-				let color;
-				if (selected_vertices.includes(key)) {
-					color = white;
-				} else {
-					color = gizmo_colors.grid;
+		if (element.selected) {
+			if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
+				/*let weight_color_generator;
+				if (element.getArmature()) {
+					weight_color_generator = new VertexWeightColorGenerator(element);
+				}*/
+				let colors = [];
+				for (let key in element.vertices) {
+					//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
+					//colors.push(color[0], color[1], color[2]);
+					colors.push(0.8, 0.8, 0.8);
 				}
-				colors.push(color.r, color.g, color.b);
+				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+				mesh.vertex_points.geometry.needsUpdate = true;
+
+			} else if (BarItems.selection_mode.value == 'vertex') {
+				let colors = [];
+				for (let key in element.vertices) {
+					let color;
+					if (selected_vertices.includes(key)) {
+						color = white;
+					} else {
+						color = gizmo_colors.grid;
+					}
+					colors.push(color.r, color.g, color.b);
+				}
+				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+				mesh.vertex_points.geometry.needsUpdate = true;
 			}
-			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			mesh.outline.geometry.needsUpdate = true;
 		}
 
-		let face_outlines = {};
-		let faces = element.faces;
-		if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
-			selected_faces.forEach(fkey => {
-				let face = faces[fkey];
-				face.vertices.forEach(vkey => {
-					if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
-					face.vertices.forEach(vkey2 => {
-						if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
+		if (element.selected) {
+			let face_outlines = {};
+			let faces = element.faces;
+			if (BarItems.selection_mode.value == 'face' || BarItems.selection_mode.value == 'cluster') {
+				selected_faces.forEach(fkey => {
+					let face = faces[fkey];
+					face.vertices.forEach(vkey => {
+						if (!face_outlines[vkey]) face_outlines[vkey] = new Set();
+						face.vertices.forEach(vkey2 => {
+							if (vkey2 != vkey) face_outlines[vkey].add(vkey2);
+						})
 					})
 				})
+			}
+			let line_colors = [];
+			let is_seam_tool = Toolbox.selected.id === 'seam_tool';
+			let selection_mode = BarItems.selection_mode.value;
+			if (!Modes.edit) selection_mode = 'object';
+			mesh.outline.vertex_order.forEach((key, i) => {
+				let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
+				let color = gizmo_colors.grid;
+				let selected;
+				switch (selection_mode) {
+					case 'object': {
+						color = gizmo_colors.outline;
+						break;
+					}
+					case 'edge': {
+						if (selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
+							color = white;
+							selected = true;
+						}
+						break;
+					}
+					case 'face':
+					case 'cluster': {
+						if (face_outlines[key] && face_outlines[key].has(key_b)) {
+							color = white;
+							selected = true;
+						}
+						break;
+					}
+				}
+				if (is_seam_tool) {
+					let seam = element.getSeam([key, key_b]);
+					if (selected) {
+						if (seam == 'join') color = join_selected;
+						if (seam == 'divide') color = divide_selected;
+					} else {
+						if (seam == 'join') color = join;
+						if (seam == 'divide') color = divide;
+					}
+				}
+				line_colors.push(color.r, color.g, color.b);
 			})
+			mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
+			mesh.outline.geometry.needsUpdate = true;
+			mesh.outline.material = Canvas.meshOutlineMaterial;
+
+		} else if (settings.constant_outlines.value) {
+			mesh.outline.visible = true;
+			mesh.outline.material = Canvas.outlineUnselectedMaterial;
 		}
-		let line_colors = [];
-		let is_seam_tool = Toolbox.selected.id === 'seam_tool';
-		let selection_mode = BarItems.selection_mode.value;
-		if (!Modes.edit) selection_mode = 'object';
-		mesh.outline.vertex_order.forEach((key, i) => {
-			let key_b = Modes.edit && mesh.outline.vertex_order[i + ((i%2) ? -1 : 1) ];
-			let color = gizmo_colors.grid;
-			let selected;
-			switch (selection_mode) {
-				case 'object': {
-					color = gizmo_colors.outline;
-					break;
-				}
-				case 'edge': {
-					if (selected_edges.find(edge => sameMeshEdge([key, key_b], edge))) {
-						color = white;
-						selected = true;
-					}
-					break;
-				}
-				case 'face':
-				case 'cluster': {
-					if (face_outlines[key] && face_outlines[key].has(key_b)) {
-						color = white;
-						selected = true;
-					}
-					break;
-				}
-			}
-			if (is_seam_tool) {
-				let seam = element.getSeam([key, key_b]);
-				if (selected) {
-					if (seam == 'join') color = join_selected;
-					if (seam == 'divide') color = divide_selected;
-				} else {
-					if (seam == 'join') color = join;
-					if (seam == 'divide') color = divide;
-				}
-			}
-			line_colors.push(color.r, color.g, color.b);
-		})
-		mesh.outline.geometry.setAttribute('color', new THREE.Float32BufferAttribute(line_colors, 3));
-		mesh.outline.geometry.needsUpdate = true;
 		
 		mesh.vertex_points.visible = ((Mode.selected.id == 'edit' && BarItems.selection_mode.value == 'vertex') || Toolbox.selected.id == 'knife_tool') && element.selected;
 		if (Toolbox.selected.id == 'weight_brush') mesh.vertex_points.visible = true;

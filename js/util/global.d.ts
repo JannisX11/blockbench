@@ -61,6 +61,10 @@ declare global {
 		 */
 		getNextPower(num: number, min: number): number
 		/**
+		 * Like Math.pow, but keep the sign of the input number
+		 */
+		signedPow(number: number, power: number = 2): number
+		/**
 		 * Snap the value to the closest number in a list of 1 or more snap points
 		 */
 		snapToValues(number: number, snap_points: number[], epsilon: number): number
@@ -80,7 +84,7 @@ declare global {
 		clamp: (number: number, min: number, max: number) => number
 	}
 	interface Array<T> {
-		remove(item: any): boolean
+		remove(...items: any): boolean
 		/***
 		 * Adds items to the array if they are not yet in the array
 		 */

@@ -1083,10 +1083,27 @@ new Property(Cube, 'boolean', 'rescale', {
 new Property(Cube, 'boolean', 'locked');
 new Property(Cube, 'boolean', 'shade', {
 	default: true,
-	condition: {features: ['java_cube_shading_properties']},
+	condition: {features: ['java_cube_shading_properties'], method: () => !Format.java_cube_shade_direction_override},
 	inputs: {
 		element_panel: {
 			input: {label: 'switches.shade', type: 'checkbox'},
+		}
+	}
+});
+new Property(Cube, 'enum', 'shade_direction_override', {
+	default: '',
+	condition: {features: ['java_cube_shading_properties', 'java_cube_shade_direction_override']},
+	inputs: {
+		element_panel: {
+			input: {label: 'cube.shade_direction_override', description: 'cube.shade_direction_override.desc', type: 'select', options: {
+				'': 'generic.none',
+				north: 'face.north',
+				south: 'face.south',
+				west: 'face.west',
+				east: 'face.east',
+				up: 'face.up',
+				down: 'face.down',
+			}},
 		}
 	}
 });
@@ -1552,8 +1569,6 @@ new NodePreviewController(Cube, {
 		this.dispatchEvent('update_painting_grid', {element: cube});
 	},
 	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
-		if (BarItems.selection_mode.value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
-
 		let {mesh} = element;
 		let vector = Reusable.vec2;
 		var adjustedFrom = element.from.slice();

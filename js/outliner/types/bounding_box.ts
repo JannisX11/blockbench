@@ -52,7 +52,7 @@ export class BoundingBox extends OutlinerElement {
 		Outliner.buttons.visibility,
 	];
 
-	visibility: boolean
+	visibility: boolean = true
 	color: number
 	function: BoundingBoxFunction[]
 
@@ -344,7 +344,8 @@ export class BoundingBox extends OutlinerElement {
 	static behavior = {
 		movable: true,
 		resizable: true,
-		unique_name: false
+		unique_name: false,
+		hide_in_screenshot: true
 	}
 }
 
@@ -384,11 +385,8 @@ new NodePreviewController(BoundingBox, {
 		)
 		Project.nodes_3d[element.uuid] = mesh;
 		mesh.name = element.uuid;
-		// @ts-ignore
 		mesh.type = 'bounding_box';
-		// @ts-ignore
 		mesh.isElement = true;
-		// @ts-ignore
 		mesh.no_export = true;
 		mesh.visible = element.visibility;
 		mesh.renderOrder = 100;
@@ -470,8 +468,6 @@ new NodePreviewController(BoundingBox, {
 		this.dispatchEvent('update_visibility', {element});
 	},
 	viewportRectangleOverlap(element, {projectPoint, rect_start, rect_end, preview}) {
-		if ((BarItems.selection_mode as BarSelect).value != 'object' && Format.meshes && preview.selection.old_selected.find(el => el instanceof Mesh)) return;
-
 		let vector = Reusable.vec2;
 		var adjustedFrom = element.from;
 		var adjustedTo = element.to;

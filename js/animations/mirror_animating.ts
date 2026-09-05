@@ -5,7 +5,7 @@ import { Animation } from "./animation";
 import { Keyframe } from "./keyframe";
 import { BoneAnimator } from "./timeline_animators";
 
-type TKeyframe = _Keyframe;
+type TKeyframe = BBKeyframe;
 interface FlipCopyKeyframesOptions {
 	mirror_animating?: boolean
 	keyframes: TKeyframe[]
@@ -126,7 +126,7 @@ function flipCopyKeyframes(options: FlipCopyKeyframesOptions):
 let initial_keyframes: TKeyframe[] | undefined;
 Blockbench.on('init_edit', (args) => {
 	initial_keyframes = undefined;
-	let toggle = BarItems.mirror_animating as Toggle;
+	let toggle = BarItems.mirror_animating;
 	if (!toggle.value) return;
 
 	if (args.aspects.keyframes instanceof Array)  {
@@ -134,7 +134,7 @@ Blockbench.on('init_edit', (args) => {
 	}
 })
 Blockbench.on('finish_edit', (args) => {
-	let toggle = BarItems.mirror_animating as Toggle;
+	let toggle = BarItems.mirror_animating;
 	if (!toggle.value) return;
 
 	if (!args.aspects.keyframes?.length && !initial_keyframes?.length) return;
@@ -155,7 +155,7 @@ Blockbench.on('finish_edit', (args) => {
 		show_in_timeline: false,
 	});
 	if (removed_keyframes.length) {
-		Undo.addKeyframeCasualties(removed_keyframes as _Keyframe[]);
+		Undo.addKeyframeCasualties(removed_keyframes as BBKeyframe[]);
 	}
 	let original_keyframes = args.aspects.keyframes.filter(kf => !removed_keyframes.includes(kf));
 	args.aspects.keyframes = [
@@ -193,7 +193,6 @@ BARS.defineActions(function() {
 	let icon = Blockbench.getIconNode('vertical_align_center');
 	icon.style.transform = 'rotate(90deg)';
 	let toggle = new Toggle('mirror_animating', {
-		// @ts-ignore
 		icon,
 		category: 'animation',
 		condition: {modes: ['animate']},
@@ -254,7 +253,7 @@ BARS.defineActions(function() {
 						offset
 					});
 					if (removed_keyframes.length) {
-						Undo.addKeyframeCasualties(removed_keyframes as _Keyframe[]);
+						Undo.addKeyframeCasualties(removed_keyframes as BBKeyframe[]);
 					}
 					new_keyframes.replace(added_keyframes);
 
@@ -267,3 +266,9 @@ BARS.defineActions(function() {
 		}
 	})
 });
+declare global {
+	interface BarItemRegistry {
+		mirror_animating: Toggle
+		flip_animation: Action
+	}
+}

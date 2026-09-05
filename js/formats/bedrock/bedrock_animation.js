@@ -30,7 +30,8 @@ export const animation_codec = new AnimationCodec('bedrock', {
 		if (auto_loaded && file.path) {
 			form['_path'] = {type: 'info', text: file.path};
 		}
-		let json = autoParseJSON(file.content, {file_path: file.path})
+		let json = autoParseJSON(file.content, {file_path: file.path});
+		if (!json) return;
 		let keys = [];
 		let is_controller = !!json.animation_controllers;
 		let entries = json.animations || json.animation_controllers;
@@ -113,6 +114,8 @@ export const animation_codec = new AnimationCodec('bedrock', {
 		var json = file.json || autoParseJSON(file.content, {file_path: file.path});
 		let path = file.path;
 		let new_animations = [];
+		let new_particles = {};
+		let new_sounds = {};
 		function multilinify(string) {
 			return typeof string == 'string'
 						? string.replace(/;\s*(?!$)/g, ';\n')
@@ -148,6 +151,12 @@ export const animation_codec = new AnimationCodec('bedrock', {
 						'query.distance_from_camera',
 						'query.lod_index',
 						'query.camera_distance_range_lerp',
+						'query.all_animations_finished',
+						'query.any_animation_finished',
+						'query.state_time',
+						'query.is_first_person',
+						'context.is_first_person',
+						'query.get_default_bone_pivot',
 					];
 					function processPlaceholderVariables(text) {
 						if (typeof text !== 'string') return;
@@ -267,10 +276,14 @@ export const animation_codec = new AnimationCodec('bedrock', {
 					for (var timestamp in a.sound_effects) {
 						var sounds = a.sound_effects[timestamp];
 						if (sounds instanceof Array === false) sounds = [sounds];
-						animation.animators.effects.addKeyframe({
+						let keyframe = animation.animators.effects.addKeyframe({
 							channel: 'sound',
 							time: parseFloat(timestamp),
 							data_points: sounds
+						})
+						sounds.forEach((particle, i) => {
+							new_sounds[particle.effect] ??= [];
+							new_sounds[particle.effect].push({keyframe, i});
 						})
 					}
 				}
@@ -281,13 +294,18 @@ export const animation_codec = new AnimationCodec('bedrock', {
 					for (var timestamp in a.particle_effects) {
 						var particles = a.particle_effects[timestamp];
 						if (particles instanceof Array === false) particles = [particles];
+						particles = particles.filter(p => typeof p == 'object');
 						particles.forEach(particle => {
-							if (particle) particle.script = particle.pre_effect_script;
+							particle.script = particle.pre_effect_script;
 						})
-						animation.animators.effects.addKeyframe({
+						let keyframe = animation.animators.effects.addKeyframe({
 							channel: 'particle',
 							time: parseFloat(timestamp),
 							data_points: particles
+						});
+						particles.forEach((particle, i) => {
+							new_particles[particle.effect] ??= [];
+							new_particles[particle.effect].push({keyframe, i});
 						})
 					}
 				}
@@ -319,8 +337,31 @@ export const animation_codec = new AnimationCodec('bedrock', {
 				if (!Animation.selected && Animator.open) {
 					animation.select()
 				}
-				new_animations.push(animation)
+				new_animations.push(animation);
 				Blockbench.dispatchEvent('load_animation', {animation, json});
+			}
+			if (Project.BedrockEntityManager) {
+				for (let short_name in new_particles) {
+					let path_result = Project.BedrockEntityManager.getParticleFile(short_name);
+					if (path_result) {
+						let effect = Animator.loadParticleEmitter(path_result, fs.readFileSync(path_result, 'utf-8'));
+						delete effect.config.preview_texture;
+						for (let entry of new_particles[short_name]) {
+							let data_point = entry.keyframe.data_points[entry.i];
+							data_point.file = path_result;
+						}
+					}
+				}
+				for (let short_name in new_sounds) {
+					let path_result = Project.BedrockEntityManager.getSoundFile(short_name);
+					if (path_result && fs.existsSync(path_result)) {
+						for (let entry of new_sounds[short_name]) {
+							let data_point = entry.keyframe.data_points[entry.i];
+							data_point.file = path_result;
+							Timeline.visualizeAudioFile(data_point.file);
+						}
+					}
+				}
 			}
 		} else if (typeof json.animation_controllers === 'object') {
 			AnimationCodec.codecs.bedrock_animation_controller.loadFile(file, animation_filter);

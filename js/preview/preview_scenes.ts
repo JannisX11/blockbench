@@ -1,10 +1,47 @@
 
+import { CustomMenuItem } from "../interface/menu";
 import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
 import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
 
+export interface PreviewSceneOptions {
+	name?: string
+	description?: string
+	category?: string
+	web_config?: string
+	require_minecraft_eula?: boolean
+	light_color?: {r: number, g: number, b: number}
+	light_side?: number
+	condition?: ConditionResolvable
+	cubemap?: string[]
+	fog?: {
+		type: 'linear' | 'exponential'
+		color
+		near?: number
+		far?: number
+		density?: number
+	}
+	fov?: number
+	preview_models?: (string | PreviewModel | PreviewModelOptions)[]
+}
+
 export class PreviewScene {
-	constructor(id, data = 0) {
+	id: string
+	loaded: boolean = false;
+	require_minecraft_eula: boolean = false;
+	name: string;
+	description?: string;
+	category: string;
+	light_color: {r: number, g: number, b: number} = {r: 1, g: 1, b: 1};
+	light_side: number = 0;
+	condition: ConditionResolvable;
+	fov: number = null;
+	web_config_path?: string
+	fog?: THREE.Fog | THREE.FogExp2
+	cubemap?: THREE.CubeTexture
+	preview_models = [];
+
+	constructor(id: string, data: PreviewSceneOptions = {}) {
 		PreviewScene.scenes[id] = this;
 		this.id = id;
 		this.loaded = false;
@@ -24,7 +61,7 @@ export class PreviewScene {
 
 		PreviewScene.menu_categories[this.category][id] = this.name;
 	}
-	extend(data) {
+	extend(data: PreviewSceneOptions) {
 		this.loaded = data.web_config ? false : true;
 		this.web_config_path = data.web_config;
 		if (data.require_minecraft_eula) this.require_minecraft_eula = true;
@@ -47,6 +84,7 @@ export class PreviewScene {
 					Canvas.updateShading();
 				}
 			});
+			// @ts-expect-error
 			texture_cube.colorSpace = THREE.SRGBColorSpace;
 			texture_cube.mapping = THREE.CubeRefractionMapping;
 			this.cubemap = texture_cube;
@@ -68,6 +106,7 @@ export class PreviewScene {
 			this.preview_models = data.preview_models.map(model => {
 				if (typeof model == 'string') return PreviewModel.models[model];
 				if (model instanceof PreviewModel == false && typeof model == 'object') {
+					if (!model.name) model.name = this.name;
 					model = new PreviewModel(model.id || this.id, model);
 				}
 				return model;
@@ -83,13 +122,15 @@ export class PreviewScene {
 			console.error(response);
 			Blockbench.showQuickMessage('message.preview_scene_load_failed', 2000);
 		}
-		let json = await response.json();
-		function convertURL(url) {
+		let json = await response.json() as PreviewSceneOptions;
+		function convertURL(url: string) {
 			return `${repo}/${url}`;
 		}
 		if (json.preview_models) {
 			json.preview_models.forEach(model => {
-				if (model.texture) model.texture = convertURL(model.texture);
+				if (typeof model == 'object' && model.texture) {
+					model.texture = convertURL(model.texture);
+				}
 			})
 		}
 		if (json.cubemap instanceof Array) {
@@ -99,6 +140,9 @@ export class PreviewScene {
 		}
 		this.extend(json);
 	}
+	/**
+	 * Selects this preview scene
+	 */
 	async select() {
 		if (this.require_minecraft_eula) {
 			let accepted = await MinecraftEULA.promptUser('preview_scenes');
@@ -109,11 +153,6 @@ export class PreviewScene {
 		}
 		if (PreviewScene.active) PreviewScene.active.unselect();
 
-		Canvas.global_light_color.copy(this.light_color);
-		Canvas.global_light_side = this.light_side;
-		Canvas.scene.background = this.cubemap;
-		Canvas.scene.fog = this.fog;
-
 		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
 			Preview.selected.setFOV(this.fov);
 		}
@@ -121,57 +160,155 @@ export class PreviewScene {
 		PreviewModel.getActiveModels().forEach(model => {
 			model.update();
 		});
-		this.preview_models.forEach(model => {
-			model.enable();
-		})
 		PreviewScene.active = this;
 		Blockbench.dispatchEvent('select_preview_scene', {scene: this});
-		Canvas.updateShading();
+		PreviewScene.updateVisibility();
 	}
+	/**
+	 * Unselects this preview scene
+	 */
 	unselect() {
 		this.preview_models.forEach(model => {
 			model.disable();
 		})
 
-		Canvas.global_light_color.set(0xffffff);
-		Canvas.global_light_side = 0;
-		if (this.cubemap) scene.background = null;
-		if (this.fog) scene.fog = null;
 		if (this.fov && !(Modes.display && DisplayMode.display_slot.startsWith('firstperson'))) {
-			Preview.all.forEach(preview => preview.setFOV(settings.fov.value));
+			Preview.all.forEach(preview => preview.setFOV(settings.fov.value as number));
 		}
 		Blockbench.dispatchEvent('unselect_preview_scene', {scene: this});
-		Canvas.updateShading();
 		PreviewScene.active = null;
+		PreviewScene.updateVisibility();
+	}
+	static updateVisibility() {
+		let scene = PreviewScene.active;
+		let show = !!scene && !(Modes.display && DisplayMode.display_slot == 'gui');
+		scene?.preview_models.forEach(model => show ? model.enable() : model.disable());
+		Canvas.global_light_color.set(0xffffff);
+		Canvas.global_light_side = 0;
+		Canvas.scene.background = null;
+		Canvas.scene.fog = null;
+		if (scene && show) {
+			Canvas.global_light_color.copy(scene.light_color as THREE.Color);
+			Canvas.global_light_side = scene.light_side;
+			Canvas.scene.background = scene.cubemap;
+			Canvas.scene.fog = scene.fog;
+		}
+		Canvas.updateShading();
 	}
 	delete() {
 		delete PreviewScene.scenes[this.id];
 		delete PreviewScene.menu_categories[this.category][this.id];
 	}
-}
-PreviewScene.scenes = {};
-PreviewScene.active = null;
-PreviewScene.select_options = {};
-PreviewScene.source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
-PreviewScene.menu_categories = {
-	main: {
-		none: tl('generic.none')
-	},
-	generic: {
-		_label: 'Generic'
-	},
-	realistic: {
-		_label: 'Realistic'
-	},
-	minecraft: {
-		_label: 'Minecraft'
-	},
-};
 
-export class PreviewModel {
-	constructor(id, data) {
+	/**
+	 * All preview scenes, listed by ID
+	 */
+	static scenes: Record<string, PreviewScene> = {};
+	/**
+	 * The currently active scene
+	 */
+	static active: PreviewScene | null = null;
+	static select_options = {};
+	/**
+	 * The URL to the source repository that scenes are pulled from
+	 */
+	static source_repository = 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-scenes';
+	static menu_categories: {
+		[category_id: string]: {
+			[id: string]: string
+		}
+	} = {
+		main: {
+			none: tl('generic.none')
+		},
+		generic: {
+			_label: 'Generic'
+		},
+		realistic: {
+			_label: 'Realistic'
+		},
+		minecraft: {
+			_label: 'Minecraft'
+		},
+	};
+
+}
+
+StateMemory.init('preview_model_customization', 'object');
+
+interface PreviewModelCubeTemplate {
+	prefab?: string
+	offset?: ArrayVector3
+	offset_space?: 'block' | 'pixel'
+	position?: ArrayVector3
+	size?: ArrayVector3
+	origin?: ArrayVector3
+	rotation?: ArrayVector3
+	faces?: {
+		north?: { uv: ArrayVector4 }
+		east?: { uv: ArrayVector4 }
+		west?: { uv: ArrayVector4 }
+		south?: { uv: ArrayVector4 }
+		up?: { uv: ArrayVector4 }
+		down?: { uv: ArrayVector4 }
+	}
+}
+type PrefabTemplate = PreviewModelCubeTemplate
+export interface PreviewModelOptions {
+	id?: string
+	name?: string
+	condition?: ConditionResolvable
+	cubes?: PreviewModelCubeTemplate[]
+	prefabs?: Record<string, PrefabTemplate>
+	/**
+	 * Source of the model's texture
+	 */
+	texture?: string
+	/**
+	 * Model tint color
+	 */
+	color?: string
+	/**
+	 * Enable shading on the material
+	 */
+	shading?: boolean
+	/**
+	 * THREE.JS material render side
+	 */
+	render_side?: number
+	texture_size?: [number, number]
+	position?: ArrayVector3
+	rotation?: ArrayVector3
+	scale?: ArrayVector3
+	onUpdate?(): void
+}
+export class PreviewModel implements Deletable {
+	id: string
+	name: string
+	condition: ConditionResolvable
+	model_3d: THREE.Object3D
+	onUpdate?: () => void
+	enabled: boolean = false;
+	build_data: {
+		prefabs?: Record<string, PrefabTemplate>,
+		cubes?: PreviewModelCubeTemplate[],
+		texture?: string
+		position?: ArrayVector3
+		rotation?: ArrayVector3
+		scale?: ArrayVector3
+	}
+	color: string
+	shading: boolean
+	render_side: THREE.Side
+	texture_size: ArrayVector2
+	cubes: PreviewModelCubeTemplate[]
+	texture?: string
+	[idkey: string]: any
+
+	constructor(id: string, data: PreviewModelOptions) {
 		PreviewModel.models[id] = this;
 		this.id = id;
+		this.name = data.name ? tl(data.name) : '';
 		this.condition = data.condition;
 		this.model_3d = new THREE.Object3D();
 		this.onUpdate = data.onUpdate;
@@ -192,32 +329,62 @@ export class PreviewModel {
 
 		this.buildModel();
 	}
+	/**
+	 * Enables the model in the preview
+	 */
 	enable() {
 		Canvas.scene.add(this.model_3d);
 		this.enabled = true;
 		this.update();
 	}
+	/**
+	 * Disables the model in the preview
+	 */
 	disable() {
 		Canvas.scene.remove(this.model_3d);
 		this.enabled = false;
 	}
+	/**
+	 * Update the appearance and visibility of the model
+	 */
 	update() {
+		let custom_data = StateMemory.preview_model_customization?.[this.id];
+
+		if (custom_data?.position instanceof Array) {
+			this.model_3d.position.fromArray(custom_data.position);
+		} else {
+			if (this.build_data.position) {
+				this.model_3d.position.fromArray(this.build_data.position);
+			} else {
+				this.model_3d.position.set(0, 0, 0);
+			}
+			let offset = Format.centered_grid ? 0 : 8;
+			this.model_3d.position.x += offset;
+			this.model_3d.position.z += offset;
+		}
+		if (custom_data?.rotation instanceof Array) {
+			this.model_3d.rotation.fromArray(custom_data.rotation.map((v: number) => Math.degToRad(v)));
+		} else if (this.build_data.rotation) {
+			this.model_3d.rotation.fromArray(this.build_data.rotation.map(v => Math.degToRad(v)));
+		} else {
+			this.model_3d.rotation.set(0, 0, 0);
+		}
+		if (custom_data?.scale instanceof Array) {
+			this.model_3d.scale.fromArray(custom_data.scale);
+		} else if (this.build_data.scale) {
+			this.model_3d.scale.fromArray(this.build_data.scale);
+		} else {
+			this.model_3d.scale.set(1, 1, 1);
+		}
+
+		this.model_3d.visible = !!Condition(this.condition);
+
 		if (typeof this.onUpdate == 'function') {
 			this.onUpdate();
 		}
-		if (this.build_data.position) {
-			this.model_3d.position.fromArray(this.build_data.position);
-		} else {
-			this.model_3d.position.set(0, 0, 0);
-		}
-		let offset = Format.centered_grid ? 0 : 8;
-		this.model_3d.position.x += offset;
-		this.model_3d.position.z += offset;
-
-		this.model_3d.visible = !!Condition(this.condition);
 	}
 	buildModel() {
-		let tex;
+		let tex: THREE.Texture = undefined;
 		if (this.build_data.texture) {
 			let img = new Image();
 			img.src = this.build_data.texture;
@@ -262,6 +429,7 @@ export class PreviewModel {
 			}
 			mesh.geometry.translate(cube.position[0] + cube.size[0]/2, cube.position[1] + cube.size[1]/2, cube.position[2] + cube.size[2]/2)
 			if (cube.rotation) {
+				// @ts-expect-error
 				mesh.rotation.setFromDegreeArray(cube.rotation)
 			}
 
@@ -285,11 +453,13 @@ export class PreviewModel {
 			}
 
 			let indices = [];
+			// @ts-expect-error
 			mesh.geometry.faces = [];
 			mesh.geometry.clearGroups();
 			Canvas.face_order.forEach((fkey, i) => {
 				if (cube.faces[fkey]) {
 					indices.push(0 + i*4, 2 + i*4, 1 + i*4, 2 + i*4, 3 + i*4, 1 + i*4);
+					// @ts-expect-error
 					mesh.geometry.faces.push(fkey)
 				}
 			})
@@ -306,11 +476,12 @@ export class PreviewModel {
 					case 'up':		fIndex = 4;		break;
 					case 'down':	fIndex = 6;		break;
 				}
-				mesh.geometry.attributes.uv.array.set(uv_array[0], fIndex*4 + 0);  //0,1
-				mesh.geometry.attributes.uv.array.set(uv_array[1], fIndex*4 + 2);  //1,1
-				mesh.geometry.attributes.uv.array.set(uv_array[2], fIndex*4 + 4);  //0,0
-				mesh.geometry.attributes.uv.array.set(uv_array[3], fIndex*4 + 6);  //1,0
-				mesh.geometry.attributes.uv.needsUpdate = true;
+				let uv_attr = mesh.geometry.attributes.uv;
+				(uv_attr.array as any).set(uv_array[0], fIndex*4 + 0);  //0,1
+				(uv_attr.array as any).set(uv_array[1], fIndex*4 + 2);  //1,1
+				(uv_attr.array as any).set(uv_array[2], fIndex*4 + 4);  //0,0
+				(uv_attr.array as any).set(uv_array[3], fIndex*4 + 6);  //1,0
+				uv_attr.needsUpdate = true;
 			}
 
 			this.model_3d.add(mesh);
@@ -323,8 +494,8 @@ export class PreviewModel {
 
 	static generateModelFromProject() {
 		let cubes = Cube.all.map(cube => {
-			let from = cube.from.slice();
-			let to = cube.to.slice();
+			let from = cube.from.slice() as ArrayVector3;
+			let to = cube.to.slice() as ArrayVector3;
 			adjustFromAndToForInflateAndStretch(from, to, cube);
 			let data = {
 				"position": from,
@@ -356,20 +527,22 @@ export class PreviewModel {
 			cubes
 		});
 	}
-}
-PreviewModel.models = {};
-PreviewModel.getActiveModels = function() {
-	let list = [];
-	for (let id in PreviewModel.models) {
-		let model = PreviewModel.models[id];
-		if (model.enabled) {
-			list.push(model);
+	static models: Record<string, PreviewModel> = {};
+	static getActiveModels = function(): PreviewModel[] {
+		let list = [];
+		for (let id in PreviewModel.models) {
+			let model = PreviewModel.models[id];
+			if (model.enabled) {
+				list.push(model);
+			}
 		}
+		return list;
 	}
-	return list;
+	static transform_model: PreviewModel | null = null;
 }
 
 new PreviewModel('studio', {
+	name: 'preview_scene.studio',
 	texture: './assets/preview_scenes/studio.png',
 	texture_size: [64, 64],
 	shading: false,
@@ -505,9 +678,10 @@ new PreviewScene('minecraft_end', {
 
 
 export const player_preview_model = new PreviewModel('minecraft_player', {
+	name: 'preview_model.minecraft_player',
 	texture: './assets/player_skin.png',
 	texture_size: [64, 64],
-	position: [30, 0, 8],
+	position: [22, 0, 0],
 	rotation: [0, 20, 0],
 	scale: [0.9375, 0.9375, 0.9375],
 	onUpdate() {
@@ -767,10 +941,10 @@ player_preview_model.updateArmVariant = function(slim) {
 
 StateMemory.init('minecraft_eula_accepted', 'object');
 export const MinecraftEULA = {
-	isAccepted(key) {
+	isAccepted(key: string) {
 		return StateMemory.minecraft_eula_accepted[key];
 	},
-	async promptUser(key) {
+	async promptUser(key: string) {
 		if (MinecraftEULA.isAccepted(key)) {
 			return true;
 		}
@@ -802,7 +976,7 @@ BARS.defineActions(function() {
 		category: 'view',
 		icon: 'nature_people',
 		click(event) {
-			new Menu(this.children).show(event.target);
+			new Menu(this.children).show(event.target as HTMLElement);
 		},
 		children: () => {
 			let list = [];
@@ -828,27 +1002,139 @@ BARS.defineActions(function() {
 					})
 				}
 			}
-			list.push(new MenuSeparator('individual_objects'));
-			list.push({
-				name: 'Minecraft Player',
-				icon: player_preview_model.enabled ? 'check_box' : 'check_box_outline_blank',
-				click() {
-					if (!player_preview_model.enabled) {
-						player_preview_model.enable();
-					} else {
-						player_preview_model.disable();
-					}
-				}
-			})
+			return list;
+
+		}
+	})
+	new Action('preview_models', {
+		category: 'view',
+		icon: 'park',
+		click(event) {
+			new Menu(this.children).show(event.target as HTMLElement);
+		},
+		children: () => {
+			let list = [];
+			for (let id in PreviewModel.models) {
+				let model = PreviewModel.models[id];
+				list.push({
+					name: (model.name || id),
+					icon: model.enabled ? 'check_box' : 'check_box_outline_blank',
+					click() {
+						if (!model.enabled) {
+							model.enable();
+						} else {
+							model.disable();
+						}
+					},
+					children: model.enabled == false ? undefined : [
+						{
+							name: 'preview_model.transform',
+							icon: 'control_camera',
+							click() {
+								PreviewModel.transform_model = model;
+								Transformer.updateSelection();
+							}
+						},
+						{
+							name: 'preview_model.reset_transform',
+							icon: 'reset_settings',
+							click() {
+								delete StateMemory.preview_model_customization[model.id];
+								StateMemory.save('preview_model_customization');
+								model.update();
+							}
+
+						}
+					] as CustomMenuItem[]
+				})
+			}
 			return list;
 
 		}
 	})
 })
 
-Object.assign(window, {
+new TransformerModule('preview_model', {
+	priority: 3,
+	condition: () => PreviewModel.transform_model != undefined,
+	updateGizmo() {
+		let model = PreviewModel.transform_model;
+		let channel = Toolbox.selected.animation_channel;
+
+		model.model_3d.getWorldPosition(Transformer.position);
+		Transformer.position.sub(Canvas.scene.position);
+		let local = channel != 'position';
+		Transformer.rotation_ref = local ? model.model_3d : Canvas.scene;
+		return true;
+	},
+	calculateOffset(context) {
+		let {point, axis, angle, event} = context;
+		let channel = Toolbox.selected.animation_channel
+		let value = point[axis];
+		let interval = 1;
+		
+		if (channel == 'rotation') {
+			value = angle;
+			interval = getRotationInterval(event)
+		} else if (channel == 'position') {
+			interval = getSpatialInterval(context.event);
+			
+		} else if (channel == 'scale') {
+			value *= context.direction * 0.1;
+			interval = getSpatialInterval(context.event);
+			interval *= 0.1;
+		}
+		value = Math.round(value/interval)*interval;
+
+		return value;
+	},
+	onMove(context) {
+		let {point, axis, axis_number, value} = context;
+		let model = PreviewModel.transform_model;
+		let channel = Toolbox.selected.animation_channel
+
+		let difference = value - (this.previous_value||0);
+
+		let data = StateMemory.preview_model_customization;
+		let model_data = data[model.id];
+		if (!model_data) model_data = data[model.id] = {};
+
+		if (channel == 'position') {
+			model.model_3d.position[axis] += difference;
+			model_data.position = model.model_3d.position.toArray();
+		} else if (channel == 'rotation') {
+			model.model_3d.rotation[axis] += Math.degToRad(difference);
+			model_data.rotation = [
+				Math.radToDeg(model.model_3d.rotation.x),
+				Math.radToDeg(model.model_3d.rotation.y),
+				Math.radToDeg(model.model_3d.rotation.z),
+			];
+		} else {
+			model.model_3d.scale[axis] += difference;
+			model_data.scale = model.model_3d.scale.toArray();
+		}
+
+		Blockbench.setCursorTooltip(trimFloatNumber(value - this.initial_value));
+		Transformer.center()
+
+	},
+	onEnd(context) {
+		StateMemory.save('preview_model_customization');
+	},
+});
+
+const global = {
 	PreviewScene,
 	PreviewModel,
 	MinecraftEULA,
 	player_preview_model
-})
+};
+declare global {
+	type PreviewScene = import('./preview_scenes').PreviewScene
+	const PreviewScene: typeof global.PreviewScene
+	type PreviewModel = import('./preview_scenes').PreviewModel
+	const PreviewModel: typeof global.PreviewModel
+	const MinecraftEULA: typeof global.MinecraftEULA
+	const player_preview_model: PreviewModel
+}
+Object.assign(window, global);

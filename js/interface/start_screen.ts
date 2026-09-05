@@ -1,5 +1,5 @@
 import { Filesystem } from "../file_system";
-import { ModelLoader } from "../io/model_loader";
+import { ModelLoader, ModelLoaderOptions } from "../io/model_loader";
 import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
 import { pureMarked } from "../util/util";
@@ -7,38 +7,61 @@ import VersionUtil from '../util/version_util';
 
 export const StartScreen = {
 	loaders: {},
+	vue: null as null | (Vue & any),
 	open() {
-		Interface.tab_bar.openNewTab();
-		MenuBar.mode_switcher_button.classList.add('hidden');
-	}
+		(Interface.tab_bar as any).openNewTab();
+		MenuBar.mode_switcher_button?.classList.add('hidden');
+	},
+	updateThumbnails(model_paths?: string[]) {
+		StartScreen.vue.updateThumbnails(model_paths);
+	},
+	addSection: addStartScreenSection
 };
 
+interface StartScreenTextSegment {
+	text: string
+	type?: string
+	list?: string[]
+	click?: () => void
+}
+interface StartScreenFeature {
+	image: string
+	title: string
+	/**
+	 * Markdown supported text
+	 */
+	text: string
+}
+export interface StartScreenSection {
+	graphic?: {
+		type: 'icon' | string
+		icon?: string
+		source?: string
+		width?: number
+		height?: number
+		aspect_ratio?: number
+		/**
+		 * Markdown string
+		 */
+		description?: string
+		text_color?: string
+	}
+	text?: StartScreenTextSegment[]
+	layout?: 'vertical' | 'horizontal'
+	features?: StartScreenFeature[]
+	closable?: boolean
+	click?: Function
+	color?: string
+	text_color?: string
+	last?: boolean
+	insert_after?: string
+	insert_before?: string
+}
+
 /**
- * 
- * @param {string} id Identifier
- * @param {object} data 
- * @param {object} data.graphic
- * @param {'icon'|string} data.graphic.type
- * @param {string} [data.graphic.icon]
- * @param {string} [data.graphic.source]
- * @param {number} [data.graphic.width]
- * @param {number} [data.graphic.height]
- * @param {number} [data.graphic.aspect_ratio] Section aspect ratio
- * @param {string} [data.graphic.description] Markdown string
- * @param {string} [data.graphic.text_color]
- * @param {Array.<{text: String, {type}: [String], [list]: Array.String, {click}: [Function]}>} data.text
- * @param {'vertical'|'horizontal'} data.layout
- * @param {Array} data.features
- * @param {boolean} data.closable
- * @param {Function} data.click
- * @param {string} data.color
- * @param {string} data.text_color
- * @param {boolean} data.last
- * @param {string} data.insert_after
- * @param {string} data.insert_before
- * @returns 
+ * Adds a section to the start screen
  */
-export function addStartScreenSection(id, data) {
+export function addStartScreenSection(id: string, data: StartScreenSection) {
 	if (typeof id == 'object') {
 		data = id;
 		id = '';
@@ -170,15 +193,38 @@ onVueSetup(async function() {
 
 	let slideshow_timer = 0;
 
+	interface StartScreenComponentData {
+		formats: typeof Formats
+		loaders: typeof ModelLoader.loaders
+		selected_format_id: string
+		viewed_format: null | ModelFormat | ModelLoader
+		recent: RecentProjectData[]
+		list_type: string,
+		redact_names: boolean
+		redacted: string
+		search_term: string
+		isApp: boolean,
+		mobile_layout: boolean
+		thumbnails: Record<string, string>,
+		getIconNode: typeof Blockbench.getIconNode,
+		slideshow: {
+			source: string
+			description: string
+		}[],
+		show_splash_screen: boolean
+		slideshow_selected: number
+		slideshow_last: any
+		slideshow_autoplay: boolean
+	}
 	StartScreen.vue = new Vue({
 		el: '#start_screen',
 		components: {},
-		data: {
+		data() {return {
 			formats: Formats,
 			loaders: ModelLoader.loaders,
 			selected_format_id: '',
 			viewed_format: null,
-			recent: isApp ? recent_projects : [],
+			recent: isApp ? recent_projects : [] as RecentProjectData[],
 			list_type: StateMemory.start_screen_list_type || 'grid',
 			redact_names: settings.streamer_mode.value,
 			redacted: tl('generic.redacted'),
@@ -210,7 +256,7 @@ onVueSetup(async function() {
 			slideshow_selected: 0,
 			slideshow_last: null,
 			slideshow_autoplay: true
-		},
+		} as StartScreenComponentData},
 		methods: {
 			getDate(p) {
 				if (p.day) {
@@ -233,25 +279,29 @@ onVueSetup(async function() {
 					loadModelFile(files[0]);
 				})
 			},
-			updateThumbnails(model_paths) {
-				this.recent.forEach(project => {
+			updateThumbnails(model_paths?: string[]) {
+				if (!isApp) return;
+				let thumbnail_dir = PathModule.join(app.getPath('userData'), 'thumbnails');
+				let thumbnail_dir_files = fs.readdirSync(thumbnail_dir);
+				this.recent.forEach((project: RecentProjectData) => {
 					if (model_paths && !model_paths.includes(project.path)) return;
 					let hash = project.path.hashCode().toString().replace(/^-/, '0');
-					let path = PathModule.join(app.getPath('userData'), 'thumbnails', `${hash}.png`);
-					if (!fs.existsSync(path)) {
-						delete this.thumbnails[project.path];
-					} else {
+					let file_name = `${hash}.png`;
+					if (thumbnail_dir_files.includes(file_name)) {
+						let path = PathModule.join(thumbnail_dir, file_name);
 						this.thumbnails[project.path] = path + '?' + Math.round(Math.random()*255);
+					} else {
+						delete this.thumbnails[project.path];
 					}
 				})
 				this.$forceUpdate();
 			},
-			setListType(type) {
+			setListType(this: StartScreenComponentData, type) {
 				this.list_type = type;
 				StateMemory.start_screen_list_type = type;
 				StateMemory.save('start_screen_list_type')
 			},
-			recentProjectContextMenu(recent_project, event) {
+			recentProjectContextMenu(recent_project: RecentProjectData, event) {
 				let menu = new Menu('recent_project', [
 					{
 						id: 'favorite',
@@ -281,7 +331,7 @@ onVueSetup(async function() {
 				])
 				menu.show(event);
 			},
-			toggleProjectFavorite(recent_project) {
+			toggleProjectFavorite(this: StartScreenComponentData, recent_project: RecentProjectData) {
 				recent_project.favorite = !recent_project.favorite;
 				if (recent_project.favorite) {
 					recent_projects.remove(recent_project);
@@ -313,7 +363,7 @@ onVueSetup(async function() {
 				}
 				return categories;
 			},
-			loadFormat(format_entry) {
+			loadFormat(this: StartScreenComponentData, format_entry) {
 				this.selected_format_id = format_entry.id;
 				if (format_entry.onFormatPage) format_entry.onFormatPage();
 				Vue.nextTick(() => {
@@ -326,23 +376,23 @@ onVueSetup(async function() {
 					}
 				})
 			},
-			confirmSetupScreen(format_entry) {
+			confirmSetupScreen(this: StartScreenComponentData, format_entry) {
 				this.selected_format_id = '';
 				if (format_entry.onStart) format_entry.onStart();
 				if (typeof format_entry.new == 'function') format_entry.new();
 			},
 
-			getBackground(url) {
+			getBackground(url: string) {
 				return `url("${url}")`
 			},
-			setSlide(index) {
+			setSlide(index: number) {
 				this.slideshow_last = this.slideshow_selected;
 				this.slideshow_selected = index;
 				setTimeout(() => this.slideshow_last = null, 500);
 				slideshow_timer = 0;
 			},
 
-			openLink(link) {
+			openLink(this: StartScreenComponentData, link: string) {
 				Blockbench.openLink(link);
 			},
 			pureMarked,
@@ -373,9 +423,36 @@ onVueSetup(async function() {
 				}
 			}, 1000);
 
+			let start_screen_element = document.getElementById('start_screen');
+
 			if (settings.always_show_splash_art.value && !Blockbench.hasFlag('after_update') && !Blockbench.isMobile) {
-				document.getElementById('start_screen').scrollTop = 100;
+				start_screen_element.scrollTop = 100;
 			}
+
+			new ResizeLine('start_screen_width', {
+				horizontal: false,
+				parent_element: start_screen_element,
+				condition: () => start_screen_element.clientWidth > 1000 && (Interface.tab_bar as any).new_tab.selected,
+				get: () => Interface.data.start_screen_width,
+				set(o, diff) {
+					let value = Math.clamp(o + diff*2, 700, start_screen_element.clientWidth);
+					value = Math.snapToValues(value, [Interface.default_data.start_screen_width], 12);
+					Interface.data.start_screen_width = value;
+					start_screen_element.style.setProperty('--start-screen-width', value + 'px');
+				},
+				reset() {
+					Interface.data.start_screen_width = Interface.default_data.start_screen_width;
+				},
+				position() {
+					let rect = document.querySelector('#start_screen > content').getBoundingClientRect();
+					this.setPosition({
+						left: Math.clamp((start_screen_element.clientWidth + Interface.data.start_screen_width) / 2 + 3, 0, start_screen_element.clientWidth),
+						top: rect.top,
+						bottom: window.innerHeight - rect.bottom
+					})
+				}
+			});
+			start_screen_element.style.setProperty('--start-screen-width', Interface.data.start_screen_width + 'px');
 		},
 		template: `
 			<div id="start_screen">
@@ -506,7 +583,7 @@ onVueSetup(async function() {
 									@click="openProject(project, $event)"
 									@contextmenu="recentProjectContextMenu(project, $event)"
 								>
-									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" />
+									<img class="thumbnail_image" v-if="thumbnails[project.path]" :src="thumbnails[project.path]" loading="lazy" />
 									<span class="recent_project_name">{{ redact_names ? redacted : project.name }}</span>
 									<span class="icon_wrapper" v-html="getIconNode(project.icon).outerHTML"></span>
 									<div class="recent_favorite_button" :class="{favorite_enabled: project.favorite}" @click.stop="toggleProjectFavorite(project)" title="${tl('mode.start.recent.favorite')}">
@@ -525,44 +602,32 @@ onVueSetup(async function() {
 		`
 	})
 
-	Blockbench.on('construct_format delete_format', () => {
+	Blockbench.on('construct_format', () => {
+		StartScreen.vue.$forceUpdate();
+	})
+	Blockbench.on('delete_format', () => {
 		StartScreen.vue.$forceUpdate();
 	})
 });
 
 
 
-(function() {
-	/*$.getJSON('./content/news.json').then(data => {
-		addStartScreenSection('new_version', data.new_version)
-	})*/
+/*$.getJSON('./content/news.json').then(data => {
+	addStartScreenSection('new_version', data.new_version)
+})*/
 
-	var news_call = $.ajax({
-		cache: false,
-		url: 'https://web.blockbench.net/content/news.json',
-		dataType: 'json'
-	});
-	documentReady.then(() => {
+var news_call = $.ajax({
+	cache: false,
+	url: 'https://web.blockbench.net/content/news.json',
+	dataType: 'json'
+});
+documentReady.then(() => {
 
+	//Bluesky
+	let bsky_ad;
+	Blockbench.onUpdateTo('4.12.2', () => {
 		//Bluesky
-		let bsky_ad;
-		Blockbench.onUpdateTo('4.12.2', () => {
-			//Bluesky
-			if (!settings.classroom_mode.value) {
-				bsky_ad = true;
-				addStartScreenSection('bluesky_link', {
-					color: 'rgb(32, 139, 254);',
-					text_color: '#ffffff',
-					graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
-					text: [
-						{type: 'h3', text: 'Blockbench on Bluesky'},
-						{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
-					],
-					last: true
-				})
-			}
-		})
-		if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+		if (!settings.classroom_mode.value) {
 			bsky_ad = true;
 			addStartScreenSection('bluesky_link', {
 				color: 'rgb(32, 139, 254);',
@@ -575,144 +640,167 @@ onVueSetup(async function() {
 				last: true
 			})
 		}
-		//Discord
-		if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
-			addStartScreenSection('discord_link', {
-				color: '#5865F2',
-				text_color: '#ffffff',
-				graphic: {type: 'icon', icon: 'fab.fa-discord'},
-				text: [
-					{type: 'h2', text: 'Discord Server'},
-					{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
-				],
-				last: true
-			})
-		}
-
-		// Quick Setup
-		if (Blockbench.startup_count <= 1) {
-			
-			let section = Interface.createElement('section', {id: 'quick_setup'});
-			document.querySelector('#start_screen #splash_screen').after(section);
-
-			new Vue({
-				data() {return {
-					language: Language.code,
-					language_original: Language.code,
-					languages: Language.options,
-					keymap: 'default',
-					keymap_changed: false,
-					theme: 'default',
-					keymap_options: {
-						default: tl('action.load_keymap.default'),
-						mouse: tl('action.load_keymap.mouse'),
-						blender: 'Blender',
-						cinema4d: 'Cinema 4D',
-						maya: 'Maya',
-					},
-				}},
-				methods: {
-					tl,
-					close() {
-						this.$el.remove();
-					},
-					reload() {
-						Blockbench.reload();
-					},
-					loadTheme(theme_id) {
-						this.theme = theme_id;
-						let theme = CustomTheme.themes.find(t => t.id == theme_id);
-						if (theme) CustomTheme.loadTheme(theme);
-					},
-					getThemeThumbnailStyle(theme_id) {
-						let theme = CustomTheme.themes.find(t => t.id == theme_id);
-						let style = {};
-						if (!theme) return style;
-						for (let key in theme.colors) {
-							style[`--color-${key}`] = theme.colors[key];
-						}
-						return style;
-					},
-					openThemes() {
-						BarItems.theme_window.click();
-					}
-				},
-				watch: {
-					language(v) {
-						settings.language.set(v);
-						Settings.save();
-					},
-					keymap(keymap, old_keymap) {
-						this.keymap_changed = true;
-						let success = Keybinds.loadKeymap(keymap, true);
-						if (!success) this.keymap = old_keymap;
-					}
-				},
-				template: `
-					<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
-						<i class="material-icons start_screen_close_button" @click="close()">clear</i>
-						<h2>${tl('mode.start.quick_setup')}</h2>
-
-						<div>
-							<label>${tl('mode.start.keymap')}:</label>
-							<select-input v-model="keymap" :options="keymap_options" />
-							<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
-						</div>
-						<div>
-							<label>${tl('settings.language')}:</label>
-							<select-input v-model="language" :options="languages" />
-							<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
-								<i class="material-icons">refresh</i>
-							</div>
-							<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
-						</div>
-						<div style="width: 640px;">
-							<label>${tl('dialog.settings.theme')}:</label>
-							<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
-							<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
-							<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
-						</div>
-					</section>
-				`
-			}).$mount(section);
-		}
 	})
-	Promise.all([news_call, documentReady]).then((data) => {
-		if (!data || !data[0]) return;
-		data = data[0];
+	if (!settings.classroom_mode.value && !bsky_ad && Blockbench.startup_count < 20 && Blockbench.startup_count % 5 === 4) {
+		bsky_ad = true;
+		addStartScreenSection('bluesky_link', {
+			color: 'rgb(32, 139, 254);',
+			text_color: '#ffffff',
+			graphic: {type: 'icon', icon: 'fab.fa-bluesky'},
+			text: [
+				{type: 'h3', text: 'Blockbench on Bluesky'},
+				{text: 'Follow Blockbench on Bluesky for the latest news & cool models from the community! [@blockbench.net](https://bsky.app/profile/blockbench.net)'}
+			],
+			last: true
+		})
+	}
+	//Discord
+	if (!settings.classroom_mode.value && Blockbench.startup_count < 6 && !bsky_ad) {
+		addStartScreenSection('discord_link', {
+			color: '#5865F2',
+			text_color: '#ffffff',
+			graphic: {type: 'icon', icon: 'fab.fa-discord'},
+			text: [
+				{type: 'h2', text: 'Discord Server'},
+				{text: 'You need help with modeling or you want to chat about Blockbench? Join the official [Blockbench Discord](https://discord.gg/WVHg5kH)!'}
+			],
+			last: true
+		})
+	}
 
-		//Update Screen
-		if (Blockbench.hasFlag('after_update') && data.new_version) {
-			data.new_version.insert_after = 'splash_screen'
-			addStartScreenSection('new_version', data.new_version);
-			jQuery.ajax({
-				url: 'https://blckbn.ch/api/event/successful_update',
-				type: 'POST',
-				data: {
-					version: Blockbench.version
-				}
-			})
-		}
-		if (data.psa) {
-			(function() {
-				if (typeof data.psa.version == 'string') {
-					if (data.psa.version.includes('-')) {
-						limits = data.psa.version.split('-');
-						if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
-						if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
-					} else {
-						if (data.psa.version != Blockbench.version) return;
+	// Quick Setup
+	if (Blockbench.startup_count <= 1) {
+		
+		let section = Interface.createElement('section', {id: 'quick_setup'});
+		document.querySelector('#start_screen #splash_screen').after(section);
+
+		new Vue({
+			data() {return {
+				language: Language.code,
+				language_original: Language.code,
+				languages: Language.options,
+				keymap: 'default',
+				keymap_changed: false,
+				theme: 'default',
+				keymap_options: {
+					default: tl('action.load_keymap.default'),
+					mouse: tl('action.load_keymap.mouse'),
+					blender: 'Blender',
+					cinema4d: 'Cinema 4D',
+					maya: 'Maya',
+				},
+			}},
+			methods: {
+				tl,
+				close() {
+					this.$el.remove();
+				},
+				reload() {
+					Blockbench.reload();
+				},
+				loadTheme(theme_id) {
+					this.theme = theme_id;
+					let theme = CustomTheme.themes.find(t => t.id == theme_id);
+					if (theme) CustomTheme.loadTheme(theme);
+				},
+				getThemeThumbnailStyle(theme_id) {
+					let theme = CustomTheme.themes.find(t => t.id == theme_id);
+					let style = {};
+					if (!theme) return style;
+					for (let key in theme.colors) {
+						style[`--color-${key}`] = theme.colors[key];
 					}
+					return style;
+				},
+				openThemes() {
+					(BarItems.theme_window as Action).click();
 				}
-				addStartScreenSection('psa', data.psa);
-			})()
-		}
+			},
+			watch: {
+				language(v) {
+					settings.language.set(v);
+					Settings.save();
+				},
+				keymap(keymap, old_keymap) {
+					this.keymap_changed = true;
+					let success = Keybinds.loadKeymap(keymap, true);
+					if (!success) this.keymap = old_keymap;
+				}
+			},
+			template: `
+				<section id="quick_setup" section_id="quick_setup" class="start_screen_section">
+					<i class="material-icons start_screen_close_button" @click="close()">clear</i>
+					<h2>${tl('mode.start.quick_setup')}</h2>
 
-	})
-})()
+					<div>
+						<label>${tl('mode.start.keymap')}:</label>
+						<select-input v-model="keymap" :options="keymap_options" />
+						<p v-if="keymap_changed">{{ tl('action.load_keymap.' + keymap + '.desc') }}</p>
+					</div>
+					<div>
+						<label>${tl('settings.language')}:</label>
+						<select-input v-model="language" :options="languages" />
+						<div class="tool" @click="reload()" v-if="language != language_original" :title="tl('action.reload')">
+							<i class="material-icons">refresh</i>
+						</div>
+						<p v-if="language != language_original">{{ tl('message.restart_to_update') }}</p>
+					</div>
+					<div style="width: 640px;">
+						<label>${tl('dialog.settings.theme')}:</label>
+						<div class="quick_setup_theme" :class="{selected: theme == 'default'}" @click="loadTheme('default')"><div :style="getThemeThumbnailStyle('default')"></div>Dark</div>
+						<div class="quick_setup_theme" :class="{selected: theme == 'default_light'}" @click="loadTheme('default_light')"><div :style="getThemeThumbnailStyle('default_light')"></div>Light</div>
+						<div class="quick_setup_theme" :class="{selected: theme == 'contrast'}" @click="loadTheme('contrast')"><div :style="getThemeThumbnailStyle('contrast')"></div>Contrast</div>
+						<div class="quick_setup_theme more_themes" @click="openThemes()"><div><i class="material-icons">more_horiz</i></div>{{ tl('mode.start.quick_setup.more_themes') }}</div>
+					</div>
+				</section>
+			`
+		}).$mount(section);
+	}
+	Interface.Resizers.start_screen_width.update();
+})
+Promise.all([news_call, documentReady]).then((results) => {
+	if (!results || !results[0]) return;
+	let data = results[0] as {
+		new_version: StartScreenSection,
+		psa?: StartScreenSection & {version?: string}
+	};
 
-Object.assign(window, {
+	//Update Screen
+	if (Blockbench.hasFlag('after_update') && data.new_version) {
+		data.new_version.insert_after = 'splash_screen'
+		addStartScreenSection('new_version', data.new_version);
+		jQuery.ajax({
+			url: 'https://blckbn.ch/api/event/successful_update',
+			type: 'POST',
+			data: {
+				version: Blockbench.version
+			}
+		})
+	}
+	if (data.psa) {
+		(function() {
+			if (typeof data.psa.version == 'string') {
+				if (data.psa.version.includes('-')) {
+					let limits = data.psa.version.split('-');
+					if (limits[0] && VersionUtil.compare(Blockbench.version, '<', limits[0])) return;
+					if (limits[1] && VersionUtil.compare(Blockbench.version, '>', limits[1])) return;
+				} else {
+					if (data.psa.version != Blockbench.version) return;
+				}
+			}
+			addStartScreenSection('psa', data.psa);
+		})()
+	}
+	Interface.Resizers.start_screen_width.update();
+})
+
+
+const global = {
 	StartScreen,
 	addStartScreenSection,
-});
+};
+declare global {
+	const StartScreen: typeof global.StartScreen
+	const addStartScreenSection: typeof global.addStartScreenSection
+}
+Object.assign(window, global);

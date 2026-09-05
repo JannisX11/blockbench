@@ -27,5 +27,6 @@ new ModelFormat('free', {
 	per_animator_rotation_interpolation: true,
 	animated_textures: true,
 	locators: true,
+	bounding_boxes: true,
 	pbr: true,
 })

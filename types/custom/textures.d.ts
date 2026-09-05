@@ -3,6 +3,13 @@
 import type { FSWatcher } from 'fs'
 import type { ShaderMaterial } from 'three'
 
+interface FileFormatOptions {
+	name: string
+	extensions: string[],
+	async encode?(texture: Texture): Uint8Array
+	async decode?(data: Uint8Array, texture: Texture): void
+}
+
 declare global {
 	interface TextureData {
 		path?: string
@@ -135,7 +142,7 @@ declare global {
 		 * Whether the texture is multi selected
 		 */
 		multi_selected: boolean
-		selected_layer: TextureLayer | null
+		selected_layer: TextureLayerItem | null
 		show_icon: boolean
 		error: number
 		/** Whether the texture is visible. Used for layered textures mode */
@@ -169,7 +176,7 @@ declare global {
 		 * Texture selection in paint mode
 		 */
 		selection: IntMatrix
-		layers: TextureLayer[]
+		layers: TextureLayerItem[]
 		layers_enabled: boolean
 		/**
 		 * The UUID of the project to sync the texture to
@@ -224,9 +231,9 @@ declare global {
 		 * @param cb Callback function
 		 */
 		load(cb?: () => {}): this
-		fromJavaLink(link: string, path_array: string[]): this
-		fromFile(file: { name: string; content?: string; path: string }): this
-		fromPath(path: string): this
+		fromJavaLink(link: string, path_array: string[], externalDataLoader?: (path) => any): this
+		fromFile(file: { name: string; content?: string; path: string } | FileSystem.FileResult, externalDataLoader?: (path) => any): this
+		fromPath(path: string, externalDataLoader?: (path) => any): this
 		/**
 		 * Loads file content **only**.
 		 *
@@ -302,6 +309,10 @@ declare global {
 		 * Opens the texture in the configured image editor
 		 */
 		openEditor(): this
+		/**
+		 * Opens the texture in an image editor tab inside Blockbench
+		 */
+		openInImageEditor(): this
 		showContextMenu(event: MouseEvent): void
 		openMenu(): void
 		resizeDialog(): this
@@ -386,6 +397,9 @@ declare global {
 		static all: Texture[]
 		static getDefault(): Texture
 		static properties: Record<string, Property<any>>
+
+		static file_formats: Record<string, FileFormatOptions>
+		static getAllExtensions(): string[]
 	}
 	/**
 	 * Saves all textures
@@ -511,5 +525,6 @@ declare global {
 		function nextFrame(): void
 		function reset(): void
 		function updateButton(): void
+		function playAnimationFrame(anim_time?: number): void
 	}
 }

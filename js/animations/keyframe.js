@@ -18,6 +18,9 @@ export class KeyframeDataPoint {
 		for (var key in KeyframeDataPoint.properties) {
 			KeyframeDataPoint.properties[key].merge(this, data)
 		}
+		if (isApp && data.file && !PathModule.isAbsolute(data.file)) {
+			this.file = PathModule.resolve(PathModule.dirname(Project.save_path), data.file);
+		}
 		if (isApp && data.file && !file_value_before) {
 			if (this.keyframe.channel == 'sound' && !Timeline.waveforms[this.file]) {
 				Timeline.visualizeAudioFile(this.file);
@@ -113,8 +116,8 @@ export class Keyframe {
 	calc(axis, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
 		data_point = this.data_points[data_point];
-		let last_value = Animator._last_values[this.channel] && Animator._last_values[this.channel][axis];
-		let result = Animator.MolangParser.parse(data_point && data_point[axis], {
+		let last_value = Animator._last_values[this.channel]?.[getAxisNumber(axis)];
+		let result = Animator.MolangParser.parse(data_point?.[axis], {
 			'this': last_value,
 			'query.anim_time': this.animator.animation.time
 		});
@@ -402,12 +405,11 @@ export class Keyframe {
 			return points.length <= 1 ? points[0] : points;
 		}
 	}
-	replaceOthers(save) {
-		var scope = this;
-		var arr = this.animator[this.channel];
-		arr.forEach(kf => {
-			if (kf != scope && Math.abs(kf.time - scope.time) < 0.0001) {
-				save.push(kf);
+	replaceOthers(save_array) {
+		let all = this.animator[this.channel].slice();
+		all.forEach(kf => {
+			if (kf != this && Math.abs(kf.time - this.time) < 0.0001) {
+				save_array.push(kf);
 				kf.remove();
 			}
 		})
@@ -810,6 +812,9 @@ Object.assign(Clipbench, {
 
 				if (data.animator) {
 					var animator = Animation.selected.animators[data.animator];
+					if (!animator && data.animator == 'effects') {
+						animator = Animation.selected.animators.effects = new EffectAnimator(Animation.selected);
+					}
 					if (animator && !Timeline.animators.includes(animator)) {
 						animator.addToTimeline();
 					}
@@ -1237,26 +1242,52 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Create keyframe column');
 		}
 	})
+	function selectKeyframes(select_condition) {
+		Timeline.selected.empty();
+		Timeline.animators.forEach(animator => {
+			if (animator instanceof BoneAnimator == false) return;
+			channels.forEach(channel => {
+				if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+					animator[channel].forEach(kf => {
+						if (Timeline.vue.channels[kf.channel] === false) return;
+						if (select_condition(kf)) {
+							Timeline.selected.push(kf);
+							kf.selected = true;
+						}
+					})
+				}
+			})
+		})
+		updateKeyframeSelection();
+	}
 	new Action('keyframe_column_select', {
 		icon: 'unfold_more_double',
 		category: 'animation',
 		condition: () => Animator.open,
 		click() {
-			Timeline.selected.empty();
-			Timeline.animators.forEach(animator => {
-				if (animator instanceof BoneAnimator == false) return;
-				channels.forEach(channel => {
-					if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
-						animator[channel].forEach(kf => {
-							if (Math.epsilon(kf.time, Timeline.time, 1e-5) && Timeline.vue.channels[kf.channel] !== false) {
-								Timeline.selected.push(kf);
-								kf.selected = true;
-							}
-						})
-					}
-				})
-			})
-			updateKeyframeSelection();
+			selectKeyframes((kf) => {
+				return Math.epsilon(kf.time, Timeline.time, 1e-5);
+			});
+		}
+	})
+	new Action('keyframe_select_before_playhead', {
+		icon: 'text_select_move_back_character',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			selectKeyframes((kf) => {
+				return kf.time < (Timeline.time + 1e-5);
+			});
+		}
+	})
+	new Action('keyframe_select_after_playhead', {
+		icon: 'text_select_move_forward_character',
+		category: 'animation',
+		condition: () => Animator.open,
+		click() {
+			selectKeyframes((kf) => {
+				return kf.time > (Timeline.time - 1e-5);
+			});
 		}
 	})
 })
@@ -1664,6 +1695,7 @@ Interface.definePanels(function() {
 Object.assign(window, {
 	KeyframeDataPoint,
 	Keyframe,
+	BBKeyframe: Keyframe,
 	updateKeyframeValue,
 	updateKeyframeSelection,
 	selectAllKeyframes,

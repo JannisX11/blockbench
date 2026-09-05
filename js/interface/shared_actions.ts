@@ -6,6 +6,7 @@
  * Handlers can be added for existing actions like this:
 
 ### Example:
+* @example
 ```javascript
 	// Duplicate layers when using "Duplicate" in the layers panel
 	SharedActions.add('duplicate', {
@@ -23,6 +24,12 @@
 		}
 	})
 ```
+* @module
+ */
+
+
+/**
+ * Global Shared Actions namespace to access any functionality related to Shared Actions
  */
 export const SharedActions = {
 	/**
@@ -220,5 +227,13 @@ BARS.defineActions(() => {
 const global = {SharedActions};
 declare global {
 	const SharedActions: typeof global.SharedActions;
+	interface BarItemRegistry {
+		rename: Action
+		delete: Action
+		duplicate: Action
+		select_all: Action
+		unselect_all: Action
+		invert_selection: Action
+	}
 }
 Object.assign(window, global);

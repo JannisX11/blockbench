@@ -56,7 +56,7 @@ export const Outliner = {
 		},
 		shade: {
 			id: 'shade',
-			condition: {modes: ['edit'], features: ['java_cube_shading_properties']},
+			condition: {modes: ['edit'], features: ['java_cube_shading_properties'], method: () => !Format.java_cube_shade_direction_override},
 			title: tl('switches.shade'),
 			icon: 'fa-star',
 			icon_off: 'far.fa-star',
@@ -340,7 +340,10 @@ export class NodePreviewController extends EventSystem {
 			if (Modes.paint && settings.outlines_in_paint_mode.value === false) {
 				mesh.outline.visible = false;
 			} else {
-				mesh.outline.visible = element.selected;
+				mesh.outline.visible = element.selected || settings.constant_outlines.value;
+				if (mesh.outline.material == Canvas.outlineMaterial || mesh.outline.material == Canvas.outlineUnselectedMaterial) {
+					mesh.outline.material = element.selected ? Canvas.outlineMaterial : Canvas.outlineUnselectedMaterial;
+				}
 			}
 		}
 
@@ -815,7 +818,7 @@ SharedActions.add('duplicate', {
 })
 SharedActions.add('duplicate', {
 	subject: 'outliner',
-	condition: () => Modes.edit && Outliner.selected.length,
+	condition: () => Modes.edit && Outliner.selected.find(element => element.getTypeBehavior('duplicatable') != false),
 	priority: -2,
 	run() {
 		let added_elements = [];
@@ -824,6 +827,10 @@ SharedActions.add('duplicate', {
 		Outliner.selected.empty();
 		list.forEachReverse(function(obj, i) {
 			if (obj.parent instanceof OutlinerElement && obj.parent.selected) return;
+			if (obj.getTypeBehavior('duplicatable') == false) {
+				obj.markAsSelected();
+				return;
+			}
 			let copy = obj.duplicate();
 			added_elements.push(copy);
 			if ('forEachChild' in copy) {
@@ -833,9 +840,36 @@ SharedActions.add('duplicate', {
 			}
 			copy.markAsSelected();
 		})
+		// Remap references
+		let map = Clipbench.duplicate_map;
+		map.forEach((copy, orig) => {
+			if (copy instanceof NullObject) {
+				for (let property of ['ik_source', 'ik_target', 'ik_pole']) {
+					let uuid = copy[property];
+					if (!uuid) continue;
+					let previous = list.find(obj => obj.uuid == uuid);
+					if (previous) {
+						copy[property] = map.get(previous)?.uuid ?? '';
+					}
+				}
+			} else if (copy instanceof ArmatureBone) {
+				let orig_armature = orig.getArmature();
+				let orig_meshes = orig_armature.children.filter(c => c instanceof Mesh);
+				for (let key in orig.vertex_weights) {
+					let [mesh_id, vkey] = key.split(':');
+					if (!vkey) continue;
+					let weight = orig.vertex_weights[key];
+					let mesh = orig_meshes.find(m => m.uuid.startsWith(mesh_id));
+					if (!mesh) continue;
+					copy.setVertexWeight(map.get(mesh), vkey, weight);
+					copy.vertex_weights[key];
+				}
+			}
+		});
 		BarItems.move_tool.select();
 		updateSelection();
-		Undo.finishEdit('Duplicate elements')
+		Undo.finishEdit('Duplicate elements');
+		Clipbench.duplicate_map = new Map();
 	}
 })
 SharedActions.add('select_all', {
@@ -1205,7 +1239,7 @@ Interface.definePanels(function() {
 		`<li class="outliner_node" v-bind:class="{ parent_li: node.children && node.children.length > 0}" v-bind:id="node.uuid" v-bind:style="{'--indentation': indentation}">` +
 			`<div
 				class="outliner_object"
-				v-bind:class="{ group: node.type === 'group', selected: node.selected }"
+				:class="getOutlinerNodeClasses(node)"
 				:element_type="node.type"
 				@contextmenu.prevent.stop="node.showContextMenu($event)"
 				@click="node.clickSelect($event, true)"
@@ -1264,6 +1298,13 @@ Interface.definePanels(function() {
 		methods: {
 			isNodeDisplayed(node) {
 				return Outliner.isNodeDisplayed(node)
+			},
+			getOutlinerNodeClasses(node) {
+				let classes = [];
+				if (node.type === 'group') classes.push('group');
+				if (node.selected == true) classes.push('selected');
+				Blockbench.dispatchEvent('get_outliner_node_classes', {node, classes});
+				return classes;
 			},
 			nodeClass: function (node) {
 				if (node.isOpen) {

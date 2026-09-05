@@ -46,13 +46,16 @@ export class NullObject extends OutlinerElement {
 		return this;
 	}
 	getWorldCenter(with_animation) {
-		var pos = new THREE.Vector3();
-		var q = Reusable.quat1.set(0, 0, 0, 1);
-		if (this.parent instanceof Group) {
-			THREE.fastWorldPosition(this.parent.mesh, pos);
-			this.parent.mesh.getWorldQuaternion(q);
-			var offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
-			pos.sub(offset2);
+		let pos = new THREE.Vector3();
+		let q = Reusable.quat1.set(0, 0, 0, 1);
+		let parent_object = this.parent.scene_object;
+		if (parent_object) {
+			THREE.fastWorldPosition(parent_object, pos);
+			parent_object.getWorldQuaternion(q);
+			if (this.parent instanceof Group) {
+				let offset2 = Reusable.vec2.fromArray(this.parent.origin).applyQuaternion(q);
+				pos.sub(offset2);
+			}
 		}
 		let offset;
 		if (with_animation && Animation.selected) {
@@ -89,6 +92,7 @@ export class NullObject extends OutlinerElement {
 			new MenuSeparator('ik'),
 			'set_ik_target',
 			'set_ik_source',
+			'set_ik_pole',
 			{
 				id: 'lock_ik_target_rotation',
 				name: 'menu.null_object.lock_ik_target_rotation',
@@ -102,6 +106,7 @@ export class NullObject extends OutlinerElement {
 					})
 					Undo.finishEdit('Change null object lock ik target rotation option');
 					if (Modes.animate) Animator.preview();
+					updateSelection();
 				}
 			},
 			...Outliner.control_menu_group,
@@ -112,9 +117,93 @@ export class NullObject extends OutlinerElement {
 	
 	new Property(NullObject, 'string', 'name', {default: 'null_object'})
 	new Property(NullObject, 'vector', 'position')
-	new Property(NullObject, 'string', 'ik_target', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'string', 'ik_source', {condition: () => Format.animation_mode});
-	new Property(NullObject, 'boolean', 'lock_ik_target_rotation')
+	new Property(NullObject, 'string', 'ik_target', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_target', description: 'action.set_ik_target.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
+					function iterate(arr, level) {
+						arr.forEach(node => {
+							if (node.constructor.animator || node instanceof Locator) {
+								if (level) nodes.push(node);
+							}
+							if (node.children) {
+								iterate(node.children, level+1);
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'string', 'ik_source', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_source', description: 'action.set_ik_source.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					iterate(Outliner.root)
+					function iterate(arr) {
+						arr.forEach(node => {
+							if (node.children) {
+								if (node.constructor.animator) {
+									nodes.push(node);
+								}
+								iterate(node.children)
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'string', 'ik_pole', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'null_object.ik_pole', description: 'action.set_ik_pole.desc', type: 'outliner_node', getOutlinerNodes() {
+					let nodes = [];
+					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
+					function iterate(arr) {
+						arr.forEach(node => {
+							if (node.selected) return;
+							if (node instanceof Group) {
+								nodes.push(node);
+								iterate(node.children);
+							} else if (node instanceof Locator || node instanceof NullObject) {
+								nodes.push(node);
+							}
+						})
+					}
+					return nodes;
+				}},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	});
+	new Property(NullObject, 'boolean', 'lock_ik_target_rotation', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {label: 'menu.null_object.lock_ik_target_rotation', type: 'checkbox'},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	})
 	new Property(NullObject, 'boolean', 'visibility', {default: true});
 	new Property(NullObject, 'boolean', 'locked');
 	
@@ -159,6 +248,7 @@ new NodePreviewController(NullObject, {
 		mesh.material.color.set(element.selected ? gizmo_colors.outline : CustomTheme.data.colors.text);
 		mesh.material.depthTest = !element.selected;
 		mesh.renderOrder = element.selected ? 100 : 0;
+		mesh.visible = !!Canvas.show_element_markers;
 
 		this.dispatchEvent('update_selection', {element});
 	},
@@ -274,6 +364,53 @@ BARS.defineActions(function() {
 			new Menu('set_ik_source', this.children(this), {searchable: true}).show(event.target, this);
 		}
 
+	})
+
+	new Action('set_ik_pole', {
+		icon: 'chip_extraction',
+		category: 'edit',
+		condition() {
+			let action = BarItems.set_ik_pole;
+			return NullObject.selected.length && action.children(action).length
+		},
+		searchable: true,
+		children() {
+			let nodes = [];
+			iterate(NullObject.selected[0].getParentArray());
+
+			function iterate(arr) {
+				arr.forEach(node => {
+					if (node.selected) return;
+					if (node instanceof Group) {
+						nodes.push(node);
+						iterate(node.children);
+					} else if (node instanceof Locator || node instanceof NullObject) {
+						nodes.push(node);
+					}
+				})
+			}
+			return nodes.map(node => {
+				return {
+					name: node.name + (node.uuid == NullObject.selected[0].ik_pole ? ' (✔)' : ''),
+					icon: node.icon,
+					color: markerColors[node.color % markerColors.length] && markerColors[node.color % markerColors.length].standard,
+					click() {
+						Undo.initEdit({ elements: NullObject.selected });
+						NullObject.selected.forEach(null_object => {
+							if (null_object.ik_pole == node.uuid) {
+								null_object.ik_pole = undefined;
+							} else {
+								null_object.ik_pole = node.uuid;
+							}
+						})
+						Undo.finishEdit('Set IK pole');
+					}
+				}
+			})
+		},
+		click(event) {
+			new Menu('set_ik_pole', this.children(this), { searchable: true }).show(event.target, this);
+		}
 	})
 })
 

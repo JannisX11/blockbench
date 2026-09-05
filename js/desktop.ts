@@ -1,7 +1,11 @@
+import { UpdateInfo } from 'electron-updater';
+import { addStartScreenSection } from './interface/start_screen';
 import { electron, app, fs, PathModule, currentwindow, shell, ipcRenderer, process, nativeImage, SystemInfo } from './native_apis';
+import { separateThousands } from './util/math_util';
+import { silentReject, wait } from './util/util';
 
 export const recent_projects = (function() {
-	let array = [];
+	let array: RecentProjectData[] = [];
 	var raw = localStorage.getItem('recent_projects')
 	if (raw) {
 		try {
@@ -12,10 +16,10 @@ export const recent_projects = (function() {
 		})
 	}
 	return array
-})();
+})() as RecentProjectData[];
 
 
-app.setAppUserModelId('blockbench')
+app.setAppUserModelId('blockbench');
 
 
 export function initializeDesktopApp() {
@@ -45,19 +49,22 @@ export function initializeDesktopApp() {
 		Blockbench.addFlag('dev')
 	}
 
-	settings.interface_scale.onChange();
+	settings.interface_scale.onChange(settings.interface_scale.value);
 
-	if (Blockbench.platform == 'darwin') {
-		//Placeholder
-		$('#mac_window_menu').show()
-		currentwindow.on('enter-full-screen', () => {
-			$('#mac_window_menu').hide()
-		})
-		currentwindow.on('leave-full-screen', () => {
+	if (settings.native_window_frame.value != true) {
+		// Window controls
+		if (Blockbench.platform == 'darwin') {
+			//Placeholder
 			$('#mac_window_menu').show()
-		})
-	} else {
-		$('#windows_window_menu').show()
+			currentwindow.on('enter-full-screen', () => {
+				$('#mac_window_menu').hide()
+			})
+			currentwindow.on('leave-full-screen', () => {
+				$('#mac_window_menu').show()
+			})
+		} else {
+			$('#windows_window_menu').show()
+		}
 	}
 	if (Blockbench.platform == 'linux') {
 		// Clear GPU cache: https://github.com/JannisX11/blockbench/issues/1964
@@ -77,7 +84,7 @@ export function initializeDesktopApp() {
 		let action = new Action('dev_mode_reload', {
 			name: 'Reload',
 			icon: 'refresh',
-			color: '#76f39b',
+			color: 'var(--color-update)',
 			click() {
 				Blockbench.reload();
 			}
@@ -87,7 +94,7 @@ export function initializeDesktopApp() {
 }
 //Load Model
 export function loadOpenWithBlockbenchFile() {
-	function load(path) {
+	function load(path: string) {
 		if (!path || path.length < 7 || path.startsWith('--') || !path.match(/.\.\w+$/)) return;
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
@@ -96,7 +103,7 @@ export function loadOpenWithBlockbenchFile() {
 			})
 		} else if (Codec.getAllExtensions().includes(extension)) {
 			Blockbench.read([path], {}, (files) => {
-				loadModelFile(files[0])
+				loadModelFile(files[0]);
 			})
 		} else {
 			unsupportedFileFormatMessage(path);
@@ -107,6 +114,7 @@ export function loadOpenWithBlockbenchFile() {
 	})
 	ipcRenderer.on('load-tab', (event, model) => {
 		let fake_file = {
+			name: model.name || '',
 			path: model.editor_state?.save_path || ''
 		};
 		Codecs.project.load(model, fake_file);
@@ -128,26 +136,38 @@ export function loadOpenWithBlockbenchFile() {
 }
 console.log('Electron '+process.versions.electron+', Node '+process.versions.node)
 
-window.confirm = function(message, title) {
+window.confirm = function(message: string, title?: string) {
 	let index = electron.dialog.showMessageBoxSync(currentwindow, {
 		title: title || electron.app.name,
 		detail: message,
+		message: '',
 		type: 'none',
 		noLink: true,
 		buttons: [tl('dialog.ok'), tl('dialog.cancel')]
 	});
 	return index == 0;
 }
-window.alert = function(message, title) {
+window.alert = function(message: string, title?: string) {
 	electron.dialog.showMessageBoxSync(electron.getCurrentWindow(), {
 		title: title || electron.app.name,
+		message: '',
 		detail: message
 	});
 }
 
 //Recent Projects
+export type RecentProjectData = {
+	name: string
+	path: string
+	icon: string
+	day: number
+	favorite: boolean
+	textures?: string[]
+	texture_sets?: string[]
+	animation_files?: string[]
+}
 export function updateRecentProjects() {
-	recent_projects.splice(Math.clamp(settings.recent_projects.value, 0, 512));
+	recent_projects.splice(Math.clamp(settings.recent_projects.value as number, 0, 512));
 	let fav_count = 0;
 	recent_projects.forEach((project, i) => {
 		if (project.favorite) {
@@ -159,9 +179,9 @@ export function updateRecentProjects() {
 	//Set Local Storage
 	localStorage.setItem('recent_projects', JSON.stringify(recent_projects.slice().reverse()));
 }
-export function addRecentProject(data) {
+export function addRecentProject(data: Partial<RecentProjectData>) {
 	var i = recent_projects.length-1;
-	let former_entry;
+	let former_entry: RecentProjectData;
 	while (i >= 0) {
 		var p = recent_projects[i]
 		if (p.path === data.path) {
@@ -171,7 +191,7 @@ export function addRecentProject(data) {
 		i--;
 	}
 	if (data.name.length > 48) data.name = data.name.substr(0, 20) + '...' + data.name.substr(-20);
-	let project = {
+	let project: RecentProjectData = {
 		name: data.name,
 		path: data.path,
 		icon: data.icon,
@@ -180,7 +200,7 @@ export function addRecentProject(data) {
 	}
 	recent_projects.splice(0, 0, project)
 	ipcRenderer.send('add-recent-project', data.path);
-	StartScreen.vue.updateThumbnails([data.path]);
+	StartScreen.updateThumbnails([data.path]);
 	Settings.updateSettingsInProfiles();
 	updateRecentProjects()
 }
@@ -191,9 +211,11 @@ export function updateRecentProjectData() {
 	if (project.name.length > 48) project.name = project.name.substr(0, 20) + '...' + project.name.substr(-20);
 
 	project.textures = Texture.all.filter(t => t.path).map(t => t.path);
+	project.texture_sets = TextureGroup.all.filter(t => t.is_material && t.material_config).map(t => t.material_config.getFilePath());
 
 	if (Format.animation_files) {
 		project.animation_files = [];
+		// @ts-expect-error
 		Animation.all.forEach(anim => {
 			if (anim.path) project.animation_files.safePush(anim.path);
 		})
@@ -241,9 +263,12 @@ export async function updateRecentProjectThumbnail() {
 		MediaPreview.resize(resolution[0], resolution[1])
 		MediaPreview.loadAnglePreset(DefaultCameraPresets[0])
 		MediaPreview.setFOV(30);
-		let center = getSelectionCenter(true);
-		MediaPreview.controls.target.fromArray(center);
-		MediaPreview.controls.target.add(scene.position);
+		let bounding_box = Canvas.getModelBoundingBox();
+		if (bounding_box.isEmpty()) {
+			MediaPreview.controls.target.set(0, 0, 0);
+		} else {
+			bounding_box.getCenter(MediaPreview.controls.target);
+		}
 
 		let box = Canvas.getModelSize();
 		let size = Math.max(box[0], box[1]*2)
@@ -266,7 +291,7 @@ export async function updateRecentProjectThumbnail() {
 		})
 	}
 	Blockbench.dispatchEvent('update_recent_project_thumbnail', {data: project, thumbnail});
-	StartScreen.vue.updateThumbnails([project.path]);
+	StartScreen.updateThumbnails([project.path]);
 
 	// Clean old files
 	if (Math.random() < 0.2) {
@@ -302,6 +327,15 @@ export function loadDataFromModelMemory() {
 			})
 		})
 	}
+	if (project.texture_sets) {
+		Blockbench.read(project.texture_sets, {}, files => {
+			files.forEach(f => {
+				if (!TextureGroup.all.find(tg => tg.material_config.getFilePath() == f.path)) {
+					importTextureSet(f, false);
+				}
+			})
+		})
+	}
 	if (project.animation_files && Format.animation_files) {
 		Project.memory_animation_files_to_load = project.animation_files;
 	}
@@ -309,16 +343,16 @@ export function loadDataFromModelMemory() {
 }
 
 //Window Controls
-function updateWindowState(e, type) {
+function updateWindowState(type: string) {
 	let maximized = currentwindow.isMaximized();
 	$('#header_free_bar').toggleClass('resize_space', !maximized);
 	document.body.classList.toggle('maximized', maximized);
 }
-currentwindow.on('maximize', e => updateWindowState(e, 'maximize'));
-currentwindow.on('unmaximize', e => updateWindowState(e, 'unmaximize'));
-currentwindow.on('enter-full-screen', e => updateWindowState(e, 'screen'));
-currentwindow.on('leave-full-screen', e => updateWindowState(e, 'screen'));
-currentwindow.on('ready-to-show', e => updateWindowState(e, 'load'));
+currentwindow.on('maximize', () => updateWindowState('maximize'));
+currentwindow.on('unmaximize', () => updateWindowState('unmaximize'));
+currentwindow.on('enter-full-screen', () => updateWindowState('screen'));
+currentwindow.on('leave-full-screen', () => updateWindowState('screen'));
+currentwindow.on('ready-to-show', () => updateWindowState('load'));
 
 const ImageEditorPresets = {
 	aseprite: {
@@ -369,7 +403,7 @@ const ImageEditorPresets = {
 };
 
 //Image Editor
-export function isImageEditorValid(path) {
+export function isImageEditorValid(path: string) {
 	if (!path) return false;
 	try {
 		fs.accessSync(path);
@@ -378,13 +412,13 @@ export function isImageEditorValid(path) {
 		return false;
 	}
 }
-export function changeImageEditor(texture, not_found) {
+export function changeImageEditor(texture?: Texture, not_found?: boolean) {
 	let app_file_extension = {
 		'win32': ['exe'],
 		'linux': [],
 		'darwin': ['app'],
 	};
-	let options = {};
+	let options: Record<string, string> = {};
 	for (let key in ImageEditorPresets) {
 		let entry = ImageEditorPresets[key];
 		if (!entry.paths[SystemInfo.platform]) continue;
@@ -401,7 +435,7 @@ export function changeImageEditor(texture, not_found) {
 			file: {
 				label: 'message.image_editor.file',
 				type: 'file',
-				file_type: 'Program',
+				filetype: 'Program',
 				extensions: app_file_extension[Blockbench.platform],
 				readtype: 'none',
 				description: 'message.image_editor.exe',
@@ -465,7 +499,7 @@ export function openDefaultTexturePath() {
 		Settings.saveLocalStorages();
 	}
 }
-export function findExistingFile(paths) {
+export function findExistingFile(paths: string[]) {
 	for (var path of paths) {
 		if (fs.existsSync(path)) {
 			return path;
@@ -473,13 +507,13 @@ export function findExistingFile(paths) {
 	}
 }
 //Backup
-export function createBackup(init) {
-	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value), 1, 10e8)*60000)
+export function createBackup(init: boolean) {
+	setTimeout(createBackup, limitNumber(parseFloat(settings.backup_interval.value as string), 1, 10e8)*60000)
 
-	let duration = parseInt(settings.backup_retain.value)+1
+	let duration = parseInt(settings.backup_retain.value as string)+1
 	let folder_path = app.getPath('userData')+osfs+'backups'
 	let d = new Date()
-	let days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getYear()-100)*365.25
+	let days = d.getDate() + (d.getMonth()+1)*30.44 + (d.getFullYear()-2000)*365.25
 
 	if (init) {
 		//Clear old backups
@@ -488,10 +522,7 @@ export function createBackup(init) {
 				files.forEach((name, i) => {
 					let date = name.split('_')[1]
 					if (date) {
-						let nums = date.split('.')
-						nums.forEach((n, ni) => {
-							nums[ni] = parseInt(n)
-						})
+						let nums = date.split('.').map(v => parseInt(v));
 						let b_days = nums[0] + nums[1]*30.44 + nums[2]*365.25
 						if (!isNaN(b_days) && days - b_days > duration) {
 							try {
@@ -508,7 +539,7 @@ export function createBackup(init) {
 	let model = Codecs.project.compile({compressed: true, backup: true});
 	let short_name = Project.name.replace(/[.]/g, '_').replace(/[^a-zA-Z0-9._-]/g, '').substring(0, 16);
 	if (short_name) short_name = '_' + short_name;
-	let file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getYear()-100)+'_'+d.getHours()+'.'+d.getMinutes() + short_name;
+	let file_name = 'backup_'+d.getDate()+'.'+(d.getMonth()+1)+'.'+(d.getFullYear()-2000)+'_'+d.getHours()+'.'+d.getMinutes() + short_name;
 	let file_path = folder_path+osfs+file_name+'.bbmodel';
 
 	fs.writeFile(file_path, model, function (err) {
@@ -656,69 +687,12 @@ window.onbeforeunload = function (event) {
 		} catch (err) {}
 
 	} else if (ModelProject.all.find(project => !project.saved)) {
-		let ul = Interface.createElement('ul', {class: 'list unsaved_models_list'});
-		let dialog;
-
-		async function saveProject(project) {
-			project.select();
-			if (Project.save_path) {
-				BarItems.save_project.trigger();
-			} else if (Project.export_path)  {
-				await BarItems.export_over.click();
-			} else {
-				await BarItems.export_over.click();
+		showUnsavedWorkDialog().then(async (all_saved) => {
+			if (all_saved) {
+				await wait(200);
 			}
-		}
-
-		ModelProject.all.forEach(project => {
-			if (project.saved) return;
-			let li = Interface.createElement('li', {class: 'unsaved_model'}, [
-				Blockbench.getIconNode(project.format?.icon),
-				Interface.createElement('span', {}, project.getDisplayName(true)),
-				Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('save')),
-			]);
-			li.addEventListener('click', event => {
-				project.select();
-			})
-			li.lastChild.addEventListener('click', async (event) => {
-				await saveProject(project);
-				if (Project.saved) {
-					li.remove();
-					if (ul.childElementCount == 0) {
-						wait(200);
-						closeBlockbenchWindow();
-					}
-				}
-			})
-			ul.append(li);
-		})
-
-		dialog = new Dialog('close', {
-			title: 'dialog.unsaved_work.title',
-			lines: [
-				Interface.createElement('p', {}, tl('dialog.unsaved_work.text')),
-				ul
-			],
-			buttons: [tl('dialog.unsaved_work.save_all'), tl('dialog.unsaved_work.discard_all'), tl('dialog.cancel')],
-			cancel_on_click_outside: false,
-			onButton: async (button) => {
-				if (button == 0) {
-					for (let project of ModelProject.all.slice()) {
-						await saveProject(project);
-						if (!project.saved) return;
-					}
-					wait(200);
-					closeBlockbenchWindow();
-
-				} else if (button == 1) {
-					closeBlockbenchWindow();
-				}
-			}
-		})
-		dialog.show();
-		if (isApp && Blockbench.platform == 'win32') {
-			shell.beep();
-		}
+			closeBlockbenchWindow();
+		}).catch(silentReject);
 
 		event.returnValue = true;
 		return true;
@@ -745,13 +719,13 @@ async function closeBlockbenchWindow() {
 	}
 	window.onbeforeunload = null;
 	Blockbench.addFlag('allow_closing');
-	Blockbench.dispatchEvent('before_closing')
+	Blockbench.dispatchEvent('before_closing', {});
 	if (Project.EditSession) Project.EditSession.quit()
 	return window.close();
 };
 
 
-ipcRenderer.on('update-available', (event, arg) => {
+ipcRenderer.on('update-available', (event, arg: UpdateInfo) => {
 	console.log('Found new update:', arg.version)
 	if (settings.automatic_updates.value) {
 		ipcRenderer.send('allow-auto-update');
@@ -780,7 +754,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 			icon_node.textContent = 'warning';
 			icon_node.classList.remove('spinning')
 			click_action = function() {
-				currentwindow.openDevTools()
+				currentwindow.webContents.openDevTools()
 			}
 			console.error(err);
 		})
@@ -803,7 +777,7 @@ ipcRenderer.on('update-available', (event, arg) => {
 			text: [
 				{type: 'h3', text: tl('message.update_notification.title')},
 				{text: tl('message.update_notification.message')},
-				{type: 'button', text: tl('generic.enable'), click: (e) => {
+				{type: 'button', text: tl('generic.enable'), click: () => {
 					settings.automatic_updates.set(true);
 				}}
 			]
@@ -811,7 +785,8 @@ ipcRenderer.on('update-available', (event, arg) => {
 	}
 })
 
-Object.assign(window, {
+
+const global = {
 	PathModule,
 	recent_projects,
 	nativeImage,
@@ -822,4 +797,18 @@ Object.assign(window, {
 	changeImageEditor,
 	openDefaultTexturePath,
 	updateRecentProjectThumbnail,
-})
+	createBackup,
+};
+declare global {
+	const recent_projects: RecentProjectData[]
+	type RecentProjectData = import('./desktop').RecentProjectData
+	const updateRecentProjects: typeof global.updateRecentProjects
+	const addRecentProject: typeof global.addRecentProject
+	const updateRecentProjectData: typeof global.updateRecentProjectData
+	const updateRecentProjectThumbnail: typeof global.updateRecentProjectThumbnail
+	const loadDataFromModelMemory: typeof global.loadDataFromModelMemory
+	const changeImageEditor: typeof global.changeImageEditor
+	const openDefaultTexturePath: typeof global.openDefaultTexturePath
+	const createBackup: typeof global.createBackup
+}
+Object.assign(window, global);

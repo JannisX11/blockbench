@@ -1,6 +1,8 @@
 declare global {
     namespace Clipbench {
         let elements: any[];
+        let layer: any;
+        let duplicate_map: Map<OutlinerNode, OutlinerNode>
         enum types {
             text = 'text',
             display_slot = 'display_slot',

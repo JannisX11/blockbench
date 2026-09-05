@@ -151,7 +151,6 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
 		} else if (this.isArray) {
-			// @ts-ignore
 			return this.default ? this.default.slice() : [] as any;
 		} else if (this.isObject) {
 			return Object.keys(this.default).length ? structuredClone(this.default) : {} as any;

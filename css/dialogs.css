@@ -60,13 +60,14 @@
 		border-width: var(--size);
 		border-style: solid;
 		border-color: var(--color-button);
-		border-top-color: transparent !important;
-		border-left-color: transparent !important;
+		border-top-color: transparent;
+		border-left-color: transparent;
 		border-bottom-right-radius: inherit;
 		cursor: se-resize;
 	}
 	.dialog_resize_handle:hover, .dialog_resize_handle.dragging {
-		border-color: var(--color-accent);
+		border-right-color: var(--color-accent);
+		border-bottom-color: var(--color-accent);
 	}
 	.dialog_sidebar_menu_button {
 		height: 100%;
@@ -196,7 +197,7 @@
 		box-sizing: content-box;
 	}
 	.dialog label.name_space_left {
-		min-width: 140px;
+		min-width: 100px;
 	}
 	.dialog_bar.form_bar.full_width_dialog_bar {
 		flex-wrap: wrap;
@@ -245,7 +246,7 @@
 		margin-right: auto;
 	}
 	.dialog_bar.form_bar .tool > .tooltip {
-		display: none !important;
+		display: none;
 	}
 	.dialog_bar .form_overlay_tools {
 		position: absolute;
@@ -317,40 +318,45 @@
 	}
 
 	.dialog_message_box_command {
-		padding: 6px 12px;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 8px 12px;
 		cursor: pointer;
 		font-size: 1.1em;
 		background-color: var(--color-back);
 		margin-top: 2px;
 		margin-bottom: 4px;
 		border-radius: 5px;
+		user-select: none;
 	}
 	.dialog_message_box_command:hover {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
 	.dialog_message_box_command::before {
-		float: right;
+		position: absolute;
+		right: 12px;
+		top: 8px;
 		content: "\f105";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
-		margin-right: 4px;
 		pointer-events: none;
 	}
-	.dialog_message_box_command > .icon {
+	.dialog_message_box_command .icon {
 		margin-right: 10px;
 		vertical-align: sub;
 	}
 	.dialog_message_box_command > label {
-		display: block;
 		color: var(--color-subtle_text);
 		font-size: 0.93em;
+		line-height: 1.2em;
 		width: fit-content;
 		pointer-events: none;
-		margin-top: -5px;
 	}
 	.dialog_message_box_command:has(.icon) > label {
-		margin-left: 30px;
+		margin-left: 32px;
 	}
 	.dialog_message_box_command:hover > label {
 		color: var(--color-accent_text);
@@ -371,6 +377,13 @@
 	.form_bar_file .input_wrapper input {
 		width: 100%;
 		padding-right: 30px;
+		direction: rtl;
+		text-align: left;
+		text-overflow: ellipsis;
+	}
+	.form_bar_file .input_wrapper.drag_hover input {
+		border-color: var(--color-accent);
+		background-color: var(--color-selected);
 	}
 	.form_bar_file .input_wrapper > .material-icons {
 		position: absolute;
@@ -503,7 +516,8 @@
 	}
 	@media (max-device-width: 640px) {
 		dialog {
-			width: 100% !important;
+			min-width: 100%;
+			max-width: 100%;
 		}
 		dialog .dialog_content, dialog .dialog_bar.button_bar {
 			margin: 12px;
@@ -892,6 +906,7 @@
 	.color_field .desc {
 		width: calc(100% - 60px);
 		display: inline-block;
+		line-height: initial;
 	}
 	.color_field p {
 		margin: 0;
@@ -1091,6 +1106,7 @@
 	/*About*/
 	dialog#about .dialog_content {
 		text-align: center;
+		user-select: text;
 	}
 	dialog#about h4 {
 		color: var(--color-subtle_text);
@@ -1130,8 +1146,20 @@
 		max-width: none;
 		pointer-events: none;
 	}
+	dialog#about div.socials a i.fa-bluesky {
+		color: #208bfe;
+	}
+	dialog#about div.socials a i.fa-twitter {
+		color: #1ea6ff;
+	}
+	dialog#about div.socials a i.fa-discord {
+		color: #5865F2;
+	}
+	dialog#about div.socials a i.fa-github {
+		color: #dddddd;
+	}
 	dialog#about div.socials a:hover i {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	dialog#about div.socials a label {
 		color: var(--color-subtle_text);
@@ -1331,6 +1359,16 @@
 		max-width: 100%;
 		max-height: 60vh;
 		transform-origin: top left;
+	}
+	.advanced_screenshot_preview {
+		display: flex;
+		justify-content: center;
+	}
+	.advanced_screenshot_preview > img {
+		max-width: 100%;
+		max-height: 240px;
+		border-radius: 5px;
+		background-color: var(--color-back);
 	}
 
 /*Bedrock Bindings*/
@@ -1561,21 +1599,6 @@
 	.plugin_deprecation_note > .icon {
 		vertical-align: text-bottom;
 	}
-	#plugin_list > li button {
-		min-width: 100px;
-		width: auto;
-		height: 36px;
-		float: right;
-		padding: 4px;
-		margin-left: -1px;
-		margin-top: 6px;
-		color: var(--color-text);
-		transition: width 100ms ease-in;
-	}
-	#plugin_list > li button > i {
-		float: left;
-		margin-top: 2px;
-	}
 	#plugin_list > li .title {
 		font-size: 1.34em;
 	}
@@ -1662,6 +1685,10 @@
 	}
 	.plugin_tag_list li.plugin_tag_deprecated {
 		background-color: #ff3467;
+		color: #000000;
+	}
+	.plugin_tag_list li.plugin_tag_update {
+		background-color: var(--color-update);
 		color: #000000;
 	}
 	.no_plugin_message {
@@ -1789,6 +1816,7 @@
 	.plugin_browser_tabbed_page {
 		padding: 8px 24px;
 		overflow-y: auto;
+		max-height: unset;
 	}
 	#plugin_browser_details tr:nth-child(even) {
 		background-color: var(--color-back);
@@ -2310,7 +2338,7 @@
 /* Custom Brush Options */
 	dialog#brush_options:not(.preset_selected) div.form_bar,
 	dialog#brush_options:not(.preset_selected) hr {
-		display: none !important;
+		display: none;
 	}
 	ul#brush_preset_bar {
 		display: flex;
@@ -2626,7 +2654,8 @@
 	.flipbook_frame.viewing {
 		background-color: var(--color-back);
 	}
-	.flipbook_frame.selected {
+	.flipbook_frame.selected,
+	.flipbook_frame.selected > label > p {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
@@ -2640,6 +2669,9 @@
 		flex-grow: 1;
 		flex-shrink: 0;
 		text-align: center;
+	}
+	.flipbook_frame > label > p {
+		color: var(--color-subtle_text);
 	}
 	#flipbook_editor_timeline {
 		display: flex;
