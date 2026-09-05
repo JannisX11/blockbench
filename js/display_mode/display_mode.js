@@ -979,12 +979,26 @@ DisplayMode.updateDisplayBase = function(slot) {
 }
 
 
+// Extracted from a Bedrock 1.26.50.27 APK
+DisplayMode.bedrock_defaults = {
+	gui:                   { translation: [0, 0, 0],   rotation: [30, 45, 0],  scale: [0.625, 0.625, 0.625], fit_to_frame: true },
+	firstperson_righthand: { translation: [0, 0, 0],   rotation: [0, 45, 0],   scale: [0.4, 0.4, 0.4] },
+	firstperson_lefthand:  { translation: [0, 0, 0],   rotation: [0, -135, 0], scale: [0.4, 0.4, 0.4] },
+	thirdperson_righthand: { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	thirdperson_lefthand:  { translation: [0, 2.5, 0], rotation: [70, 45, 0],  scale: [0.375, 0.375, 0.375] },
+	ground:                { translation: [0, 3, 0],   rotation: [0, 0, 0],    scale: [0.25, 0.25, 0.25] },
+	fixed:                 { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+	head:                  { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [1, 1, 1] },
+	embedded:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.75, 0.75, 0.75] },
+	on_shelf:              { translation: [0, 0, 0],   rotation: [0, 0, 0],    scale: [0.5, 0.5, 0.5] },
+}
 DisplayMode.applyPreset = function(preset, all) {
 	if (preset == undefined) return;
+	let areas = (preset.id == 'block' && Format.id == 'bedrock_block') ? DisplayMode.bedrock_defaults : preset.areas;
 	var slots = [DisplayMode.display_slot];
 	if (all) {
 		slots = displayReferenceObjects.slots
-	} else if (preset.areas[DisplayMode.display_slot] == undefined) {
+	} else if (areas[DisplayMode.display_slot] == undefined) {
 		Blockbench.showQuickMessage('message.preset_no_info')
 		return;
 	};
@@ -993,23 +1007,22 @@ DisplayMode.applyPreset = function(preset, all) {
 		if (!Project.display_settings[sl]) {
 			Project.display_settings[sl] = new DisplaySlot(sl)
 		}
-		let preset_values = preset.areas[sl];
+		let preset_values = areas[sl];
 		if (preset_values) {
 			if (!preset_values.rotation_pivot) Project.display_settings[sl].rotation_pivot.replace([0, 0, 0]);
 			if (!preset_values.scale_pivot) Project.display_settings[sl].scale_pivot.replace([0, 0, 0]);
-			Project.display_settings[sl].extend(preset.areas[sl]);
-			if (preset.id == 'block' && Format.id == 'bedrock_block' && sl == 'gui') {
-				Project.display_settings[sl].rotation[1] = 45;
-			}
+			Project.display_settings[sl].extend(preset_values);
 		}
 	})
 	DisplayMode.updateDisplayBase()
 	Undo.finishEdit('Apply display preset')
 }
-DisplayMode.loadJSON = function(data) {
-	for (var slot in data) {
+DisplayMode.loadJSON = function(data, defaults) {
+	for (let slot in data) {
 		if (displayReferenceObjects.slots.includes(slot)) {
-			Project.display_settings[slot] = new DisplaySlot(slot).extend(data[slot])
+			let display_slot = new DisplaySlot(slot);
+			if (defaults && defaults[slot]) display_slot.extend(defaults[slot]);
+			Project.display_settings[slot] = display_slot.extend(data[slot]);
 		}
 	}
 }
