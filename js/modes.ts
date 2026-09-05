@@ -79,6 +79,10 @@ export class Mode extends KeybindItem {
 	}
 	/**Selects the mode */
 	select() {
+		if (Toolbox.original instanceof Tool) {
+			Toolbox.original.select();
+			delete Toolbox.original;
+		}
 		if (Modes.selected instanceof Mode) {
 			Modes.selected.unselect();
 		}

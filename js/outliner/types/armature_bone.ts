@@ -232,8 +232,8 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		this.preview_controller.updateTransform(this);
 	}
-	setColor(index) {
-		this.color = index;
+	setColor(color: number) {
+		this.color = color;
 		this.preview_controller.updateFaces(this);
 		let armature = this.getArmature();
 		// Update vertex colors
@@ -257,17 +257,7 @@ export class ArmatureBone extends OutlinerElement {
 		return copy;
 	}
 	getUndoCopy(): any {
-		let copy = {
-			isOpen: this.isOpen,
-			uuid: this.uuid,
-			type: this.type,
-			name: this.name,
-			children: this.children.map(c => c.uuid),
-		};
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(copy, this);
-		}
-		return copy;
+		return this.getSaveCopy();
 	}
 	getChildlessCopy(keep_uuid: boolean = false) {
 		let base_bone = new ArmatureBone({name: this.name}, keep_uuid ? this.uuid : null);
@@ -584,7 +574,8 @@ BARS.defineActions(function() {
 		keybind: new Keybind({key: 'e', shift: true}),
 		condition: {
 			modes: ['edit'],
-			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected() || (Outliner.selected[0]?.parent) instanceof Armature)
+			selected: {mesh: false, spline: false},
+			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected())
 		},
 		click: function () {
 			Undo.initEdit({outliner: true, elements: [], selection: true});

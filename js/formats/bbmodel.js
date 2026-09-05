@@ -202,6 +202,9 @@ var codec = new Codec('project', {
 			if (ModelProject.properties[key].export == false) continue;
 			ModelProject.properties[key].copy(Project, model)
 		}
+		if (options.collection_only && Format.model_identifier) {
+			model.model_identifier = options.collection_only.model_identifier;
+		}
 
 		if (Project.overrides) {
 			model.overrides = Project.overrides;
@@ -274,6 +277,8 @@ var codec = new Codec('project', {
 				}
 				filterList(model.outliner);
 			}
+		} else {
+			model.skin_pose_data = Codecs.skin_model.getPoseData();
 		}
 
 		function handleAssetPath(object, key, relative_key) {
@@ -304,9 +309,11 @@ var codec = new Codec('project', {
 		}
 
 		let collections = [];
-		for (let collection of Collection.all) {
-			let copy = collection.getSaveCopy();
-			collections.push(copy);
+		if (!options.collection_only) {
+			for (let collection of Collection.all) {
+				let copy = collection.getSaveCopy();
+				collections.push(copy);
+			}
 		}
 		if (collections.length) model.collections = collections;
 
@@ -316,6 +323,13 @@ var codec = new Codec('project', {
 				let a = animation.getUndoCopy({absolute_paths: options.absolute_paths}, true);
 				model.animations.push(a);
 				handleAssetPath(a, 'path');
+				if (a.animators?.effects?.keyframes) {
+					for (let kf of a.animators.effects.keyframes) {
+						for (let data_point of kf.data_points) {
+							handleAssetPath(data_point, 'file');
+						}
+					}
+				}
 			})
 		}
 		if (AnimationController.all.length) {
@@ -475,7 +489,7 @@ var codec = new Codec('project', {
 		}
 
 		if (model.skin_model) {
-			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose);
+			Codecs.skin_model.rebuild(model.skin_model, model.skin_pose, model.skin_pose_data);
 		}
 		if (model.elements) {
 			let default_texture = Texture.getDefault();

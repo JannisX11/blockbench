@@ -123,6 +123,7 @@ new NodePreviewController(Locator, {
 		sprite.name = element.uuid;
 		sprite.type = element.type;
 		sprite.isElement = true;
+		sprite.no_export = true;
 		mesh.add(sprite);
 		mesh.sprite = sprite;
 

@@ -110,6 +110,38 @@ ImageData.prototype.getIndex = function(x, y) {
     return (x + y * this.height) * 4;
 }
 
+export function getFaceKeyFromIndex(element, index) {
+	if (element.getTypeBehavior('cube_faces')) {
+		if (element.getTypeBehavior('select_faces')) {
+			// @ts-expect-error
+			return element.scene_object.geometry.faces[Math.floor(index / 2)];
+		} else {
+			return Object.keys(element.faces)[0];
+		}
+	} else if (element instanceof Mesh) {
+		for (let key in element.faces) {
+			let {vertices} = element.faces[key];
+			if (vertices.length < 3) continue;
+
+			if (index == 0 || (index == 1 && vertices.length == 4)) {
+				return key;
+			}
+			if (vertices.length == 3) index -= 1;
+			if (vertices.length == 4) index -= 2;
+		}
+	} else if (element instanceof SplineMesh) {
+		for (let key in element.faces) {
+			let {vertices} = element.faces[key];
+
+			if (index == 0 || (index == 1 && vertices.length == 4)) {
+				return key;
+			}
+			
+			index -= 2;
+		}
+	}
+}
+
 export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
 		//event.preventDefault();

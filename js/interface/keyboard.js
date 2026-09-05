@@ -607,6 +607,10 @@ function isSwapToolsHoldKey(key) {
 }
 
 window.addEventListener('blur', event => {
+	let release = { bubbles: true, clientX: mouse_pos.x, clientY: mouse_pos.y };
+	document.dispatchEvent(new PointerEvent('pointerup', release));
+	document.dispatchEvent(new MouseEvent('mouseup', release));
+
 	if (isSwapToolsEnabled()) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()

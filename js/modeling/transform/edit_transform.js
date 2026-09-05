@@ -272,11 +272,11 @@ new TransformerModule('edit', {
 					}
 				})
 			}
-			if (BarItems.proportional_editing.value) {
-				Mesh.selected.forEach(mesh => {
-					ProportionalEdit.calculateWeights(mesh);
-				})
-			}
+		}
+		if (BarItems.proportional_editing.value) {
+			Mesh.selected.forEach(mesh => {
+				ProportionalEdit.calculateWeights(mesh);
+			})
 		}
 
 		if (rotate_group) {

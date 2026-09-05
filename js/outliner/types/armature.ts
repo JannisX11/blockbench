@@ -110,17 +110,7 @@ export class Armature extends OutlinerElement {
 		return copy;
 	}
 	getUndoCopy(): any {
-		let copy = {
-			isOpen: this.isOpen,
-			uuid: this.uuid,
-			type: this.type,
-			name: this.name,
-			children: this.children.map(c => c.uuid),
-		};
-		for (let key in Armature.properties) {
-			Armature.properties[key].merge(copy, this);
-		}
-		return copy;
+		return this.getSaveCopy();
 	}
 	getChildlessCopy(keep_uuid?: boolean) {
 		let base_armature = new Armature({name: this.name}, keep_uuid ? this.uuid : null);

@@ -1022,7 +1022,7 @@ export class EffectAnimator extends GeneralAnimator {
 						media.keyframe_id = kf.uuid;
 						media.playbackRate = Math.clamp(Timeline.playback_speed / 100, 0.1, 4.0);
 						media.volume = Math.clamp(settings.volume.value / 100, 0, 1);
-						media.play().catch(() => { });
+						media.play().catch((err) => console.error('Error playing sound', err));
 						Timeline.playing_sounds.push(media);
 						media.onended = function () {
 							Timeline.playing_sounds.remove(media);
@@ -1119,7 +1119,7 @@ export class EffectAnimator extends GeneralAnimator {
 						media.volume = Math.clamp(settings.volume.value / 100, 0, 1);
 						media.currentTime = -diff;
 						media.keyframe_id = kf.uuid;
-						media.play().catch(() => { });
+						media.play().catch((err) => console.error('Error playing sound', err));
 						Timeline.playing_sounds.push(media);
 						media.onended = function () {
 							Timeline.playing_sounds.remove(media);
