@@ -464,6 +464,9 @@ export const Canvas = {
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
+				if (mesh.vertex_points) edit(mesh.vertex_points);
+				if (mesh.pathLine) edit(mesh.pathLine);
+				if (mesh.spaceLine) edit(mesh.spaceLine);
 				if (mesh.grid_box) edit(mesh.grid_box);
 				if (element instanceof Locator) edit(mesh.children[0]);
 				if (element.getTypeBehavior('hide_in_screenshot')) edit(mesh);
