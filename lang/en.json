@@ -625,6 +625,8 @@
 	"dialog.adjust_opacity.mode.multiply": "Multiply",
 	"dialog.adjust_opacity.mode.set": "Set",
 
+	"dialog.missing_resources.title": "Missing Files",
+	"dialog.missing_resources.message": "This model uses files that could not be found. Select them below to load the model with its textures.",
 	"dialog.extrude.title": "Extrude Image",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",
@@ -893,6 +895,8 @@
 
 	"dialog.view_backups.open_folder": "Open Folder",
 
+	"dialog.import_model.file": "Model File",
+	"dialog.import_model.scale": "Scale",
 	"dialog.import_obj.obj": "OBJ File",
 	"dialog.import_obj.mtl": "MTL File",
 	"dialog.import_obj.scale": "Scale",
@@ -1613,6 +1617,10 @@
 	"action.switch_tabs.reverse_order": "Reverse order",
 	"action.validator_window": "View Model Issues...",
 	"action.validator_window.desc": "Opens the validator, which lists issues with the current model.",
+	"action.import_gltf": "Import GLTF Model",
+	"action.import_gltf.desc": "Import a gltf or glb model into the current project",
+	"action.import_fbx": "Import FBX Model",
+	"action.import_fbx.desc": "Import a fbx model into the current project",
 	"action.import_obj": "Import OBJ Model",
 	"action.import_obj.desc": "Imports objects from an OBJ model as meshes",
 	"action.import_java_block_model": "Add Java Block/Item Model",

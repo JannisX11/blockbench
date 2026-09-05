@@ -43,7 +43,8 @@ export interface CodecOptions {
 	support_offset?: boolean
 	load_filter?: {
 		extensions: string[] | (() => string[])
-		type: 'json' | 'text' | 'image'
+		type: 'json' | 'text' | 'image' | 'binary'
+		readtype?: 'buffer' | 'binary' | 'text' | 'image'
 		condition?: ConditionResolvable
 	}
 	/**
@@ -380,6 +381,21 @@ export class Codec extends EventSystem {
 			}
 		}
 		return extensions;
+	}
+
+	/**
+	 * Get the read type that a file needs, based on the load filters of all codecs
+	 */
+	static getReadType(path: string) {
+		let extension = pathToExtension(path);
+		for (let id in Codecs) {
+			let filter = Codecs[id].load_filter;
+			if (!filter || !filter.readtype) continue;
+			let list = typeof filter.extensions == 'function'
+				? filter.extensions()
+				: filter.extensions ?? [];
+			if (list.includes(extension)) return filter.readtype;
+		}
 	}
 }
 export const Codecs: Record<string, Codec> = {};

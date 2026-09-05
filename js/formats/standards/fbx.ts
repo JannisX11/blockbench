@@ -1,5 +1,7 @@
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { Blockbench } from "../../api";
 import { Filesystem } from "../../file_system";
+import { getResourceURL, loadThreeModel, parseWithResources } from "../../io/three_import";
 import { Armature } from "../../outliner/types/armature";
 import { ArmatureBone } from "../../outliner/types/armature_bone";
 import { adjustFromAndToForInflateAndStretch } from "../../outliner/types/cube";
@@ -44,10 +46,67 @@ type FBXNode = {
 }
 
 
+const FBX_BINARY_HEADER = 'Kaydara FBX Binary  \0';
+
+function passesThreeASCIICheck(text: string) {
+	const CORRECT = ['K', 'a', 'y', 'd', 'a', 'r', 'a', '\\', 'F', 'B', 'X', '\\', 'B', 'i', 'n', 'a', 'r', 'y', '\\', '\\'];
+	let cursor = 0;
+	function read(offset: number) {
+		const result = text[offset - 1];
+		text = text.slice(cursor + offset);
+		cursor++;
+		return result;
+	}
+	for (let i = 0; i < CORRECT.length; ++i) {
+		if (read(1) === CORRECT[i]) return false;
+	}
+	return true;
+}
+
+function stripRootProperties(text: string) {
+	let indent = 0;
+	return text.split(/\r?\n/).filter(line => {
+		if (/^[\s\t]*;/.test(line) || /^[\s\t]*$/.test(line)) return true;
+		if (new RegExp('^\\t{' + indent + '}(\\w+):(.*){').test(line)) {
+			indent++;
+		} else if (new RegExp('^\\t{' + indent + '}(\\w+):[\\s\\t\\r\\n](.*)').test(line)) {
+			if (indent == 0) return false;
+		} else if (indent > 0 && new RegExp('^\\t{' + (indent - 1) + '}}').test(line)) {
+			indent--;
+		}
+		return true;
+	}).join('\n');
+}
+
+function prepareFBXContent(content: ArrayBuffer) {
+	if (new TextDecoder().decode(new Uint8Array(content, 0, Math.min(FBX_BINARY_HEADER.length, content.byteLength))) === FBX_BINARY_HEADER) {
+		return content;
+	}
+
+	let text = stripRootProperties(new TextDecoder().decode(new Uint8Array(content)));
+	if (!passesThreeASCIICheck(text)) {
+		text = ';' + '-'.repeat(300) + '\n' + text;
+	}
+	return new TextEncoder().encode(text).buffer;
+}
+
 var codec = new Codec('fbx', {
 	name: 'FBX Model',
 	extension: 'fbx',
 	support_partial_export: true,
+	load_filter: {
+		type: 'binary',
+		readtype: 'buffer',
+		extensions: ['fbx']
+	},
+	async load(content, file, args: any = {}) {
+		let root = await parseWithResources(manager => new FBXLoader(manager).parse(prepareFBXContent(content), getResourceURL(file.path)));
+		if (!root) return Blockbench.showMessageBox({translateKey: 'invalid_model'});
+		await loadThreeModel(root, file, this, {
+			scale: args.scale ?? (Settings.get('model_export_scale') as number) / 100,
+			import_to_current_project: args.import_to_current_project
+		});
+	},
 	compile(options) {
 		options = Object.assign(this.getExportOptions(), options);
 		let scope = this;
@@ -1909,3 +1968,34 @@ export function compileASCIIFBXSection(object: FBXNode) {
 	}
 	return handleObjectChildren(object);
 }
+
+BARS.defineActions(function() {
+	let import_dialog: Dialog | undefined;
+	new Action('import_fbx', {
+		icon: 'view_in_ar',
+		category: 'file',
+		condition: {modes: ['edit'], method: () => Format.meshes},
+		click() {
+			if (!import_dialog) {
+				import_dialog = new Dialog('import_fbx', {
+					title: 'action.import_fbx',
+					form: {
+						model: {
+							type: 'file', label: 'dialog.import_model.file', return_as: 'file',
+							extensions: ['fbx'], resource_id: 'model', filetype: codec.name, readtype: 'buffer'
+						},
+						scale: {type: 'number', label: 'dialog.import_model.scale', value: (Settings.get('model_export_scale') as number) / 100}
+					},
+					onConfirm(result) {
+						if (!result.model) return;
+						codec.load((result.model as any).content, result.model, {
+							import_to_current_project: true,
+							scale: result.scale
+						});
+					}
+				})
+			}
+			import_dialog.show();
+		}
+	})
+})
