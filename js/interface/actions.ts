@@ -393,6 +393,7 @@ export class Action extends BarItem {
 	 * Provide a menu that belongs to the action, and gets displayed as a small arrow next to it in toolbars.
 	 */
 	side_menu?: ActionOptions['side_menu']
+	side_menu_anchor?: HTMLElement
 	menus: {menu: Menu, path: string}[]
 	/**
 	 * Provide a window with additional configutation related to the action
@@ -476,21 +477,32 @@ export class Action extends BarItem {
 			
 			let open_node = Blockbench.getIconNode('arrow_drop_down');
 			open_node.classList.add('action_more_options');
-			open_node.onclick = e => {
-				e.stopPropagation();
-				if (this.side_menu instanceof Menu) {
-					this.side_menu.open((e.target as HTMLElement).parentElement);
-				} else if (this.side_menu instanceof ToolConfig) {
-					this.side_menu.show(this.node);
-				} else if (this.side_menu instanceof Dialog) {
-					this.side_menu.show();
-				}
-			}
+			this.setupSideMenuButton(open_node, this.node);
 			this.node.append(open_node);
 		}
 
 		this.node.onclick = (e) => {
 			scope.trigger(e)
+		}
+	}
+	setupSideMenuButton(open_node: HTMLElement, tool_node: HTMLElement): void {
+		let was_open = false;
+		open_node.addEventListener('mousedown', () => {
+			was_open = this.side_menu_anchor == open_node && (this.side_menu instanceof Menu
+				? open_menu == this.side_menu
+				: Dialog.open == this.side_menu);
+		});
+		open_node.onclick = e => {
+			e.stopPropagation();
+			if (was_open) return;
+			this.side_menu_anchor = open_node;
+			if (this.side_menu instanceof Menu) {
+				this.side_menu.open(open_node.parentElement);
+			} else if (this.side_menu instanceof ToolConfig) {
+				this.side_menu.show(tool_node);
+			} else if (this.side_menu instanceof Dialog) {
+				this.side_menu.show();
+			}
 		}
 	}
 	/**
@@ -540,16 +552,7 @@ export class Action extends BarItem {
 		if (this.side_menu) {
 			let options = clone.querySelector('.action_more_options') as HTMLDivElement;
 			if (options && !options.onclick) {
-				options.onclick = e => {
-					e.stopPropagation();
-					if (this.side_menu instanceof Menu) {
-						this.side_menu.open((e.target as HTMLElement).parentElement);
-					} else if (this.side_menu instanceof ToolConfig) {
-						this.side_menu.show(clone);
-					} else if (this.side_menu instanceof Dialog) {
-						this.side_menu.show();
-					}
-				}
+				this.setupSideMenuButton(options, clone);
 			}
 		}
 		this.dispatchEvent('get_node', {node: clone});
