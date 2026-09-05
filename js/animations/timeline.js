@@ -667,19 +667,21 @@ export const Timeline = {
 
 		if (time < max_time) {
 			Timeline.setTime(time);
+			Animator.preview(true);
 		} else {
 			if (Animation.selected.loop == 'loop' || BarItems.looped_animation_playback.value) {
 				Timeline.setTime(Timeline.custom_range[0]);
+				Animator.preview(true);
 			} else if (Animation.selected.loop == 'once') {
 				Timeline.setTime(Timeline.custom_range[0]);
-				Animator.preview()
-				Timeline.pause()
+				Animator.preview(false);
+				Timeline.pause();
 			} else if (Animation.selected.loop == 'hold') {
 				Timeline.setTime(max_time);
-				Timeline.pause()
+				Animator.preview(false);
+				Timeline.pause();
 			}
 		}
-		Animator.preview(true);
 	},
 	pause() {
 		Animator.preview();

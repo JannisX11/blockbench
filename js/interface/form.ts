@@ -1178,7 +1178,7 @@ class FormElementFile extends FormElement {
 					Blockbench.showQuickMessage('message.unsupported_file_extension.title');
 					return;
 				}
-				Filesystem.read([paths[index]], {readtype: this.options.readtype}, fileCB);
+				Filesystem.read([paths[index]] as typeof paths, {readtype: this.options.readtype}, fileCB);
 			})
 		}
 

@@ -627,7 +627,7 @@
 		color: var(--color-bright_ui_text);
 		margin-top: 30px;
 		white-space: nowrap;
-		z-index: 20;
+		z-index: 31;
 		box-shadow: 0 0.4px 3.5px rgba(0, 0, 0, 0.6);
 		border-radius: 4px;
 		pointer-events: none;
@@ -635,6 +635,9 @@
 	}
 	.tool:hover > .tooltip {
 		visibility: visible;
+	}
+	.tool.menu_open:hover > .tooltip {
+		visibility: hidden;
 	}
 	.tooltip_shift {
 		display: none;

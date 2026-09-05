@@ -40,6 +40,45 @@ export const Plugins = {
 	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
 	path: '',
 	/**
+	 * Plugin files saved on install, so the web app has its own copy the way the desktop app keeps one on disk
+	 */
+	source_cache: {
+		db: null as null | IDBDatabase,
+		open(): Promise<IDBDatabase> {
+			if (Plugins.source_cache.db) return Promise.resolve(Plugins.source_cache.db);
+			return new Promise((resolve, reject) => {
+				let request = indexedDB.open('plugin_sources', 1);
+				request.onupgradeneeded = () => {
+					request.result.createObjectStore('sources', { keyPath: 'id' });
+				}
+				request.onsuccess = () => {
+					Plugins.source_cache.db = request.result;
+					resolve(request.result);
+				}
+				request.onerror = () => reject(request.error);
+			})
+		},
+		async get(id: string): Promise<string | undefined> {
+			let db = await Plugins.source_cache.open().catch(() => null);
+			if (!db) return;
+			return await new Promise((resolve) => {
+				let request = db.transaction('sources', 'readonly').objectStore('sources').get(id);
+				request.onsuccess = () => resolve(request.result?.content);
+				request.onerror = () => resolve(undefined);
+			})
+		},
+		async save(id: string, content: string): Promise<void> {
+			let db = await Plugins.source_cache.open().catch(() => null);
+			if (!db) return;
+			db.transaction('sources', 'readwrite').objectStore('sources').put({ id, content });
+		},
+		async remove(id: string): Promise<void> {
+			let db = await Plugins.source_cache.open().catch(() => null);
+			if (!db) return;
+			db.transaction('sources', 'readwrite').objectStore('sources').delete(id);
+		}
+	},
+	/**
 	 * Dev reload all side-loaded plugins
 	 */
 	devReload() {
@@ -201,6 +240,7 @@ interface PluginOptions {
 }
 interface PluginSetupOptions {
 	disabled?: boolean
+	version?: string
 }
 
 export class Plugin {
@@ -352,7 +392,10 @@ export class Plugin {
 			if (!isApp && this.new_repository_format)  {
 				path = `${Plugins.path}${scope.id}/${scope.id}.js`;
 			}
-			this.#runPluginFile(path).then((content) => {
+			let loading = (!isApp && this.source == 'store')
+				? this.#runCachedFile(path)
+				: this.#runPluginFile(path);
+			loading.then((content) => {
 				if (cb) cb.bind(scope)()
 				if (first) {
 					scope.oninstall?.()
@@ -451,6 +494,7 @@ export class Plugin {
 		}
 		if (!isApp) {
 			if (first) register();
+			await Plugins.source_cache.remove(this.id);
 			return await scope.load(first)
 		}
 
@@ -530,6 +574,7 @@ export class Plugin {
 			}
 		} else {
 			this.#runCode(file.content as string);
+			Plugins.source_cache.save(this.id, file.content as string);
 			if (first && scope.oninstall) {
 				scope.oninstall()
 			}
@@ -537,6 +582,24 @@ export class Plugin {
 		this.installed = true;
 		this.#remember();
 		Plugins.sort();
+	}
+	async loadFromCache(source: PluginSource, path = '') {
+		let cached = await Plugins.source_cache.get(this.id);
+		if (!cached) {
+			Plugins.installed.remove(Plugins.installed.find(installation => installation.id == this.id));
+			StateMemory.save('installed_plugins');
+			return this;
+		}
+		Plugins.registered[this.id] = this;
+		Plugins.all.safePush(this);
+		this.source = source;
+		this.path = path;
+		this.tags.safePush(source == 'url' ? 'Remote' : 'Local');
+		this.#runCode(cached);
+		this.installed = true;
+		this.#remember();
+		Plugins.sort();
+		return this;
 	}
 	async loadFromURL(url: string, first: boolean = false) {
 		if (first) {
@@ -556,6 +619,12 @@ export class Plugin {
 		let content = await this.#runPluginFile(url).catch(async (error) => {
 			if (isApp) {
 				await this.load();
+			} else {
+				let cached = await Plugins.source_cache.get(this.id);
+				if (cached) {
+					this.#runCode(cached);
+					return cached;
+				}
 			}
 			console.error(error);
 		})
@@ -568,6 +637,9 @@ export class Plugin {
 			this.#remember()
 			Plugins.sort()
 			// Save
+			if (!isApp) {
+				Plugins.source_cache.save(this.id, content);
+			}
 			if (isApp) {
 				await new Promise((resolve, reject) => {
 					let file = fs.createWriteStream(Plugins.path+this.id+'.js');
@@ -616,6 +688,9 @@ export class Plugin {
 		this.installed = false;
 		this.disabled = false;
 
+		if (!isApp && this.source == 'store') {
+			Plugins.source_cache.remove(this.id);
+		}
 		if (isApp && this.source !== 'store') {
 			Plugins.all.remove(this)
 		}
@@ -686,6 +761,16 @@ export class Plugin {
 		}
 
 		return this;
+	}
+	async #runCachedFile(path: string) {
+		let cached = await Plugins.source_cache.get(this.id);
+		if (cached) {
+			this.#runCode(cached);
+			return cached;
+		}
+		let content = await this.#runPluginFile(path);
+		Plugins.source_cache.save(this.id, content);
+		return content;
 	}
 	async #runPluginFile(path: string) {
 		let file_content: any;
@@ -1153,6 +1238,11 @@ export async function loadInstalledPlugins() {
 					install_promises.push(instance.loadFromFile({path: installation.path, name: installation.path, content: ''}, false));
 					load_counter++;
 					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
+				} else if (!isApp) {
+					let cached_instance = new Plugin(installation.id, {disabled: installation.disabled, version: installation.version});
+					install_promises.push(cached_instance.loadFromCache('file', installation.path));
+					load_counter++;
+					console.log(`🧩📁 Loaded plugin "${installation.id || installation.path}" from file`);
 				} else {
 					Plugins.installed.remove(installation);
 				}
@@ -1195,9 +1285,21 @@ export async function loadInstalledPlugins() {
 							install_promises.push(promise);
 						}
 					} else {
-						// Web app always loads from web
-						let promise = plugin.download();
-						if (plugin.await_loading) {
+						let up_to_date = installation.version && plugin.version && VersionUtil.compare(plugin.version, '<=', installation.version);
+						let update_available = !up_to_date && !(plugin.min_version && Blockbench.isOlderThan(plugin.min_version));
+
+						if (update_available && allow_updates) {
+							// Update
+							let promise = plugin.download();
+							if (plugin.await_loading) {
+								install_promises.push(promise);
+							}
+						} else {
+							if (update_available && !allow_updates) {
+								plugin.update_available = plugin.version;
+							}
+							// Get from the saved copy
+							let promise = plugin.load(false);
 							install_promises.push(promise);
 						}
 					}
@@ -1209,9 +1311,9 @@ export async function loadInstalledPlugins() {
 					Plugins.installed.remove(installation);
 				}
 
-			} else if (isApp && installation.source == 'store') {
+			} else if (installation.source == 'store') {
 				// Offline install store plugin
-				let plugin = new Plugin(installation.id);
+				let plugin = new Plugin(installation.id, { version: installation.version });
 				let promise = plugin.load(false);
 				install_promises.push(promise);
 			} else {

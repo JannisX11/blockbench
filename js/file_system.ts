@@ -155,7 +155,7 @@ export namespace Filesystem {
 	}
 	
 	// MARK: Read
-	export function readFile(files: string[] | FileList, options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {
+	export function readFile(files: string[] | File[], options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];
 
@@ -237,7 +237,7 @@ export namespace Filesystem {
 			});
 		} else {
 			let i = 0;
-			for (let file of (files as FileList)) {
+			for (let file of (files as File[])) {
 				let reader = new FileReader()
 				let local_i = i;
 				reader.onloadend = function() {
@@ -638,9 +638,9 @@ export namespace Filesystem {
 	document.ondragover = function(event) {
 		event.preventDefault()
 	}
-	export function getFilePaths(file_names: FileList): string[] {
-		let paths: string[] = [];
+	export function getFilePaths(file_names: FileList): string[] | File[] {
 		if (isApp) {
+			let paths: string[] = [];
 			for (let file of file_names) {
 				if ('path' in file && typeof file.path == 'string' && file.path) {
 					paths.push(file.path);
@@ -649,10 +649,10 @@ export namespace Filesystem {
 					if (path) paths.push(path);
 				}
 			}
+			return paths;
 		} else {
-			paths = [...file_names] as unknown as string[];
+			return [...file_names] as File[];
 		}
-		return paths;
 	}
 
 	document.body.ondrop = function(event) {
@@ -665,10 +665,10 @@ export namespace Filesystem {
 
 		let handled = false;
 		// Native file drop, or drop from VS Code via paths
-		let paths = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
-		if (!paths.some(path => (typeof path == 'string' ? path : (path as unknown as File).name || '').match(/\.\w+$/))) return;
+		let paths_or_files = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
+		if (isApp && !paths_or_files.some(path => typeof path == 'string' && path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
-			if (!paths.length) return;
+			if (!paths_or_files.length) return;
 			handled = true;
 
 			let read_options = {
@@ -676,14 +676,14 @@ export namespace Filesystem {
 				readtype: handler.readtype,
 				errorbox: handler.errorbox,
 			}
-			Filesystem.read(paths, read_options, (files) => {
+			Filesystem.read(paths_or_files, read_options, (files) => {
 				handler.cb(files, event)
 			})
 		})
-		if (!handled) {
-			let file_path = paths[0];
+		if (!handled && isApp) {
+			let file_path = paths_or_files[0];
 			if (file_path) {
-				unsupportedFileFormatMessage(typeof file_path == 'string' ? file_path : (file_path as unknown as File).name);
+				unsupportedFileFormatMessage(typeof file_path == 'string' ? file_path : file_path.name);
 			}
 
 		}
