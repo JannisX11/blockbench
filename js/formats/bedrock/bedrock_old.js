@@ -418,6 +418,7 @@ var format = new ModelFormat({
 	animation_mode: true,
 	locators: true,
 	pbr: true,
+	shading_mode: 'minecraft_entity',
 	codec,
 	onSetup(project) {
 		if (isApp) {

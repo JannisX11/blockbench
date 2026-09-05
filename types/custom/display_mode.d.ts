@@ -10,6 +10,7 @@ declare const DisplayMode: {
 	display_base: any
 	animate_preview: Preview
 	groundAnimation(): void
+	updateGUILight(): void
 	updateDisplaySkin(): void
 	loadJSON(json: any): void
 }

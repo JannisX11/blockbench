@@ -539,7 +539,7 @@ export class refModel {
 					map: {type: 't', value: tex},
 					SHADE: {type: 'bool', value: settings.shading.value},
 					LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
-					LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
+					...ShadingModes.minecraft_entity.getUniforms(),
 					EMISSIVE: {type: 'bool', value: false}
 				},
 				vertexShader: prepareShader(VertShader),
@@ -874,8 +874,6 @@ export function exitDisplaySettings() {		//Enterung Display Setting Mode, change
 	displayReferenceObjects.clear();
 	setDisplayArea(0,0,0, 0,0,0, 1,1,1)
 	display_area.updateMatrixWorld()
-	lights.rotation.set(0, 0, 0);
-	Canvas.global_light_side = 0;
 	Canvas.updateShading();
 	scene.remove(display_area)
 	if (!Format.centered_grid) scene.position.set(-8, 0, -8);
@@ -1055,20 +1053,17 @@ DisplayMode.groundAnimation = function() {
 	Transformer.center()
 	if (ground_timer === 200) ground_timer = 0;
 }
-DisplayMode.updateGUILight = function() {
-	if (!Modes.display) return;
-	if (Format.id == 'bedrock_block') {
-		Canvas.global_light_side = 0;
-		Canvas.updateShading();
-	} else if (DisplayMode.display_slot == 'gui' && Project.front_gui_light == true) {
-		lights.rotation.set(-Math.PI, 0.6, 0);
-		Canvas.global_light_side = 4;
-	} else {
-		lights.rotation.set(0, 0, 0);
-		Canvas.global_light_side = 0;
+Blockbench.on('update_scene_shading', () => {
+	for (let id in displayReferenceObjects.refmodels) {
+		let material = displayReferenceObjects.refmodels[id].material;
+		if (!material || !material.uniforms) continue;
+		material.uniforms.SHADE.value = settings.shading.value;
+		material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
 	}
+});
+DisplayMode.updateGUILight = function() {
 	Canvas.updateShading();
-} 
+}
 
 export function loadDisp(key) {	//Loads The Menu and slider values, common for all Radio Buttons
 	DisplayMode.display_slot = key

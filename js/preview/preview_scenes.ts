@@ -12,6 +12,7 @@ export interface PreviewSceneOptions {
 	require_minecraft_eula?: boolean
 	light_color?: {r: number, g: number, b: number}
 	light_side?: number
+	shading_mode?: string
 	condition?: ConditionResolvable
 	cubemap?: string[]
 	fog?: {
@@ -34,6 +35,7 @@ export class PreviewScene {
 	category: string;
 	light_color: {r: number, g: number, b: number} = {r: 1, g: 1, b: 1};
 	light_side: number = 0;
+	shading_mode: string = '';
 	condition: ConditionResolvable;
 	fov: number = null;
 	web_config_path?: string
@@ -52,6 +54,7 @@ export class PreviewScene {
 
 		this.light_color = {r: 1, g: 1, b: 1};
 		this.light_side = 0;
+		this.shading_mode = '';
 		this.condition;
 		this.fov = null;
 
@@ -74,6 +77,7 @@ export class PreviewScene {
 		}
 		if (data.light_color) this.light_color = data.light_color;
 		if (data.light_side) this.light_side = data.light_side;
+		if (data.shading_mode) this.shading_mode = data.shading_mode;
 		this.condition = data.condition;
 
 		this.cubemap = null;
@@ -182,13 +186,12 @@ export class PreviewScene {
 	static updateVisibility() {
 		let scene = PreviewScene.active;
 		let show = !!scene && !(Modes.display && DisplayMode.display_slot == 'gui');
+		PreviewScene.shown = show ? scene : null;
 		scene?.preview_models.forEach(model => show ? model.enable() : model.disable());
-		Canvas.global_light_color.set(0xffffff);
 		Canvas.global_light_side = 0;
 		Canvas.scene.background = null;
 		Canvas.scene.fog = null;
-		if (scene && show) {
-			Canvas.global_light_color.copy(scene.light_color as THREE.Color);
+		if (show) {
 			Canvas.global_light_side = scene.light_side;
 			Canvas.scene.background = scene.cubemap;
 			Canvas.scene.fog = scene.fog;
@@ -208,6 +211,10 @@ export class PreviewScene {
 	 * The currently active scene
 	 */
 	static active: PreviewScene | null = null;
+	/**
+	 * The active scene, unless it is currently hidden
+	 */
+	static shown: PreviewScene | null = null;
 	static select_options = {};
 	/**
 	 * The URL to the source repository that scenes are pulled from
@@ -598,8 +605,7 @@ new PreviewModel('studio', {
 // Scenes
 new PreviewScene('studio', {
 	category: 'generic',
-	light_color: {r: 1.04, g: 1.03, b: 1.1},
-	light_side: 1,
+	shading_mode: 'studio',
 	preview_models: ['studio']
 });
 new PreviewScene('sky', {

@@ -1586,6 +1586,7 @@ var entity_format = new ModelFormat({
 	texture_meshes: true,
 	bounding_boxes: true,
 	pbr: true,
+	shading_mode: 'minecraft_entity',
 	codec,
 	animation_codec,
 	onSetup(project) {
@@ -1757,6 +1758,10 @@ var block_format = new ModelFormat({
 				from.V3_subtract(required_offset_from);
 			}
 		}
+	},
+	shading_mode() {
+		if (!Modes.display) return;
+		return DisplayMode.display_slot == 'gui' ? 'minecraft_gui_side' : 'minecraft_entity';
 	},
 	codec,
 	onSetup(project) {

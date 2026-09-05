@@ -12,6 +12,7 @@ import BrushOutlineVertShader from './../shaders/brush_outline.vert.glsl'
 import BrushOutlineFragShader from './../shaders/brush_outline.frag.glsl'
 import { prepareShader } from '../shaders/shader';
 import { gizmo_colors } from './preview'
+import { ShadingMode, shading_uniforms } from './shading'
 
 export const Reusable = {
 	vec1: new THREE.Vector3(),
@@ -168,7 +169,8 @@ export const Canvas = {
 			Canvas.emptyMaterials[i] = new THREE.ShaderMaterial({
 				uniforms: {
 					map: {type: 't', value: tex},
-					...commonUniforms
+					...commonUniforms,
+					...shading_uniforms
 				},
 				vertexShader: prepareShader(MarkerVertShader),
 				fragmentShader: prepareShader(MarkerFragShader),
@@ -361,6 +363,10 @@ export const Canvas = {
 		});
 	},
 	updateShading() {
+		let shading_mode = ShadingMode.getActive();
+		shading_mode.apply();
+		Canvas.global_light_color.copy(shading_mode.color);
+		if (PreviewScene.shown) Canvas.global_light_color.multiply(PreviewScene.shown.light_color);
 		Canvas.updateLayeredTextures();
 		Canvas.scene.remove(lights);
 		let settings_brightness = settings.brightness.value/50;
@@ -378,13 +384,17 @@ export const Canvas = {
 			light.intensity = 0.7 * settings_brightness;
 	
 			Canvas.scene.add(light);
-			switch (Canvas.global_light_side) {
-				case 0: light.position.set(60, 100, 20); break;
-				case 1: light.position.set(-10, 20, 100); break;
-				case 2: light.position.set(10, 20, -100); break;
-				case 3: light.position.set(100, 20, -10); break;
-				case 4: light.position.set(-100, 20, 10); break;
-				case 5: light.position.set(20, -100, 0); break;
+			if (shading_mode.type == 'directional') {
+				light.position.fromArray(shading_mode.lights[0]).normalize().multiplyScalar(100);
+			} else {
+				switch (Canvas.global_light_side) {
+					case 0: light.position.set(60, 100, 20); break;
+					case 1: light.position.set(-10, 20, 100); break;
+					case 2: light.position.set(10, 20, -100); break;
+					case 3: light.position.set(100, 20, -10); break;
+					case 4: light.position.set(-100, 20, 10); break;
+					case 5: light.position.set(20, -100, 0); break;
+				}
 			}
 	
 			scene.add(Sun);
@@ -411,7 +421,6 @@ export const Canvas = {
 				if (!material.uniforms) return;
 				material.uniforms.SHADE.value = settings.shading.value;
 				material.uniforms.LIGHTCOLOR.value.copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50);
-				material.uniforms.LIGHTSIDE.value = Canvas.global_light_side;
 			})
 			Canvas.emptyMaterials.forEach(material => {
 				material.uniforms.SHADE.value = settings.shading.value;
@@ -799,6 +808,7 @@ export const Canvas = {
 		// https://codepen.io/Fyrestar/pen/YmpXYr
 		var uniforms = {
 			SHADE: {type: 'bool', value: settings.shading.value},
+			...shading_uniforms,
 			t0: {type: 't', value: null},
 			t1: {type: 't', value: null},
 			t2: {type: 't', value: null}
