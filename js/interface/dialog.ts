@@ -1008,10 +1008,12 @@ export class MessageBox extends Dialog {
 					let label = Interface.createElement('li', {class: 'dialog_message_box_command_category'}, tl(category));
 					list.append(label);
 				}
-				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'}, text);
+				let entry = Interface.createElement('li', {class: 'dialog_message_box_command'});
+				let title = Interface.createElement('span', {}, text);
+				entry.append(title);
 				if (typeof command == 'object') {
 					if (command.icon) {
-						entry.prepend(Blockbench.getIconNode(command.icon));
+						title.prepend(Blockbench.getIconNode(command.icon));
 					}
 					if (command.description) {
 						let label = Interface.createElement('label', {}, tl(command.description));

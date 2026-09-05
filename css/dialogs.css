@@ -318,38 +318,42 @@
 	}
 
 	.dialog_message_box_command {
-		padding: 6px 12px;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 8px 12px;
 		cursor: pointer;
 		font-size: 1.1em;
 		background-color: var(--color-back);
 		margin-top: 2px;
 		margin-bottom: 4px;
 		border-radius: 5px;
+		user-select: none;
 	}
 	.dialog_message_box_command:hover {
 		background-color: var(--color-accent);
 		color: var(--color-accent_text);
 	}
 	.dialog_message_box_command::before {
-		float: right;
+		position: absolute;
+		right: 12px;
+		top: 8px;
 		content: "\f105";
 		font-family: 'Font Awesome 6 Free';
 		font-weight: 900;
-		margin-right: 4px;
 		pointer-events: none;
 	}
-	.dialog_message_box_command > .icon {
+	.dialog_message_box_command .icon {
 		margin-right: 10px;
 		vertical-align: sub;
 	}
 	.dialog_message_box_command > label {
-		display: block;
 		color: var(--color-subtle_text);
 		font-size: 0.93em;
-		line-height: 1.3;
+		line-height: 1.2em;
 		width: fit-content;
 		pointer-events: none;
-		margin-top: -3px;
 	}
 	.dialog_message_box_command:has(.icon) > label {
 		margin-left: 30px;
