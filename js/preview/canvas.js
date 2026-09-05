@@ -464,6 +464,9 @@ export const Canvas = {
 			Outliner.elements.forEach(element => {
 				let {mesh} = element;
 				if (element.selected && mesh.outline) edit(mesh.outline);
+				if (mesh.vertex_points) edit(mesh.vertex_points);
+				if (mesh.pathLine) edit(mesh.pathLine);
+				if (mesh.spaceLine) edit(mesh.spaceLine);
 				if (mesh.grid_box) edit(mesh.grid_box);
 				if (element instanceof Locator) edit(mesh.children[0]);
 				if (element.getTypeBehavior('hide_in_screenshot')) edit(mesh);
@@ -700,16 +703,15 @@ export const Canvas = {
 	outlineObjects(arr) {
 		arr.forEach(function(obj) {
 			if (!obj.visibility) return;
-			var mesh = obj.mesh;
+			let mesh = obj.mesh;
 			if (!mesh || !mesh.geometry || !mesh.outline) return;
 
-			var copy = mesh.outline.clone();
+			let copy = mesh.outline.clone();
 			copy.geometry = mesh.outline.geometry.clone();
-
-			THREE.fastWorldPosition(mesh, copy.position);
-			copy.position.sub(scene.position);
-			copy.rotation.setFromQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
-			mesh.getWorldScale(copy.scale);
+			copy.geometry.applyMatrix4(mesh.matrixWorld);
+			copy.position.set(0, 0, 0);
+			copy.rotation.set(0, 0, 0);
+			copy.scale.set(1, 1, 1);
 
 			copy.name = obj.uuid+'_ghost_outline';
 			Canvas.outlines.add(copy);

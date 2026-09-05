@@ -138,9 +138,22 @@ function preparePickingGeometry(geometry: THREE.BufferGeometry) {
 	const position = geometry.attributes.position;
 	const faceIndices = new Float32Array(position.count);
 
-	// For non-indexed geometries, every 3 vertices belong to 1 triangle face
-	for (let i = 0; i < position.count; i++) {
-		faceIndices[i] = Math.floor(i / 3);
+	if (geometry.index) {
+		let index = geometry.index;
+		// Total triangle faces = index.count / 3
+		for (let i = 0; i < index.count; i += 3) {
+			let faceIndex = Math.floor(i / 3);
+			
+			// Assign the same face ID to all 3 vertex indices of this triangle face
+			faceIndices[index.getX(i)] = faceIndex;
+			faceIndices[index.getX(i + 1)] = faceIndex;
+			faceIndices[index.getX(i + 2)] = faceIndex;
+		}
+	} else {
+		// Non-indexed fallback
+		for (let i = 0; i < position.count; i++) {
+			faceIndices[i] = Math.floor(i / 3);
+		}
 	}
 
 	geometry.setAttribute('faceIndex', new THREE.BufferAttribute(faceIndices, 1));

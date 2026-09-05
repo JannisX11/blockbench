@@ -251,6 +251,7 @@ export function unselectAllElements(exceptions) {
 	})
 	Group.multi_selected.empty();
 	for (let key in Project.mesh_selection) {
+		if (exceptions && exceptions.some(ex => ex.uuid == key)) continue;
 		delete Project.mesh_selection[key];
 	}
 	if (Modes.animate && Timeline.selected_animator) {

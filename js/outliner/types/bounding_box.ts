@@ -344,7 +344,8 @@ export class BoundingBox extends OutlinerElement {
 	static behavior = {
 		movable: true,
 		resizable: true,
-		unique_name: false
+		unique_name: false,
+		hide_in_screenshot: true
 	}
 }
 

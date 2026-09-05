@@ -834,7 +834,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 				parent_group = match;
 			} else {
 				parent_list.forEach(function(ib) {
-					if (ib.name === b.parent) {
+					if (ib.name.toLowerCase() === b.parent.toLowerCase()) {
 						ib.children && ib.children.length ? ib.children.push(group) : ib.children = [group]
 					}
 				})
@@ -885,12 +885,7 @@ window.calculateVisibleBox = calculateVisibleBox;
 		}
 
 		if (data.object.item_display_transforms !== undefined) {
-			DisplayMode.loadJSON(data.object.item_display_transforms)
-			if (data.object.item_display_transforms.gui) {
-				if (data.object.item_display_transforms.gui.fit_to_frame == undefined) {
-					Project.display_settings.gui.fit_to_frame = true;
-				}
-			}
+			DisplayMode.loadJSON(data.object.item_display_transforms, DisplayMode.bedrock_defaults)
 		}
 
 		var bones = {}

@@ -357,7 +357,7 @@ export const UVEditor = {
 		if (zoom instanceof Event) {
 			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
 		}
-		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox(true);
 		if (min_x == Infinity) return;
 		if (zoom) {
 			let width = (max_x-min_x) / UVEditor.getUVWidth();
@@ -673,6 +673,60 @@ export const UVEditor = {
 			updateSelection();
 		}
 		return matches;
+	},
+	// Find which element face is at a given pixel coordinate in texture space
+	findFaceAtUV(texture, x, y, uvFactorX, uvFactorY) {
+		let animOffset = texture.display_height * texture.currentFrame;
+
+		for (let cube of Cube.all.concat(Billboard.all)) {
+			for (let faceKey in cube.faces) {
+				let face = cube.faces[faceKey];
+				let faceTexture = face.getTexture();
+				if (!faceTexture || Painter.getTextureToEdit(faceTexture) !== texture) continue;
+
+				let uv = face.uv;
+				if (!uv) continue;
+
+				let minX = Math.floor(Math.min(uv[0], uv[2]) * uvFactorX);
+				let maxX = Math.ceil(Math.max(uv[0], uv[2]) * uvFactorX);
+				let minY = Math.floor(Math.min(uv[1], uv[3]) * uvFactorY) + animOffset;
+				let maxY = Math.ceil(Math.max(uv[1], uv[3]) * uvFactorY) + animOffset;
+
+				if (x >= minX && x < maxX && y >= minY && y < maxY) {
+					return { element: cube, faceKey, region: { minX, minY, maxX, maxY } };
+				}
+			}
+		}
+
+		for (let mesh of Mesh.all) {
+			for (let faceKey in mesh.faces) {
+				let face = mesh.faces[faceKey];
+				let faceTexture = face.getTexture();
+				if (!faceTexture || Painter.getTextureToEdit(faceTexture) !== texture) continue;
+				if (face.vertices.length < 3) continue;
+
+				let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+				for (let vkey in face.uv) {
+					let uv = face.uv[vkey];
+					minX = Math.min(minX, uv[0] * uvFactorX);
+					maxX = Math.max(maxX, uv[0] * uvFactorX);
+					minY = Math.min(minY, uv[1] * uvFactorY);
+					maxY = Math.max(maxY, uv[1] * uvFactorY);
+				}
+
+				minX = Math.floor(minX);
+				minY = Math.floor(minY) + animOffset;
+				maxX = Math.ceil(maxX);
+				maxY = Math.ceil(maxY) + animOffset;
+
+				let polygon = face.getSortedVertices().map(vkey => face.uv[vkey]);
+				if (pointInPolygon([x, y], polygon)) {
+					return { element: mesh, faceKey, region: { minX, minY, maxX, maxY } };
+				}
+			}
+		}
+
+		return null;
 	},
 	forCubes(cb) {
 		for (let element of Outliner.selected) {
@@ -2866,6 +2920,11 @@ Interface.definePanels(function() {
 				}
 			},
 			watch: {
+				elements() {
+					Vue.nextTick(() => {
+						this.updateSize(); // Update size to reflect different UI parts being visible depending on selection
+					})
+				},
 				texture() {
 					this.uv_resolution.splice(0, 2,
 						UVEditor.getUVWidth(),
@@ -4210,8 +4269,9 @@ Interface.definePanels(function() {
 					}
 				},
 				isScalingAvailable() {
-					if (this.mappable_elements[0]?.getTypeBehavior('cube_faces')) {
-						return UVEditor.isFaceUV() && !!UVEditor.getReferenceFace();
+					let element = this.mappable_elements[0];
+					if (element?.getTypeBehavior('cube_faces')) {
+						return UVEditor.isFaceUV() && UVEditor.getSelectedFaces(element).some(fkey => element.faces[fkey] && element.faces[fkey].texture !== null);
 
 					} else if (this.mappable_elements[0] instanceof Mesh) {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
@@ -4225,13 +4285,13 @@ Interface.definePanels(function() {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
 					}
 				},
-				getSelectedUVBoundingBox() {
+				getSelectedUVBoundingBox(all_faces) {
 					if (!Project) return [0, 0, 0, 0];
 					let min = [Infinity, Infinity];
 					let max = [-Infinity, -Infinity];
 					this.mappable_elements.forEach(element => {
 						let faces = UVEditor.getSelectedFaces(element);
-						if (element instanceof Cube && element.box_uv) {
+						if ((element instanceof Cube && element.box_uv) || (all_faces && !faces.length)) {
 							faces = Object.keys(element.faces);
 						}
 						faces.forEach(fkey => {

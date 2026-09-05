@@ -257,7 +257,7 @@ export const Clipbench = {
 		})
 		for (let fkey in mesh.faces) {
 			let face = mesh.faces[fkey];
-			if (face.isSelected(fkey)) {
+			if (face.isSelected(fkey) && face.vertices.allAre(vkey => this.vertices[vkey])) {
 				this.faces[fkey] = new MeshFace(null, face);
 			}
 		}
@@ -279,6 +279,7 @@ export const Clipbench = {
 
 			for (let old_fkey in this.faces) {
 				let old_face = this.faces[old_fkey];
+				if (!old_face.vertices.allAre(old_vkey => old_vertices.includes(old_vkey))) continue;
 				let new_face = new MeshFace(mesh, old_face);
 				Property.resetUniqueValues(MeshFace, new_face);
 				let new_face_vertices = new_face.vertices.map(old_vkey => {
