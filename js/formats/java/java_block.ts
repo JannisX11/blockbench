@@ -517,11 +517,14 @@ const codec = new Codec('java_block', {
 					icon: 'info',
 					message: tl('message.child_model_only.message', [model.parent]),
 					commands: can_open && {
-						resolve: 'message.child_model_only.resolve'
+						resolve: {text: 'message.child_model_only.resolve', description: 'message.child_model_only.resolve.desc'},
+						open: {text: 'message.child_model_only.open', description: 'message.child_model_only.open.desc'}
 					}
 				}, result => {
-					if (typeof result == 'string') {
+					if (result == 'resolve') {
 						openParentModel();
+					} else if (result == 'open') {
+						this.parse(model, path, {...child_args, open_parent_after: true});
 					} else {
 						this.parse(model, path, child_args);
 					}
@@ -887,6 +890,38 @@ const codec = new Codec('java_block', {
 			Undo.finishEdit('Add block model')
 		}
 		Validator.validate()
+
+		if (args.open_parent_after) {
+			let parent_path = getParentModelPath(model.parent, path, getResourcePackRoot(path));
+			let parent_args = {...args};
+			delete parent_args.open_parent_after;
+			delete parent_args.resolve_parent;
+			function loadParentModel(file) {
+				loadModelFile(file, parent_args);
+			}
+
+			let loaded;
+			if (args.externalDataLoader) {
+				let external = args.externalDataLoader(parent_path.replaceAll("\\", "/"));
+				if (external) {
+					if (external instanceof Uint8Array) {
+						external = new TextDecoder().decode(external);
+					}
+					try {
+						loadParentModel({
+							name: PathModule.basename(parent_path),
+							path: parent_path,
+							content: external
+						});
+						loaded = true;
+					} catch {}
+				}
+			}
+
+			if (!loaded) {
+				Blockbench.read([parent_path], {}, files => loadParentModel(files[0]));
+			}
+		}
 	},
 })
 
