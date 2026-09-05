@@ -280,6 +280,7 @@ onVueSetup(async function() {
 				})
 			},
 			updateThumbnails(model_paths?: string[]) {
+				if (!isApp) return;
 				let thumbnail_dir = PathModule.join(app.getPath('userData'), 'thumbnails');
 				let thumbnail_dir_files = fs.readdirSync(thumbnail_dir);
 				this.recent.forEach((project: RecentProjectData) => {
