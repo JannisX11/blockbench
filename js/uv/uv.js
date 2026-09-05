@@ -357,7 +357,7 @@ export const UVEditor = {
 		if (zoom instanceof Event) {
 			zoom = BarItems.focus_on_selection.keybind.additionalModifierTriggered(zoom, 'zoom');
 		}
-		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox();
+		let [min_x, min_y, max_x, max_y] = this.vue.getSelectedUVBoundingBox(true);
 		if (min_x == Infinity) return;
 		if (zoom) {
 			let width = (max_x-min_x) / UVEditor.getUVWidth();
@@ -4285,13 +4285,13 @@ Interface.definePanels(function() {
 						return this.mappable_elements[0].getSelectedFaces().length > 0;
 					}
 				},
-				getSelectedUVBoundingBox() {
+				getSelectedUVBoundingBox(all_faces) {
 					if (!Project) return [0, 0, 0, 0];
 					let min = [Infinity, Infinity];
 					let max = [-Infinity, -Infinity];
 					this.mappable_elements.forEach(element => {
 						let faces = UVEditor.getSelectedFaces(element);
-						if (element instanceof Cube && element.box_uv) {
+						if ((element instanceof Cube && element.box_uv) || (all_faces && !faces.length)) {
 							faces = Object.keys(element.faces);
 						}
 						faces.forEach(fkey => {
