@@ -782,58 +782,58 @@ export const TextureGenerator = {
 					let {vertex_uvs} = face_group;
 
 					// Rotate UV to match corners
-					if (face_group.faces.length == 1) {
-						let rotation_angles = {};
-						let precise_rotation_angle = {};
-						face_group.faces.forEach((face, i) => {
-							let fkey = face_group.keys[i];
-							let vertices = face.getSortedVertices();
-							vertices.forEach((vkey, i) => {
-								let vkey2 = vertices[i+1] || vertices[0];
-								let edge_length = getEdgeLength([vkey, vkey2]);
-								let rot = Math.atan2(
-									vertex_uvs[fkey][vkey2][0] - vertex_uvs[fkey][vkey][0],
-									vertex_uvs[fkey][vkey2][1] - vertex_uvs[fkey][vkey][1],
-								)
-								let snap = 2;
-								rot = (Math.radToDeg(rot) + 360) % 90;
-								let rounded
-								let last_difference = snap;
-								for (let rounded_angle in precise_rotation_angle) {
-									let precise = precise_rotation_angle[rounded_angle];
-									if (Math.abs(rot - precise) < last_difference) {
-										last_difference = Math.abs(rot - precise);
-										rounded = rounded_angle;
-									}
+					let rotation_angles = {};
+					let precise_rotation_angle = {};
+					face_group.faces.forEach((face, i) => {
+						let fkey = face_group.keys[i];
+						let vertices = face.getSortedVertices();
+						vertices.forEach((vkey, i) => {
+							let vkey2 = vertices[i+1] || vertices[0];
+							// Skip seams so a split island turns like a whole one
+							if (face_group.faces.some(other => other != face && other.vertices.includes(vkey) && other.vertices.includes(vkey2))) return;
+							let edge_length = getEdgeLength([vkey, vkey2]);
+							let rot = Math.atan2(
+								vertex_uvs[fkey][vkey2][0] - vertex_uvs[fkey][vkey][0],
+								vertex_uvs[fkey][vkey2][1] - vertex_uvs[fkey][vkey][1],
+							)
+							let snap = 2;
+							rot = (Math.radToDeg(rot) + 360) % 90;
+							let rounded
+							let last_difference = snap;
+							for (let rounded_angle in precise_rotation_angle) {
+								let precise = precise_rotation_angle[rounded_angle];
+								if (Math.abs(rot - precise) < last_difference) {
+									last_difference = Math.abs(rot - precise);
+									rounded = rounded_angle;
 								}
-								if (!rounded) rounded = Math.round(rot / snap) * snap;
-								if (rotation_angles[rounded]) {
-									rotation_angles[rounded] += edge_length;
-								} else {
-									rotation_angles[rounded] = edge_length;
-									precise_rotation_angle[rounded] = rot;
-								}
-							})
-						})
-						let angles = Object.keys(rotation_angles).map(k => parseInt(k));
-						angles.sort((a, b) => {
-							let diff = rotation_angles[b] - rotation_angles[a];
-							if (diff) {
-								return diff;
+							}
+							if (!rounded) rounded = Math.round(rot / snap) * snap;
+							if (rotation_angles[rounded]) {
+								rotation_angles[rounded] += edge_length;
 							} else {
-								return a < b ? -1 : 1;
+								rotation_angles[rounded] = edge_length;
+								precise_rotation_angle[rounded] = rot;
 							}
 						})
-						if (rotation_angles[angles[0]] > 1) {
-							let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
-							let s = Math.sin(angle);
-							let c = Math.cos(angle);
-							for (let fkey in vertex_uvs) {
-								for (let vkey in vertex_uvs[fkey]) {
-									let point = vertex_uvs[fkey][vkey].slice();
-									vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
-									vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
-								}
+					})
+					let angles = Object.keys(rotation_angles).map(k => parseInt(k));
+					angles.sort((a, b) => {
+						let diff = rotation_angles[b] - rotation_angles[a];
+						if (diff) {
+							return diff;
+						} else {
+							return a < b ? -1 : 1;
+						}
+					})
+					if (rotation_angles[angles[0]] > 1) {
+						let angle = Math.degToRad(precise_rotation_angle[angles[0]]);
+						let s = Math.sin(angle);
+						let c = Math.cos(angle);
+						for (let fkey in vertex_uvs) {
+							for (let vkey in vertex_uvs[fkey]) {
+								let point = vertex_uvs[fkey][vkey].slice();
+								vertex_uvs[fkey][vkey][0] = point[0] * c - point[1] * s;
+								vertex_uvs[fkey][vkey][1] = point[0] * s + point[1] * c;
 							}
 						}
 					}
@@ -854,24 +854,81 @@ export const TextureGenerator = {
 						}
 					}
 	
-					// Round
-					if (face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) {
-						let sorted_vertices = face_group.faces[0].getSortedVertices();
+					let edge_uses = {};
+					face_group.faces.forEach((face, face_index) => {
+						let face_uvs = vertex_uvs[face_group.keys[face_index]];
+						let sorted_vertices = face.getSortedVertices();
 						sorted_vertices.forEach((vkey, vi) => {
 							let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
-							let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
-							let snap = res_multiple;
-							let vertex_uvs_1 = vertex_uvs[face_group.keys[0]];
-	
-							if (Math.epsilon(vertex_uvs_1[vkey][0], vertex_uvs_1[vkey2][0], 0.001)) {
-								let min = vertex_uvs_1[vkey][0] > vertex_uvs_1[vkey0][0] ? 1 : 0;
-								vertex_uvs_1[vkey][0] = vertex_uvs_1[vkey2][0] = Math.round(Math.max(min, vertex_uvs_1[vkey][0] * snap)) / snap;
+							let id = [vkey, vkey2].sort().join('.');
+							if (!edge_uses[id]) edge_uses[id] = {uses: 0, points: [face_uvs[vkey], face_uvs[vkey2]]};
+							edge_uses[id].uses++;
+						});
+					});
+					let outline = Object.values(edge_uses).filter(edge => edge.uses == 1).map(edge => edge.points);
+
+					// A face that was subdivided still traces four corners
+					function isSubdividedFace() {
+						if (!outline.length) return false;
+						if (!face_group.faces.allAre(face => face.vertices.length == 4)) return false;
+						let normal = face_group.faces[0].getNormal(true);
+						let flat = face_group.faces.allAre(face => {
+							let face_normal = face.getNormal(true);
+							return normal.allAre((value, axis) => Math.epsilon(value, face_normal[axis], 0.001));
+						});
+						if (!flat) return false;
+						// Points along a straight run of the outline are not corners
+						let directions = {};
+						for (let [a, b] of outline) {
+							let length = Math.sqrt(Math.pow(b[0]-a[0], 2) + Math.pow(b[1]-a[1], 2));
+							if (!length) continue;
+							let direction = [(b[0]-a[0]) / length, (b[1]-a[1]) / length];
+							for (let point of [a, b]) {
+								let id = `${Math.round(point[0] * 500)}_${Math.round(point[1] * 500)}`;
+								(directions[id] = directions[id] || []).push(direction);
 							}
-							if (Math.epsilon(vertex_uvs_1[vkey][1], vertex_uvs_1[vkey2][1], 0.001)) {
-								let min = vertex_uvs_1[vkey][1] > vertex_uvs_1[vkey0][1] ? 1 : 0;
-								vertex_uvs_1[vkey][1] = vertex_uvs_1[vkey2][1] = Math.round(Math.max(min, vertex_uvs_1[vkey][1] * snap)) / snap;
-							}
+						}
+						let corners = 0;
+						for (let id in directions) {
+							let [first, second] = directions[id];
+							if (!second) return false;
+							let cross = first[0] * second[1] - first[1] * second[0];
+							if (!Math.epsilon(cross, 0, 0.002)) corners++;
+						}
+						return corners == 4;
+					}
+
+					// Round
+					if ((face_group.faces.length == 1 && face_group.faces[0].vertices.length == 4) || isSubdividedFace()) {
+						let rounded_uvs = {};
+						face_group.faces.forEach((face, face_index) => {
+							if (face.vertices.length != 4) return;
+							let face_uvs = vertex_uvs[face_group.keys[face_index]];
+							let sorted_vertices = face.getSortedVertices();
+							sorted_vertices.forEach((vkey, vi) => {
+								let vkey2 = sorted_vertices[vi+1] || sorted_vertices[0];
+								let vkey0 = sorted_vertices[vi-1] || sorted_vertices.last();
+								// Snapping a seam would stretch one face and squash the other
+								if (face_group.faces.some(other => other != face && other.vertices.includes(vkey) && other.vertices.includes(vkey2))) return;
+
+								for (let axis = 0; axis < 2; axis++) {
+									if (!Math.epsilon(face_uvs[vkey][axis], face_uvs[vkey2][axis], 0.001)) continue;
+									let original = face_uvs[vkey][axis];
+									let value = Math.round(Math.max(face_uvs[vkey][axis] > face_uvs[vkey0][axis] ? 1 : 0, original * res_multiple)) / res_multiple;
+									rounded_uvs[`${vkey}_${axis}`] = rounded_uvs[`${vkey2}_${axis}`] = {original, value};
+								}
+							})
 						})
+						for (let fkey of face_group.keys) {
+							for (let vkey in vertex_uvs[fkey]) {
+								for (let axis = 0; axis < 2; axis++) {
+									let rounded = rounded_uvs[`${vkey}_${axis}`];
+									if (rounded && Math.epsilon(vertex_uvs[fkey][vkey][axis], rounded.original, 0.001)) {
+										vertex_uvs[fkey][vkey][axis] = rounded.value;
+									}
+								}
+							}
+						}
 					}
 	
 	
@@ -883,39 +940,57 @@ export const TextureGenerator = {
 							max_z = Math.max(max_z, vertex_uvs[fkey][vkey][1]);
 						}
 					}
-					// Center island if it faces front of back
-					if (Math.epsilon(face_group.normal[0], 0, 0.08)) {
-						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
+					let island_points = [];
+					for (let fkey in vertex_uvs) {
+						for (let vkey in vertex_uvs[fkey]) {
+							island_points.push(vertex_uvs[fkey][vkey]);
+						}
+					}
+					function pointOnEdge(point, [a, b]) {
+						let dx = b[0] - a[0];
+						let dy = b[1] - a[1];
+						let length = dx*dx + dy*dy;
+						if (!length) return false;
+						let position = ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / length;
+						if (position < 0 || position > 1) return false;
+						return Math.epsilon(a[0] + dx*position, point[0], 0.002) && Math.epsilon(a[1] + dy*position, point[1], 0.002);
+					}
+					function isSymmetric(axis) {
+						let other = axis ? 0 : 1;
+						let mirror = Math.min(...island_points.map(point => point[axis])) + Math.max(...island_points.map(point => point[axis]));
+						return island_points.every(point => {
+							let target = axis ? [point[0], mirror - point[1]] : [mirror - point[0], point[1]];
+							if (island_points.some(candidate => Math.epsilon(candidate[0], target[0], 0.001) && Math.epsilon(candidate[1], target[1], 0.001))) return true;
+							return outline.some(edge => pointOnEdge(target, edge));
+						});
+					}
+					function offsetIsland(axis, offset) {
 						for (let fkey in vertex_uvs) {
 							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += offset_x;
+								vertex_uvs[fkey][vkey][axis] += offset;
 							}
 						}
 					}
-					// ... or on the side
-					else if (Math.epsilon(face_group.normal[2], 0, 0.05)) {
-						let offset_x = (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2;
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += offset_x;
-							}
-						}
+
+					// Center the island on any axis it is symmetrical about, otherwise align it to the model
+					if (isSymmetric(0)) {
+						offsetIsland(0, (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2);
+					}
+					// Center island if it faces front, back or the side
+					else if (Math.epsilon(face_group.normal[0], 0, 0.08) || Math.epsilon(face_group.normal[2], 0, 0.05)) {
+						offsetIsland(0, (Math.ceil(max_x*res_multiple)/res_multiple - max_x) / 2);
 					}
 					// Or align right if face points to right side of model
 					else if ((face_group.normal[0] > 0) != (face_group.normal[2] < 0)) {
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][0] += Math.ceil(max_x*res_multiple)/res_multiple - max_x;
-							}
-						}
+						offsetIsland(0, Math.ceil(max_x*res_multiple)/res_multiple - max_x);
+					}
+
+					if (isSymmetric(1)) {
+						offsetIsland(1, (Math.ceil(max_z*res_multiple)/res_multiple - max_z) / 2);
 					}
 					// Align bottom if face points downwards
-					if (face_group.normal[1] < 0) {
-						for (let fkey in vertex_uvs) {
-							for (let vkey in vertex_uvs[fkey]) {
-								vertex_uvs[fkey][vkey][1] += Math.ceil(max_z*res_multiple)/res_multiple - max_z;
-							}
-						}
+					else if (face_group.normal[1] < 0) {
+						offsetIsland(1, Math.ceil(max_z*res_multiple)/res_multiple - max_z);
 					}
 					face_group.posx = 0;
 					face_group.posy = 0;
@@ -1233,7 +1308,7 @@ export const TextureGenerator = {
 								|| pointInsidePolygon(x+0.00001, y+0.99999)
 								|| pointInsidePolygon(x+0.99999, y+0.99999));
 					if (!inside) {
-						let px_rect = [[x, y], [x+0.99999, y+0.99999]]
+						let px_rect = [[x+0.00001, y+0.00001], [x+0.99999, y+0.99999]]
 						faces:
 						for (let vertex_uvs of vertex_uv_faces) {
 							let i = 0;
