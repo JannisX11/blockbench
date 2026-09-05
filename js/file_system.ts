@@ -669,15 +669,15 @@ export namespace Filesystem {
 		if (isApp && !paths_or_files.some(path => typeof path == 'string' && path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
 			if (!paths_or_files.length) return;
-			handled = true;
 
 			let read_options = {
-				extensions: (typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions) as string[],
+				extensions: (typeof handler.extensions == 'function' ? handler.extensions : handler.extensions) as string[],
 				readtype: handler.readtype,
 				errorbox: handler.errorbox,
 			}
 			Filesystem.read(paths_or_files, read_options, (files) => {
 				handler.cb(files, event)
+				handled = true;
 			})
 		})
 		if (!handled && isApp) {
