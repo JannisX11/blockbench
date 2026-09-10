@@ -443,6 +443,7 @@ export const TextureGenerator = {
 				this.mirror_y = Math.sign(this.face.uv_size[1]);
 				this.width  = ((this.width  >= 0.01 && this.width  < 1) ? 1 : Math.round(this.width)) / res_multiple;
 				this.height = ((this.height >= 0.01 && this.height < 1) ? 1 : Math.round(this.height)) / res_multiple;
+				this.rotation = this.face.rotation;
 			} else {
 				this.posx = this.face.uv[0], this.face.uv[0+2];
 				this.posy = this.face.uv[1], this.face.uv[1+2];
@@ -1310,7 +1311,7 @@ export const TextureGenerator = {
 				}
 			})
 		}
-		function drawCubeTexture(face, coords) {
+		function drawCubeTexture(face, target) {
 			let texture;
 			if (!Format.single_texture) {
 				if (face.texture === undefined || face.texture === null) return false;
@@ -1320,49 +1321,60 @@ export const TextureGenerator = {
 			}
 			if (!texture || !texture.img) return false;
 
-			ctx.save()
-			var uv = face.uv.slice();
+			ctx.save();
+
+			let uv = face.uv.slice();
 
 			if (face.direction === 'up') {
-				uv = [uv[2], uv[3], uv[0], uv[1]]
+				uv = [uv[2], uv[3], uv[0], uv[1]];
 			} else if (face.direction === 'down') {
-				uv = [uv[2], uv[1], uv[0], uv[3]]
+				uv = [uv[2], uv[1], uv[0], uv[3]];
 			}
 
-			var src = getRectangle(uv[0], uv[1], uv[2], uv[3])
-			var flip = [
-				uv[0] > uv[2] ? -1 : 1,
-				uv[1] > uv[3] ? -1 : 1
-			]
-			if (flip[0] + flip[1] < 1) {
-				ctx.scale(flip[0], flip[1])
+			// Determine absolute source coordinates and dimensions
+			let src_x = Math.min(uv[0], uv[2]);
+			let src_y = Math.min(uv[1], uv[3]);
+			let src_w = Math.abs(uv[2] - uv[0]);
+			let src_h = Math.abs(uv[3] - uv[1]);
+
+			let flip_x = uv[0] > uv[2] ? -1 : 1;
+			let flip_y = uv[1] > uv[3] ? -1 : 1;
+
+			let center_x = target.x + target.w / 2;
+			let center_y = target.y + target.h / 2;
+			let target_w = target.w;
+			let target_h = target.h;
+
+			if (face.rotation % 180) {
+				[target_h, target_w] = [target_w, target_h];
 			}
+
+			// Anchor at center of target rect
+			ctx.translate(center_x * res_multiple, center_y * res_multiple);
+
 			if (face.rotation) {
-				ctx.rotate(Math.degToRad(face.rotation))
-				let rot = face.rotation
-
-				if (rot <= 180) flip[1] *= -1;
-				if (rot >= 180) flip[0] *= -1;
-
-				while (rot > 0) {
-					[coords.x, coords.y] = [coords.y, coords.x];
-					[coords.w, coords.h] = [coords.h, coords.w];
-					rot -= 90;
-				}
+				let rad = Math.degToRad(face.rotation);
+				ctx.rotate(rad);
 			}
+
+			if (flip_x !== 1 || flip_y !== 1) {
+				ctx.scale(flip_x, flip_y);
+			}
+
 			ctx.imageSmoothingEnabled = false;
 			ctx.drawImage(
 				texture.img,
-				src.ax/texture.getUVWidth() * texture.img.naturalWidth,
-				src.ay/texture.getUVHeight() * texture.img.naturalHeight,
-				src.x /texture.getUVWidth() * texture.img.naturalWidth,
-				src.y /texture.getUVHeight() * texture.img.naturalHeight,
-				coords.x*res_multiple*flip[0],
-				coords.y*res_multiple*flip[1],
-				coords.w*res_multiple*flip[0],
-				coords.h*res_multiple*flip[1]
-			)
-			ctx.restore()
+				src_x/texture.getUVWidth() * texture.img.naturalWidth,
+				src_y/texture.getUVHeight() * texture.img.naturalHeight,
+				src_w/texture.getUVWidth() * texture.img.naturalWidth,
+				src_h/texture.getUVHeight() * texture.img.naturalHeight,
+				(-target_w / 2)*res_multiple,
+				(-target_h / 2)*res_multiple,
+				target_w*res_multiple,
+				target_h*res_multiple
+			);
+
+			ctx.restore();
 			return true;
 		}
 		function drawMeshTexture(ftemp, coords) {
@@ -1478,7 +1490,6 @@ export const TextureGenerator = {
 				h: Math.ceil(ftemp.height * res_multiple) / res_multiple
 			}
 			var d = TextureGenerator.face_data[ftemp.face_key] ?? TextureGenerator.face_data.south;
-			var flip_rotation = false;
 			
 			if (ftemp.cube) {
 				// Cube
@@ -1486,8 +1497,6 @@ export const TextureGenerator = {
 					!drawCubeTexture(ftemp.face, pos)
 				) {
 					drawTemplateRectangle(d.c1, d.c2, pos)
-				} else if (ftemp.cube) {
-					flip_rotation = ftemp.face.rotation % 180 != 0;
 				}
 			} else if (ftemp.mesh) {
 				// Mesh
@@ -1503,15 +1512,21 @@ export const TextureGenerator = {
 					if (target.cube) {
 						target.face.extend({
 							rotation: 0,
-							uv: flip_rotation ? [pos.y, pos.x] : [pos.x, pos.y]
+							uv: [pos.x, pos.y, pos.x + pos.w, pos.y + pos.h],
 						})
-						target.face.uv_size = flip_rotation ? [pos.h, pos.w] : [pos.w, pos.h];
 						if (source != target) {
 							// Double occupancy mirroring
-							if (target.mirror_x == -1) {
+							let relative_flip_x = target.mirror_x * source.mirror_x;
+							let relative_flip_y = target.mirror_y * source.mirror_y;
+							if (target.rotation % 180) {
+								[relative_flip_x, relative_flip_y] = [relative_flip_y, relative_flip_x];
+							}
+							let relative_rotation = (360 + source.rotation - target.rotation) % 360;
+							target.face.rotation = relative_rotation;
+							if (relative_flip_x == -1) {
 								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							}
-							if (target.mirror_y == -1) {
+							if (relative_flip_y == -1) {
 								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
 							}
 						}
@@ -1520,7 +1535,17 @@ export const TextureGenerator = {
 							[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
 						}
 						if (target.face_key == 'down') {
-							[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							// TODO: Fix edge cases
+							if (target.rotation == 90) {
+								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							} else if (target.rotation == 180) {
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							} else if (target.rotation == 270) {
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							} else if (target.rotation == 0) {
+								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+							}
 						}
 					} else {
 						target.faces.forEach((face, i) => {
