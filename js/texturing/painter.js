@@ -2068,7 +2068,7 @@ export const Painter = {
 				pixel_hits[key] = (pixel_hits[key]??0) + 1;
 			}
 		}
-		const sample_step = ExperimentalSettings.get('projected_brush_sample_rate') ?? 2;
+		const sample_step = (ExperimentalSettings.get('projected_brush_sample_rate') ?? 2) / devicePixelRatio;
 		for (let offset_x = -screen_radius; offset_x < screen_radius; offset_x += sample_step) {
 			for (let offset_y = -screen_radius; offset_y < screen_radius; offset_y += sample_step) {
 				raycast([offset_x, offset_y]);
