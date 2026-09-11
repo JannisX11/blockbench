@@ -1606,6 +1606,8 @@
 	"action.close_project.desc": "Closes the currently open project",
 	"action.close_other_projects": "Close Other Tabs",
 	"action.close_other_projects.desc": "Closes all projects except the open project",
+	"action.close_projects_to_left": "Close Tabs to the Left",
+	"action.close_projects_to_left.desc": "Closes all project tabs to the left of the open project",
 	"action.close_projects_to_right": "Close Tabs to the Right",
 	"action.close_projects_to_right.desc": "Closes all project tabs to the right of the open project",
 	"action.close_all_projects": "Close All Projects",
