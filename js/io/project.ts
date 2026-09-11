@@ -1303,7 +1303,7 @@ BARS.defineActions(function() {
 	new Action('close_other_projects', {
 		icon: 'tab_close',
 		category: 'file',
-		condition: () => !!Project,
+		condition: () => ModelProject.all.length > 1,
 		async click() {
 			let projects = ModelProject.all.filter(p => p != Project);
 			if (projects.some(p => !p.saved)) {
@@ -1318,7 +1318,7 @@ BARS.defineActions(function() {
 	new Action('close_projects_to_right', {
 		icon: 'tab_close_right',
 		category: 'file',
-		condition: () => ModelProject.all.length > 2 && ModelProject.all.indexOf(Project) != ModelProject.all.length-1,
+		condition: () => ModelProject.all.length > 1 && ModelProject.all.indexOf(Project) != ModelProject.all.length-1,
 		async click() {
 			let index = ModelProject.all.indexOf(Project);
 			let projects = ModelProject.all.slice(index+1);
