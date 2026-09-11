@@ -692,6 +692,20 @@ Object.defineProperty(window, 'Project', {
 
 let ProjectData = {};
 
+function tabMenuEntry(id: string, name: string) {
+	return function() {
+		let action = BarItems[id] as Action;
+		return {
+			id, name,
+			icon: action.icon,
+			keybind: action.keybind,
+			description: action.description,
+			condition: action.condition,
+			click: () => action.trigger()
+		};
+	}
+}
+
 ModelProject.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	'project_window',
@@ -699,11 +713,11 @@ ModelProject.prototype.menu = new Menu([
 	'open_model_folder',
 	'duplicate_project',
 	'convert_project',
-	'close_project',
+	tabMenuEntry('close_project', 'action.close_project.tab'),
 	'close_other_projects',
 	'close_projects_to_left',
 	'close_projects_to_right',
-	'close_all_projects',
+	tabMenuEntry('close_all_projects', 'action.close_all_projects.tab'),
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
