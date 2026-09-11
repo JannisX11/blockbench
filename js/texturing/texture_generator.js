@@ -1542,7 +1542,7 @@ export const TextureGenerator = {
 							} else if (target.rotation == 180) {
 								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							} else if (target.rotation == 270) {
-								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
+								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
 							} else if (target.rotation == 0) {
 								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							}
