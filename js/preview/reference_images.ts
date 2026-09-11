@@ -5,7 +5,7 @@ import { clipboard } from "../native_apis";
 import { addEventListeners, getAverageRGB } from "../util/util";
 import { Preview } from "./preview";
 
-export type ReferenceImageViewMode = 'flat_image' | 'billboard';
+export type ReferenceImageViewMode = 'flat_image' | 'plane';
 export type ReferenceImageLayer = 'background' | 'viewport' | 'float' | 'blueprint';
 export type ReferenceImageScope = 'project' | 'global' | 'built_in';
 
@@ -18,8 +18,8 @@ interface ReferenceImageOptions {
 	condition?: ConditionResolvable;
 	position?: ArrayVector2
 	size?: ArrayVector2
-	billboard_position?: ArrayVector3
-	billboard_rotation?: ArrayVector3
+	plane_position?: ArrayVector3
+	plane_rotation?: ArrayVector3
 	flip_x?: boolean
 	flip_y?: boolean
 	rotation?: number
@@ -44,8 +44,8 @@ export class ReferenceImage {
 	flip_x: boolean = false;
 	flip_y: boolean = false;
 	rotation: number = 0;
-	billboard_position?: ArrayVector3
-	billboard_rotation?: ArrayVector3
+	plane_position?: ArrayVector3
+	plane_rotation?: ArrayVector3
 	opacity: number = 0;
 	visibility: boolean = true;
 	sync_to_timeline: boolean = true;
@@ -118,10 +118,10 @@ export class ReferenceImage {
 		}
 		this.scene_object = new CSS3DObject(this.node);
 		switch (Format.forward_direction) {
-			case '-z': this.billboard_rotation[1] = 180; this.billboard_position[2] = Format.block_size; break;
-			case '+z': this.billboard_rotation[1] = 0; this.billboard_position[2] = -Format.block_size; break;
-			case '-x': this.billboard_rotation[1] = -90; this.billboard_position[0] = Format.block_size; break;
-			case '+x': this.billboard_rotation[1] = 90; this.billboard_position[0] = -Format.block_size; break;
+			case '-z': this.plane_rotation[1] = 180; this.plane_position[2] = Format.block_size; break;
+			case '+z': this.plane_rotation[1] = 0; this.plane_position[2] = -Format.block_size; break;
+			case '-x': this.plane_rotation[1] = -90; this.plane_position[0] = Format.block_size; break;
+			case '+x': this.plane_rotation[1] = 90; this.plane_position[0] = -Format.block_size; break;
 		}
 
 		let onload = () => {
@@ -320,7 +320,7 @@ export class ReferenceImage {
 		let image_content = this.is_video ? this.video : this.img;
 
 		image_content.style.display = (this.visibility && this.image_is_loaded) ? 'block' : 'none';
-		image_content.style.opacity = this.opacity.toString();
+		image_content.style.opacity = (this.opacity * (ReferenceImage.selected == this ? 0.8 : 1)).toString();
 
 		let transforms = [];
 		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
@@ -347,7 +347,9 @@ export class ReferenceImage {
 		if (!this.selected && this.clear_mode) {
 			let light_mode = document.body.classList.contains('light_mode');
 			this.node.style.filter = (light_mode != this.dark_background ? '' : 'invert(1) ') + 'contrast(1.2)';
-			this.node.style.mixBlendMode = 'lighten';
+			if (this.view_mode != 'plane') {//Changing mixblendmode moves the element to a different rendering layer and messes up 3D transformation
+				this.node.style.mixBlendMode = 'lighten';
+			}
 
 		} else {
 			this.node.style.filter = '';
@@ -360,7 +362,7 @@ export class ReferenceImage {
 			this.setupEditHandles()
 		}
 		if (this.selected) {
-			if (this.view_mode == 'billboard') {
+			if (this.view_mode == 'plane') {
 				Interface.preview.append(this.toolbar);
 			} else {
 				this.node.append(this.toolbar);
@@ -377,7 +379,7 @@ export class ReferenceImage {
 			this.toolbar.querySelector('.tool[tool_id=flip_x]').classList.toggle('enabled', this.flip_x);
 			this.toolbar.querySelector('.tool[tool_id=flip_y]').classList.toggle('enabled', this.flip_y);
 			this.toolbar.querySelector('.tool[tool_id=visibility]').classList.toggle('enabled', this.visibility);
-			(this.toolbar.querySelector('.tool[tool_id=rotation]') as HTMLElement).style.display = this.view_mode == 'billboard' ? 'block' : 'none';
+			(this.toolbar.querySelector('.tool[tool_id=rotation]') as HTMLElement).style.display = this.view_mode == 'plane' ? 'block' : 'none';
 		}
 		return this;
 	}
@@ -386,7 +388,7 @@ export class ReferenceImage {
 		return preview ? preview.camOrtho.zoom * 2 : 1;
 	}
 	updateTransform() {
-		if (!(this.node.isConnected || this.view_mode == 'billboard')) return;
+		if (!(this.node.isConnected || this.view_mode == 'plane')) return;
 		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
@@ -434,12 +436,12 @@ export class ReferenceImage {
 				this.node.style.left = (position[0] - this.size[0]/2) + 'px';
 				this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
 
-			} else if (this.view_mode == 'billboard') {
+			} else if (this.view_mode == 'plane') {
 				this.node.style.left = '0';
 				this.node.style.top  = '0';
 				this.scene_object.discardCopyElements();
-				this.scene_object.position.fromArray(this.billboard_position);
-				this.scene_object.rotation.fromArray(this.billboard_rotation.map(v => Math.degToRad(v)));
+				this.scene_object.position.fromArray(this.plane_position);
+				this.scene_object.rotation.fromArray(this.plane_rotation.map(v => Math.degToRad(v)));
 				let scale = Format.block_size / 128;
 				this.scene_object.scale.set(scale, scale, scale);
 			}
@@ -484,7 +486,7 @@ export class ReferenceImage {
 				let local_sign_x = sign_x;
 				let local_sign_y = sign_y;
 
-				if (this.view_mode == 'billboard') {
+				if (this.view_mode == 'plane') {
 					let corner_rect = corner.getBoundingClientRect();
 					let ref_rect = this.node.getBoundingClientRect();
 					let ref_center = [Math.lerp(ref_rect.left, ref_rect.right, 0.5), Math.lerp(ref_rect.top, ref_rect.bottom, 0.5)];
@@ -644,7 +646,7 @@ export class ReferenceImage {
 				}
 				return 'custom';
 			}
-			let dialog = new ConfigDialog('reference_image_billboard_rotation', {
+			let dialog = new ConfigDialog('reference_image_plane_rotation', {
 				// TODO: localization
 				title: 'Rotation',
 				width: 360,
@@ -652,7 +654,7 @@ export class ReferenceImage {
 					side: {
 						label: 'Side',
 						type: 'select',
-						value: getRotationSide(self.billboard_rotation),
+						value: getRotationSide(self.plane_rotation),
 						options: {
 							north: 'direction.north',
 							east: 'direction.east',
@@ -668,7 +670,7 @@ export class ReferenceImage {
 						type: 'vector',
 						dimensions: 3,
 						step: 2.5,
-						value: self.billboard_rotation,
+						value: self.plane_rotation,
 					}
 				}
 			}).show();
@@ -677,11 +679,11 @@ export class ReferenceImage {
 				if (changed_keys.includes('side')) {
 					let value = snap_sides[result.side];
 					if (value) {
-						self.billboard_rotation.replace(value as ArrayVector3);
+						self.plane_rotation.replace(value as ArrayVector3);
 						dialog.form.setValues({vector: value}, false);
 					}
 				} else {
-					self.billboard_rotation.replace(result.vector as ArrayVector3);
+					self.plane_rotation.replace(result.vector as ArrayVector3);
 					let side = getRotationSide(result.vector as ArrayVector3);
 					dialog.form.setValues({side}, false);
 				}
@@ -727,8 +729,8 @@ export class ReferenceImage {
 				convertTouchEvent(e1);
 
 				let original_position = this.position.slice();
-				let original_b_position = this.billboard_position.slice();
-				let original_b_rotation = this.billboard_rotation.slice();
+				let original_b_position = this.plane_position.slice();
+				let original_b_rotation = this.plane_rotation.slice();
 				let zoom = this.getZoomLevel();
 				let z_movement = target_classes.contains('reference_image_z_handle');
 
@@ -739,7 +741,7 @@ export class ReferenceImage {
 						(e2.clientY - e1.clientY),
 					];
 
-					if (this.view_mode == 'billboard') {
+					if (this.view_mode == 'plane') {
 						let preview = Preview.selected;
 						let control_scale = preview.calculateControlScale(this.scene_object.position);
 						let vector = new THREE.Vector3(offset[0], -offset[1], 0).multiplyScalar(control_scale / 14);
@@ -762,8 +764,8 @@ export class ReferenceImage {
 						}
 						vector.applyQuaternion(this.scene_object.quaternion);
 
-						this.billboard_position.replace(original_b_position);
-						this.billboard_position.V3_add(vector);
+						this.plane_position.replace(original_b_position);
+						this.plane_position.V3_add(vector);
 
 					} else {
 						this.position[0] = original_position[0] + offset[0] / zoom;
@@ -797,7 +799,7 @@ export class ReferenceImage {
 	projectMouseCursor(x: number, y: number): boolean | ArrayVector2 {
 		if (!this.resolveCondition() || !this.visibility) return false;
 
-		if (this.view_mode == 'billboard') {
+		if (this.view_mode == 'plane') {
 			let pointerevents = this.node.style.pointerEvents;
 			this.node.style.pointerEvents = 'all';
 			let hits = document.elementsFromPoint(x, y);
@@ -882,9 +884,9 @@ export class ReferenceImage {
 			this.position[0] += (preview_offset.left - workscreen_offset.left) * sign;
 			this.position[1] += (preview_offset.top - workscreen_offset.top) * sign;
 		}
-		if (this.view_mode == 'billboard') {
+		if (this.view_mode == 'plane') {
 			ReferenceImage.active.forEach(ref => {
-				if (ref.view_mode == 'billboard') ref.layer = layer;
+				if (ref.view_mode == 'plane') ref.layer = layer;
 			})
 		}
 		this.layer = layer;
@@ -928,7 +930,7 @@ export class ReferenceImage {
 				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, condition: () => !Format.image_editor, options: {
 					flat_image: 'reference_image.view_mode.flat_image',
 					//blueprint: 'reference_image.view_mode.blueprint',
-					billboard: 'reference_image.view_mode.billboard',
+					plane: 'reference_image.view_mode.plane',
 				}},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
@@ -939,14 +941,14 @@ export class ReferenceImage {
 					project: 'reference_image.scope.project',
 					global: 'reference_image.scope.global',
 				}},
-				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode != 'billboard'},
-				billboard_position: {type: 'vector', label: 'reference_image.position', dimensions: 3, value: this.billboard_position, condition: (form) => form.view_mode == 'billboard'},
+				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode != 'plane'},
+				plane_position: {type: 'vector', label: 'reference_image.position', dimensions: 3, value: this.plane_position, condition: (form) => form.view_mode == 'plane'},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
 				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
-				cull_backface: {type: 'checkbox', label: 'reference_image.cull_backface', value: this.cull_backface, condition: (form) => form.view_mode == 'billboard'},
+				cull_backface: {type: 'checkbox', label: 'reference_image.cull_backface', value: this.cull_backface, condition: (form) => form.view_mode == 'plane'},
 				//is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
@@ -958,7 +960,7 @@ export class ReferenceImage {
 					//is_blueprint: result.is_blueprint,
 					view_mode: result.view_mode,
 					position: result.position,
-					billboard_position: result.billboard_position,
+					plane_position: result.plane_position,
 					size: result.size,
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
@@ -1068,7 +1070,7 @@ ReferenceImage.prototype.menu = new Menu([
 		children: (reference) => {
 			let view_mode = {
 				flat_image: 'reference_image.view_mode.flat_image',
-				billboard: 'reference_image.view_mode.billboard',
+				plane: 'reference_image.view_mode.plane',
 			}
 			let children = [];
 			for (let key in view_mode) {
@@ -1166,8 +1168,8 @@ new Property(ReferenceImage, 'boolean', 'is_blueprint');
 new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});
-new Property(ReferenceImage, 'vector', 'billboard_position');
-new Property(ReferenceImage, 'vector', 'billboard_rotation');
+new Property(ReferenceImage, 'vector', 'plane_position');
+new Property(ReferenceImage, 'vector', 'plane_rotation');
 new Property(ReferenceImage, 'boolean', 'flip_x');
 new Property(ReferenceImage, 'boolean', 'flip_y');
 new Property(ReferenceImage, 'number', 'rotation');
@@ -1283,7 +1285,7 @@ export const ReferenceImageMode = {
 						condition: () => !Format.image_editor,
 						options: {
 							flat_image: 'reference_image.view_mode.flat_image',
-							billboard: 'reference_image.view_mode.billboard',
+							plane: 'reference_image.view_mode.plane',
 						}
 					},
 					layer: {type: 'select', label: 'reference_image.layer', value: 'background', options: {
@@ -1298,7 +1300,7 @@ export const ReferenceImageMode = {
 					},
 				},
 				onFormChange(result) {
-					icon.classList.toggle('billboard', result.view_mode == 'billboard');
+					icon.classList.toggle('plane', result.view_mode == 'plane');
 				},
 				onConfirm(result) {
 					resolve(result);

@@ -2772,7 +2772,7 @@
 	"reference_image.blueprint": "Locked Blueprint",
 	"reference_image.view_mode": "View Mode",
 	"reference_image.view_mode.flat_image": "Flat Image",
-	"reference_image.view_mode.billboard": "3D Billboard",
+	"reference_image.view_mode.plane": "3D Plane",
 	"reference_image.scope": "Scope",
 	"reference_image.scope.project": "Just this project",
 	"reference_image.scope.global": "All projects",
