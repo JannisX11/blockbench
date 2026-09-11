@@ -609,12 +609,14 @@ export const Painter = {
 					Painter.current.element = hit.element;
 					Painter.current.face = hit.faceKey;
 					element = hit.element;
-				} else if (fill_mode === 'color' || fill_mode === 'color_connected') {
+				}
+				// TODO: Figure out a way to expose this behavior via setting or tool options
+				/*if (fill_mode === 'color' || fill_mode === 'color_connected') {
 					let r = hit.region;
 					rect = [r.minX, r.minY, r.maxX, r.maxY];
 					w = r.maxX - r.minX;
 					h = r.maxY - r.minY;
-				}
+				}*/
 			}
 		}
 

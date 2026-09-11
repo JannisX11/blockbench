@@ -1297,7 +1297,7 @@
 	"settings.paint_through_transparency": "Paint Through Transparency",
 	"settings.paint_through_transparency.desc": "Paint through transparent pixels when Lock Alpha Channel is enabled",
 	"settings.paint_side_restrict": "Restrict Brush to Side",
-	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current side",
+	"settings.paint_side_restrict.desc": "Restrict brushes to only paint on the current face",
 	"settings.opacity_range": "Opacity Range",
 	"settings.opacity_range.desc": "Select which range is used to control opacity of layers and brushes",
 	"settings.paint_with_stylus_only": "Paint with Stylus Only",
