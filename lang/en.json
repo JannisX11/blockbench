@@ -1608,6 +1608,8 @@
 	"action.close_other_projects.desc": "Closes all projects except the open project",
 	"action.close_projects_to_right": "Close Tabs to the Right",
 	"action.close_projects_to_right.desc": "Closes all project tabs to the right of the open project",
+	"action.close_all_projects": "Close All Projects",
+	"action.close_all_projects.desc": "Closes all open projects",
 	"action.tab_overview": "Tab Overview",
 	"action.tab_overview.desc": "View all open tabs in a grid and jump to one",
 	"action.switch_tabs": "Switch Tabs",

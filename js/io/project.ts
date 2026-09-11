@@ -702,6 +702,7 @@ ModelProject.prototype.menu = new Menu([
 	'close_project',
 	'close_other_projects',
 	'close_projects_to_right',
+	'close_all_projects',
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
@@ -1323,6 +1324,25 @@ BARS.defineActions(function() {
 			let projects = ModelProject.all.slice(index+1);
 			if (projects.some(p => !p.saved)) {
 				await showUnsavedWorkDialog(projects).catch(silentReject);
+			}
+			for (let project of projects) {
+				if (!ModelProject.all.includes(project)) continue;
+				await project.close(true);
+			}
+		}
+	})
+	new Action('close_all_projects', {
+		icon: 'tab_close',
+		category: 'file',
+		condition: () => ModelProject.all.length > 1,
+		async click() {
+			let projects = ModelProject.all.slice();
+			if (projects.some(project => !project.saved)) {
+				try {
+					await showUnsavedWorkDialog(projects);
+				} catch (err) {
+					return;
+				}
 			}
 			for (let project of projects) {
 				if (!ModelProject.all.includes(project)) continue;
