@@ -5,7 +5,7 @@ import { clipboard } from "../native_apis";
 import { addEventListeners, getAverageRGB } from "../util/util";
 import { Preview } from "./preview";
 
-export type ReferenceImageViewMode = 'flat_image' | 'plane';
+export type ReferenceImageViewMode = 'flat_image' | 'blueprint' | 'plane';
 export type ReferenceImageLayer = 'background' | 'viewport' | 'float' | 'blueprint';
 export type ReferenceImageScope = 'project' | 'global' | 'built_in';
 
@@ -38,7 +38,6 @@ export class ReferenceImage {
 	layer: ReferenceImageLayer = 'background';
 	scope: ReferenceImageScope = 'project';
 	view_mode: ReferenceImageViewMode = 'flat_image';
-	is_blueprint: boolean = false;
 	position: number[] = [0, 0];
 	size: number[] = [0, 0];
 	flip_x: boolean = false;
@@ -164,6 +163,12 @@ export class ReferenceImage {
 	get source_height(): number {
 		return (this.is_video ? this.video.videoHeight : this.img.naturalHeight) || 16;
 	}
+	get is_blueprint(): boolean {
+		return this.view_mode == 'blueprint';
+	}
+	set is_blueprint(v: boolean) {
+		if (v) this.view_mode = 'blueprint';
+	}
 	extend(data: ReferenceImageOptions) {
 		if (data.size instanceof Array) this.auto_aspect_ratio = false;
 
@@ -171,6 +176,7 @@ export class ReferenceImage {
 			data.layer = 'background';
 			data.is_blueprint = true;
 		}
+		if (data.is_blueprint) this.view_mode = 'blueprint';
 
 		if (data.modes instanceof Array) {
 			this.modes.replace(data.modes);
@@ -286,7 +292,7 @@ export class ReferenceImage {
 		}
 
 		this.node.setAttribute('reference_layer', this.layer);
-		if (this.view_mode == 'flat_image') {
+		if (this.view_mode != 'plane') {
 			Canvas.scene.remove(this.scene_object);
 			this.node.classList.remove('in_scene');
 			this.node.style.zIndex = '';
@@ -431,7 +437,7 @@ export class ReferenceImage {
 			this.node.style.height = this.size[1] + 'px';
 			this.node.style.clipPath = '';
 
-			if (this.view_mode == 'flat_image') {
+			if (this.view_mode == 'flat_image' || this.view_mode == 'blueprint') {
 				let position = this.getClampedPosition();
 				this.node.style.left = (position[0] - this.size[0]/2) + 'px';
 				this.node.style.top  = (position[1] - this.size[1]/2) + 'px';
@@ -519,7 +525,7 @@ export class ReferenceImage {
 					this.size[1] = Math.max(original_size[1] + offset[1] * local_sign_y, max_size[1]);
 					this.position[1] = original_position[1] + offset[1] / 2, 0;
 
-					if (!this.is_blueprint && this.view_mode == 'flat_image') {
+					if (this.view_mode != 'plane') {
 						this.position.replace(this.getClampedPosition());
 					}
 
@@ -875,7 +881,7 @@ export class ReferenceImage {
 	changeLayer(layer: ReferenceImageLayer): this {
 		if (layer == this.layer) return;
 
-		if (this.is_blueprint) this.is_blueprint = false;
+		if (this.is_blueprint) this.view_mode = 'flat_image';
 		if (layer == 'float' || this.layer == 'float') {
 			let preview_offset = $(Interface.preview).offset();
 			let workscreen_offset = $(Interface.work_screen).offset();
@@ -909,9 +915,9 @@ export class ReferenceImage {
 		return this;
 	}
 	enableBlueprintMode(): this {
-		if (this.is_blueprint) return this;
+		if (this.view_mode == 'blueprint') return this;
 		if (Preview.selected?.angle) {
-			this.is_blueprint = true;
+			this.view_mode = 'blueprint';
 			if (this.layer == 'float') this.changeLayer('viewport');
 			this.attached_side = Preview.selected.angle;
 			this.position.V2_set(0, 0);
@@ -919,6 +925,13 @@ export class ReferenceImage {
 		return this;
 	}
 	propertiesDialog(): this {
+		let view_mode_options: Record<string, string> = {
+			flat_image: 'reference_image.view_mode.flat_image',
+			plane: 'reference_image.view_mode.plane',
+		};
+		if (Preview.selected.angle || this.is_blueprint) {
+			view_mode_options.blueprint = 'reference_image.blueprint';
+		}
 		new Dialog('reference_image_properties', {
 			title: 'data.reference_image',
 			form: {
@@ -927,11 +940,7 @@ export class ReferenceImage {
 					value: this.source,
 					extensions: this.is_video ? ReferenceImage.video_extensions : ReferenceImage.supported_extensions
 				},
-				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, condition: () => !Format.image_editor, options: {
-					flat_image: 'reference_image.view_mode.flat_image',
-					//blueprint: 'reference_image.view_mode.blueprint',
-					plane: 'reference_image.view_mode.plane',
-				}},
+				view_mode: {type: 'inline_select', label: 'reference_image.view_mode', value: this.view_mode, condition: () => !Format.image_editor, options: view_mode_options},
 				layer: {type: 'select', label: 'reference_image.layer', value: this.layer, options: {
 					background: 'reference_image.layer.background',
 					viewport: 'reference_image.layer.viewport',
@@ -949,7 +958,6 @@ export class ReferenceImage {
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
 				cull_backface: {type: 'checkbox', label: 'reference_image.cull_backface', value: this.cull_backface, condition: (form) => form.view_mode == 'plane'},
-				//is_blueprint: {type: 'checkbox', label: 'reference_image.blueprint', value: this.is_blueprint, condition: () => Preview.selected.angle},
 				clear_mode: {type: 'checkbox', label: 'reference_image.clear_mode', value: this.clear_mode},
 			},
 			onConfirm: (result) => {
@@ -957,7 +965,6 @@ export class ReferenceImage {
 				let clear_mode_before = this.clear_mode;
 				this.extend({
 					source: result.source,
-					//is_blueprint: result.is_blueprint,
 					view_mode: result.view_mode,
 					position: result.position,
 					plane_position: result.plane_position,
@@ -1049,9 +1056,9 @@ ReferenceImage.prototype.menu = new Menu([
 	{
 		id: 'clear_mode',
 		name: 'reference_image.clear_mode',
-		icon: (ref) => ref.clear_mode,
-		//condition: ref => ref.is_blueprint,
-		click(ref) {
+		icon: (ref: ReferenceImage) => ref.clear_mode,
+		condition: (ref: ReferenceImage) => ref.view_mode != 'plane',
+		click(ref: ReferenceImage) {
 			ref.clear_mode = !ref.clear_mode;
 			ref.updateClearMode();
 			ref.update().save();
@@ -1067,19 +1074,21 @@ ReferenceImage.prototype.menu = new Menu([
 		name: 'reference_image.view_mode',
 		icon: 'pin_end',
 		condition: () => !Format.image_editor,
-		children: (reference) => {
+		children: (reference: ReferenceImage) => {
 			let view_mode = {
 				flat_image: 'reference_image.view_mode.flat_image',
+				blueprint: (Preview.selected.angle || reference.is_blueprint) ? 'reference_image.blueprint' : undefined,
 				plane: 'reference_image.view_mode.plane',
 			}
 			let children = [];
 			for (let key in view_mode) {
+				if (!view_mode[key]) continue;
 				children.push({
 					id: key,
 					name: view_mode[key],
 					icon: reference.view_mode == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click() {
-						reference.view_mode = key;
+						reference.view_mode = key as any;
 						reference.update().save();
 					}
 				})
@@ -1164,7 +1173,6 @@ ReferenceImage.prototype.menu = new Menu([
 new Property(ReferenceImage, 'string', 'name', {default: 'Reference'});
 new Property(ReferenceImage, 'string', 'layer', {default: 'background'});
 new Property(ReferenceImage, 'string', 'scope', {default: 'global'});
-new Property(ReferenceImage, 'boolean', 'is_blueprint');
 new Property(ReferenceImage, 'enum', 'view_mode', {default: 'flat_image'});
 new Property(ReferenceImage, 'vector2', 'position');
 new Property(ReferenceImage, 'vector2', 'size', {default: [400, 300]});

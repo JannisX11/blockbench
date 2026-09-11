@@ -399,7 +399,6 @@ BARS.defineActions(function() {
 				await saveTextures()
 				if (Format) {
 					if (Project.save_path) {
-						console.log('write1')
 						Codecs.project.write(Codecs.project.compile(), Project.save_path);
 					}
 					if (Project.export_path && export_codec?.compile) {
