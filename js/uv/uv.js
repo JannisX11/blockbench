@@ -985,7 +985,13 @@ export const UVEditor = {
 			UVEditor.loadViewportOffset();
 		}, 0);
 	},
+	// TODO: Turn into onMove event hook
 	updateUVNavigator() {
+		if (Format.image_editor) {
+			ReferenceImage.active.forEach(ref => {
+				if (ref.is_blueprint) ref.updateTransform();
+			})
+		}
 		if (UVEditor.vue.mode != 'uv') return;
 		let style = UVEditor.getUVNavigatorStyle();
 		let element = UVEditor.vue.$el.querySelector('.uv_navigator');

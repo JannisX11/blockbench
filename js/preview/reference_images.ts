@@ -207,7 +207,7 @@ export class ReferenceImage {
 		// @ts-expect-error
 		if (this.modes.length && !this.modes.includes(Modes.selected.id)) return false;
 		if (this.is_blueprint) {
-			return Preview.all.find(p => p.isOrtho && p.angle == this.attached_side) !== undefined;
+			return Format.image_editor || Preview.all.some(p => p.isOrtho && p.angle == this.attached_side);
 		}
 		return true;
 	}
@@ -389,13 +389,36 @@ export class ReferenceImage {
 		}
 		return this;
 	}
-	getZoomLevel() {
-		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
-		return preview ? preview.camOrtho.zoom * 2 : 1;
+	getZoomLevel(): number {
+		if (Format.image_editor) {
+			return this.is_blueprint ? UVEditor.zoom : 1;
+		} else {
+			let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+			return preview ? preview.camOrtho.zoom * 2 : 1;
+		}
 	}
-	updateTransform() {
-		if (!(this.node.isConnected || this.view_mode == 'plane')) return;
-		let preview = this.is_blueprint && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
+	updateTransform(): this {
+		if (!(this.node.isConnected || this.view_mode == 'plane')) return this;
+		if (Format.image_editor && this.is_blueprint) {
+			let uv_viewport = UVEditor.vue.$refs.viewport;
+			if (!uv_viewport || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return this;
+
+			let zoom = this.getZoomLevel();;
+			let offset_x = uv_viewport.scrollLeft - UVEditor.width/2;
+			let offset_y = uv_viewport.scrollTop - UVEditor.height/2;
+			let pos_x = this.position[0] * zoom - offset_x - (this.size[0] * zoom) / 2;
+			let pos_y = this.position[1] * zoom - offset_y - (this.size[1] * zoom) / 2;
+			pos_x += UVEditor.width/2;
+			pos_y += UVEditor.height/2;
+
+			this.node.style.width = (this.size[0] * zoom) + 'px';
+			this.node.style.height = (this.size[1] * zoom) + 'px';
+			this.node.style.left = pos_x + 'px';
+			this.node.style.top  = pos_y + 'px';
+
+			return this;
+		}
+		let preview = this.is_blueprint && !Format.image_editor && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
 			let zoom = this.getZoomLevel();;
@@ -916,10 +939,10 @@ export class ReferenceImage {
 	}
 	enableBlueprintMode(): this {
 		if (this.view_mode == 'blueprint') return this;
-		if (Preview.selected?.angle) {
+		if (Preview.selected?.angle || Format.image_editor) {
 			this.view_mode = 'blueprint';
 			if (this.layer == 'float') this.changeLayer('viewport');
-			this.attached_side = Preview.selected.angle;
+			this.attached_side = Preview.selected?.angle;
 			this.position.V2_set(0, 0);
 		}
 		return this;
@@ -927,8 +950,10 @@ export class ReferenceImage {
 	propertiesDialog(): this {
 		let view_mode_options: Record<string, string> = {
 			flat_image: 'reference_image.view_mode.flat_image',
-			plane: 'reference_image.view_mode.plane',
 		};
+		if (!Format.image_editor) {
+			view_mode_options.plane = 'reference_image.view_mode.plane';
+		}
 		if (Preview.selected.angle || this.is_blueprint) {
 			view_mode_options.blueprint = 'reference_image.blueprint';
 		}
@@ -1073,12 +1098,11 @@ ReferenceImage.prototype.menu = new Menu([
 	{
 		name: 'reference_image.view_mode',
 		icon: 'pin_end',
-		condition: () => !Format.image_editor,
 		children: (reference: ReferenceImage) => {
-			let view_mode = {
+			let view_mode: Record<ReferenceImageViewMode, string|null> = {
 				flat_image: 'reference_image.view_mode.flat_image',
-				blueprint: (Preview.selected.angle || reference.is_blueprint) ? 'reference_image.blueprint' : undefined,
-				plane: 'reference_image.view_mode.plane',
+				plane: Format.image_editor ? null : 'reference_image.view_mode.plane',
+				blueprint: (Preview.selected.angle || Format.image_editor || reference.is_blueprint) ? 'reference_image.blueprint' : null,
 			}
 			let children = [];
 			for (let key in view_mode) {
@@ -1088,7 +1112,7 @@ ReferenceImage.prototype.menu = new Menu([
 					name: view_mode[key],
 					icon: reference.view_mode == key ? 'far.fa-dot-circle' : 'far.fa-circle',
 					click() {
-						reference.view_mode = key as any;
+						reference.view_mode = key as ReferenceImageViewMode;
 						reference.update().save();
 					}
 				})
