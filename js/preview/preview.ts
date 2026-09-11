@@ -2714,7 +2714,7 @@ BARS.defineActions(function() {
 	new Action('focus_on_selection', {
 		icon: 'center_focus_weak',
 		category: 'view',
-		condition: () => !Format.image_editor && (Modes.edit || !uvEditorActive()),
+		condition: () => !Format.image_editor,
 		keybind: new Keybind({}, {
 			rotate_only: 'shift',
 			zoom: 'ctrl'
