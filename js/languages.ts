@@ -111,7 +111,7 @@ export const Language = {
 		pt_br: 'Português (Brasil) - Portuguese (Brazil)',
 		ru: '\u0440\u0443\u0441\u0441\u043A\u0438\u0439 - Russian',
 		sv: 'Svenska - Swedish',
-		th: 'Thai - ภาษาไทย',
+		th: 'ภาษาไทย - Thai',
 		tr: 'Türkçe - Turkish',
 		uk: 'Українська - Ukrainian',
 		vi: 'Tiếng việt - Vietnamese',
