@@ -1443,6 +1443,7 @@ export const TextureGenerator = {
 						target_pos[1] = target_pos[1] - target_size[1]/2 + target_size[0]/2;
 					}
 				}
+				target_pos = target_pos.map(value => Math.round(value));
 				ctx.drawImage(
 					texture.img,
 					...source_dimensions,
