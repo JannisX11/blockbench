@@ -574,7 +574,8 @@ export function getAverageRGB(imgEl, blockSize) {
 	try {
 		data = context.getImageData(0, 0, width, height);
 	} catch(e) {
-		/* security error, img on diff domain */alert('x');
+		/* security error, img on diff domain */;
+		console.error('Cannot get average RGB from a non-image')
 		return defaultRGB;
 	}
 	

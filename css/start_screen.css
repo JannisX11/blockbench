@@ -269,6 +269,8 @@
 		padding: 7px;
 		display: flex;
 		gap: 20px;
+		text-wrap-style: balance;
+		user-select: text;
 	}
 	#start_screen .start_screen_features > li:nth-child(odd) {
 		flex-direction: row-reverse;
@@ -288,6 +290,11 @@
 	}
 	#start_screen .start_screen_features > li > h3 {
 		font-size: 1.4em;
+	}
+	#start_screen .start_screen_features > li p {
+		line-height: normal;
+		margin-bottom: 7px;
+		margin-top: 2px;
 	}
 	@media (max-device-width: 640px) {
 		#start_screen {
