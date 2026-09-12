@@ -1163,8 +1163,10 @@ export class NumSlider extends Widget {
 
 		this.addLabel();
 
+		let touchstart_time = 0;
 		this.jq_inner
 		.on('mousedown touchstart', async (event) => {
+			touchstart_time = Date.now();
 			if (scope.jq_inner.hasClass('editing')) return;
 			scope.last_value = scope.value;
 			
@@ -1254,7 +1256,11 @@ export class NumSlider extends Widget {
 			scope.stopInput()
 
 		})
-		.on('contextmenu', (event: Event) => {
+		.on('contextmenu', (event: PointerEvent & any) => {
+			if (Blockbench.isTouch && event.button != 3) {
+				let press_time = Date.now() - touchstart_time;
+				if (press_time < 400) return;
+			}
 			new Menu([
 				new MenuSeparator('copypaste'),
 				{

@@ -24,6 +24,7 @@ onVueSetup(function() {
 		},
 		methods: {
 			showContextMenu(event: MouseEvent) {
+				if ((event.target as HTMLElement).closest('.toolbar')) return;
 				Interface.status_bar.menu.show(event);
 			},
 			toggleStreamerMode() {
