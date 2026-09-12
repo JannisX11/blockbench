@@ -329,7 +329,7 @@ export class ReferenceImage {
 		image_content.style.opacity = (this.opacity * (ReferenceImage.selected == this ? 0.8 : 1)).toString();
 
 		let transforms = [];
-		if (this.rotation) transforms.push(`rotate(${this.rotation}deg)`);
+		if (this.rotation && this.view_mode != 'plane') transforms.push(`rotate(${this.rotation}deg)`);
 		if (this.flip_x) transforms.push('scaleX(-1)');
 		if (this.flip_y) transforms.push('scaleY(-1)');
 		image_content.style.transform = transforms.join(' ');
@@ -497,6 +497,7 @@ export class ReferenceImage {
 		}
 	}
 	detach() {
+		if (this.scene_object) this.scene_object.removeFromParent();
 		this.node.remove();
 	}
 	setupEditHandles() {
@@ -793,8 +794,11 @@ export class ReferenceImage {
 						}
 						vector.applyQuaternion(this.scene_object.quaternion);
 
-						this.plane_position.replace(original_b_position);
-						this.plane_position.V3_add(vector);
+						this.plane_position.V3_set(
+							Math.roundTo(original_b_position[0] + vector.x, 4),
+							Math.roundTo(original_b_position[1] + vector.y, 4),
+							Math.roundTo(original_b_position[2] + vector.z, 4),
+						)
 
 					} else {
 						this.position[0] = original_position[0] + offset[0] / zoom;
@@ -897,9 +901,8 @@ export class ReferenceImage {
 			case 'built_in': ReferenceImage.built_in.remove(this); break;
 		}
 		this.save();
+		this.detach();
 		this.removed = true;
-		if (this.scene_object) this.scene_object.removeFromParent();
-		this.node.remove();
 	}
 	changeLayer(layer: ReferenceImageLayer): this {
 		if (layer == this.layer) return;
@@ -977,8 +980,9 @@ export class ReferenceImage {
 				}},
 				position: {type: 'vector', label: 'reference_image.position', dimensions: 2, value: this.position, condition: (form) => form.view_mode != 'plane'},
 				plane_position: {type: 'vector', label: 'reference_image.position', dimensions: 3, value: this.plane_position, condition: (form) => form.view_mode == 'plane'},
+				plane_rotation: {type: 'vector', label: 'reference_image.rotation', dimensions: 3, value: this.plane_rotation, condition: (form) => form.view_mode == 'plane'},
 				size: {type: 'vector', label: 'reference_image.size', dimensions: 2, linked_ratio: true, value: this.size},
-				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation},
+				rotation: {type: 'number', label: 'reference_image.rotation', value: this.rotation, condition: (form) => form.view_mode != 'plane'},
 				opacity: {type: 'range', label: 'reference_image.opacity', editable_range_label: true, value: this.opacity * 100, min: 0, max: 100, step: 1},
 				visibility: {type: 'checkbox', label: 'reference_image.visibility', value: this.visibility},
 				sync_to_timeline: {type: 'checkbox', label: 'reference_image.sync_to_timeline', value: this.sync_to_timeline, condition: this.is_video && Format.animation_mode},
@@ -993,6 +997,7 @@ export class ReferenceImage {
 					view_mode: result.view_mode,
 					position: result.position,
 					plane_position: result.plane_position,
+					plane_rotation: result.plane_rotation,
 					size: result.size,
 					rotation: result.rotation,
 					opacity: result.opacity / 100,
