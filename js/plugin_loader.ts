@@ -500,7 +500,6 @@ export class Plugin {
 
 		// Download files
 		async function copyFileToDrive(origin_filename?: string, target_filename?: string, end_callback?: () => void) {
-			let file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
 			let url = Plugins.api_path+'/'+origin_filename;
 			await new Promise<void>((resolve, reject) => {
 				https.get(url, function(response) {
@@ -509,6 +508,7 @@ export class Plugin {
 						reject(response);
 						throw error;
 					}
+					let file = fs.createWriteStream(PathModule.join(Plugins.path, target_filename));
 					response.pipe(file);
 					if (end_callback) response.on('end', end_callback);
 					resolve();
@@ -642,12 +642,12 @@ export class Plugin {
 			}
 			if (isApp) {
 				await new Promise((resolve, reject) => {
-					let file = fs.createWriteStream(Plugins.path+this.id+'.js');
 					https.get(url, (response) => {
 						if (!(response.statusCode >= 200 && response.statusCode < 300)) {
 							console.error(`Could not load plugin ${this.id} from`, url);
 							return;
 						}
+						let file = fs.createWriteStream(Plugins.path+this.id+'.js');
 						response.pipe(file);
 						response.on('end', resolve)
 					}).on('error', reject);
@@ -1127,6 +1127,10 @@ ExperimentalSettings.add(
 	'plugin_load_timeout',
 	{type: 'number', label: 'Plugin load timeout', min: 0.5, value: 10}
 );
+ExperimentalSettings.add(
+	'plugin_await_loading_timeout',
+	{type: 'number', label: 'Max plugin await-loading', description: 'Maximum time to wait for plugins to load before opening a project', min: 0.4, value: 2, step: 0.1}
+)
 Plugins.loading_promise = new Promise((resolve, reject) => {
 	const timeout_seconds = ExperimentalSettings.get('plugin_load_timeout') as number ?? 10;
 	$.ajax({
@@ -1339,7 +1343,8 @@ export async function loadInstalledPlugins() {
 	install_promises.forEach(promise => {
 		promise.catch(console.error);
 	})
-	return await Promise.allSettled(install_promises);
+	await Promise.allSettled(install_promises);
+	console.log('All plugin installations resolved');
 }
 
 BARS.defineActions(function() {

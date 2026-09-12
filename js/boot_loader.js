@@ -171,7 +171,8 @@ localStorage.setItem('last_version', Blockbench.version);
 		proceeded = true;
 	}
 	loadInstalledPlugins().then(proceed);
-	setTimeout(proceed, 1200);
+	let timeout = ExperimentalSettings.get('plugin_await_loading_timeout') ?? 2;
+	setTimeout(proceed, timeout * 1000);
 })()
 
 setStartScreen(true);
