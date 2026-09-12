@@ -1039,30 +1039,10 @@ export const TextureGenerator = {
 				return b.size - a.size;
 			})
 
-			
-			/*function forTemplatePixel(tpl, sx, sy, cb) {
-				let w = tpl.width;
-				let h = tpl.height;
-				if (options.padding) {
-					w++; h++;
-				}
-				for (var x = 0; x < w; x++) {		
-					for (var y = 0; y < h; y++) {
-						if (y >= tpl.z || (x >= tpl.z && x < (tpl.z + 2*tpl.x + (options.padding ? 1 : 0)))) {
-							if (cb(sx+x, sy+y)) return;
-						}
-					}
-				}
-			}*/
-
-
 
 			function occupy(x, y) {
 				if (!fill_map[x]) fill_map[x] = {}
 				fill_map[x][y] = true
-			}
-			function check(x, y) {
-				return fill_map[x] && fill_map[x][y]
 			}
 			function forTemplatePixel(tpl, sx, sy, cb) {
 				let w = tpl.width;
@@ -1070,9 +1050,9 @@ export const TextureGenerator = {
 
 				if (options.padding) {
 					w++; h++;
-					for (var x = 0; x < w; x++) {
+					for (let x = 0; x < w; x++) {
 						if (tpl.matrix && !tpl.matrix[x] && !tpl.matrix[x-1]) continue;
-						for (var y = 0; y < h; y++) {
+						for (let y = 0; y < h; y++) {
 							if (
 								tpl.matrix && 
 								(!tpl.matrix[x] || !tpl.matrix[x][y]) &&
@@ -1084,9 +1064,9 @@ export const TextureGenerator = {
 						}
 					}
 				} else {
-					for (var x = 0; x < w; x++) {
+					for (let x = 0; x < w; x++) {
 						if (tpl.matrix && !tpl.matrix[x]) continue;
-						for (var y = 0; y < h; y++) {
+						for (let y = 0; y < h; y++) {
 							if (tpl.matrix && !tpl.matrix[x][y]) continue;
 							if (cb(sx+x, sy+y)) return;
 						}
@@ -1096,7 +1076,7 @@ export const TextureGenerator = {
 			function place(tpl, x, y) {
 				var works = true;
 				forTemplatePixel(tpl, x, y, (tx, ty) => {
-					if (check(tx, ty)) {
+					if (fill_map[tx]?.[ty]) {
 						works = false;
 						return true;
 					}
@@ -1325,12 +1305,6 @@ export const TextureGenerator = {
 
 			let uv = face.uv.slice();
 
-			if (face.direction === 'up') {
-				uv = [uv[2], uv[3], uv[0], uv[1]];
-			} else if (face.direction === 'down') {
-				uv = [uv[2], uv[1], uv[0], uv[3]];
-			}
-
 			// Determine absolute source coordinates and dimensions
 			let src_x = Math.min(uv[0], uv[2]);
 			let src_y = Math.min(uv[1], uv[3]);
@@ -1521,30 +1495,14 @@ export const TextureGenerator = {
 							if (target.rotation % 180) {
 								[relative_flip_x, relative_flip_y] = [relative_flip_y, relative_flip_x];
 							}
-							let relative_rotation = (360 + source.rotation - target.rotation) % 360;
+							let relative_rotation = (360 - source.rotation + target.rotation) % 360;
+							if (source.face.cube.name == 'Tail') console.log({target, source}, relative_rotation, source.rotation, target.rotation)
 							target.face.rotation = relative_rotation;
 							if (relative_flip_x == -1) {
 								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							}
 							if (relative_flip_y == -1) {
 								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
-							}
-						}
-						if (target.face_key == 'up') {
-							[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
-							[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
-						}
-						if (target.face_key == 'down') {
-							// TODO: Fix edge cases
-							if (target.rotation == 90) {
-								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
-								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
-							} else if (target.rotation == 180) {
-								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
-							} else if (target.rotation == 270) {
-								[target.face.uv[3], target.face.uv[1]] = [target.face.uv[1], target.face.uv[3]];
-							} else if (target.rotation == 0) {
-								[target.face.uv[2], target.face.uv[0]] = [target.face.uv[0], target.face.uv[2]];
 							}
 						}
 					} else {
