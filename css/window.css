@@ -343,6 +343,9 @@
 		width: 100%;
 		padding: 0 12px;
 		cursor: inherit;
+		display: flex;
+		align-items: center;
+		gap: 5px;
 	}
 	#web_download_button a > i {
 		vertical-align: top;
