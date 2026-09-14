@@ -1628,12 +1628,11 @@ export class Preview {
 		return this;
 	}
 	raycastMouseCoords(x: number, y: number) {
-		var scope = this;
-		var canvas_offset = $(scope.canvas).offset()
-		scope.mouse.x = ((x - canvas_offset.left) / scope.width) * 2 - 1;
-		scope.mouse.y = - ((y - canvas_offset.top) / scope.height) * 2 + 1;
-		scope.raycaster.setFromCamera( scope.mouse, scope.camOrtho );
-		return scope.raycaster.ray.origin
+		var canvas_offset = $(this.canvas).offset()
+		this.mouse.x = ((x - canvas_offset.left) / this.width) * 2 - 1;
+		this.mouse.y = - ((y - canvas_offset.top) / this.height) * 2 + 1;
+		this.raycaster.setFromCamera( this.mouse, this.camOrtho );
+		return this.raycaster.ray.origin
 	}
 	vectorToScreenPosition(vector) {
 		vector = vector.clone();

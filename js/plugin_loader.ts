@@ -834,21 +834,20 @@ export class Plugin {
 		return this.installed && !this.disabled && ((this.source == 'file' && isApp) || (this.source == 'url'));
 	}
 	isInstallable() {
-		var scope = this;
-		var result: string | boolean =
-			scope.variant === 'both' ||
+		let result: string | boolean =
+			this.variant === 'both' ||
 			(
-				isApp === (scope.variant === 'desktop') &&
-				isApp !== (scope.variant === 'web')
+				isApp === (this.variant === 'desktop') &&
+				isApp !== (this.variant === 'web')
 			);
-		if (result && scope.min_version) {
-			result = Blockbench.isOlderThan(scope.min_version) ? 'outdated_client' : true;
+		if (result && this.min_version) {
+			result = Blockbench.isOlderThan(this.min_version) ? 'outdated_client' : true;
 		}
-		if (result && scope.max_version) {
-			result = Blockbench.isNewerThan(scope.max_version) ? 'outdated_plugin' : true
+		if (result && this.max_version) {
+			result = Blockbench.isNewerThan(this.max_version) ? 'outdated_plugin' : true
 		}
 		if (result === false) {
-			result = (scope.variant === 'web') ? 'web_only' : 'app_only'
+			result = (this.variant === 'web') ? 'web_only' : 'app_only'
 		}
 		return (result === true) ? true : tl('dialog.plugins.'+result);
 	}

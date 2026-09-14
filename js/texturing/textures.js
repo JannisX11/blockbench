@@ -1796,13 +1796,11 @@ export class Texture {
 	}
 	// Editing
 	getDataURL() {
-		var scope = this;
-		if (isApp && !scope.internal) {
-			var dataUrl = this.canvas.toDataURL('image/png', 1);
+		if (isApp && !this.internal) {
+			return this.canvas.toDataURL('image/png', 1);
 		} else {
-			var dataUrl = scope.source;
+			return this.source;
 		}
-		return dataUrl;
 	}
 	getBase64() {
 		return this.getDataURL().replace('data:image/png;base64,', '');
