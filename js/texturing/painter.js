@@ -641,10 +641,10 @@ export const Painter = {
 					if (fill_mode === 'face' && fkey !== Painter.current.face) continue;
 					if (Painter.getTextureToEdit(face.getTexture()) === texture) {
 						var face_rect = getRectangle(
-							face.uv[0] * uvFactorX,
-							face.uv[1] * uvFactorY,
-							face.uv[2] * uvFactorX,
-							face.uv[3] * uvFactorY
+							Math.roundTo(face.uv[0] * uvFactorX, 2),
+							Math.roundTo(face.uv[1] * uvFactorY, 2),
+							Math.roundTo(face.uv[2] * uvFactorX, 2),
+							Math.roundTo(face.uv[3] * uvFactorY, 2)
 						)
 						let animation_offset = texture.currentFrame * texture.display_height;
 						ctx.rect(

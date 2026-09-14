@@ -786,8 +786,8 @@ export class Cube extends OutlinerElement {
 			function calcAutoUV(fkey, dimension_axes, world_directions) {
 				let size = dimension_axes.map(axis => scope.size(axis));
 				let face = scope.faces[fkey];
-				size[0] = Math.abs(size[0]);
-				size[1] = Math.abs(size[1]);
+				size[0] = Math.roundTo(Math.abs(size[0]), 2);
+				size[1] = Math.roundTo(Math.abs(size[1]), 2);
 				let sx = face.uv[0];
 				let sy = face.uv[1];
 				let previous_size = face.uv_size;
