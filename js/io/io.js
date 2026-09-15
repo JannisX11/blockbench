@@ -27,13 +27,7 @@ export function setupDragHandlers() {
 		'reference_image',
 		{extensions: ReferenceImage.supported_extensions, propagate: true, readtype: 'image', condition: () => Project && !Dialog.open},
 		function(files, event) {
-			files.map(file => {
-				return new ReferenceImage({
-					source: file.content,
-					name: file.name || 'Reference'
-				}).addAsReference(true);
-			}).last().select();
-			ReferenceImageMode.activate();
+			ReferenceImageMode.importReferences(files);
 		}
 	)
 	Blockbench.addDragHandler(
@@ -203,14 +197,7 @@ export async function loadImages(files, event) {
 			BarItems.move_layer_tool.select();
 			
 		} else if (method == 'reference_image') {
-			
-			files.map(file => {
-				return new ReferenceImage({
-					source: file.content,
-					name: file.name || 'Reference'
-				}).addAsReference(true);
-			}).last().select();
-			ReferenceImageMode.activate();
+			ReferenceImageMode.importReferences(files);
 			
 		} else if (method == 'edit') {
 			Codecs.image.load(files, files[0].path, [img.naturalWidth, img.naturalHeight]);
