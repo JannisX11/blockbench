@@ -16,6 +16,10 @@ declare namespace Validator {
 	 * Opens the Validator dialog
 	 */
 	function openDialog(): void
+	/**
+	 * The Validator dialog, created the first time it is opened
+	 */
+	const dialog: Dialog
 
 	/**
 	 * Cached trigger IDs

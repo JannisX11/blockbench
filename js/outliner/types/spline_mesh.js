@@ -917,7 +917,7 @@ export class SplineMesh extends OutlinerElement {
     }
     // Taken nearly as-is from Mesh
     resize(val, axis, negative, allow_negative, bidirectional) {
-        let source_vertices = typeof val == 'number' ? this.oldVertices : this.vertices;
+        let source_vertices = typeof val == 'number' ? this.temp_data.oldVertices : this.vertices;
         let selected_vertices = Project.spline_selection[this.uuid]?.vertices || Object.keys(this.vertices);
         let range = [Infinity, -Infinity];
         let { vec1, vec2 } = Reusable;

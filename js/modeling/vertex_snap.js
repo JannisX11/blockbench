@@ -7,13 +7,13 @@ export const Vertexsnap = {
 	line: new THREE.Line(new THREE.BufferGeometry(), Canvas.outlineMaterial),
 	elements_with_vertex_gizmos: [],
 	hovering: false,
-	addVertices: function(element) {
+	addVertices(element) {
 		if (Vertexsnap.elements_with_vertex_gizmos.includes(element)) return;
 		if (element.visibility === false) return;
 		let {mesh} = element;
 
-		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
-		$('#preview').get(0).addEventListener("mousemove", Vertexsnap.hoverCanvas)
+		Interface.preview.removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+		Interface.preview.addEventListener("mousemove", Vertexsnap.hoverCanvas)
 
 		if (!mesh.vertex_points) {
 			mesh.updateMatrixWorld()
@@ -58,18 +58,22 @@ export const Vertexsnap = {
 			} else {
 				mesh.add(points);
 			}
+		} else {
+			element.preview_controller.updateGeometry(element);
 		}
 		mesh.vertex_points.visible = true;
 		mesh.vertex_points.renderOrder = 900;
 		
 		Vertexsnap.elements_with_vertex_gizmos.push(element)
 	},
-	clearVertexGizmos: function() {
+	clearVertexGizmos() {
 		Project.model_3d.remove(Vertexsnap.line);
 		Vertexsnap.elements_with_vertex_gizmos.forEach(element => {
 			if (element.mesh && element.mesh.vertex_points) {
 				element.mesh.vertex_points.visible = false;
-				if (element instanceof Mesh == false) {
+				if (element instanceof Mesh) {
+					element.preview_controller.updateGeometry(element);
+				} else {
 					element.mesh.vertex_points.parent.remove(element.mesh.vertex_points);
 					delete element.mesh.vertex_points;
 				}
@@ -77,34 +81,33 @@ export const Vertexsnap = {
 			
 		})
 		Vertexsnap.elements_with_vertex_gizmos.empty();
-		$('#preview').get(0).removeEventListener("mousemove", Vertexsnap.hoverCanvas)
+		Interface.preview.removeEventListener("mousemove", Vertexsnap.hoverCanvas);
 	},
-	hoverCanvas: function(event) {
+	hoverCanvas(event) {
 		let data = Canvas.raycast(event)
 
-		if (Vertexsnap.hovering) {
-			Project.model_3d.remove(Vertexsnap.line);
-			Vertexsnap.elements_with_vertex_gizmos.forEach(el => {
-				let points = el.mesh.vertex_points;
-				let colors = [];
-				for (let i = 0; i < points.geometry.attributes.position.count; i++) {
-					let color;
-					if (data && data.element == el && data.type == 'vertex' && data.vertex_index == i) {
-						color = gizmo_colors.outline;
-					} else {
-						color = gizmo_colors.grid;
-					}
-					colors.push(color.r, color.g, color.b);
+		Project.model_3d.remove(Vertexsnap.line);
+		Vertexsnap.elements_with_vertex_gizmos.forEach(el => {
+			let points = el.mesh.vertex_points;
+			let colors = [];
+			for (let i = 0; i < points.geometry.attributes.position.count; i++) {
+				let color;
+				if (data && data.element == el && data.type == 'vertex' && data.vertex_index == i) {
+					color = gizmo_colors.outline;
+				} else {
+					color = gizmo_colors.grid;
 				}
-				points.material.depthTest = !(data.element == el);
-				points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-			})
-		}
+				colors.push(color.r, color.g, color.b);
+			}
+			points.material.depthTest = !(data.element == el);
+			if (el instanceof Mesh) points.material.depthTest = true;
+			points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+		})
+
 		if (!data || data.type !== 'vertex') {
 			Blockbench.setStatusBarText()
 			return;
 		}
-		Vertexsnap.hovering = true
 
 		if (Vertexsnap.step1 === false) {
 			let {line} = Vertexsnap;
@@ -117,12 +120,12 @@ export const Vertexsnap = {
 			Project.model_3d.add(Vertexsnap.line);
 			Vertexsnap.line.position.copy(scene.position).multiplyScalar(-1);
 			//Measure
-			var diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos);
+			let diff = new THREE.Vector3().copy(Vertexsnap.vertex_pos);
 			diff.sub(vertex_pos);
 			Blockbench.setStatusBarText(tl('status_bar.vertex_distance', [trimFloatNumber(diff.length())] ));
 		}
 	},
-	select: function() {
+	select() {
 		Vertexsnap.clearVertexGizmos()
 		Outliner.selected.forEach(function(element) {
 			Vertexsnap.addVertices(element)
@@ -134,7 +137,7 @@ export const Vertexsnap = {
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 		}
 	},
-	canvasClick: function(data) {
+	canvasClick(data) {
 		if (!data) return;
 		if (data.type !== 'vertex' && ['locator', 'null_object'].includes(data.element?.type) == false) return;
 
@@ -142,7 +145,7 @@ export const Vertexsnap = {
 			Vertexsnap.step1 = false;
 			Vertexsnap.vertex_pos = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);
 			Vertexsnap.vertex_index = data.vertex_index;
-			Vertexsnap.move_origin = data.vertex instanceof Array ? data.vertex.allEqual(0) : false;
+			Vertexsnap.move_pivot = data.vertex instanceof Array ? data.vertex.allEqual(0) : data.vertex == undefined;
 			Vertexsnap.elements = Outliner.selected.slice();
 			Vertexsnap.groups = Group.multi_selected.slice();
 			if (data.element instanceof Mesh && BarItems.selection_mode.value == 'vertex') {
@@ -169,7 +172,7 @@ export const Vertexsnap = {
 		element.mesh.localToWorld(vector);
 		return vector;
 	},
-	snap: function(data, options = 0, amended) {
+	snap(data, options = 0, amended) {
 		let elements = Vertexsnap.elements.slice();
 		if (Vertexsnap.groups.length) {
 			for (let group of Vertexsnap.groups) {
@@ -186,7 +189,7 @@ export const Vertexsnap = {
 			if (options.ignore_axis?.z) vector.z = 0;
 		}
 
-		if (Vertexsnap.move_origin) {
+		if (Vertexsnap.move_pivot) {
 			if (Vertexsnap.groups.length) {
 				for (let group of Vertexsnap.groups) {
 					let vec = Vertexsnap.getGlobalVertexPos(data.element, data.vertex);

@@ -1,3 +1,2 @@
-// FIXME - this is a hack to get around the fact that the UVEditor class is not documented.
-// I just wanted to remove the red squiggles in my editor.
+// FIXME - This file does not have types yet
 declare const UVEditor: any

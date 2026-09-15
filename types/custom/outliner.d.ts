@@ -69,6 +69,8 @@ interface TextureMeshOptions {
 	local_pivot?: ArrayVector3
 	rotation?: ArrayVector3
 	scale?: ArrayVector3
+	locked?: boolean
+	export?: boolean
 }
 declare class TextureMesh extends OutlinerElement {
 	constructor(options: Partial<TextureMeshOptions>, uuid?: string)

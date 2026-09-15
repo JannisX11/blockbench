@@ -1,7 +1,8 @@
 {
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
-	"version": "5.1.6",
+	"desktopName": "net.blockbench.blockbench",
+	"version": "5.2.0-beta.2",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -112,8 +113,9 @@
 				"rpm",
 				"appImage"
 			],
+			"syncDesktopName": true,
 			"category": "Graphics;3DGraphics",
-			"icon": "build/icon.icns"
+			"icon": "build/icon.png"
 		},
 		"fileAssociations": [
 			{
@@ -131,14 +133,14 @@
 		]
 	},
 	"scripts": {
-		"dev": "concurrently --raw \"electron --remote-debugging-port=9223 .\" \"node ./build.js --target=electron --watch\" --kill-others --success=first",
+		"dev": "node ./build.js --target=electron --watch --launch",
 		"serve": "node ./build.js --target=web --serve",
 		"electron": "electron .",
 		"build-web": "node ./build.js --target=web",
 		"build-electron": "node ./build.js --target=electron",
 		"build-test-portable": "npm run build-electron && electron-builder --windows portable --publish=never",
 		"publish-windows": "npm run build-electron && electron-builder -w --publish=onTagOrDraft && node ./scripts/rename_portable.js && electron-builder --windows portable --publish=onTagOrDraft",
-		"publish-mac": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --publish=always",
+		"publish-mac": "npm uninstall electron-color-picker && npm run build-electron && caffeinate -i electron-builder --publish=always",
 		"publish-linux": "npm uninstall electron-color-picker && npm run build-electron && electron-builder --linux --publish=onTagOrDraft",
 		"pwa": "node ./scripts/generate_pwa.js",
 		"prepublish-web": "npm run build-web && npm run pwa && npm run generate-docs",
@@ -160,12 +162,11 @@
 		"@types/three": "^0.129.2",
 		"@types/tinycolor2": "^1.4.6",
 		"command-line-args": "^6.0.1",
-		"concurrently": "^9.1.2",
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
-		"electron": "^40.8.3",
-		"electron-builder": "^26.0.18",
-		"esbuild": "^0.25.8",
+		"electron": "^43.4.0",
+		"electron-builder": "^26.15.3",
+		"esbuild": "^0.28.1",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
 		"file-saver": "^2.0.5",
@@ -185,7 +186,7 @@
 		"vue": "^2.7.16",
 		"vue-sortable": "^0.1.3",
 		"wintersky": "^1.3.2",
-		"workbox-build": "^6.5.3"
+		"workbox-build": "^7.4.1"
 	},
 	"dependencies": {
 		"@electron/remote": "^2.1.2",

@@ -4,10 +4,13 @@ import { ArmatureBone } from "../../outliner/types/armature_bone";
 
 new Action('set_vertex_weights', {
 	icon: 'weight',
-	condition: {modes: ['edit'], method: () => !!(Mesh.selected[0]?.getArmature() && Mesh.selected[0].getSelectedVertices().length)},
+	condition: {modes: ['edit'], method: () => !!(Mesh.selected[0]?.getArmature() && (Mesh.selected[0].getSelectedVertices().length || BarItems.selection_mode.value == 'object'))},
 	click() {
 		let mesh = Mesh.selected[0];
 		let selected_vertices = mesh.getSelectedVertices();
+		if (BarItems.selection_mode.value == 'object') {
+			selected_vertices = Object.keys(mesh.vertices);
+		}
 		let armature = mesh.getArmature() as Armature;
 		let available_bones: ArmatureBone[] = armature.getAllBones();
 		let bone_options = {};

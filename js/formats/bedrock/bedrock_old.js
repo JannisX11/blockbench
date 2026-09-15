@@ -157,7 +157,6 @@ var codec = new Codec('bedrock_old', {
 				name: 'bb_main'
 			});
 			group.children.push(...loose_elements);
-			group.is_catch_bone = true;
 			group.createUniqueName();
 			groups.splice(0, 0, group);
 		}
@@ -415,6 +414,7 @@ var format = new ModelFormat({
 	centered_grid: true,
 	animated_textures: true,
 	animation_files: true,
+	remember_files: ['textures', 'texture_sets', 'animation_files'],
 	animation_controllers: true,
 	animation_mode: true,
 	locators: true,

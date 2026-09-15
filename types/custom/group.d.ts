@@ -22,7 +22,7 @@ interface GroupOptions {
 }
 
 declare class Group extends OutlinerNode {
-	constructor(options: Partial<GroupOptions> | string)
+	constructor(options: Partial<GroupOptions> | string, uuid?: UUID)
 	/**
 	 * Returns the directly selected groups
 	 * @Note This only includes directly selected groups, not groups that are selected because the parent is selected
@@ -111,3 +111,4 @@ declare class Group extends OutlinerNode {
 	compile(undo: boolean): any
 	forEachChild(callback: (any: OutlinerNode) => void, type?: any, for_self?: boolean): void
 }
+declare function getAllGroups(): Group[]

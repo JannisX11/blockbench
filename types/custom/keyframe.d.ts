@@ -10,7 +10,7 @@ interface KeyframeDataPointData {
 }
 declare class KeyframeDataPoint extends Object {
 	static properties: Record<string, Property<any>>
-	constructor(keyframe: _Keyframe)
+	constructor(keyframe: BBKeyframe)
 	readonly keyframe: Keyframe
 	extend(data: KeyframeDataPointData): void
 	getUndoCopy(): {
@@ -35,9 +35,16 @@ interface KeyframeOptions {
 type axisLetter = 'x' | 'y' | 'z'
 type axisNumber = 0 | 1 | 2
 
-declare class _Keyframe {
+/**
+ * Keyframe class
+ *
+ * `BBKeyframe` is an alias for `Keyframe`. Blockbench's Keyframe class conflicts with libdom's {@link Keyframe} type with its own `Keyframe` Class, but TypeScript doesn't include a way to overwrite UMD global types.
+ * 
+ * You can use `BBKeyframe` to get around the Typescript conflict, or use `Keyframe`.
+ */
+declare class BBKeyframe {
 	constructor(options: KeyframeOptions, uuid: any)
-	static selected: _Keyframe[]
+	static selected: BBKeyframe[]
 	data_points: KeyframeDataPoint[]
 	animator: GeneralAnimator
 	channel: string
@@ -62,12 +69,12 @@ declare class _Keyframe {
 	set(axis: axisLetter, value: any, data_point?: number): this
 	offset(axis: axisLetter, amount: any, data_point?: number): void
 	flip(axis: axisLetter): this
-	getLerp(other: _Keyframe, axis: axisLetter, amount: number, allow_expression?: boolean): number
+	getLerp(other: BBKeyframe, axis: axisLetter, amount: number, allow_expression?: boolean): number
 	getCatmullromLerp(
-		before_plus: _Keyframe,
-		before: _Keyframe,
-		after: _Keyframe,
-		after_plus: _Keyframe,
+		before_plus: BBKeyframe,
+		before: BBKeyframe,
+		after: BBKeyframe,
+		after_plus: BBKeyframe,
 		axis: axisLetter,
 		alpha: number
 	): number
@@ -81,9 +88,10 @@ declare class _Keyframe {
 	replaceOthers(save: any): void
 	select(event?: any): this
 	callPlayhead(): this
+	showInTimeline(): void
 	showContextMenu(event: Event): this
 	remove(): void
-	forSelected(callback: (keyframe: _Keyframe) => void, undo_tag: any): this[]
+	forSelected(callback: (keyframe: BBKeyframe) => void, undo_tag: any): this[]
 	getUndoCopy(save: any): {
 		animator: any
 		channel?: string | null

@@ -199,7 +199,7 @@ export function updateSelection(options = {}) {
 	BarItems.cube_counter.update();
 	updateNslideValues();
 	Interface.status_bar.vue.updateSelectionInfo();
-	if (settings.highlight_cubes.value || (Mesh.all[0])) updateCubeHighlights();
+	if (settings.highlight_cubes.value || (Mesh.all[0])) Canvas.updateCubeHighlights();
 	if (Toolbox.selected.id == 'seam_tool' && Mesh.selected[0]) {
 		let value;
 		let selected_edges = Mesh.selected[0].getSelectedEdges();
@@ -235,6 +235,10 @@ export function updateSelection(options = {}) {
 	Blockbench.dispatchEvent('update_selection');
 }
 export function unselectAllElements(exceptions) {
+	if (PreviewModel.transform_model) {
+		PreviewModel.transform_model = null;
+		ToastNotification.notifications.preview_model_transform?.delete();
+	}
 	Project.selected_elements.slice().forEach(obj => {
 		if (exceptions instanceof Array && exceptions.includes(obj)) return;
 		obj.unselect()
@@ -247,6 +251,7 @@ export function unselectAllElements(exceptions) {
 	})
 	Group.multi_selected.empty();
 	for (let key in Project.mesh_selection) {
+		if (exceptions && exceptions.some(ex => ex.uuid == key)) continue;
 		delete Project.mesh_selection[key];
 	}
 	if (Modes.animate && Timeline.selected_animator) {

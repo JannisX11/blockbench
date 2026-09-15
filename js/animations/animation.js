@@ -4,6 +4,7 @@ import { openMolangEditor } from "./molang_editor";
 import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_apis";
 import { invertMolang } from "../util/molang";
 import { ScopeColors } from "../multi_file_editing";
+import { dragHelper } from "../util/drag_helper";
 
 export class AnimationItem {
 	constructor() {}
@@ -189,6 +190,16 @@ export class Animation extends AnimationItem {
 				if (!animator || !animator.displayIK) return;
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				animator.displayPosition(animator.interpolate('position'), multiplier);
+				let bone_frame_rotation = animator.displayIK(true);
+				for (let uuid in bone_frame_rotation) {
+					if (!samples[uuid]) samples[uuid] = [];
+					samples[uuid].push(bone_frame_rotation[uuid]);
+				}
+			})
+			NullObject.all.forEach(node => {
+				if (!node.ik_target) return;
+				let animator = this.getBoneAnimator(node);
+				if (!animator || !animator.displayIK) return;
 				let bone_frame_rotation = animator.displayIK(true);
 				for (let uuid in bone_frame_rotation) {
 					if (!samples[uuid]) samples[uuid] = [];
@@ -654,6 +665,7 @@ export class Animation extends AnimationItem {
 		dialog.show();
 	}
 }
+export const BBAnimation = Animation;
 	Object.defineProperty(Animation, 'all', {
 		get() {
 			return Project.animations || [];
@@ -1674,6 +1686,19 @@ Interface.definePanels(function() {
 		}
 		return [AnimationItem.all.find(anim => anim.uuid == target_node.attributes.anim_id.value), target_node];
 	}
+	function eventTargetToAnimGroup(target) {
+		let target_node = target;
+		let i = 0;
+		while (target_node && target_node.classList && !target_node.classList.contains('animation_file')) {
+			if (i < 7 && target_node) {
+				target_node = target_node.parentNode;
+				i++;
+			} else {
+				return undefined;
+			}
+		}
+		return target_node;
+	}
 	function getOrder(loc, obj) {
 		if (!obj) {
 			return;
@@ -1764,6 +1789,79 @@ Interface.definePanels(function() {
 						Animation.prototype.group_menu.open(event, id);
 					}
 				},
+				dragAnimationGroup(name, e1) {
+					const vue_instance = this;
+					let group_name_key = this.group_animations_by_file ? 'path' : 'group_name';
+					let helper;
+					let order = -1;
+					let target_id;
+					dragHelper(e1, {
+						start_distance: 10,
+						onStart() {
+							if (open_menu) open_menu.hide();
+							helper = document.createElement('div');
+							helper.id = 'animation_drag_helper';
+							let span = document.createElement('span');	span.innerText = name;	helper.append(span);
+							document.body.append(helper);
+						},
+						onMove(context) {
+							let e2 = context.event;
+							if (e2) e2.preventDefault();
+							
+							helper.style.left = `${e2.clientX}px`;
+							helper.style.top = `${e2.clientY}px`;
+
+							// drag
+							$('.drag_hover').removeClass('drag_hover');
+							$('.animation_file[order]').attr('order', null);
+
+							let target = document.elementFromPoint(e2.clientX, e2.clientY);
+							let drop_target_node = eventTargetToAnimGroup(target);
+							if (drop_target_node) {
+								target_id = drop_target_node.getAttribute('group_id');
+								var location = e2.clientY - $(drop_target_node).offset().top;
+								order = Math.sign(location - drop_target_node.clientHeight/2);
+								drop_target_node.setAttribute('order', order)
+								drop_target_node.classList.add('drag_hover');
+							}
+						},
+						onEnd(context) {
+							if (helper) helper.remove();
+							$('.drag_hover').removeClass('drag_hover');
+							$('.animation[order]').attr('order', null);
+
+							let current_order = Object.keys(vue_instance.files);
+
+							let current_index = current_order.indexOf(name);
+							let target_index = current_order.indexOf(target_id);
+							if (current_index == -1 || target_index == -1) return;
+							if (current_index < target_index) target_index--;
+							if (order == 1) target_index++;
+							if (order[target_index] == name) return;
+
+							let new_order = current_order.slice();
+							new_order.remove(name)
+							new_order.splice(target_index, 0, name);
+							
+							Undo.initEdit({animations: Animation.all, animation_controllers: AnimationController.all});
+
+							const updateArray = (array) => {
+								let copy = array.slice();
+								array.empty();
+								for (let name of new_order) {
+									array.push(...copy.filter(anim => anim[group_name_key] == name));
+								}
+								// Failsafe
+								copy.forEach(anim => array.safePush(anim));
+							}
+							updateArray(Animation.all);
+							updateArray(AnimationController.all);
+
+							Undo.finishEdit('Reorder animation groups');
+
+						}
+					});
+				},
 				dragAnimation(e1) {
 					if (getFocusedTextInput()) return;
 					if (e1.button == 1 || e1.button == 2) return;
@@ -1771,10 +1869,13 @@ Interface.definePanels(function() {
 					
 					let [anim] = eventTargetToAnim(e1.target);
 					if (!anim || anim.locked) {
-						function off(e2) {
-							removeEventListeners(document, 'mouseup touchend', off);
+
+						// Group?
+						let head = [e1.target, e1.target?.parentNode].find(node => node?.classList.contains('animation_file_head'));
+						if (head) {
+							let name = head.parentNode.getAttribute('group_id');
+							this.dragAnimationGroup(name, e1);
 						}
-						addEventListeners(document, 'mouseup touchend', off);
 						return;
 					};
 
@@ -2016,7 +2117,7 @@ Interface.definePanels(function() {
 					@touchstart="dragAnimation($event)"
 					@contextmenu.stop.prevent="openMenu($event)"
 				>
-					<li v-for="(file, key) in files" :key="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
+					<li v-for="(file, key) in files" :key="key" :group_id="key" class="animation_file" @contextmenu.prevent.stop="showFileContextMenu($event, key)">
 						<div class="animation_file_head" v-if="!file.hide_head" v-on:click.stop="toggle(key)">
 							<i v-on:click.stop="toggle(key)" class="icon-open-state fa" :class=\'{"fa-angle-right": files_folded[key], "fa-angle-down": !files_folded[key]}\'></i>
 							<label :title="key">{{ file.name }}</label>
@@ -2076,4 +2177,4 @@ Interface.definePanels(function() {
 	})
 })
 
-Object.assign(window, {AnimationItem, Animation});
+Object.assign(window, {AnimationItem, Animation, BBAnimation});

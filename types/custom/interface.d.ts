@@ -1,5 +1,10 @@
 /// <reference types="./blockbench"/>
 
+/**
+ * Update the size of everything in the UI after the window has been resized or other UI size changes have happeped
+ * @param event 
+ */
+declare function resizeWindow(event?: Event): void
 
 declare namespace Interface {
 	function createElement(
@@ -14,6 +19,7 @@ declare namespace Interface {
 		quad_view_x: number
 		quad_view_y: number
 		timeline_head: number
+		start_screen_width: number
 		left_bar: string[]
 		right_bar: string[]
 	}
@@ -35,10 +41,12 @@ declare namespace Interface {
 		top: ResizeLine
 		bottom: ResizeLine
 		timeline_head: ResizeLine
+		start_screen_width: ResizeLine
+		[id: string]: ResizeLine
 	}
 	const status_bar: {
 		menu: Menu
-		vue: Vue.Component
+		vue: Vue
 	}
 	let tab_bar: Vue
 	const Panels: {
@@ -50,6 +58,8 @@ declare namespace Interface {
 
 	function addSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
 	function removeSuggestedModifierKey(key: 'ctrl' | 'shift' | 'alt', text: string): void
+
+	function definePanels(callback: () => void): void
 
 	const center_screen: HTMLElement
 	const page_wrapper: HTMLElement
@@ -67,6 +77,10 @@ declare namespace Interface {
 					value?: T[keyof T]
 					default?: T[keyof T]
 					options: T
+					/**
+					 * Set to true to display the specified icon of the selected option in the UI element
+					 */
+					display_icon?: boolean
 					onChange?(value: T[keyof T]): void
 				}
 			)

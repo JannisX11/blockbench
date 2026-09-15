@@ -5,30 +5,29 @@
 		"layout": "vertical",
 		"insert_after": "splash_screen",
 		"text": [
-			{"text": "Blockbench 5.1 - The Workflow Update!", "type": "h1"},
-			{"text": "Take your workflow to the next level."},
-			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.1.0) - or watch the [update video](https://youtu.be/OH82WjNwriE)!"}
+			{"text": "Welcome to Blockbench 5.2", "type": "h1"},
+			{"text": "Check out the [full changelog](https://github.com/JannisX11/blockbench/releases/tag/v5.2.0) - or watch the [update video](https://www.youtube.com/@Blockbench3D)!"}
 		],
 		"features": [
 			{
-				"image": "https://web.blockbench.net/content/mirror_animating.png",
-				"title": "Mirror Animating",
-				"text": "With this new feature, you can just animate one side of your model, and all changes will be mirrored to the other side - in real time and with phase offset support!"
+				"image": "https://web.blockbench.net/content/reference_images.png",
+				"title": "3D Reference Images",
+				"text": "Position your reference image as a 3D plane anywhere in your scene!\n\nAlso new: Playback controls for video references, locked references in the 2D image editor, and moveable reference models!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/bounding_boxes.png",
-				"title": "Bounding Boxes",
-				"text": "Bounding Boxes make it easier than ever to configure hitboxes and collisions for your model!"
+				"image": "https://web.blockbench.net/content/screen_space_brush.png",
+				"title": "Screen-Space Brush",
+				"text": "Paint from the angle of your view across any edges and elements!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/pen_tablet.png",
-				"title": "Improved Pen Tablet Support",
-				"text": "Take your texturing to the next level with your pen tablet, pressure and tilt sensitivity included!"
+				"image": "https://web.blockbench.net/content/layer_groups.png",
+				"title": "Layer Groups",
+				"text": "Organize your texture layers with the new layer groups!"
 			},
 			{
-				"image": "https://web.blockbench.net/content/image_formats.png",
-				"title": "Image Formats",
-				"text": "In addition to PNG, JPEG, TGA, and WebP are now natively supported as texture formats!"
+				"image": "https://web.blockbench.net/content/ik_pole.png",
+				"title": "Inverse Kinematics",
+				"text": "IK is now better than ever! Pole vectors give you control over bend directions, armatures are fully supported, and it's faster and smoother!"
 			}
 		]
 	}

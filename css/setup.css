@@ -399,6 +399,7 @@
 		--color-error: #ff2a51;
 		--color-warning: #ffc400;
 		--color-stream: #6442A4;
+		--color-update: #76f39b;
 		
 		--color-axis-x: #ff1242;
 		--color-axis-y: #23d400;
@@ -505,7 +506,7 @@
 	}
 	button:hover {
 		background: var(--color-accent);
-		color: var(--color-accent_text) !important;
+		color: var(--color-accent_text);
 	}
 	button:focus {
 	    text-decoration: underline;
@@ -516,7 +517,7 @@
     	text-decoration: underline;
 	}
 	button.minor:hover {
-		color: var(--color-light) !important;
+		color: var(--color-light);
 	}
 	button > i {
 		pointer-events: none;
@@ -568,7 +569,7 @@
 	}
 	div.bb-select,
 	select {
-		display: block;
+		display: flex;
 		position: relative;
 		background-color: var(--color-button);
 		text-align: left;
@@ -581,6 +582,7 @@
 		color: var(--color-text);
 		white-space: nowrap;
 		overflow: hidden;
+		gap: 4px;
 	}
 	div.bb-select:hover,
 	select {
@@ -802,8 +804,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 	div.nslide_arrow {
 		position: absolute;
@@ -830,8 +832,8 @@
 		border-width: 4px;
 		border-style: solid;
 		border-color: var(--corner-color);
-		border-bottom-color: transparent !important;
-		border-left-color: transparent !important;
+		border-bottom-color: transparent;
+		border-left-color: transparent;
 	}
 
 	input.toggle_panel {

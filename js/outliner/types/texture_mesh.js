@@ -1,3 +1,4 @@
+import { Extruder } from '../../io/extrude_image'
 export class TextureMesh extends OutlinerElement {
 	constructor(data, uuid) {
 		super(data, uuid)
@@ -11,6 +12,9 @@ export class TextureMesh extends OutlinerElement {
 	}
 	get from() {
 		return this.origin;
+	}
+	getTexture() {
+		return Texture.all.find(texture => texture.name == this.texture_name) || Texture.getDefault();
 	}
 	getWorldCenter() {
 		let m = this.mesh;
@@ -63,7 +67,7 @@ export class TextureMesh extends OutlinerElement {
 		for (var key in TextureMesh.properties) {
 			TextureMesh.properties[key].copy(this, el)
 		}
-		el.type = 'texture_mesh';
+		el.type = this.type;
 		el.uuid = this.uuid
 		return el;
 	}
@@ -81,6 +85,7 @@ export class TextureMesh extends OutlinerElement {
 		...Outliner.control_menu_group,
 		new MenuSeparator('settings'),
 		new MenuSeparator('manage'),
+		'convert_texture_mesh_to_cubes',
 		'rename',
 		'toggle_visibility',
 		'delete'
@@ -97,9 +102,10 @@ new Property(TextureMesh, 'string', 'texture_name', {
 		element_panel: {
 			input: {label: 'texture_mesh.texture_name', type: 'text'},
 			onChange() {
-				Cube.selected.forEach(element => {
-					element.preview_controller.updateRenderOrder(element);
+				TextureMesh.selected.forEach(element => {
+					element.preview_controller.updateFaces(element);
 				});
+				UVEditor.loadData();
 			}
 		}
 	}
@@ -113,8 +119,35 @@ new Property(TextureMesh, 'boolean', 'locked');
 
 OutlinerElement.registerType(TextureMesh, 'texture_mesh');
 
-function getShapeTexture() {
-	let tex = Texture.getDefault();
+export class GeneratedItemMesh extends TextureMesh {
+	rename() {
+		return this;
+	}
+	static behavior = {
+		unique_name: false,
+		movable: false,
+		scalable: false,
+		resizable: false,
+		rotatable: false,
+		duplicatable: false,
+		parent_types: ['root'],
+	}
+}
+	GeneratedItemMesh.prototype.title = tl('data.generated_item_mesh');
+	GeneratedItemMesh.prototype.icon = 'wallpaper';
+	GeneratedItemMesh.prototype.menu = new Menu([
+		'convert_texture_mesh_to_cubes',
+		'toggle_visibility',
+		'delete'
+	]);
+	GeneratedItemMesh.prototype.buttons = [
+		Outliner.buttons.visibility,
+	];
+
+OutlinerElement.registerType(GeneratedItemMesh, 'generated_item_mesh');
+
+function getShapeTexture(element) {
+	let tex = element ? element.getTexture() : Texture.getDefault();
 	if (tex && tex.pbr_channel != 'color' && tex.getGroup()) {
 		let group = tex.getGroup();
 		tex = group.getTextures().find(tex => tex.pbr_channel == 'color') ?? tex;
@@ -152,7 +185,7 @@ new NodePreviewController(TextureMesh, {
 
 		this.dispatchEvent('setup', {element});
 	},
-	updateGeometry(element, texture = getShapeTexture()) {
+	updateGeometry(element, texture = getShapeTexture(element)) {
 		
 		let {mesh} = element;
 		let position_array = [];
@@ -320,7 +353,7 @@ new NodePreviewController(TextureMesh, {
 			mesh.material = Canvas.wireframeMaterial
 
 		} else {
-			var tex = Texture.getDefault();
+			var tex = getShapeTexture(element);
 			if (tex && tex.uuid) {
 				mesh.material = tex.getMaterial()
 			} else {
@@ -341,7 +374,79 @@ new NodePreviewController(TextureMesh, {
 	}
 })
 
+new NodePreviewController(GeneratedItemMesh, {
+	setup: TextureMesh.preview_controller.setup,
+	updateGeometry: TextureMesh.preview_controller.updateGeometry,
+	updateFaces: TextureMesh.preview_controller.updateFaces,
+	updateTransform(element) {
+		let {mesh} = element;
+		mesh.position.fromArray(element.origin);
+		mesh.rotation.set(
+			Math.degToRad(element.rotation[0]),
+			Math.degToRad(element.rotation[1]),
+			Math.degToRad(element.rotation[2])
+		);
+		mesh.scale.set(1, 1, 1);
+		if (mesh.parent !== Project.model_3d) Project.model_3d.add(mesh);
+		mesh.updateMatrixWorld();
+
+		this.dispatchEvent('update_transform', {element});
+	}
+})
+
+function convertTextureMeshToCubes(element, group_parent) {
+	let texture = getShapeTexture(element);
+	if (!texture || !texture.width || !texture.img) return {cubes: []};
+
+	return Extruder.extrudeTexture(texture, {
+		mode: 'areas',
+		scan_tolerance: 141,
+		orientation: 'flat',
+		mirror_x: true,
+		pixel_size: [
+			Project.getUVWidth(texture) / texture.width * element.scale[0],
+			Project.getUVHeight(texture) / texture.height * element.scale[2]
+		],
+		depth: element.scale[1],
+		offset: [
+			element.local_pivot[0] + element.origin[0],
+			element.local_pivot[1] + element.origin[1] - element.scale[1],
+			element.local_pivot[2] + element.origin[2]
+		],
+		rotation: element.rotation,
+		origin: element.origin,
+		name: element.name,
+		group: element.name,
+		parent: group_parent
+	});
+}
+
+export function convertTextureMeshesToCubes(elements) {
+	let cubes = [];
+	let groups = [];
+	Undo.initEdit({elements, groups, outliner: true, selection: true});
+	for (let element of elements) {
+		let converted = convertTextureMeshToCubes(element, element.parent);
+		if (!converted.cubes.length) continue;
+		if (converted.group) groups.push(converted.group);
+		cubes.push(...converted.cubes);
+		element.remove();
+	}
+	Undo.finishEdit('Convert texture mesh to cubes', {elements: cubes, groups, outliner: true, selection: true});
+	updateSelection();
+	return cubes;
+}
+
 BARS.defineActions(function() {
+	new Action({
+		id: 'convert_texture_mesh_to_cubes',
+		icon: 'eject',
+		category: 'edit',
+		condition: () => Modes.edit && TextureMesh.selected.length,
+		click() {
+			convertTextureMeshesToCubes(TextureMesh.selected.slice());
+		}
+	})
 	new Action({
 		id: 'add_texture_mesh',
 		icon: 'fa-puzzle-piece',
@@ -381,5 +486,6 @@ BARS.defineActions(function() {
 })
 
 Object.assign(window, {
-	TextureMesh
+	TextureMesh,
+	GeneratedItemMesh
 });

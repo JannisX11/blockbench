@@ -4,14 +4,13 @@
 /// <reference types="@types/jquery" />
 /// <reference types="wintersky" />
 
-/// <reference types="./texture_layers" />
 /// <reference types="./texture_group" />
-/// <reference types="./toolbars" />
+/// <reference types="./keybind" />
 /// <reference types="./animation" />
 /// <reference types="./animation_controller" />
 /// <reference types="./canvas_frame" />
 /// <reference types="./canvas" />
-/// <reference types="./codec" />
+/// <reference types="./copy_paste" />
 /// <reference types="./cube" />
 /// <reference types="./desktop" />
 /// <reference types="./display_mode" />
@@ -19,15 +18,12 @@
 /// <reference types="./group" />
 /// <reference types="./interface" />
 /// <reference types="./keyframe" />
-/// <reference types="./menu" />
 /// <reference types="./mesh" />
 /// <reference types="./spline_mesh" />
 /// <reference types="./misc" />
 /// <reference types="./molang" />
 /// <reference types="./outliner" />
 /// <reference types="./painter" />
-/// <reference types="./preview" />
-/// <reference types="./preview_scene" />
 /// <reference types="./edit_session" />
 /// <reference types="./screencam" />
 /// <reference types="./textures" />
@@ -45,7 +41,6 @@
 /// <reference types="./io" />
 /// <reference types="./native_apis" />
 /// <reference types="./util/VersionUtil" />
-/// <reference types="./start_screen" />
 
 /**
  * Provides access to global Javascript/DOM variables that are overwritten by Blockbench's own variables
@@ -71,3 +66,6 @@ declare module "*.bbtheme" {
 	const value: string | any;
 	export default value;
 }
+declare module "*.png"
+declare module "*.webp"
+declare module "*.jpeg"

@@ -2,17 +2,13 @@ import { Blockbench } from "../api"
 import { Clipbench } from "../copy_paste"
 import { Filesystem } from "../file_system"
 import { tl } from "../languages"
+import { fs, PathModule } from "../native_apis"
 import { EventSystem } from "../util/event_system"
-import { getStringWidth, pureMarked } from "../util/util"
+import { getStringWidth, pathToExtension, pureMarked } from "../util/util"
 import { Interface } from "./interface"
 
-type ReadType = 'buffer' | 'binary' | 'text' | 'image'
-interface FileResult {
-	name: string
-	path: string
-	content: string | ArrayBuffer
-	no_file?: boolean
-}
+type ReadType = Filesystem.ReadType;
+
 export enum FormInputType {
 	Text = 'text',
 	Password = 'password',
@@ -30,6 +26,7 @@ export enum FormInputType {
 	InlineSelect = 'inline_select',
 	MultiSelect = 'multi_select',
 	InlineMultiSelect = 'inline_multi_select',
+	OutlinerNode = 'outliner_node',
 	Info = 'info',
 	NumSlider = 'num_slider',
 	Buttons = 'buttons',
@@ -119,6 +116,7 @@ export interface FormElementOptions {
 	 * @returns Interval value
 	 */
 	getInterval?: (event: Event) => number
+	getOutlinerNodes?: () => OutlinerNode[]
 	/**
 	 * For num_sliders, the sliding interval mode
 	 */
@@ -136,6 +134,10 @@ export interface FormElementOptions {
 	 */
 	linked_ratio?: boolean
 	/**
+	 * Adds a reset button for the input
+	 */
+	reset_button?: boolean
+	/**
 	 * Extra actions that display as icon buttons next to the input
 	 */
 	extra_actions?: {
@@ -149,7 +151,7 @@ export interface FormElementOptions {
 	 * Runs when any of the buttons is pressed
 	 * @param button_index Index of the clicked button in the buttons list
 	 */
-	click?: (button_index: number) => void
+	click?: (button_index: number, event: PointerEvent) => void
 
 	readtype?: ReadType | ((file: string) => ReadType)
 	resource_id?: string
@@ -188,6 +190,7 @@ export class InputForm extends EventSystem {
 	}
 	buildForm() {
 		let jq_node = $(this.node);
+		this.deleteFormElements();
 		jq_node.empty();
 		for (let form_id in this.form_config) {
 			let input_config = this.form_config[form_id];
@@ -205,6 +208,16 @@ export class InputForm extends EventSystem {
 			jq_node.append(bar);
 		}
 		this.updateLabelWidth();
+	}
+	deleteFormElements() {
+		for (let form_id in this.form_data) {
+			this.form_data[form_id].delete();
+		}
+		this.form_data = {};
+	}
+	delete() {
+		this.deleteFormElements();
+		this.node.remove();
 	}
 	updateLabelWidth(ignore_hidden: boolean = false) {
 		this.max_label_width = 0;
@@ -332,6 +345,8 @@ export class FormElement extends EventSystem {
 	getDefault(): any {
 		return null;
 	}
+	delete() {
+	}
 	change() {
 		this.dispatchEvent('change', {changed_keys: [this.id]});
 		this.form.updateValues({cause: 'input', changed_keys: [this.id]});
@@ -362,6 +377,25 @@ export class FormElement extends EventSystem {
 				this.bar.classList.toggle('form_toggle_disabled', !toggle.checked);
 			});
 			this.input_toggle = toggle;
+		}
+		if (this.options.reset_button) {
+			let icon = Blockbench.getIconNode('undo');
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: tl('generic.reset')}, icon);
+			extra_action.addEventListener('click', event => {
+				this.setValue(this.options.default ?? this.options.value ?? this.getDefault());
+				this.change();
+			})
+			this.bar.append(extra_action);
+		}
+		for (let action of this.options.extra_actions ?? []) {
+			let icon = Blockbench.getIconNode(action.icon);
+			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
+			extra_action.addEventListener('click', event => {
+				if (action.click) {
+					action.click(event);
+				}
+			})
+			this.bar.append(extra_action);
 		}
 	}
 	addShareButtons(bar: HTMLElement) {
@@ -646,6 +680,50 @@ FormElement.types.select = class FormElementSelect extends FormElement {
 		return Object.keys(this.options.options)[0] ?? '';
 	}
 };
+FormElement.types.outliner_node = class FormElementOutlinerNode extends FormElement {
+	select_input: {node: HTMLElement, set: (value: string) => void}
+	build(bar: HTMLDivElement) {
+		super.build(bar);
+		let scope = this;
+		this.select_input = new Interface.CustomElements.SelectInput(this.id, {
+			get options() {
+				let nodes = scope.options.getOutlinerNodes();
+				let options = {};
+				let value = scope.select_input ? scope.getValue() : null;
+				for (let node of nodes) {
+					options[node.uuid] = {
+						name: node.name,
+						icon: (node as any).icon ?? '',
+						marked: node.uuid == value,
+						color: 'color' in node ? markerColors[(node as any).color % markerColors.length]?.standard : undefined
+					};
+				}
+				return options;
+			},
+			display_icon: true,
+			value: this.options.value || this.options.default,
+			onInput() {
+				scope.change();
+			}
+		});
+		bar.append(this.select_input.node);
+		let clear = Interface.createElement('div', {class: 'tool'}, Blockbench.getIconNode('clear'));
+		clear.addEventListener('click', (event: PointerEvent) => {
+			this.select_input.set('');
+			scope.change();
+		})
+		bar.append(clear);
+	}
+	getValue(): string {
+		return this.select_input.node.getAttribute('value');
+	}
+	setValue(value: string) {
+		this.select_input.set(value);
+	}
+	getDefault(): string {
+		return '';
+	}
+};
 FormElement.types.inline_select = class FormElementInlineSelect extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
@@ -832,8 +910,8 @@ FormElement.types.buttons = class FormElementButtons extends FormElement {
 		this.options.buttons.forEach((button_text, index) => {
 			let button = document.createElement('button');
 			button.innerText = tl(button_text);
-			button.addEventListener('click', e => {
-				this.options.click(index);
+			button.addEventListener('click', (e: PointerEvent) => {
+				this.options.click(index, e);
 			})
 			list.append(button);
 		})
@@ -845,13 +923,10 @@ FormElement.types.num_slider = class FormElementNumSlider extends FormElement {
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		let getInterval = this.options.getInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'position') getInterval = getSpatialInterval;
-		// @ts-ignore
 		if (this.options.interval_type == 'rotation') getInterval = getRotationInterval;
 		this.slider = new NumSlider('form_slider_'+this.id, {
 			private: true,
-			// @ts-ignore
 			onChange: () => {
 				this.change();
 			},
@@ -938,16 +1013,6 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 			updateState();
 			group.append(linked_ratio_toggle)
 		}
-		for (let action of this.options.extra_actions ?? []) {
-			let icon = Blockbench.getIconNode(action.icon);
-			let extra_action = Interface.createElement('div', {class: 'tool form_extra_action', title: action.name}, icon);
-			extra_action.addEventListener('click', event => {
-				if (action.click) {
-					action.click(event);
-				}
-			})
-			group.append(extra_action);
-		}
 	}
 	getValue(): number[] {
 		let result: number[] = [];
@@ -973,6 +1038,7 @@ FormElement.types.vector = class FormElementVector extends FormElement {
 };
 FormElement.types.color = class FormElementColor extends FormElement {
 	colorpicker: ColorPicker
+	owns_colorpicker: boolean = false
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.colorpicker) this.colorpicker = this.options.colorpicker;
@@ -986,8 +1052,8 @@ FormElement.types.color = class FormElementColor extends FormElement {
 				private: true,
 				value: this.options.value
 			})
+			this.owns_colorpicker = true;
 		}
-		// @ts-ignore
 		this.colorpicker.onChange = function() {
 			scope.change();
 		};
@@ -1004,6 +1070,11 @@ FormElement.types.color = class FormElementColor extends FormElement {
 	}
 	getDefault() {
 		return '#ffffff';
+	}
+	delete() {
+		if (this.owns_colorpicker && this.colorpicker) {
+			this.colorpicker.delete();
+		}
 	}
 };
 FormElement.types.checkbox = class FormElementCheckbox extends FormElement {
@@ -1037,6 +1108,7 @@ class FormElementFile extends FormElement {
 	value: string
 	content: any
 	input: HTMLInputElement
+	input_wrapper: HTMLDivElement
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		if (this.options.type == 'folder' && !isApp) return;
@@ -1045,11 +1117,12 @@ class FormElementFile extends FormElement {
 
 		let input = $(`<input class="dark_bordered half" class="focusable_input" type="text" id="${this.id}" style="pointer-events: none;" disabled>`);
 		this.input = input[0] as HTMLInputElement;
-		this.input.value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
 		let input_wrapper = $('<div class="input_wrapper"></div>');
+		this.input_wrapper = input_wrapper[0] as HTMLDivElement;
 		input_wrapper.append(input);
 		bar.append(input_wrapper[0]);
 		bar.classList.add('form_bar_file');
+		this.updateInput();
 
 		switch (this.options.type) {
 			case 'file': 	input_wrapper.append('<i class="material-icons">insert_drive_file</i>'); break;
@@ -1063,17 +1136,53 @@ class FormElementFile extends FormElement {
 			this.value = '';
 			delete this.content;
 			delete this.file;
-			input.val('');
+			this.updateInput();
 		})
 
+		const fileCB = (files) => {
+			this.value = files[0].path;
+			this.content = files[0].content;
+			this.file = files[0];
+			this.updateInput();
+			scope.change();
+		}
+
+		if (this.options.type != 'save') {
+			this.input_wrapper.addEventListener('dragover', event => {
+				if (!event.dataTransfer?.types.includes('Files')) return;
+				event.preventDefault();
+				event.stopPropagation();
+				this.input_wrapper.classList.add('drag_hover');
+			})
+			this.input_wrapper.addEventListener('dragleave', event => {
+				if (this.input_wrapper.contains(event.relatedTarget as Node)) return;
+				this.input_wrapper.classList.remove('drag_hover');
+			})
+			this.input_wrapper.addEventListener('drop', event => {
+				this.input_wrapper.classList.remove('drag_hover');
+				if (!event.dataTransfer?.files.length) return;
+				event.preventDefault();
+				event.stopPropagation();
+
+				let paths = Filesystem.getFilePaths(event.dataTransfer.files);
+				if (this.options.type == 'folder') {
+					let path = paths[0] as string;
+					fileCB([{path: fs.statSync(path).isDirectory() ? path : PathModule.dirname(path)}]);
+					return;
+				}
+				let extensions = this.options.extensions;
+				let index = [...event.dataTransfer.files].findIndex(file => {
+					return !extensions?.length || extensions.includes(pathToExtension(file.name));
+				})
+				if (index == -1) {
+					Blockbench.showQuickMessage('message.unsupported_file_extension.title');
+					return;
+				}
+				Filesystem.read([paths[index]] as typeof paths, {readtype: this.options.readtype}, fileCB);
+			})
+		}
+
 		input_wrapper.on('click', e => {
-			const fileCB = (files) => {
-				this.value = files[0].path;
-				this.content = files[0].content;
-				this.file = files[0];
-				input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
-				scope.change();
-			}
 			switch (this.options.type) {
 				case 'file':
 					Blockbench.import({
@@ -1099,12 +1208,21 @@ class FormElementFile extends FormElement {
 						custom_writer: () => {},
 					}, path => {
 						this.value = path;
-						input.val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+						this.updateInput();
 						scope.change();
 					});
 					break;
 			}
 		})
+	}
+	updateInput() {
+		let value = settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value || '';
+		this.input.value = value ? value + '\u200E' : '';
+		if (value) {
+			this.input_wrapper.title = value;
+		} else {
+			this.input_wrapper.removeAttribute('title');
+		}
 	}
 	getValue(): Filesystem.FileResult | string | any {
 		if (this.options.return_as == 'file') {
@@ -1123,7 +1241,7 @@ class FormElementFile extends FormElement {
 		} else {
 			this.content = value;
 		}
-		$(this.input).val(settings.streamer_mode.value ? `[${tl('generic.redacted')}]` : this.value);
+		this.updateInput();
 	}
 	getDefault() {
 		return '';

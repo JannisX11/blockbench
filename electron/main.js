@@ -53,6 +53,9 @@ const LaunchSettings = {
 
 if (LaunchSettings.get('hardware_acceleration') == false) {
 	app.disableHardwareAcceleration();
+	if (process.platform != 'win32') {
+		app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+	}
 }
 
 function createWindow(second_instance, options = {}) {
@@ -60,12 +63,13 @@ function createWindow(second_instance, options = {}) {
 		app.quit()
 		return;
 	}
+	let native_frame = LaunchSettings.get('native_window_frame') === true;
 	let win_options = {
 		icon: 'icon.ico',
 		show: false,
 		backgroundColor: '#21252b',
-		frame: LaunchSettings.get('native_window_frame') === true,
-		titleBarStyle: 'hidden',
+		frame: native_frame,
+		titleBarStyle: native_frame ? 'default' : 'hidden',
 		minWidth: 640,
 		minHeight: 480,
 		width: 1080,
@@ -160,14 +164,16 @@ function createWindow(second_instance, options = {}) {
 	}
 	
 	if (options.maximize !== false) win.maximize()
-	win.show()
 
-	var index_path = path.join(__dirname, './../index.html')
-	win.loadURL(url.format({
+	let index_path = path.join(__dirname, './../index.html')
+	let url_path = url.format({
 		pathname: index_path,
 		protocol: 'file:',
 		slashes: true
-	}))
+	});
+	win.loadURL(url_path).finally(() => {
+		win.show();
+	});
 	win.on('closed', () => {
 		win = null;
 		all_wins.splice(all_wins.indexOf(win), 1);
@@ -268,18 +274,7 @@ app.on('ready', () => {
 
 	const dev_mode = process.execPath && process.execPath.match(/node_modules[\\\/]electron/);
 
-	if (dev_mode) {
-
-		// Timeout to avoid race condition of Blockbench opening before esbuild finishes. Needs proper solution long-term
-		setTimeout(() => {
-			createWindow()
-		}, 1000);
-
-	} else {
-
-		createWindow()
-		
-	}
+	createWindow();
 
 	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {

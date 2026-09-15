@@ -162,7 +162,6 @@ BARS.defineActions(function() {
 		condition: () => Project && !!Outliner.elements.length,
 		async click() {
 			let thumbnail = await new Promise(resolve => {
-				// @ts-ignore
 				Preview.selected.screenshot({width: 640, height: 480}, resolve);
 			});
 			let image = new Image();
@@ -186,7 +185,7 @@ BARS.defineActions(function() {
 						'2w': tl('dates.weeks', [2]),
 					}},
 					info: {type: 'info', text: 'The model and thumbnail will be stored on the Blockbench servers for the duration specified above. [Learn more](https://blockbench.net/blockbench-model-sharing-service/)'},
-					reference_images: {type: 'checkbox', label: 'dialog.share_model.reference_images', value: true, condition: () => ReferenceImage.current_project.length},
+					reference_images: {type: 'checkbox', label: 'dialog.share_model.reference_images', value: true, condition: () => ReferenceImage.current_project.length > 0},
 					thumbnail: {type: 'checkbox', label: 'dialog.share_model.thumbnail', value: true},
 				},
 				lines: [image],

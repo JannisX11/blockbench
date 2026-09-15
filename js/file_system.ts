@@ -15,6 +15,7 @@ export namespace Filesystem {
 		path: string
 		content?: string | ArrayBuffer
 		browser_file?: File
+		no_file?: boolean
 	}
 
 	/**
@@ -37,7 +38,7 @@ export namespace Filesystem {
 		| 'palette'
 
 	// MARK: Import
-	type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
+	export type ReadType = 'buffer' | 'binary' | 'text' | 'image' | 'none'
 	export interface ReadOptions {
 		readtype?: ReadType | ((file: string) => ReadType)
 		errorbox?: boolean
@@ -143,9 +144,18 @@ export namespace Filesystem {
 		}
 	}
 
+
+	// MARK: Image Source
+	let image_version = 0;
+	export function getImageSource(file: FileResult | string): string {
+		let source = typeof file == 'string' ? file : (file.content ?? file.path);
+		if (typeof source != 'string' || source.startsWith('data:')) return source as string;
+		if (!isApp) return source;
+		return source.replace(/#/g, '%23').replace(/\?\d+$/, '') + '?' + (++image_version);
+	}
 	
 	// MARK: Read
-	export function readFile(files: string[] | FileList, options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {
+	export function readFile(files: string[] | File[], options: ReadOptions = {}, callback?: (files: FileResult[]) => void) {
 		if (files == undefined) return false;
 		if (typeof files == 'string') files = [files];
 
@@ -227,7 +237,7 @@ export namespace Filesystem {
 			});
 		} else {
 			let i = 0;
-			for (let file of (files as FileList)) {
+			for (let file of (files as File[])) {
 				let reader = new FileReader()
 				let local_i = i;
 				reader.onloadend = function() {
@@ -506,11 +516,11 @@ export namespace Filesystem {
 	 * Find a file in a directory based on content within the file, optionally optimized via file name match
 	 * @param {string[]} base_directories List of base directory paths to search in
 	 */
-	export function findFileFromContent(
+	export function findFileFromContent<T = any>(
 		base_directories: string[],
 		options: FindFileOptions,
-		check_file: (path: string, content: string|object) => boolean
-	) {
+		check_file: (path: string, content: string|object) => T
+	): T | undefined {
 		let deprioritized_files = [];
 
 		function checkFile(path) {
@@ -628,6 +638,23 @@ export namespace Filesystem {
 	document.ondragover = function(event) {
 		event.preventDefault()
 	}
+	export function getFilePaths(file_names: FileList): string[] | File[] {
+		if (isApp) {
+			let paths: string[] = [];
+			for (let file of file_names) {
+				if ('path' in file && typeof file.path == 'string' && file.path) {
+					paths.push(file.path);
+				} else {
+					let path = webUtils.getPathForFile(file);
+					if (path) paths.push(path);
+				}
+			}
+			return paths;
+		} else {
+			return [...file_names] as File[];
+		}
+	}
+
 	document.body.ondrop = function(event) {
 		event.preventDefault()
 		let text = event.dataTransfer.getData('text/plain');
@@ -636,42 +663,27 @@ export namespace Filesystem {
 			Blockbench.dispatchEvent('drop_text', {text});
 		}
 
-		function getFilePaths(file_names: FileList): string[] {
-			let paths: string[] = [];
-			if (isApp) {
-				for (let file of file_names) {
-					if ('path' in file && typeof file.path == 'string' && file.path) {
-						paths.push(file.path);
-					} else {
-						let path = webUtils.getPathForFile(file);
-						if (path) paths.push(path);
-					}
-				}
-			} else {
-				paths = [...file_names] as unknown as string[];
-			}
-			return paths;
-		}
-
 		let handled = false;
+		// Native file drop, or drop from VS Code via paths
+		let paths_or_files = event.dataTransfer.files.length ? getFilePaths(event.dataTransfer.files) : text.split(/\r?\n\s*/);
+		if (isApp && !paths_or_files.some(path => typeof path == 'string' && path.match(/\.\w+$/))) return;
 		forDragHandlers(event, function(handler, el) {
-			let paths = getFilePaths(event.dataTransfer.files);
-			if (!paths.length) return;
+			if (!paths_or_files.length) return;
 
 			let read_options = {
 				extensions: (typeof handler.extensions == 'function' ? handler.extensions : handler.extensions) as string[],
 				readtype: handler.readtype,
 				errorbox: handler.errorbox,
 			}
-			Filesystem.read(paths, read_options, (files) => {
+			Filesystem.read(paths_or_files, read_options, (files) => {
 				handler.cb(files, event)
 				handled = true;
 			})
 		})
-		if (!handled) {
-			let file_path = getFilePaths(event.dataTransfer.files)[0];
+		if (!handled && isApp) {
+			let file_path = paths_or_files[0];
 			if (file_path) {
-				unsupportedFileFormatMessage(file_path);
+				unsupportedFileFormatMessage(typeof file_path == 'string' ? file_path : file_path.name);
 			}
 
 		}
@@ -690,7 +702,9 @@ export namespace Filesystem {
 	}
 
 	function forDragHandlers(event: DragEvent, cb: (handler: Filesystem.DragHandler, el: HTMLElement) => void) {
-		if (event.dataTransfer == undefined || event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) {
+		if (!event.dataTransfer) return;
+		let text = event.dataTransfer.getData("text/plain");
+		if ((event.dataTransfer.files.length == 0 || !event.dataTransfer.files[0].name) && !text) {
 			return;
 		}
 		for (let id in Filesystem.drag_handlers) {
@@ -723,7 +737,7 @@ export namespace Filesystem {
 				}
 			}
 			let extensions = typeof handler.extensions == 'function' ? handler.extensions() : handler.extensions;
-			let name = event.dataTransfer.files[0].name;
+			let name = event.dataTransfer.files[0] ? event.dataTransfer.files[0].name : text;
 			let name_lower_case = name.toLowerCase();
 			if (el && extensions.find(ext => name_lower_case.endsWith('.'+ext))) {
 				cb(handler, el)

@@ -219,9 +219,17 @@ export interface FormatFeatures {
 	 */
 	animation_files: boolean
 	/**
+	 * Files to reopen alongside the model, for formats that cannot reference them in the model file itself
+	 */
+	remember_files: ('textures' | 'texture_sets' | 'animation_files')[]
+	/**
 	 * Change how animations can be grouped
 	 */
 	animation_grouping: 'by_file' | 'custom' | 'disabled'
+	/**
+	 * Enable molang syntax and validation in animations
+	 */
+	molang: boolean
 	/**
 	 * Enables a folder path per texture that can be set in the texture properties window
 	 */
@@ -275,6 +283,10 @@ export interface FormatFeatures {
 	 */
 	java_cube_shading_properties: boolean
 	/**
+	 * Enables the shade direction override property on Minecraft Java block/item model cubes. Added to the model format in 26.3, replacing the shade boolean property
+	 */
+	java_cube_shade_direction_override: boolean
+	/**
 	 * Enables cullfaces, the ability on faces in Minecraft block models to set a direction, that, if covered by another block, will cause the face to unrender
 	 */
 	cullfaces: boolean
@@ -302,6 +314,7 @@ export type FormatOptions = FormatFeatures & {
 	confidential?: boolean
 	condition?: ConditionResolvable
 	show_on_start_screen?: boolean
+	show_in_new_list?: boolean
 	can_convert_to?: boolean
 	format_page?: FormatPage
 	onFormatPage?(): void
@@ -445,9 +458,10 @@ export class ModelFormat implements FormatOptions {
 		return this;
 	}
 	new(): boolean {
-		// @ts-ignore Conflicting internal and external types
 		if (newProject(this)) {
-			(BarItems.project_window as Action).click();
+			if (Settings.get('new_project_dialog')) {
+				BarItems.project_window.click();
+			}
 			return true;
 		}
 		return false;
@@ -505,9 +519,7 @@ export class ModelFormat implements FormatOptions {
 					el.addTo(root_group)
 				})
 			}
-			// @ts-ignore
 			if (!Project.geometry_name && Project.name) {
-				// @ts-ignore
 				Project.geometry_name = Project.name;
 			}
 		}
@@ -587,7 +599,6 @@ export class ModelFormat implements FormatOptions {
 		}
 		//Billboards
 		if (!this.bounding_boxes && old_format.bounding_boxes) {
-			// @ts-ignore
 			BoundingBox.all.slice().forEach(b => {
 				b.remove()
 			})
@@ -643,7 +654,6 @@ export class ModelFormat implements FormatOptions {
 	}
 	delete() {
 		delete Formats[this.id];
-		// @ts-ignore
 		if (this.codec && this.codec.format == this) delete this.codec.format;
 		Blockbench.dispatchEvent('delete_format', {format: this});
 	}
@@ -682,17 +692,20 @@ new Property(ModelFormat, 'boolean', 'rotation_limit');
 new Property(ModelFormat, 'boolean', 'rotation_snap');
 new Property(ModelFormat, 'boolean', 'uv_rotation');
 new Property(ModelFormat, 'boolean', 'java_cube_shading_properties');
+new Property(ModelFormat, 'boolean', 'java_cube_shade_direction_override');
 new Property(ModelFormat, 'boolean', 'java_face_properties');
 new Property(ModelFormat, 'boolean', 'cullfaces');
 new Property(ModelFormat, 'boolean', 'select_texture_for_particles');
 new Property(ModelFormat, 'boolean', 'texture_mcmeta');
 new Property(ModelFormat, 'boolean', 'bone_binding_expression');
 new Property(ModelFormat, 'boolean', 'animation_files');
+new Property(ModelFormat, 'array', 'remember_files');
 new Property(ModelFormat, 'enum', 'animation_grouping', {default: 'by_file', values: ['by_file', 'custom', 'disabled']});
 new Property(ModelFormat, 'boolean', 'animation_controllers');
 new Property(ModelFormat, 'boolean', 'animation_loop_wrapping');
 new Property(ModelFormat, 'boolean', 'quaternion_interpolation');
 new Property(ModelFormat, 'boolean', 'per_animator_rotation_interpolation');
+new Property(ModelFormat, 'boolean', 'molang', {default: true});
 new Property(ModelFormat, 'boolean', 'image_editor');
 new Property(ModelFormat, 'boolean', 'edit_mode', {default: true});
 new Property(ModelFormat, 'boolean', 'paint_mode', {default: true});
