@@ -37,17 +37,36 @@ export const Extruder = {
 				type: 'range',
 				min: 1, max: 255, value: 255, step: 1,
 				editable_range_label: true
+			},
+			animated: {
+				label: 'dialog.extrude.animated',
+				type: 'checkbox',
+				value: false,
+				condition: () => Extruder.frames > 1
 			}
 		},
 		lines: [
 			Interface.createElement('canvas', {height: 256, width: 256, id: 'extrusion_canvas', class: 'checkerboard'})
 		],
+		onFormChange(formResult) {
+			if (!!formResult.animated != Extruder.animated) {
+				Extruder.animated = !!formResult.animated;
+				Extruder.preview_frame = 0;
+				if (Extruder.animated) Extruder.startPreviewAnimation();
+			}
+			Extruder.drawPreview();
+		},
 		onConfirm(formResult) {
 			Extruder.startConversion(formResult);
 		}
 	}),
 	getPixelSize() {
 		return (Format.cube_size_limiter && !Format.integer_size) ? 16 / Extruder.width : 1;
+	},
+	getFrameCount(texture, width, height) {
+		if (!Format.animated_textures) return 1;
+		let uv_ratio = Project.getUVWidth(texture) / Project.getUVHeight(texture);
+		return Math.max(1, Math.ceil(uv_ratio * height / width - 0.05));
 	},
 	drawImage(file) {
 		Extruder.image_file = file;
@@ -61,7 +80,6 @@ export const Extruder = {
 	},
 	loadSource(source) {
 		Extruder.canvas = $('#extrusion_canvas').get(0)
-		var ctx = Extruder.canvas.getContext('2d')
 
 		Extruder.ext_img = new Image()
 		Extruder.ext_img.src = source
@@ -69,33 +87,71 @@ export const Extruder = {
 		Extruder.canvas.style.imageRendering = 'pixelated'
 
 		Extruder.ext_img.onload = function() {
-			let ratio = Extruder.ext_img.naturalWidth / Extruder.ext_img.naturalHeight;
-			Extruder.canvas.width = 256;
-			Extruder.canvas.height = 256 / ratio;
-			ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
-			ctx.imageSmoothingEnabled = false;
-			ctx.drawImage(Extruder.ext_img, 0, 0, Extruder.canvas.width, Extruder.canvas.height);
 			Extruder.width = Extruder.ext_img.naturalWidth;
 			Extruder.height = Extruder.ext_img.naturalHeight;
-			Extruder.dialog.setFormValues({depth: Extruder.getPixelSize()});
-
-			if (Extruder.width > 128) return;
-
-			var p = 0
-			ctx.beginPath();
-
-			for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
-				ctx.moveTo(0.5 + x + p, p);
-				ctx.lineTo(0.5 + x + p, 256 + p);
-			}
-			for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
-				ctx.moveTo(p, 0.5 + x + p);
-				ctx.lineTo(256 + p, 0.5 + x + p);
-			}
-
-			ctx.strokeStyle = CustomTheme.data.colors.grid;
-			ctx.stroke();
+			Extruder.frames = Extruder.getFrameCount(Extruder.source_texture, Extruder.width, Extruder.height);
+			Extruder.animated = Extruder.frames > 1;
+			Extruder.preview_frame = 0;
+			Extruder.dialog.setFormValues({depth: Extruder.getPixelSize(), animated: Extruder.animated});
+			Extruder.drawPreview();
+			if (Extruder.animated) Extruder.startPreviewAnimation();
 		}
+	},
+	drawPreview() {
+		if (!Extruder.canvas || !Extruder.ext_img || !Extruder.ext_img.naturalWidth) return;
+		let ctx = Extruder.canvas.getContext('2d');
+		let frames = Extruder.animated ? Extruder.frames : 1;
+		let frame_height = Extruder.height / frames;
+
+		Extruder.canvas.width = 256;
+		Extruder.canvas.height = 256 / (Extruder.width / frame_height);
+		ctx.clearRect(0, 0, Extruder.canvas.width, Extruder.canvas.height);
+		ctx.imageSmoothingEnabled = false;
+		ctx.drawImage(Extruder.ext_img,
+			0, Extruder.preview_frame * frame_height, Extruder.width, frame_height,
+			0, 0, Extruder.canvas.width, Extruder.canvas.height
+		);
+
+		if (Extruder.width > 128) return;
+
+		var p = 0
+		ctx.beginPath();
+
+		for (var x = 0; x < Extruder.canvas.width; x += 256 / Extruder.width) {
+			ctx.moveTo(0.5 + x + p, p);
+			ctx.lineTo(0.5 + x + p, Extruder.canvas.height + p);
+		}
+		for (var x = 0; x < Extruder.canvas.height; x += 256 / Extruder.width) {
+			ctx.moveTo(p, 0.5 + x + p);
+			ctx.lineTo(Extruder.canvas.width + p, 0.5 + x + p);
+		}
+
+		ctx.strokeStyle = CustomTheme.data.colors.grid;
+		ctx.stroke();
+	},
+	startPreviewAnimation() {
+		clearInterval(Extruder.preview_timer);
+		Extruder.preview_timer = setInterval(() => {
+			if (Dialog.open != Extruder.dialog || !Extruder.animated) {
+				clearInterval(Extruder.preview_timer);
+				return;
+			}
+			Extruder.preview_frame = (Extruder.preview_frame + 1) % Extruder.frames;
+			Extruder.drawPreview();
+		}, Extruder.source_texture?.frame_time ? Extruder.source_texture.frame_time * 50 : 200);
+	},
+	splitFrameLayers(image_data, width, height, frames, tolerance) {
+		let layers = new Map();
+		for (let pixel = 0; pixel < width * height; pixel++) {
+			let key = '';
+			for (let frame = 0; frame < frames; frame++) {
+				key += image_data[(pixel + frame * width * height) * 4 + 3] >= tolerance ? '1' : '0';
+			}
+			if (!key.includes('1')) continue;
+			if (!layers.has(key)) layers.set(key, new Uint8ClampedArray(width * height * 4));
+			layers.get(key)[pixel * 4 + 3] = 255;
+		}
+		return Array.from(layers.values());
 	},
 	scanAreas(image_data, width, height, options = {}) {
 		let mode = options.mode || 'areas';
@@ -185,6 +241,16 @@ export const Extruder = {
 		ctx.drawImage(image, 0, 0);
 		let image_data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
+		let frames = options.animated === false ? 1 : Extruder.getFrameCount(texture, canvas.width, canvas.height);
+		let height = canvas.height / frames;
+		let areas;
+		if (frames > 1) {
+			areas = Extruder.splitFrameLayers(image_data, canvas.width, height, frames, Math.round(options.scan_tolerance ?? 255))
+				.map(layer => Extruder.scanAreas(layer, canvas.width, height, options)).flat();
+		} else {
+			areas = Extruder.scanAreas(image_data, canvas.width, height, options);
+		}
+
 		let orientation = options.orientation || 'flat';
 		let mirror_x = options.mirror_x == true;
 		let pixel_size = options.pixel_size || [1, 1];
@@ -195,10 +261,10 @@ export const Extruder = {
 		let can_roll = (options.rotation || [0, 0, 0]).allAre(angle => Math.abs(angle % 90) < 0.0001);
 
 		let uv_scale_x = Project.getUVWidth(texture) / canvas.width;
-		let uv_scale_y = Project.getUVHeight(texture) / canvas.height;
+		let uv_scale_y = Project.getUVHeight(texture) / height;
 
 		let cubes = [];
-		for (let rect of Extruder.scanAreas(image_data, canvas.width, canvas.height, options)) {
+		for (let rect of areas) {
 			let x1 = rect.x * uv_scale_x;
 			let x2 = (rect.x2 + 1) * uv_scale_x;
 			let y1 = rect.y * uv_scale_y;

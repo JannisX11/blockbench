@@ -191,7 +191,11 @@ new NodePreviewController(TextureMesh, {
 		let position_array = [];
 		let indices = [];
 		let outline_positions = [];
-		let uvs = [1, 1, 1, 0, 0, 0, 0, 1,   1, 1, 1, 0, 0, 0, 0, 1];
+		let frames = (texture && texture.frameCount) || 1;
+		let frame = (texture && texture.currentFrame) || 0;
+		let v1 = 1 - frame / frames;
+		let v2 = 1 - (frame + 1) / frames;
+		let uvs = [1, v1, 1, v2, 0, v2, 0, v1,   1, v1, 1, v2, 0, v2, 0, v1];
 		let normals = [];
 		let colors = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 		function addNormal(x, y, z) {
@@ -247,14 +251,15 @@ new NodePreviewController(TextureMesh, {
 			canvas.width = texture.width;
 			canvas.height = texture.height;
 			ctx.drawImage(texture.img, 0, 0);
+			let frame_height = texture.display_height;
 
 			function addFace(sx, sy, ex, ey, dir) {
 
 				let s = position_array.length / 3;
-				position_array.push(-sx * uv_size[0] / texture.width, 0, sy * uv_size[1] / texture.height);
-				position_array.push(-sx * uv_size[0] / texture.width, -1, sy * uv_size[1] / texture.height);
-				position_array.push(-ex * uv_size[0] / texture.width, -1, ey * uv_size[1] / texture.height);
-				position_array.push(-ex * uv_size[0] / texture.width, 0, ey * uv_size[1] / texture.height);
+				position_array.push(-sx * uv_size[0] / texture.width, 0, sy * uv_size[1] / frame_height);
+				position_array.push(-sx * uv_size[0] / texture.width, -1, sy * uv_size[1] / frame_height);
+				position_array.push(-ex * uv_size[0] / texture.width, -1, ey * uv_size[1] / frame_height);
+				position_array.push(-ex * uv_size[0] / texture.width, 0, ey * uv_size[1] / frame_height);
 
 				if (dir == 1) {
 					indices.push(s+0, s+1, s+2, s+0, s+2, s+3);
@@ -277,10 +282,10 @@ new NodePreviewController(TextureMesh, {
 					addNormal(0, 0, -dir);
 				}
 				uvs.push(
-					ex / canvas.width, 1 - (sy / canvas.height),
-					ex / canvas.width, 1 - (ey / canvas.height),
-					sx / canvas.width, 1 - (ey / canvas.height),
-					sx / canvas.width, 1 - (sy / canvas.height),
+					ex / canvas.width, 1 - ((sy + frame * frame_height) / canvas.height),
+					ex / canvas.width, 1 - ((ey + frame * frame_height) / canvas.height),
+					sx / canvas.width, 1 - ((ey + frame * frame_height) / canvas.height),
+					sx / canvas.width, 1 - ((sy + frame * frame_height) / canvas.height),
 				)
 				colors.push(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
 
@@ -288,27 +293,33 @@ new NodePreviewController(TextureMesh, {
 
 			let result = ctx.getImageData(0, 0, canvas.width, canvas.height);
 			let matrix_1 = [];
-			for (let i = 0; i < result.data.length; i += 4) {
-				matrix_1.push(result.data[i+3] > 140 ? 1 : 0);
+			for (let i = 0; i < canvas.width * frame_height; i++) {
+				let key = '';
+				for (let frame = 0; frame < frames; frame++) {
+					key += result.data[(i + frame * canvas.width * frame_height) * 4 + 3] > 140 ? '1' : '0';
+				}
+				matrix_1.push(key.includes('1') ? key : 0);
 			}
 			let matrix_2 = matrix_1.slice();
 
-			for (var y = 0; y < canvas.height; y++) {
+			for (var y = 0; y < frame_height; y++) {
 				for (var x = 0; x <= canvas.width; x++) {
 					let px0 = x == 0 ? 0 : matrix_1[y * canvas.width + x - 1];
 					let px1 = x == canvas.width ? 0 : matrix_1[y * canvas.width + x];
-					if (!px0 !== !px1) {
-						addFace(x, y, x, y+1, px0 ? 1 : -1);
+					if (px0 !== px1) {
+						if (px0) addFace(x, y, x, y+1, 1);
+						if (px1) addFace(x, y, x, y+1, -1);
 					}
 				}
 			}
 
 			for (var x = 0; x < canvas.width; x++) {
-				for (var y = 0; y <= canvas.height; y++) {
+				for (var y = 0; y <= frame_height; y++) {
 					let px0 = y == 0 ? 0 : matrix_2[(y-1) * canvas.width + x];
-					let px1 = y == canvas.height ? 0 : matrix_2[y * canvas.width + x];
-					if (!px0 !== !px1) {
-						addFace(x, y, x+1, y, px0 ? -1 : 1);
+					let px1 = y == frame_height ? 0 : matrix_2[y * canvas.width + x];
+					if (px0 !== px1) {
+						if (px0) addFace(x, y, x+1, y, -1);
+						if (px1) addFace(x, y, x+1, y, 1);
 					}
 				}
 			}
@@ -339,6 +350,9 @@ new NodePreviewController(TextureMesh, {
 		mesh.geometry.computeBoundingSphere();
 
 		this.dispatchEvent('update_geometry', {element, texture});
+	},
+	updateUV(element) {
+		this.updateGeometry(element);
 	},
 	updateFaces(element) {
 		let {mesh} = element;
@@ -377,6 +391,7 @@ new NodePreviewController(TextureMesh, {
 new NodePreviewController(GeneratedItemMesh, {
 	setup: TextureMesh.preview_controller.setup,
 	updateGeometry: TextureMesh.preview_controller.updateGeometry,
+	updateUV: TextureMesh.preview_controller.updateUV,
 	updateFaces: TextureMesh.preview_controller.updateFaces,
 	updateTransform(element) {
 		let {mesh} = element;
@@ -405,7 +420,7 @@ function convertTextureMeshToCubes(element, group_parent) {
 		mirror_x: true,
 		pixel_size: [
 			Project.getUVWidth(texture) / texture.width * element.scale[0],
-			Project.getUVHeight(texture) / texture.height * element.scale[2]
+			Project.getUVHeight(texture) / texture.display_height * element.scale[2]
 		],
 		depth: element.scale[1],
 		offset: [

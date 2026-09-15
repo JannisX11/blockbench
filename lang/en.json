@@ -628,6 +628,7 @@
 	"dialog.adjust_opacity.mode.set": "Set",
 
 	"dialog.extrude.title": "Extrude Image",
+	"dialog.extrude.animated": "Animated Texture",
 	"dialog.extrude.mode": "Scan Mode",
 	"dialog.extrude.mode.areas": "Areas",
 	"dialog.extrude.mode.lines": "Lines",
