@@ -6,6 +6,8 @@ BARS.defineActions(function() {
 	const player_attachable_reference_model = new PreviewModel('attachable_reference_player', {
 		texture: './assets/player_skin.png',
 		texture_size: [64, 64],
+		name: 'Minecraft Attachable Reference Player',
+		internal: true,
 		cubes: [
 			{
 				// "Head

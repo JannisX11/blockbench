@@ -257,6 +257,7 @@ type PrefabTemplate = PreviewModelCubeTemplate
 export interface PreviewModelOptions {
 	id?: string
 	name?: string
+	internal?: boolean
 	condition?: ConditionResolvable
 	cubes?: PreviewModelCubeTemplate[]
 	prefabs?: Record<string, PrefabTemplate>
@@ -285,6 +286,7 @@ export interface PreviewModelOptions {
 export class PreviewModel implements Deletable {
 	id: string
 	name: string
+	internal: boolean = false;
 	condition: ConditionResolvable
 	model_3d: THREE.Object3D
 	onUpdate?: () => void
@@ -309,6 +311,7 @@ export class PreviewModel implements Deletable {
 		PreviewModel.models[id] = this;
 		this.id = id;
 		this.name = data.name ? tl(data.name) : '';
+		this.internal = data.internal == true;
 		this.condition = data.condition;
 		this.model_3d = new THREE.Object3D();
 		this.onUpdate = data.onUpdate;
@@ -1016,6 +1019,7 @@ BARS.defineActions(function() {
 			let list = [];
 			for (let id in PreviewModel.models) {
 				let model = PreviewModel.models[id];
+				if (model.internal) continue;
 				list.push({
 					name: (model.name || id),
 					icon: model.enabled ? 'check_box' : 'check_box_outline_blank',
