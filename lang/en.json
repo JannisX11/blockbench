@@ -2983,5 +2983,6 @@
 
 	"preview_model.transform": "Transform",
 	"preview_model.reset_transform": "Reset Transform",
-	"preview_model.minecraft_player": "Minecraft Player"
+	"preview_model.minecraft_player": "Minecraft Player",
+	"preview_model.minecraft_crafting_table": "Minecraft Crafting Table"
 }

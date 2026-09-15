@@ -933,6 +933,31 @@ export const player_preview_model = new PreviewModel('minecraft_player', {
 	]
 })
 
+new PreviewModel('minecraft_crafting_table', {
+	name: 'preview_model.minecraft_crafting_table',
+	texture: './assets/crafting_table.png',
+	texture_size: [32, 32],
+	position: [16, 0, 0],
+	onUpdate() {
+		this.material.color.copy(Canvas.global_light_color);
+	},
+	cubes: [
+		{
+			"position": [-8, 0, -8],
+			"size": [16, 16, 16],
+			"rotation": [0, 0, 0],
+			"faces": {
+				"north": {"uv": [0, 16, 16, 32]},
+				"east": {"uv": [16, 16, 32, 32]},
+				"south": {"uv": [0, 16, 16, 32]},
+				"west": {"uv": [16, 16, 32, 32]},
+				"up": {"uv": [0, 0, 16, 16]},
+				"down": {"uv": [16, 0, 32, 16]}
+			}
+		}
+	]
+})
+
 player_preview_model.updateArmVariant = function(slim) {
 	for (let i = 4; i < 8; i++) {
 		this.model_3d.children[i].visible = !slim;
