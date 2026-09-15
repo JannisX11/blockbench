@@ -769,9 +769,9 @@ export const Painter = {
 			let local_y = rect[1];
 			let scan_x = rect[0];
 			let scan_y = rect[1];
-			if (Painter.current.texture && Painter.current.texture.selected_layer) {
-				local_x -= Painter.current.texture.selected_layer.offset[0];
-				local_y -= Painter.current.texture.selected_layer.offset[1];
+			if (Painter.current.texture && Painter.current.texture.getActiveLayer()) {
+				local_x -= Painter.current.texture.getActiveLayer().offset[0];
+				local_y -= Painter.current.texture.getActiveLayer().offset[1];
 			}
 			if (local_x < 0) { scan_x -= local_x; local_x = 0; }
 			if (local_y < 0) { scan_y -= local_y; local_y = 0; }
@@ -1467,11 +1467,11 @@ export const Painter = {
 
 		let color;
 		// Pick layer color
-		if (settings.pick_combined_color.value == false && texture.selected_layer) {
+		if (settings.pick_combined_color.value == false && texture.getActiveLayer()) {
 			color = Painter.getPixelColor(
 				texture.getActiveCanvas().ctx,
-				x - texture.selected_layer.offset[0],
-				y - texture.selected_layer.offset[1]
+				x - texture.getActiveLayer().offset[0],
+				y - texture.getActiveLayer().offset[1]
 			);
 		}
 		// Pick combined color
@@ -1709,9 +1709,10 @@ export const Painter = {
 	scanCanvas(ctx, x, y, w, h, cb) {
 		let local_x = x;
 		let local_y = y;
-		if (Painter.current.texture && Painter.current.texture.selected_layer) {
-			local_x -= Painter.current.texture.selected_layer.offset[0];
-			local_y -= Painter.current.texture.selected_layer.offset[1];
+		if (Painter.current.texture && Painter.current.texture.getActiveLayer()) {
+			let offset = Painter.current.texture.getActiveLayer().offset;
+			local_x -= offset[0];
+			local_y -= offset[1];
 		}
 		if (local_x < 0) { x -= local_x; local_x = 0; }
 		if (local_y < 0) { y -= local_y; local_y = 0; }

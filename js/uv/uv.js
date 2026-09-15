@@ -3038,7 +3038,7 @@ Interface.definePanels(function() {
 					} else {
 						this.texture = 0;
 					}
-					this.layer = (this.texture && this.texture.selected_layer) || null;
+					this.layer = (this.texture && this.texture.getActiveLayer()) || null;
 					// Display canvas while painting
 					UVEditor.updateSelectionOutline();
 					this.updateTextureCanvas();
@@ -4405,12 +4405,15 @@ Interface.definePanels(function() {
 					let selection_polygon = this.texture_selection_polygon;
 					let scope = this;
 					let start_x, start_y, calcrect;
-					let layer = texture.selected_layer;
+					let layer = texture.getActiveLayer();
+					let layers = texture.layers.filter(layer => layer instanceof TextureLayer && layer.selected);
 					let move_with_selection_tool = Toolbox.selected.id == 'selection_tool' && op_mode == 'create' && settings.move_with_selection_tool.value && (clicked_val || layer?.in_limbo)
 					let create_selection = Toolbox.selected.id == 'selection_tool'
 						&& !move_with_selection_tool
 						&& !event.target.classList.contains('uv_layer_transform_handles');
 					let initial_offset = layer ? layer.offset.slice() : [0, 0];
+					let initial_offsets = new Map();
+					layers.forEach(l => initial_offsets.set(l, l.offset.slice()));
 
 					if (!create_selection) {
 						x = Math.round(x);
@@ -4541,17 +4544,18 @@ Interface.definePanels(function() {
 							Blockbench.setCursorTooltip(`${selection_rect.width} x ${selection_rect.height}`);
 
 						} else {
+							// Move Layer
 							if (!started_movement) {
 								UVEditor.vue.selection_outline = '';
 								if ((!layer || !layer.in_limbo) && texture.selection.is_custom && texture.selection.hasSelection()) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.selectionToLayer(false, (e1.altKey || Pressing.overrides.alt));
-									layer = texture.selected_layer;
+									layer = texture.getActiveLayer();
 									initial_offset = layer.offset.slice();
 								} else if (!layer) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.activateLayers(false);
-									layer = texture.selected_layer;
+									layer = texture.getActiveLayer();
 								/*} else if (event.altKey || Pressing.overrides.alt) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									let old_layer = texture.selected_layer;
@@ -4559,14 +4563,16 @@ Interface.definePanels(function() {
 									layer = texture.selected_layer;
 									old_layer.resolveLimbo(true);*/
 								} else {
-									Undo.initEdit({layers: [layer], bitmap: true});
+									Undo.initEdit({layers, bitmap: true});
 								}
 								selection_polygon.empty();
 								texture.selection.clear();
 								UVEditor.updateSelectionOutline();
 							}
-							layer.offset[0] = initial_offset[0] + x - start_x;
-							layer.offset[1] = initial_offset[1] + y - start_y;
+							for (let layer2 of layers) {
+								layer2.offset[0] = initial_offsets.get(layer2)[0] + x - start_x;
+								layer2.offset[1] = initial_offsets.get(layer2)[1] + y - start_y;
+							}
 							Blockbench.setCursorTooltip(`${x - start_x} x ${y - start_y}`);
 							texture.updateLayerChanges();
 							UVEditor.vue.$forceUpdate();
@@ -4729,32 +4735,41 @@ Interface.definePanels(function() {
 				resizeLayer(event, dir_x, dir_y) {
 					if (event.which == 2 || event.which == 3 || !this.texture || !this.layer) return;
 					convertTouchEvent(event);
-					let layer = this.layer;
+					let layers = this.texture.layers.filter(l => l.selected && l instanceof TextureLayer);
 					event.stopPropagation();
 
-					Undo.initEdit({layers: [layer]});
+					Undo.initEdit({layers});
 
-					let target_size = [layer.scaled_width, layer.scaled_height];
-					let last_target_size = [layer.scaled_width, layer.scaled_height];
-					let initial_size = [layer.width, layer.height];
+					let pre = layers.map(layer => {
+						return {
+							target_size: [layer.scaled_width, layer.scaled_height],
+							last_target_size: [layer.scaled_width, layer.scaled_height],
+							initial_size: [layer.width, layer.height]
+						}
+					});
 					if (dir_x && dir_y) Interface.addSuggestedModifierKey('alt', 'modifier_actions.no_uniform_scaling');
 					this.drag({
 						event,
 						onDrag: (x, y, e1) => {
-							last_target_size.replace(target_size);
-							target_size[0] = Math.max(target_size[0] + (x * dir_x), 0);
-							target_size[1] = Math.max(target_size[1] + (y * dir_y), 0);
-							if (!(e1.ctrlOrCmd || Pressing.overrides.ctrl) && dir_x && dir_y) {
-								target_size[1] = Math.round(target_size[0] * (initial_size[1] / initial_size[0]));
-							}
-							x = target_size[0] - last_target_size[0];
-							y = target_size[1] - last_target_size[1];
-							if (dir_x == -1) layer.offset[0] -= x;
-							if (dir_y == -1) layer.offset[1] -= y;
+							for (let i = 0; i < layers.length; i++) {
+								let layer = layers[i];
+								let {target_size, last_target_size, initial_size} = pre[i];
+								last_target_size.replace(target_size);
+								target_size[0] = Math.max(target_size[0] + (x * dir_x), 0);
+								target_size[1] = Math.max(target_size[1] + (y * dir_y), 0);
+								if (!(e1.ctrlOrCmd || Pressing.overrides.ctrl) && dir_x && dir_y) {
+									target_size[1] = Math.round(target_size[0] * (initial_size[1] / initial_size[0]));
+								}
+								x = target_size[0] - last_target_size[0];
+								y = target_size[1] - last_target_size[1];
+								if (dir_x == -1) layer.offset[0] -= x;
+								if (dir_y == -1) layer.offset[1] -= y;
 
-							layer.scale[0] = target_size[0] / initial_size[0];
-							layer.scale[1] = target_size[1] / initial_size[1];
-							Blockbench.setCursorTooltip(`${target_size[0]} x ${target_size[1]}\n${Math.round(layer.scale[0] * 100)}% x ${Math.round(layer.scale[1] * 100)}%`);
+								layer.scale[0] = target_size[0] / initial_size[0];
+								layer.scale[1] = target_size[1] / initial_size[1];
+							}
+							let target_size = pre[0].target_size;
+							Blockbench.setCursorTooltip(`${target_size[0]} x ${target_size[1]}\n${Math.round(layers[0].scale[0] * 100)}% x ${Math.round(layers[0].scale[1] * 100)}%`);
 							this.texture.updateLayerChanges();
 							UVEditor.vue.$forceUpdate();
 

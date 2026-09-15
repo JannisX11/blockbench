@@ -686,6 +686,8 @@ export class TextureLayerGroup extends TextureLayerItem {
 	select(multi_select?: boolean) {
 		super.select(multi_select);
 
+		UVEditor.vue.layer = this.texture.getActiveLayer();
+
 		let selectChildren = (group: TextureLayerGroup) => {
 			let children = group.children;
 			for (let child of children) {
@@ -933,7 +935,7 @@ BARS.defineActions(() => {
 			if (group.texture.selected_layer) {
 				group.texture.selected_layer.parent_uuid = group.uuid;
 			}
-
+			group.select();
 			Undo.finishEdit('Create layer group');
 		}
 	})
@@ -1003,7 +1005,8 @@ BARS.defineActions(() => {
 			show_bar: true
 		},
 		getInterval(event) {
-			return 1;
+			if (event.ctrlOrCmd || Pressing.overrides.ctrl) return 1;
+			return settings.opacity_range.value == '255' ? 4 : 2;
 		},
 		get() {
 			let opacity_range = settings.opacity_range.value == '255' ? 255 : 100;
@@ -1266,14 +1269,14 @@ Interface.definePanels(function() {
 						if (active && !Menu.open) {
 							convertTouchEvent(e2);
 							let target_layer = drop_target;
-							if (!target_layer || target_layer == layer || layerIsChildOf(target_layer, layer) ) return;
+							if (!target_layer || layerIsChildOf(target_layer, layer) ) return;
+							if (target_layer == layer && !target_is_list) return;
 
 							let index = texture.layers.indexOf(target_layer);
 
 							if (index == -1) return;
 							if (texture.layers.indexOf(layer) < index) index--;
 							if (order == -1) index++;
-							if (texture.layers[index] == layer && order) return;
 							
 							Undo.initEdit({textures: [texture]});
 
