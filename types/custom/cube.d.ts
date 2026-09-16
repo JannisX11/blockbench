@@ -151,3 +151,6 @@ declare class CubeFace extends Face {
 	extend(data: CubeFaceOptions): this
 	getVertexIndices(): [number, number, number, number]
 }
+
+declare const Billboard: any
+declare type Billboard = any

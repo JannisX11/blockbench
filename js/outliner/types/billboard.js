@@ -734,11 +734,13 @@ new NodePreviewController(Billboard, {
 	}
 })
 
-Blockbench.on('update_camera_position', e => {
+function updateBillboardOrientation() {
 	Billboard.all.forEach(billboard => {
 		Billboard.preview_controller.updateFacingCamera(billboard);
 	})
-})
+}
+Blockbench.on('update_camera_position', updateBillboardOrientation);
+Blockbench.on('select_project', updateBillboardOrientation);
 
 BARS.defineActions(function() {
 	new Action({
