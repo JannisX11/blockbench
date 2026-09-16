@@ -1580,35 +1580,33 @@ new NodePreviewController(Mesh, {
 		let selected_edges = element.getSelectedEdges();
 		let selected_faces = element.getSelectedFaces();
 
-		if (element.selected) {
-			if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
-				/*let weight_color_generator;
-				if (element.getArmature()) {
-					weight_color_generator = new VertexWeightColorGenerator(element);
-				}*/
-				let colors = [];
-				for (let key in element.vertices) {
-					//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
-					//colors.push(color[0], color[1], color[2]);
-					colors.push(0.8, 0.8, 0.8);
-				}
-				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-				mesh.vertex_points.geometry.needsUpdate = true;
-
-			} else if (BarItems.selection_mode.value == 'vertex') {
-				let colors = [];
-				for (let key in element.vertices) {
-					let color;
-					if (selected_vertices.includes(key)) {
-						color = white;
-					} else {
-						color = gizmo_colors.grid;
-					}
-					colors.push(color.r, color.g, color.b);
-				}
-				mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-				mesh.vertex_points.geometry.needsUpdate = true;
+		if (Toolbox.selected.id === 'weight_brush' && ArmatureBone.all[0] && element.getArmature()) {
+			/*let weight_color_generator;
+			if (element.getArmature()) {
+				weight_color_generator = new VertexWeightColorGenerator(element);
+			}*/
+			let colors = [];
+			for (let key in element.vertices) {
+				//let color = weight_color_generator?.getVertexColor(key) ?? [0.8, 0.8, 0.8];
+				//colors.push(color[0], color[1], color[2]);
+				colors.push(0.8, 0.8, 0.8);
 			}
+			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+			mesh.vertex_points.geometry.needsUpdate = true;
+
+		} else if (BarItems.selection_mode.value == 'vertex' && element.selected) {
+			let colors = [];
+			for (let key in element.vertices) {
+				let color;
+				if (selected_vertices.includes(key)) {
+					color = white;
+				} else {
+					color = gizmo_colors.grid;
+				}
+				colors.push(color.r, color.g, color.b);
+			}
+			mesh.vertex_points.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+			mesh.vertex_points.geometry.needsUpdate = true;
 		}
 
 		if (element.selected) {
