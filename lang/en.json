@@ -1151,7 +1151,7 @@
 	"settings.flipbook_textures_in_animation.desc": "Preview animations on flipbook textures in sync with the animation timeline",
 	"settings.volume": "Volume",
 	"settings.volume.desc": "Volume control for sound effects in animations",
-	"settings.audio_scrubbing": "Timline Scrubbing Audio",
+	"settings.audio_scrubbing": "Timeline Scrubbing Audio",
 	"settings.audio_scrubbing.desc": "Play short previews of the audio while scrubbing through time timeline",
 	"settings.outliner_colors": "Outliner Colors",
 	"settings.outliner_colors.desc": "Display element and group colors in the outliner",
