@@ -2019,8 +2019,6 @@ export const UVEditor = {
 		'reference_image_from_clipboard',
 		'toggle_all_reference_images',
 		'edit_reference_images',
-		'preview_scene',
-		'preview_models',
 		new MenuSeparator('interface'),
 		{name: 'menu.view.zoom', id: 'zoom', icon: 'search', children: [
 			'zoom_in',
