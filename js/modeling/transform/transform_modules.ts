@@ -3,7 +3,7 @@ interface TransformContext {
 }
 interface TransformContextMove extends TransformContext {
 	point: THREE.Vector3
-	axis: 'x'|'y'|'z'
+	axis: 'x'|'y'|'z'|'e'
 	axis_number: 0|1|2
 	second_axis?: 'x'|'y'|'z'
 	second_axis_number?: 0|1|2

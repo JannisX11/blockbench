@@ -1051,6 +1051,8 @@ BARS.defineActions(function() {
 					click() {
 						if (!model.enabled) {
 							model.enable();
+							PreviewModel.transform_model = model;
+							Transformer.updateSelection();
 						} else {
 							model.disable();
 						}
@@ -1100,6 +1102,7 @@ new TransformerModule('preview_model', {
 		let {point, axis, angle, event} = context;
 		let channel = Toolbox.selected.animation_channel
 		let value = point[axis];
+		if (axis == 'e' && channel == 'scale') value = point.length();
 		let interval = 1;
 		
 		if (channel == 'rotation') {
@@ -1118,7 +1121,7 @@ new TransformerModule('preview_model', {
 		return value;
 	},
 	onMove(context) {
-		let {point, axis, axis_number, value} = context;
+		let {axis, second_axis, value} = context;
 		let model = PreviewModel.transform_model;
 		let channel = Toolbox.selected.animation_channel
 
@@ -1139,7 +1142,16 @@ new TransformerModule('preview_model', {
 				Math.radToDeg(model.model_3d.rotation.z),
 			];
 		} else {
-			model.model_3d.scale[axis] += difference;
+			if (axis == 'e') {
+				model.model_3d.scale.x += difference;
+				model.model_3d.scale.y += difference;
+				model.model_3d.scale.z += difference;
+			} else {
+				model.model_3d.scale[axis] += difference;
+				if (second_axis) {
+					model.model_3d.scale[second_axis] += difference;
+				}
+			}
 			model_data.scale = model.model_3d.scale.toArray();
 		}
 
