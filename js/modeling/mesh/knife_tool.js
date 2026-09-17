@@ -745,7 +745,7 @@ BARS.defineActions(() => {
 		},
 		onCanvasClick(data) {
 			if (!data || !data.type) return;
-			if (data.event instanceof TouchEvent) {
+			if (isTouchEvent(data.event)) {
 				// Stop controls on mobile
 				PointerTarget.requestTarget(PointerTarget.types.gizmo_transform);
 				function onTouchEnd() {
@@ -767,7 +767,7 @@ BARS.defineActions(() => {
 						KnifeToolContext.current = new KnifeToolCubeContext(data.element);
 					}
 				}
-				if (data.event instanceof TouchEvent) return;
+				if (isTouchEvent(data.event)) return;
 			}
 			let context = KnifeToolContext.current;
 			if (context) {

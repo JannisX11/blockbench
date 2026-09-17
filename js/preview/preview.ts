@@ -2,7 +2,7 @@ import { THREE } from '../lib/libs';
 import OrbitControls from './OrbitControls';
 import StateMemory from "../util/state_memory";
 import { ConfigDialog } from '../interface/dialog';
-import { getFaceKeyFromIndex, toSnakeCase } from '../util/util';
+import { getFaceKeyFromIndex, isTouchEvent, toSnakeCase } from '../util/util';
 import { electron, ipcRenderer } from '../native_apis';
 import { Pressing } from '../misc';
 import { CSS3DRenderer } from '../lib/CSS3DRenderer';
@@ -1612,7 +1612,7 @@ export class Preview {
 	mouseup(event: MouseEvent) {
 		this.showContextMenu(event);
 		if (settings.canvas_unselect.value &&
-			(event.which === 1 || event.which === 3 || event instanceof TouchEvent) &&
+			(event.which === 1 || event.which === 3 || isTouchEvent(event)) &&
 			!this.controls.hasMoved &&
 			!this.selection.activated &&
 			!Transformer.was_clicked &&
@@ -1622,7 +1622,7 @@ export class Preview {
 			unselectAllElements();
 		}
 		delete this.selection.click_target;
-		if (event instanceof TouchEvent) {
+		if (isTouchEvent(event)) {
 			Canvas.scene.remove(Canvas.brush_outline);
 		}
 		return this;
@@ -1685,7 +1685,7 @@ export class Preview {
 			Transformer.setCanvas(this.canvas);
 			Preview.selected.controls.update();
 		}
-		if (event instanceof TouchEvent) {
+		if (isTouchEvent(event)) {
 			Transformer.simulateMouseDown(event);
 		}
 		return this;

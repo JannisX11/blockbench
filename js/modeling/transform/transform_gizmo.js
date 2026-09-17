@@ -1479,7 +1479,7 @@ import { TransformerModule } from "./transform_modules";
 				}
 				_dragging = false;
 
-				if ( 'TouchEvent' in window && event instanceof TouchEvent ) {
+				if (isTouchEvent(event)) {
 					// Force "rollover"
 					scope.axis = null;
 					scope.update();

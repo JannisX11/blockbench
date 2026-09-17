@@ -106,7 +106,7 @@ export class Group extends OutlinerNode {
 		}
 
 		//Select / Unselect Children
-		if (allSelected && (event.which === 1 || event instanceof TouchEvent)) {
+		if (allSelected && (event.which === 1 || isTouchEvent(event))) {
 			//Select Only Group, unselect Children
 			this.forEachChild(child => {
 				child.unselect();
