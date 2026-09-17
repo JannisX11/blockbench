@@ -142,7 +142,7 @@ export function getFaceKeyFromIndex(element, index) {
 	}
 }
 
-// TouchEvent only exists on devices that support touch
+// TouchEvent does not exist in some browsers if the device does not support touch
 export function isTouchEvent(event) {
 	return 'TouchEvent' in window && event instanceof TouchEvent;
 }
