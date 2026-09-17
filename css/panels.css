@@ -2376,6 +2376,33 @@ span.controller_state_section_info {
 		mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
 		mask-composite: exclude;
 	}
+	#uv_viewport > .uv_viewport_edges {
+		position: sticky;
+		float: left;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 5;
+	}
+	#uv_viewport > .uv_viewport_edges > div {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 4px;
+		background-color: var(--color-frame);
+	}
+	.uv_viewport_edge_left {
+		left: 0;
+	}
+	.uv_viewport_edge_right {
+		right: 0;
+	}
+	#left_bar .uv_viewport_edge_left,
+	#right_bar .uv_viewport_edge_right {
+		display: none;
+	}
 	#uv_frame {
 		height: 320px;
 		width: 320px;

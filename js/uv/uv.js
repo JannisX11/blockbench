@@ -5051,6 +5051,10 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
+						<div class="uv_viewport_edges">
+							<div class="uv_viewport_edge_left"></div>
+							<div class="uv_viewport_edge_right"></div>
+						</div>
 						<div id="uv_background" :style="{
 							padding: (getFrameMargin()[1]) + 'px ' + (getFrameMargin()[0]) + 'px',
 							width: (inner_width + 8 + getFrameMargin()[0]*2)+'px',
