@@ -65,10 +65,14 @@ export const TextureAnimator = {
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
 		Outliner.elements.forEach(el => {
-			if (!el.faces || !el.preview_controller.updateUV) return;
+			if (!el.preview_controller.updateUV) return;
 			let update = false
-			for (let face in el.faces) {
-				update = update || animated_textures.includes(el.faces[face].getTexture());
+			if (el.faces) {
+				for (let face in el.faces) {
+					update = update || animated_textures.includes(el.faces[face].getTexture());
+				}
+			} else if (el.getTexture) {
+				update = animated_textures.includes(el.getTexture());
 			}
 			if (update) {
 				el.preview_controller.updateUV(el, true);
