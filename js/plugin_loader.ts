@@ -1465,7 +1465,7 @@ BARS.defineActions(function() {
 								title: 'Recently Updated',
 								plugins: updated_plugins.slice(0, 12)
 							}
-							rows.splice(0, 0, new_row);
+							rows.splice(new_plugins.length ? 1 : 0, 0, new_row);
 						}
 					}
 
