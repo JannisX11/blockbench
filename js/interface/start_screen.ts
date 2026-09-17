@@ -612,19 +612,21 @@ onVueSetup(async function() {
 });
 
 
-ExperimentalSettings.add(
-	'always_show_update_screen',
-	{type: 'checkbox', label: 'Always Show Update Screen', value: false}
-);
-if (ExperimentalSettings.get('always_show_update_screen')) {
-	$.getJSON('./content/news.json').then(data => {
-		for (let feature of data.new_version.features) {
-			if (feature.image) {
-				feature.image = feature.image.replace('https://web.blockbench.net', '.');
+if (isApp && location.href.endsWith('/blockbench/index.html')) {
+	ExperimentalSettings.add(
+		'always_show_update_screen',
+		{type: 'checkbox', label: 'Always Show Update Screen', value: false}
+	);
+	if (ExperimentalSettings.get('always_show_update_screen')) {
+		$.getJSON('./content/news.json').then(data => {
+			for (let feature of data.new_version.features) {
+				if (feature.image) {
+					feature.image = feature.image.replace('https://web.blockbench.net', '.');
+				}
 			}
-		}
-		addStartScreenSection('new_version', data.new_version)
-	})
+			addStartScreenSection('new_version', data.new_version)
+		})
+	}
 }
 
 var news_call = $.ajax({
