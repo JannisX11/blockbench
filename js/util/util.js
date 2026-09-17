@@ -142,6 +142,11 @@ export function getFaceKeyFromIndex(element, index) {
 	}
 }
 
+// TouchEvent does not exist in some browsers if the device does not support touch
+export function isTouchEvent(event) {
+	return 'TouchEvent' in window && event instanceof TouchEvent;
+}
+
 export function convertTouchEvent(event) {
 	if (event && event.changedTouches && event.changedTouches.length && event.offsetX == undefined) {
 		//event.preventDefault();
@@ -780,6 +785,7 @@ Object.assign(window, {
 	Objector,
 	Merge,
 	pureMarked,
+	isTouchEvent,
 	convertTouchEvent,
 	addEventListeners,
 	removeEventListeners,
