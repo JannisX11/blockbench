@@ -4,6 +4,7 @@ import { documentReady } from "../misc";
 import { app, fs } from "../native_apis";
 import { pureMarked } from "../util/util";
 import VersionUtil from '../util/version_util';
+import { ExperimentalSettings } from "./experimental_settings";
 
 export const StartScreen = {
 	loaders: {},
@@ -611,10 +612,20 @@ onVueSetup(async function() {
 });
 
 
-
-/*$.getJSON('./content/news.json').then(data => {
-	addStartScreenSection('new_version', data.new_version)
-})*/
+ExperimentalSettings.add(
+	'always_show_update_screen',
+	{type: 'checkbox', label: 'Always Show Update Screen', value: false}
+);
+if (ExperimentalSettings.get('always_show_update_screen')) {
+	$.getJSON('./content/news.json').then(data => {
+		for (let feature of data.new_version.features) {
+			if (feature.image) {
+				feature.image = feature.image.replace('https://web.blockbench.net', '.');
+			}
+		}
+		addStartScreenSection('new_version', data.new_version)
+	})
+}
 
 var news_call = $.ajax({
 	cache: false,
