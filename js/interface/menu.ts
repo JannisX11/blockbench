@@ -383,7 +383,7 @@ export class Menu implements Deletable {
 						description: item?.description,
 					})
 				})
-				search_button.onclick = (e) => {
+				search_button.onclick = (e: any) => {
 					input.value = '';
 					input.oninput(e);
 				}
