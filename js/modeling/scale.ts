@@ -38,9 +38,14 @@ export namespace ModelScaler {
 				}
 			},
 			box_uv_warning: {
-				condition: (data) => (data.scale !== 1 && Project.box_uv && Texture.all.length > 0),
+				condition: (data) => (data.scale !== 1 && Project.box_uv && Texture.all.length > 0 && Format.optional_box_uv),
 				type: 'info',
 				text: 'dialog.scale.box_uv_warning'
+			},
+			box_uv_warning_required: {
+				condition: (data) => (data.scale !== 1 && Project.box_uv && Texture.all.length > 0 && !Format.optional_box_uv),
+				type: 'info',
+				text: 'dialog.scale.box_uv_warning_required'
 			}
 		},
 		onFormChange() {
