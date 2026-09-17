@@ -117,9 +117,6 @@
 			"category": "Graphics;3DGraphics",
 			"icon": "build/icon.png"
 		},
-		"electronFuses": {
- 			"runAsNode": false
-		},
 		"fileAssociations": [
 			{
 				"ext": "bbmodel",
