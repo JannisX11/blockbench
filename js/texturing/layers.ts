@@ -74,7 +74,22 @@ export abstract class TextureLayerItem {
 	}
 	clickSelect(event: MouseEvent) {
 		Undo.initSelection();
-		this.select(event.ctrlOrCmd || Pressing.overrides.ctrl);
+		if (event.shiftKey || Pressing.overrides.shift) {
+			let previous = TextureLayerItem.previous_selected;
+			let previous_index = this.texture.layers.indexOf(previous);
+			let current_index = this.texture.layers.indexOf(this);
+			if (previous_index != -1 && previous_index != current_index) {
+				for (let i = current_index; i != previous_index; i += Math.sign(previous_index-current_index)) {
+					this.texture.layers[i].select(true);
+				}
+			} else {
+				this.select(true);
+			}
+
+		} else {
+			this.select(event.ctrlOrCmd || Pressing.overrides.ctrl);
+		}
+		TextureLayerItem.previous_selected = this;
 		Undo.finishSelection('Select layer');
 	}
 	showContextMenu(event: MouseEvent): void {
@@ -184,6 +199,7 @@ export abstract class TextureLayerItem {
 	static registerType(id: string, constructor: any) {
 		TextureLayerItem.types[id] = constructor;
 	}
+	static previous_selected: TextureLayerItem | null = null;
 }
 
 /**
@@ -269,8 +285,8 @@ export class TextureLayer extends TextureLayerItem {
 	/**
 	 * Selects the layer
 	 */
-	select() {
-		super.select();
+	select(multi_select?: boolean) {
+		super.select(multi_select);
 		BarItems.layer_opacity.update();
 		BarItems.layer_blend_mode.set(this.blend_mode);
 		if (this.in_limbo && Toolbox.selected.id != 'selection_tool') {
@@ -926,14 +942,16 @@ BARS.defineActions(() => {
 			if (!texture.layers_enabled) texture.activateLayers(false);
 			
 			let group = new TextureLayerGroup({name: 'Layer Group'}, texture);
+			group.parent_uuid = group.texture.selected_layer?.parent_uuid || '';
 			let i = group.texture.layers.indexOf(group.texture.selected_layer);
 			if (i == -1) {
 				group.texture.layers.push(group);
 			} else {
 				group.texture.layers.splice(i+1, 0, group);
 			}
-			if (group.texture.selected_layer) {
-				group.texture.selected_layer.parent_uuid = group.uuid;
+			for (let layer of group.texture.layers) {
+				if (layer == group || !layer.selected) continue;
+				layer.parent_uuid = group.uuid;
 			}
 			group.select();
 			Undo.finishEdit('Create layer group');
@@ -952,7 +970,7 @@ BARS.defineActions(() => {
 			let texture = Texture.selected;
 			Undo.initEdit({textures: [texture]});
 			
-			let groups = texture.layers.filter(l => l.selected && l instanceof TextureLayerGroup);
+			let groups = texture.layers.filter(l => l.selected && l instanceof TextureLayerGroup && !l.parent?.selected);
 			for (let group of groups) {
 				for (let layer of texture.layers) {
 					if (layer.parent_uuid == group.uuid) {
@@ -1363,6 +1381,7 @@ Interface.definePanels(function() {
 						<i
 							v-if="layer.type == 'layer_group'"
 							@click.stop="layer.folded = !layer.folded" class="icon-open-state fa"
+							@dblclick.stop
 							:class='{"fa-angle-right": layer.folded, "fa-angle-down": !layer.folded}'
 						></i>
 
