@@ -217,7 +217,7 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 				];
 				changeElementUVs(multiplier, result.adjust == 'adjust_scale');
 			} else {
-				Canvas.updateView({elements: Outliner.elements, element_aspects: {uv: true, transform: true, geometry: true}});
+				revertElementChanges();
 			}
 			UVEditor.loadData();
 		},
