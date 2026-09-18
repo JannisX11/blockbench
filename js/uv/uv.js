@@ -4409,7 +4409,6 @@ Interface.definePanels(function() {
 					let create_selection = Toolbox.selected.id == 'selection_tool'
 						&& !move_with_selection_tool
 						&& !event.target.classList.contains('uv_layer_transform_handles');
-					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 					let initial_offsets = new Map();
 					layers.forEach(l => initial_offsets.set(l, l.offset.slice()));
 
@@ -4549,11 +4548,14 @@ Interface.definePanels(function() {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.selectionToLayer(false, (e1.altKey || Pressing.overrides.alt));
 									layer = texture.getActiveLayer();
-									initial_offset = layer.offset.slice();
+									layers = [layer];
+									initial_offsets.set(layer, layer.offset.slice());
 								} else if (!layer) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.activateLayers(false);
 									layer = texture.getActiveLayer();
+									layers = [layer];
+									initial_offsets.set(layer, layer.offset.slice());
 								/*} else if (event.altKey || Pressing.overrides.alt) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									let old_layer = texture.selected_layer;
