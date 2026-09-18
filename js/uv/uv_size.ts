@@ -181,7 +181,7 @@ export function editUVSizeDialog(options: {texture?: Texture, project?: boolean}
 		darken: false,
 		form: {
 			target: {label: 'dialog.edit_uv_size.target', type: 'info', text: target_text},
-			adjust: {type: 'select', label: 'dialog.edit_uv_size.adjust', options: adjust_options},
+			adjust: {type: 'select', label: 'dialog.edit_uv_size.adjust', options: adjust_options, value: Project.box_uv ? 'keep' : 'adjust_uv'},
 			target_size: {type: 'vector', label: 'Target UV Size', dimensions: 2, value: old_size, linked_ratio: true, min: 1, step: 1, force_step: true},
 			preset: {type: 'buttons', label: ' ', buttons: [
 				'dialog.edit_uv_size.preset.original',
