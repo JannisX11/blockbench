@@ -706,6 +706,9 @@ BARS.defineActions(function() {
 			Undo.finishEdit('Add material', {texture_groups: [texture_group], textures: textures_to_add});
 		}
 	})
+	let generate_pbr_options;
+	StateMemory.init('generate_pbr_map_presets', 'array');
+	let pbr_presets = StateMemory.get('generate_pbr_map_presets');
 	new Action('generate_pbr_map', {
 		icon: 'texture_add',
 		category: 'textures',
@@ -753,6 +756,7 @@ BARS.defineActions(function() {
 								let s = avg > 0.5 ? d / (2 - max - min) : d / (max + min);
 								return s * a;
 							} else {
+								let h = 0;
 								switch (max) {
 									case r:
 									h = (g - b) / d + (g < b ? 6 : 0);
@@ -837,53 +841,123 @@ BARS.defineActions(function() {
 				ctx.putImageData(new_data, 0, 0);
 			}
 
+			let preset_options = {'': ''};
+			pbr_presets.forEach((preset, i) => {
+				preset_options[i.toString()] = preset.name;
+			});
 			let preview = Interface.createElement('div', {style: 'display: flex; justify-content: space-between;'}, [original_image.canvas, canvas])
-			new Dialog('generate_pbr_map', {
+			let dialog = new Dialog('generate_pbr_map', {
 				title: 'action.generate_pbr_map',
 				width: 564,
 				lines: [preview],
 				form: {
 					channel: {
 						type: 'select',
-						label: 'PBR Channel',
+						label: 'dialog.generate_pbr_map.channel',
 						options: {
 							height: 'menu.texture.pbr_channel.height',
 							normal: 'menu.texture.pbr_channel.normal',
-							metalness: 'Metalness',
-							emissive: 'Emissive',
-							roughness: 'Roughness',
+							metalness: 'dialog.generate_pbr_map.channel.metalness',
+							emissive: 'dialog.generate_pbr_map.channel.emissive',
+							roughness: 'dialog.generate_pbr_map.channel.roughness',
 						}
 					},
 					method: {
 						type: 'select',
-						label: 'Source',
+						label: 'dialog.generate_pbr_map.method',
 						options: {
-							value: 'Value',
-							brightness: 'Brightness',
-							saturation: 'Saturation',
-							hue: 'Hue',
-							red: 'Red',
-							green: 'Green',
-							blue: 'Blue',
-							empty: 'Empty',
+							value: 'dialog.generate_pbr_map.method.value',
+							brightness: 'dialog.generate_pbr_map.method.brightness',
+							saturation: 'dialog.generate_pbr_map.method.saturation',
+							hue: 'dialog.generate_pbr_map.method.hue',
+							red: 'dialog.generate_pbr_map.method.red',
+							green: 'dialog.generate_pbr_map.method.green',
+							blue: 'dialog.generate_pbr_map.method.blue',
+							empty: 'dialog.generate_pbr_map.method.empty',
 						}
 					},
 					in_range: {
 						type: 'vector',
-						label: 'Input Range',
+						label: 'dialog.generate_pbr_map.in_range',
 						value: [0, 255],
 						dimensions: 2, min: 0, max: 255
 					},
 					out_range: {
 						type: 'vector',
-						label: 'Output Range',
+						label: 'dialog.generate_pbr_map.out_range',
 						value: [0, 255],
 						dimensions: 2, min: 0, max: 255
 					},
-					invert: {type: 'checkbox', label: 'Invert', value: false},
+					invert: {type: 'checkbox', label: 'dialog.generate_pbr_map.invert', value: false},
+					'_': '_',
+					edit_presets: {
+						type: 'buttons',
+						label: 'dialog.generate_pbr_map.preset',
+						buttons: ['dialog.generate_pbr_map.preset.apply_preset'],
+						click(button_index, event) {
+							let menu_items = [];
+							for (let preset of pbr_presets) {
+								menu_items.push({
+									name: preset.name,
+									icon: 'tune',
+									click() {
+										dialog.setFormValues(preset);
+									},
+									children: [
+										{
+											name: 'dialog.generate_pbr_map.update_values',
+											icon: 'sync',
+											click() {
+												Object.assign(preset, generate_pbr_options);
+												StateMemory.save('generate_pbr_map_presets');
+											}
+										},
+										{
+											name: 'generic.rename',
+											icon: 'text_format',
+											click() {
+												Blockbench.textPrompt('generic.name', preset.name, (result) => {
+													preset.name = result;
+													StateMemory.save('generate_pbr_map_presets');
+												});
+											}
+										},
+										{
+											name: 'generic.delete',
+											icon: 'delete',
+											click() {
+												pbr_presets.remove(preset);
+												StateMemory.save('generate_pbr_map_presets');
+											}
+										}
+									]
+								});
+							}
+							menu_items.push('_', {
+								name: 'dialog.generate_pbr_map.preset.new_preset',
+								icon: 'add',
+								click() {
+									new Dialog({
+										title: 'dialog.generate_pbr_map.preset.new_preset',
+										form: {
+											name: {label: 'generic.name', type: 'text', value: 'New preset'}
+										},
+										onConfirm(result) {
+											let preset = structuredClone(generate_pbr_options);
+											preset.name = result.name;
+											pbr_presets.push(preset);
+											StateMemory.save('generate_pbr_map_presets');
+										}
+									}).show();
+								}
+							});
+							new Menu(menu_items).open(event.target);
+						}
+					}
 				},
 				onFormChange(result) {
-					updateCanvas(result)
+					updateCanvas(result);
+					generate_pbr_options = result;
 				},
 				onConfirm(result) {
 					updateCanvas(result);
@@ -940,6 +1014,14 @@ BARS.defineActions(function() {
 					updateCanvas(this.getFormResult());
 				}
 			}).show();
+			if (generate_pbr_options) dialog.setFormValues(generate_pbr_options);
+
+			/*dialog.form.on('change', ({result, cause, changed_keys}) => {
+				console.log({result, cause, changed_keys})
+				if (changed_keys && changed_keys.allEqual('preset') && result.preset != '') {
+					dialog.setFormValues(pbr_presets[parseInt(result.preset)]);
+				}
+			})*/
 		}
 	})
 });

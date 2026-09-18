@@ -65,10 +65,14 @@ export const TextureAnimator = {
 			maxFrame = Math.max(maxFrame, tex.currentFrame);
 		})
 		Outliner.elements.forEach(el => {
-			if (!el.faces || !el.preview_controller.updateUV) return;
+			if (!el.preview_controller.updateUV) return;
 			let update = false
-			for (let face in el.faces) {
-				update = update || animated_textures.includes(el.faces[face].getTexture());
+			if (el.faces) {
+				for (let face in el.faces) {
+					update = update || animated_textures.includes(el.faces[face].getTexture());
+				}
+			} else if (el.getTexture) {
+				update = animated_textures.includes(el.getTexture());
 			}
 			if (update) {
 				el.preview_controller.updateUV(el, true);
@@ -584,10 +588,25 @@ BARS.defineActions(function() {
 							}).show();
 						},
 						sort(event) {
-							let selected = this.frames[this.frame_index];
-							var item = this.frames.splice(event.oldIndex, 1)[0];
-							this.frames.splice(event.newIndex, 0, item);
-							this.frame_index = this.frames.findIndex(frame => frame == selected);
+							let dragged = this.frames[this.frame_index];
+							let selected = this.frames.filter(f => f.selected);
+							if (selected.length > 1 && selected.includes(dragged)) {
+								this.frames.splice(event.oldIndex, 1)[0];// To line up indices
+								this.frames.forEach((frame, i) => {
+									if (frame.selected) this.frames.splice(i, 1, null);
+								})
+								this.frames.splice(event.newIndex, 0, ...selected);
+								while (this.frames.includes(null)) {
+									this.frames.remove(null);
+								}
+								this.frame_index = this.frames.findIndex(frame => frame == dragged);
+								let copy = this.frames.splice(0, Infinity);
+								Vue.nextTick(() => this.frames.replace(copy));
+							} else {
+								let item = this.frames.splice(event.oldIndex, 1)[0];
+								this.frames.splice(event.newIndex, 0, item);
+								this.frame_index = this.frames.findIndex(frame => frame == dragged);
+							}
 						},
 						openCode() {
 							displayCodeSuggestion(texture, this.frames.length, this.fps);
@@ -634,7 +653,10 @@ BARS.defineActions(function() {
 										@click="select(i, $event);"
 										@dblclick="setFrame(i)"
 									>
-										<label>{{ i }}</label>
+										<label>
+											{{ i }}
+											<p>({{ frame.initial_index }})</p>
+										</label>
 										<img class="checkerboard" :src="frame.data_url" width="105">
 									</li>
 								</ul>

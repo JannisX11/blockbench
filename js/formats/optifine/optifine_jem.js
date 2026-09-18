@@ -397,6 +397,7 @@ var format = new ModelFormat({
 	bone_rig: true,
 	centered_grid: true,
 	texture_folder: true,
+	molang: false,
 	pbr: true,
 	codec
 })

@@ -1,7 +1,7 @@
 /// <reference types="./blockbench"/>
 
 
-export declare class SplineTubeFace extends MeshFace {
+declare class SplineTubeFace extends MeshFace {
     constructor(mesh: any, spline: any, data: any);
     get element(): SplineMesh;
     getTexture(): Texture;
@@ -14,7 +14,7 @@ interface SplineCurveOptions {
 	start_ctrl: any
 	end_ctrl: any
 }
-export declare class SplineCurve {
+declare class SplineCurve {
     constructor(spline: SplineMesh, data: SplineCurveOptions);
     get element(): SplineMesh;
     extend(data: SplineCurveOptions): this;
@@ -49,7 +49,7 @@ export declare class SplineCurve {
 interface SplineHandle {
 
 }
-export declare class SplineHandle {
+declare class SplineHandle {
     constructor(spline: SplineMesh, data: SplineHandle);
     get element(): SplineMesh;
     extend(data: SplineHandle): this;
@@ -67,7 +67,7 @@ export declare class SplineHandle {
 interface SplineMeshOptions {
 
 }
-export declare class SplineMesh extends OutlinerElement {
+declare class SplineMesh extends OutlinerElement {
     constructor(data: any, uuid: any);
     get vertices(): Record<string, ArrayVector3>;
     get handles(): Record<string, SplineHandle>;
@@ -77,6 +77,7 @@ export declare class SplineMesh extends OutlinerElement {
     set curves(v: Record<string, SplineCurve>);
     get position(): ArrayVector3;
     get vertice_list(): any[];
+    faces: Record<string, SplineTubeFace>
     cyclic: boolean
     export: boolean
     display_space: boolean

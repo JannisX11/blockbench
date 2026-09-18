@@ -589,7 +589,7 @@ export class CustomTheme {
 		let gizmo_colors = Canvas.gizmo_colors;
 		if (typeof gizmo_colors != 'undefined') {
 			let preview_style = window.getComputedStyle(document.getElementById('preview'));
-			function update(three_color, variable) {
+			function update(three_color: THREE.Color, variable: string) {
 				let string = preview_style.getPropertyValue(variable).trim();
 				three_color.set(string);
 			}
@@ -606,6 +606,7 @@ export class CustomTheme {
 			update(gizmo_colors.outline, '--color-outline');
 			update(gizmo_colors.gizmo_hover, '--color-gizmohover');
 			update(Canvas.outlineMaterial.color, '--color-outline');
+			update(Canvas.outlineUnselectedMaterial.color, '--color-constant-outline');
 			update((Canvas.ground_plane.material as THREE.MeshBasicMaterial).color, '--color-ground');
 			update((Canvas.brush_outline.material as THREE.ShaderMaterial).uniforms.color.value, '--color-brush-outline');
 			update(gizmo_colors.spline_handle_aligned, '--color-spline-handle-aligned');

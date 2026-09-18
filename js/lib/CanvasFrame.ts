@@ -9,6 +9,7 @@ export class CanvasFrame {
 	
 	constructor()
 	constructor(width: number, height: number)
+	constructor(source: HTMLCanvasElement | HTMLImageElement)
 	constructor(source?: HTMLCanvasElement | HTMLImageElement | number, copy_canvas?: number | boolean) {
 		if (source instanceof HTMLCanvasElement) {
 			if (source.getContext('2d') && copy_canvas !== true) {

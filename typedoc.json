@@ -11,8 +11,16 @@
 	"plugin": [
 		"typedoc-plugin-missing-exports"
 	],
+	"externalSymbolLinkMappings": {
+		"typescript": {
+			"Animation": "https://developer.mozilla.org/en-US/docs/Web/API/Animation",
+			"Keyframe": "https://developer.mozilla.org/en-US/docs/Web/API/KeyframeEffect"
+		}
+	},
+	"groupOrder": ["Classes", "*", "Modules"],
 	"readme": "types/documentation.md",
 	"excludeExternals": true,
+	"internalModule": "Internal Types",
 	"name": "Blockbench Reference Docs",
 	"defaultCategory": "custom",
 	"tsconfig": "types/tsconfig.json",

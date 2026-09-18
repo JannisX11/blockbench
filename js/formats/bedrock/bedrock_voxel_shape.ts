@@ -189,7 +189,7 @@ BARS.defineActions(function() {
 						size: bb.size()
 					}
 				});
-				if (type == 'selection_box') {
+				if (type == 'selection_box' && box_data.length > 1) {
 					let { origin, size } = box_data[0];
 					let minX = origin[0];
 					let minY = origin[1];

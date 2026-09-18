@@ -352,9 +352,18 @@ EditSession.matchToken = function(token) {
 	return !!(token.length === 16 && token.match(/[a-z0-9]{16}/))
 }
 
+
+ExperimentalSettings.add(
+	'max_chat_message_length',
+	{type: 'number', label: 'Max chat message length', min: 1, value: 512, step: 1, force_step: true}
+);
+ExperimentalSettings.add(
+	'session_server',
+	{type: 'string', label: 'Edit Session server', value: 'blckbn.ch'}
+);
 EditSession.defaults = {
-	max_chat_length: 512,
-	ip: 'blckbn.ch',
+	max_chat_length: ExperimentalSettings.get('max_chat_message_length'),
+	ip: ExperimentalSettings.get('session_server') ?? 'blckbn.ch',
 	placeholder_names: ['R2D2', 'Tin Man', 'C3PO', 'WALL-E', 'EVE', 'BB-8', 'B1 Battle Droid', 'ASIMO', 'Atlas'],
 }
 

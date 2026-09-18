@@ -65,4 +65,4 @@ declare class TextureGroupMaterialConfig {
 	showContextMenu(event: Event): void
 	propertiesDialog(): void
 }
-declare function importTextureSet(file: any): void
+declare function importTextureSet(file: any, undo: boolean = true): void

@@ -607,6 +607,10 @@ function isSwapToolsHoldKey(key) {
 }
 
 window.addEventListener('blur', event => {
+	let release = { bubbles: true, clientX: mouse_pos.x, clientY: mouse_pos.y };
+	document.dispatchEvent(new PointerEvent('pointerup', release));
+	document.dispatchEvent(new MouseEvent('mouseup', release));
+
 	if (isSwapToolsEnabled()) {
 		if (Toolbox.original && Toolbox.original.alt_tool) {
 			Toolbox.original.select()
@@ -857,16 +861,26 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 			SharedActions.run('unselect_all', e);
 			used = true;
 		}
-	} else if (Toolbox.selected.id == 'copy_paste_tool' && UVEditor.texture && Painter.selection.canvas && e.which >= 37 && e.which <= 40) {
+	} else if (UVEditor.texture && UVEditor.vue.isTransformingLayer() && UVEditor.texture.layers?.length && e.which >= 37 && e.which <= 40) {
+		let delta = [0, 0];
+		let step = (e.shiftKey || Pressing.overrides.shift) ? 16 : (e.ctrlOrCmd || Pressing.overrides.ctrl) ? 4 : 1;
 		switch (e.which) {
-			case 37: Painter.selection.x -= 1; break;//<
-			case 38: Painter.selection.y -= 1; break;//UP
-			case 39: Painter.selection.x += 1; break;//>
-			case 40: Painter.selection.y += 1; break;//DOWN
+			case 37: delta[0] -= step; break;//<
+			case 38: delta[1] -= step; break;//UP
+			case 39: delta[0] += step; break;//>
+			case 40: delta[1] += step; break;//DOWN
 		}
-		Painter.selection.x = Math.clamp(Painter.selection.x, 1-Painter.selection.canvas.width,  UVEditor.texture.width -1)
-		Painter.selection.y = Math.clamp(Painter.selection.y, 1-Painter.selection.canvas.height, UVEditor.texture.height-1)
-		UVEditor.updatePastingOverlay();
+		let texture = UVEditor.texture;
+		let layers = texture.layers.filter(layer => layer instanceof TextureLayer && layer.selected);
+		Undo.initEdit({layers});
+		for (let layer of layers) {
+			layer.offset[0] += delta[0];
+			layer.offset[1] += delta[1];
+		}
+		Undo.finishEdit('Move layer')
+		texture.updateLayerChanges();
+		UVEditor.vue.$forceUpdate();
+									
 		e.preventDefault();
 
 	} else if (Modes.paint && TextureLayer.selected && TextureLayer.selected.in_limbo) {

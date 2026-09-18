@@ -25,7 +25,6 @@ declare global {
 	 * @deprecated Use {@link Outliner.selected} instead
 	 */
 	let selected: OutlinerElement[]
-	const Toolbars: Record<string, Toolbar>
 
 	function rotateOnAxis(modify: OutlinerNode, axis: number, slider?: boolean): void
 	function afterRotateOnAxis(): void
@@ -50,6 +49,9 @@ declare global {
 	interface Number {
 		toDigitString(digits: number): string
 	}
+	interface String {
+		hashCode(): number
+	}
 	interface Event {
 		readonly ctrlOrCmd: boolean
 	}
@@ -68,7 +70,7 @@ declare global {
 		/**
 		 * Checks if the absolute difference between a and b is smaller than epsilon
 		 */
-		epsilon(a: number, b: number, epsilon: number): boolean
+		epsilon(a: number, b: number, epsilon?: number): boolean
 		/**
 		 * Take a rotation value in degrees, and trim it to a value between -180 and 180, while keeping the same angle
 		 */
@@ -157,6 +159,17 @@ declare global {
 		V3_divide(values: ArrayVector3): ArrayVector3
 		V3_divide(value: THREE.Vector3): ArrayVector3
 		V3_toThree(): THREE.Vector3
+
+		V2_set(x: number, y: number): ArrayVector2
+		V2_set(values: ArrayVector2): ArrayVector2
+		V2_add(x: number, y: number): ArrayVector2
+		V2_add(values: ArrayVector2): ArrayVector2
+		V2_subtract(x: number, y: number): ArrayVector2
+		V2_subtract(values: ArrayVector2): ArrayVector2
+		V2_multiply(x: number, y: number): ArrayVector2
+		V2_multiply(values: ArrayVector2): ArrayVector2
+		V2_divide(x: number, y: number): ArrayVector2
+		V2_divide(values: ArrayVector2): ArrayVector2
 	}
 
 	interface Event {

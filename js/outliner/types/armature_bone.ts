@@ -26,7 +26,7 @@ interface ArmatureBoneOptions {
 export class ArmatureBone extends OutlinerElement {
 	declare children: ArmatureBone[]
 	isOpen: boolean
-	visibility: boolean
+	visibility: boolean = true
 	origin: ArrayVector3
 	rotation: ArrayVector3
 	vertex_weights: Record<string, number>
@@ -96,6 +96,20 @@ export class ArmatureBone extends OutlinerElement {
 			delete weights[weightkey];
 		} else {
 			weights[weightkey] = weight;
+		}
+	}
+	_upgradeVertexWeights() {
+		let meshes = this.getArmature()?.children.filter(c => c instanceof Mesh);
+		if (!meshes || meshes.length == 0) return;
+		for (let key of Object.keys(this.vertex_weights)) {
+			if (key.length > 6) continue;
+			let weight = this.vertex_weights[key];
+			for (let mesh of meshes) {
+				if (mesh.vertices[key]) {
+					this.setVertexWeight(mesh, key, weight);
+				}
+			}
+			delete this.vertex_weights[key];
 		}
 	}
 	init(): this {
@@ -218,8 +232,8 @@ export class ArmatureBone extends OutlinerElement {
 		}
 		this.preview_controller.updateTransform(this);
 	}
-	setColor(index) {
-		this.color = index;
+	setColor(color: number) {
+		this.color = color;
 		this.preview_controller.updateFaces(this);
 		let armature = this.getArmature();
 		// Update vertex colors
@@ -243,17 +257,7 @@ export class ArmatureBone extends OutlinerElement {
 		return copy;
 	}
 	getUndoCopy(): any {
-		let copy = {
-			isOpen: this.isOpen,
-			uuid: this.uuid,
-			type: this.type,
-			name: this.name,
-			children: this.children.map(c => c.uuid),
-		};
-		for (let key in ArmatureBone.properties) {
-			ArmatureBone.properties[key].merge(copy, this);
-		}
-		return copy;
+		return this.getSaveCopy();
 	}
 	getChildlessCopy(keep_uuid: boolean = false) {
 		let base_bone = new ArmatureBone({name: this.name}, keep_uuid ? this.uuid : null);
@@ -290,7 +294,7 @@ export class ArmatureBone extends OutlinerElement {
 		movable: true,
 		rotatable: true,
 		resizable: true,
-		child_types: ['armature_bone'],
+		child_types: ['armature_bone', 'locator', 'null_object'],
 		parent_types: ['armature_bone', 'armature'],
 		select_children: 'self_first',
 		hide_in_screenshot: true,
@@ -529,7 +533,7 @@ new NodePreviewController(ArmatureBone, {
 		this.dispatchEvent('update_transform', {element});
 	},
 	updateVisibility(element: ArmatureBone) {
-		element.mesh.visible = Modes.paint ? false : element.visibility;
+		element.mesh.visible = Canvas.show_element_markers && (Modes.paint ? false : element.visibility);
 
 		this.dispatchEvent('update_visibility', {element});
 	},
@@ -568,7 +572,11 @@ BARS.defineActions(function() {
 		icon: 'humerus',
 		category: 'edit',
 		keybind: new Keybind({key: 'e', shift: true}),
-		condition: {modes: ['edit'], selected: {mesh: false, spline: false}, method: () => ((ArmatureBone.hasSelected() || Armature.hasSelected()))},
+		condition: {
+			modes: ['edit'],
+			selected: {mesh: false, spline: false},
+			method: () => (ArmatureBone.hasSelected() || Armature.hasSelected())
+		},
 		click: function () {
 			Undo.initEdit({outliner: true, elements: [], selection: true});
 			let add_to_node = Outliner.selected[0] || Group.first_selected;

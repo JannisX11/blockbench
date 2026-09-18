@@ -75,6 +75,7 @@ export async function wait(delay) {
 		setTimeout(resolve, delay);
 	})
 }
+export function silentReject() {}
 
 export function pureMarked(input) {
 	let dom = marked(input);
@@ -107,6 +108,43 @@ Object.defineProperty($.Event.prototype, 'ctrlOrCmd', {
 ImageData.prototype.getIndex = function(x, y) {
 	if (x < 0 || y < 0 || x >= this.width || y >= this.height) return null;
     return (x + y * this.height) * 4;
+}
+
+export function getFaceKeyFromIndex(element, index) {
+	if (element.getTypeBehavior('cube_faces')) {
+		if (element.getTypeBehavior('select_faces')) {
+			// @ts-expect-error
+			return element.scene_object.geometry.faces[Math.floor(index / 2)];
+		} else {
+			return Object.keys(element.faces)[0];
+		}
+	} else if (element instanceof Mesh) {
+		for (let key in element.faces) {
+			let {vertices} = element.faces[key];
+			if (vertices.length < 3) continue;
+
+			if (index == 0 || (index == 1 && vertices.length == 4)) {
+				return key;
+			}
+			if (vertices.length == 3) index -= 1;
+			if (vertices.length == 4) index -= 2;
+		}
+	} else if (element instanceof SplineMesh) {
+		for (let key in element.faces) {
+			let {vertices} = element.faces[key];
+
+			if (index == 0 || (index == 1 && vertices.length == 4)) {
+				return key;
+			}
+			
+			index -= 2;
+		}
+	}
+}
+
+// TouchEvent does not exist in some browsers if the device does not support touch
+export function isTouchEvent(event) {
+	return 'TouchEvent' in window && event instanceof TouchEvent;
 }
 
 export function convertTouchEvent(event) {
@@ -284,7 +322,7 @@ Date.prototype.getDateArray = function() {
 	return [
 		this.getDate(),
 		this.getMonth()+1,
-		this.getYear()+1900
+		this.getFullYear()
 	];
 }
 Date.prototype.getDateString = function() {
@@ -380,7 +418,11 @@ var Merge = {
 	},
 	molang(obj, source, index) {
 		if (typeof source[index] == 'string') {
-			obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
+			if (source[index].includes('e')) {
+				obj[index] = source[index].replace(/-?\d\.\d+e-\d\d/g, '0');
+			} else {
+				obj[index] = source[index];
+			}
 		} else if (typeof source[index] == 'number') {
 			obj[index] = Math.roundTo(source[index], 9).toString();
 		}
@@ -537,7 +579,8 @@ export function getAverageRGB(imgEl, blockSize) {
 	try {
 		data = context.getImageData(0, 0, width, height);
 	} catch(e) {
-		/* security error, img on diff domain */alert('x');
+		/* security error, img on diff domain */;
+		console.error('Cannot get average RGB from a non-image')
 		return defaultRGB;
 	}
 	
@@ -742,6 +785,7 @@ Object.assign(window, {
 	Objector,
 	Merge,
 	pureMarked,
+	isTouchEvent,
 	convertTouchEvent,
 	addEventListeners,
 	removeEventListeners,

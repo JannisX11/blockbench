@@ -252,7 +252,7 @@ export function mirrorSelected(axis) {
 		}
 		Outliner.selected.forEach(function(obj) {
 			if (obj instanceof Mesh) {
-				obj.flipSelection(axis, center, false);
+				obj.flipSelection(axis);
 			} else {
 				obj.flip(axis, center, false);
 			}
@@ -261,6 +261,43 @@ export function mirrorSelected(axis) {
 		Undo.finishEdit('Flip selection')
 		autoFixMeshEdit()
 	}
+}
+export function mirrorSelectedInPlace(axis) {
+	if (!Modes.edit) return;
+	if (!(Outliner.selected.length || Group.first_selected)) return;
+	Undo.initEdit({
+		elements: Outliner.selected,
+		groups: Format.bone_rig ? Group.all.filter(g => g.selected) : undefined,
+		outliner: Format.bone_rig || Group.first_selected,
+		selection: true
+	});
+	if (Format.bone_rig) {
+		for (let group of Group.multi_selected) {
+			function flipGroup(group) {
+				for (let i = 0; i < 3; i++) {
+					if (i !== axis) {
+						group.rotation[i] *= -1
+					}
+				}
+				flipNameOnAxis(group, axis, name => (!Group.all.find(g => g.name == name)), group.temp_data.old_name);
+				Canvas.updateAllBones([group]);
+			}
+			flipGroup(group);
+			group.forEachChild(flipGroup, Group);
+		}
+	}
+	Outliner.selected.forEach(function(obj) {
+		if (obj instanceof Mesh) {
+			obj.flipSelection(axis, obj.origin[axis], false);
+		} else if (obj instanceof Cube) {
+			obj.flip(axis, Math.lerp(obj.from[axis], obj.to[axis], 0.5), false);
+		} else {
+			obj.flip(axis, obj.origin[axis], false);
+		}
+	})
+	updateSelection();
+	Undo.finishEdit('Flip selection in place');
+	autoFixMeshEdit();
 }
 
 //Center
@@ -292,8 +329,7 @@ export function centerElements(axis, update) {
 }
 
 //Move
-export function moveElementsInSpace(difference, axis) {
-	let space = getEditTransformSpace();
+export function moveElementsInSpace(difference, axis, space = getEditTransformSpace()) {
 	let groups;
 	if (Format.bone_rig && Group.first_selected && (Group.multi_selected.length > 1 || Group.first_selected.matchesSelection())) {
 		groups = Group.multi_selected;
@@ -668,16 +704,30 @@ export function rotateOnAxis(modify, axis, slider) {
 			let verts;
 			if (mesh_cond) verts = Project.mesh_selection[obj.uuid].vertices
 			if (spline_cond) verts = Project.spline_selection[obj.uuid].vertices
-			verts.forEach(key => {
-				vector.fromArray(obj.vertices[key]);
+			verts.forEach(vkey => {
+				vector.fromArray(obj.vertices[vkey]);
 				vector.sub(local_pivot);
 				vector.applyQuaternion(q);
 				vector.add(local_pivot);
-				obj.vertices[key].V3_set(vector.x, vector.y, vector.z);
+				obj.vertices[vkey].V3_set(vector.x, vector.y, vector.z);
 				if (obj instanceof SplineMesh) {
-					obj.applyHandleModeOnVertex(key);
+					obj.applyHandleModeOnVertex(vkey);
 				}
 			})
+			if (obj instanceof Mesh) {
+				ProportionalEdit.editVertices(obj, (vkey, blend) => {
+					let initial = obj.vertices[vkey].slice();
+					vector.fromArray(initial);
+					vector.sub(local_pivot);
+					vector.applyQuaternion(q);
+					vector.add(local_pivot);
+					obj.vertices[vkey].V3_set(
+						Math.lerp(initial[0], vector.x, blend),
+						Math.lerp(initial[1], vector.y, blend),
+						Math.lerp(initial[2], vector.z, blend)
+					);
+				})
+			}
 
 		} else if (slider || (space == 2 && Format.rotation_limit)) {
 			var obj_val = modify(obj.rotation[axis]);
@@ -833,7 +883,36 @@ BARS.defineActions(function() {
 		category: 'edit'
 	})
 
+	function getParentTransformSpace() {
+		if (Format.bone_rig && Group.first_selected && Group.first_selected.matchesSelection()) {
+			if (Group.first_selected.parent instanceof Group) {
+				return Group.first_selected.parent;
+			} else {
+				return 0;
+			}
+		}
+		let bone = 0;
+		if (Outliner.selected.length) {
+			bone = Outliner.selected[0].parent;
+		} else if (Group.first_selected && Group.first_selected.parent instanceof Group) {
+			bone = Group.first_selected.parent;
+		}
+		for (var el of Outliner.selected) {
+			if (el.parent !== bone) {
+				bone = 0;
+				break;
+			}
+		}
+		return bone instanceof OutlinerNode ? bone : 0;
+	}
 	function moveOnAxis(modify, axis) {
+		if (toggle_pos_per_element.value == false) {
+			let old_value = getPos(axis);
+			let new_value = modify(old_value);
+			moveElementsInSpace(new_value - old_value, axis, getParentTransformSpace());
+			updateSelection();
+			return;
+		}
 		Outliner.selected.forEach(function(obj, i) {
 			let space_offset = 0;
 			if (settings.local_position_values.value &&
@@ -887,6 +966,9 @@ BARS.defineActions(function() {
 		TickUpdates.selection = true;
 	}
 	function getPos(axis) {
+		if (toggle_pos_per_element.value == false && Group.first_selected) {
+			return Group.first_selected.origin[axis];
+		}
 		let element = Outliner.selected[0];
 		let value = 0;
 		if ((element instanceof Mesh || element instanceof SplineMesh) && element.getSelectedVertices().length) {
@@ -910,71 +992,73 @@ BARS.defineActions(function() {
 		}
 		return value;
 	}
-	new NumSlider('slider_pos_x', {
-		name: tl('action.slider_pos', ['X']),
-		description: tl('action.slider_pos.desc', ['X']),
-		color: 'x',
+	const slider_pos_common_options = {
 		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
+		condition: () => (Outliner.selected.length && Modes.edit),
 		getInterval: getSpatialInterval,
-		get: function() {
-			return getPos(0);
-		},
-		change: function(modify) {
-			moveOnAxis(modify, 0)
-		},
 		onBefore: function() {
-			Undo.initEdit({elements: selected})
+			Undo.initEdit({
+				elements: Outliner.selected,
+				groups: toggle_pos_per_element.value ? [] : Group.all.filter(g => g.selected)
+			})
 		},
 		onAfter: function() {
 			Undo.finishEdit('Change element position')
 			autoFixMeshEdit()
 		}
+	}
+	new NumSlider('slider_pos_x', {
+		name: tl('action.slider_pos', ['X']),
+		description: tl('action.slider_pos.desc', ['X']),
+		color: 'x',
+		get() {
+			return getPos(0);
+		},
+		change(modify) {
+			moveOnAxis(modify, 0)
+		},
+		...slider_pos_common_options
 	}) 
 	new NumSlider('slider_pos_y', {
 		name: tl('action.slider_pos', ['Y']),
 		description: tl('action.slider_pos.desc', ['Y']),
 		color: 'y',
-		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
-		getInterval: getSpatialInterval,
-		get: function() {
+		get() {
 			return getPos(1);
 		},
-		change: function(modify) {
+		change(modify) {
 			moveOnAxis(modify, 1)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change element position')
-			autoFixMeshEdit()
-		}
+		...slider_pos_common_options
 	}) 
 	new NumSlider('slider_pos_z', {
 		name: tl('action.slider_pos', ['Z']),
 		description: tl('action.slider_pos.desc', ['Z']),
 		color: 'z',
-		category: 'transform',
-		condition: () => (selected.length && Modes.edit),
-		getInterval: getSpatialInterval,
-		get: function() {
+		get() {
 			return getPos(2);
 		},
-		change: function(modify) {
+		change(modify) {
 			moveOnAxis(modify, 2)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change element position')
-			autoFixMeshEdit()
-		}
+		...slider_pos_common_options
 	})
 	let slider_vector_pos = [BarItems.slider_pos_x, BarItems.slider_pos_y, BarItems.slider_pos_z];
 	slider_vector_pos.forEach(slider => slider.slider_vector = slider_vector_pos);
+
+	let toggle_pos_per_element = new Toggle('position_slider_per_element', {
+		icon: 'shuffle',
+		default: false,
+		category: 'transform',
+		condition: slider_pos_common_options.condition,
+		onChange() {
+			if (Condition(BarItems.slider_pos_x.condition)) {
+				BarItems.slider_pos_x.update();
+				BarItems.slider_pos_y.update();
+				BarItems.slider_pos_z.update();
+			}
+		}
+	})
 
 
 	function resizeOnAxis(modify, axis) {
@@ -995,6 +1079,7 @@ BARS.defineActions(function() {
 				if (obj.preview_controller.updateGeometry) obj.preview_controller.updateGeometry(obj);
 			}
 		})
+		if (ArmatureBone.hasSelected()) updateNslideValues();
 	}
 	new NumSlider('slider_size_x', {
 		name: tl('action.slider_size', ['X']),
@@ -1327,7 +1412,8 @@ BARS.defineActions(function() {
 
 	//Origin
 	function moveOriginOnAxis(modify, axis) {
-		var rotation_objects = getPivotObjects()
+		const lock = !origin_slider_direct_values.value;
+		var rotation_objects = getPivotObjects();
 
 		let modifyInSpace = (real_value, obj) => {
 			let space_offset = 0;
@@ -1340,11 +1426,18 @@ BARS.defineActions(function() {
 			return modify(real_value + space_offset) - space_offset;
 		}
 
+		console.log(rotation_objects)
 		if (rotation_objects && rotation_objects[0] instanceof Group) {
 			let elements_to_update = [];
 			for (let group of rotation_objects) {
 				let val = modifyInSpace(group.origin[axis], group);
-				group.origin[axis] = val;
+				if (lock) {
+					let origin_copy = group.origin.slice();
+					origin_copy[axis] = val;
+					group.transferOrigin(origin_copy);
+				} else {
+					group.origin[axis] = val;
+				}
 				group.forEachChild(element => elements_to_update.safePush(element), OutlinerElement);
 			}
 			Canvas.updateView({
@@ -1360,7 +1453,7 @@ BARS.defineActions(function() {
 		} else {
 			rotation_objects.forEach(function(obj, i) {
 				let val = modifyInSpace(obj.origin[axis], obj);
-				if (obj.transferOrigin && !obj.getTypeBehavior('use_absolute_position')) {
+				if (obj.transferOrigin && (!obj.getTypeBehavior('use_absolute_position') || lock)) {
 					let origin_copy = obj.origin.slice();
 					origin_copy[axis] = val;
 					obj.transferOrigin(origin_copy);
@@ -1368,7 +1461,13 @@ BARS.defineActions(function() {
 					obj.origin[axis] = val;
 				}
 			})
-			Canvas.updateView({elements: rotation_objects, element_aspects: {transform: true, geometry: true}, selection: true})
+			Canvas.updateView({
+				elements: rotation_objects,
+				element_aspects: {transform: true, geometry: true},
+				groups: Group.all,
+				group_aspects: {transform: true},
+				selection: true
+			})
 		}
 		if (Modes.animate) {
 			Animator.preview();
@@ -1394,13 +1493,34 @@ BARS.defineActions(function() {
 		}
 		return value;
 	}
+	const slider_origin_common_options = {
+		category: 'transform',
+		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
+		getInterval: getSpatialInterval,
+		onBefore: function() {
+			Undo.initEdit({elements: Outliner.selected, groups: Group.all.filter(g => g.selected)})
+		},
+		onAfter: function() {
+			Undo.finishEdit('Change pivot point')
+		}
+	};
+	let origin_slider_direct_values = new Toggle('origin_slider_direct_values', {
+		icon: 'view_real_size',
+		default: false,
+		category: slider_origin_common_options.category,
+		condition: () => {
+			if (!slider_origin_common_options.condition()) return false;
+			if (Group.first_selected) return true;
+			let first_element = Outliner.selected[0];
+			if (!first_element) return false;
+			return first_element.getTypeBehavior('has_pivot') && first_element.getTypeBehavior('use_absolute_position');
+		},
+	})
 	new NumSlider('slider_origin_x', {
 		name: tl('action.slider_origin', ['X']),
 		description: tl('action.slider_origin.desc', ['X']),
 		color: 'x',
-		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: getSpatialInterval,
+		...slider_origin_common_options,
 		get() {
 			return getOrigin(0);
 		},
@@ -1408,20 +1528,12 @@ BARS.defineActions(function() {
 			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 0)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.multi_selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change pivot point')
-		}
 	})
 	new NumSlider('slider_origin_y', {
 		name: tl('action.slider_origin', ['Y']),
 		description: tl('action.slider_origin.desc', ['Y']),
 		color: 'y',
-		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: getSpatialInterval,
+		...slider_origin_common_options,
 		get() {
 			return getOrigin(1);
 		},
@@ -1429,20 +1541,12 @@ BARS.defineActions(function() {
 			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 1)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.multi_selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change pivot point')
-		}
 	})
 	new NumSlider('slider_origin_z', {
 		name: tl('action.slider_origin', ['Z']),
 		description: tl('action.slider_origin.desc', ['Z']),
 		color: 'z',
-		category: 'transform',
-		condition: () => (Modes.edit || Modes.animate || Modes.pose) && getPivotObjects() && (Group.first_selected || Outliner.selected.length > Locator.selected.length),
-		getInterval: getSpatialInterval,
+		...slider_origin_common_options,
 		get() {
 			return getOrigin(2);
 		},
@@ -1450,12 +1554,6 @@ BARS.defineActions(function() {
 			if (Modes.pose) return;
 			moveOriginOnAxis(modify, 2)
 		},
-		onBefore: function() {
-			Undo.initEdit({elements: selected, groups: Group.multi_selected})
-		},
-		onAfter: function() {
-			Undo.finishEdit('Change pivot point')
-		}
 	})
 	let slider_vector_origin = [BarItems.slider_origin_x, BarItems.slider_origin_y, BarItems.slider_origin_z];
 	slider_vector_origin.forEach(slider => slider.slider_vector = slider_vector_origin);
@@ -1579,6 +1677,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_x',
 		color: 'x',
 		category: 'transform',
+		condition: {modes: ['edit', 'animate']},
 		click() {
 			mirrorSelected(0);
 		}
@@ -1588,6 +1687,7 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_y',
 		color: 'y',
 		category: 'transform',
+		modes: ['edit', 'animate'],
 		click() {
 			mirrorSelected(1);
 		}
@@ -1597,8 +1697,40 @@ BARS.defineActions(function() {
 		icon: 'icon-mirror_z',
 		color: 'z',
 		category: 'transform',
+		modes: ['edit', 'animate'],
 		click() {
 			mirrorSelected(2);
+		}
+	})
+
+	new Action('flip_in_place_x', {
+		name: tl('action.flip_in_place', 'X'),
+		icon: 'icon-mirror_x',
+		color: 'x',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(0);
+		}
+	})
+	new Action('flip_in_place_y', {
+		name: tl('action.flip_in_place', 'Y'),
+		icon: 'icon-mirror_y',
+		color: 'y',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(1);
+		}
+	})
+	new Action('flip_in_place_z', {
+		name: tl('action.flip_in_place', 'Z'),
+		icon: 'icon-mirror_z',
+		color: 'z',
+		category: 'transform',
+		condition: {modes: ['edit']},
+		click() {
+			mirrorSelectedInPlace(2);
 		}
 	})
 
@@ -1738,7 +1870,7 @@ BARS.defineActions(function() {
 	new Toggle('toggle_shade', {
 		icon: 'wb_sunny',
 		category: 'transform',
-		condition: () => Format.java_cube_shading_properties && Modes.edit,
+		condition: () => Format.java_cube_shading_properties && !Format.java_cube_shade_direction_override && Modes.edit,
 		onChange() {toggleElementProperty('shade')}
 	})
 	new Toggle('toggle_mirror_uv', {

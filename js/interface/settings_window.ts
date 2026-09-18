@@ -4,7 +4,21 @@ import { ipcRenderer } from "../native_apis";
 import { Plugins } from "../plugin_loader";
 import { compileJSON } from "../util/json";
 import { Dialog } from "./dialog";
+import { MenuItem } from "./menu";
 import { Setting, SettingsProfile } from "./settings";
+
+function rankSearchMatch(text: string, word: string, field_rank: number): number {
+	let words = text.split(/[^a-z0-9]+/).filter(part => part);
+	let is_word = (part: string) => part.startsWith(word) && part.length - word.length <= 2;
+	if (text == word) return 20 + field_rank * 4 + 4;
+	if (is_word(words[0] ?? '')) return 20 + field_rank * 4 + 3;
+	if (text.startsWith(word)) return 20 + field_rank * 4 + 2;
+	if (words.some(is_word)) return 20 + field_rank * 4 + 1;
+	if (words.some(part => part.startsWith(word))) return field_rank * 3 + 2;
+	if (words.some(part => part.endsWith(word))) return field_rank * 3 + 1;
+	if (text.includes(word)) return field_rank * 3;
+	return 0;
+}
 
 BARS.defineActions(() => {
 	new Action('settings_window', {
@@ -25,7 +39,6 @@ BARS.defineActions(() => {
 		icon: 'folder',
 		category: 'blockbench',
 		click: function () {
-			// @ts-ignore for now
 			Blockbench.import({
 				resource_id: 'config',
 				extensions: ['bbsettings'],
@@ -184,7 +197,7 @@ onVueSetup(function() {
 							this.profile.openDialog();
 						}}
 					)
-					// @ts-ignore
+					// @ts-expect-error
 					new Menu('settings_profiles', items).open(this.$refs.profile_menu)
 				},
 				profileButtonPress(this: SettingsDialogVueData) {
@@ -225,28 +238,28 @@ onVueSetup(function() {
 			computed: {
 				list() {
 					if (this.search_term) {
-						var keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ');
-						var items = {};
-						for (var key in settings) {
-							var setting = settings[key];
-							if (Condition(setting.condition)) {
-								var name = setting.name.toLowerCase();
-								var desc = setting.description.toLowerCase();
-								var missmatch = false;
-								for (var word of keywords) {
-									if (
-										!key.includes(word) &&
-										!name.includes(word) &&
-										!desc.includes(word)
-									) {
-										missmatch = true;
-									}
-								}
-								if (!missmatch) {
-									items[key] = setting;
-								}
+						let keywords = this.search_term.toLowerCase().replace(/_/g, ' ').split(' ').filter(word => word);
+						let matches: {key: string, setting: Setting, worst: number, total: number}[] = [];
+						for (let key in settings) {
+							let setting = settings[key];
+							if (!Condition(setting.condition)) continue;
+							let fields: [string, number][] = [
+								[setting.name.toLowerCase(), 4],
+								[key.replace(/_/g, ' '), 3],
+								[setting.description.toLowerCase(), 1]
+							];
+							if (setting.plugin) {
+								fields.push([((Plugins.all.find(plugin => plugin.id == setting.plugin)?.title ?? setting.plugin) + ' plugin').toLowerCase(), 2]);
 							}
+							let ranks = keywords.map(word => {
+								return Math.max(...fields.map(([text, field_rank]) => rankSearchMatch(text, word, field_rank)));
+							});
+							if (ranks.includes(0)) continue;
+							matches.push({key, setting, worst: Math.min(...ranks), total: ranks.reduce((a, b) => a + b, 0)});
 						}
+						matches.sort((a, b) => (b.worst - a.worst) || (b.total - a.total));
+						let items = {};
+						for (let match of matches) items[match.key] = match.setting;
 						return items;
 					} else {
 						return this.structure[this.open_category].items;
@@ -350,7 +363,7 @@ onVueSetup(function() {
 						setting.onChange(setting.value);
 					}
 					if (isApp && setting.launch_setting) {
-						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value})
+						ipcRenderer.send('edit-launch-setting', {key: id, value: setting.value});
 					}
 				}
 			}
