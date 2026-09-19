@@ -353,34 +353,35 @@ export class Animation extends AnimationItem {
 			}
 		}
 	}
-	getBoneAnimator(group) {
-		if (!group && Group.first_selected) {
-			group = Group.first_selected;
-		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
-			group = Outliner.selected[0];
-		} else if (!group) {
+	getBoneAnimator(node) {
+		if (!node && Group.first_selected) {
+			node = Group.first_selected;
+		} else if (!node && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+			node = Outliner.selected[0];
+		} else if (!node) {
 			return;
 		}
-		if (!group.constructor.animator) return;
-		if (group.scope && group.scope != this.scope && Project.getMultiFileRuleset()?.scope_isolated_animations) return;
+		if (!node.constructor.animator) return;
+		if (node.scope && node.scope != this.scope && Project.getMultiFileRuleset()?.scope_isolated_animations) return;
 
-		let uuid = group.uuid;
+		let uuid = node.uuid;
 		if (!this.animators[uuid]) {
 			let match;
 			for (let uuid2 in this.animators) {
+				if (node instanceof Group == false) break;
 				let animator = this.animators[uuid2];
 				if (
-					animator instanceof BoneAnimator &&
-					animator._name && animator._name.toLowerCase() === group.name.toLowerCase() &&
+					animator instanceof BoneAnimator && animator.type == 'bone' &&
+					animator._name && animator._name.toLowerCase() === node.name.toLowerCase() &&
 					!animator.group
 				) {
 					match = animator;
-					match.uuid = group.uuid;
+					match.uuid = node.uuid;
 					this.removeAnimator(uuid2);
 					break;
 				}
 			}
-			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
+			this.animators[uuid] = match || new node.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
 	}
