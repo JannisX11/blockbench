@@ -1,14 +1,12 @@
 attribute float highlight;
 
 uniform bool SHADE;
+uniform int SHADEMODE;
+SHADING_UNIFORMS
 
 varying vec2 vUv;
 varying float light;
 varying float lift;
-
-float AMBIENT = 0.5;
-float XFAC = -0.15;
-float ZFAC = 0.05;
 
 void main()
 {
@@ -17,9 +15,7 @@ void main()
 
 		vec3 N = normalize( vec3( modelMatrix * vec4(normal, 0.0) ) );
 
-
-		float yLight = (1.0+N.y) * 0.5;
-		light = yLight * (1.0-AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
+		SHADING_MODES
 
 	} else {
 
