@@ -1,7 +1,7 @@
 <template>
 	<div class="wheel_color_picker" :style="{height: height + 'px', '--size': height + 'px', '--hue': hsv.h + 'deg'}" @pointerdown="pointerDown($event, 'hue')">
 		<div class="wheel_color_picker--ring" ref="reference">
-			<div class="wheel_color_picker--island" @pointerdown.stop="pointerDown($event, 'triangle')">
+			<div class="wheel_color_picker--island" :class="{rotate_with_hue: rotate}" @pointerdown.stop="pointerDown($event, 'triangle')">
 				<div class="wheel_color_picker--triangle" ref="triangle"></div>
 				<div class="wheel_color_picker--cursor"
 					:style="{left: `calc(7.5% + ${position.x}px)`, top: position.y + 'px'}"
@@ -58,6 +58,7 @@ export default {
 	props: {
 		width: Number,
 		height: Number,
+		rotate: Boolean,
 		hsv: Object
 	},
 	data() {return {
@@ -107,7 +108,9 @@ export default {
 					hsv.h = (360 + 90 + hue) % 360;
 				} else {
 					const pos = new THREE.Vector2(x, y);
-					pos.rotateAround({x: bounding_box.width/2, y: bounding_box.height/2}, Math.degToRad(-this.hsv.h));
+					if (this.rotate) {
+						pos.rotateAround({x: bounding_box.width/2, y: bounding_box.height/2}, Math.degToRad(-this.hsv.h));
+					}
 					pos.y -= triangle.parentElement.offsetTop;
 					pos.x -= triangle.parentElement.offsetLeft + triangle.offsetLeft;
 					const top   = { x: triangle.clientWidth/2, y: 0  };
@@ -158,6 +161,8 @@ export default {
 		bottom: var(--ring-width);
 		border-radius: 50%;
 		background-color: var(--color-ui);
+	}
+	.wheel_color_picker--island.rotate_with_hue {
 		rotate: var(--hue);
 	}
 	.wheel_color_picker--hue_cursor {

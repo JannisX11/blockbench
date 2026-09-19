@@ -2775,5 +2775,6 @@
 	"reference_image.view_mode.plane": "3D Plane",
 	"preview_model.minecraft_crafting_table": "Minecraft Crafting Table",
 	"dialog.extrude.animated": "Animated Texture",
-	"dialog.scale.box_uv_warning_required": "Scaling cubes that use Box UV may break the UV mapping. Instead, try to scale your model during implementation, or use Inflate."
+	"dialog.scale.box_uv_warning_required": "Scaling cubes that use Box UV may break the UV mapping. Instead, try to scale your model during implementation, or use Inflate.",
+	"menu.color_picker.picker_type.wheel_static": "Wheel (Static)"
 }

@@ -187,6 +187,7 @@ function setupSettings() {
 		options: {
 			box: 'menu.color_picker.picker_type.square',
 			wheel: 'menu.color_picker.picker_type.wheel',
+			wheel_static: 'menu.color_picker.picker_type.wheel_static',
 			normal: 'menu.color_picker.picker_type.normal',
 		},
 		onChange(value) {

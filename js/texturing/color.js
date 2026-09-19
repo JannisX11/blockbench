@@ -582,18 +582,38 @@ Interface.definePanels(() => {
 							name: 'menu.color_picker.picker_type',
 							icon: 'palette',
 							children: [
-								{name: 'menu.color_picker.picker_type.square', icon: Settings.get('color_picker_style') == 'box' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									settings.color_picker_style.set('box');
-									Panels.color.onResize();
-								}},
-								{name: 'menu.color_picker.picker_type.wheel', icon: Settings.get('color_picker_style') == 'wheel' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									settings.color_picker_style.set('wheel');
-									Panels.color.onResize();
-								}},
-								{name: 'menu.color_picker.picker_type.normal', icon: Settings.get('color_picker_style') == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle', click: () => {
-									settings.color_picker_style.set('normal');
-									Panels.color.onResize();
-								}},
+								{
+									name: 'menu.color_picker.picker_type.square',
+									icon: Settings.get('color_picker_style') == 'box' ? 'far.fa-dot-circle' : 'far.fa-circle',
+									click: () => {
+										settings.color_picker_style.set('box');
+										Panels.color.onResize();
+									}
+								},
+								{
+									name: 'menu.color_picker.picker_type.wheel_static',
+									icon: Settings.get('color_picker_style') == 'wheel_static' ? 'far.fa-dot-circle' : 'far.fa-circle',
+									click: () => {
+										settings.color_picker_style.set('wheel_static');
+										Panels.color.onResize();
+									}
+								},
+								{
+									name: 'menu.color_picker.picker_type.wheel',
+									icon: Settings.get('color_picker_style') == 'wheel' ? 'far.fa-dot-circle' : 'far.fa-circle',
+									click: () => {
+										settings.color_picker_style.set('wheel');
+										Panels.color.onResize();
+									}
+								},
+								{
+									name: 'menu.color_picker.picker_type.normal',
+									icon: Settings.get('color_picker_style') == 'normal' ? 'far.fa-dot-circle' : 'far.fa-circle',
+									click: () => {
+										settings.color_picker_style.set('normal');
+										Panels.color.onResize();
+									}
+								},
 							]
 						},
 						{
@@ -733,7 +753,8 @@ Interface.definePanels(() => {
 						<div v-show="picker_type == 'box'" ref="square_picker" :style="{maxWidth: width + 'px', '--height': picker_height + 'px'}">
 							<input id="main_colorpicker">
 						</div>
-						<color-picker-wheel v-if="picker_type == 'wheel' && width" :hsv="hsv" @input="changeHsv" :width="width" :height="width"></color-picker-wheel>
+						<color-picker-wheel v-if="picker_type == 'wheel_static' && width" :rotate="false" :hsv="hsv" @input="changeHsv" :width="width" :height="width"></color-picker-wheel>
+						<color-picker-wheel v-if="picker_type == 'wheel' && width" :rotate="true" :hsv="hsv" @input="changeHsv" :width="width" :height="width"></color-picker-wheel>
 						<color-picker-normal v-if="picker_type == 'normal' && width" :value="selected_color" @input="changeColor" :width="width" :height="width"></color-picker-normal>
 						<div class="toolbar_wrapper color_picker" toolbar="color_picker"></div>
 					</div>
