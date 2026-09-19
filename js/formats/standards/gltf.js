@@ -1,3 +1,5 @@
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { getResourceURL, loadThreeModel, parseWithResources } from "../../io/three_import";
 import { THREE } from "../../lib/libs";
 import { Armature } from "../../outliner/types/armature";
 
@@ -512,6 +514,25 @@ var codec = new Codec('gltf', {
 	name: 'GLTF Model',
 	extension: 'gltf',
 	support_partial_export: true,
+	load_filter: {
+		type: 'binary',
+		readtype: 'buffer',
+		extensions: ['gltf', 'glb']
+	},
+	async load(content, file, args = {}) {
+		let gltf = await parseWithResources(manager => new Promise((resolve, reject) => {
+			new GLTFLoader(manager).parse(content, getResourceURL(file.path), resolve, reject);
+		}));
+		if (!gltf) return Blockbench.showMessageBox({translateKey: 'invalid_model'});
+
+		await loadThreeModel(gltf.scene, file, this, {
+			scale: args.scale,
+			import_to_current_project: args.import_to_current_project
+		});
+		if (!args.import_to_current_project && pathToExtension(file.path) == 'glb') {
+			Project.export_options[this.id] = {...Project.export_options[this.id], encoding: 'binary'};
+		}
+	},
 	export_options: {
 		encoding: {type: 'select', label: 'codec.common.encoding', options: {ascii: 'ASCII (glTF)', binary: 'Binary (glb)'}},
 		scale: {label: 'settings.model_export_scale', type: 'number', value: Settings.get('model_export_scale')},
@@ -637,4 +658,35 @@ Object.assign(window, {
 	buildSkinnedMesh,
 	buildSkinnedMeshMerged,
 	buildSkinnedMeshFromGroup
+})
+
+BARS.defineActions(function() {
+	let import_dialog;
+	new Action('import_gltf', {
+		icon: 'view_in_ar',
+		category: 'file',
+		condition: {modes: ['edit'], method: () => Format.meshes},
+		click() {
+			if (!import_dialog) {
+				import_dialog = new Dialog('import_gltf', {
+					title: 'action.import_gltf',
+					form: {
+						model: {
+							type: 'file', label: 'dialog.import_model.file', return_as: 'file',
+							extensions: ['gltf', 'glb'], resource_id: 'model', filetype: codec.name, readtype: 'buffer'
+						},
+						scale: {type: 'number', label: 'dialog.import_model.scale', value: Settings.get('model_export_scale')}
+					},
+					onConfirm(result) {
+						if (!result.model) return;
+						codec.load(result.model.content, result.model, {
+							import_to_current_project: true,
+							scale: result.scale
+						});
+					}
+				})
+			}
+			import_dialog.show();
+		}
+	})
 })
