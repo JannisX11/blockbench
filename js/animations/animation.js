@@ -177,12 +177,8 @@ export class Animation extends AnimationItem {
 			Group.all.concat(Outliner.elements).forEach(node => {
 				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
-				Animator.animations.forEach(animation => {
-					let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-					if (animation.playing) {
-						animation.getBoneAnimator(node)?.displayFrame(multiplier);
-					}
-				})
+				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
+				this.getBoneAnimator(node)?.displayFrame(multiplier);
 			})
 			NullObject.all.forEach(node => {
 				if (!node.ik_target) return;
