@@ -116,7 +116,6 @@ BARS.defineActions(() => {
 								<li><a class="open-in-browser" href="https://github.com/sagalbot/vue-sortable">Vue Sortable</a></li>
 								<li><a class="open-in-browser" href="https://threejs.org">ThreeJS</a></li>
 								<li><a class="open-in-browser" href="https://bgrins.github.io/spectrum">Spectrum</a></li>
-								<li><a class="open-in-browser" href="https://github.com/jnordberg/gif.js">gif.js</a></li>
 								<li><a class="open-in-browser" href="https://github.com/mattdesl/gifenc">gifenc</a></li>
 								<li><a class="open-in-browser" href="https://stuk.github.io/jszip/">JSZip</a></li>
 								<li><a class="open-in-browser" href="https://github.com/rotemdan/lzutf8.js">LZ-UTF8</a></li>
