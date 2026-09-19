@@ -3148,7 +3148,8 @@ Interface.definePanels(function() {
 					let offset = $(this.$refs.viewport).offset();
 					UVEditor.total_zoom_offset = [6, 6];
 					let force = event.touches?.[0]?.force;
-					if (event.touches && (!force || force == 0.5) && !Toolbox.selected.paintTool && event.target.id == 'uv_frame') {
+					// TODO: Figure out how to exclude stylus but include touch event with force value from touch navigation. Currently uses web app flag to enable navigation for phones
+					if (event.touches && (!force || force == 0.5 || !isApp) && !Toolbox.selected.paintTool && (event.target.id == 'uv_frame' || event.target.id == 'uv_background')) {
 						// Drag (touch only)
 						if (event.touches) {
 							event.clientX = event.touches[0].clientX;
