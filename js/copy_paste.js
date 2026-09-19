@@ -315,13 +315,13 @@ export const Clipbench = {
 		}
 		Outliner.selected.length = 0
 		if (isApp) {
-			var raw = clipboard.readHTML()
+			let raw = clipboard.readHTML()
 			try {
-				var data = JSON.parse(raw)
+				let data = JSON.parse(raw)
 				if (data.type === 'elements' && data.content) {
 					Clipbench.groups = undefined;
 					Clipbench.elements = data.content;
-				} else if (data.type === 'group' && data.content) {
+				} else if (data.type === 'groups' && data.content) {
 					Clipbench.groups = data.content;
 					Clipbench.elements = [];
 				}
