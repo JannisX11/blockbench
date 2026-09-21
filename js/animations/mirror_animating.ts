@@ -38,12 +38,12 @@ function flipCopyKeyframes(options: FlipCopyKeyframesOptions):
 			if (!animator[channel]) return;
 			let kfs: TKeyframe[];
 			if (options.clear_opposite) {
-				kfs = animator[channel].slice();;
+				kfs = animator[channel].slice();
 			} else {
 				kfs = original_keyframes.filter(kf => kf.channel == channel && kf.animator == animator);
 			}
 			if (!kfs.length) return;
-			let order: 0|1 = 0;;
+			let order: 0|1 = 0;
 			if (!opposite_animator) {
 				let name = flipNameOnAxis(
 					{name: animator.name},

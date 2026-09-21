@@ -1208,7 +1208,7 @@ export class ToolConfig extends ConfigDialog {
 		this.options = {};
 		let config_saved_data: Record<string, FormResultValue>;
 		try {
-			let stored = localStorage.getItem(`tool_config.${this.id}`);;
+			let stored = localStorage.getItem(`tool_config.${this.id}`);
 			config_saved_data = JSON.parse(stored);
 			if (!config_saved_data) config_saved_data = {};
 		} catch (err) {
