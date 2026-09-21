@@ -2612,8 +2612,8 @@ BARS.defineActions(function() {
 					if (!face || face == face1) return;
 					face.vertices.forEach(vkey => {
 						if (!face.uv[vkey]) return;;
-						face.uv[vkey][0] = face.uv[vkey][0];
-						face.uv[vkey][1] = face.uv[vkey][1];
+						face.uv[vkey][0] = face.uv[vkey][0] + offset[0];
+						face.uv[vkey][1] = face.uv[vkey][1] + offset[1];
 						if (UVEditor.isUVClamped()) {
 							face.uv[vkey][0] = Math.clamp(face.uv[vkey][0], 0, Project.texture_width);
 							face.uv[vkey][1] = Math.clamp(face.uv[vkey][1], 0, Project.texture_height);
