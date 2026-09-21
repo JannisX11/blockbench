@@ -2776,5 +2776,5 @@
 	"preview_model.minecraft_crafting_table": "Minecraft Werkbank",
 	"dialog.extrude.animated": "Animierte Textur",
 	"dialog.scale.box_uv_warning_required": "Das Skalieren von Quadern, die Box UV verwenden, kann die UV Map zerstören. Versuche stattdessen, das Modell beim Implementieren zu skalieren, oder verwende die Funktion \"Aufblasen\".",
-	"menu.color_picker.picker_type.wheel_static": "Wheel (Static)"
+	"menu.color_picker.picker_type.wheel_static": "Farbrad (statisch)"
 }
