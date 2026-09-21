@@ -1197,7 +1197,7 @@ export const UVEditor = {
 				}
 			})
 			obj.autouv = 0;
-			obj.preview_controller.updateUV(obj);;
+			obj.preview_controller.updateUV(obj);
 		})
 		this.message('uv_editor.turned');
 		this.loadData();
@@ -1652,7 +1652,7 @@ export const UVEditor = {
 				this.getSelectedFaces(obj).forEach(face => {
 					obj.faces[face].rotation = value;
 				})
-				obj.preview_controller.updateUV(obj);;
+				obj.preview_controller.updateUV(obj);
 			})
 		}
 		let rect = this.vue.getSelectedUVBoundingBox();
@@ -2611,9 +2611,9 @@ BARS.defineActions(function() {
 					let face = mesh.faces[fkey];
 					if (!face || face == face1) return;
 					face.vertices.forEach(vkey => {
-						if (!face.uv[vkey]) return;;
-						face.uv[vkey][0] = face.uv[vkey][0];
-						face.uv[vkey][1] = face.uv[vkey][1];
+						if (!face.uv[vkey]) return;
+						face.uv[vkey][0] = face.uv[vkey][0] + offset[0];
+						face.uv[vkey][1] = face.uv[vkey][1] + offset[1];
 						if (UVEditor.isUVClamped()) {
 							face.uv[vkey][0] = Math.clamp(face.uv[vkey][0], 0, Project.texture_width);
 							face.uv[vkey][1] = Math.clamp(face.uv[vkey][1], 0, Project.texture_height);
@@ -4410,7 +4410,6 @@ Interface.definePanels(function() {
 					let create_selection = Toolbox.selected.id == 'selection_tool'
 						&& !move_with_selection_tool
 						&& !event.target.classList.contains('uv_layer_transform_handles');
-					let initial_offset = layer ? layer.offset.slice() : [0, 0];
 					let initial_offsets = new Map();
 					layers.forEach(l => initial_offsets.set(l, l.offset.slice()));
 
@@ -4550,11 +4549,14 @@ Interface.definePanels(function() {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.selectionToLayer(false, (e1.altKey || Pressing.overrides.alt));
 									layer = texture.getActiveLayer();
-									initial_offset = layer.offset.slice();
+									layers = [layer];
+									initial_offsets.set(layer, layer.offset.slice());
 								} else if (!layer) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									texture.activateLayers(false);
 									layer = texture.getActiveLayer();
+									layers = [layer];
+									initial_offsets.set(layer, layer.offset.slice());
 								/*} else if (event.altKey || Pressing.overrides.alt) {
 									Undo.initEdit({textures: [texture], bitmap: true});
 									let old_layer = texture.selected_layer;

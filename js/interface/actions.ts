@@ -577,7 +577,7 @@ export class Action extends BarItem {
 		this.nodes.forEach(node => {
 			let tooltip = node.querySelector('.tooltip');
 			if (tooltip && tooltip.firstChild) {
-				tooltip.firstChild.textContent = this.name;;
+				tooltip.firstChild.textContent = this.name;
 			}
 		})
 		let menu_span = this.menu_node.querySelector('span');

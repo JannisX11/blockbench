@@ -512,23 +512,31 @@ const codec = new Codec('java_block', {
 					return;
 				}
 			} else {
-				Blockbench.showMessageBox({
-					translateKey: 'child_model_only',
-					icon: 'info',
-					message: tl('message.child_model_only.message', [model.parent]),
-					commands: can_open && {
-						resolve: {text: 'message.child_model_only.resolve', description: 'message.child_model_only.resolve.desc'},
-						open: {text: 'message.child_model_only.open', description: 'message.child_model_only.open.desc'}
-					}
-				}, result => {
-					if (result == 'resolve') {
-						openParentModel();
-					} else if (result == 'open') {
-						this.parse(model, path, {...child_args, open_parent_after: true});
-					} else {
-						this.parse(model, path, child_args);
-					}
-				})
+				const showDialog = () => {
+					Blockbench.showMessageBox({
+						translateKey: 'child_model_only',
+						icon: 'info',
+						message: tl('message.child_model_only.message', [model.parent]),
+						commands: can_open && {
+							resolve: {text: 'message.child_model_only.resolve', description: 'message.child_model_only.resolve.desc'},
+							open: {text: 'message.child_model_only.open', description: 'message.child_model_only.open.desc'}
+						}
+					}, result => {
+						if (result == 'resolve') {
+							openParentModel();
+						} else if (result == 'open') {
+							this.parse(model, path, {...child_args, open_parent_after: true});
+						} else {
+							this.parse(model, path, child_args);
+						}
+					})
+				}
+				let project = Project;
+				setTimeout(() => {
+					project.whenNextOpen(() => {
+						showDialog();
+					});
+				}, 1);
 				return;
 			}
 		}

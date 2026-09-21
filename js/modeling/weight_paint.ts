@@ -121,6 +121,7 @@ new Tool('weight_brush', {
 		
 		let last_click_pos = [0, 0];
 		const draw = (event: MouseEvent, data?: CanvasClickData|false) => {
+			if (Preview.selected.controls.hasMoved) return;
 			let radius = size_slider.get();
 			let click_pos = [
 				event.clientX - preview_offset.left,

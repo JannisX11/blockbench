@@ -339,7 +339,7 @@ export class Preview {
 		this.angle = null;
 		this.camPers = new THREE.PerspectiveCamera(settings.fov.value as number, 16 / 9, settings.camera_near_plane.value as number||1, 30000);
 		// @ts-expect-error
-		this.camOrtho = new THREE.OrthographicCamera(-131072, 131072, -131072, 131072, -131072, 131072);
+		this.camOrtho = new THREE.OrthographicCamera(-8000, 8000, -8000, 8000, -8000, 12_000);
 		this.camOrtho.backgroundHandle = [{n: false, a: 'x'}, {n: false, a: 'y'}]
 		this.camOrtho.axis = null
 		this.camOrtho.zoom = 0.5

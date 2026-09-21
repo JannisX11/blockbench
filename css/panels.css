@@ -1245,7 +1245,7 @@
 		position: relative;
 	}
 	.animation[order="-1"]::before {
-		margin-top: -9px;
+		margin-top: 0;
 	}
 	.animation[order="1"]::before {
 		bottom: -1px;
