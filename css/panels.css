@@ -2446,6 +2446,22 @@ span.controller_state_section_info {
 		pointer-events: none;
 		position: relative;
 	}
+	#uv_frame > #uv_tiling_grid {
+		position: absolute;
+		pointer-events: none;
+		top: 0;
+		left: 0;
+		width: 300%;
+		height: 300%;
+		margin-top: calc(-1 * var(--inner-height));
+		margin-left: calc(-1 * var(--inner-width));
+	}
+	#uv_tiling_grid path {
+		fill: none;
+		stroke: var(--color-grid);
+		stroke-width: 1px;
+		vector-effect: non-scaling-stroke;
+	}
 	#uv_texture_grid {
 		position: absolute;
 		pointer-events: none;

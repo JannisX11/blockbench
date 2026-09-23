@@ -3676,6 +3676,7 @@ BARS.defineActions(function() {
 				BarItems.image_onion_skin_view.set(false);
 			}
 			UVEditor.vue.overlay_canvas_mode = value ? 'tiled' : null;
+			UVEditor.vue.tiling_grid = Painter.image_tiled_view_options.tiling_grid;
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
 		},
@@ -3686,9 +3687,15 @@ BARS.defineActions(function() {
 					label: 'menu.image_tiled_view.mirrored',
 					type: 'checkbox',
 					value: false
+				},
+				tiling_grid: {
+					label: 'menu.image_tiled_view.tiling_grid',
+					type: 'checkbox',
+					value: false
 				}
 			},
 			onFormChange(result) {
+				UVEditor.vue.tiling_grid = result.tiling_grid;
 				UVEditor.updateOverlayCanvas();
 			}
 		})
