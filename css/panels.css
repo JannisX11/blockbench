@@ -2412,6 +2412,10 @@ span.controller_state_section_info {
 	body[mode=paint] #uv_viewport.tiled_mode {
 		cursor: crosshair;
 	}
+	body[mode=paint][tool=color_picker] #uv_frame,
+	body[mode=paint][tool=color_picker] #uv_viewport.tiled_mode {
+		cursor: var(--cursor-color-picker, crosshair);
+	}
 	#uv_frame > #texture_canvas_wrapper > canvas,
 	#uv_frame > img {
 		position: absolute;
