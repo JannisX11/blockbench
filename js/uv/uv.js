@@ -3157,6 +3157,10 @@ Interface.definePanels(function() {
 						let {viewport} = this.$refs;
 						let margin = this.getFrameMargin();
 						let margin_center = [this.width/2, this.height/2];
+						let margin_end = [
+							viewport.scrollWidth - viewport.clientWidth - margin[0],
+							viewport.scrollHeight - viewport.clientHeight - margin[1]
+						];
 						let original = [
 							viewport.scrollLeft - 5,
 							viewport.scrollTop - 5
@@ -3187,8 +3191,8 @@ Interface.definePanels(function() {
 									}
 								}
 							}
-							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0]], 10);
-							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1]], 10);
+							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0], margin_end[0]], 10);
+							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1], margin_end[1]], 10);
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
@@ -3226,13 +3230,17 @@ Interface.definePanels(function() {
 						let {viewport} = this.$refs;
 						let margin = this.getFrameMargin();
 						let margin_center = [this.width/2, this.height/2];
+						let margin_end = [
+							viewport.scrollWidth - viewport.clientWidth - margin[0],
+							viewport.scrollHeight - viewport.clientHeight - margin[1]
+						];
 						let original = [
 							viewport.scrollLeft - 5,
 							viewport.scrollTop - 5
 						];
 						function dragMouseWheel(e2) {
-							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0]], 10);
-							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1]], 10);
+							viewport.scrollLeft = Math.snapToValues(original[0] + event.clientX - e2.clientX + UVEditor.total_zoom_offset[0], [margin[0], margin_center[0], margin_end[0]], 10);
+							viewport.scrollTop = Math.snapToValues(original[1] + event.clientY - e2.clientY + UVEditor.total_zoom_offset[1], [margin[1], margin_center[1], margin_end[1]], 10);
 
 							UVEditor.vue.centered_view = (viewport.scrollLeft == margin[0] || viewport.scrollLeft == margin_center[0])
 														&& (viewport.scrollTop == margin[1] || viewport.scrollTop == margin_center[1]);
@@ -5049,6 +5057,10 @@ Interface.definePanels(function() {
 						:style="{width: (width+8) + 'px', height: (height+8) + 'px', overflowX: (zoom > 1) ? 'scroll' : 'hidden', overflowY: (inner_height > height) ? 'scroll' : 'hidden'}"
 					>
 
+						<div class="uv_viewport_edges">
+							<div class="uv_viewport_edge_left"></div>
+							<div class="uv_viewport_edge_right"></div>
+						</div>
 						<div id="uv_background" :style="{
 							padding: (getFrameMargin()[1]) + 'px ' + (getFrameMargin()[0]) + 'px',
 							width: (inner_width + 8 + getFrameMargin()[0]*2)+'px',
