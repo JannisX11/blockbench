@@ -1244,10 +1244,9 @@ BARS.defineActions(function() {
 	})
 	function selectKeyframes(select_condition) {
 		Timeline.selected.empty();
-		Timeline.animators.forEach(animator => {
-			if (animator instanceof BoneAnimator == false) return;
-			channels.forEach(channel => {
-				if (Timeline.vue.channels[channel] !== false && animator[channel] && animator[channel].length) {
+		Timeline.animators.forEach((animator) => {
+			for (let channel in animator.channels) {
+				if (Timeline.vue.channels[channel] !== false && animator[channel]?.length) {
 					animator[channel].forEach(kf => {
 						if (Timeline.vue.channels[kf.channel] === false) return;
 						if (select_condition(kf)) {
@@ -1256,7 +1255,7 @@ BARS.defineActions(function() {
 						}
 					})
 				}
-			})
+			}
 		})
 		updateKeyframeSelection();
 	}
