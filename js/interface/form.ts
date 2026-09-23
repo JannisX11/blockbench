@@ -563,7 +563,7 @@ FormElement.types.text = class FormElementText extends FormElement {
 				node.value = value;
 				list.append(node);
 			}
-			bar.append(list[0]);
+			bar.append(list);
 		}
 		if (this.options.type == 'password') {
 
