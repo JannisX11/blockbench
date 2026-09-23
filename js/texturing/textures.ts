@@ -7,41 +7,235 @@ import { Filesystem } from '../file_system';
 import { isImageEditorValid } from '../desktop';
 import { editUVSizeDialog } from '../uv/uv_size';
 import { decodeTga, encodeTga } from '@lunapaint/tga-codec';
-import { pathToExtension } from '../util/util';
+import { findNodeUnderCursor, isNodeUnderCursor, pathToExtension } from '../util/util';
 import { ScopeColors } from '../multi_file_editing';
+import { guid } from '../util/math_util';
+import { TextureLayerData } from './layers';
+import { ExternalDataLoader } from '../io/codec';
+import { InputFormConfig } from '../interface/form';
+import { mouse_pos } from '../misc';
+
+export interface FileFormatOptions {
+	name: string
+	extensions: string[],
+	encode?(texture: Texture): Promise<Uint8Array>
+	decode?(data: Uint8Array, texture: Texture): Promise<void>
+}
+export interface TextureData {
+	path?: string
+	uuid?: string
+	name?: string
+	/**
+	 * Relative path to the file's directory, used by some formats such as Java Block/Item
+	 * */
+	folder?: string
+	namespace?: string
+	/**
+	 * Texture ID or key, used by some formats. By default this is a number that increases with every texture that is added
+	 * */
+	id?: string
+	/**
+	 * Whether the texture is used for the models particle system. Used by some formats such as Java Block/Item
+	 * */
+	particle?: boolean
+	visible?: boolean
+	render_mode?: 'default' | 'emissive' | 'additive' | 'layered' | string
+	render_sides?: 'auto' | 'front' | 'double' | string
+	wrap_mode?: 'limited' | 'repeat' | 'clamp'
+	pbr_channel?: 'color' | 'normal' | 'height' | 'mer'
+	fps?: number
+	/**
+	 * UUID of the texture group that the texture is in
+	 */
+	group?: string
+	scope?: number
+
+	/**
+	 * Texture animation frame time
+	 * */
+	frame_time?: number
+	frame_order_type?: 'custom' | 'loop' | 'backwards' | 'back_and_forth'
+	/**
+	 * Custom frame order
+	 * */
+	frame_order?: string
+	/**
+	 * Interpolate between frames
+	 * */
+	frame_interpolate?: boolean
+	/**
+	 * Whether the texture is saved
+	 */
+	saved?: boolean
+	/**
+	 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
+	 */
+	internal?: boolean
+	/**
+	 * Flag to indicate that the texture was manually resized, and on load it should not try to automatically adjust UV size
+	 */
+	keep_size?: boolean
+	sync_to_project?: boolean
+	source?: string
+	width?: number
+	height?: number
+	standalone?: boolean
+	relative_path?: string
+	layers?: TextureLayerData[]
+	layers_enabled?: boolean
+	selected_layer?: string
+	file_format?: string
+	selected?: boolean
+	old_width?: number
+	old_height?: number
+	image_data?: string
+}
+export interface TextureEditOptions {
+	/**
+	 * Edit method. 'canvas' is default
+	 */
+	method?: 'canvas' | 'jimp'
+	/**
+	 * Name of the undo entry that is created
+	 */
+	edit_name?: string
+	/**
+	 * Whether to use the cached canvas/jimp instance
+	 */
+	use_cache?: boolean
+	/**
+	 * If true, no undo point is created. Default is false
+	 */
+	no_undo?: boolean
+	/**
+	 * If true, the texture is not updated visually
+	 */
+	no_update?: boolean
+	no_undo_init?: boolean
+	no_undo_finish?: boolean
+}
+type ExtendedShaderMaterial = THREE.ShaderMaterial & {map: any};
+export type MCMetaJSON = {
+	animation?: {
+		frametime: number
+		width?: number
+		height?: number
+		interpolate?: boolean
+		frames?: (number|{index: number, time: number})[]
+	}
+	texture?: {
+		mipmap_strategy?: 'strict_cutout' | 'dark_cutout' | 'mean'
+		alpha_cutoff_bias?: number
+	}
+}
+
 
 let tex_version = 1;
 
-//Textures
+/**
+ * A texture combines the functionality of material, texture, and image, in one. Textures can be linked to files on the local hard drive, or hold the information in RAM.
+ */
 export class Texture {
-	constructor(data, uuid) {
+	uuid: UUID
+	path?: string
+	name: string
+	/** Relative path to the file's directory, used by some formats such as Java Block/Item*/
+	folder: string
+	namespace: string
+	/** Texture ID or key, used by some formats. By default this is a number that increases with every texture that is added */
+	id: string
+	particle: TextureData["particle"]
+	render_mode: 'default' | 'emissive' | 'additive' | 'layered' | string
+	render_sides: 'auto' | 'front' | 'double' | string
+	wrap_mode: 'limited' | 'repeat' | 'clamp'
+	pbr_channel: 'color' | 'normal' | 'height' | 'mer'
+	file_format: string
+	use_as_default: boolean
+	/** UUID of the TextureGroup that this texture is in, if set */
+	group: string
+	scope: number
+
+	/** Texture animation frame time */
+	frame_time: number
+	frame_order_type: 'custom' | 'loop' | 'backwards' | 'back_and_forth'
+	/** Custom frame order */
+	frame_order: string
+	/** Interpolate between frames */
+	frame_interpolate: boolean
+	/**
+	 * Animated texture frames per second in formats where frame_time is not used
+	 */
+	fps: number = 7;
+
+	/** HTML-style source of the texture's displayed data. Can be a path (desktop app only), or a base64 data URL */
+	source: string = '';
+	/**
+	 * Whether the texture is directly selected
+	 */
+	selected: boolean = false;
+	/**
+	 * Whether the texture is multi selected
+	 */
+	multi_selected: boolean = false;
+	selected_layer: TextureLayerItem | null = null;
+	show_icon: boolean = true;
+	error: number = 0;
+	/** Whether the texture is visible. Used for layered textures mode */
+	visible: boolean = true;
+
+	width: number = 0;
+	height: number = 0;
+	uv_width: number = 0;
+	uv_height: number = 0;
+	currentFrame: number
+	saved: boolean = true;
+	/**
+	 * If true, the texture is loaded internally. If false, the texture is loaded directly from a file
+	 */
+	internal: boolean
+	/**
+	 * Set a function that will run once the next time the texture is loaded
+	 */
+	load_callback?: null | ((texture: Texture) => void)
+	/**
+	 * Custom texture flags
+	 */
+	flags: Set<string> = new Set();
+	declare menu?: Menu
+
+	layers: TextureLayerItem[] = [];
+	layers_enabled: boolean = false
+	/**
+	 * The UUID of the project to sync the texture to
+	 */
+	sync_to_project: UUID | ''
+
+	/**
+	 * The texture's associated canvas. Since 4.9, this is the main source of truth for textures in internal mode.
+	 */
+	canvas: HTMLCanvasElement
+	/**
+	 * The 2D context of the texture's associated canvas.
+	 */
+	ctx: CanvasRenderingContext2D
+	/**
+	 * Texture image element
+	 */
+	img: HTMLImageElement
+	relative_path?: string
+	source_overwritten: boolean = false;
+	_static: {properties: Record<string, any>}
+	public readonly offset: ArrayVector3 = [0, 0, 0];
+	
+	constructor(data?: TextureData, uuid?: string) {
 		let self = this;
-		//Info
 		for (let key in Texture.properties) {
 			Texture.properties[key].reset(this);
 		}
-		//meta
-		this.source = ''
-		this.selected = false
-		this.multi_selected = false
-		this.show_icon = true
-		this.error = 0;
-		this.visible = true;
-		this.source_overwritten = false;
-		//Data
-		this.img = 0;
-		this.width = 0;
-		this.height = 0;
+		this.uuid = data.uuid ?? guid();
+		this.internal = !isApp;
 		this.uv_width = Project ? Project.texture_width : 16;
 		this.uv_height = Project ? Project.texture_height : 16;
-		this.currentFrame = 0;
-		this.saved = true;
-		this.layers = [];
-		this.layers_enabled = false;
-		this.selected_layer = null;
-		this.internal = !isApp;
-		this.uuid = uuid || guid()
-		this.flags = new Set();
 
 		this._static = Object.freeze({
 			properties: {
@@ -60,7 +254,7 @@ export class Texture {
 			}
 		}
 
-		//Setup Img/Mat
+		// MARK: Setup Img/Mat
 		this.canvas = document.createElement('canvas');
 		this.canvas.width = this.canvas.height = 16;
 		this.ctx = this.canvas.getContext('2d', {willReadFrequently: true});
@@ -68,7 +262,7 @@ export class Texture {
 		img.setAttribute('pagespeed_no_transform', '');
 		img.src = 'assets/missing.png'
 
-		let tex = new THREE.Texture(this.canvas);
+		let tex = new THREE.Texture(this.canvas) as THREE.Texture & {width?: number, height?: number};
 		tex.magFilter = THREE.NearestFilter // Pixelated rendering
 		tex.minFilter = THREE.NearestFilter // Distance
 		tex.name = this.name;
@@ -78,23 +272,23 @@ export class Texture {
 			uniforms: {
 				map: {type: 't', value: tex},
 				SHADE: {type: 'bool', value: settings.shading.value},
-				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value / 50)},
+				LIGHTCOLOR: {type: 'vec3', value: new THREE.Color().copy(Canvas.global_light_color).multiplyScalar(settings.brightness.value as number / 50)},
 				LIGHTSIDE: {type: 'int', value: Canvas.global_light_side},
 				EMISSIVE: {type: 'bool', value: this.render_mode == 'emissive'}
-			},
+			} as any, // TODO: Check why types throw error
 			vertexShader: prepareShader(VertShader),
 			fragmentShader: prepareShader(FragShader),
 			blending: this.render_mode == 'additive' ? THREE.AdditiveBlending : THREE.NormalBlending,
 			side: Canvas.getRenderSide(this),
 			transparent: true,
 			clipping: true
-		});
+		}) as ExtendedShaderMaterial;
 		mat.map = tex;
 		mat.name = this.name;
 		this.material = mat;
 		this.updateMaterial();
 
-		let size_control = {};
+		let size_control: {old_width?: number, old_height?: number} = {};
 
 		this.img.onload = () => {
 			let dimensions_changed = tex.width !== img.naturalWidth || tex.height !== img.naturalHeight;
@@ -119,9 +313,9 @@ export class Texture {
 			}
 			self.currentFrame = Math.min(self.currentFrame, (self.frameCount||1)-1)
 
-			let update_from_canvas = img.update_from_canvas;
+			let update_from_canvas = this.flags.has('update_img_from_canvas');
 			if (update_from_canvas) {
-				delete img.update_from_canvas;
+				this.flags.delete('update_img_from_canvas');
 			} else if (!self.layers_enabled) {
 				self.canvas.width = self.width;
 				self.canvas.height = self.height;
@@ -140,7 +334,7 @@ export class Texture {
 				this.uv_height = size[1];
 			}
 
-			if (self.isDefault) {
+			if (self.flags.has('is_minecraft_default')) {
 				console.log('Successfully loaded '+self.name+' from default pack')
 			}
 
@@ -150,7 +344,7 @@ export class Texture {
 
 				if (Project.box_uv && Format.single_texture && !self.error) {
 
-					if (!self.keep_size) {
+					if (!self.flags.has('keep_size')) {
 						let pw = self.getUVWidth();
 						let ph = self.getUVHeight();
 						let nw = img.naturalWidth;
@@ -183,7 +377,7 @@ export class Texture {
 							})
 						}
 					}
-					delete self.keep_size;
+					self.flags.delete('keep_size');
 					size_control.old_width = img.naturalWidth
 					size_control.old_height = img.naturalHeight
 				}
@@ -207,7 +401,7 @@ export class Texture {
 		}
 		this.img.onerror = (error) => {
 			if (isApp &&
-				!self.isDefault &&
+				!self.flags.has('is_minecraft_default') &&
 				self.mode !== 'bitmap' &&
 				self.fromDefaultPack()
 			) {
@@ -218,12 +412,12 @@ export class Texture {
 		}
 
 		if (!this.id) {
-			var i = Texture.all.length;
+			let i = Texture.all.length;
 			while (true) {
-				var c = 0
-				var duplicates = false;
+				let c = 0
+				let duplicates = false;
 				while (c < Texture.all.length) {
-					if (Texture.all[c].id == i) {
+					if (Texture.all[c].id == i.toString()) {
 						duplicates = true;
 					}
 					c++;
@@ -237,41 +431,58 @@ export class Texture {
 			}
 		}
 	}
-	get frameCount() {
+	get frameCount(): number | undefined {
 		if (Format.animated_textures && this.ratio !== (this.getUVWidth() / this.getUVHeight())) {
 			let frames = Math.ceil((this.getUVWidth() / this.getUVHeight()) / this.ratio - 0.05);
 			if (frames > 1) return frames;
 		}
 	}
-	get display_height() {
+	get display_height(): number {
 		return this.height / (this.frameCount || 1);
 	}
-	get ratio() {
+	get ratio(): number {
 		return this.width / this.height;
 	}
-	// Legacy support
-	get mode() {
+	// MARK: Legacy support
+	/**
+	 * Whether the latest version of the texture is currently loaded from and linked to a file on disk, or held in memory as bitmap data
+	 * @deprecated Use {@link Texture.internal} instead
+	 */
+	get mode(): string {
 		return this.internal ? 'bitmap' : 'link';
 	}
-	set mode(mode) {
+	/**
+	 * Whether the latest version of the texture is currently loaded from and linked to a file on disk, or held in memory as bitmap data
+	 * @deprecated Use {@link Texture.internal} instead
+	 */
+	set mode(mode: 'bitmap' | 'link') {
 		this.internal = mode == 'bitmap';
 	}
-	get selection() {
+	/**
+	 * Texture selection in paint mode
+	 */
+	get selection(): IntMatrix {
 		return this._static.properties.selection;
 	}
-	get material() {
+	get material(): ExtendedShaderMaterial {
 		return this._static.properties.material;
 	}
-	set material(material) {
+	set material(material: ExtendedShaderMaterial) {
 		this._static.properties.material = material;
 	}
-	getUVWidth() {
+	/**
+	 * Get the UV width of the texture if the format uses per texture UV size, otherwise get the project texture width
+	 */
+	getUVWidth(): number {
 		return Format.per_texture_uv_size ? this.uv_width : Project.texture_width;
 	}
-	getUVHeight() {
+	/**
+	 * Get the UV height of the texture if the format uses per texture UV size, otherwise get the project texture height
+	 */
+	getUVHeight(): number {
 		return Format.per_texture_uv_size ? this.uv_height : Project.texture_height;
 	}
-	getErrorMessage() {
+	getErrorMessage(): string {
 		switch (this.error) {
 			case 0: return ''; break;
 			case 1: return tl('texture.error.file'); break;
@@ -281,15 +492,18 @@ export class Texture {
 			case 3: return tl('texture.error.parent'); break;
 		}
 	}
-	getGroup() {
+	/**
+	 * Return the texture group that the texture is attached to
+	 */
+	getGroup(): TextureGroup | undefined {
 		if (!this.group) return;
 		let group = TextureGroup.all.find(group => group.uuid == this.group);
 		if (group) {
 			return group;
 		}
 	}
-	getUndoCopy(bitmap) {
-		var copy = {};
+	getUndoCopy(bitmap?: boolean): TextureData {
+		var copy: TextureData = {};
 		for (var key in Texture.properties) {
 			Texture.properties[key].copy(this, copy)
 		}
@@ -298,8 +512,6 @@ export class Texture {
 		copy.internal = this.internal;
 		copy.saved = this.saved;
 		copy.uuid = this.uuid;
-		copy.old_width = this.old_width;
-		copy.old_height = this.old_height;
 
 		if (this.layers_enabled) {
 			copy.layers = this.layers.map(layer => {
@@ -313,10 +525,10 @@ export class Texture {
 				copy.image_data = this.getDataURL();
 			}
 		}
-		return copy
+		return copy;
 	}
-	getSaveCopy(bitmap) {
-		let copy = {
+	getSaveCopy(bitmap?: boolean) {
+		let copy: TextureData = {
 			name: undefined,
 			path: undefined,
 			relative_path: undefined,
@@ -340,7 +552,7 @@ export class Texture {
 		}
 		return copy
 	}
-	extend(data) {
+	extend(data: TextureData): this {
 		for (var key in Texture.properties) {
 			Texture.properties[key].merge(this, data)
 		}
@@ -348,7 +560,8 @@ export class Texture {
 		Merge.string(this, data, 'mode', mode => (mode === 'bitmap' || mode === 'link'))
 		Merge.boolean(this, data, 'saved')
 		Merge.boolean(this, data, 'internal')
-		Merge.boolean(this, data, 'keep_size')
+		if (data.keep_size == true) this.flags.add('keep_size');
+		if (data.keep_size == false) this.flags.delete('keep_size');
 
 		if (data.layers instanceof Array) {
 			let old_layers = this.layers.slice();
@@ -371,7 +584,7 @@ export class Texture {
 		if (data.selected_layer) {
 			let layer = this.layers.find(l => l.uuid == data.selected_layer);
 			if (layer) layer.select();
-		} else if (this.selected_layer && (this.layers_enabled == false || !this.layers.find(this.selected_layer))) {
+		} else if (this.selected_layer && (this.layers_enabled == false || !this.layers.includes(this.selected_layer))) {
 			delete this.selected_layer;
 		}
 
@@ -386,15 +599,19 @@ export class Texture {
 		}
 		return this;
 	}
-	//Loading
-	load(cb) {
+	// MARK: Loading
+	/**
+	 * Loads the texture from it's current source
+	 * @param cb Callback function
+	 */
+	load(cb?: () => void): this {
 		this.error = 0;
 		this.show_icon = true;
 		this.img.src = this.source;
 		if (cb) this.load_callback = cb;
 		return this;
 	}
-	fromJavaLink(link, path_array, externalDataLoader) {
+	fromJavaLink(link: string, path_array: string[], externalDataLoader?: (path) => any): this {
 		if (typeof link !== 'string' || (link.substr(0, 1) === '#' && !link.includes('/'))) {
 			this.load();
 			return this;
@@ -431,17 +648,17 @@ export class Texture {
 			this.fromPath(path || link, externalDataLoader)
 		} else {
 			this.path = path
-			this.folder = link.replace(/\\/g, '/').split('/')
-			this.folder = this.folder.splice(0, this.folder.length-1).join('/')
-			this.name = pathToName(path, true)
+			let folder_parts = link.replace(/\\/g, '/').split('/');
+			this.folder = folder_parts.splice(0, folder_parts.length-1).join('/');
+			this.name = pathToName(path, true);
 			this.file_format = pathToExtension(this.path);
-			this.mode = 'link'
-			this.saved = true
+			this.internal = false;
+			this.saved = true;
 			this.load()
 		}
 		return this;
 	}
-	fromFile(file, externalDataLoader) {
+	fromFile(file: { name: string; content?: string; path: string } | Filesystem.FileResult, externalDataLoader?: (path) => any): this {
 		if (!file) return this;
 		if (file.name) this.name = file.name
 		if ((typeof file.content === 'string' && file.content.substr(0, 4) === 'data') || !isApp) {
@@ -456,7 +673,7 @@ export class Texture {
 				this.fromDataURL(file.content);
 
 			} else if (file.content && file_format_data.decode) {
-				file_format_data.decode(file.content, this);
+				file_format_data.decode(file.content as any, this);
 			}
 
 		} else if (isApp) {
@@ -465,10 +682,10 @@ export class Texture {
 		this.saved = true
 		return this;
 	}
-	fromPath(path, externalDataLoader) {
+	fromPath(path: string, externalDataLoader?: (path) => any): this {
 		this.path = path
 		this.name = pathToName(path, true)
-		this.mode = 'link'
+		this.internal = false;
 		this.saved = true;
 		if (path.includes('data:image')) {
 			this.source = path
@@ -535,7 +752,7 @@ export class Texture {
 				}
 			}
 			if (mcmeta_text || fs.existsSync(mcmeta_path)) {
-				let mcmeta;
+				let mcmeta: MCMetaJSON;
 				try {
 					mcmeta_text ??= fs.readFileSync(mcmeta_path, 'utf8');
 					mcmeta = autoParseJSON(mcmeta_text.toString(), {file_path: mcmeta_path});
@@ -543,7 +760,7 @@ export class Texture {
 					console.error(err);
 				}
 				if (mcmeta && mcmeta.animation) {
-					let frame_order_type = 'loop';
+					let frame_order_type: TextureData['frame_order_type'] = 'loop';
 					let {frames} = mcmeta.animation;
 					let frame_string = '';
 					if (frames instanceof Array) {
@@ -623,8 +840,8 @@ export class Texture {
 				this.edit()
 				var post = new Undo.save({textures: [this]})
 				Project.EditSession.sendEdit({
-					before: before,
-					post: post,
+					before,
+					post,
 					action: 'loaded_texture',
 					save_history: false
 				})
@@ -634,10 +851,17 @@ export class Texture {
 		}
 		return this;
 	}
-	// Used to load only file content, not generate metadata from path. Used when loading bbmodel files
-	loadContentFromPath(path) {
+	/**
+	 * Loads file content **only**.
+	 *
+	 * Does not read `png.mcmeta`, or attempt to overwrite an existing texture in the project with the same name.
+	 *
+	 * Used internally when loading `.bbmodel` files
+	 * @param path
+	 */
+	loadContentFromPath(path: string): this {
 		this.path = path
-		this.mode = 'link'
+		this.internal = false;
 		this.saved = true;
 		if (path.includes('data:image')) {
 			this.source = path
@@ -648,45 +872,48 @@ export class Texture {
 		this.load()
 		return this;
 	}
-	fromDataURL(data_url) {
+	fromDataURL(data_url: string): this {
 		this.source = data_url
 		this.internal = true;
 		this.saved = false;
 		this.load();
 		return this;
 	}
-	fromDefaultPack() {
-		if (isApp && settings.default_path && settings.default_path.value) {
-			if (Project.BedrockEntityManager) {
-				var path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
-				if (path) {
-					this.isDefault = true;
-					path = settings.default_path.value + osfs + path
+	fromDefaultPack(): true | undefined {
+		if (!isApp || !settings.default_path?.value) return;
+		if (Project.BedrockEntityManager) {
+			let path = Project.BedrockEntityManager.findEntityTexture(Project.geometry_name, 'raw')
+			if (path) {
+				this.flags.add('is_minecraft_default');
+				path = settings.default_path.value + osfs + path
 
-					if (fs.existsSync(path + '.png')) {
-						this.fromPath(path + '.png')
-						delete this.isDefault
-						return true;
+				if (fs.existsSync(path + '.png')) {
+					this.fromPath(path + '.png')
+					this.flags.delete('is_minecraft_default');
+					return true;
 
-					} else if (fs.existsSync(path + '.tga')) {
-						this.fromPath(path + '.tga')
-						delete this.isDefault
-						return true;
-					}
-					delete this.isDefault
-				}
-			} else if (this.name && this.name.includes('.')) {
-				var folder = this.folder.replace(/\//g, osfs);
-				var path = settings.default_path.value + osfs + (folder ? (folder+osfs) : '') + this.name
-				if (fs.existsSync(path)) {
-					this.isDefault = true;
-					this.fromPath(path)
+				} else if (fs.existsSync(path + '.tga')) {
+					this.fromPath(path + '.tga')
+					this.flags.delete('is_minecraft_default');
 					return true;
 				}
+				this.flags.delete('is_minecraft_default');
+			}
+		} else if (this.name && this.name.includes('.')) {
+			let folder = this.folder.replace(/\//g, osfs);
+			let path = settings.default_path.value as string + osfs + (folder ? (folder+osfs) : '') + this.name;
+			if (fs.existsSync(path)) {
+				this.flags.add('is_minecraft_default');
+				this.fromPath(path)
+				return true;
 			}
 		}
 	}
-	loadEmpty(error_id) {
+	/**
+	 * Loads the default white error texture
+	 * @param error_id Sets the error ID of the texture
+	 */
+	loadEmpty(error_id?: number): this {
 		this.img.src = 'assets/missing.png'
 		this.error = error_id||1;
 		this.show_icon = false;
@@ -707,7 +934,7 @@ export class Texture {
 
 		}
 	}
-	updateSource(dataUrl) {
+	updateSource(dataUrl: string): this {
 		// Update the source, only used when source is secure + base64 
 		if (!dataUrl) dataUrl = this.source;
 		this.source = dataUrl;
@@ -715,7 +942,7 @@ export class Texture {
 		this.updateMaterial();
 		return this;
 	}
-	updateMaterial() {
+	updateMaterial(): this {
 		if (Format.image_editor) return this;
 		let mat = this.getOwnMaterial();
 
@@ -737,7 +964,11 @@ export class Texture {
 		}
 		return this;
 	}
-	reopen(force) {
+	/**
+	 * Opens a dialog to replace the texture with another file
+	 * @param force If true, no warning appears of the texture has unsaved changes
+	 */
+	reopen(force: boolean = false): void {
 		var scope = this;
 		this.stopWatcher()
 
@@ -784,10 +1015,16 @@ export class Texture {
 		this.updateMaterial()
 		TickUpdates.UVEditor = true;
 	}
+	/**
+	 * Reloads the texture. Only works in the desktop app
+	 */
 	reloadTexture() {
 		this.refresh(true)
 	}
-	startWatcher() {
+	/**
+	 * Start listening for changes to the linked file. Desktop only
+	 */
+	startWatcher(): void {
 		if (this.mode !== 'link' || !isApp || !this.path.match(/\.[a-zA-Z]+$/) || !fs.existsSync(this.path)) {
 			return;
 		}
@@ -815,13 +1052,19 @@ export class Texture {
 			}
 		})
 	}
-	stopWatcher() {
+	/**
+	 * Stop listening for changes to the linked file. Desktop only
+	 */
+	stopWatcher(): this {
 		if (isApp && this._static.properties.watcher) {
 			this._static.properties.watcher.close()
 		}
 		return this;
 	}
-	generateFolder(path) {
+	/**
+	 * Generate the Java Block/Item folder property from the file path
+	 */
+	generateFolder(path: string): this {
 		if (path.includes(osfs+'optifine'+osfs+'cit'+osfs)) {
 
 			if (Project.export_path) {
@@ -880,18 +1123,28 @@ export class Texture {
 		}
 		return this;
 	}
-	getMaterial() {
+	/**
+	 * Get the material that the texture displays. When previewing PBR, this will return the shared PBR material
+	 */
+	getMaterial(): THREE.ShaderMaterial | THREE.MeshStandardMaterial {
 		let group = this.getGroup();
 		if (group?.is_material && BarItems.view_mode.value == 'material') {
 			return group.getMaterial();
 		}
 		return this.material;
 	}
-	getOwnMaterial() {
+	/**
+	 * Get the texture's own material
+	 */
+	getOwnMaterial(): ExtendedShaderMaterial {
 		return this.material;
 	}
-	//Management
-	select(event) {
+	// MARK: Management
+	/**
+	 * Selects the texture
+	 * @param event Click event during selection
+	 */
+	select(event?: Event): this {
 		if (event instanceof Event) {
 			Prop.active_panel = 'textures';
 		}
@@ -944,10 +1197,14 @@ export class Texture {
 		Panels.layers.inside_vue.layers = this.layers;
 		updateInterfacePanels();
 		Blockbench.dispatchEvent('select_texture', {texture: this, event});
-		Blockbench.dispatchEvent('update_texture_selection');
+		Blockbench.dispatchEvent('update_texture_selection', undefined);
 		return this;
 	}
-	add(undo, uv_size_from_resolution) {
+	/**
+	 * Adds texture to the textures list and initializes it
+	 * @param undo If true, an undo point is created
+	 */
+	add(undo?: boolean, uv_size_from_resolution?: boolean): Texture {
 		if (isApp && this.path && Project.textures.length) {
 			for (var tex of Project.textures) {
 				if (tex.path === this.path) return tex;
@@ -983,7 +1240,11 @@ export class Texture {
 		}
 		return this;
 	}
-	remove(no_update) {
+	/**
+	 * Removes the texture
+	 * @param no_update If true, the texture is silently removed. The interface is not updated, no undo point is created
+	 */
+	remove(no_update?: boolean): void {
 		if (!no_update) {
 			Undo.initEdit({textures: [this]})
 		}
@@ -992,7 +1253,7 @@ export class Texture {
 			Texture.selected = undefined;
 		}
 		Project.textures.splice(Texture.all.indexOf(this), 1)
-		Blockbench.dispatchEvent('update_texture_selection');
+		Blockbench.dispatchEvent('update_texture_selection', undefined);
 		if (!no_update) {
 			if (Canvas.layered_material) {
 				Canvas.updateLayeredTextures();
@@ -1006,7 +1267,7 @@ export class Texture {
 			Undo.finishEdit('Remove texture', {textures: []})
 		}
 	}
-	toggleVisibility() {
+	toggleVisibility(): this {
 		if (this.render_mode !== 'layered') {
 			this.visible = true;
 			return this;
@@ -1023,8 +1284,8 @@ export class Texture {
 		})
 		Canvas.updateLayeredTextures();
 	}
-	//Use
-	enableParticle() {
+	// MARK: Use
+	enableParticle(): this {
 		if (Format.select_texture_for_particles) {
 			Texture.all.forEach(function(s) {
 				s.particle = false;
@@ -1033,6 +1294,9 @@ export class Texture {
 		}
 		return this;
 	}
+	/**
+	 * Select this as the default texture in supported formats
+	 */
 	setAsDefaultTexture() {
 		if (Format.single_texture_default) {
 			Texture.all.forEach(tex => tex.use_as_default = false);
@@ -1043,20 +1307,21 @@ export class Texture {
 		}
 		return this;
 	}
-	fillParticle() {
-		var particle_tex = false
-		Texture.all.forEach(function(t) {
-			if (t.particle) {
-				particle_tex = t
-			}
-		})
-		if (!particle_tex) {
+	/**
+	 * Enables 'particle' on this texture if it is not enabled on any other texture
+	 */
+	fillParticle(): this {
+		if (!Texture.all.some(t => t.particle)) {
 			this.enableParticle()
 		}
 		return this;
 	}
-	apply(all) {
-		let affected_elements;
+	/**
+	 * Applies the texture to the selected elements
+	 * @param all If true, the texture is applied to all faces of the elements. If 'blank', the texture is only applied to blank faces
+	 */
+	apply(all?: true | false | 'blank'): this {
+		let affected_elements: OutlinerElement[];
 		if (Format.per_group_texture) {
 			let groups = Group.multi_selected;
 			Outliner.selected.forEach(el => {
@@ -1070,7 +1335,7 @@ export class Texture {
 			groups.forEach(group => {
 				group.texture = this.uuid;
 				group.forEachChild(child => {
-					if (child.faces) affected_elements.safePush(child);
+					if ('faces' in child) affected_elements.safePush(child);
 				})
 			})
 		} else {
@@ -1081,7 +1346,7 @@ export class Texture {
 			affected_elements.forEach((element) => {
 				let selected_faces = UVEditor.getSelectedFaces(element);
 				for (var face in element.faces) {
-					if (all || element.box_uv || selected_faces.includes(face)) {
+					if (all || (element instanceof Cube && element.box_uv) || selected_faces.includes(face)) {
 						var f = element.faces[face]
 						if (all !== 'blank' || (f.texture !== null && !f.getTexture())) {
 							f.texture = this.uuid
@@ -1095,8 +1360,11 @@ export class Texture {
 		Undo.finishEdit('Apply texture')
 		return this;
 	}
-	//Interface
-	openFolder() {
+	// MARK: Interface
+	/**
+	 * Shows the texture file in the file explorer
+	 */
+	openFolder(): this {
 		if (!isApp || !this.path) return this;
 		if (!fs.existsSync(this.path)) {
 			Blockbench.showQuickMessage('texture.error.file')
@@ -1105,7 +1373,10 @@ export class Texture {
 		Filesystem.showFileInFolder(this.path)
 		return this;
 	}
-	openInImageEditor() {
+	/**
+	 * Opens the texture in an image editor tab inside Blockbench
+	 */
+	openInImageEditor(): this {
 		let existing_tab, tex2;
 		for (let project of ModelProject.all) {
 			if (!project.format.image_editor) continue;
@@ -1121,6 +1392,7 @@ export class Texture {
 		} else {
 			let original_uuid = Project.uuid;
 			let copy = this.getUndoCopy(true);
+			// @ts-expect-error Image codec supports different arguments that are not present in main class
 			Codecs.image.load(copy, this.path, [this.uv_width, this.uv_height]);
 			// Sync
 			this.sync_to_project = Project.uuid;
@@ -1128,13 +1400,16 @@ export class Texture {
 		}
 		return this;
 	}
-	openEditor() {
+	/**
+	 * Opens the texture in the configured image editor
+	 */
+	openEditor(): this {
 		var scope = this;
 		if (!settings.image_editor.value) {
 			changeImageEditor(scope)
 
 		} else {
-			if (isImageEditorValid(settings.image_editor.value)) {
+			if (isImageEditorValid(settings.image_editor.value as string)) {
 				ipcRenderer.invoke('get-launch-setting', {key: 'image_editor'}).then(editor => {
 					openFileInEditor(this.path, editor);
 				})
@@ -1152,7 +1427,7 @@ export class Texture {
 		}
 		return this;
 	}
-	showContextMenu(event) {
+	showContextMenu(event: MouseEvent) {
 		if (this != Texture.selected) this.select()
 		Prop.active_panel = 'textures'
 		this.menu.open(event, this)
@@ -1172,7 +1447,7 @@ export class Texture {
 			})
 			path.push(Interface.createElement('span', {class: 'accent_color'}, this.name));
 		}
-		let form = {
+		let form: InputFormConfig = {
 			name: 		{label: 'generic.name', value: this.name},
 			variable: 	{label: 'dialog.texture.variable', value: this.id, condition: {features: ['texture_folder']}},
 			folder: 	{label: 'dialog.texture.folder', value: this.folder, condition: () => Format.texture_folder},
@@ -1187,7 +1462,7 @@ export class Texture {
 			}},
 		};
 		for (let key in Texture.file_formats) {
-			form.file_format.options[key] = Texture.file_formats[key].name;
+			(form.file_format as FormElementOptions).options[key] = Texture.file_formats[key].name;
 		}
 		if (Format.id == 'free') {
 			Object.assign(form, {
@@ -1313,7 +1588,10 @@ export class Texture {
 			}
 		}).show()
 	}
-	resizeDialog() {
+	/**
+	 * Opens a dialog to resize or scale the texture
+	 */
+	resizeDialog(): this {
 		let scope = this;
 		let updated_to_repeat = false;
 		let dialog = new Dialog({
@@ -1349,7 +1627,7 @@ export class Texture {
 				}}
 			},
 			onFormChange(formResult) {
-				if (formResult.frames > (scope.frameCount || 1) && !updated_to_repeat) {
+				if (formResult.frames as number > (scope.frameCount || 1) && !updated_to_repeat) {
 					updated_to_repeat = true;
 					this.setFormValues({fill: 'repeat'});
 				}
@@ -1420,7 +1698,7 @@ export class Texture {
 
 					if (scope.layers_enabled && scope.layers.length) {
 						for (let layer of scope.layers) {
-							if (layer.type != 'pixel_layer') continue;
+							if (layer instanceof TextureLayer == false) continue;
 							if (formResult.mode == 'scale') {
 								resizeCanvas(layer.ctx);
 								layer.offset[0] = Math.round(layer.offset[0] * (formResult.size[0] / scope.width));
@@ -1434,7 +1712,7 @@ export class Texture {
 					scope.width = formResult.size[0];
 					scope.height = formResult.size[1];
 
-					scope.keep_size = true;
+					scope.flags.add('keep_size');
 					if (formResult.mode == 'scale') {
 						// Nothing
 					} else if (formResult.fill === 'repeat' && Format.animated_textures && formResult.size[0] < formResult.size[1]) {
@@ -1461,18 +1739,18 @@ export class Texture {
 					} else if (Texture.length >= 2 && elements_to_change) {
 						elements_to_change.forEach(element => {
 							if (element.getTypeBehavior('cube_faces')) {
-								for (var key in element.faces) {
+								for (let key in element.faces) {
 									if (element.faces[key].texture !== scope.uuid) continue;
-									var uv = element.faces[key].uv;
+									let uv = element.faces[key].uv;
 									uv[0] /= formResult.size[0] / old_width;
 									uv[2] /= formResult.size[0] / old_width;
 									uv[1] /= formResult.size[1] / old_height;
 									uv[3] /= formResult.size[1] / old_height;
 								}
 							} else if (element instanceof Mesh) {
-								for (var key in element.faces) {
+								for (let key in element.faces) {
 									if (element.faces[key].texture !== scope.uuid) continue;
-									var uv = element.faces[key].uv;
+									let uv = element.faces[key].uv;
 									for (let vkey in uv) {
 										uv[vkey][0] /= formResult.size[0] / old_width;
 										uv[vkey][1] /= formResult.size[1] / old_height;
@@ -1494,29 +1772,36 @@ export class Texture {
 		dialog.show()
 		return this;
 	}
-	scrollTo() {
-		var el = $(`#texture_list li.texture[texid=${this.uuid}]`)
+	/**
+	 * Scroll the texture list to this texture
+	 */;
+	scrollTo(): void {
+		let el = $(`#texture_list li.texture[texid=${this.uuid}]`)
 		if (el.length === 0 || Texture.all.length < 2) return;
 
-		var outliner_pos = $('#texture_list').offset().top
-		var el_pos = el.offset().top
+		let outliner_pos = $('#texture_list').offset().top;
+		let el_pos = el.offset().top;
 		if (el_pos > outliner_pos && el_pos + 48 < $('#texture_list').height() + outliner_pos) return;
 
-		var multiple = el_pos > outliner_pos ? 0.5 : 0.2
-		var scroll_amount = el_pos  + $('#texture_list').scrollTop() - outliner_pos - 20
-		scroll_amount -= $('#texture_list').height()*multiple - 15
+		let multiple = el_pos > outliner_pos ? 0.5 : 0.2;
+		let scroll_amount = el_pos  + $('#texture_list').scrollTop() - outliner_pos - 20;
+		scroll_amount -= $('#texture_list').height()*multiple - 15;
 
 		$('#texture_list').animate({
 			scrollTop: scroll_amount
 		}, 200);
 	}
-	//Layers
-	getActiveLayer() {
+	// MARK: Layers
+	/**
+	 * Get the selected layer. If no layer is selected, returns the bottom layer
+	 */
+	getActiveLayer(): TextureLayer | undefined {
 		if (this.layers_enabled) {
-			return this.layers.find(l => l instanceof TextureLayer && l.selected) || this.layers[0];
+			return this.layers.find(l => l instanceof TextureLayer && l.selected) as TextureLayer
+				|| this.layers.find(l => l instanceof TextureLayer) as TextureLayer;
 		}
 	}
-	activateLayers(undo) {
+	activateLayers(undo?: boolean): void {
 		if (undo) Undo.initEdit({textures: [this], bitmap: true});
 		this.layers_enabled = true;
 		if (!this.layers.length) {
@@ -1531,7 +1816,12 @@ export class Texture {
 		updateInterfacePanels();
 		BARS.updateConditions();
 	}
-	selectionToLayer(undo, clone) {
+	/**
+	 * Turns the texture selection into a layer
+	 * @param undo Whether to create an undo entry
+	 * @param clone When true, the selection is copied into the new layer and also left on the original layer
+	 */
+	selectionToLayer(undo?: boolean, clone?: boolean): void {
 		let texture = this;
 		let selection = texture.selection;
 
@@ -1542,7 +1832,7 @@ export class Texture {
 		}
 
 		let {canvas, ctx, offset} = texture.getActiveCanvas();
-		let new_offset = [0, 0];
+		let new_offset: ArrayVector2 = [0, 0];
 		let copy_canvas = canvas;
 
 		if (selection.is_custom)  {
@@ -1582,8 +1872,8 @@ export class Texture {
 		updateInterfacePanels();
 		BARS.updateConditions();
 	}
-	//Export
-	javaTextureLink() {
+	// MARK: Export
+	javaTextureLink(): string {
 		var link = this.name.replace(/\.\w{2,8}$/, '')
 		if (this.folder) {
 			link = this.folder + '/' + link
@@ -1594,11 +1884,11 @@ export class Texture {
 		return link;
 	}
 	getMCMetaContent() {
-		let mcmeta = {};
+		let mcmeta: MCMetaJSON = {};
 		if (this.frameCount > 1) {
 			let animation = mcmeta.animation = {
 				frametime: this.frame_time
-			}
+			} as typeof mcmeta.animation;
 
 			if (this.getUVWidth() != this.getUVHeight()) {
 				animation.width = this.getUVWidth();
@@ -1614,7 +1904,7 @@ export class Texture {
 		Blockbench.dispatchEvent('compile_texture_mcmeta', {mcmeta})
 		return mcmeta;
 	}
-	getAnimationFrameIndices() {
+	getAnimationFrameIndices(): MCMetaJSON["animation"]["frames"] {
 		let frame_count = this.frameCount;
 		if (this.frame_order_type == 'backwards') {
 			return Array(frame_count).fill(1).map((v, i) => frame_count - 1 - i);
@@ -1637,7 +1927,7 @@ export class Texture {
 			});
 		}
 	}
-	async save(as) {
+	async save(as: boolean = false) {
 		var scope = this;
 		if (scope.saved && !as) {
 			return this;
@@ -1668,7 +1958,7 @@ export class Texture {
 				setTimeout(() => {this.flags.delete('file_just_changed')}, 100);
 				Filesystem.writeFile(this.path, {content: export_data, savetype: 'image'});
 				postSave(this.path);
-				this.mode = 'link';
+				this.internal = false;;
 				this.saved = true;
 				this.setSourceFromLocalFile();
 				this.source_overwritten = true;
@@ -1717,13 +2007,16 @@ export class Texture {
 		}
 		if (Format.image_editor && !Texture.all.find(t => !t.saved)) {
 			if (isApp) {
-				Format.codec.afterSave();
+				Format.codec.afterSave(this.path);
 			} else {
 				Project.saved = true;
 			}
 		}
 		return this;
 	}
+	/**
+	 * Opens a dialog to export an emission map generated from the textures luminance of colors
+	 */
 	exportEmissionMap() {
 		new Dialog({
 			id: 'export_emission_map',
@@ -1794,29 +2087,39 @@ export class Texture {
 			}
 		}).show();
 	}
-	// Editing
-	getDataURL() {
+	// MARK: Editing
+	/**
+	 * Returns the content of the texture as PNG as a base64 encoded data URL
+	 */
+	getDataURL(): string {
 		if (isApp && !this.internal) {
 			return this.canvas.toDataURL('image/png', 1);
 		} else {
 			return this.source;
 		}
 	}
-	getBase64() {
+	/**
+	 * Returns the content of the texture as PNG as a base64 encoded string
+	 */
+	getBase64(): string {
 		return this.getDataURL().replace('data:image/png;base64,', '');
 	}
-	convertToInternal(data_url = this.getDataURL()) {
+	convertToInternal(data_url: string = this.getDataURL()): this {
 		this.internal = true;
 		this.source = data_url;
 		this.saved = false;
 		return this;
 	}
-	updateLayerChanges(update_data_url) {
+	/**
+	 * Redraws the texture content from the layers
+	 * @param update_data_url If true, the texture source gets updated as well. This is slower, but is necessary at the end of an edit. During an edit, to preview changes, this can be false
+	 */
+	updateLayerChanges(update_data_url: boolean = false): this {
 		if (!this.layers_enabled || this.width == 0) return this;
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		for (let layer of this.layers) {
-			if (layer.type != 'pixel_layer' || layer.visible == false || layer.opacity == 0) continue;
+			if (layer instanceof TextureLayer == false || layer.visible == false || layer.opacity == 0) continue;
 			if (layer.blend_mode == 'alpha_mask') {
 				let opacity_factor = layer.opacity / 100;
 				let mask = layer.ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height);
@@ -1847,8 +2150,12 @@ export class Texture {
 			this.updateImageFromCanvas();
 		}
 		if (UVEditor.vue.texture == this) UVEditor.updateOverlayCanvas();
+		return this;
 	}
-	updateChangesAfterEdit() {
+	/**
+	 * Update everything after a content edit to the texture or one of the layers. Updates the material, the layers, marks the texture as unsaved, syncs changes to other projects
+	 */
+	updateChangesAfterEdit(): void {
 		if (this.layers_enabled) {
 			this.updateLayerChanges(true);
 		} else {
@@ -1865,15 +2172,24 @@ export class Texture {
 		this.saved = false;
 		this.syncToOtherProject();
 	}
-	updateImageFromCanvas() {
-		this.img.update_from_canvas = true;
+	/**
+	 * Update the attached img element with the content from the texture's canvas
+	 */
+	updateImageFromCanvas(): void {
+		this.flags.add('update_img_from_canvas');
 		this.img.src = this.source;
 	}
-	getActiveCanvas() {
+	/**
+	 * If layers are enabled, returns the active layer, otherwise returns the texture. Either way, the 'canvas', 'ctx', and 'offset' properties can be used from the returned object
+	 */
+	getActiveCanvas(): Texture | TextureLayer {
 		let layer = this.layers_enabled && this.getActiveLayer();
 		return layer ? layer : this;
 	}
-	syncToOtherProject() {
+	/**
+	 * When editing the same texture in different tabs (via Edit In Blockbench option), sync changes that were made to the texture to other projects
+	 */
+	syncToOtherProject(): this {
 		if (!this.sync_to_project) return this;
 		let project = ModelProject.all.find(p => p.uuid == this.sync_to_project);
 		if (!project) return this;
@@ -1890,17 +2206,44 @@ export class Texture {
 		}
 		return this;
 	}
-	edit(cb, options = 0) {
-		if (cb) {
-			Painter.edit(this, cb, options);
+	/**
+	* Wrapper to do edits to the texture.
+	* @param callback
+	* @param options Editing options
+	*/
+	edit(
+		callback?: (instance: HTMLCanvasElement | any, painter_context: any) => void | HTMLCanvasElement,
+		options?: TextureEditOptions
+	): void {
+		if (callback) {
+			Painter.edit(this, callback, options);
 
 		} else if (this.mode === 'link') {
 			this.convertToInternal();
 		}
 		this.saved = false;
 	}
-
-	static file_formats = {
+	static getDefault(): Texture | undefined {
+		if (Format.single_texture_default) {
+			let default_enabled = Texture.all.find(tex => tex.use_as_default);
+			if (default_enabled) return default_enabled;
+		}
+		if (Texture.selected && Texture.all.includes(Texture.selected)) {
+			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
+				return Texture.selected;
+			} else {
+				return Texture.all.findLast(tex => tex.visible);
+			}
+		} else if (Texture.selected) {
+			Texture.selected = undefined;
+		}
+		if (Texture.all.length > 1 && Texture.all.find(t => t.render_mode == 'layered')) {
+			return Texture.all.findLast(tex => tex.visible);
+		}
+		return Texture.all[0];
+	}
+	static properties: Record<string, Property>
+	static file_formats: Record<string, FileFormatOptions> = {
 		png: {
 			name: 'PNG',
 			extensions: ['png']
@@ -1922,14 +2265,14 @@ export class Texture {
 				let supported_blend_modes = ['add', 'alpha_mask', 'default'];
 				if (
 					texture.layers_enabled &&
-					texture.layers.some(l => l.blend_mode == 'alpha_mask') &&
-					texture.layers.allAre(l => supported_blend_modes.includes(l.blend_mode) && l.scale.allEqual(1))
+					texture.layers.some(l => l instanceof TextureLayer && l.blend_mode == 'alpha_mask') &&
+					texture.layers.allAre(l => l instanceof TextureLayer && supported_blend_modes.includes(l.blend_mode) && l.scale.allEqual(1))
 				) {
 					image_data = getTextureDataWithAccurateAlpha(texture);
 				}
 
 				let result = await encodeTga({
-					data: image_data.data,
+					data: image_data.data as any,
 					width: texture.canvas.width,
 					height: texture.canvas.height
 				});
@@ -1948,12 +2291,25 @@ export class Texture {
 			}
 		}
 	}
-	static getAllExtensions() {
+	static getAllExtensions(): string[] {
 		let array = [];
 		for (let key in Texture.file_formats) {
 			array.safePush(...Texture.file_formats[key].extensions);
 		}
 		return array;
+	}
+	static last_selected: number = 0;
+	static get all(): Texture[] {
+		return Project.textures || [];
+	}
+	static set all(arr: Texture[]) {
+		Project.textures.replace(arr);
+	}
+	static get selected(): Texture | undefined {
+		return Project.selected_texture
+	}
+	static set selected(texture: Texture | undefined) {
+		Project.selected_texture = texture;
 	}
 }
 	Texture.prototype.menu = new Menu([
@@ -1962,7 +2318,8 @@ export class Texture {
 				icon: 'star',
 				name: tex.use_as_default ? 'menu.texture.use_as_default.clear' : 'menu.texture.use_as_default',
 				condition: {features: ['single_texture_default']},
-				click(texture) {
+				click(texture: Texture) {
+					texture.particle
 					if (texture.use_as_default) {
 						texture.use_as_default = false;
 					} else {
@@ -2067,7 +2424,7 @@ export class Texture {
 				click(texture) {
 					let is_animated = texture.frameCount;
 					if (!is_animated && texture.getUVHeight() == texture.getUVWidth()) {
-						BarItems.animated_texture_editor.click();
+						(BarItems.animated_texture_editor as Action).click();
 						return;
 					}
 					if (Format.per_texture_uv_size) {
@@ -2216,26 +2573,6 @@ export class Texture {
 				click(texture) { texture.propertiesDialog()}
 			}
 	])
-	Texture.prototype.offset = [0, 0];
-	Texture.getDefault = function() {
-		if (Format.single_texture_default) {
-			let default_enabled = Texture.all.find(tex => tex.use_as_default);
-			if (default_enabled) return default_enabled;
-		}
-		if (Texture.selected && Texture.all.includes(Texture.selected)) {
-			if (Texture.selected.visible || Texture.selected.render_mode !== 'layered') {
-				return Texture.selected;
-			} else {
-				return Texture.all.findLast(tex => tex.visible);
-			}
-		} else if (Texture.selected) {
-			Texture.selected = undefined;
-		}
-		if (Texture.all.length > 1 && Texture.all.find(t => t.render_mode == 'layered')) {
-			return Texture.all.findLast(tex => tex.visible);
-		}
-		return Texture.all[0]
-	}
 	new Property(Texture, 'string', 'path')
 	new Property(Texture, 'string', 'name')
 	new Property(Texture, 'string', 'folder')
@@ -2263,24 +2600,11 @@ export class Texture {
 	new Property(Texture, 'string', 'frame_order')
 	new Property(Texture, 'boolean', 'frame_interpolate')
 
-	Object.defineProperty(Texture, 'all', {
-		get() {
-			return Project.textures || [];
-		},
-		set(arr) {
-			Project.textures.replace(arr);
-		}
-	})
-	Object.defineProperty(Texture, 'selected', {
-		get() {
-			return Project.selected_texture
-		},
-		set(texture) {
-			Project.selected_texture = texture;
-		}
-	})
-
-export async function saveTextures(lazy = false) {
+/**
+ * Saves all textures
+ * @param lazy If true, the texture isn't saved if it doesn't have a local file to save to
+ */
+export async function saveTextures(lazy: boolean = false) {
 	let textures_to_save = Texture.all.filter(tex => {
 		if (tex.saved) return false;
 		if (lazy && isApp && (!tex.path || !fs.existsSync(tex.path))) return false;
@@ -2312,7 +2636,10 @@ export async function saveTextures(lazy = false) {
 export function loadTextureDraggable() {
 	console.warn('loadTextureDraggable no longer exists');
 }
-export function unselectTextures() {
+/**
+ * Unselect all textures
+ */
+export function unselectTextures(): void {
 	Texture.all.forEach(function(s) {
 		s.selected = false;
 		s.multi_selected = false;
@@ -2321,7 +2648,7 @@ export function unselectTextures() {
 	Canvas.updateLayeredTextures();
 	updateInterfacePanels();
 	Panels.layers.inside_vue.layers = [];
-	Blockbench.dispatchEvent('update_texture_selection');
+	Blockbench.dispatchEvent('update_texture_selection', undefined);
 }
 export function getTexturesById(id) {
 	if (id === undefined) return;
@@ -2373,7 +2700,8 @@ function getTextureDataWithAccurateAlpha(texture) {
 }
 
 SharedActions.add('delete', {
-	condition: () => Prop.active_panel == 'textures' && Texture.selected,
+	subject: 'texture',
+	condition: () => Prop.active_panel == 'textures' && !!Texture.selected,
 	run() {
 		let textures = Texture.all.filter(texture => {
 			return texture.selected || texture.multi_selected;
@@ -2393,16 +2721,18 @@ SharedActions.add('delete', {
 	}
 })
 SharedActions.add('duplicate', {
-	condition: () => Prop.active_panel == 'textures' && Texture.selected,
+	subject: 'texture',
+	condition: () => Prop.active_panel == 'textures' && !!Texture.selected,
 	run() {
 		let copy = Texture.selected.getSaveCopy();
 		delete copy.path;
+		delete copy.uuid;
 		let new_tex = new Texture(copy).fillParticle();
 		new_tex.convertToInternal(Texture.selected.getDataURL());
 		new_tex.load().add(true);
 	}
 })
-Clipbench.setTexture = function(texture) {
+Clipbench.setTexture = function(texture: Texture) {
 
 	Clipbench.texture = texture.getSaveCopy();
 	delete Clipbench.texture.path;
@@ -2438,7 +2768,7 @@ Clipbench.pasteTextures = function() {
 		Clipbench.texture = null;
 
 	} else if (isApp) {
-		var image = clipboard.readImage().toDataURL('image/png', 1);
+		var image = clipboard.readImage().toDataURL();
 		loadFromDataUrl(image);
 	} else {
 		navigator.clipboard.read().then(content => {
@@ -2457,7 +2787,7 @@ BARS.defineActions(function() {
 		icon: 'library_add',
 		category: 'textures',
 		keybind: new Keybind({key: 't', ctrl: true}),
-		click(event, context) {
+		click(event: MouseEvent, context: TextureGroup | undefined) {
 			let start_path;
 			if (!isApp) {} else
 			if (Texture.all.length > 0) {
@@ -2564,14 +2894,14 @@ BARS.defineActions(function() {
 			Panels.textures.inside_vue._data.search_enabled = value;
 			if (value) {
 				Vue.nextTick(() => {
-					document.getElementById('texture_search_bar').firstChild.focus();
+					(document.getElementById('texture_search_bar').firstChild as HTMLElement).focus();
 				});
 			}
 		}
 	})
 	new Action('apply_texture_to_elements', {
 		icon: 'list_alt_check',
-		condition() {return !Format.single_texture && Outliner.selected.length > 0 && Texture.selected},
+		condition() {return !Format.single_texture && Outliner.selected.length > 0 && !!Texture.selected},
 		click() {
 			Texture.selected.apply(true)
 		}
@@ -2742,7 +3072,7 @@ Interface.definePanels(function() {
 					if (isNodeUnderCursor(document.getElementById('cubes_list'), e2)) {
 						for (let node of document.querySelectorAll('.outliner_object')) {
 							if (isNodeUnderCursor(node, e2)) {
-								let parent = node.parentNode;
+								let parent = node.parentNode as HTMLElement;
 								parent.classList.add('drag_hover');
 								parent.setAttribute('order', '0');
 								return;
@@ -2834,7 +3164,8 @@ Interface.definePanels(function() {
 							new_group = target_group_head.parentNode.id;
 
 						} else if (texture_node) {
-							let target_tex = Texture.all.findInArray('uuid', texture_node.getAttribute('texid'));
+							let tex_id = texture_node.getAttribute('texid');
+							let target_tex = Texture.all.find(tex => tex.uuid == tex_id);
 							index = Texture.all.indexOf(target_tex);
 							let own_index = Texture.all.indexOf(selected_textures[0])
 							if (own_index == index && selected_textures.length == 1) return;
@@ -2860,29 +3191,30 @@ Interface.definePanels(function() {
 						let uuid = outliner_target_node.id;
 						let target = OutlinerNode.uuids[uuid];
 						
-						let array = [];
-						if (target.type === 'group') {
+						let array: OutlinerNode[] = [];
+						if (target instanceof Group) {
 							target.forEachChild((element) => {
 								array.push(element);
 							})
 						} else {
-							array = selected.includes(target) ? selected.slice() : [target];
+							array = Outliner.selected.includes(target as OutlinerElement) ? Outliner.selected.slice() : [target];
 						}
-						array = array.filter(element => element.applyTexture);
+						let elements: OutlinerElement[] = array.filter(element => element instanceof OutlinerElement && 'applyTexture' in element);
 
 						if (Format.per_group_texture) {
-							let group = target.type === 'group' ? target : null;
+							let group: OutlinerNode | typeof Outliner.ROOT = target instanceof Group ? target : null;
 							if (!group) group = target.parent;
-
-							array = [];
+							if (group instanceof Group == false) return;
+							elements = [];
 							Undo.initEdit({group});
 							group.texture = texture.uuid;
 							group.forEachChild(child => {
 								if (child.preview_controller?.updateFaces) child.preview_controller.updateFaces(child);
 							})
 						} else {
-							Undo.initEdit({elements: array, uv_only: true})
-							array.forEach(element => {
+							Undo.initEdit({elements, uv_only: true})
+							elements.forEach(element => {
+								// @ts-expect-error Checked when creating the array
 								element.applyTexture(texture, true);
 							});
 						}
@@ -3001,13 +3333,13 @@ Interface.definePanels(function() {
 			}},
 			components: {'Texture': texture_component},
 			methods: {
-				openMenu(event) {
+				openMenu(event: MouseEvent) {
 					Interface.Panels.textures.menu.show(event)
 				},
-				addTextureToGroup(texture_group) {
-					BarItems.import_texture.click(0, texture_group);
+				addTextureToGroup(texture_group: TextureGroup, event: MouseEvent) {
+					BarItems.import_texture.click(event, texture_group);
 				},
-				slideTimelinePointer(e1) {
+				slideTimelinePointer(e1: PointerEvent) {
 					let scope = this;
 					if (!this.$refs.timeline) return;
 
@@ -3037,7 +3369,7 @@ Interface.definePanels(function() {
 					addEventListeners(document, 'pointerup', off);
 					slide(e1);
 				},
-				scrollTimeline(event) {
+				scrollTimeline(event: WheelEvent) {
 					
 					let slider_tex = [Texture.getDefault(), ...Texture.all].find(tex => tex && tex.frameCount > 1);
 					if (!slider_tex) return;
@@ -3064,7 +3396,7 @@ Interface.definePanels(function() {
 					if (count == 1) return 0;
 					return count;
 				},
-				unselect(event) {
+				unselect() {
 					if (Blockbench.hasFlag('dragging_textures')) return;
 					unselectTextures();
 				},
@@ -3084,7 +3416,7 @@ Interface.definePanels(function() {
 						return true;
 					}));
 				},
-				dragTextureGroup(texture_group, e1) {
+				dragTextureGroup(texture_group: TextureGroup, e1: MouseEvent) {
 					if (e1.button == 1) return;
 					convertTouchEvent(e1);
 
@@ -3108,7 +3440,7 @@ Interface.definePanels(function() {
 					}
 					let scrollIntervalID;
 	
-					function move(e2) {
+					function move(e2: MouseEvent) {
 						convertTouchEvent(e2);
 						let offset = [
 							e2.clientX - e1.clientX,
@@ -3165,7 +3497,7 @@ Interface.definePanels(function() {
 						}
 						last_event = e2;
 					}
-					async function off(e2) {
+					async function off(e2: Event) {
 						if (helper) helper.remove();
 						clearInterval(scrollIntervalID);
 						removeEventListeners(document, 'mousemove touchmove', move);
@@ -3247,7 +3579,7 @@ Interface.definePanels(function() {
 										<img :src="texture.source" class="texture_icon" width="24px" height="24px" alt="" v-if="texture.show_icon" />
 									</li>
 								</ul>
-								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group)" v-if="!texture_group.folded">
+								<div class="in_list_button" @click.stop="addTextureToGroup(texture_group, $event)" v-if="!texture_group.folded">
 									<i class="material-icons">add</i>
 								</div>
 							</div>
@@ -3287,9 +3619,9 @@ Interface.definePanels(function() {
 				</div>
 			`,
 			mounted() {
-				BarItems.animated_textures.toElement(this.$refs.tool_wrapper)
-				BarItems.animated_texture_frame.setWidth(52).toElement(this.$refs.tool_wrapper)
-				BarItems.animated_texture_fps.toElement(this.$refs.tool_wrapper_2)
+				BarItems.animated_textures.toElement(this.$refs.tool_wrapper);
+				(BarItems.animated_texture_frame as NumSlider).setWidth(52).toElement(this.$refs.tool_wrapper);
+				BarItems.animated_texture_fps.toElement(this.$refs.tool_wrapper_2);
 			}
 		},
 		menu: new Menu([
@@ -3304,9 +3636,27 @@ Interface.definePanels(function() {
 	})
 })
 
-Object.assign(window, {
+const global = {
 	Texture,
 	saveTextures,
 	unselectTextures,
 	getTexturesById,
-});
+};
+Object.assign(window, global);
+
+declare global {
+	const Texture: typeof global.Texture
+	type Texture = import('./textures').Texture
+	const saveTextures: typeof global.saveTextures
+	const unselectTextures: typeof global.unselectTextures
+	interface BarItemRegistry {
+		import_texture: Action
+		create_texture: Action
+		append_to_template: Action
+		save_textures: Action
+		change_textures_folder: Action
+		search_textures: Toggle
+		apply_texture_to_elements: Action
+		refresh_texture: Action
+	}
+}

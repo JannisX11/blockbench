@@ -147,7 +147,7 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 	delete() {
 		delete this.class.properties[this.name];
 	}
-	getDefault(instance: IPropertyType[T]): IPropertyType[T] {
+	getDefault(instance?: IPropertyType[T]): IPropertyType[T] {
 		if (typeof this.default == 'function') {
 			return this.default(instance);
 		} else if (this.isArray) {

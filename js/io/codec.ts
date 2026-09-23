@@ -5,10 +5,10 @@ import { fs } from "../native_apis";
  * A codec represents a specific file format that can be imported into and exported from Blockbench. The codec handles the compilation and parsing, as well as the loading and exporting logic
  * @module
  */
-
+export type ExternalDataLoader = (path: string) => any
 export interface LoadOptions {
 	import_to_current_project?: boolean
-	externalDataLoader?: (path: string) => any
+	externalDataLoader?: ExternalDataLoader
 	resolve_parent?: boolean
 	[key: string]: unknown
 }

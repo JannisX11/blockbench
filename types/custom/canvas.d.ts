@@ -110,6 +110,8 @@ declare namespace Canvas {
 	const ground_plane: THREE.Mesh
 	const brush_outline: THREE.Mesh
 
+	let layered_material: THREE.ShaderMaterial | undefined
+
 	let show_gizmos: boolean
 	let show_element_markers: boolean
 	let ground_animation: boolean
@@ -167,7 +169,7 @@ declare namespace Canvas {
 	/**
 	 * Returns the three.js render sides based on the current settings and state
 	 */
-	function getRenderSide(): number
+	function getRenderSide(texture?: Texture): number
 	/**
 	 * Update render sides of all materials
 	 */
@@ -220,6 +222,10 @@ declare namespace Canvas {
 	 */
 	function updateLayeredTextures(): void
 	/**
+	 * Update the pixel / painting grid on all elements
+	 */
+	function updatePixelGrid(): void
+	/**
 	 * Update the UV map of the specified cube
 	 * @param cube Cube to update
 	 * @param animation Whether to display the current animated texture frame
@@ -255,6 +261,7 @@ declare namespace TickUpdates {
 	let keyframes: undefined | true
 	let keyframe_selection: undefined | true
 	let keybind_conflicts: undefined | true
+	let UVEditor: undefined | true
 }
 
 interface NodePreviewControllerOptions {

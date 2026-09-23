@@ -23,7 +23,13 @@ declare class EditSession {
 	initNewModel(force?: boolean): void
 	initConnection(conn: any): void
 	sendAll(type: string, data: any): void
-	sendEdit(entry: UndoEntry): void
+	sendEdit(entry: {
+		before: Partial<UndoSave>
+		post: Partial<UndoSave>
+		save_history: entry.save_history,
+		action: string
+		time?: number
+	}): void
 	receiveData(tag: any): void
 	processData(tag: any): void
 	catchUp(): void

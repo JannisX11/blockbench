@@ -624,7 +624,7 @@ UndoSystem.save = class {
 							tex.updateLayerChanges(true);
 						}
 						tex.updateSource();
-						tex.keep_size = true;
+						tex.flags.add('keep_size');
 						if (require_reload || reference.textures[uuid] === true) {
 							tex.load()
 						}
@@ -671,7 +671,7 @@ UndoSystem.save = class {
 				}*/
 				tex.updateLayerChanges(true);
 				tex.updateSource();
-				tex.keep_size = true;
+				tex.flags.add('keep_size');
 				tex.syncToOtherProject();
 			})
 			Canvas.updateAllFaces();

@@ -74,8 +74,8 @@ Math.areMultiples = function(n1, n2) {
 		(n2/n1)%1 === 0
 	)
 }
-Math.getNextPower = function(num, min) {
-	var i = min ? min : 2
+Math.getNextPower = function(num, min = 2) {
+	let i = min;
 	while (i < num && i < 4000) {
 		i *= 2
 	}

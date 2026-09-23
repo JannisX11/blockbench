@@ -59,7 +59,7 @@ Array.prototype.findInArray = function(key, value) {
 	for (var i = 0; i < this.length; i++) {
 		if (this[i][key] === value) return this[i]
 	}
-	return false;
+	return undefined;
 }
 Array.prototype.findHighest = function(callback) {
 	let highest_value = -Infinity, highest;

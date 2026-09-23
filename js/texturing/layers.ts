@@ -4,6 +4,7 @@ import { Property } from "../util/property"
 
 export interface TextureLayerData {
 	name?: string
+	parent_uuid?: string
 	in_limbo?: boolean
 	offset?: ArrayVector2
 	scale?: ArrayVector2
@@ -14,6 +15,9 @@ export interface TextureLayerData {
 	blend_mode?: LayerBlendMode
 	image_data?: ImageData
 	data_url?: string
+
+	uuid?: string
+	type?: string
 }
 export type LayerBlendMode = 'default' | 'set_opacity' | 'color' | 'multiply' | 'add' | 'darken' | 'lighten' | 'screen' | 'overlay' | 'difference' | 'alpha_mask'
 
@@ -58,8 +62,8 @@ export abstract class TextureLayerItem {
 		return it(this);
 	}
 	extend(data: any) {}
-	getSaveCopy(arg: any): any {}
-	getUndoCopy(arg: any): any {}
+	getSaveCopy(arg?: any): any {}
+	getUndoCopy(arg?: any): any {}
 	/**
 	 * Selects the layer
 	 */
@@ -293,7 +297,7 @@ export class TextureLayer extends TextureLayerItem {
 			BarItems.selection_tool.select();
 		}
 	}
-	getUndoCopy(image_data: boolean): any {
+	getUndoCopy(image_data: boolean): TextureLayerData {
 		let copy: any = {};
 		copy.texture = this.texture.uuid;
 		copy.uuid = this.uuid;
@@ -308,7 +312,7 @@ export class TextureLayer extends TextureLayerItem {
 		}
 		return copy;
 	}
-	getSaveCopy(): any {
+	getSaveCopy(): TextureLayerData {
 		let copy: any = {};
 		copy.type = this.type;
 		for (let key in TextureLayer.properties) {

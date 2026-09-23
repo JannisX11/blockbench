@@ -3,6 +3,7 @@ declare global {
         let elements: any[];
         let layer: any;
         let duplicate_map: Map<OutlinerNode, OutlinerNode>
+        let texture: any
         enum types {
             text = 'text',
             display_slot = 'display_slot',
@@ -33,6 +34,8 @@ declare global {
         function paste(event: Event): Promise<void>;
         function setGroups(groups: Group[]): void;
         function setElements(arr: OutlinerElement[]): void;
+        function setTexture(texture: Texture): void;
+        function pasteTextures(): void;
         function setText(text: string): void;
         function setMeshSelection(mesh: Mesh): void;
         function pasteMeshSelection(): void;

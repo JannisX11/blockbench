@@ -359,7 +359,7 @@ export interface ActionOptions extends BarItemOptions {
 	/**
 	 * Function to run when user uses the action successfully
 	 */
-	click?: (event?: Event) => void
+	click?: (event?: Event, context?: any) => void
 	/**
 	 * Icon color. Can be a CSS color string, or an axis letter to use an axis color.
 	 */
@@ -380,7 +380,7 @@ export interface ActionOptions extends BarItemOptions {
 	tool_config?: ToolConfig
 }
 export interface ActionSpecificOptions extends ActionOptions {
-	click:(event?: Event) => void
+	click:(event?: Event, context?: any) => void
 }
 /**
  * Actions can be triggered to run something, they can be added to menus, toolbars, assigned a keybinding, or run via Action Control
