@@ -692,6 +692,20 @@ Object.defineProperty(window, 'Project', {
 
 let ProjectData = {};
 
+function tabMenuEntry(id: string, name: string) {
+	return function() {
+		let action = BarItems[id] as Action;
+		return {
+			id, name,
+			icon: action.icon,
+			keybind: action.keybind,
+			description: action.description,
+			condition: action.condition,
+			click: () => action.trigger()
+		};
+	}
+}
+
 ModelProject.prototype.menu = new Menu([
 	new MenuSeparator('settings'),
 	'project_window',
@@ -699,9 +713,11 @@ ModelProject.prototype.menu = new Menu([
 	'open_model_folder',
 	'duplicate_project',
 	'convert_project',
-	'close_project',
+	tabMenuEntry('close_project', 'action.close_project.tab'),
 	'close_other_projects',
+	'close_projects_to_left',
 	'close_projects_to_right',
+	tabMenuEntry('close_all_projects', 'action.close_all_projects.tab'),
 	new MenuSeparator('save'),
 	'save_project',
 	'save_project_as',
@@ -1145,6 +1161,11 @@ onVueSetup(() => {
 })
 
 
+function hasTabsOnBothSides() {
+	let index = ModelProject.all.indexOf(Project);
+	return index > 0 && index < ModelProject.all.length-1;
+}
+
 BARS.defineActions(function() {
 
 	new Action('project_window', {
@@ -1302,7 +1323,7 @@ BARS.defineActions(function() {
 	new Action('close_other_projects', {
 		icon: 'tab_close',
 		category: 'file',
-		condition: () => !!Project,
+		condition: () => ModelProject.all.length > 1,
 		async click() {
 			let projects = ModelProject.all.filter(p => p != Project);
 			if (projects.some(p => !p.saved)) {
@@ -1314,15 +1335,57 @@ BARS.defineActions(function() {
 			}
 		}
 	})
+	new Action('close_projects_to_left', {
+		icon() {
+			let node = Blockbench.getIconNode('tab_close_right');
+			node.classList.add('flipped');
+			return node;
+		},
+		category: 'file',
+		condition: hasTabsOnBothSides,
+		async click() {
+			let projects = ModelProject.all.slice(0, ModelProject.all.indexOf(Project));
+			if (projects.some(project => !project.saved)) {
+				try {
+					await showUnsavedWorkDialog(projects);
+				} catch (err) {
+					return;
+				}
+			}
+			for (let project of projects) {
+				if (!ModelProject.all.includes(project)) continue;
+				await project.close(true);
+			}
+		}
+	})
 	new Action('close_projects_to_right', {
 		icon: 'tab_close_right',
 		category: 'file',
-		condition: () => ModelProject.all.length > 2 && ModelProject.all.indexOf(Project) != ModelProject.all.length-1,
+		condition: hasTabsOnBothSides,
 		async click() {
 			let index = ModelProject.all.indexOf(Project);
 			let projects = ModelProject.all.slice(index+1);
 			if (projects.some(p => !p.saved)) {
 				await showUnsavedWorkDialog(projects).catch(silentReject);
+			}
+			for (let project of projects) {
+				if (!ModelProject.all.includes(project)) continue;
+				await project.close(true);
+			}
+		}
+	})
+	new Action('close_all_projects', {
+		icon: 'tab_close',
+		category: 'file',
+		condition: () => ModelProject.all.length > 1,
+		async click() {
+			let projects = ModelProject.all.slice();
+			if (projects.some(project => !project.saved)) {
+				try {
+					await showUnsavedWorkDialog(projects);
+				} catch (err) {
+					return;
+				}
 			}
 			for (let project of projects) {
 				if (!ModelProject.all.includes(project)) continue;

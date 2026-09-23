@@ -193,6 +193,7 @@ export const MenuBar = {
 			'save_project_incremental',
 			'convert_project',
 			'close_project',
+			'close_all_projects',
 			new MenuSeparator('import_export'),
 			{name: 'menu.file.import', id: 'import', icon: 'insert_drive_file', condition: () => Format && !Format.pose_mode, children: [
 				{
