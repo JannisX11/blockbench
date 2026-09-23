@@ -42,7 +42,7 @@ export class ModelProject {
 	 */
 	export_path: string
 	added_models: number
-	BedrockEntityManager?: {}
+	BedrockEntityManager?: any
 	format: ModelFormat
 	mode: string
 	view_mode: string
