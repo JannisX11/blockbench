@@ -219,3 +219,6 @@ Array.prototype.V2_divide = function(x, y) {
 	this[1] /= parseFloat(y)||1;
 	return this;
 }
+Array.prototype.V2_toThree = function() {
+	return new THREE.Vector2(this[0], this[1]);
+}
