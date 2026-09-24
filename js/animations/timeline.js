@@ -479,9 +479,9 @@ export const Timeline = {
 		//Enter Time
 		let timestamp = Panels.timeline.node.querySelector('#timeline_timestamp');
 		addEventListeners(timestamp, 'click', e => {
-			if ($('#timeline_timestamp').attr('contenteditable') == 'true') return;
+			if ($('#timeline_timestamp').attr('contenteditable') == 'plaintext-only') return;
 
-			$('#timeline_timestamp').attr('contenteditable', true).focus().select()
+			$('#timeline_timestamp').attr('contenteditable', 'plaintext-only').focus().select()
 			var times = $('#timeline_timestamp').text().split(':')
 			while (times.length < 3) {
 				times.push('00')
@@ -535,9 +535,9 @@ export const Timeline = {
 		//Enter Frame
 		let framenumber = Panels.timeline.node.querySelector('#timeline_framenumber');
 		framenumber.addEventListener('click', e => {
-			if ($('#timeline_framenumber').attr('contenteditable') == 'true') return;
+			if ($('#timeline_framenumber').attr('contenteditable') == 'plaintext-only') return;
 
-			$('#timeline_framenumber').attr('contenteditable', true).trigger('focus');
+			$('#timeline_framenumber').attr('contenteditable', 'plaintext-only').trigger('focus');
 			document.execCommand('selectAll');
 		})
 		addEventListeners(framenumber, 'focusout keydown', e => {

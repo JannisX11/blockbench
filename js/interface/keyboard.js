@@ -689,7 +689,7 @@ addEventListeners(document, 'keydown mousedown', function(e) {
 		//Tab
 		if (e.which == 9 && !Dialog.open && !document.querySelector('.capture_tab_key:focus-within')) {
 			let all_visible_inputs = [];
-			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="true"]')
+			var all_inputs = document.querySelectorAll('.tab_target:not(.prism-editor-component), .prism-editor-component.tab_target > .prism-editor-wrapper > pre[contenteditable="plaintext-only"]')
 			all_inputs.forEach(input => {
 				if (input.isConnected && input.offsetParent && $(input).is(':visible')) {
 					all_visible_inputs.push(input);
