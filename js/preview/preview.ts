@@ -9,6 +9,7 @@ import { CSS3DRenderer } from '../lib/CSS3DRenderer';
 import { PointerTarget } from '../interface/pointer_target';
 import { unselectInterface } from '../interface/interface';
 import { sameMeshEdge } from '../modeling/mesh/util';
+import { PreviewScene } from './preview_scenes';
 
 const background_scene = new THREE.Scene();
 const background_camera = new THREE.PerspectiveCamera(45, 1, 1, 10);

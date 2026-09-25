@@ -17,7 +17,7 @@ interface TransformContextEnd extends TransformContext {
 	keep_changes: boolean
 }
 
-interface TransformerModuleOptions {
+export interface TransformerModuleOptions {
 	priority: number
 	condition: ConditionResolvable
 	use_condition?: ConditionResolvable

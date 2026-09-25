@@ -1,5 +1,6 @@
 
 import { CustomMenuItem } from "../interface/menu";
+import { TransformerModule } from "../modeling/transform/transform_modules";
 import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
 import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
