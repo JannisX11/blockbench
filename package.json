@@ -149,6 +149,7 @@
 		"prepublish-web": "npm run build-web && npm run pwa && npm run generate-docs",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa && npm run generate-docs",
 		"webapp": "git checkout gh-pages && git pull && git merge master --no-edit && git push && git checkout master",
+		"check-unused-exports": "npx ts-unused-exports tsconfig.json",
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
 		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
@@ -183,6 +184,7 @@
 		"strip-json-comments": "^5.0.3",
 		"three": "^0.129.0",
 		"tinycolor2": "^1.6.0",
+		"ts-unused-exports": "^11.0.1",
 		"typedoc": "^0.28.14",
 		"typedoc-plugin-missing-exports": "^4.1.2",
 		"typescript": "^5.8.3",
