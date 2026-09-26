@@ -859,6 +859,7 @@ export class Tool extends Action implements ToolSpecificOptions {
 		}
 		this.dispatchEvent('select', {previous_tool});
 		Interface.preview.style.cursor = this.cursor ? this.cursor : 'default';
+		document.body.setAttribute('tool', this.id);
 		this.nodes.forEach(node => {
 			node.classList.add('enabled')
 		})
