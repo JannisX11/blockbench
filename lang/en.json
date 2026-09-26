@@ -2616,6 +2616,7 @@
 	"menu.mirror_modeling.mirror_uv": "Mirror UV",
 
 	"menu.image_tiled_view.mirrored": "Mirrored Edges",
+	"menu.image_tiled_view.tiling_grid": "Tiling Grid",
 
 	"menu.image_onion_skin_view.frame": "Frames",
 	"menu.image_onion_skin_view.frame.last_viewed": "Last Viewed Frame",
