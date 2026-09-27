@@ -174,6 +174,7 @@ function mergeParentModels(stack: any[]): any {
 	for (let key in merged.textures) {
 		let value = merged.textures[key];
 		let seen = new Set([key]);
+		let last_ref: string;
 		while (typeof value == 'string' && value.startsWith('#')) {
 			let reference = value.substring(1);
 			if (seen.has(reference)) {
@@ -181,10 +182,11 @@ function mergeParentModels(stack: any[]): any {
 				break;
 			}
 			seen.add(reference);
+			last_ref = reference;
 			value = merged.textures[reference];
 		}
 		if (typeof value == 'string') {
-			merged.textures[key] = value;
+			merged.textures[key] = last_ref && last_ref !== key && merged.textures[last_ref] ? '#' + last_ref : value;
 		} else {
 			delete merged.textures[key];
 		}
@@ -579,7 +581,6 @@ const codec = new Codec('java_block', {
 
 		let texture_ids: Record<string, Texture> = {}
 		let texture_paths: Record<string, Texture> = {}
-		let texture_by_link: Record<string, Texture> = {}
 		if (model.textures) {
 			//Create Path Array to fetch textures
 			let path_arr = path.split(osfs)
@@ -593,29 +594,52 @@ const codec = new Codec('java_block', {
 			for (let key in texture_arr) {
 				if (typeof texture_arr[key] === 'string' && key != 'particle') {
 					let link = texture_arr[key];
-					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
-						link = texture_arr[link.substring(1)];
+					if (!link.startsWith('#')) {
+						let texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
+						let path = link.replace(/^minecraft:/, '');
+						texture_paths[path] = texture_paths[link] = texture_ids[key] = texture;
+						new_textures.safePush(texture);
 					}
-					let texture;
-					if (texture_by_link[link]) {
-						texture = texture_by_link[link]
-					} else if (link.startsWith('#')) {
-						texture = new Texture({id: key, name: link}).add(false).loadEmpty(3);
-					} else {
-						texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
+				}
+			}
+
+			function resolveReference(refKey: string): string {
+				let seen = new Set<string>();
+				let current = refKey;
+				while (typeof texture_arr[current] === 'string' && texture_arr[current].startsWith('#')) {
+					let next = texture_arr[current].substring(1);
+					if (seen.has(next)) break;
+					seen.add(next);
+					current = next;
+				}
+				return current;
+			}
+
+			for (let key in texture_arr) {
+				if (typeof texture_arr[key] === 'string' && key != 'particle') {
+					let link = texture_arr[key];
+					if (link.startsWith('#')) {
+						let resolved_key = resolveReference(key);
+						let texture = texture_ids[resolved_key];
+						if (texture) {
+							texture_ids[key] = texture;
+						} else {
+							texture = new Texture({id: key, name: link}).add(false).loadEmpty(3);
+							texture_ids[key] = texture;
+							new_textures.safePush(texture);
+						}
 					}
-					let path = texture_arr[key].replace(/^minecraft:/, '');
-					texture_paths[path] = texture_ids[key] = texture_by_link[link] = texture;
-					new_textures.safePush(texture);
 				}
 			}
 			if (texture_arr.particle) {
 				let link = texture_arr.particle;
-				if (link.startsWith('#') && texture_arr[link.substring(1)]) {
-					link = texture_arr[link.substring(1)];
-				}
-				if (texture_paths[link.replace(/^minecraft:/, '')]) {
-					texture_paths[link.replace(/^minecraft:/, '')].enableParticle()
+				let resolved_key = link.startsWith('#') ? resolveReference(link.substring(1)) : null;
+				if (resolved_key && texture_ids[resolved_key]) {
+					texture_ids[resolved_key].enableParticle();
+					texture_ids.particle = texture_ids[resolved_key];
+				} else if (texture_paths[link.replace(/^minecraft:/, '')]) {
+					texture_paths[link.replace(/^minecraft:/, '')].enableParticle();
+					texture_ids.particle = texture_paths[link.replace(/^minecraft:/, '')];
 				} else {
 					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).enableParticle().add();
 					texture_paths[link.replace(/^minecraft:/, '')] = texture_ids.particle = texture;
