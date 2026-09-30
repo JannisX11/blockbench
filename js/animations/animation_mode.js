@@ -493,9 +493,10 @@ export const Animator = {
 						if (timeout) clearTimeout(timeout)
 						timeout = setTimeout(() => {
 							Blockbench.read(path, {errorbox: false}, (files) => {
+								if (!files[0].content) return;
 								Animator.loadParticleEmitter(path, files[0].content);
 							})
-						}, 60)
+						}, 150)
 					}
 				})
 			}
