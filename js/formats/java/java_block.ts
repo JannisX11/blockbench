@@ -173,17 +173,19 @@ function mergeParentModels(stack: any[]): any {
 	}
 	for (let key in merged.textures) {
 		let value = merged.textures[key];
+		let path: string = typeof value == 'object' ? value.sprite : value;
 		let seen = new Set([key]);
-		while (typeof value == 'string' && value.startsWith('#')) {
-			let reference = value.substring(1);
+		while (typeof path == 'string' && path.startsWith('#')) {
+			let reference = path.substring(1);
 			if (seen.has(reference)) {
-				value = undefined;
+				value = path = undefined;
 				break;
 			}
 			seen.add(reference);
 			value = merged.textures[reference];
+			path = typeof value == 'object' ? value.sprite : value;
 		}
-		if (typeof value == 'string') {
+		if (typeof value == 'string' || typeof value == 'object') {
 			merged.textures[key] = value;
 		} else {
 			delete merged.textures[key];
@@ -346,7 +348,7 @@ const codec = new Codec('java_block', {
 		}
 		iterate(Outliner.root)
 
-		function checkExport(key, condition) {
+		function checkExport(key: string, condition) {
 			key = options[key]
 			if (key === undefined) {
 				return condition;
@@ -355,7 +357,7 @@ const codec = new Codec('java_block', {
 			}
 		}
 		let isTexturesOnlyModel = clear_elements.length === 0 && checkExport('parent', Project.parent != '')
-		let texturesObj: Record<string, string> = {}
+		let texturesObj: Record<string, string | {force_translucent?: boolean, sprite: string}> = {}
 		Texture.all.forEach(function(t, i){
 			let link = t.javaTextureLink()
 			if (t.particle) {
@@ -363,7 +365,7 @@ const codec = new Codec('java_block', {
 			}
 			if (!textures_used.includes(t) && !isTexturesOnlyModel) return;
 			if (t.id !== link.replace(/^#/, '')) {
-				texturesObj[t.id] = link
+				texturesObj[t.id] = t.force_translucent ? {force_translucent: true, sprite: link} : link;
 			}
 		})
 
@@ -588,39 +590,46 @@ const codec = new Codec('java_block', {
 				path_arr.splice(-index)
 			}
 
-			let texture_arr = model.textures
-
-			for (let key in texture_arr) {
-				if (typeof texture_arr[key] === 'string' && key != 'particle') {
-					let link = texture_arr[key];
-					if (link.startsWith('#') && texture_arr[link.substring(1)]) {
-						link = texture_arr[link.substring(1)];
-					}
-					let texture;
-					if (texture_by_link[link]) {
-						texture = texture_by_link[link]
-					} else if (link.startsWith('#')) {
-						texture = new Texture({id: key, name: link}).add(false).loadEmpty(3);
-					} else {
-						texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
-					}
-					let path = texture_arr[key].replace(/^minecraft:/, '');
-					texture_paths[path] = texture_ids[key] = texture_by_link[link] = texture;
-					new_textures.safePush(texture);
+			function resolveTexture(key: string): {path: string, force_translucent?: boolean} {
+				let entry = model.textures[key];
+				let path = typeof entry == 'object' ? entry.sprite : entry;
+				if (path.startsWith('#') && model.textures[path.substring(1)]) {
+					entry = model.textures[path.substring(1)];
+					path = typeof entry == 'object' ? entry.sprite : entry;
 				}
+				return {path, force_translucent: typeof entry == 'object' ? entry.force_translucent : undefined};
 			}
-			if (texture_arr.particle) {
-				let link = texture_arr.particle;
-				if (link.startsWith('#') && texture_arr[link.substring(1)]) {
-					link = texture_arr[link.substring(1)];
-				}
-				if (texture_paths[link.replace(/^minecraft:/, '')]) {
-					texture_paths[link.replace(/^minecraft:/, '')].enableParticle()
+
+			for (let key in model.textures) {
+				if (key == 'particle') continue;
+
+				let entry = resolveTexture(key);
+				let link = entry.path;
+				let texture: Texture;
+				if (texture_by_link[link]) {
+					texture = texture_by_link[link]
+				} else if (link.startsWith('#')) {
+					texture = new Texture({id: key, name: link}).add(false).loadEmpty(3);
 				} else {
-					let texture = new Texture({id: 'particle'}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).enableParticle().add();
-					texture_paths[link.replace(/^minecraft:/, '')] = texture_ids.particle = texture;
+					texture = new Texture({id: key}).fromJavaLink(link, path_arr.slice(), args.externalDataLoader).add();
+				}
+				if (entry.force_translucent) texture.force_translucent = true;
+				let shorthand_path = entry.path.replace(/^minecraft:/, '');
+				texture_paths[shorthand_path] = texture_ids[key] = texture_by_link[link] = texture;
+				new_textures.safePush(texture);
+			}
+			if (model.textures.particle) {
+				let entry = resolveTexture('particle');
+				let shorthand_path = entry.path.replace(/^minecraft:/, '');
+
+				if (texture_paths[shorthand_path]) {
+					texture_paths[shorthand_path].enableParticle()
+				} else {
+					let texture = new Texture({id: 'particle'}).fromJavaLink(entry.path, path_arr.slice(), args.externalDataLoader).enableParticle().add();
+					texture_paths[shorthand_path] = texture_ids.particle = texture;
 					new_textures.push(texture);
 				}
+				if (entry.force_translucent) texture_paths[shorthand_path].force_translucent = true;
 			}
 			//Get Rid Of ID overlapping
 			for (let i = previous_texture_length; i < Texture.all.length; i++) {

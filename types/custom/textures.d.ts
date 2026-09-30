@@ -119,6 +119,7 @@ declare global {
 		render_sides: 'auto' | 'front' | 'double' | string
 		wrap_mode: 'limited' | 'repeat' | 'clamp'
 		pbr_channel: 'color' | 'normal' | 'height' | 'mer'
+		force_translucent: boolean
 		use_as_default: boolean
 		/** UUID of the TextureGroup that this texture is in, if set */
 		group: string
