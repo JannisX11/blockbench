@@ -3,7 +3,7 @@ import { Armature } from "../../outliner/types/armature";
 
 export function buildAnimationTracks(export_scale = Settings.get('model_export_scale'), do_quaternions = true) {
 	let anims = [];
-	Animator.animations.forEach(animation => {
+	Animation.all.forEach(animation => {
 
 		let ik_samples = animation.sampleIK();
 
@@ -577,7 +577,7 @@ var codec = new Codec('gltf', {
 					trs: true,
 					binary: options.encoding == 'binary',
 					truncateDrawRange: false,
-					forcePowerOfTwoTextures: options.embed_textures !== false,
+					forcePowerOfTwoTextures: options.embed_textures != false,
 					scale_factor: 1/options.scale,
 					embedImages: options.embed_textures != false,
 					exportFaceColors: false,
@@ -590,6 +590,7 @@ var codec = new Codec('gltf', {
 			for (let [parent, object] of add_back_later) {
 				parent.add(object);
 			}
+			if (Modes.animate) Animator.preview(false);
 			
 			scope.dispatchEvent('compile', {model: result, options});
 			if (options.encoding == 'binary') {

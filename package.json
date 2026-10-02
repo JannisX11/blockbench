@@ -2,7 +2,7 @@
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
 	"desktopName": "net.blockbench.blockbench",
-	"version": "5.2.0-beta.2",
+	"version": "5.2.1",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -118,7 +118,7 @@
 			"icon": "build/icon.png"
 		},
 		"electronFuses": {
- 			"runAsNode": false
+			"runAsNode": false
 		},
 		"fileAssociations": [
 			{
@@ -149,6 +149,7 @@
 		"prepublish-web": "npm run build-web && npm run pwa && npm run generate-docs",
 		"prepublish-beta": "node ./scripts/enable_beta.js && npm run build-web && npm run pwa && npm run generate-docs",
 		"webapp": "git checkout gh-pages && git pull && git merge master --no-edit && git push && git checkout master",
+		"check-unused-exports": "npx ts-unused-exports tsconfig.json",
 		"generate-types": "tsc --project tsconfig.json && node ./scripts/convert_types.js",
 		"publish-types": "npm publish ./types",
 		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
@@ -168,7 +169,7 @@
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
 		"electron": "^43.4.0",
-		"electron-builder": "^26.15.3",
+		"electron-builder": "^26.15.7",
 		"esbuild": "^0.28.1",
 		"esbuild-plugin-glsl": "^1.2.2",
 		"esbuild-vue": "^0.0.1",
@@ -177,12 +178,13 @@
 		"jquery": "^3.7.1",
 		"jszip": "^3.10.1",
 		"marked": "^15.0.11",
-		"molangjs": "^1.7.0",
+		"molangjs": "^1.7.1",
 		"peerjs": "^1.5.4",
 		"prismjs": "^1.29.0",
 		"strip-json-comments": "^5.0.3",
 		"three": "^0.129.0",
 		"tinycolor2": "^1.6.0",
+		"ts-unused-exports": "^11.0.1",
 		"typedoc": "^0.28.14",
 		"typedoc-plugin-missing-exports": "^4.1.2",
 		"typescript": "^5.8.3",

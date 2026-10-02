@@ -186,7 +186,8 @@ function setupSettings() {
 	new Setting('color_picker_style',			{category: 'paint', value: 'box', type: 'select',
 		options: {
 			box: 'menu.color_picker.picker_type.square',
-			wheel: 'menu.color_picker.picker_type.wheel',
+			wheel: 'menu.color_picker.picker_type.wheel_static',
+			wheel_rotate: 'menu.color_picker.picker_type.wheel',
 			normal: 'menu.color_picker.picker_type.normal',
 		},
 		onChange(value) {

@@ -384,7 +384,7 @@ var codec = new Codec('obj', {
 	  		
 		// mtl output
 		  
-		var mtlOutput = '# Made in Blockbench '+appVersion+'\n';;
+		var mtlOutput = '# Made in Blockbench '+appVersion+'\n';
 		
 		for (let key in materials) {
 			if (materials.hasOwnProperty(key) && materials[key]) {

@@ -11,6 +11,7 @@ type UUID = string
 
 declare global {
 	const settings: typeof settings
+	const mouse_pos: {x: number, y: number}
 }
 
 /**
@@ -168,6 +169,8 @@ declare function getRescalingFactor(angle: number): number
 declare function getSelectionCenter(all: boolean = false): ArrayVector3
 declare function getSpatialInterval(event?: Event): number;
 declare function getRotationInterval(event?: Event): number;
+
+function getFocusedTextInput(): HTMLElement | undefined
 
 declare const Pressing: {
 	shift: boolean

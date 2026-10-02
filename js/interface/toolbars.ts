@@ -830,7 +830,7 @@ export const BARS = {
 		})
 	},
 	updateConditions() {
-		var open_input = document.querySelector('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="true"]:focus');
+		var open_input = document.querySelector('input[type="text"]:focus, input[type="number"]:focus, div[contenteditable="plaintext-only"]:focus');
 		for (var key in Toolbars) {
 			if (Toolbars.hasOwnProperty(key) &&
 				(!open_input || $(Toolbars[key].node).has(open_input).length === 0)

@@ -577,7 +577,7 @@ export class Action extends BarItem {
 		this.nodes.forEach(node => {
 			let tooltip = node.querySelector('.tooltip');
 			if (tooltip && tooltip.firstChild) {
-				tooltip.firstChild.textContent = this.name;;
+				tooltip.firstChild.textContent = this.name;
 			}
 		})
 		let menu_span = this.menu_node.querySelector('span');
@@ -1354,7 +1354,7 @@ export class NumSlider extends Widget {
 	}
 	startInput() {
 		this.jq_inner.find('.nslide_arrow').remove()
-		this.jq_inner.attr('contenteditable', 'true')
+		this.jq_inner.attr('contenteditable', 'plaintext-only')
 		this.jq_inner.addClass('editing')
 		this.jq_inner.focus()
 		document.execCommand('selectAll')

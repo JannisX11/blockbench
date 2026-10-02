@@ -1245,7 +1245,7 @@
 		position: relative;
 	}
 	.animation[order="-1"]::before {
-		margin-top: -9px;
+		margin-top: 0;
 	}
 	.animation[order="1"]::before {
 		bottom: -1px;
@@ -2375,6 +2375,7 @@ span.controller_state_section_info {
 		padding: 1097px;
 		mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
 		mask-composite: exclude;
+		pointer-events: none;
 	}
 	#uv_frame {
 		height: 320px;

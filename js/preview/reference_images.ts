@@ -403,7 +403,7 @@ export class ReferenceImage {
 			let uv_viewport = UVEditor.vue.$refs.viewport;
 			if (!uv_viewport || !uv_viewport.clientWidth || !uv_viewport.scrollLeft) return this;
 
-			let zoom = this.getZoomLevel();;
+			let zoom = this.getZoomLevel();
 			let offset_x = uv_viewport.scrollLeft - UVEditor.width/2;
 			let offset_y = uv_viewport.scrollTop - UVEditor.height/2;
 			let pos_x = this.position[0] * zoom - offset_x - (this.size[0] * zoom) / 2;
@@ -421,7 +421,7 @@ export class ReferenceImage {
 		let preview = this.is_blueprint && !Format.image_editor && Preview.all.find(p => p.isOrtho && p.angle == this.attached_side);
 		if (preview && preview.node.isConnected) {
 
-			let zoom = this.getZoomLevel();;
+			let zoom = this.getZoomLevel();
 			let pos_x = this.position[0];
 			let pos_y = this.position[1];
 			

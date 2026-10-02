@@ -2594,6 +2594,7 @@ export class Texture {
 	new Property(Texture, 'enum', 'wrap_mode', {default: () => Format.texture_wrap_default ?? 'limited'})
 	new Property(Texture, 'enum', 'pbr_channel', {default: 'color'})
 	new Property(Texture, 'number', 'fps', {default: 7})
+	new Property(Texture, 'boolean', 'force_translucent', {default: false});
 	
 	new Property(Texture, 'number', 'frame_time', {default: 1})
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})

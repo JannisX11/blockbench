@@ -2000,7 +2000,7 @@ BARS.defineActions(function() {
 			}
 			for (let element of Outliner.selected) {
 				if (!element.getWorldCenter || !element.transferOrigin) continue;
-				let center = element.getWorldCenter().toArray();
+				let center = element.getWorldCenter().sub(Canvas.scene.position).toArray();
 				let original_center = center.slice();
 				
 				if (Format.bone_rig && element.parent instanceof Group) {

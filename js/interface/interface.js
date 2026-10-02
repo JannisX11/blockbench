@@ -435,7 +435,7 @@ export function setProjectTitle(title) {
 	}
 	if (Project && !Project.saved) window_title = '● ' + window_title;
 	document.title = window_title;
-	if (!Blockbench.isMobile) {
+	if (!Blockbench.isMobile && !settings.native_window_frame.value) {
 		document.getElementById('header_free_bar').innerText = window_title;
 	}
 }

@@ -48,7 +48,8 @@ export const MirrorModeling = {
 			mirror_element.flip(0, center);
 
 			mirror_element.extend({
-				name: element_before_snapshot.name
+				name: element_before_snapshot.name,
+				color: element_before_snapshot.color
 			});
 			if (!mirror_uv && element_type_options.maintainUV) {
 				element_type_options.maintainUV(mirror_element, element_before_snapshot)
@@ -146,7 +147,7 @@ export const MirrorModeling = {
 			origin: 'origin' in original ? original.origin : undefined,
 			rotation: 'rotation' in original ? original.rotation : undefined,
 			scale: 'scale' in original ? original.scale : undefined,
-			color: 'color' in original ? original.color : undefined,
+			// color: 'color' in original ? original.color : undefined,
 		});
 
 		if ('origin' in node) {

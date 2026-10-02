@@ -90,7 +90,7 @@ declare global {
 		 * @param num Power
 		 * @param min Value that the result should be equal to or higher than
 		 */
-		getNextPower(num: number, min: number): number
+		getNextPower(num: number, min: number = 2): number
 		/**
 		 * Snap the value to the closest number in a list of 1 or more snap points
 		 */

@@ -95,7 +95,7 @@ export function initializeDesktopApp() {
 //Load Model
 export function loadOpenWithBlockbenchFile() {
 	function load(path: string) {
-		if (!path || path.length < 7 || path.startsWith('--') || !path.match(/.\.\w+$/)) return;
+		if (!path || path.length < 7 || path.startsWith('--') || path.endsWith('.asar') || !path.match(/.\.\w+$/)) return;
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
 			Blockbench.read([path], {readtype: 'image'}, (files) => {

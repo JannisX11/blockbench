@@ -15,7 +15,7 @@ declare namespace Painter {
 
 	function edit(
 		texture: Texture,
-		callback: (canvas: HTMLCanvasElement) => void,
+		callback: (canvas: HTMLCanvasElement, painter_context: any) => void,
 		options: TextureEditOptions
 	): void
 	function setAlphaMatrix(texture: Texture, x: number, y: number, val: number): void

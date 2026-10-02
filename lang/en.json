@@ -2510,7 +2510,8 @@
 
 	"menu.color_picker.picker_type": "Picker Type",
 	"menu.color_picker.picker_type.square": "Square",
-	"menu.color_picker.picker_type.wheel": "Wheel",
+	"menu.color_picker.picker_type.wheel_static": "Wheel (Static)",
+	"menu.color_picker.picker_type.wheel": "Wheel (Rotate)",
 	"menu.color_picker.picker_type.normal": "Normal Map",
 	"menu.color_picker.slider_mode": "Slider Mode",
 	"menu.color_picker.slider_mode.hsv": "Hue, Saturation, Value",

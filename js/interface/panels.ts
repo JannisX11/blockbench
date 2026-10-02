@@ -1410,7 +1410,7 @@ export function setupMobilePanelSelector() {
 				openTouchKeyboardModifierMenu(this.$refs.mobile_keyboard_menu);
 			},
 			getMainColor() {
-				return ColorPanel.get();
+				return ColorPanel.panel.vue.main_color;
 			},
 			Condition,
 			getIconNode: Blockbench.getIconNode

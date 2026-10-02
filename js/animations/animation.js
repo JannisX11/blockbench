@@ -174,27 +174,11 @@ export class Animation extends AnimationItem {
 			// Bones
 			Animator.showDefaultPose(true);
 			
-			Group.all.forEach(node => {
-				Animator.resetLastValues();
-				Animator.animations.forEach(animation => {
-					let multiplier = animation.blend_weight ? Math.clamp(Animator.MolangParser.parse(animation.blend_weight), 0, Infinity) : 1;
-					if (animation.playing) {
-						animation.getBoneAnimator(node)?.displayFrame(multiplier);
-					}
-				})
-			})
-			Outliner.elements.forEach(node => {
+			Group.all.concat(Outliner.elements).forEach(node => {
 				if (!node.constructor.animator) return;
 				Animator.resetLastValues();
-				let animator = this.getBoneAnimator(node);
-				if (!animator || !animator.displayIK) return;
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
-				animator.displayPosition(animator.interpolate('position'), multiplier);
-				let bone_frame_rotation = animator.displayIK(true);
-				for (let uuid in bone_frame_rotation) {
-					if (!samples[uuid]) samples[uuid] = [];
-					samples[uuid].push(bone_frame_rotation[uuid]);
-				}
+				this.getBoneAnimator(node)?.displayFrame(multiplier);
 			})
 			NullObject.all.forEach(node => {
 				if (!node.ik_target) return;
@@ -365,34 +349,35 @@ export class Animation extends AnimationItem {
 			}
 		}
 	}
-	getBoneAnimator(group) {
-		if (!group && Group.first_selected) {
-			group = Group.first_selected;
-		} else if (!group && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
-			group = Outliner.selected[0];
-		} else if (!group) {
+	getBoneAnimator(node) {
+		if (!node && Group.first_selected) {
+			node = Group.first_selected;
+		} else if (!node && (Outliner.selected[0] && Outliner.selected[0].constructor.animator)) {
+			node = Outliner.selected[0];
+		} else if (!node) {
 			return;
 		}
-		if (!group.constructor.animator) return;
-		if (group.scope && group.scope != this.scope && Project.getMultiFileRuleset()?.scope_isolated_animations) return;
+		if (!node.constructor.animator) return;
+		if (node.scope && node.scope != this.scope && Project.getMultiFileRuleset()?.scope_isolated_animations) return;
 
-		let uuid = group.uuid;
+		let uuid = node.uuid;
 		if (!this.animators[uuid]) {
 			let match;
 			for (let uuid2 in this.animators) {
+				if (node instanceof Group == false) break;
 				let animator = this.animators[uuid2];
 				if (
-					animator instanceof BoneAnimator &&
-					animator._name && animator._name.toLowerCase() === group.name.toLowerCase() &&
+					animator instanceof BoneAnimator && animator.type == 'bone' &&
+					animator._name && animator._name.toLowerCase() === node.name.toLowerCase() &&
 					!animator.group
 				) {
 					match = animator;
-					match.uuid = group.uuid;
+					match.uuid = node.uuid;
 					this.removeAnimator(uuid2);
 					break;
 				}
 			}
-			this.animators[uuid] = match || new group.constructor.animator(uuid, this);
+			this.animators[uuid] = match || new node.constructor.animator(uuid, this);
 		}
 		return this.animators[uuid];
 	}
@@ -1081,7 +1066,20 @@ BARS.defineActions(function() {
 			let ik_samples = animation.sampleIK(animation.snapping);
 
 			let keyframes = [];
+
+			// Remove IK keyframes to disable IK on baked chains
+			for (let n of NullObject.all) {
+				let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == n.ik_target);
+				if (!target) continue;
+				let animator = animation.getBoneAnimator(n);
+				let kfs = animator?.keyframes;
+				if (!kfs) continue;
+				keyframes.push(...kfs);
+			}
 			Undo.initEdit({keyframes});
+
+			keyframes.slice().forEach(kf => kf.remove());
+			keyframes.empty();
 			
 			for (let uuid in ik_samples) {
 				let animator = animation.animators[uuid];

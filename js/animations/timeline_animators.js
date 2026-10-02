@@ -859,6 +859,9 @@ export class NullObjectAnimator extends BoneAnimator {
 		let pole = [...Group.all, ...Locator.all, ...NullObject.all].find(node => node.uuid == null_object.ik_pole);
 		if (!null_object || !target) return;
 
+		// Disable IK if null object has no keyframes
+		if (this.keyframes.length == 0) return;
+
 		let bones = [];
 		let ik_target = null_object.getWorldCenter(true).clone();
 		let bone_references = [];
@@ -912,6 +915,9 @@ export class NullObjectAnimator extends BoneAnimator {
 		let pole_pos;
 		if (pole) {
 			pole_pos = pole.mesh.getWorldPosition(new THREE.Vector3());
+			// Fix glitches when perfectly in-line
+			pole_pos.x += 0.0017;
+			pole_pos.z += 0.0017;
 		}
 
 		fabrikIter(bone_pos, ik_target, pole_pos);
