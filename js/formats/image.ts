@@ -54,8 +54,11 @@ let codec = new Codec('image', {
 				if (resolution instanceof Array && resolution[0] && resolution[1]) {
 					texture.uv_width = resolution[0];
 					texture.uv_height = resolution[1];
-				} else {
+				} else if (settings.detect_flipbook_textures.value && (1 / texture.ratio) % 1 == 0 && texture.ratio <= 0.25) {
 					texture.uv_height = texture.display_height;
+					texture.uv_width = texture.width;
+				} else {
+					texture.uv_height = texture.height;
 					texture.uv_width = texture.width;
 				}
 
