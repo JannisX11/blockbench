@@ -983,6 +983,8 @@ onVueSetup(() => {
 				let tab_node = e1.target;
 				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
 
+				getFocusedTextInput()?.blur();
+
 				tab.select();
 
 				let activate = () => {
