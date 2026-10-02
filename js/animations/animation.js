@@ -1066,18 +1066,20 @@ BARS.defineActions(function() {
 			let ik_samples = animation.sampleIK(animation.snapping);
 
 			let keyframes = [];
-			Undo.initEdit({keyframes});
 
 			// Remove IK keyframes to disable IK on baked chains
 			for (let n of NullObject.all) {
 				let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == n.ik_target);
 				if (!target) continue;
 				let animator = animation.getBoneAnimator(n);
-				let kfs = animator?.keyframes.slice();
+				let kfs = animator?.keyframes;
 				if (!kfs) continue;
 				keyframes.push(...kfs);
-				kfs.forEach(kf => kf.remove());
 			}
+			Undo.initEdit({keyframes});
+
+			keyframes.slice().forEach(kf => kf.remove());
+			keyframes.empty();
 			
 			for (let uuid in ik_samples) {
 				let animator = animation.animators[uuid];
