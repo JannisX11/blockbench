@@ -43,6 +43,7 @@ export interface TextureData {
 	render_sides?: 'auto' | 'front' | 'double' | string
 	wrap_mode?: 'limited' | 'repeat' | 'clamp'
 	pbr_channel?: 'color' | 'normal' | 'height' | 'mer'
+	force_translucent?: boolean
 	fps?: number
 	/**
 	 * UUID of the texture group that the texture is in
@@ -149,6 +150,7 @@ export class Texture {
 	render_sides: 'auto' | 'front' | 'double' | string
 	wrap_mode: 'limited' | 'repeat' | 'clamp'
 	pbr_channel: 'color' | 'normal' | 'height' | 'mer'
+	force_translucent: boolean
 	file_format: string
 	use_as_default: boolean
 	/** UUID of the TextureGroup that this texture is in, if set */
