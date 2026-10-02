@@ -2394,6 +2394,27 @@ ExperimentalSettings.add(
 	{type: 'number', label: 'Projected Brush sample interval', min: 1, value: 2, step: 1, force_step: true}
 );
 
+function setIconCursor(name, icon, hotspot) {
+	document.fonts.ready.then(() => {
+		let size = 24;
+		let canvas = document.createElement('canvas');
+		canvas.width = canvas.height = size;
+		let ctx = canvas.getContext('2d');
+		ctx.font = size + 'px "Material Icons"';
+		if (ctx.measureText(icon).width != size) return;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.lineJoin = 'round';
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = '#000000';
+		ctx.strokeText(icon, size/2, size/2);
+		ctx.fillStyle = '#ffffff';
+		ctx.fillText(icon, size/2, size/2);
+		document.body.style.setProperty(name, `url(${canvas.toDataURL()}) ${hotspot.join(' ')}, crosshair`);
+	})
+}
+setIconCursor('--cursor-color-picker', 'colorize', [2, 18]);
+
 export class IntMatrix {
 	constructor(width = 16, height = 16) {
 		this.width = width;
@@ -3203,7 +3224,7 @@ BARS.defineActions(function() {
 		icon: 'colorize',
 		category: 'tools',
 		toolbar: 'brush',
-		cursor: 'crosshair',
+		cursor: 'var(--cursor-color-picker, crosshair)',
 		selectFace: true,
 		click_locked_elements: true,
 		transformerMode: 'hidden',
