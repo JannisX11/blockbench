@@ -17,19 +17,22 @@ export function cleanupOverlappingMeshFaces(mesh: Mesh) {
 		}
 	}
 }
-function transferMeshWeights(old_mesh: Mesh, new_mesh: Mesh, vkeys: string[]) {
+function transferMeshWeights(old_mesh: Mesh, new_mesh: Mesh, vkeys: string[], updated_vkeys?: string[]) {
 	let armature = old_mesh.getArmature();
 	if (!armature) return;
 	let bones = armature.getAllBones();
 	for (let bone of bones) {
+		let i = 0;
 		for (let vkey of vkeys) {
-			if (new_mesh.vertices[vkey]) {
+			let new_vkey = updated_vkeys ? updated_vkeys[i] ?? vkey : vkey;
+			if (new_mesh.vertices[new_vkey]) {
 				let value = bone.getVertexWeight(old_mesh, vkey);
-				bone.setVertexWeight(new_mesh, vkey, value);
+				bone.setVertexWeight(new_mesh, new_vkey, value);
 			}
 			if (!old_mesh.vertices[vkey]) {
 				bone.setVertexWeight(old_mesh, vkey);
 			}
+			i++;
 		}
 	}
 }
@@ -228,6 +231,7 @@ BARS.defineActions(() => {
 			let elements = Mesh.selected.slice();
 			Undo.initEdit({elements, outliner: true});
 			let original = Mesh.selected[0];
+			let original_armature = original.getArmature();
 			let vector = new THREE.Vector3();
 
 			Mesh.selected.forEach(mesh => {
@@ -240,6 +244,10 @@ BARS.defineActions(() => {
 					original.mesh.worldToLocal(vector);
 					return vector.toArray()
 				}));
+				if (original_armature && original_armature == mesh.getArmature()) {
+					old_vertex_keys.forEach(vkey => delete mesh.vertices[vkey]);
+					transferMeshWeights(mesh, original, old_vertex_keys, new_vertex_keys);
+				}
 
 				for (let key in mesh.faces) {
 					let old_face = mesh.faces[key];
