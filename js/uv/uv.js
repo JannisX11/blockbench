@@ -2809,6 +2809,7 @@ Interface.definePanels(function() {
 				centered_view: true,
 				checkerboard: settings.uv_checkerboard.value,
 				pixel_grid: settings.painting_grid.value,
+				tiling_grid: false,
 				uv_overlay: BarItems.paint_mode_uv_overlay.value,
 				texture: 0,
 				layer: null,
@@ -2955,6 +2956,10 @@ Interface.definePanels(function() {
 			},
 			methods: {
 				tl,
+				isTilingVisible() {
+					if (!this.texture) return false;
+					return (this.overlay_canvas_mode == 'tiled' && this.mode == 'paint') || (this.texture.wrap_mode == 'repeat' && this.mode == 'uv');
+				},
 				projectResolution() {
 					editUVSizeDialog(Format.per_texture_uv_size ? {texture: UVEditor.texture} : {project: true});
 				},
@@ -5185,6 +5190,10 @@ Interface.definePanels(function() {
 
 							<div ref="texture_canvas_wrapper" id="texture_canvas_wrapper" :key="'texture_canvas_wrapper'" v-show="texture && texture.error != 1"></div>
 							<img style="object-fit: fill; opacity: 0.02; mix-blend-mode: screen;" v-if="texture == 0 && !box_uv" src="./assets/missing_blend.png">
+
+							<svg id="uv_tiling_grid" viewBox="0 0 3 3" preserveAspectRatio="none" v-if="tiling_grid && isTilingVisible()">
+								<path d="M1 0V3M2 0V3M0 1H3M0 2H3" />
+							</svg>
 
 							<svg id="uv_texture_grid" v-if="pixel_grid && mode == 'paint' && texture && texture.width">
 								<path :d="textureGrid" :style="{strokeWidth: textureGridStroke}" />
