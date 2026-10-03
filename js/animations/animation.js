@@ -1083,7 +1083,19 @@ BARS.defineActions(function() {
 			
 			for (let uuid in ik_samples) {
 				let animator = animation.animators[uuid];
-				ik_samples[uuid].forEach(({array}) => {
+				let node = animator.group ?? animator.element;
+				ik_samples[uuid].forEach(({array, euler}) => {
+					if (!node.rotation.allEqual(0)) {
+						let base = Reusable.quat1.setFromEuler(node.scene_object.fix_rotation);
+						let add = Reusable.quat2.setFromEuler(euler);
+						base.premultiply(add);
+						euler.setFromQuaternion(base);
+						array.V3_set(
+							Math.radToDeg(euler.x - node.scene_object.fix_rotation.x),
+							Math.radToDeg(euler.y - node.scene_object.fix_rotation.y),
+							Math.radToDeg(euler.z - node.scene_object.fix_rotation.z)
+						);
+					}
 					array[0] = Math.roundTo(array[0], 4);
 					array[1] = Math.roundTo(array[1], 4);
 					array[2] = Math.roundTo(array[2], 4);
@@ -1101,6 +1113,7 @@ BARS.defineActions(function() {
 				animator.addToTimeline();
 			}
 			
+			Animator.preview();
 			Undo.finishEdit('Bake IK rotations');
 		}
 	})
