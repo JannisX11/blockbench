@@ -1064,7 +1064,7 @@ export class Preview {
 				Toolbox.selected.selectElements &&
 				Modes.selected instanceof Mode &&
 				Modes.selected.selectElements &&
-				!(Modes.paint && (BarItems.brush_lock_mode as BarSelect).value == 'selected_faces') &&
+				!(Modes.paint && BarItems.brush_lock_mode.value == 'selected_faces') &&
 				(data.type === 'element' || Toolbox.selected.id == 'knife_tool' || (data.type == 'line' && data.element instanceof SplineMesh))
 			) {
 				Undo.initSelection();
@@ -1077,7 +1077,7 @@ export class Preview {
 					}
 				}
 				Blockbench.dispatchEvent('canvas_select', data)
-				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && (BarItems.fill_mode as BarSelect).value == 'selected_elements')) {
+				if (Modes.paint && !(Toolbox.selected.id == 'fill_tool' && BarItems.fill_mode.value == 'selected_elements')) {
 					// @ts-expect-error
 					event = {};
 				}
@@ -1435,7 +1435,7 @@ export class Preview {
 		}
 
 		let brush_cursor_3d = Toolbox.selected.brush?.size && Settings.get('brush_cursor_3d');
-		let use_screen_projection = Toolbox.selected.brush?.screen_space && (BarItems.screen_space_brush_projection as Toggle).value;
+		let use_screen_projection = Toolbox.selected.brush?.screen_space && BarItems.screen_space_brush_projection.value;
 
 		brush_cursor:
 		if (brush_cursor_3d && !use_screen_projection) {

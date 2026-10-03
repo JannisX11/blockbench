@@ -131,7 +131,7 @@ export class Mode extends KeybindItem {
 		} else if (default_tool instanceof Tool) {
 			if (default_tool != Toolbox.selected) default_tool.select();
 		} else {
-			if (BarItems.move_tool != Toolbox.selected) (BarItems.move_tool as Tool).select();
+			if (BarItems.move_tool != Toolbox.selected) BarItems.move_tool.select();
 		}
 		updateInterface();
 		updateSelection();

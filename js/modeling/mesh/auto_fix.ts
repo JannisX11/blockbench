@@ -82,7 +82,7 @@ export function mergeVerticesOverlaps(meshes: Mesh[], overlaps: Record<string, M
 
 export async function autoFixMeshEdit(affected_vertices?: string[]) {
 	let meshes = Mesh.selected;
-	if (!meshes.length || !Modes.edit || (BarItems.selection_mode as BarSelect).value == 'object') return;
+	if (!meshes.length || !Modes.edit || BarItems.selection_mode.value == 'object') return;
 
 	// Merge Vertices
 	let overlaps = gatherGeoOverlaps(meshes, (mesh) => affected_vertices instanceof Array ? affected_vertices : mesh.getSelectedVertices());
