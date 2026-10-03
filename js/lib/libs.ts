@@ -5,7 +5,6 @@ import Vue from 'vue/dist/vue.js'
 import JSZip from 'jszip'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-json'
-import GIF from './gif'
 import vSortable from 'vue-sortable'
 import Sortable from 'sortablejs'
 import {marked} from 'marked'
@@ -23,7 +22,6 @@ const THREE = Object.assign({}, threejs);
 
 export {
     GIFEnc,
-    GIF,
     THREE,
     $,
     $ as jQuery,
