@@ -219,10 +219,12 @@ BARS.defineActions(function() {
 							item.name.toLowerCase().includes(search_input) ||
 							item.id.toLowerCase().includes(search_input)
 						) {
-							if ((item instanceof Action || item instanceof BarSelect) && Condition(item.condition) && !item.linked_setting) {
-								list.safePush(item)
-								if (list.length > ActionControl.max_length) break;
-							}
+							if (!(item instanceof Action || item instanceof BarSelect)) continue;
+							if (item.linked_setting) continue;
+							if (!Condition(item.condition)) continue;
+							if (item instanceof Action && (item.id == 'add_plugin' || item.id == 'remove_plugin')) continue;
+							list.safePush(item)
+							if (list.length > ActionControl.max_length) break;
 						}
 					}
 				}
