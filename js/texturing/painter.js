@@ -3679,8 +3679,8 @@ BARS.defineActions(function() {
 			UVEditor.vue.updateTexture();
 			UVEditor.updateOverlayCanvas();
 		},
-		tool_config: new ToolConfig('image_onion_skin_view', {
-			title: 'action.image_onion_skin_view',
+		tool_config: new ToolConfig('image_tiled_view', {
+			title: 'action.image_tiled_view',
 			form: {
 				mirrored: {
 					label: 'menu.image_tiled_view.mirrored',
