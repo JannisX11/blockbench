@@ -762,6 +762,9 @@
 		border-bottom-right-radius: 4px;
 		z-index: 7;
 	}
+	.collection.drag_hover[order]::before {
+		width: 100%;
+	}
 	.collection > i {
 		width: 25px;
 		max-width: unset;
