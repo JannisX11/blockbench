@@ -234,7 +234,7 @@ export class Texture {
 		for (let key in Texture.properties) {
 			Texture.properties[key].reset(this);
 		}
-		this.uuid = data.uuid ?? guid();
+		this.uuid = uuid ?? data?.uuid ?? guid();
 		this.internal = !isApp;
 		this.uv_width = Project ? Project.texture_width : 16;
 		this.uv_height = Project ? Project.texture_height : 16;

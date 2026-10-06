@@ -761,6 +761,12 @@ export class Preview {
 	get camera(): THREE.PerspectiveCamera | THREE.OrthographicCamera {
 		return this.isOrtho ? this.camOrtho : this.camPers;
 	}
+	/**
+	 * Switch the projection mode between perspective and orthographic
+	 * @param orthographic Projection mode: true for orthographic, false for perspective
+	 * @param toggle Whether this is used to toggle directly between view modes. If true, it tries to match the previous camera distance
+	 * @returns 
+	 */
 	setProjectionMode(orthographic: boolean, toggle?: boolean): this {
 		let position = this.camera.position;
 		this.isOrtho = !!orthographic;
