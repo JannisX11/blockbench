@@ -300,7 +300,8 @@ var codec = new Codec('fbx', {
 				addPosition(...mesh.vertices[vkey]);
 				vertex_keys.push(vkey);
 				if (mesh.shading == 'smooth') {
-					normals.push(...mesh_normals[vkey]);
+					// Default to "up" normal for vertices without calculated normal (e.g. not part of a face)
+					normals.push(...(mesh_normals[vkey] ?? [0, 1, 0]));
 				}
 			}
 			let textures = [];

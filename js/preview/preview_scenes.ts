@@ -1,5 +1,6 @@
 
 import { CustomMenuItem } from "../interface/menu";
+import { TransformerModule } from "../modeling/transform/transform_modules";
 import { adjustFromAndToForInflateAndStretch } from "../outliner/types/cube";
 import { compileJSON } from "../util/json";
 import { toSnakeCase } from "../util/util";
@@ -39,7 +40,7 @@ export class PreviewScene {
 	web_config_path?: string
 	fog?: THREE.Fog | THREE.FogExp2
 	cubemap?: THREE.CubeTexture
-	preview_models = [];
+	preview_models: PreviewModel[] = [];
 
 	constructor(id: string, data: PreviewSceneOptions = {}) {
 		PreviewScene.scenes[id] = this;
@@ -110,7 +111,7 @@ export class PreviewScene {
 					model = new PreviewModel(model.id || this.id, model);
 				}
 				return model;
-			})
+			}).filter(m => m instanceof PreviewModel);
 		}
 	}
 	async lazyLoadFromWeb() {

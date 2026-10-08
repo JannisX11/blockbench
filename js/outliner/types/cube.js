@@ -909,13 +909,13 @@ export class Cube extends OutlinerElement {
 			let difference = modify(before) - before;
 			if (negative) difference *= -1;
 
+			if (Format.integer_size) {
+				difference = (Math.round(before + difference*2) - before) / 2;
+			}
+
 			let from = center - (before/2) - difference;
 			let to = center + (before/2) + difference;
 
-			if (Format.integer_size) {
-				from = Math.round(from-this.from[axis])+this.from[axis];
-				to = Math.round(to-this.to[axis])+this.to[axis];
-			}
 			this.from[axis] = from;
 			this.to[axis] = to;
 			if (from > to && !(settings.negative_size.value || allow_negative)) {

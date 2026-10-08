@@ -1066,22 +1066,36 @@ BARS.defineActions(function() {
 			let ik_samples = animation.sampleIK(animation.snapping);
 
 			let keyframes = [];
-			Undo.initEdit({keyframes});
 
 			// Remove IK keyframes to disable IK on baked chains
 			for (let n of NullObject.all) {
 				let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == n.ik_target);
 				if (!target) continue;
 				let animator = animation.getBoneAnimator(n);
-				let kfs = animator?.keyframes.slice();
+				let kfs = animator?.keyframes;
 				if (!kfs) continue;
 				keyframes.push(...kfs);
-				kfs.forEach(kf => kf.remove());
 			}
+			Undo.initEdit({keyframes});
+
+			keyframes.slice().forEach(kf => kf.remove());
+			keyframes.empty();
 			
 			for (let uuid in ik_samples) {
 				let animator = animation.animators[uuid];
-				ik_samples[uuid].forEach(({array}) => {
+				let node = animator.group ?? animator.element;
+				ik_samples[uuid].forEach(({array, euler}) => {
+					if (!node.rotation.allEqual(0)) {
+						let base = Reusable.quat1.setFromEuler(node.scene_object.fix_rotation);
+						let add = Reusable.quat2.setFromEuler(euler);
+						base.premultiply(add);
+						euler.setFromQuaternion(base);
+						array.V3_set(
+							Math.radToDeg(euler.x - node.scene_object.fix_rotation.x),
+							Math.radToDeg(euler.y - node.scene_object.fix_rotation.y),
+							Math.radToDeg(euler.z - node.scene_object.fix_rotation.z)
+						);
+					}
 					array[0] = Math.roundTo(array[0], 4);
 					array[1] = Math.roundTo(array[1], 4);
 					array[2] = Math.roundTo(array[2], 4);
@@ -1099,6 +1113,7 @@ BARS.defineActions(function() {
 				animator.addToTimeline();
 			}
 			
+			Animator.preview();
 			Undo.finishEdit('Bake IK rotations');
 		}
 	})

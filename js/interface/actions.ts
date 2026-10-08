@@ -834,7 +834,7 @@ export class Tool extends Action implements ToolSpecificOptions {
 		}
 		if (this.allowed_view_modes && !this.allowed_view_modes.includes(Project.view_mode)) {
 			Project.view_mode = 'textured';
-			(BarItems.view_mode as BarSelect).change('textured');
+			BarItems.view_mode.change('textured');
 		}
 		if (this.toolbar && Toolbars[this.toolbar]) {
 			Toolbars[this.toolbar].toPlace('tool_options');
@@ -1354,7 +1354,7 @@ export class NumSlider extends Widget {
 	}
 	startInput() {
 		this.jq_inner.find('.nslide_arrow').remove()
-		this.jq_inner.attr('contenteditable', 'true')
+		this.jq_inner.attr('contenteditable', 'plaintext-only')
 		this.jq_inner.addClass('editing')
 		this.jq_inner.focus()
 		document.execCommand('selectAll')

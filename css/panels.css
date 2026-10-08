@@ -762,6 +762,9 @@
 		border-bottom-right-radius: 4px;
 		z-index: 7;
 	}
+	.collection.drag_hover[order]::before {
+		width: 100%;
+	}
 	.collection > i {
 		width: 25px;
 		max-width: unset;
@@ -2375,6 +2378,7 @@ span.controller_state_section_info {
 		padding: 1097px;
 		mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
 		mask-composite: exclude;
+		pointer-events: none;
 	}
 	#uv_frame {
 		height: 320px;

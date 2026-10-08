@@ -49,7 +49,7 @@ export function initializeDesktopApp() {
 		Blockbench.addFlag('dev')
 	}
 
-	settings.interface_scale.onChange(settings.interface_scale.value);
+	if (settings.interface_scale.value != 100) settings.interface_scale.onChange(settings.interface_scale.value);
 
 	if (settings.native_window_frame.value != true) {
 		// Window controls
@@ -95,7 +95,7 @@ export function initializeDesktopApp() {
 //Load Model
 export function loadOpenWithBlockbenchFile() {
 	function load(path: string) {
-		if (!path || path.length < 7 || path.startsWith('--') || !path.match(/.\.\w+$/)) return;
+		if (!path || path.length < 7 || path.startsWith('--') || path.endsWith('.asar') || !path.match(/.\.\w+$/)) return;
 		var extension = pathToExtension(path);
 		if (extension == 'png') {
 			Blockbench.read([path], {readtype: 'image'}, (files) => {

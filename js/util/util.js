@@ -173,15 +173,19 @@ export function removeEventListeners(el, events, func, option) {
 		el.removeEventListener(e, func, option)
 	})
 }
+
+const text_measure_canvas = document.createElement('canvas');
+/**@type {CanvasRenderingContext2D} */
+export const text_measure_ctx = text_measure_canvas.getContext('2d');
 export function getStringWidth(string, size) {
-	let node = Interface.createElement('label', {style: 'position: absolute; visibility: hidden;'}, string);
-	if (size && size !== 16) {
-		node.style.fontSize = size + 'pt';
+	let initial_font;
+	if (size) {
+		initial_font = text_measure_ctx.font;
+		text_measure_ctx.font = `${size} ${initial_font.split(' ')[1]}`;
 	}
-	document.body.append(node);
-	let width = node.clientWidth;
-	node.remove();
-	return width + 1;
+	let measurements = text_measure_ctx.measureText(string);
+	if (initial_font) text_measure_ctx.font = initial_font;
+	return Math.ceil(measurements.width);
 };
 
 export function patchedAtob(base64) {

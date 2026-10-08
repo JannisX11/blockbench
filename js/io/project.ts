@@ -42,7 +42,7 @@ export class ModelProject {
 	 */
 	export_path: string
 	added_models: number
-	BedrockEntityManager?: {}
+	BedrockEntityManager?: any
 	format: ModelFormat
 	mode: string
 	view_mode: string
@@ -307,7 +307,7 @@ export class ModelProject {
 		Blockbench.Project = this;
 		this.selected = true;
 		this.format.select();
-		(BarItems.view_mode as BarSelect).set(this.view_mode);
+		BarItems.view_mode.set(this.view_mode);
 
 		// Setup Data
 		OutlinerNode.uuids = {};
@@ -982,6 +982,8 @@ onVueSetup(() => {
 
 				let tab_node = e1.target;
 				if (!tab_node.classList.contains('project_tab') || ModelProject.all.indexOf(tab) < 0) return;
+
+				getFocusedTextInput()?.blur();
 
 				tab.select();
 

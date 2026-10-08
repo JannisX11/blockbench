@@ -238,6 +238,11 @@ BARS.defineActions(function() {
 					form: {
 						about: {type: 'info', text: 'dialog.animated_texture_editor.code_reference.about'},
 						docs: {type: 'info', label: 'dialog.animated_texture_editor.code_reference.docs', text: `[${docs.replace('https://', '').substring(0, 36)}...](${docs})`},
+						warning: {
+							type: 'info',
+							text: '[Warning] Flipbook texture animations currently do not work on attachables due to Minecraft limitations!',
+							condition: Format.id == 'bedrock' && Project.BedrockEntityManager?.client_entity?.type == 'attachable'
+						},
 					},
 					component: {
 						components: {VuePrismEditor},

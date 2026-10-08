@@ -15,7 +15,7 @@ declare namespace Painter {
 
 	function edit(
 		texture: Texture,
-		callback: (canvas: HTMLCanvasElement) => void,
+		callback: (canvas: HTMLCanvasElement, painter_context: any) => void,
 		options: TextureEditOptions
 	): void
 	function setAlphaMatrix(texture: Texture, x: number, y: number, val: number): void
@@ -101,4 +101,7 @@ declare namespace Painter {
 		slider_brush_opacity: NumSlider
 		pixel_perfect_drawing: Toggle
 		slider_color_select_threshold: NumSlider
+		screen_space_brush_projection: Toggle
+		brush_lock_mode: BarSelect
+		fill_mode: BarSelect
 	}

@@ -191,6 +191,8 @@ declare class UndoSystem {
 	history: UndoEntry[]
 	index: number
 	current_save?: UndoSave
+
+	declare public save: any
 }
 
 /**
