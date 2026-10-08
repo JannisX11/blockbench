@@ -22,12 +22,12 @@ BARS.defineActions(function() {
 		onSelect: function() {
 			BarItems.selection_mode.set('edge');
 			BarItems.view_mode.set('solid');
-			BarItems.view_mode.onChangeBarItems.view_mode;
+			BarItems.view_mode.onChange(BarItems.view_mode);
 		},
 		onUnselect: function() {
 			BarItems.selection_mode.set('object');
 			BarItems.view_mode.set('textured');
-			BarItems.view_mode.onChangeBarItems.view_mode;
+			BarItems.view_mode.onChange(BarItems.view_mode);
 		}
 	})
 	new BarSelect('select_seam', {
