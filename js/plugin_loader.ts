@@ -37,7 +37,7 @@ export const Plugins = {
 	/**
 	 * The currently used path to the plugin API
 	 */
-	api_path: settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins',
+	api_path: settings.custom_cdn.value || (settings.cdn_mirror.value ? 'https://blckbn.ch/cdn/plugins' : 'https://cdn.jsdelivr.net/gh/JannisX11/blockbench-plugins/plugins'),
 	path: '',
 	/**
 	 * Plugin files saved on install, so the web app has its own copy the way the desktop app keeps one on disk
@@ -1162,7 +1162,7 @@ Plugins.loading_promise = new Promise((resolve, reject) => {
 			resolve();
 			Plugins.loading_promise = null;
 
-			if (settings.cdn_mirror.value == false && navigator.onLine) {
+			if (!settings.custom_cdn.value && settings.cdn_mirror.value == false && navigator.onLine) {
 				settings.cdn_mirror.set(true);
 				console.log('Switching to plugin CDN mirror. Restart to apply.');
 			}
