@@ -49,7 +49,7 @@ BARS.defineActions(() => {
 					} else {
 						keybind_item.keybind.set(keys[keybind_item.id]).save(false);
 					}
-					if (keybind_item.sub_keybinds) {
+					if ('sub_keybinds' in keybind_item && keybind_item.sub_keybinds) {
 						for (let key in keybind_item.sub_keybinds) {
 							let value = keys[keybind_item.id + '.' + key];
 							if (!value) continue;
@@ -77,7 +77,7 @@ BARS.defineActions(() => {
 						keys[item.id] = new oneLiner(Keybinds.stored[item.id])
 					}
 				}
-				if (item.sub_keybinds) {
+				if ('sub_keybinds' in item && item.sub_keybinds) {
 					for (let key in item.sub_keybinds) {
 						let full_key = item.id + '.' + key;
 						if (!Keybinds.stored[full_key]) continue;
@@ -223,7 +223,7 @@ onVueSetup(function() {
 								) {
 									missmatch = true;
 								}
-								if (missmatch && action.sub_keybinds) {
+								if (missmatch && 'sub_keybinds' in action && action.sub_keybinds) {
 									for (let key in action.sub_keybinds) {
 										if (action.sub_keybinds[key].name.toLowerCase().includes(word)) {
 											missmatch = false;

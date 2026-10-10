@@ -170,8 +170,6 @@ declare function getSelectionCenter(all: boolean = false): ArrayVector3
 declare function getSpatialInterval(event?: Event): number;
 declare function getRotationInterval(event?: Event): number;
 
-function getFocusedTextInput(): HTMLElement | undefined
-
 declare const Pressing: {
 	shift: boolean
 	ctrl: boolean
@@ -189,6 +187,7 @@ declare const Prop = {
 	show_left_bar: boolean,
 	show_right_bar: boolean,
 }
+declare const mouse_pos: {x: number, y: number};
 declare const Project: ModelProject
 declare const ColorPanel: any
 
@@ -199,3 +198,6 @@ declare function pureMarked(text: string): string
 
 declare type SplineMesh = typeof OutlinerElement & Record<string, any>
 declare const SplineMesh: typeof OutlinerElement
+
+declare const KnifeToolContext: any
+declare const KnifeToolCubeContext: any

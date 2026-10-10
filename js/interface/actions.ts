@@ -3,6 +3,7 @@ import { isMac, Keybinds } from "./keyboard";
 import tinycolor from "tinycolor2";
 import { RaycastResult } from "../preview/preview";
 import { MenuItem } from "./menu";
+import { dragHelper } from "../util/drag_helper";
 
 type ActionEventName =
 	| 'delete'
@@ -312,6 +313,7 @@ export class KeybindItem {
 	name: string
 	description: string
 	category?: string
+	plugin?: string
 	keybind: Keybind
 	default_keybind?: Keybind
 	condition?: ConditionResolvable
@@ -1012,6 +1014,7 @@ export type NumSliderOptions = WidgetOptions & {
 		step?: number
 		show_bar?: boolean
 		limit?: boolean
+		gesture_speed?: number
 	}
 	sensitivity?: number
 	invert_scroll_direction?: boolean
@@ -1359,6 +1362,35 @@ export class NumSlider extends Widget {
 		this.jq_inner.addClass('editing')
 		this.jq_inner.focus()
 		document.execCommand('selectAll')
+	}
+	startGlobalDrag(start_event: PointerEvent) {
+		let slider = this;
+		dragHelper(start_event, {
+			onStart(context) {
+				if (typeof slider.onBefore === 'function') {
+					slider.onBefore();
+				}
+				slider.sliding = true;
+				slider.pre = 0;
+				slider.sliding_start_pos = 0;
+			},
+			onMove(context) {
+				let orientation = slider.keybind.key == 1010 || slider.keybind.key ==  1012;
+				let distance = orientation ? context.delta.x : context.delta.y;
+				let factor = (orientation ? 2.4 : 2.6) * (slider.settings?.gesture_speed ?? 1);
+				slider.slide(distance * factor, start_event);
+			},
+			onEnd(context) {
+				Blockbench.setStatusBarText();
+				if (context.distance > 1) preventContextMenu();
+				delete slider.sliding;
+				if (typeof slider.onAfter === 'function') {
+					let delta = (typeof slider.value == 'string' ? parseFloat(slider.value) : slider.value) -
+						(typeof slider.last_value == 'string' ? parseFloat(slider.last_value) : slider.last_value);
+					slider.onAfter(delta);
+				}
+			}
+		})
 	}
 	setWidth(width: number) {
 		if (width) {

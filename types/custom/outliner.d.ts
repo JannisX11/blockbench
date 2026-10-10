@@ -158,3 +158,9 @@ declare namespace Outliner {
 declare function compileGroups(undo: boolean, lut?: { [index: number]: number }): any[]
 
 declare function parseGroups(array: any[], import_reference?: Group, startIndex?: number): void
+
+/**
+ * Stops renaming edits currently happening in the outliner
+ * @param save_changes If true, changes to element names are saved. If false, they are reverted. Defaults to true
+ */
+declare function stopRenameOutliner(save_changes?: boolean): void

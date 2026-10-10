@@ -191,6 +191,10 @@ declare class UndoSystem {
 	history: UndoEntry[]
 	index: number
 	current_save?: UndoSave
+	amend_edit_menu?: {
+		node: HTMLElement
+		form: InputForm
+	}
 
 	declare public save: any
 }

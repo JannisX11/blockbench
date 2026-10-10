@@ -10,7 +10,7 @@ declare namespace Interface {
 	function createElement(
 		type: keyof HTMLElementTagNameMap,
 		attributes?: {},
-		content?: string | HTMLElement | HTMLElement[]
+		content?: string | HTMLElement | (string | HTMLElement)[]
 	): HTMLElement
 
 	const data: {

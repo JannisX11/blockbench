@@ -492,16 +492,6 @@ export function setProgressBar(id, val, time) {
 	}
 }
 
-//Tooltip
-export function showShiftTooltip() {
-	$(':hover').find('.tooltip_shift').css('display', 'inline')
-}
-$(document).keyup(function(event) {
-	if (event.which === 16) {
-		$('.tooltip_shift').hide()
-	}
-})
-
 
 // Custom Elements
 Interface.CustomElements.ResizeLine = ResizeLine;
@@ -702,6 +692,5 @@ Object.assign(window, {
 	setProjectTitle,
 	setZoomLevel,
 	setProgressBar,
-	showShiftTooltip,
 	openTouchKeyboardModifierMenu,
 });

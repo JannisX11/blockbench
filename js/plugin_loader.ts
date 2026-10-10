@@ -1716,7 +1716,7 @@ BARS.defineActions(function() {
 								return {
 									id: action.id,
 									name: action.name,
-									icon: action.icon,
+									icon: 'icon' in action ? action.icon : 'trackpad_input',
 									description: action.description,
 									extra_info: action.keybind.label,
 									click: Condition(action.condition) && (() => {

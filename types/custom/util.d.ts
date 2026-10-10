@@ -49,13 +49,13 @@ declare function convertTouchEvent(event: MouseEvent): MouseEvent
  * @param option Option
  */
 declare function addEventListeners(
-	element: HTMLElement | Document,
+	element: HTMLElement | Document | Window,
 	events: string,
 	func: (event: Event) => void,
 	option?: any
 ): void
 declare function removeEventListeners(
-	el: HTMLElement | Document,
+	el: HTMLElement | Document | Window,
 	events: string,
 	func: (event: Event) => void,
 	option?: any

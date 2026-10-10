@@ -5,7 +5,7 @@
 /// <reference types="wintersky" />
 
 /// <reference types="./texture_group" />
-/// <reference types="./keybind" />
+/// <reference types="./action_control" />
 /// <reference types="./animation" />
 /// <reference types="./animation_controller" />
 /// <reference types="./canvas_frame" />
@@ -63,6 +63,10 @@ declare module "*.glsl" {
 	export default value;
 }
 declare module "*.bbtheme" {
+	const value: string | any;
+	export default value;
+}
+declare module "*.bbkeymap" {
 	const value: string | any;
 	export default value;
 }
