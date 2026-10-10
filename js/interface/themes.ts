@@ -1,7 +1,7 @@
 import DarkTheme from '../../themes/dark.bbtheme'
 import LightTheme from '../../themes/light.bbtheme'
 import ContrastTheme from '../../themes/contrast.bbtheme'
-import { patchedAtob } from '../util/util'
+import { patchedAtob, text_measure_ctx } from '../util/util'
 import { Dialog } from './dialog'
 import { settings, Settings } from './settings'
 import tinycolor from 'tinycolor2'
@@ -655,6 +655,8 @@ export class CustomTheme {
 			if (theme.option_values[key] == undefined) continue;
 			document.body.setAttribute('theme-'+key, theme.option_values[key]);
 		}
+		let stylemap = window.getComputedStyle(document.body);
+		text_measure_ctx.font = `${stylemap.getPropertyValue('font-size').trim()} ${stylemap.getPropertyValue('font-family').trim()}`;
 		CustomTheme.loadThumbnailStyles();
 		CustomTheme.updateColors();
 	}

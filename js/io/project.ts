@@ -307,7 +307,7 @@ export class ModelProject {
 		Blockbench.Project = this;
 		this.selected = true;
 		this.format.select();
-		(BarItems.view_mode as BarSelect).set(this.view_mode);
+		BarItems.view_mode.set(this.view_mode);
 
 		// Setup Data
 		OutlinerNode.uuids = {};

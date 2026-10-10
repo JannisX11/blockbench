@@ -1,6 +1,7 @@
 import { PointerTarget } from "../interface/pointer_target";
 import { clipboard, nativeImage } from "../native_apis";
 import { RenderTargetSnapshot } from "../preview/render_target";
+import { hslToRgb, rgbToHsl } from "../util/color";
 import { Dynamic2DMap } from "../util/dynamic_2d_map";
 import { getFaceKeyFromIndex } from "../util/util";
 
@@ -1526,10 +1527,20 @@ export const Painter = {
 		let mix = {};
 		mix.a = Math.clamp(1 - (1 - added.a) * (1 - base.a), 0, 1); // alpha
 
-		let luminance;
 		if (blend_mode == 'color') {
-			luminance = (base.r * 0.2126 + base.g * 0.7152 + base.b * 0.0722) / 255;
+			// extract H & S from the added color, but L from the base color
+			let base_hsl = rgbToHsl(base);
+			let added_hsl = rgbToHsl(added);
+			let blended = hslToRgb({h: added_hsl.h, s: added_hsl.s * base_hsl.s, l: base_hsl.l});
+
+			let alpha = added.a;
+			mix.r = Math.clamp(blended.r * alpha + base.r * (1 - alpha), 0, 255);
+			mix.g = Math.clamp(blended.g * alpha + base.g * (1 - alpha), 0, 255);
+			mix.b = Math.clamp(blended.b * alpha + base.b * (1 - alpha), 0, 255);
 			mix.a = base.a;
+
+			added.a = original_a
+			return mix;
 		}
 
 		['r', 'g', 'b'].forEach(ch => {
@@ -1540,10 +1551,6 @@ export const Painter = {
 			switch (blend_mode) {
 				case 'behind':
 				mix[ch] = (normal_base * base.a / mix.a)  +  (normal_added * added.a * (1 - base.a) / mix.a);
-				break;
-
-				case 'color':
-				mix[ch] = (luminance * normal_added * added.a) + (normal_base * (1-added.a));
 				break;
 
 				case 'multiply':

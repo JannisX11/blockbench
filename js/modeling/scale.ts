@@ -71,7 +71,7 @@ export namespace ModelScaler {
 	export function openDialog(): void {
 		if (Outliner.selected.length == 0) {
 			setActivePanel('preview');
-			(BarItems.select_all as Action).click();
+			BarItems.select_all.click();
 		}
 		let scale_groups: Group[] = getScaleGroups();
 
@@ -287,6 +287,7 @@ BARS.defineActions(function() {
 		}
 	})
 });
+
 
 const global = {
 	ModelScaler

@@ -575,7 +575,7 @@ export class TextureLayer extends TextureLayerItem {
 					this.texture.updateChangesAfterEdit();
 					Blockbench.dispatchEvent('edit_layer_properties', {layer: this});
 					Undo.finishEdit('Edit layer properties');
-					(BarItems.layer_opacity as NumSlider).update();
+					BarItems.layer_opacity.update();
 				}
 			},
 			onCancel() {
@@ -931,7 +931,7 @@ BARS.defineActions(() => {
 				Undo.finishEdit('Add image as layer');
 				updateInterfacePanels();
 				BARS.updateConditions();
-				(BarItems.move_layer_tool as Tool).select();
+				BarItems.move_layer_tool.select();
 			})
 		}
 	})

@@ -152,7 +152,7 @@ export const Vertexsnap = {
 				let vertices = data.element.getSelectedVertices(true);
 				vertices.safePush(data.vertex);
 			}
-			Vertexsnap.selected_vertices = JSON.parse(JSON.stringify(Project.mesh_selection));
+			Vertexsnap.selected_vertices = structuredClone(Project.mesh_selection);
 			Vertexsnap.clearVertexGizmos()
 			$('#preview').css('cursor', (Vertexsnap.step1 ? 'copy' : 'alias'))
 

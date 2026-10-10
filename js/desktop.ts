@@ -49,7 +49,7 @@ export function initializeDesktopApp() {
 		Blockbench.addFlag('dev')
 	}
 
-	settings.interface_scale.onChange(settings.interface_scale.value);
+	if (settings.interface_scale.value != 100) settings.interface_scale.onChange(settings.interface_scale.value);
 
 	if (settings.native_window_frame.value != true) {
 		// Window controls

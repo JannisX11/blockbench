@@ -20,14 +20,14 @@ BARS.defineActions(function() {
 			}
 		},
 		onSelect: function() {
-			(BarItems.selection_mode as BarSelect).set('edge');
-			(BarItems.view_mode as BarSelect).set('solid');
-			(BarItems.view_mode as BarSelect).onChange(BarItems.view_mode as BarSelect);
+			BarItems.selection_mode.set('edge');
+			BarItems.view_mode.set('solid');
+			BarItems.view_mode.onChange(BarItems.view_mode);
 		},
 		onUnselect: function() {
-			(BarItems.selection_mode as BarSelect).set('object');
-			(BarItems.view_mode as BarSelect).set('textured');
-			(BarItems.view_mode as BarSelect).onChange(BarItems.view_mode as BarSelect);
+			BarItems.selection_mode.set('object');
+			BarItems.view_mode.set('textured');
+			BarItems.view_mode.onChange(BarItems.view_mode);
 		}
 	})
 	new BarSelect('select_seam', {

@@ -101,4 +101,7 @@ declare namespace Painter {
 		slider_brush_opacity: NumSlider
 		pixel_perfect_drawing: Toggle
 		slider_color_select_threshold: NumSlider
+		screen_space_brush_projection: Toggle
+		brush_lock_mode: BarSelect
+		fill_mode: BarSelect
 	}
