@@ -190,6 +190,7 @@ declare const Prop = {
 declare const mouse_pos: {x: number, y: number};
 declare const Project: ModelProject
 declare const ColorPanel: any
+declare const Vertexsnap: any
 
 declare function isStringNumber(value: any): boolean
 

@@ -5,7 +5,6 @@
 /// <reference types="wintersky" />
 
 /// <reference types="./texture_group" />
-/// <reference types="./action_control" />
 /// <reference types="./animation" />
 /// <reference types="./animation_controller" />
 /// <reference types="./canvas_frame" />

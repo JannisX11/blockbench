@@ -1,6 +1,7 @@
 import { AutoBackup } from "../auto_backup";
 import { changeImageEditor } from "../desktop";
 import { currentwindow } from "../native_apis";
+import { CustomMenuItem } from "./menu";
 import { Setting, Settings, SettingsProfile } from "./settings";
 import { addStartScreenSection } from "./start_screen";
 
@@ -31,7 +32,7 @@ function setupSettings() {
 		'mobile': tl('settings.interface_mode.mobile'),
 	}});
 	new Setting('interface_scale', 		{category: 'interface', value: 100, min: 40, max: 200, type: 'number', condition: isApp, onChange() {
-		var factor = Math.clamp(settings.interface_scale.value, 40, 200) / 100;
+		var factor = Math.clamp(settings.interface_scale.value as number, 40, 200) / 100;
 		currentwindow.webContents.setZoomFactor(factor)
 		resizeWindow()
 	}});
@@ -45,7 +46,7 @@ function setupSettings() {
 		document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 	}});
 	new Setting('status_bar_modifier_keys', {category: 'interface', value: true, condition: !Blockbench.isTouch, onChange(value) {
-		Interface.status_bar.vue.show_modifier_keys = value;
+		Interface.status_bar.vue.$data.show_modifier_keys = value;
 	}});
 	new Setting('status_bar_transform_sliders', {category: 'interface', value: true, condition: Blockbench.isTouch, onChange(value) {
 		updateInterface();
@@ -66,7 +67,7 @@ function setupSettings() {
 	}});
 	new Setting('outliner_colors', 		{category: 'interface', value: true});
 	new Setting('preview_checkerboard',	{category: 'interface', value: true, onChange() {
-		$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value);
+		$('#center').toggleClass('checkerboard', settings.preview_checkerboard.value as boolean);
 	}});
 	new Setting('uv_checkerboard', 		{category: 'interface', value: true, onChange(val) {
 		UVEditor.vue.checkerboard = val;
@@ -76,14 +77,14 @@ function setupSettings() {
 		selected_elements: 'settings.display_uv.selected_elements',
 		all_elements: 'settings.display_uv.all_elements',
 	}, onChange(value) {
-		BarItems.edit_mode_uv_overlay.value = value == 'all_elements';
-		BarItems.edit_mode_uv_overlay.updateEnabledState();
+		(BarItems.edit_mode_uv_overlay as Toggle).value = value == 'all_elements';
+		(BarItems.edit_mode_uv_overlay as Toggle).updateEnabledState();
 	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
-		Timeline.vue.updateTimecodes();
+		Timeline.vue.$data.updateTimecodes();
 	}});
 	new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
-		Timeline.vue.show_all_handles = !val;
+		Timeline.vue.$data.show_all_handles = !val;
 	}});
 	new Setting('autocomplete_code',	{category: 'interface', value: true});
 	
@@ -165,6 +166,7 @@ function setupSettings() {
 	}});
 	new Setting('outliner_reveal_on_select', {category: 'edit', value: true})
 	new Setting('allow_display_slot_mirror', {category: 'edit', value: false, onChange(value) {
+		// @ts-expect-error
 		DisplayMode.vue.allow_mirroring = value;
 	}})
 	new Setting('local_position_values',	{category: 'edit', value: false});
@@ -361,7 +363,7 @@ function setupSettingsProfiles() {
 	}
 	Settings.profile_menu_button = document.getElementById('settings_profiles_header_menu');
 	Settings.profile_menu_button.addEventListener('click', event => {
-		let list = [
+		let list: (CustomMenuItem|'_')[] = [
 			{
 				name: 'generic.none',
 				icon: SettingsProfile.selected ? 'far.fa-circle' : 'far.fa-dot-circle',

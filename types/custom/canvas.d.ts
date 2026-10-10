@@ -100,6 +100,7 @@ declare namespace Canvas {
 	const uvHelperMaterial: THREE.ShaderMaterial
 	const meshVertexMaterial: THREE.PointsMaterial
 	const transparentMaterial: THREE.MeshBasicMaterial
+	const groundPlaneMaterial: THREE.MeshBasicMaterial
 	/**
 	 * The material used for the grids
 	 */
@@ -235,6 +236,7 @@ declare namespace Canvas {
 	 * Update the materials of marker colors if new colors were added
 	 */
 	function updateMarkerColorMaterials(): void
+	function updateCubeHighlights(element?: OutlinerNode, force_off?: boolean)
 	/**
 	 * Create an additional outline around the specified cubes
 	 * @param arr List of cubes to outline

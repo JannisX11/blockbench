@@ -1,19 +1,28 @@
+/**
+ * A dialog-based interface to search and trigger actions and other things
+ */
 export const ActionControl = {
-	get open() {return ActionControl.vue._data.open},
-	set open(state) {ActionControl.vue._data.open = !!state},
+	vue: null as Vue,
+
+	get open(): boolean {
+		return ActionControl.vue.$data.open
+	},
+	set open(state) {ActionControl.vue.$data.open = !!state},
 	type: 'action_selector',
 	recently_used: [],
 	max_length: 32,
 	max_recently_used: 8,
-	select(input) {
+	recent_in_streamer_mode: false,
+
+	select(input?: string) {
 		ActionControl.open = true;
 		open_interface = ActionControl;
-		ActionControl.vue._data.index = 0;
-		ActionControl.vue.updateSearch();
+		ActionControl.vue.$data.index = 0;
+		ActionControl.vue.$data.updateSearch();
 		if (input) {
-			ActionControl.vue.search_input = input;
+			ActionControl.vue.$data.search_input = input;
 		}
-		Vue.nextTick(_ => {
+		Vue.nextTick(() => {
 			let element = $('#action_selector > input');
 			element.trigger('focus');
 			if (!input)  element.trigger('select');
@@ -26,17 +35,17 @@ export const ActionControl = {
 			}
 		}
 	},
-	show(...args) {
-		return this.select(...args);
+	show(input?: string) {
+		return this.select(input);
 	},
 	hide() {
 		if (open_interface == ActionControl) open_interface = false;
 		ActionControl.recent_in_streamer_mode = false;
 		ActionControl.open = false;
 	},
-	confirm(e) {
-		var data = ActionControl.vue._data
-		var action = data.list[data.index]
+	confirm(e: Event) {
+		let data = ActionControl.vue.$data
+		let action = data.list[data.index]
 		ActionControl.hide()
 		if (action) {
 			ActionControl.trigger(action, e)
@@ -45,12 +54,14 @@ export const ActionControl = {
 	cancel() {
 		ActionControl.hide()
 	},
-	trigger(action, event) {
+	trigger(action: any, event: Event) {
 		if (action.id == 'action_control') {
+			// @ts-expect-error
 			$('body').effect('shake');
 			Blockbench.showQuickMessage('Congratulations! You have discovered recursion!', 3000)
 		}
 		if (action instanceof BarSelect) {
+			// @ts-expect-error
 			action.open({target: ActionControl.vue.$el.childNodes[2]});
 
 		} else if (action.type == 'recent_project') {
@@ -84,12 +95,12 @@ export const ActionControl = {
 			this.addRecentlyUsed(action);
 		}
 	},
-	click(action, event) {
+	click(action: any, event: Event) {
 		ActionControl.trigger(action, event)
 		ActionControl.hide()
 	},
-	handleKeys(e) {
-		var data = ActionControl.vue._data
+	handleKeys(e: KeyboardEvent): boolean {
+		let data = ActionControl.vue.$data;
 
 		if (e.altKey) {
 			ActionControl.vue.$forceUpdate()
@@ -100,8 +111,8 @@ export const ActionControl = {
 				let node = list && list.children[data.index];
 				if (!node) return;
 
-				var list_pos = $(list).offset().top;
-				var el_pos = $(node).offset().top;
+				let list_pos = $(list).offset().top;
+				let el_pos = $(node).offset().top;
 
 				if (el_pos < list_pos) {
 					list.scrollTop += el_pos - list_pos;
@@ -190,9 +201,9 @@ BARS.defineActions(function() {
 		},
 		methods: {
 			updateSearch() {
-				var list = this._data.list.empty();
-				var type = this.search_type.toLowerCase();
-				var search_input = this._data.search_input.toLowerCase()
+				let list = this._data.list.empty();
+				let type = this.search_type.toLowerCase();
+				let search_input = this._data.search_input.toLowerCase()
 				search_input = search_input.replace(type+':', '').trim();
 
 				if (!type && search_input) {
@@ -212,7 +223,7 @@ BARS.defineActions(function() {
 				}
 				if (!type) {
 					let recently_used = ActionControl.recently_used.map(id => BarItems[id]).filter(v => v);
-					let all_items = recently_used.concat(Keybinds.actions);
+					let all_items: (KeybindItem | BarItem)[] = recently_used.concat(Keybinds.actions as any);
 					for (let item of all_items) {
 						if (
 							search_input.length == 0 ||
@@ -220,7 +231,7 @@ BARS.defineActions(function() {
 							item.id.toLowerCase().includes(search_input)
 						) {
 							if (!(item instanceof Action || item instanceof BarSelect)) continue;
-							if (item.linked_setting) continue;
+							if (item instanceof Toggle && item.linked_setting) continue;
 							if (!Condition(item.condition)) continue;
 							if (item instanceof Action && (item.id == 'add_plugin' || item.id == 'remove_plugin')) continue;
 							list.safePush(item)
@@ -255,7 +266,7 @@ BARS.defineActions(function() {
 								setTimeout(_ => {
 									ActionControl.select('recent: ');
 									ActionControl.recent_in_streamer_mode = true;
-									ActionControl.vue.updateSearch();
+									ActionControl.vue.$data.updateSearch();
 								}, 1);
 							}
 						})
@@ -327,11 +338,11 @@ BARS.defineActions(function() {
 							plugin.name.toLowerCase().includes(search_input) ||
 							plugin.description.toLowerCase().includes(search_input))
 						) {
-							let icon = plugin.icon;
+							let icon: IconString = plugin.icon;
 							if (plugin.hasImageIcon()) {
-								icon = document.createElement('img');
+								icon = document.createElement('img') as HTMLImageElement;
 								icon.classList.add('icon');
-								icon.src = plugin.getIcon();
+								(icon as HTMLImageElement).src = plugin.getIcon();
 							}
 							list.push({
 								name: plugin.name,
@@ -347,7 +358,8 @@ BARS.defineActions(function() {
 					}
 				}
 				if (type == 'angle') {
-					let angles = Preview.prototype.menu.structure.find(m => m.id == 'angle').children(Preview.selected);
+					let preview_menu_structure = Preview.prototype.menu.structure as any[];
+					let angles = preview_menu_structure.find(m => m.id == 'angle').children(Preview.selected);
 					for (let angle of angles) {
 						if (typeof angle != 'object') continue;
 						let name = tl(angle.name);
@@ -383,7 +395,7 @@ BARS.defineActions(function() {
 				if (Pressing.alt) {
 					if (action instanceof Setting) {
 						if (action.type == 'select') {
-							return action.options[action.value];
+							return action.options[action.value as string];
 						} else {
 							return action.value;
 						}
@@ -403,7 +415,7 @@ BARS.defineActions(function() {
 						icon: this.search_types[key].icon,
 						click: () => {
 							this.search_input = key && (key + ': ');
-							Vue.nextTick(_ => {
+							Vue.nextTick(() => {
 								let element = $('#action_selector > input');
 								element.trigger('focus');
 							})
@@ -448,6 +460,11 @@ BARS.defineActions(function() {
 	})
 })
 
-Object.assign(window, {
-	ActionControl
-});
+const global = {ActionControl};
+declare global {
+	const ActionControl: typeof global.ActionControl
+	interface BarItemRegistry {
+		action_control: Action
+	}
+}
+Object.assign(window, global);

@@ -130,7 +130,7 @@ declare namespace Animator {
 	function leave(): void
 	function showDefaultPose(no_matrix_update?: boolean): void
 	function resetParticles(): void
-	function showMotionTrail(target?: Group): void
+	function showMotionTrail(target?: Group, fast: boolean = false): void
 	/**
 	 * Updates the preview based on the current time
 	 */
