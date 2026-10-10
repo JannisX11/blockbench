@@ -128,6 +128,8 @@ export class GeneralAnimator {
 		if (undo) {
 			Undo.finishEdit('Add keyframe')
 		}
+		
+		Timeline.vue.refreshTimelineCanvas();
 		return keyframe;
 	}
 	getOrMakeKeyframe(channel) {
