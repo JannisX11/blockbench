@@ -81,7 +81,8 @@ function setupSettings() {
 		(BarItems.edit_mode_uv_overlay as Toggle).updateEnabledState();
 	}});
 	new Setting('timecode_frame_number',{category: 'interface', value: false, onChange() {
-		Timeline.vue.$data.updateTimecodes();
+		// @ts-expect-error
+		Timeline.vue.updateTimecodes();
 	}});
 	new Setting('only_selected_bezier_handles',{category: 'interface', value: false, onChange(val) {
 		Timeline.vue.$data.show_all_handles = !val;

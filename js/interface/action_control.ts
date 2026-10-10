@@ -2,7 +2,7 @@
  * A dialog-based interface to search and trigger actions and other things
  */
 export const ActionControl = {
-	vue: null as Vue,
+	vue: null as (Vue & {updateSearch(): void}),
 
 	get open(): boolean {
 		return ActionControl.vue.$data.open
@@ -18,7 +18,7 @@ export const ActionControl = {
 		ActionControl.open = true;
 		open_interface = ActionControl;
 		ActionControl.vue.$data.index = 0;
-		ActionControl.vue.$data.updateSearch();
+		ActionControl.vue.updateSearch();
 		if (input) {
 			ActionControl.vue.$data.search_input = input;
 		}
@@ -266,7 +266,7 @@ BARS.defineActions(function() {
 								setTimeout(_ => {
 									ActionControl.select('recent: ');
 									ActionControl.recent_in_streamer_mode = true;
-									ActionControl.vue.$data.updateSearch();
+									ActionControl.vue.updateSearch();
 								}, 1);
 							}
 						})
@@ -457,7 +457,7 @@ BARS.defineActions(function() {
 				</div>
 			</dialog>
 		`
-	})
+	}) as any;
 })
 
 const global = {ActionControl};
