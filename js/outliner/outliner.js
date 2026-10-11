@@ -865,7 +865,7 @@ SharedActions.add('duplicate', {
 					let mesh_copy = map.get(mesh);
 					if (!mesh_copy) continue;
 					copy.setVertexWeight(mesh_copy, vkey, weight);
-					copy.vertex_weights[key];
+					delete copy.vertex_weights[key];
 				}
 			}
 		});
