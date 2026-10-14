@@ -1600,7 +1600,7 @@ export class Texture {
 		let mcmeta = {};
 		if (this.frameCount > 1) {
 			let animation = mcmeta.animation = {
-				frametime: this.frame_time
+				frametime: Format.texture_mcmeta ? this.frame_time : Math.max(1, Math.round(20 / this.fps))
 			}
 
 			if (this.getUVWidth() != this.getUVHeight()) {
@@ -1660,7 +1660,7 @@ export class Texture {
 		if (isApp) {
 
 			let postSave = (path) => {
-				if (Format.texture_mcmeta && this.frameCount > 1) {
+				if ((Format.texture_mcmeta || this.save_mcmeta) && this.frameCount > 1) {
 					let mcmeta_content = this.getMCMetaContent();
 					Blockbench.writeFile(path + '.mcmeta', {content: compileJSON(mcmeta_content)})
 				}
@@ -2099,6 +2099,17 @@ export class Texture {
 				}
 			},
 			'animated_texture_editor',
+			{
+				name: 'menu.texture.save_mcmeta',
+				icon: (texture) => !!texture.save_mcmeta,
+				condition: (texture) => isApp && Format.animated_textures && !Format.texture_mcmeta && texture.frameCount > 1,
+				click(texture) {
+					Undo.initEdit({textures: [texture]});
+					texture.save_mcmeta = !texture.save_mcmeta;
+					if (texture.save_mcmeta) texture.saved = false;
+					Undo.finishEdit('Toggle texture mcmeta saving');
+				}
+			},
 			'create_material',
 			'append_to_template',
 			{
@@ -2266,6 +2277,7 @@ export class Texture {
 	new Property(Texture, 'enum', 'frame_order_type', {default: 'loop', values: ['custom', 'loop', 'backwards', 'back_and_forth']})
 	new Property(Texture, 'string', 'frame_order')
 	new Property(Texture, 'boolean', 'frame_interpolate')
+	new Property(Texture, 'boolean', 'save_mcmeta')
 
 	Object.defineProperty(Texture, 'all', {
 		get() {
