@@ -1266,7 +1266,10 @@ export class Texture {
 				if (results.render_mode !== undefined) this.render_mode = results.render_mode;
 				if (results.render_sides !== undefined) this.render_sides = results.render_sides;
 				if (results.wrap_mode !== undefined) this.wrap_mode = results.wrap_mode;
-				if (results.fps !== undefined) this.fps = results.fps;
+				if (results.fps !== undefined) {
+					this.fps = results.fps;
+					this.frame_time = Math.max(1, Math.round(20 / results.fps));
+				}
 
 				if (results.file_format && results.file_format != this.file_format) {
 					let old_extensions = Texture.file_formats[this.file_format]?.extensions;

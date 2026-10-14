@@ -172,12 +172,11 @@ BARS.defineActions(function() {
 		condition: () => Format.animated_textures && Texture.selected?.frameCount > 1,
 		click() {
 			let texture = Texture.selected;
-			let frametime = 1000/Texture.getDefault().fps;
+			let frametime = 1000/texture.fps;
 			let gauge = texture.width;
 			let copied;
-			if (Format.texture_mcmeta && Texture.getDefault()) {
-				let tex = Texture.getDefault();
-				frametime = Math.max(tex.frame_time, 1) * 50;
+			if (Format.texture_mcmeta) {
+				frametime = Math.max(texture.frame_time, 1) * 50;
 			}
 
 			function displayCodeSuggestion(texture, frame_count, fps) {
@@ -724,7 +723,11 @@ BARS.defineActions(function() {
 						texture.layers.empty();
 						UVEditor.vue.layer = null;
 					}
-					if (this.content_vue.$data.fps) texture.fps = this.content_vue.$data.fps;
+					let fps = this.content_vue.$data.fps;
+					if (fps) {
+						texture.fps = fps;
+						texture.frame_time = Math.max(1, Math.round(20 / fps));
+					}
 					
 					let i = 0;
 					for (let frame of frames) {
@@ -740,6 +743,7 @@ BARS.defineActions(function() {
 
 					texture.updateChangesAfterEdit();
 					Undo.finishEdit('Apply flipbook animation changes');
+					TextureAnimator.updateSpeed();
 					updateInterfacePanels();
 					UVEditor.vue.updateTexture();
 					BARS.updateConditions();
