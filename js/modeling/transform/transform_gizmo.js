@@ -1224,6 +1224,7 @@ import { TransformerModule } from "./transform_modules";
 					Transformer.update();
 				} else {
 					this.visible = false;
+					this.axis = this.hoverAxis = null;
 				}
 			}
 			this.cancelMovement = function(event, keep_changes = false) {
