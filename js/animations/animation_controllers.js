@@ -4,6 +4,7 @@ import { clipboard, currentwindow, dialog, fs, ipcRenderer } from '../native_api
 import { Filesystem } from '../file_system';
 import { Easings } from '../lib/easing';
 import { markerColors } from '../marker_colors';
+import { definePanels } from '../interface/panels';
 
 export class AnimationControllerState {
 	constructor(controller, data = 0) {
@@ -1437,7 +1438,7 @@ SharedActions.add('duplicate', {
 	}
 })
 
-Interface.definePanels(() => {
+definePanels(() => {
 	let panel = new Panel('animation_controllers', {
 		icon: 'account_tree',
 		condition: {modes: ['animate'], features: ['animation_controllers'], method: () => AnimationController.selected},

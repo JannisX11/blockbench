@@ -685,7 +685,7 @@ FormElement.types.outliner_node = class FormElementOutlinerNode extends FormElem
 	build(bar: HTMLDivElement) {
 		super.build(bar);
 		let scope = this;
-		this.select_input = new Interface.CustomElements.SelectInput(this.id, {
+		this.select_input = new Interface.CustomElements.SelectInput<any>(this.id, {
 			get options() {
 				let nodes = scope.options.getOutlinerNodes();
 				let options = {};
@@ -701,7 +701,7 @@ FormElement.types.outliner_node = class FormElementOutlinerNode extends FormElem
 				return options;
 			},
 			display_icon: true,
-			value: this.options.value || this.options.default,
+			default: this.options.value || this.options.default,
 			onInput() {
 				scope.change();
 			}

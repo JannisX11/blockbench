@@ -13,7 +13,7 @@ import { Action } from '../interface/actions'
 import { Clipbench } from "../copy_paste";
 import { getFocusedTextInput } from "../interface/keyboard";
 import { tl } from "../languages";
-import { Panel } from "../interface/panels";
+import { definePanels, Panel } from "../interface/panels";
 import { FormElementOptions } from "../interface/form";
 import { fs } from "../native_apis";
 import { Filesystem } from "../file_system";
@@ -639,7 +639,7 @@ BARS.defineActions(() => {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	function eventTargetToCollection(target: HTMLElement): [Collection?, HTMLElement?] {
 		let target_node: HTMLElement | undefined = target;

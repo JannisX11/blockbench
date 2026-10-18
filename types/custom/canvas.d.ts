@@ -333,4 +333,5 @@ declare class NodePreviewController {
 	updatePaintingGrid(instance: OutlinerNode): void
 	updateHighlight(instance: OutlinerNode, ...args: any[]): void
 	viewportRectangleOverlap(element: OutlinerNode, context: ViewportRectangleOverlapContext)
+	updateWindowSize?(instance: OutlinerNode): void
 }

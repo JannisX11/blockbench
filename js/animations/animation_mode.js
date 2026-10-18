@@ -4,6 +4,7 @@ import { Mode } from "../modes";
 import { clipboard, fs } from "../native_apis";
 import { openMolangEditor } from "./molang_editor";
 import './mirror_animating'
+import { definePanels } from "../interface/panels";
 
 export const Animator = {
 	get possible_channels() {
@@ -1107,7 +1108,7 @@ BARS.defineActions(function() {
 })
 
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	new Panel('variable_placeholders', {
 		icon: 'fas.fa-stream',

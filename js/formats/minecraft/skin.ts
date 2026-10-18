@@ -5,7 +5,7 @@ import { getAllGroups } from "../../outliner/types/group"
 import { DefaultCameraPresets } from "../../preview/preview"
 import { MinecraftEULA } from "../../preview/preview_scenes"
 import { TextureGenerator } from "../../texturing/texture_generator"
-import { Panel, Panels } from "../../interface/panels";
+import { definePanels, Panel, Panels } from "../../interface/panels";
 import { Blockbench } from "../../api";
 import { FormResultValue } from "../../interface/form";
 
@@ -809,7 +809,7 @@ BARS.defineActions(function() {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	new Panel('skin_pose', {
 		icon: 'icon-player',
 		condition: {modes: ['pose']},

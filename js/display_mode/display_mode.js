@@ -6,6 +6,7 @@ import DisplayReferences from "./display_references";
 import VertShader from './../shaders/texture.vert.glsl';
 import FragShader from './../shaders/texture.frag.glsl';
 import { prepareShader } from "../shaders/shader";
+import { definePanels } from "../interface/panels.ts";
 
 var ground_timer = 0
 var display_presets;
@@ -1711,7 +1712,7 @@ BARS.defineActions(function() {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	
 	new Panel('display', {
 		icon: 'tune',

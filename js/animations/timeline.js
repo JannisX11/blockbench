@@ -1,3 +1,4 @@
+import { definePanels } from "../interface/panels";
 import { markerColors } from "../marker_colors";
 import { dragHelper } from "../util/drag_helper";
 
@@ -788,7 +789,7 @@ StateMemory.init("timeline_channels", "object", {
 	hide_empty: false,
 });
 
-Interface.definePanels(() => {
+definePanels(() => {
 	function eventTargetToAnimator(target) {
 		let target_node = target;
 		let i = 0;

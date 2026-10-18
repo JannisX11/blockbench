@@ -1,6 +1,7 @@
 import { editUVSizeDialog } from "./uv_size";
 import { PointerTarget } from "../interface/pointer_target";
 import { dragHelper } from "../util/drag_helper";
+import { definePanels } from "../interface/panels";
 
 // Image manipulation helpers for UV+texture transforms
 function flipImageDataH(imageData) {
@@ -2752,7 +2753,7 @@ BARS.defineActions(function() {
 })
 
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	UVEditor.panel = new Panel('uv', {
 		icon: 'photo_size_select_large',

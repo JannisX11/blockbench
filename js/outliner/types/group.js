@@ -1,3 +1,4 @@
+import { definePanels } from "../../interface/panels";
 
 export class Group extends OutlinerNode {
 	constructor(data, uuid) {
@@ -944,7 +945,7 @@ BARS.defineActions(function() {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	new Panel('bone', {
 		icon: 'fas.fa-bone',
 		condition: !Blockbench.isMobile && {modes: ['animate'], method: () => !AnimationController.selected},

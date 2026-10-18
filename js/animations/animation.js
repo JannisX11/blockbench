@@ -5,6 +5,7 @@ import { clipboard, currentwindow, dialog, fs, ipcRenderer } from "../native_api
 import { invertMolang } from "../util/molang";
 import { ScopeColors } from "../multi_file_editing";
 import { dragHelper } from "../util/drag_helper";
+import { definePanels } from "../interface/panels";
 
 export class AnimationItem {
 	constructor() {}
@@ -1682,7 +1683,7 @@ BARS.defineActions(function() {
 })
 
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	function eventTargetToAnim(target) {
 		let target_node = target;

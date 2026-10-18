@@ -4,6 +4,7 @@ import { ipcRenderer } from "../native_apis";
 import { colorDistance } from "../util/util";
 import ColorPickerNormal from "./ColorPickerNormal.vue";
 import ColorPickerWheel from "./ColorPickerWheel.vue";
+import { definePanels } from "../interface/panels.ts";
 
 //
 StateMemory.init('color_palettes', 'array')
@@ -499,7 +500,7 @@ SharedActions.add('delete', {
 })
 
 
-Interface.definePanels(() => {
+definePanels(() => {
 	
 	// MARK: color panel
 	ColorPanel.panel = new Panel('color', {

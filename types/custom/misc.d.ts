@@ -183,6 +183,9 @@ declare const Pressing: {
 
 declare const Prop = {
 	active_panel: string,
+	file_name: string,
+	file_name_alt: string,
+	progress: number,
 	fps: number,
 	show_left_bar: boolean,
 	show_right_bar: boolean,

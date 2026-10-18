@@ -1,3 +1,4 @@
+import { definePanels } from "../interface/panels";
 import { markerColors } from "../marker_colors";
 import { clipboard } from "../native_apis";
 import { invertMolang, processMolangReturn } from "../util/molang";
@@ -1291,7 +1292,7 @@ BARS.defineActions(function() {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	
 	new Panel('keyframe', {
 		icon: 'icon-keyframe',

@@ -156,13 +156,6 @@ onVueSetup(function() {
 		`
 	})
 
-	Interface.addSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.$data.modifier_keys[key].safePush(text);
-	};
-	Interface.removeSuggestedModifierKey = (key, text) => {
-		Interface.status_bar.vue.$data.modifier_keys[key].remove(text);
-	};
-
 	
 	Interface.status_bar.menu = new Menu([
 		'project_window',

@@ -1,5 +1,6 @@
 import { Filesystem } from "../file_system";
 import { getFocusedTextInput } from "../interface/keyboard"
+import { definePanels } from "../interface/panels";
 import { Property } from "../util/property"
 
 export interface TextureLayerData {
@@ -1119,7 +1120,7 @@ BARS.defineActions(() => {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	Vue.component('texture-layer-icon', {
 		props: {
 			layer: TextureLayer

@@ -6,6 +6,7 @@ import { radToDeg } from "three/src/math/MathUtils"
 import { PointerTarget } from "../interface/pointer_target"
 import { markerColors } from "../marker_colors"
 import { ScopeColors } from "../multi_file_editing"
+import { definePanels } from "../interface/panels"
 
 export const Outliner = {
 	ROOT: 'root',
@@ -1232,7 +1233,7 @@ BARS.defineActions(function() {
 	})
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	var VueTreeItem = Vue.extend({
 		template: 

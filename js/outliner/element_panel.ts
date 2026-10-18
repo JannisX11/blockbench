@@ -1,10 +1,10 @@
 import { Blockbench } from "../api";
 import { InputForm } from "../interface/form";
 import { Interface } from "../interface/interface";
-import { Panel } from "../interface/panels";
+import { definePanels, Panel } from "../interface/panels";
 import { Property } from "../util/property";
 
-Interface.definePanels(function() {
+definePanels(function() {
 	new Panel('transform', {
 		icon: 'arrows_output',
 		condition: {

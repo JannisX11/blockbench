@@ -389,11 +389,13 @@ export class Panel extends EventSystem {
 
 						target_slot = 'left_bar';
 						for (let child of Interface.left_bar.childNodes) {
-							if (!child.clientHeight) continue;
+							if (child instanceof HTMLElement == false) continue;
+							let height = child.clientHeight;
+							if (!height) continue;
 							let y = $(child).offset()?.top;
 							if (!y) continue;
 							target_panel = Panels[child.getAttribute('panel_id')];
-							if (e2.clientY < (y + child.clientHeight / 2)) {
+							if (e2.clientY < (y + height / 2)) {
 								target_before = true;
 								break;
 							}
@@ -403,11 +405,13 @@ export class Panel extends EventSystem {
 						
 						target_slot = 'right_bar';
 						for (let child of Interface.right_bar.childNodes) {
-							if (!child.clientHeight) continue;
+							if (child instanceof HTMLElement == false) continue;
+							let height = child.clientHeight;
+							if (!height) continue;
 							let y = $(child).offset()?.top;
 							if (!y) continue;
 							target_panel = Panels[child.getAttribute('panel_id')];
-							if (e2.clientY < (y + child.clientHeight / 2)) {
+							if (e2.clientY < (y + height / 2)) {
 								target_before = true;
 								break;
 							}
@@ -1224,9 +1228,9 @@ Panel.prototype.snap_menu = new Menu([
 
 export const Panels: Record<string, Panel> = {};
 Interface.Panels = Panels;
-Interface.panel_definers = []
-Interface.definePanels = function(callback) {
-	Interface.panel_definers.push(callback);
+const panel_definers = [];
+export function definePanels(callback: () => void) {
+	panel_definers.push(callback);
 };
 
 const StoredPanelData: Record<string, Record<string, PanelPositionData>> = {};
@@ -1243,7 +1247,7 @@ try {
 } catch (err) {}
 
 export function setupPanels() {
-	Interface.panel_definers.forEach((definer) => {
+	panel_definers.forEach((definer) => {
 		if (typeof definer === 'function') {
 			definer()
 		}
@@ -1322,7 +1326,7 @@ export function updateInterfacePanels() {
 }
 
 export function updateSidebarOrder() {
-	['left_bar', 'right_bar'].forEach(bar => {
+	['left_bar', 'right_bar'].forEach((bar: ('left_bar' | 'right_bar')) => {
 		let bar_node = document.querySelector(`.sidebar#${bar}`);
 		let current_panels = Array.from(bar_node.childNodes).map(panel_node => (panel_node as HTMLElement).getAttribute('panel_id')).filter(panel_id => {
 			return Panels[panel_id] && Condition(Panels[panel_id].condition) && !Panels[panel_id].attached_to;

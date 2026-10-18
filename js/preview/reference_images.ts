@@ -1,5 +1,6 @@
 import { Filesystem } from "../file_system";
 import { FormResultValue } from "../interface/form";
+import { definePanels } from "../interface/panels";
 import { CSS3DObject } from "../lib/CSS3DRenderer";
 import { clipboard } from "../native_apis";
 import { addEventListeners, getAverageRGB } from "../util/util";
@@ -1550,7 +1551,7 @@ BARS.defineActions(function() {
 	});
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 	ReferenceImageMode.toolbar = new Toolbar('reference_images', {
 		children: [
 			'add_reference_image',

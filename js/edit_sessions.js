@@ -1,5 +1,6 @@
 import Peer from "peerjs";
 import { clipboard, getPCUsername } from "./native_apis";
+import { definePanels } from "./interface/panels";
 
 export class EditSession {
 	constructor() {
@@ -521,7 +522,7 @@ EditSession.sanitizeMessage = function(text) {
 	return result;
 }
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	new Panel('chat', {
 		icon: 'chat',

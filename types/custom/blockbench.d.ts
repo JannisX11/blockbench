@@ -15,7 +15,6 @@
 /// <reference types="./display_mode" />
 /// <reference types="./global" />
 /// <reference types="./group" />
-/// <reference types="./interface" />
 /// <reference types="./keyframe" />
 /// <reference types="./mesh" />
 /// <reference types="./spline_mesh" />

@@ -14,6 +14,7 @@ import { TextureLayerData } from './layers';
 import { ExternalDataLoader } from '../io/codec';
 import { InputFormConfig } from '../interface/form';
 import { mouse_pos } from '../misc';
+import { definePanels } from '../interface/panels';
 
 export interface FileFormatOptions {
 	name: string
@@ -2943,7 +2944,7 @@ BARS.defineActions(function() {
 	});
 })
 
-Interface.definePanels(function() {
+definePanels(function() {
 
 	let texture_component = Vue.extend({
 		props: {

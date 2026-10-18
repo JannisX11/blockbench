@@ -1,9 +1,22 @@
 import { Blockbench } from "../api";
 import { translateUI } from "../languages";
 import { currentwindow } from "../native_apis";
+import { isTouchEvent } from "../util/util";
+import { CustomElements } from "./custom_elements";
+import { CustomMenuItem } from "./menu";
 import { ResizeLine, setupResizeLines } from "./resize_lines";
 import "./status_bar"
 
+interface UIData {
+	left_bar_width: number
+	right_bar_width: number
+	quad_view_x: number
+	quad_view_y: number
+	timeline_head: number
+	start_screen_width: number
+	modes?: Record<string, Partial<UIData>>
+}
+type ModifierKey = 'ctrl' | 'shift' | 'alt';
 
 export const Interface = {
 	default_data: {
@@ -14,26 +27,28 @@ export const Interface = {
 		timeline_head: Blockbench.isMobile ? 140 : 196,
 		start_screen_width: 1000,
 		modes: {},
-	},
-	get left_bar_width() {
+	} as UIData,
+	data: null as UIData,
+
+	get left_bar_width(): number {
 		if (Prop.show_left_bar && Interface.getLeftPanels(false).length) { 
 			return Interface.getModeData()?.left_bar_width ?? Interface.data.left_bar_width;
 		}
 		return 0;
 	},
-	get right_bar_width() {
+	get right_bar_width(): number {
 		if (Prop.show_right_bar && Interface.getRightPanels(false).length) { 
 			return Interface.getModeData()?.right_bar_width ?? Interface.data.right_bar_width;
 		}
 		return 0;
 	},
-	get top_panel_height() {
+	get top_panel_height(): number {
 		return 1;
 	},
-	get bottom_panel_height() {
+	get bottom_panel_height(): number {
 		return 1;
 	},
-	getTopPanel() {
+	getTopPanel(): Panel|undefined {
 		for (let key in Panels) {
 			let panel = Panels[key];
 			if (panel.slot == 'top' && Condition(panel.condition)) {
@@ -41,7 +56,7 @@ export const Interface = {
 			}
 		}
 	},
-	getBottomPanel() {
+	getBottomPanel(): Panel|undefined {
 		for (let key in Panels) {
 			let panel = Panels[key];
 			if (panel.slot == 'bottom' && Condition(panel.condition)) {
@@ -49,18 +64,18 @@ export const Interface = {
 			}
 		}
 	},
-	getLeftPanels(in_order = true) {
+	getLeftPanels(in_order = true): Panel[] {
 		return Interface.calculateSidebarOrder('left_bar', in_order).map(p => this.Panels[p]);
 	},
-	getRightPanels(in_order = true) {
+	getRightPanels(in_order = true): Panel[] {
 		return Interface.calculateSidebarOrder('right_bar', in_order).map(p => this.Panels[p]);
 	},
-	calculateSidebarOrder(bar, in_order = true) {
+	calculateSidebarOrder(bar: 'left_bar' | 'right_bar', in_order = true): string[] {
 		let target_order = [];
 		for (let panel_id in Interface.Panels) {
 			let panel = Interface.Panels[panel_id];
 			if (panel.slot != bar) continue;
-			if (!Condition(panel)) continue;
+			if (!Condition(panel.condition)) continue;
 			if (panel.attached_to) continue;
 			target_order.push(panel.id);
 		}
@@ -73,13 +88,14 @@ export const Interface = {
 		}
 		return target_order;
 	},
-	getUIMode() {
+	getUIMode(): string {
 		let mode_id = Mode.selected && Mode.selected.id;
 		if (!mode_id) mode_id = 'start';
 		if (mode_id == 'paint' && Format.image_editor) mode_id = 'paint_2d';
 		return mode_id;
 	},
-	getModeData(ui_mode = Interface.getUIMode()) {
+	getModeData(ui_mode?: string): Partial<UIData> {
+		if (!ui_mode) ui_mode = Interface.getUIMode();
 		if (ui_mode && ui_mode != 'start') {
 			if (!Interface.data.modes[ui_mode]) {
 				Interface.data.modes[ui_mode] = {};
@@ -92,18 +108,40 @@ export const Interface = {
 			return Interface.data;
 		}
 	},
-	Resizers: ResizeLine.resizers,
-	CustomElements: {},
-	status_bar: {},
-	Panels: {},
-	/**
-	 * 
-	 * @param {string} tag Tag name
-	 * @param {object} [attributes] Attributes
-	 * @param {string|HTMLElement|string[]|HTMLElement[]} [content] Content
-	 * @returns {HTMLElement} Element
-	 */
-	createElement(tag, attributes = {}, content) {
+	Resizers: ResizeLine.resizers as {
+		left: ResizeLine
+		right: ResizeLine
+		quad_view_x: ResizeLine
+		quad_view_y: ResizeLine
+		top: ResizeLine
+		bottom: ResizeLine
+		timeline_head: ResizeLine
+		start_screen_width: ResizeLine
+		[id: string]: ResizeLine
+	},
+	CustomElements,
+	Panels: {} as Record<string, Panel>,
+	PanelSelectorVue: null as any,
+	status_bar: {} as {
+		menu: Menu
+		vue: Vue
+	},
+	tab_bar: null as Vue,
+	text_edit_menu: null as Menu,
+
+	center_screen: null as HTMLElement,
+	page_wrapper: null as HTMLElement,
+	preview: null as HTMLElement,
+	work_screen: null as HTMLElement,
+	right_bar: null as HTMLElement,
+	left_bar: null as HTMLElement,
+	cursor_tooltip: null as HTMLDivElement | null,
+	
+	createElement<K extends keyof HTMLElementTagNameMap>(
+		tag: K,
+		attributes?: Record<string, any>,
+		content?: string | HTMLElement | (string | HTMLElement)[]
+	): HTMLElementTagNameMap[K] {
 		let el = document.createElement(tag);
 		for (let key in attributes) {
 			let value = attributes[key];
@@ -121,17 +159,24 @@ export const Interface = {
 		if (content instanceof HTMLElement) el.append(content);
 		return el;
 	},
-	toggleSidebar(side, status) {
-		if (status == undefined) status = !Prop[`show_${side}_bar`];
+	toggleSidebar(side: 'left' | 'right', status?: boolean) {
+		status ??= !Prop[`show_${side}_bar`];
 		Prop[`show_${side}_bar`] = !!status;
 		resizeWindow();
+	},
+
+	addSuggestedModifierKey(key: ModifierKey, text: string) {
+		Interface.status_bar.vue.$data.modifier_keys[key].safePush(text);
+	},
+	removeSuggestedModifierKey(key: ModifierKey, text: string) {
+		Interface.status_bar.vue.$data.modifier_keys[key].remove(text);
 	}
 };
 
 
 (function() {
-	Interface.data = $.extend(true, {}, Interface.default_data)
-	var interface_data = localStorage.getItem('interface_data')
+	Interface.data = structuredClone(Interface.default_data);
+	let interface_data = localStorage.getItem('interface_data');
 	if (!interface_data) return;
 	try {
 		interface_data = JSON.parse(interface_data)
@@ -142,35 +187,39 @@ export const Interface = {
 })()
 
 //Misc
-export function unselectInterface(event) {
+/**
+ * Unselects and ends or closes a currently active process in the interface, such as an open menu, or a rename action
+ */
+export function unselectInterface(event: PointerEvent) {
+	let target = event.target as HTMLElement;
 	if (
 		open_menu &&
-		!event.target.classList.contains('contextMenu') && $('.contextMenu').find(event.target).length === 0 &&
+		!target.classList.contains('contextMenu') && $('.contextMenu').find(target).length === 0 &&
 		$('.menu_bar_point.opened:hover').length === 0 &&
-		!document.getElementById('mobile_menu_bar')?.contains(event.target)
+		!document.getElementById('mobile_menu_bar')?.contains(target)
 	) {
 		Menu.closed_in_this_click = open_menu.id;
 		open_menu.hide();
 
-		function mouseUp(e) {
+		function mouseUp(e: MouseEvent) {
 			delete Menu.closed_in_this_click;
 			document.removeEventListener('click', mouseUp);
 		}
 		document.addEventListener('click', mouseUp);
 	}
-	if (Dialog.open instanceof ConfigDialog && !Dialog.open.object.contains(event.target) && (!Menu.open || !Menu.open.node.contains(event.target))) {
+	if (Dialog.open instanceof ConfigDialog && !Dialog.open.object.contains(target) && (!Menu.open || !Menu.open.node.contains(target))) {
 		Dialog.open.close();
 	}
-	if (ActionControl.open && $('#action_selector').find(event.target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
+	if (ActionControl.open && $('#action_selector').find(target).length === 0 && (!open_menu || open_menu instanceof BarMenu)) {
 		ActionControl.hide();
 	}
-	if ($(event.target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
+	if ($(target).is('input.cube_name:not([disabled])') === false && Blockbench.hasFlag('renaming')) {
 		stopRenameOutliner()
 	}
 	if (ReferenceImageMode.active &&
-		!(event.target?.closest('.reference_image')) &&
-		!ReferenceImageMode.toolbar.node.contains(event.target) &&
-		!ReferenceImage.selected?.toolbar.contains(event.target) &&
+		!(target?.closest('.reference_image')) &&
+		!ReferenceImageMode.toolbar.node.contains(target) &&
+		!ReferenceImage.selected?.toolbar.contains(target) &&
 		!Dialog.open &&
 		!open_menu
 	) {
@@ -188,7 +237,7 @@ export function setupInterface() {
 
 	document.getElementById('title_bar_home_button').title = tl('projects.start_screen');
 
-	document.getElementById('center').classList.toggle('checkerboard', settings.preview_checkerboard.value);
+	document.getElementById('center').classList.toggle('checkerboard', settings.preview_checkerboard.value as boolean);
 	document.body.classList.toggle('mobile_sidebar_left', settings.mobile_panel_side.value == 'left');
 
 	setupResizeLines()
@@ -211,7 +260,7 @@ export function setupInterface() {
 
 	//Tooltip Fix
 	$(document).on('mouseenter', '.tool', function() {
-		var tooltip = $(this).find('div.tooltip')
+		let tooltip = $(this).find('div.tooltip')
 		if (!tooltip || typeof tooltip.offset() !== 'object') return;
 		//Left
 		if (tooltip.css('left') === '-4px') {
@@ -267,7 +316,7 @@ export function setupInterface() {
 						target.dispatchEvent(new_event);
 						if (Menu.open) break;
 						if (new_event.cancelBubble == true) break;
-						target = target.parentNode;
+						target = target.parentNode as HTMLElement;
 					}
 				}
 			};
@@ -324,21 +373,26 @@ export function setupInterface() {
 
 	document.oncontextmenu = function (event) {
 		if (!$(event.target).hasClass('allow_default_menu') && (!Blockbench.isTouch || isTouchEvent(event) == false)) {
-			if (event.target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
-				Interface.text_edit_menu.open(event, event.target)
+			let target = event.target as HTMLElement;
+			if (target.nodeName === 'INPUT' && $(event.target).is(':focus')) {
+				Interface.text_edit_menu.open(event, target);
 			}
 			return false;
 		}
 	}
 
 	//Scrolling
-	$('input[type="range"]').on('wheel', function () {
+	// @ts-ignore
+	// TODO: Implement from scratch
+	$('input[type="range"]').on('wheel', function (event: WheelEvent) {
 		var obj = $(event.target)
 		var factor = event.deltaY > 0 ? -1 : 1
+		// @ts-ignore
 		var val = parseFloat(obj.val()) + parseFloat(obj.attr('step')) * factor
 		val = limitNumber(val, obj.attr('min'), obj.attr('max'))
 
 		if (obj.attr('trigger_type')) {
+			// @ts-ignore
 			DisplayMode.scrollSlider(obj.attr('trigger_type'), val, obj)
 			return;
 		}
@@ -360,7 +414,7 @@ export function setupInterface() {
 	updateInterface()
 }
 
-function updateCursorTooltip(event) {
+function updateCursorTooltip(event?: PointerEvent) {
 	let is_touch = event ? event.pointerType == 'touch' : Blockbench.isTouch;
 	let offset_y = is_touch ? -72 : 0;
 	Interface.cursor_tooltip.style.left = mouse_pos.x + 'px';
@@ -376,7 +430,11 @@ export function updateInterface() {
 	delete TickUpdates.interface;
 }
 
-export function resizeWindow(event) {
+/**
+ * Update the size of everything in the UI after the window has been resized or other UI size changes have happeped
+ * @param event 
+ */
+export function resizeWindow(event?: PointerEvent) {
 	if (!Preview.all || (event && event.target && event.target !== window)) {
 		return;
 	}
@@ -402,19 +460,24 @@ export function resizeWindow(event) {
 	if (Format.image_editor) {
 		UVEditor.updateSize();
 	}
-	var dialog = $('dialog#'+open_dialog)
-	if (dialog.length) {
-		if (dialog.outerWidth() + dialog.offset().left > window.innerWidth) {
-			dialog.css('left', limitNumber(window.innerWidth-dialog.outerWidth(), 0, 4e3) + 'px')
+	for (let dialog of Dialog.stack) {
+		let object = dialog.object;
+		let offset = object.getBoundingClientRect();
+		if (object.clientWidth + offset.left > window.innerWidth) {
+			object.style.left = Math.clamp(window.innerWidth-object.clientWidth, 0, 4e3) + 'px';
 		}
-		if (dialog.outerHeight() + dialog.offset().top > window.innerHeight) {
-			dialog.css('top', limitNumber(window.innerHeight-dialog.outerHeight(), 0, 4e3) + 'px')
+		if (object.clientHeight + offset.top > window.innerHeight) {
+			object.style.top = Math.clamp(window.innerHeight-object.clientHeight, 0, 4e3) + 'px';
 		}
 	}
-	Blockbench.dispatchEvent('resize_window', event);
+	Blockbench.dispatchEvent('resize_window', {event});
 }
 
-export function setProjectTitle(title) {
+/**
+ * Update the UI with the title of the current project
+ * @param title Title to display. Defaults to the title of the current project
+ */
+export function setProjectTitle(title?: string) {
 	let window_title = 'Blockbench';
 	if (title == undefined && Project.name) {
 		title = Project.name
@@ -440,9 +503,10 @@ export function setProjectTitle(title) {
 	}
 }
 //Zoom
-export function setZoomLevel(mode) {
+type SetZoomMode = 'in' | 'out' | 'reset';
+export function setZoomLevel(mode: SetZoomMode) {
 	if (Prop.active_panel === 'uv') {
-		var zoom = UVEditor.zoom
+		let zoom = UVEditor.zoom
 		switch (mode) {
 			case 'in':	zoom *= 1.5;  break;
 			case 'out':   zoom *= 0.66;  break;
@@ -457,182 +521,76 @@ export function setZoomLevel(mode) {
 	} else if (Prop.active_panel == 'timeline') {
 		
 		let body = document.getElementById('timeline_body');
-		let offsetX = Timeline.vue.scroll_left + (body.clientWidth - Timeline.vue.head_width) / 2;
+		let offsetX = Timeline.vue.$data.scroll_left + (body.clientWidth - Timeline.vue.$data.head_width) / 2;
 		
 		if (mode == 'reset') {
-			let original_size = Timeline.vue._data.size
-			Timeline.vue._data.size = 200;
+			let original_size = Timeline.vue.$data.size
+			Timeline.vue.$data.size = 200;
 			
-			body.scrollLeft += (Timeline.vue._data.size - original_size) * (offsetX / original_size)
+			body.scrollLeft += (Timeline.vue.$data.size - original_size) * (offsetX / original_size)
 		} else {
 			let zoom = mode == 'in' ? 1.2 : 0.8;
-			let original_size = Timeline.vue._data.size
-			let updated_size = limitNumber(Timeline.vue._data.size * zoom, 10, 1000)
-			Timeline.vue._data.size = updated_size;
+			let original_size = Timeline.vue.$data.size
+			let updated_size = limitNumber(Timeline.vue.$data.size * zoom, 10, 1000)
+			Timeline.vue.$data.size = updated_size;
 			
 			body.scrollLeft += (updated_size - original_size) * (offsetX / original_size)
 		}
 	} else {
 		switch (mode) {
-			case 'in':		Preview.selected.controls.dollyIn(1.16);  break;
-			case 'out':  	Preview.selected.controls.dollyOut(1.16);  break;
+			case 'in':	Preview.selected.controls.dollyIn(1.16);  break;
+			case 'out': Preview.selected.controls.dollyOut(1.16);  break;
 		}
 	}
 }
 
 //UI Edit
-export function setProgressBar(id, val, time) {
+export function setProgressBar(id: 'main' | string, val: number, time?: number) {
 	if (!id || id === 'main') {
-		Prop.progress = val
+		Prop.progress = val;
 	} else {
-		$('#'+id+' > .progress_bar_inner').animate({width: val*488}, time-1)
+		$('#'+id+' > .progress_bar_inner').animate({width: val*488}, (time??0)-1);
 	}
 	if (isApp) {
-		currentwindow.setProgressBar(val)
+		currentwindow.setProgressBar(val);
 	}
 }
 
 
-// Custom Elements
-Interface.CustomElements.ResizeLine = ResizeLine;
-Interface.CustomElements.SelectInput = function(id, data) {
-	function getNameFor(val) {
-		if (val) {
-			return tl(val.name || val);
-		} else {
-			return '';
-		}
-	}
-	let options = typeof data.options == 'function' ? data.options() : data.options;
-	let value = data.value || data.default || Object.keys(options).find(key => options[key]);
-	let select = Interface.createElement('div', {id, class: 'bb-select half', value: value}, getNameFor(options[value]));
-	if (data.display_icon && options[value]) {
-		let icon_string = options[value].icon ?? '';
-		select.prepend(Blockbench.getIconNode(icon_string, options[value]?.color));
-	}
-	function setKey(key, options, input_event) {
-		if (!options) {
-			options = typeof data.options == 'function' ? data.options() : data.options;
-		}
-		value = key;
-		select.setAttribute('value', key);
-		select.textContent = getNameFor(options[value]);
-		if (data.display_icon && options[value]) {
-			if (select.firstElementChild?.classList.contains('icon')) select.firstElementChild.remove();
-			let icon_string = options[value].icon ?? '';
-			select.prepend(Blockbench.getIconNode(icon_string, options[value]?.color));
-		}
-		if (typeof data.onChange == 'function') {
-			data.onChange(value);
-		}
-		if (input_event && typeof data.onInput == 'function') {
-			data.onInput(value, input_event);
-		}
-	}
-	select.addEventListener('click', function(event) {
-		if (Menu.closed_in_this_click == id) return this;
-		let items = [];
-		let options = typeof data.options == 'function' ? data.options() : data.options;
-		for (let key in options) {
-			let val = options[key];
-			if (!val) continue;
-			if (val instanceof MenuSeparator) {
-				items.push(val);
-				continue;
-			}
-			items.push({
-				name: getNameFor(options[key]),
-				icon: val.icon || ((value == key) ? 'far.fa-dot-circle' : 'far.fa-circle'),
-				color: val.color,
-				condition: val.condition,
-				click: (context, event) => {
-					setKey(key, options, event || 1);
-				}
-			})
-		}
-		let menu = new Menu(id, items, {searchable: items.length > 16});
-		menu.node.style['min-width'] = select.clientWidth+'px';
-		menu.open(select);
-	})
-	this.node = select;
-	this.set = setKey;
-}
-Interface.CustomElements.NumericInput = function(id, data) {
-	let input = Interface.createElement('input', {id, class: 'dark_bordered focusable_input', value: data.value || 0, inputmode: data.min >= 0 ? 'decimal' : ''});
-	let slider = Interface.createElement('div', {class: 'tool numeric_input_slider'}, Blockbench.getIconNode('code'));
-	this.node = Interface.createElement('div', {class: 'numeric_input'}, [
-		input, slider
-	])
-	if (data.readonly) {
-		input.readOnly = true;
-		slider.remove();
-	}
-
-	addEventListeners(slider, 'mousedown touchstart', e1 => {
-		if (data.readonly) return;
-		convertTouchEvent(e1);
-		let last_difference = 0;
-		let move = e2 => {
-			convertTouchEvent(e2);
-			let difference = Math.trunc((e2.clientX - e1.clientX) / 10) * (data.step || 1);
-			if (difference != last_difference) {
-				let value = Math.clamp((parseFloat(input.value) || 0) + (difference - last_difference), data.min, data.max);
-				input.value = trimFloatNumber(value, 8);
-				if (data.onChange) data.onChange(NumSlider.MolangParser.parse(input.value), e2);
-				last_difference = difference;
-			}
-		}
-		let stop = e2 => {
-			removeEventListeners(document, 'mousemove touchmove', move);
-			removeEventListeners(document, 'mouseup touchend', stop);
-		}
-		addEventListeners(document, 'mousemove touchmove', move);
-		addEventListeners(document, 'mouseup touchend', stop);
-	})
-	Object.defineProperty(this, 'value', {
-		get() {
-			return Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max)
-		},
-		set(value) {
-			input.value = trimFloatNumber(value, 8);
-		}
-	})
-
-	addEventListeners(input, 'focusout dblclick', () => {
-		if (data.readonly) return;
-		input.value = Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max);
-	})
-	input.addEventListener('input', (event) => {
-		if (data.onChange) data.onChange(Math.clamp(NumSlider.MolangParser.parse(input.value), data.min, data.max), event);
-	})
-}
 
 export function openTouchKeyboardModifierMenu(node) {
 	if (Menu.closed_in_this_click == 'mobile_keyboard') return;
 
 	let modifiers = ['ctrl', 'shift', 'alt'];
-	let menu = new Menu('mobile_keyboard', [
-		...modifiers.map(key => {
-			let name = tl(`keys.${key}`);
-			if (Interface.status_bar.vue.modifier_keys[key].length) {
-				name += ' (' + tl(Interface.status_bar.vue.modifier_keys[key].last()) + ')';
-			}
-			return {
-				name,
-				icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
-				click() {
-					Pressing.overrides[key] = !Pressing.overrides[key]
+	let menu = new Menu(
+		'mobile_keyboard',
+		[
+			...modifiers.map(key => {
+				let name = tl(`keys.${key}`);
+				if (Interface.status_bar.vue.$data.modifier_keys[key].length) {
+					name += ' (' + tl(Interface.status_bar.vue.$data.modifier_keys[key].last()) + ')';
 				}
-			}
-		}),
-		'_',
-		{icon: 'clear_all', name: 'menu.mobile_keyboard.disable_all', condition: () => {
-			let {length} = [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].filter(key => key);
-			return length;
-		}, click() {
-			Pressing.overrides.ctrl = false; Pressing.overrides.shift = false; Pressing.overrides.alt = false;
-		}},
-	])
+				return {
+					name,
+					icon: Pressing.overrides[key] ? 'check_box' : 'check_box_outline_blank',
+					click() {
+						Pressing.overrides[key] = !Pressing.overrides[key]
+					}
+				} as CustomMenuItem;
+			}),
+			'_',
+			{
+				name: 'menu.mobile_keyboard.disable_all',
+				icon: 'clear_all',
+				condition: () => {
+					return [Pressing.overrides.ctrl, Pressing.overrides.shift, Pressing.overrides.alt].some(key => key);
+				},
+				click() {
+					Pressing.overrides.ctrl = Pressing.overrides.shift = Pressing.overrides.alt = false;
+				}
+			},
+		]
+	);
 	menu.open(node);
 }
 
@@ -682,9 +640,9 @@ BARS.defineActions(function() {
 })
 
 
-Object.assign(window, {
-	ResizeLine,
+const global = {
 	Interface,
+	CustomElements,
 	unselectInterface,
 	setupInterface,
 	updateInterface,
@@ -693,4 +651,17 @@ Object.assign(window, {
 	setZoomLevel,
 	setProgressBar,
 	openTouchKeyboardModifierMenu,
-});
+};
+declare global {
+	const Interface: typeof global.Interface
+	const CustomElements: typeof global.CustomElements
+	const unselectInterface: typeof global.unselectInterface
+	const setupInterface: typeof global.setupInterface
+	const updateInterface: typeof global.updateInterface
+	const resizeWindow: typeof global.resizeWindow
+	const setProjectTitle: typeof global.setProjectTitle
+	const setZoomLevel: typeof global.setZoomLevel
+	const setProgressBar: typeof global.setProgressBar
+	const openTouchKeyboardModifierMenu: typeof global.openTouchKeyboardModifierMenu
+}
+Object.assign(window, global);
