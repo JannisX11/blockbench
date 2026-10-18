@@ -11,7 +11,7 @@
 	"homepage": "https://blockbench.net",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/JannisX11/blockbench"
+		"url": "git+https://github.com/JannisX11/blockbench.git"
 	},
 	"main": "electron/main.js",
 	"type": "module",
