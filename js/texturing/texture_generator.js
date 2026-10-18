@@ -21,8 +21,6 @@ export const TextureGenerator = {
 			}
 		}
 		type_options.blank = 'dialog.create_texture.type.blank';
-		let resolution = Texture.getDefault() ? (Texture.getDefault().width/Texture.getDefault().getUVWidth())*16 : 16;
-
 		let resolution_presets = {
 			16: null,
 			32: null,
@@ -34,6 +32,14 @@ export const TextureGenerator = {
 		for (let key in resolution_presets) {
 			resolution_presets[key] = (Format.block_size * (key / 16)) + 'x';
 		}
+		let resolution = 16;
+		if (Texture.getDefault()) {
+			resolution = (Texture.getDefault().width/Texture.getDefault().getUVWidth())*16;
+		} else if (settings.edit_size.value > 16 && resolution_presets[settings.edit_size.value] && !Project.box_uv && !Cube.all.some(cube => cube.box_uv)) {
+			resolution = settings.edit_size.value;
+		}
+		
+
 		var dialog = new Dialog({
 			id: 'add_bitmap',
 			title: tl('action.create_texture'),
