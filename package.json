@@ -57,7 +57,6 @@
 			"font/",
 			"dist/bundle.js",
 			"dist/bundle.js.map",
-			"lib/gif.worker.js",
 			"electron/",
 			"index.html",
 			"package.json",

@@ -9,7 +9,6 @@ workbox.generateSW({
 		'./icon_maskable.png',
 
 		'./dist/bundle.js',
-		'./lib/*',
 		'./css/**/*',
 		'./assets/**/*',
 		'./font/**/*',
