@@ -288,6 +288,7 @@ BARS.defineActions(function() {
 	})
 });
 
+
 const global = {
 	ModelScaler
 }

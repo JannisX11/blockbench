@@ -2,7 +2,7 @@
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
 	"desktopName": "net.blockbench.blockbench",
-	"version": "5.2.1",
+	"version": "5.2.2",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -11,7 +11,7 @@
 	"homepage": "https://blockbench.net",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/JannisX11/blockbench"
+		"url": "git+https://github.com/JannisX11/blockbench.git"
 	},
 	"main": "electron/main.js",
 	"type": "module",
