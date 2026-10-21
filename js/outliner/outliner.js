@@ -942,8 +942,12 @@ BARS.defineActions(function() {
 			'add_texture_mesh',
 		]),
 		click(event) {
-			let fallback = this.side_menu.structure.map(id => BarItems[id]).find(x => Condition(x.condition));
-			if (fallback) fallback.click();
+			// Use first valid option in list
+			for (let action of this.side_menu.structure) {
+				if (typeof action == 'string') action = BarItems[action];
+				if (action instanceof Action == false || !Condition(action.condition)) continue;
+				return action.click();
+			}
 		}
 	});
 	new Toggle('outliner_toggle', {
