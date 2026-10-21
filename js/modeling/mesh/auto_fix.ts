@@ -153,49 +153,9 @@ export async function autoFixMeshEdit(affected_vertices?: string[]) {
 				for (let mesh of meshes) {
 					let selected_faces = mesh.getSelectedFaces(true);
 					for (let [fkey, concave_vkey] of concave_faces[mesh.uuid]) {
-						let face = mesh.faces[fkey];
-
-						// Find the edge that needs to be connected
-						let sorted_vertices = face.getSortedVertices();
-						let edges = [
-							[sorted_vertices[0], sorted_vertices[1]],
-							[sorted_vertices[0], sorted_vertices[2]],
-							[sorted_vertices[0], sorted_vertices[3]],
-							[sorted_vertices[1], sorted_vertices[2]],
-							[sorted_vertices[1], sorted_vertices[3]],
-							[sorted_vertices[2], sorted_vertices[3]],
-						]
-						edges = edges.filter(edge => {
-							for (let fkey2 in mesh.faces) {
-								if (fkey2 == fkey) continue;
-								let face2 = mesh.faces[fkey2];
-								if (face2.vertices.includes(edge[0]) && face2.vertices.includes(edge[1])) {
-									return false;
-								}
-							}
-							return true;
-						})
-						let off_corners = edges.find(edge => !edge.includes(concave_vkey))
-						if (!off_corners) {
-							// not sure if this always works, but its only required in special cases (if the quad edge that should be split is already connected to another face).
-							let concave_index = sorted_vertices.indexOf(concave_vkey);
-							off_corners = (concave_index%2) ? [sorted_vertices[1], sorted_vertices[3]] : [sorted_vertices[0], sorted_vertices[2]];
-						}
-
-						let new_face = new MeshFace(mesh, face);
-						new_face.vertices.remove(off_corners[0]);
-						delete new_face.uv[off_corners[0]];
-
-						face.vertices.remove(off_corners[1]);
-						delete face.uv[off_corners[1]];
-
-						let [face_key] = mesh.addFaces(new_face);
+						let face_key = fixConcaveFace(mesh, fkey, concave_vkey);
 						selected_faces.safePush(face_key);
-						if (face.getAngleTo(new_face) > 90) {
-							new_face.invert();
-						}
 					}
-
 				}
 				Undo.finishEdit('Auto-fix concave quads');
 				Canvas.updateView({elements: meshes, element_aspects: {geometry: true, uv: true, faces: true}, selection: true});
@@ -203,4 +163,55 @@ export async function autoFixMeshEdit(affected_vertices?: string[]) {
 			resolve();
 		})})
 	}
+}
+
+/**
+ * Fixes a concave mesh quad by splitting it into two tris
+ * @param mesh Mesh
+ * @param fkey Key of the face to fix
+ * @param concave_vkey Key of the vertex that's making the face concave
+ * @returns Returns the face key of the newly created face
+ */
+export function fixConcaveFace(mesh: Mesh, fkey: string, concave_vkey: string): string {
+	let face = mesh.faces[fkey];
+
+	// Find the edge that needs to be connected
+	let sorted_vertices = face.getSortedVertices();
+	let edges = [
+		[sorted_vertices[0], sorted_vertices[1]],
+		[sorted_vertices[0], sorted_vertices[2]],
+		[sorted_vertices[0], sorted_vertices[3]],
+		[sorted_vertices[1], sorted_vertices[2]],
+		[sorted_vertices[1], sorted_vertices[3]],
+		[sorted_vertices[2], sorted_vertices[3]],
+	]
+	edges = edges.filter(edge => {
+		for (let fkey2 in mesh.faces) {
+			if (fkey2 == fkey) continue;
+			let face2 = mesh.faces[fkey2];
+			if (face2.vertices.includes(edge[0]) && face2.vertices.includes(edge[1])) {
+				return false;
+			}
+		}
+		return true;
+	})
+	let off_corners = edges.find(edge => !edge.includes(concave_vkey))
+	if (!off_corners) {
+		// not sure if this always works, but its only required in special cases (if the quad edge that should be split is already connected to another face).
+		let concave_index = sorted_vertices.indexOf(concave_vkey);
+		off_corners = (concave_index%2) ? [sorted_vertices[1], sorted_vertices[3]] : [sorted_vertices[0], sorted_vertices[2]];
+	}
+
+	let new_face = new MeshFace(mesh, face);
+	new_face.vertices.remove(off_corners[0]);
+	delete new_face.uv[off_corners[0]];
+
+	face.vertices.remove(off_corners[1]);
+	delete face.uv[off_corners[1]];
+
+	let [face_key] = mesh.addFaces(new_face);
+	if (face.getAngleTo(new_face) > 90) {
+		new_face.invert();
+	}
+	return face_key;
 }

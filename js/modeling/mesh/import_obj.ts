@@ -1,5 +1,6 @@
 import { Dialog } from "../../interface/dialog";
 import { THREE } from "../../lib/libs";
+import { fixConcaveFace } from "./auto_fix";
 
 BARS.defineActions(() => {
 
@@ -77,48 +78,70 @@ BARS.defineActions(() => {
 						vertex_normals.push(toVector(args, 3))
 					}
 					if (cmd == 'f') {
-						let f = {
-							vertices: [],
-							vertex_textures: [],
-							vertex_normals: [],
-						}
-						args.forEach((triplet, i) => {
-							if (i >= 4) return;
+						let all_vertices = [];
+						let all_vertex_textures = [];
+						let all_vertex_normals = [];
+
+						args.forEach((triplet: string) => {
 							let [v, vt, vn] = triplet.split('/').map(v => parseInt(v));
 							if (!vertex_keys[ v-1 ]) {
 								vertex_keys[ v-1 ] = mesh.addVertices(vertices[v-1])[0];
 							}
-							f.vertices.push(vertex_keys[ v-1 ]);
-							f.vertex_textures.push(vertex_textures[ vt-1 ]);
-							f.vertex_normals.push(vertex_normals[ vn-1 ]);
-						})
-						
-						let uv = {};
-						f.vertex_textures.forEach((vt, i) => {
-							let key = f.vertices[i];
-							if (vt instanceof Array) {
-								uv[key] = [
-									vt[0] * Project.texture_width,
-									(1-vt[1]) * Project.texture_width
-								];
-							} else {
-								uv[key] = [0, 0];
-							}
-						})
-						let face = new MeshFace(mesh, {
-							vertices: f.vertices,
-							uv,
-							texture: current_texture
-						})
-						mesh.addFaces(face);
+							all_vertices.push(vertex_keys[ v-1 ]);
+							all_vertex_textures.push(vertex_textures[ vt-1 ]);
+							all_vertex_normals.push(vertex_normals[ vn-1 ]);
+						});
 
-						if (f.vertex_normals.find(v => v)) {
-	
-							vector1.fromArray(face.getNormal());
-							vector2.fromArray(f.vertex_normals[0]);
-							let angle = vector1.angleTo(vector2);
-							if (angle > Math.PI/2) {
-								face.invert();
+						// Helper function to create, configure, and add a single MeshFace (supports 3 or 4 vertices)
+						const addMeshFace = (face_vertices, face_uvs, face_normals) => {
+							let uv = {};
+							face_uvs.forEach((vt, i) => {
+								let key = face_vertices[i];
+								if (vt instanceof Array) {
+									uv[key] = [
+										vt[0] * Project.texture_width,
+										(1 - vt[1]) * Project.texture_width
+									];
+								} else {
+									uv[key] = [0, 0];
+								}
+							});
+							let face = new MeshFace(mesh, {
+								vertices: face_vertices,
+								uv,
+								texture: current_texture
+							});
+							let [fkey] = mesh.addFaces(face);
+
+							// Ensure face direction matches the normal
+							if (face_normals.some(v => v)) {
+								vector1.fromArray(face.getNormal());
+								vector2.fromArray(face_normals[0]);
+								let angle = vector1.angleTo(vector2);
+								if (angle > Math.PI/2) {
+									face.invert();
+								}
+							}
+
+							// Fix concave face (quad-only)
+							let concave = face.isConcave();
+							if (concave) {
+								fixConcaveFace(mesh, fkey, concave);
+							}
+						};
+
+						// If the face has 3 or 4 vertices, add it directly as a single face
+						// If it's an n-gon, split it into tris using a triangle fan from the first vertex
+						// Could switch to "earcut" library in the future for more advanced triangulation
+						if (all_vertices.length <= 4) {
+							addMeshFace(all_vertices, all_vertex_textures, all_vertex_normals);
+						} else {
+							for (let i = 1; i < all_vertices.length - 1; i++) {
+								let subVertices = [all_vertices[0], all_vertices[i], all_vertices[i + 1]];
+								let subUVs = [all_vertex_textures[0], all_vertex_textures[i], all_vertex_textures[i + 1]];
+								let subNormals = [all_vertex_normals[0], all_vertex_normals[i], all_vertex_normals[i + 1]];
+
+								addMeshFace(subVertices, subUVs, subNormals);
 							}
 						}
 					}

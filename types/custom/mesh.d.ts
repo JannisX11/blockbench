@@ -66,9 +66,9 @@ declare class MeshFace extends Face {
 	 */
 	isSelected(face_key?: string): boolean
 	/**
-	 * Returns true if the face is concave
+	 * Returns the relevant vertex key if the face is concave, otherwise returns false
 	 */
-	isConcave(): boolean
+	isConcave(): false | string
 	/**
 	 * Returns the vertices of a quad in an order that creates a convex quad shape if possible. If the face has less than 4 vertices, it just returns the vertices in original order.
 	 */
