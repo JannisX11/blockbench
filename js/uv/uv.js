@@ -4212,8 +4212,8 @@ Interface.definePanels(function() {
 					return (uv_coord / this.uv_resolution[0] * this.inner_width + offset) + 'px';
 				},
 				toTexturePixels(tex_coord, axis, offset = 0) {
-					if (axis == 1 && this.texture.currentFrame > 0) {
-						return ((tex_coord / this.texture.width - this.texture.currentFrame) * this.inner_width + offset) + 'px';
+					if (axis == 1 && this.texture.frameCount && this.texture.currentFrame > 0) {
+						return ((tex_coord - this.texture.currentFrame * this.texture.display_height) / this.texture.width * this.inner_width + offset) + 'px';
 					} else {
 						return (tex_coord / this.texture.width * this.inner_width + offset) + 'px';
 					}
@@ -4377,7 +4377,7 @@ Interface.definePanels(function() {
 				getTextureSelectionPolygon() {
 					return this.texture_selection_polygon.map((point, i) => {
 						let x = point[0] / this.texture.width * this.inner_width;
-						let y = point[1] / this.texture.width * this.inner_width;
+						let y = (point[1] - (this.texture.frameCount ? this.texture.currentFrame * this.texture.display_height : 0)) / this.texture.width * this.inner_width;
 						return `${i?'L':'M'}${x+1} ${y+1}`;
 					}).join(' ');
 				},
@@ -5224,7 +5224,7 @@ Interface.definePanels(function() {
 
 							<svg id="texture_selection_polygon" v-if="texture_selection_polygon.length">
 								<path :d="getTextureSelectionPolygon()" />
-								<circle :cx="texture_selection_polygon[0][0] / texture.width * inner_width + 1" :cy="texture_selection_polygon[0][1] / texture.width * inner_width + 1" r="7" :class="{closed: isSelectionPolygonClosed()}" />
+								<circle :cx="texture_selection_polygon[0][0] / texture.width * inner_width + 1" :cy="(texture_selection_polygon[0][1] - (texture.frameCount ? texture.currentFrame * texture.display_height : 0)) / texture.width * inner_width + 1" r="7" :class="{closed: isSelectionPolygonClosed()}" />
 							</svg>
 
 							<svg id="uv_selection_outline" v-if="mode == 'paint'">
