@@ -198,19 +198,17 @@ export class Property<T extends keyof IPropertyType> implements Deletable {
 	copy(instance: IPropertyType[T], target: IPropertyType[T]): void {
 		if (!Condition(this.condition, instance)) return;
 
-		if (this.isArray || this.isVector) {
+		if (this.isVector) {
 			if (instance[this.name] instanceof Array) {
 				target[this.name] = instance[this.name].slice();
-				if (this.isArray) {
-					try {
-						instance[this.name].forEach((item, i) => {
-							if (typeof item == 'object') {
-								instance[this.name][i] = JSON.parse(JSON.stringify(item));
-							}
-						})
-					} catch (err) {
-						console.error(err);
-					}
+			}
+		} else if (this.isArray) {
+			if (instance[this.name] instanceof Array) {
+				try {
+					target[this.name] = structuredClone(instance[this.name]);
+				} catch(err) {
+					target[this.name] = instance[this.name].slice();
+					console.error(err);
 				}
 			}
 		} else if (this.isObject) {

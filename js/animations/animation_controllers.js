@@ -162,10 +162,10 @@ export class AnimationControllerState {
 		for (let key in AnimationControllerState.properties) {
 			AnimationControllerState.properties[key].copy(this, copy)
 		}
-		copy.animations = JSON.parse(JSON.stringify(copy.animations));
-		copy.transitions = JSON.parse(JSON.stringify(copy.transitions));
-		copy.particles = JSON.parse(JSON.stringify(copy.particles));
-		copy.sounds = JSON.parse(JSON.stringify(copy.sounds));
+		copy.animations = structuredClone(copy.animations);
+		copy.transitions = structuredClone(copy.transitions);
+		copy.particles = structuredClone(copy.particles);
+		copy.sounds = structuredClone(copy.sounds);
 		return copy;
 	}
 	compileForBedrock() {
