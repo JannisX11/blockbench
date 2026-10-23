@@ -425,8 +425,23 @@ BARS.defineActions(function() {
 
 					} else {
 						
+						let vertex_uvs = {};
+						for (let key in mesh.faces) {
+							let face = mesh.faces[key];
+							let common = face.vertices.filter(vertex_key => selected_vertices.includes(vertex_key));
+							if (common.length >= 2) {
+								// Two selected vertices means greater certainty, set UV
+								common.forEach((vkey) => {
+									vertex_uvs[vkey] = face.uv[vkey];
+								});
+							} else if (common.length == 1) {
+								// With only one match, only set UV if it doesn't exist otherwise
+								vertex_uvs[common[0]] ??= face.uv[common[0]];
+							}
+						}
 						let new_face = new MeshFace(mesh, {
 							vertices: selected_vertices,
+							uv: vertex_uvs,
 							texture: reference_face?.texture,
 						} );
 						let [face_key] = mesh.addFaces(new_face);
@@ -512,7 +527,7 @@ BARS.defineActions(function() {
 					while (start_index < vertices.length) {
 						let face_vertices = vertices.slice(start_index, start_index+4);
 						vertices.push(face_vertices[0]);
-						let new_face = new MeshFace(mesh, {vertices: face_vertices, texture: reference_face.texture});
+						let new_face = new MeshFace(mesh, {vertices: face_vertices, uv: vertex_uvs, texture: reference_face.texture});
 						let [face_key] = mesh.addFaces(new_face);
 						selected_faces.push(face_key);
 
@@ -521,6 +536,7 @@ BARS.defineActions(function() {
 					}
 				}
 			})
+			UVEditor.setAutoSize(null, true, faces_to_autouv);
 			Undo.finishEdit('Create mesh face')
 			Canvas.updateView({elements: Mesh.selected, element_aspects: {geometry: true, uv: true, faces: true}, selection: true})
 		}
