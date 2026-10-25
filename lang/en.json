@@ -2502,6 +2502,8 @@
 	"menu.brush_presets.smooth_brush": "Smooth Brush",
 	"menu.brush_presets.screen_space": "Screen Space Brush",
 
+	"menu.palette.select_color": "Select",
+	"menu.palette.select_color_secondary": "Select as Secondary",
 	"menu.palette.load.default": "Default",
 	"menu.palette.load.empty": "Blank",
 	"menu.palette.load.update": "Update Palette",

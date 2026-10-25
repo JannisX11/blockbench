@@ -873,6 +873,9 @@ definePanels(() => {
 				openContextMenu(event) {
 					Panels.palette.menu.open(event);
 				},
+				openColorContextMenu(event, color) {
+					color_menu.open(event, color);
+				},
 				tl
 			},
 			computed: {
@@ -887,7 +890,7 @@ definePanels(() => {
 						:title="color" :key="color"
 						:class="{selected: color == main_color, secondary: color == second_color, contrast: isDarkColor(color)}"
 						@click="setColor(color)"
-						@contextmenu.stop="setColor(color, true)"
+						@contextmenu.stop="openColorContextMenu($event, color)"
 					>
 						<div class="color_inner" :style="{'background-color': color}"></div>
 					</li>
@@ -909,8 +912,32 @@ definePanels(() => {
 			'sort_palette',
 			'save_palette',
 			'load_palette',
-		])
-	})
+		]),
+	});
+	
+	const color_menu = new Menu([
+		new MenuSeparator('use'),
+		{
+			id: 'select',
+			name: 'menu.palette.select_color',
+			icon: 'filter_1',
+			click(color, event) {
+				console.log({event, color});
+				ColorPanel.set(color);
+			}
+		},
+		{
+			id: 'select',
+			name: 'menu.palette.select_color_secondary',
+			icon: 'filter_2',
+			click(color, event) {
+				ColorPanel.set(color, true);
+			}
+		},
+		// TODO: Copy
+		new MenuSeparator('manage'),
+		'delete',
+	])
 
 	if (isApp) {
 		ipcRenderer.on('set-main-color', (event, arg) => {

@@ -3214,21 +3214,32 @@ span.controller_state_section_info {
 		padding: 2px;
 		min-height: 160px;
 		line-height: 0;
+		display: flex;
+		flex-wrap: wrap;
+		align-content: flex-start;
 	}
 	#palette_list .color {
 		display: inline-block;
 		width: 25px;
 		height: 25px;
+		flex-grow: 0;
+		flex-shrink: 0;
 		vertical-align: top;
 	}
 	#palette_list .color:hover {
 		padding: 1px;
 	}
-	#palette_list .color.selected {
-		padding: 3px;
-	}
 	#palette_list .color.secondary {
-		padding: 1.25px;
+		outline: 1px solid var(--color-grid);
+		box-shadow: 0 0 0 2px black;
+		z-index: 1;
+		border-radius: 2px;
+	}
+	#palette_list .color.selected {
+		outline: 2px solid var(--color-accent);
+		box-shadow: 0 0 0 3px black;
+		z-index: 2;
+		border-radius: 2px;
 	}
 	#palette_list .color.contrast {
 		background-color: var(--color-text);
