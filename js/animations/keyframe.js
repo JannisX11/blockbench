@@ -1470,7 +1470,7 @@ Interface.definePanels(function() {
 										extensions: ['png'],
 										type: 'Particle Texture',
 										readtype: 'image',
-										startpath: effect.config.preview_texture || path
+										startpath: effect.config.preview_texture || path.replace(/\.json$/i, '')
 									}, function(files) {
 										effect.config.preview_texture = isApp ? files[0].path : files[0].content;
 										effect.config.updateTexture();
@@ -1482,7 +1482,7 @@ Interface.definePanels(function() {
 									extensions: ['png'],
 									type: 'Particle Texture',
 									readtype: 'image',
-									startpath: effect.config.preview_texture || path
+									startpath: effect.config.preview_texture || path.replace(/\.json$/i, '')
 								}, function(files) {
 									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
 									effect.config.updateTexture();

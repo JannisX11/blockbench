@@ -110,7 +110,16 @@ export class AnimationControllerState {
 		if (data.particles instanceof Array) {
 			this.particles.empty();
 			data.particles.forEach(particle => {
-				this.particles.push(JSON.parse(JSON.stringify(particle)));
+				this.particles.push(structuredClone(particle));
+				if (isApp && particle.file && fs.existsSync(particle.file)) {
+					try {
+						Blockbench.read([particle.file], {}, (files) => {
+							Animator.loadParticleEmitter(particle.file, files[0].content);
+						})
+					} catch (err) {
+						console.log('Could not load particle effect for', particle.file)
+					}
+				}
 			})
 		}
 		if (data.sounds instanceof Array) {
@@ -1812,7 +1821,7 @@ Interface.definePanels(() => {
 									extensions: ['png'],
 									type: 'Particle Texture',
 									readtype: 'image',
-									startpath: effect.config.preview_texture || path
+									startpath: effect.config.preview_texture || path.replace(/\.json$/i, '')
 								}, function(files) {
 									effect.config.preview_texture = isApp ? files[0].path : files[0].content;
 									effect.config.updateTexture();
@@ -1824,7 +1833,7 @@ Interface.definePanels(() => {
 								extensions: ['png'],
 								type: 'Particle Texture',
 								readtype: 'image',
-								startpath: effect.config.preview_texture || path
+								startpath: effect.config.preview_texture || path.replace(/\.json$/i, '')
 							}, (files) => {
 								effect.config.preview_texture = isApp ? files[0].path : files[0].content;
 								effect.config.updateTexture();
