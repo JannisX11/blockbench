@@ -139,7 +139,11 @@ export class Keyframe {
 	}
 	offset(axis, amount, data_point = 0) {
 		if (data_point) data_point = Math.clamp(data_point, 0, this.data_points.length-1);
-		var value = this.get(axis, data_point);
+		if (amount === 0) return this.get(axis, data_point);
+		// Edit the stored expression; get() removes line breaks for export.
+		var value = this.data_points[data_point]?.[axis];
+		var is_number = !isNaN(value);
+		if (typeof value !== 'string' || (is_number && !/[\r\n]/.test(value))) value = exportMolang(value);
 		if (!value || value === '0') {
 			this.set(axis, amount, data_point);
 			return amount;
@@ -150,33 +154,32 @@ export class Keyframe {
 		}
 
 		value = processMolangReturn(value, (expression) => {
-			let value = exportMolang(expression);
-			if (!value || value === '0') {
-				return amount;
+			let value = isNaN(expression) ? expression : exportMolang(expression);
+			if (!value || value === '0' || typeof value === 'number') {
+				let whitespace = expression.match(/^(\s*).*?(\s*)$/s);
+				let number = Number(value) + amount;
+				return whitespace[1] + (is_number ? Math.roundTo(number, 10) : number) + whitespace[2];
 			}
-			if (typeof value === 'number') {
-				return value+amount
-			}
-			var start = value.match(/^-?\s*\d+(\.\d+)?\s*(\+|-)/)
+			var start = value.match(/^(-?)(\s*)(\d+(?:\.\d+)?)(\s*)(\+|-)/)
 			if (start) {
-				var number = parseFloat( start[0].substr(0, start[0].length-1) ) + amount;
+				var number = parseFloat(start[1] + start[3]) + amount;
 				if (number == 0) {
-					value = value.substr(start[0].length + (value[start[0].length-1] == '+' ? 0 : -1));
-					value = value.trim();
+					value = start[2] + start[4] + (start[5] == '-' ? '-' : '') + value.substr(start[0].length);
 				} else {
-					value = trimFloatNumber(number) + (start[0].substr(-2, 1) == ' ' ? ' ' : '') + value.substr(start[0].length-1);
+					var number = trimFloatNumber(number).toString();
+					value = (number[0] == '-' ? '-' : '') + start[2] + number.replace(/^-/, '') + start[4] + value.substr(start[0].length-1);
 				}
 			} else {
 
-				var end = value.match(/(\+|-)\s*\d*(\.\d+)?\s*$/)
+				var end = value.match(/(\+|-)(\s*)(\d*(?:\.\d+)?)(\s*)$/)
 				if (end) {
-					var number = (parseFloat( end[0] ) + amount)
-					value = value.substr(0, end.index) + ((number.toString()).substr(0,1)=='-'?'':'+') + trimFloatNumber(number)
+					var number = trimFloatNumber(parseFloat(end[1] + end[3]) + amount).toString();
+					value = value.substr(0, end.index) + (number[0] == '-' ? '-' : '+') + end[2] + number.replace(/^-/, '') + end[4];
 				} else {
-					value = trimFloatNumber(amount) +(value.substr(0,1)=='-'?'':'+')+ value
+					value = trimFloatNumber(amount) + (/^\s*-/.test(value) ? '' : '+') + value
 				}
 			}
-			value = value.replace(/^(0\s*\+)/, '').replace(/^0\s*-/, '-');
+			value = value.replace(/^0(\s*)\+/, '$1').replace(/^0(\s*)-/, '$1-');
 			return value;
 		});
 
