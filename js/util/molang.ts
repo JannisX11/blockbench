@@ -4,26 +4,29 @@ function isStringNumber(string: string) {
 }
 
 export function processMolangReturn(molang: string, callback: Function): string {
-	if (molang.includes('return ')) {
-		return molang.replace(/return (.+?)(;|$)/g, (match: string, expression: string, end: string) => {
-			return `return ${callback(expression)}${end}`;
+	if (/\breturn\s/.test(molang)) {
+		return molang.replace(/\breturn(\s+)(.+?)(;|$)/gs, (match: string, whitespace: string, expression: string, end: string) => {
+			return `return${whitespace}${callback(expression)}${end}`;
 		})
 	} else {
-		molang = molang.replace(/;+$/, '')
+		// Ignore empty trailing statements without discarding their whitespace.
+		const trailing = molang.match(/[;\s]*$/)[0];
+		const trailingWhitespace = trailing.replace(/;/g, '');
+		molang = molang.substring(0, molang.length - trailing.length);
 		const lastSemicolonIndex = molang.lastIndexOf(';');
 		if (lastSemicolonIndex === -1) {
 			if (molang.includes('=')) {
-				return molang + ';' + callback('');
+				return molang + ';' + callback('') + trailingWhitespace;
 			} else {
-				return callback(molang);
+				return callback(molang) + trailingWhitespace;
 			}
 		}
 		const before = molang.substring(0, lastSemicolonIndex);
 		const after = molang.substring(lastSemicolonIndex + 1);
 		if (after.includes('=')) {
-			return molang + ';' + callback('');
+			return molang + ';' + callback('') + trailingWhitespace;
 		} else {
-			return before + ';' + callback(after);
+			return before + ';' + callback(after) + trailingWhitespace;
 		}
 	}
 }
@@ -55,7 +58,7 @@ export function invertMolang(molang: number|string): number|string {
 					if (!invert && !last_operator) result += '+';
 					invert = false;
 					continue;
-				} else if (char == ' ' || char == '\n') {
+				} else if (/\s/.test(char)) {
 					had_input = false;
 				} else if (char == '+' && last_operator != '*' && last_operator != '/') {
 					result += '-';
