@@ -32,7 +32,7 @@ export function setupDragHandlers() {
 	)
 	Blockbench.addDragHandler(
 		'model',
-		{extensions: Codec.getAllExtensions},
+		{extensions: Codec.getAllExtensions, readtype: file => Codec.getReadType(file)},
 		function(files) {
 			files.forEach(file => {
 				loadModelFile(file);
@@ -93,16 +93,23 @@ export function loadModelFile(file, args) {
 		let success = loadIfCompatible(Codecs[id], 'image', file.content);
 		if (success) return;
 	}
+	// Binary
+	for (let id in Codecs) {
+		let success = loadIfCompatible(Codecs[id], 'binary', file.content);
+		if (success) return;
+	}
 	// Text
 	for (let id in Codecs) {
 		let success = loadIfCompatible(Codecs[id], 'text', file.content);
 		if (success) return;
 	}
 	// JSON
-	let model = autoParseJSON(file.content, {file_path: file.path});
-	for (let id in Codecs) {
-		let success = loadIfCompatible(Codecs[id], 'json', model);
-		if (success) return;
+	if (typeof file.content == 'string') {
+		let model = autoParseJSON(file.content, {file_path: file.path});
+		for (let id in Codecs) {
+			let success = loadIfCompatible(Codecs[id], 'json', model);
+			if (success) return;
+		}
 	}
 	unsupportedFileFormatMessage(file.path);
 }
@@ -327,7 +334,9 @@ BARS.defineActions(function() {
 				readtype: file => {
 					if (typeof file == 'string' && file.search(/\.png$/i) > 0) {
 						return 'image'
-					}},
+					}
+					return Codec.getReadType(file);
+				},
 				startpath,
 				multiple: true
 			}, function(files) {
