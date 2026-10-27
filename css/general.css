@@ -539,6 +539,9 @@
 		height: 26px;
 		image-rendering: pixelated;
 	}
+	.icon.flipped {
+		transform: scaleX(-1);
+	}
 
 	.tool.widget {
 		width: auto;
