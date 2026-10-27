@@ -1619,56 +1619,75 @@ BARS.defineActions(function() {
 		icon: 'add_box',
 		category: 'edit',
 		condition: () => Modes.edit,
-		click: function () {
-			
-			Undo.initEdit({outliner: true, elements: [], selection: true});
-			var base_cube = new Cube({
-				autouv: (settings.autouv.value ? 1 : 0)
-			}).init()
-			if (!base_cube.box_uv) base_cube.mapAutoUV()
-			let group = getCurrentGroup();
-			if (group) {
-				base_cube.addTo(group)
-				base_cube.scope = group.scope;
-				if (settings.inherit_parent_color.value) base_cube.color = group.color;
-			}
-
-			if (Texture.all.length && Format.single_texture) {
-				for (var face in base_cube.faces) {
-					base_cube.faces[face].texture = Texture.getDefault().uuid
+		click() {
+			let color = Math.floor(Math.random() * markerColors.length);
+			function add(amended, options) {
+				Undo.initEdit({outliner: true, elements: [], selection: true}, amended);
+				var base_cube = new Cube({
+					autouv: (settings.autouv.value ? 1 : 0),
+					color
+				}).init()
+				if (!base_cube.box_uv) base_cube.mapAutoUV()
+				let group = getCurrentGroup();
+				if (group) {
+					base_cube.addTo(group)
+					base_cube.scope = group.scope;
+					if (settings.inherit_parent_color.value) base_cube.color = group.color;
 				}
-				UVEditor.loadData()
-			}
-			if (Format.bone_rig) {
-				var pos1 = group ? group.origin.slice() : [0, 0, 0];
-				let size = Settings.get('default_cube_size');
-				if (size % 2 == 0) {
-					base_cube.extend({
-						from:[ pos1[0] - size/2, pos1[1] - 0,    pos1[2] - size/2 ],
-						to:[   pos1[0] + size/2, pos1[1] + size, pos1[2] + size/2 ],
-						origin: pos1.slice()
-					})
+
+				if (Texture.all.length && Format.single_texture) {
+					for (let face in base_cube.faces) {
+						base_cube.faces[face].texture = Texture.getDefault().uuid
+					}
+					UVEditor.loadData()
+				}
+				let size = options.width;
+				if (Format.bone_rig) {
+					let pos1 = group ? group.origin.slice() : [0, 0, 0];
+					if (size <= 1) {
+						base_cube.extend({
+							from:[ pos1[0], pos1[1], pos1[2] ],
+							to:[   pos1[0]+size, pos1[1]+size, pos1[2]+size ],
+							origin: pos1.slice()
+						})
+					} else {
+						base_cube.extend({
+							from:[ pos1[0] - size/2, pos1[1] - 0,    pos1[2] - size/2 ],
+							to:[   pos1[0] + size/2, pos1[1] + size, pos1[2] + size/2 ],
+							origin: pos1.slice()
+						})
+					}
 				} else {
 					base_cube.extend({
-						from:[ pos1[0], pos1[1], pos1[2] ],
-						to:[   pos1[0]+size, pos1[1]+size, pos1[2]+size ],
-						origin: pos1.slice()
+						to: [ size, size, size ],
 					})
 				}
+
+				unselectAllElements()
+				base_cube.select()
+				Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
+				Undo.finishEdit('Add cube', {outliner: true, elements: Outliner.selected, selection: true});
+				Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
+
+				Vue.nextTick(function() {
+					if (settings.create_rename.value) {
+						base_cube.rename()
+					}
+				})
+				return base_cube
 			}
+			add(false, {width: Settings.get('default_cube_size')});
 
-			unselectAllElements()
-			base_cube.select()
-			Canvas.updateView({elements: [base_cube], element_aspects: {transform: true, geometry: true, faces: true}})
-			Undo.finishEdit('Add cube', {outliner: true, elements: Outliner.selected, selection: true});
-			Blockbench.dispatchEvent( 'add_cube', {object: base_cube} )
-
-			Vue.nextTick(function() {
-				if (settings.create_rename.value) {
-					base_cube.rename()
-				}
+			Undo.amendEdit({
+				width: {
+					label: 'panel.element.size',
+					type: 'num_slider',
+					value: Settings.get('default_cube_size'),
+					min: 1, max: 64, interval_type: 'position'
+				},
+			}, result => {
+				add(true, result);
 			})
-			return base_cube
 		}
 	})
 
