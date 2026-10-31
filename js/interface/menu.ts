@@ -172,6 +172,14 @@ export class Menu implements Deletable {
 		}
 	}
 	hover(node: HTMLElement, event?: Event, expand?: boolean): void {
+		if (event instanceof MouseEvent && event.type == "mouseenter") {
+			let delta = [event.clientX-mouse_pos.x, event.clientY-mouse_pos.y];
+			// Aiming towards submenu
+			// TODO: Respect which side the submenu is on
+			if (delta[0] > 3 && node.parentNode.querySelector('.parent.focused')) {
+				return;
+			}
+		}
 		if (node.classList.contains('focused') && !expand) {
 			if (node.classList.contains('hybrid_parent')) {
 				node.classList.remove('opened');
