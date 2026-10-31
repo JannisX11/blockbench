@@ -107,19 +107,27 @@ var codec = new Codec('bedrock_voxel_shape', {
 	},
 })
 
-export function loadBedrockCollisionFromJSON(json: any, name: string, undo: boolean = false): BoundingBox[] {
+export function loadBedrockCollisionFromJSON(json: any, name: 'collision' | 'selection' | string, undo: boolean = false): BoundingBox[] {
 	if (json instanceof Array == false) json = [json];
 	let bounding_boxes: BoundingBox[] = [];
 	Outliner.selected.empty();
 	for (let box of json) {
-		if (typeof box != 'object' || box.origin instanceof Array == false || box.size instanceof Array == false) return;
+		if (typeof box != 'object') continue;
+		let from: ArrayVector3 = [0, 0, 0], to: ArrayVector3 = [1, 1, 1];
+		if (box.origin instanceof Array || box.size instanceof Array) {
+			from = [-(box.origin[0]+box.size[0]), box.origin[1], box.origin[2]];
+			to = [-box.origin[0], box.origin[1] + box.size[1], box.origin[2] + box.size[2]];
+		} else if (box.min instanceof Array || box.max instanceof Array) {
+			// New experimental format
+			const offset: ArrayVector3 = [-8, 0, -8];
+			from = box.min.slice().V3_add(offset);
+			to = box.max.slice().V3_add(offset);
+		}
 		if (bounding_boxes.length == 0 && undo) {
 			Undo.initEdit({elements: bounding_boxes, outliner: true});
 		}
 		let bb = new BoundingBox({
-			name,
-			from: [-(box.origin[0]+box.size[0]), box.origin[1], box.origin[2]],
-			to: [-box.origin[0], box.origin[1] + box.size[1], box.origin[2] + box.size[2]],
+			name, from, to,
 			function: [name == 'selection' ? 'hitbox' : 'collision'],
 			color: name == 'selection' ? 0 : 2
 		});
