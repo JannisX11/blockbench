@@ -655,6 +655,7 @@ export const MenuBar = {
 				}), click: () => {
 					exposeNativeApisInDevTools();
 				}},
+				'open_isolated_window',
 				{name: 'menu.help.developer.reset_storage', icon: 'fas.fa-hdd', click: () => {
 					factoryResetAndReload();
 				}},

@@ -1665,6 +1665,8 @@
 	"action.upload_sketchfab.desc": "Upload your model to Sketchfab",
 	"action.share_model": "Share...",
 	"action.share_model.desc": "Generate a short link to share your model",
+	"action.open_isolated_window": "New Isolated Window",
+	"action.open_isolated_window.desc": "Opens a new isolated Blockbench window with no plugins and user preferences enabled, useful for debugging",
 
 	"action.save_project": "Save Project",
 	"action.save_project.desc": "Saves the current model as a project file",

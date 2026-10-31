@@ -14,7 +14,7 @@ remote.initialize();
 
 let all_wins = [];
 let orig_win;
-let load_project_data;
+let open_window_options;
 
 (() => {
 	// Allow advanced users to specify a custom userData directory.
@@ -79,7 +79,8 @@ function createWindow(second_instance, options = {}) {
 			webSecurity: true,
 			nodeIntegration: true,
 			contextIsolation: false,
-			enableRemoteModule: true
+			enableRemoteModule: true,
+			additionalArguments: options.isolated ? ['--isolated'] : []
 		}
 	};
 	if (options.position) {
@@ -221,8 +222,9 @@ ipcMain.on('dragging-tab', (event, value) => {
 		win.webContents.send('accept-detached-tab', JSON.parse(value));
 	})
 })
-ipcMain.on('new-window', (event, data, position) => {
-	if (typeof data == 'string') load_project_data = JSON.parse(data);
+ipcMain.on('new-window', (event, open_options, position) => {
+	if (typeof open_options == 'string') open_options = JSON.parse(open_options);
+	open_window_options = open_options;
 	if (position) {
 		position = JSON.parse(position)
 		let place_in_window = all_wins.find(win => {
@@ -233,17 +235,20 @@ ipcMain.on('new-window', (event, data, position) => {
 				 && position.offset[1] >= pos[1] && position.offset[1] <= pos[1] + size[1]);
 		})
 		if (place_in_window) {
-			place_in_window.send('load-tab', load_project_data);
+			place_in_window.send('load-tab', open_options.project);
 			place_in_window.focus();
-			load_project_data = null;
+			open_options = null;
 		} else {
 			createWindow(true, {
 				maximize: false,
-				position: position.offset
+				position: position.offset,
+				isolated: open_options.isolated
 			});
 		}
 	} else {
-		createWindow(true);
+		createWindow(true, {
+			isolated: open_options.isolated
+		});
 	}
 })
 ipcMain.on('close-detached-project', async (event, window_id, uuid) => {
@@ -279,9 +284,9 @@ app.on('ready', () => {
 	let app_was_loaded = false;
 	ipcMain.on('app-loaded', () => {
 
-		if (load_project_data) {
-			all_wins[all_wins.length-1].send('load-tab', load_project_data);
-			load_project_data = null;
+		if (open_window_options && open_window_options.project) {
+			all_wins[all_wins.length-1].send('load-tab', open_window_options.project);
+			open_window_options = null;
 		}
 
 		if (app_was_loaded) {

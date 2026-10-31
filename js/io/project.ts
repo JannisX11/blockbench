@@ -1060,7 +1060,7 @@ onVueSetup(() => {
 						project.detached_uuid = Project.uuid;
 						project.detached_window_id = currentwindow.id;
 						ipcRenderer.send('dragging-tab', false);
-						ipcRenderer.send('new-window', JSON.stringify(project), JSON.stringify({
+						ipcRenderer.send('new-window', JSON.stringify({project}), JSON.stringify({
 							offset: [
 								pos[0] + e2.clientX,
 								pos[1] + e2.clientY,

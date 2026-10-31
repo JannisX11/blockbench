@@ -262,6 +262,13 @@ BARS.defineActions(() => {
 			currentwindow.webContents.toggleDevTools();
 		}
 	})
+	new Action('open_isolated_window', {
+		icon: 'developer_mode_tv',
+		condition: isApp,
+		click: () => {
+			ipcRenderer.send('new-window', {isolated: true});
+		}
+	})
 	
 
 //View

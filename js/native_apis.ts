@@ -290,6 +290,18 @@ export function openDevTools() {
 	currentwindow.webContents.openDevTools();
 }
 
+try {
+	if (process.argv.includes('--isolated')) {
+		Object.assign(window.localStorage, {
+			getItem() {return null},
+			setItem() {},
+			removeItem() {}
+		});
+	}
+} catch (err) {
+	console.error(err);
+}
+
 // @ts-ignore
 window.Settings = {get(arg) {console.error("Settings.get was accessed too early:", arg)}};
 
