@@ -9044,6 +9044,128 @@ skin_presets.sniffer = {
 		]
 	}`
 }
+skin_presets.snifflet = {
+	display_name: 'Snifflet',
+	model: `{
+		"name": "snifflet",
+		"texturewidth": 128,
+		"textureheight": 128,
+		"external_textures": ["entity/sniffer/snifflet.png"],
+		"eyes": [
+			[73, 32, 2, 1],
+			[89, 32, 2, 1]
+		],
+		"bones": [
+			{
+				"name": "bb_main",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "bone",
+				"pivot": [0, 0, 0]
+			},
+			{
+				"name": "body",
+				"parent": "bone",
+				"pivot": [6, 3, -9.5],
+				"cubes": [
+					{"origin": [-7, 3, -10], "size": [14, 14, 20], "inflate": 0.25, "uv": [0, 35]},
+					{"origin": [-7, 2, -10], "size": [14, 15, 20], "uv": [0, 0]},
+					{"origin": [-7, 3, -10], "size": [14, 0, 20], "uv": [68, 0]}
+				]
+			},
+			{
+				"name": "head",
+				"parent": "body",
+				"pivot": [0, 7.75, -9.5],
+				"cubes": [
+					{"origin": [-5, 3, -17], "size": [10, 9, 9], "uv": [68, 20]},
+					{"origin": [-5, 4, -17], "size": [10, 0, 9], "uv": [88, 20]}
+				]
+			},
+			{
+				"name": "left_ear",
+				"parent": "head",
+				"pivot": [5, 12, -11],
+				"cubes": [
+					{"origin": [5, 1, -13], "size": [1, 11, 3], "uv": [104, 38]}
+				]
+			},
+			{
+				"name": "right_ear",
+				"parent": "head",
+				"pivot": [-5, 12, -11],
+				"cubes": [
+					{"origin": [-6, 1, -13], "size": [1, 11, 3], "uv": [96, 38]}
+				]
+			},
+			{
+				"name": "nose",
+				"parent": "head",
+				"pivot": [0, 9, -19],
+				"cubes": [
+					{"origin": [-5, 9, -21], "size": [10, 3, 4], "uv": [68, 47]}
+				]
+			},
+			{
+				"name": "lower_beak",
+				"parent": "head",
+				"pivot": [0, 6.5, -19],
+				"cubes": [
+					{"origin": [-5, 4, -21], "size": [10, 5, 4], "uv": [68, 38]}
+				]
+			},
+			{
+				"name": "right_front_leg",
+				"parent": "bone",
+				"pivot": [-4, 4, -7],
+				"cubes": [
+					{"origin": [-6, 0, -9], "size": [4, 5, 4], "uv": [0, 69]}
+				]
+			},
+			{
+				"name": "right_mid_leg",
+				"parent": "bone",
+				"pivot": [-4, 4, 0],
+				"cubes": [
+					{"origin": [-6, 0, -2], "size": [4, 5, 4], "uv": [0, 78]}
+				]
+			},
+			{
+				"name": "right_hind_leg",
+				"parent": "bone",
+				"pivot": [-4, 4, 7],
+				"cubes": [
+					{"origin": [-6, 0, 5], "size": [4, 5, 4], "uv": [0, 87]}
+				]
+			},
+			{
+				"name": "left_front_leg",
+				"parent": "bone",
+				"pivot": [4, 4, -7],
+				"cubes": [
+					{"origin": [2, 0, -9], "size": [4, 5, 4], "uv": [16, 69]}
+				]
+			},
+			{
+				"name": "left_mid_leg",
+				"parent": "bone",
+				"pivot": [4, 4, 0],
+				"cubes": [
+					{"origin": [2, 0, -2], "size": [4, 5, 4], "uv": [16, 78]}
+				]
+			},
+			{
+				"name": "left_back_leg",
+				"parent": "bone",
+				"pivot": [4, 4, 7],
+				"cubes": [
+					{"origin": [2, 0, 5], "size": [4, 5, 4], "uv": [16, 87]}
+				]
+			}
+		]
+	}`
+}
 skin_presets.snowgolem = {
 	display_name: 'Snowgolem',
 	model: `{
