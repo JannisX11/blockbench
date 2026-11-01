@@ -861,8 +861,11 @@ SharedActions.add('duplicate', {
 					let weight = orig.vertex_weights[key];
 					let mesh = orig_meshes.find(m => m.uuid.startsWith(mesh_id));
 					if (!mesh) continue;
-					copy.setVertexWeight(map.get(mesh), vkey, weight);
-					copy.vertex_weights[key];
+					// If only the bone was duplicated, the mesh was not copied, and the weights the copy inherited already reference it
+					let mesh_copy = map.get(mesh);
+					if (!mesh_copy) continue;
+					copy.setVertexWeight(mesh_copy, vkey, weight);
+					delete copy.vertex_weights[key];
 				}
 			}
 		});
