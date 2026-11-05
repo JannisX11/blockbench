@@ -425,6 +425,7 @@ export const animation_codec = new AnimationCodec('bedrock', {
 
 		if (animation.length) ani_tag.animation_length = Math.roundTo(animation.length, 4);
 		if (animation.override) ani_tag.override_previous_animation = true;
+		// Todo: Wrap in math.mod if the animation contains sounds to fix sound issues
 		if (animation.anim_time_update) ani_tag.anim_time_update = exportMolang(animation.anim_time_update);
 		if (animation.blend_weight) ani_tag.blend_weight = exportMolang(animation.blend_weight);
 		if (animation.start_delay) ani_tag.start_delay = exportMolang(animation.start_delay);

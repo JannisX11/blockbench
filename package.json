@@ -2,7 +2,7 @@
 	"name": "Blockbench",
 	"description": "Low-poly modeling and animation software",
 	"desktopName": "net.blockbench.blockbench",
-	"version": "5.2.2",
+	"version": "5.3.0-beta.0",
 	"license": "GPL-3.0-or-later",
 	"author": {
 		"name": "JannisX11",
@@ -168,7 +168,7 @@
 		"command-line-args": "^6.0.1",
 		"dompurify": "^3.3.1",
 		"dotenv": "^16.5.0",
-		"electron": "^43.4.0",
+		"electron": "^45.2.1",
 		"electron-builder": "^26.15.7",
 		"esbuild": "^0.28.1",
 		"esbuild-plugin-glsl": "^1.2.2",
