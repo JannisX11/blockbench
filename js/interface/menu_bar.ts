@@ -226,6 +226,8 @@ export const MenuBar = {
 				'import_bedrock_attachable',
 				'import_bedrock_voxel_shape',
 				'import_obj',
+				'import_gltf',
+				'import_fbx',
 				'extrude_texture'
 			]},
 			{name: 'generic.export', id: 'export', icon: 'insert_drive_file', condition: () => !!Project, children: [

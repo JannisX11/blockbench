@@ -1235,7 +1235,7 @@ class FormElementFile extends FormElement {
 		delete this.file;
 		if (this.options.return_as == 'file' && typeof value == 'object') {
 			this.file = value;
-			this.value = this.file.name;
+			this.value = this.file.path ?? this.file.name;
 		} else if (isApp) {
 			this.value = value;
 		} else {
