@@ -1124,7 +1124,7 @@ BARS.defineActions(function() {
 			for (let type in OutlinerElement.types) {
 				type_options[type] = tl(`data.${type}`);
 				if (type_options[type].includes('.')) {
-					type_options[type] = OutlinerElement.types[type].display_name || OutlinerElement.types[type].name;
+					type_options[type] = OutlinerElement.types[type].display_name || OutlinerElement.types[type].prototype.title || OutlinerElement.types[type].name;
 				}
 			}
 			new Dialog({
