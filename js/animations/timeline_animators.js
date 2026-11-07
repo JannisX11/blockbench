@@ -853,19 +853,14 @@ export class NullObjectAnimator extends BoneAnimator {
 		}
 		return this;
 	}
-	displayIK(get_samples) {
-		let null_object = this.getElement();
+	/**
+	 * Resolves the IK chain driven by a null object
+	 * @returns {{target: OutlinerNode, bones: OutlinerNode[]} | undefined} bones are ordered from chain root to IK target
+	 */
+	static getIKChain(null_object) {
+		if (!null_object) return;
 		let target = [...Group.all, ...ArmatureBone.all, ...Locator.all].find(node => node.uuid == null_object.ik_target);
-		let pole = [...Group.all, ...Locator.all, ...NullObject.all].find(node => node.uuid == null_object.ik_pole);
-		if (!null_object || !target) return;
-
-		// Disable IK if null object has no keyframes
-		if (this.keyframes.length == 0) return;
-
-		let bones = [];
-		let ik_target = null_object.getWorldCenter(true).clone();
-		let bone_references = [];
-		let current = target;
+		if (!target) return;
 
 		let source;
 		if (null_object.ik_source) {
@@ -875,10 +870,9 @@ export class NullObjectAnimator extends BoneAnimator {
 		}
 		if (!source) return;
 		if (!target.isChildOf(source) && source != 'root') return;
-		let target_original_quaternion = null_object.lock_ik_target_rotation &&
-			(target instanceof Group || target instanceof ArmatureBone) &&
-			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
+		let bones = [];
+		let current = target;
 		while (current !== source) {
 			bones.push(current);
 			current = current.parent;
@@ -888,11 +882,70 @@ export class NullObjectAnimator extends BoneAnimator {
 		}
 		if (!bones.length) return;
 		bones.reverse();
+		return {target, bones};
+	}
+	/**
+	 * Orders IK null objects so that each chain is solved after any other chain that moves its IK target, pole, or chain root.
+	 * Otherwise, those would be read in their un-solved pose.
+	 */
+	static sortByIKDependencies(null_objects) {
+		let chains = new Map();
+		for (let null_object of null_objects) {
+			let chain = NullObjectAnimator.getIKChain(null_object);
+			if (chain) chains.set(null_object, chain.bones);
+		}
+		function dependsOn(a, b) {
+			let bones_b = chains.get(b);
+			if (a == b || !bones_b) return false;
+			let anchors = [a, a.ik_pole && OutlinerNode.uuids[a.ik_pole], chains.get(a)?.[0]];
+			return anchors.some(anchor => anchor && bones_b.some(bone => anchor.isChildOf(bone)));
+		}
+		let sorted = [];
+		let remaining = null_objects.slice();
+		while (remaining.length) {
+			// Fall back to original order on circular dependencies
+			let next = remaining.find(a => !remaining.some(b => dependsOn(a, b))) ?? remaining[0];
+			sorted.push(next);
+			remaining.remove(next);
+		}
+		return sorted;
+	}
+	displayIK(get_samples) {
+		let null_object = this.getElement();
+		if (!null_object) return;
+		let pole = [...Group.all, ...Locator.all, ...NullObject.all].find(node => node.uuid == null_object.ik_pole);
+
+		// Disable IK if null object has no keyframes
+		if (this.keyframes.length == 0) return;
+
+		let chain = NullObjectAnimator.getIKChain(null_object);
+		if (!chain) return;
+		let {target, bones} = chain;
+
+		let ik_target = null_object.getWorldCenter(true).clone();
+		let bone_references = [];
+		let target_original_quaternion = null_object.lock_ik_target_rotation &&
+			(target instanceof Group || target instanceof ArmatureBone) &&
+			target.mesh.getWorldQuaternion(new THREE.Quaternion());
 
 		bones.forEach(bone => {
-			let scene_object = bone.scene_object; 
+			let scene_object = bone.scene_object;
 			if (scene_object.fix_rotation) scene_object.rotation.copy(scene_object.fix_rotation);
 		});
+
+		// A node that shares its pivot with the next node in the chain (e.g. a helper/offset group) forms a zero-length
+		// segment. Its direction would be normalized floating point noise, rotating it randomly every frame.
+		// Leave such nodes at rest and let the next node in the chain do the rotation.
+		let skipped_bones = [];
+		bones = bones.filter((bone, i) => {
+			if (i == bones.length - 1) return true;
+			let pos = bone.scene_object.getWorldPosition(new THREE.Vector3());
+			let next_pos = bones[i + 1].scene_object.getWorldPosition(new THREE.Vector3());
+			if (pos.distanceTo(next_pos) > 1e-4) return true;
+			skipped_bones.push(bone);
+			return false;
+		});
+		if (bones.length < 2) return;
 
 		let bone_pos = [];
 		bones.forEach((bone, i) => {
@@ -923,6 +976,15 @@ export class NullObjectAnimator extends BoneAnimator {
 		fabrikIter(bone_pos, ik_target, pole_pos);
 
 		let results = {};
+		if (get_samples) {
+			// Skipped nodes are held at rest, export them that way to match the preview
+			for (let bone of skipped_bones) {
+				results[bone.uuid] = {
+					euler: new THREE.Euler(0, 0, 0, Format.euler_order),
+					array: [0, 0, 0]
+				}
+			}
+		}
 		for (let i = 0; i < bone_references.length; i++) {
 			let bone_ref = bone_references[i];
 			let scene_object = bone_ref.bone.scene_object; 

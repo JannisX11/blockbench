@@ -339,8 +339,7 @@ export const Animator = {
 			})
 		})
 
-		NullObject.all.forEach(node => {
-			if (!node.ik_target) return;
+		NullObjectAnimator.sortByIKDependencies(NullObject.all.filter(node => node.ik_target)).forEach(node => {
 			animations.forEach((animation, anim_i) => {
 				if (animation.loop == 'once' && Timeline.time > animation.length && animation.length) {
 					return;
