@@ -169,6 +169,8 @@ export class Animation extends AnimationItem {
 
 		if (!NullObject.all.find(null_object => null_object.ik_target && this.getBoneAnimator(null_object)?.position.length)) return samples;
 
+		let ik_null_objects = NullObjectAnimator.sortByIKDependencies(NullObject.all.filter(node => node.ik_target));
+
 		Timeline.time = 0;
 		while (Timeline.time <= this.length && Timeline.time <= 200) {
 			// Bones
@@ -180,8 +182,7 @@ export class Animation extends AnimationItem {
 				let multiplier = this.blend_weight ? Math.clamp(Animator.MolangParser.parse(this.blend_weight), 0, Infinity) : 1;
 				this.getBoneAnimator(node)?.displayFrame(multiplier);
 			})
-			NullObject.all.forEach(node => {
-				if (!node.ik_target) return;
+			ik_null_objects.forEach(node => {
 				let animator = this.getBoneAnimator(node);
 				if (!animator || !animator.displayIK) return;
 				let bone_frame_rotation = animator.displayIK(true);

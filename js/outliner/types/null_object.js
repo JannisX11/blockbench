@@ -50,6 +50,9 @@ export class NullObject extends OutlinerElement {
 		let q = Reusable.quat1.set(0, 0, 0, 1);
 		let parent_object = this.parent.scene_object;
 		if (parent_object) {
+			// fastWorldPosition reads matrixWorld as-is. While animations are being applied, it is still
+			// from the previous frame, so the parent's position would lag behind its own (fresh) rotation.
+			parent_object.updateWorldMatrix(true, false);
 			THREE.fastWorldPosition(parent_object, pos);
 			parent_object.getWorldQuaternion(q);
 			if (this.parent instanceof Group) {
