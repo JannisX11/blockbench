@@ -6,6 +6,35 @@
 const quat1 = new THREE.Quaternion();
 
 /**
+ * FABRIK moves joints along the lines between them, so a chain that is straight and in line with the target
+ * (e.g. a leg in rest pose with the foot target moved straight up) never bends, and converges very slowly when it is
+ * almost in line. In that case, bend the inner joints toward the pole first to give the solver a direction to fold in.
+ */
+function preBendTowardPole(bones: THREE.Vector3[], target: THREE.Vector3, pole: THREE.Vector3, distances: number[], total_length: number): void {
+    let n = bones.length;
+    let root = bones[0];
+    let line_dir = target.clone().sub(root).normalize();
+    if (line_dir.lengthSq() < 0.5) return;
+
+    let max_offset = 0;
+    for (let i = 1; i < n - 1; i++) {
+        let offset = bones[i].clone().sub(root);
+        offset.sub(line_dir.clone().multiplyScalar(offset.dot(line_dir)));
+        max_offset = Math.max(max_offset, offset.length());
+    }
+    if (max_offset > total_length * 0.05) return;
+
+    let bend_dir = pole.clone().sub(root);
+    bend_dir.sub(line_dir.clone().multiplyScalar(bend_dir.dot(line_dir)));
+    if (bend_dir.lengthSq() < 1e-8) return;
+    bend_dir.normalize();
+
+    for (let i = 1; i < n - 1; i++) {
+        bones[i].addScaledVector(bend_dir, Math.min(distances[i - 1], distances[i]) * 0.25);
+    }
+}
+
+/**
  * Solves the given chain of bones using fabrik solver to reach the target location, with an optional pole vector.
  * Modifies the vectors in the `bones` parameter with the resulting positions.
  */
@@ -32,6 +61,8 @@ export function fabrikIter(bones: THREE.Vector3[], target: THREE.Vector3, pole?:
             );
         }
     } else {
+        if (pole && n > 2) preBendTowardPole(bones, target, pole, distances, total_length);
+
         let diff = target.distanceTo(bones[n - 1]);
         const TOLERANCE = 0.001;
         let max_iterations = 100;
