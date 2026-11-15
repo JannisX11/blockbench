@@ -155,7 +155,13 @@
 		"generate-docs": "npm run generate-types && npx typedoc --options typedoc.json"
 	},
 	"overrides": {
-		"three": "$three"
+		"three": "$three",
+		"@electron/get": {
+			"undici": "8.12.2"
+		},
+		"node-gyp": {
+			"undici": "8.12.2"
+		}
 	},
 	"devDependencies": {
 		"@electron/notarize": "^2.5.0",
