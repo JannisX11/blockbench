@@ -432,6 +432,7 @@ export class BoneAnimator extends GeneralAnimator {
 		let use_quaternions = false;
 		if (channel == 'rotation') {
 			use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+			if (use_quaternions && this.getGroup) this.getGroup();
 		}
 
 		function mapAxes(cb) {
