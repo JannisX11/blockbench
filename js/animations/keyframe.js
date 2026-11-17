@@ -293,8 +293,9 @@ export class Keyframe {
 	getFixed(data_point = 0, return_quaternion = true) {
 		if (this.channel === 'rotation') {
 			
-			let fix = this.animator.group.mesh.fix_rotation;
-			let use_quaternions = Format.per_animator_rotation_interpolation ? this.quaternion_interpolation : Format.quaternion_interpolation;
+			let group = this.animator.getGroup ? this.animator.getGroup() : this.animator.group;
+			let fix = group.mesh.fix_rotation;
+			let use_quaternions = Format.per_animator_rotation_interpolation ? this.animator.quaternion_interpolation : Format.quaternion_interpolation;
 			if (use_quaternions) {
 				let euler = new THREE.Euler(
 					Math.degToRad(this.calc('x', data_point)),
