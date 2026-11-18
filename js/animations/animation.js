@@ -1085,8 +1085,8 @@ BARS.defineActions(function() {
 			for (let uuid in ik_samples) {
 				let animator = animation.animators[uuid];
 				let node = animator.group ?? animator.element;
-				ik_samples[uuid].forEach(({array, euler}) => {
-					if (!node.rotation.allEqual(0)) {
+				ik_samples[uuid].forEach(({array, euler, euler_offset}) => {
+					if (!node.rotation.allEqual(0) && !euler_offset) {
 						let base = Reusable.quat1.setFromEuler(node.scene_object.fix_rotation);
 						let add = Reusable.quat2.setFromEuler(euler);
 						base.premultiply(add);

@@ -1395,6 +1395,8 @@
 	"menu.tools": "도구",
 	"menu.file.recent.more": "더 보기...",
 	"menu.null_object.lock_ik_target_rotation": "IK 목표 각 고정",
+	"menu.null_object.ik_target_follow_parent": "IK Target Follows Parent Rotation",
+	"menu.null_object.ik_target_follow_parent.desc": "Keep the rotation the IK target has relative to the parent of this null object in the default pose, e.g. to keep a hand on a weapon. Keyframes on the IK target rotate it from there.",
 	"menu.animation_file.import_remaining": "남은 에니메이션 가져오기",
 	"edit.loop_cut.offset": "오프셋",
 	"edit.extrude_mesh_selection.extend": "확장",

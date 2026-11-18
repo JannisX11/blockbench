@@ -91,27 +91,95 @@ export class NullObject extends OutlinerElement {
 		Outliner.buttons.locked,
 		Outliner.buttons.visibility,
 	];
+	/**
+	 * Returns the node that an IK chain from the null object to the target starts at by default:
+	 * the topmost ancestor of the target (or the target itself) that is not also an ancestor of the null object.
+	 * For a target inside the null object's parent, this matches the chain used when no IK root is set.
+	 */
+	function getDefaultIKRoot(null_object, target) {
+		let root;
+		for (let node = target; node instanceof OutlinerNode; node = node.parent) {
+			if (null_object.isChildOf(node)) break;
+			root = node;
+		}
+		if (root instanceof Group || root instanceof ArmatureBone) return root;
+	}
+	/**
+	 * Nodes that the null object can use as IK target. The target can be outside of the null object's parent,
+	 * e.g. a hand reaching for a null object inside a weapon. In that case the IK root is set when picking it.
+	 */
+	function getIKTargetCandidates(null_object) {
+		let source = null_object.ik_source && OutlinerNode.uuids[null_object.ik_source];
+		let nodes = [];
+		function iterate(arr) {
+			for (let node of arr) {
+				if (node instanceof Group || node instanceof ArmatureBone || node instanceof Locator) {
+					// Ancestors of the null object would move it along with the chain
+					let valid = !null_object.isChildOf(node) && (
+						(source && node.isChildOf(source)) ||
+						// The chain needs at least two bones
+						(getDefaultIKRoot(null_object, node) ?? node) != node
+					);
+					if (valid) nodes.push(node);
+				}
+				if (node.children) iterate(node.children);
+			}
+		}
+		iterate(Outliner.root);
+		return nodes;
+	}
+	/**
+	 * Sets the IK root if the chain to the current target would not work without it
+	 */
+	function updateIKRootForTarget(null_object) {
+		let target = OutlinerNode.uuids[null_object.ik_target];
+		if (!target) return;
+		let chain = NullObject.animator.getIKChain(null_object);
+		if (chain && chain.bones.length >= 2) return;
+		let root = getDefaultIKRoot(null_object, target);
+		if (root && root != target) {
+			null_object.ik_source = root.uuid;
+		}
+	}
+	function getIKPoleCandidates(null_object) {
+		let nodes = [];
+		function iterate(arr) {
+			for (let node of arr) {
+				if (node == null_object) continue;
+				if (node instanceof Group || node instanceof Locator || node instanceof NullObject) {
+					nodes.push(node);
+				}
+				if (node.children) iterate(node.children);
+			}
+		}
+		iterate(Outliner.root);
+		return nodes;
+	}
+	function ikOptionToggle(key, undo_name) {
+		return {
+			id: key,
+			name: 'menu.null_object.' + key,
+			icon: null_object => null_object[key] ? 'check_box' : 'check_box_outline_blank',
+			click(clicked_null_object) {
+				let value = !clicked_null_object[key];
+				let affected = NullObject.selected.filter(null_object => null_object[key] != value);
+				Undo.initEdit({elements: affected});
+				affected.forEach(null_object => {
+					null_object[key] = value;
+				})
+				Undo.finishEdit(undo_name);
+				if (Modes.animate) Animator.preview();
+				updateSelection();
+			}
+		}
+	}
 	NullObject.prototype.menu = new Menu([
 			new MenuSeparator('ik'),
 			'set_ik_target',
 			'set_ik_source',
 			'set_ik_pole',
-			{
-				id: 'lock_ik_target_rotation',
-				name: 'menu.null_object.lock_ik_target_rotation',
-				icon: null_object => null_object.lock_ik_target_rotation ? 'check_box' : 'check_box_outline_blank',
-				click(clicked_null_object) {
-					let value = !clicked_null_object.lock_ik_target_rotation;
-					let affected = NullObject.selected.filter(null_object => null_object.lock_ik_target_rotation != value);
-					Undo.initEdit({elements: affected});
-					affected.forEach(null_object => {
-						null_object.lock_ik_target_rotation = value;
-					})
-					Undo.finishEdit('Change null object lock ik target rotation option');
-					if (Modes.animate) Animator.preview();
-					updateSelection();
-				}
-			},
+			ikOptionToggle('lock_ik_target_rotation', 'Change null object lock ik target rotation option'),
+			ikOptionToggle('ik_target_follow_parent', 'Change null object ik target follow parent option'),
 			...Outliner.control_menu_group,
 			new MenuSeparator('manage'),
 			'rename',
@@ -125,22 +193,15 @@ export class NullObject extends OutlinerElement {
 		inputs: {
 			element_panel: {
 				input: {label: 'null_object.ik_target', description: 'action.set_ik_target.desc', type: 'outliner_node', getOutlinerNodes() {
-					let nodes = [];
-					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
-					function iterate(arr, level) {
-						arr.forEach(node => {
-							if (node.constructor.animator || node instanceof Locator) {
-								if (level) nodes.push(node);
-							}
-							if (node.children) {
-								iterate(node.children, level+1);
-							}
-						})
-					}
-					return nodes;
+					return NullObject.hasSelected() ? getIKTargetCandidates(NullObject.selected[0]) : [];
 				}},
-				onChange() {
+				onChange(value, null_objects) {
+					// Runs inside the undo edit of the panel
+					null_objects.forEach(null_object => {
+						if (null_object instanceof NullObject) updateIKRootForTarget(null_object);
+					});
 					if (Modes.animate) Animator.preview();
+					updateSelection();
 				}
 			}
 		}
@@ -175,20 +236,7 @@ export class NullObject extends OutlinerElement {
 		inputs: {
 			element_panel: {
 				input: {label: 'null_object.ik_pole', description: 'action.set_ik_pole.desc', type: 'outliner_node', getOutlinerNodes() {
-					let nodes = [];
-					if (NullObject.hasSelected()) iterate(NullObject.selected[0].getParentArray(), 0);
-					function iterate(arr) {
-						arr.forEach(node => {
-							if (node.selected) return;
-							if (node instanceof Group) {
-								nodes.push(node);
-								iterate(node.children);
-							} else if (node instanceof Locator || node instanceof NullObject) {
-								nodes.push(node);
-							}
-						})
-					}
-					return nodes;
+					return NullObject.hasSelected() ? getIKPoleCandidates(NullObject.selected[0]) : [];
 				}},
 				onChange() {
 					if (Modes.animate) Animator.preview();
@@ -201,6 +249,21 @@ export class NullObject extends OutlinerElement {
 		inputs: {
 			element_panel: {
 				input: {label: 'menu.null_object.lock_ik_target_rotation', type: 'checkbox'},
+				onChange() {
+					if (Modes.animate) Animator.preview();
+				}
+			}
+		}
+	})
+	new Property(NullObject, 'boolean', 'ik_target_follow_parent', {
+		condition: () => Format.animation_mode,
+		inputs: {
+			element_panel: {
+				input: {
+					label: 'menu.null_object.ik_target_follow_parent',
+					description: 'menu.null_object.ik_target_follow_parent.desc',
+					type: 'checkbox'
+				},
 				onChange() {
 					if (Modes.animate) Animator.preview();
 				}
@@ -291,19 +354,7 @@ BARS.defineActions(function() {
 		},
 		searchable: true,
 		children() {
-			let nodes = [];
-			iterate(NullObject.selected[0].getParentArray(), 0);
-
-			function iterate(arr, level) {
-				arr.forEach(node => {
-					if (node.constructor.animator || node instanceof Locator) {
-						if (level) nodes.push(node);
-					}
-					if (node.children) {
-						iterate(node.children, level+1);
-					}
-				})
-			}
+			let nodes = getIKTargetCandidates(NullObject.selected[0]);
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_target ? ' (✔)' : ''),
@@ -314,8 +365,11 @@ BARS.defineActions(function() {
 						Undo.initEdit({elements: NullObject.selected});
 						NullObject.selected.forEach(null_object => {
 							null_object.ik_target = node.uuid;
+							updateIKRootForTarget(null_object);
 						})
 						Undo.finishEdit('Set IK target');
+						if (Modes.animate) Animator.preview();
+						updateSelection();
 					}
 				}
 			})
@@ -378,20 +432,7 @@ BARS.defineActions(function() {
 		},
 		searchable: true,
 		children() {
-			let nodes = [];
-			iterate(NullObject.selected[0].getParentArray());
-
-			function iterate(arr) {
-				arr.forEach(node => {
-					if (node.selected) return;
-					if (node instanceof Group) {
-						nodes.push(node);
-						iterate(node.children);
-					} else if (node instanceof Locator || node instanceof NullObject) {
-						nodes.push(node);
-					}
-				})
-			}
+			let nodes = getIKPoleCandidates(NullObject.selected[0]);
 			return nodes.map(node => {
 				return {
 					name: node.name + (node.uuid == NullObject.selected[0].ik_pole ? ' (✔)' : ''),

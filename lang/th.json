@@ -1395,6 +1395,8 @@
 	"menu.tools": "เครื่องมือ",
 	"menu.file.recent.more": "ดูเพิ่มเติม...",
 	"menu.null_object.lock_ik_target_rotation": "ล็อกการหมุนกระดูกปลายทาง IK",
+	"menu.null_object.ik_target_follow_parent": "IK Target Follows Parent Rotation",
+	"menu.null_object.ik_target_follow_parent.desc": "Keep the rotation the IK target has relative to the parent of this null object in the default pose, e.g. to keep a hand on a weapon. Keyframes on the IK target rotate it from there.",
 	"menu.animation_file.import_remaining": "นำเข้าที่เหลือจากไฟล์",
 	"edit.loop_cut.offset": "ระยะเลื่อนแนวตัด",
 	"edit.extrude_mesh_selection.extend": "ระยะดึง",

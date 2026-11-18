@@ -1395,6 +1395,8 @@
 	"menu.tools": "Tools",
 	"menu.file.recent.more": "View More...",
 	"menu.null_object.lock_ik_target_rotation": "Lock IK Target Rotation",
+	"menu.null_object.ik_target_follow_parent": "IK Target Follows Parent Rotation",
+	"menu.null_object.ik_target_follow_parent.desc": "Keep the rotation the IK target has relative to the parent of this null object in the default pose, e.g. to keep a hand on a weapon. Keyframes on the IK target rotate it from there.",
 	"menu.animation_file.import_remaining": "Import Remaining from File",
 	"edit.loop_cut.offset": "Offset",
 	"edit.extrude_mesh_selection.extend": "Extend",

@@ -1395,6 +1395,8 @@
 	"menu.tools": "工具",
 	"menu.file.recent.more": "查看更多内容...",
 	"menu.null_object.lock_ik_target_rotation": "锁定选定目标旋转",
+	"menu.null_object.ik_target_follow_parent": "IK Target Follows Parent Rotation",
+	"menu.null_object.ik_target_follow_parent.desc": "Keep the rotation the IK target has relative to the parent of this null object in the default pose, e.g. to keep a hand on a weapon. Keyframes on the IK target rotate it from there.",
 	"menu.animation_file.import_remaining": "导入剩余的动画文件",
 	"edit.loop_cut.offset": "偏移",
 	"edit.extrude_mesh_selection.extend": "扩展",

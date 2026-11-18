@@ -2,6 +2,18 @@ import Wintersky from 'wintersky';
 import { THREE } from '../lib/libs';
 import { fabrikIter } from './fabrik';
 
+/**
+ * World rotation that a scene object has in the default pose, ignoring animations
+ */
+function getRestWorldQuaternion(object, target) {
+	target.set(0, 0, 0, 1);
+	let rotation = new THREE.Quaternion();
+	for (let current = object; current; current = current.parent) {
+		target.premultiply(rotation.setFromEuler(current.fix_rotation ?? current.rotation));
+	}
+	return target;
+}
+
 export class GeneralAnimator {
 	constructor(uuid, animation) {
 		this.animation = animation;
@@ -924,9 +936,17 @@ export class NullObjectAnimator extends BoneAnimator {
 
 		let ik_target = null_object.getWorldCenter(true).clone();
 		let bone_references = [];
-		let target_original_quaternion = null_object.lock_ik_target_rotation &&
-			(target instanceof Group || target instanceof ArmatureBone) &&
-			target.mesh.getWorldQuaternion(new THREE.Quaternion());
+		let target_rotation_mode;
+		if (target instanceof Group || target instanceof ArmatureBone) {
+			if (null_object.ik_target_follow_parent) {
+				target_rotation_mode = 'follow_parent';
+			} else if (null_object.lock_ik_target_rotation) {
+				target_rotation_mode = 'lock';
+			}
+		}
+		// Captured before the chain is reset to its rest pose below, so they still include the target's own keyframes
+		let target_original_quaternion = target_rotation_mode == 'lock' && target.mesh.getWorldQuaternion(new THREE.Quaternion());
+		let target_animated_quaternion = target_rotation_mode == 'follow_parent' && target.mesh.quaternion.clone();
 
 		bones.forEach(bone => {
 			let scene_object = bone.scene_object;
@@ -1016,11 +1036,22 @@ export class NullObjectAnimator extends BoneAnimator {
 			}
 		}
 
-		if (target_original_quaternion) {
+		if (target_rotation_mode) {
 			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
 			rotation.copy(target.mesh.rotation);
 
-			target.mesh.quaternion.copy(target_original_quaternion);
+			if (target_rotation_mode == 'lock') {
+				target.mesh.quaternion.copy(target_original_quaternion);
+			} else {
+				// Keep the rotation that the target has relative to the null object's parent in the default pose,
+				// so it follows that parent, e.g. a hand holding a weapon. The target's own keyframes rotate it from there.
+				let null_parent = null_object.mesh.parent;
+				target.mesh.quaternion
+					.copy(null_parent.getWorldQuaternion(Reusable.quat1))
+					.multiply(getRestWorldQuaternion(null_parent, Reusable.quat2).invert())
+					.multiply(getRestWorldQuaternion(target.mesh.parent, Reusable.quat2))
+					.multiply(target_animated_quaternion);
+			}
 			let q1 = target.mesh.parent.getWorldQuaternion(Reusable.quat1);
 			target.mesh.quaternion.premultiply(q1.invert())
 			target.mesh.updateMatrixWorld();
@@ -1036,7 +1067,10 @@ export class NullObjectAnimator extends BoneAnimator {
 						Math.radToDeg(rotation.x),
 						Math.radToDeg(rotation.y),
 						Math.radToDeg(rotation.z),
-					]
+					],
+					// Unlike the chain bones, this is not a rotation applied on top of the rest rotation,
+					// but the difference between the euler angles of the solved and the rest rotation
+					euler_offset: true,
 				}
 			}
 		}

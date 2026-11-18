@@ -47,12 +47,14 @@ interface NullObjectOptions {
 	position?: ArrayVector3
 	ik_target?: string
 	lock_ik_target_rotation?: boolean
+	ik_target_follow_parent?: boolean
 }
 declare class NullObject extends OutlinerElement {
 	constructor(options: Partial<NullObjectOptions>, uuid?: string)
 	position: ArrayVector3
 	ik_target: string
 	lock_ik_target_rotation: boolean
+	ik_target_follow_parent: boolean
 
 	extend(options: Partial<NullObjectOptions>): void
 	flip(axis: number, center: number): this
