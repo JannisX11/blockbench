@@ -944,9 +944,9 @@ export class NullObjectAnimator extends BoneAnimator {
 				target_rotation_mode = 'lock';
 			}
 		}
-		// Captured before the chain is reset to its rest pose below, so they still include the target's own keyframes
-		let target_original_quaternion = target_rotation_mode == 'lock' && target.mesh.getWorldQuaternion(new THREE.Quaternion());
-		let target_animated_quaternion = target_rotation_mode == 'follow_parent' && target.mesh.quaternion.clone();
+		// Captured before the chain is reset to its rest pose below, so they still include keyframes
+		let target_local_quaternion = target_rotation_mode && target.mesh.quaternion.clone();
+		let target_parent_quaternion = target_rotation_mode == 'lock' && target.mesh.parent.getWorldQuaternion(new THREE.Quaternion());
 
 		bones.forEach(bone => {
 			let scene_object = bone.scene_object;
@@ -1040,18 +1040,23 @@ export class NullObjectAnimator extends BoneAnimator {
 			let rotation = get_samples ? new THREE.Euler() : Reusable.euler1;
 			rotation.copy(target.mesh.rotation);
 
+			// World rotation of the frame that the target's own rotation applies in, instead of its parent
+			let rotation_frame;
 			if (target_rotation_mode == 'lock') {
-				target.mesh.quaternion.copy(target_original_quaternion);
+				// Keep the world rotation that the target had before solving
+				rotation_frame = target_parent_quaternion;
 			} else {
 				// Keep the rotation that the target has relative to the null object's parent in the default pose,
 				// so it follows that parent, e.g. a hand holding a weapon. The target's own keyframes rotate it from there.
 				let null_parent = null_object.mesh.parent;
-				target.mesh.quaternion
-					.copy(null_parent.getWorldQuaternion(Reusable.quat1))
+				rotation_frame = null_parent.getWorldQuaternion(new THREE.Quaternion())
 					.multiply(getRestWorldQuaternion(null_parent, Reusable.quat2).invert())
-					.multiply(getRestWorldQuaternion(target.mesh.parent, Reusable.quat2))
-					.multiply(target_animated_quaternion);
+					.multiply(getRestWorldQuaternion(target.mesh.parent, Reusable.quat2));
 			}
+			target.mesh.quaternion.copy(rotation_frame).multiply(target_local_quaternion);
+			// Lets the transform gizmo rotate the target the way it is displayed. Cleared by Animator.showDefaultPose
+			target.mesh.ik_rotation_frame = rotation_frame;
+			target.mesh.ik_local_quaternion = target_local_quaternion;
 			let q1 = target.mesh.parent.getWorldQuaternion(Reusable.quat1);
 			target.mesh.quaternion.premultiply(q1.invert())
 			target.mesh.updateMatrixWorld();

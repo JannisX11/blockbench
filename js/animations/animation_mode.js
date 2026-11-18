@@ -103,6 +103,8 @@ export const Animator = {
 			var mesh = node.mesh;
 			if (mesh.fix_rotation) mesh.rotation.copy(mesh.fix_rotation);
 			if (mesh.fix_position) mesh.position.copy(mesh.fix_position);
+			delete mesh.ik_rotation_frame;
+			delete mesh.ik_local_quaternion;
 			if (node.constructor.animator.prototype.channels && node.constructor.animator.prototype.channels.scale) {
 				mesh.scale.x = mesh.scale.y = mesh.scale.z = 1;
 			}

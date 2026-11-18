@@ -97,6 +97,14 @@ new TransformerModule('animation', {
 
 		let {mesh} = Group.first_selected || ((Outliner.selected[0] && Outliner.selected[0].constructor.animator) ? Outliner.selected[0] : undefined);
 
+		// IK can replace the rotation of its target (Lock IK Target Rotation, IK Target Follows Parent Rotation).
+		// The target's own rotation then applies in a different frame than its parent, so rotate it within that frame.
+		// Otherwise the replaced rotation would be written into the keyframe and compound on every move.
+		let ik_rotation_frame = tool_id === 'rotate_tool' && Timeline.selected_animator?.rotation_global !== true && mesh.ik_rotation_frame;
+		if (ik_rotation_frame) {
+			mesh.quaternion.copy(mesh.ik_local_quaternion);
+		}
+
 		let updateRotationKeyframeFromMesh = () => {
 			let old_rotation = mesh.pre_rotation ?? mesh.fix_rotation;
 			let rotation = mesh.rotation;
@@ -116,17 +124,23 @@ new TransformerModule('animation', {
 			let normal = Transformer.axis == 'E'
 				? context.rotate_normal
 				: axis_number == 0 ? THREE.NormalX : (axis_number == 1 ? THREE.NormalY : THREE.NormalZ);
-			let rotWorldMatrix = new THREE.Matrix4();
-			rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
-			rotWorldMatrix.multiply(mesh.matrixWorld)
+			if (ik_rotation_frame) {
+				let rotation = Reusable.quat2.setFromAxisAngle(normal, Math.degToRad(difference));
+				let world_quaternion = ik_rotation_frame.clone().multiply(mesh.quaternion).premultiply(rotation);
+				mesh.quaternion.copy(ik_rotation_frame).invert().multiply(world_quaternion);
+			} else {
+				let rotWorldMatrix = new THREE.Matrix4();
+				rotWorldMatrix.makeRotationAxis(normal, Math.degToRad(difference))
+				rotWorldMatrix.multiply(mesh.matrixWorld)
 
-			if (Timeline.selected_animator?.rotation_global !== true) {
-				let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
-				rotWorldMatrix.premultiply(inverse)
+				if (Timeline.selected_animator?.rotation_global !== true) {
+					let inverse = new THREE.Matrix4().copy(mesh.parent.matrixWorld).invert()
+					rotWorldMatrix.premultiply(inverse)
+				}
+
+				mesh.matrix.copy(rotWorldMatrix);
+				mesh.setRotationFromMatrix(rotWorldMatrix);
 			}
-
-			mesh.matrix.copy(rotWorldMatrix);
-			mesh.setRotationFromMatrix(rotWorldMatrix);
 
 			updateRotationKeyframeFromMesh();
 		
