@@ -186,11 +186,11 @@ new Tool('weight_brush', {
 				if (mesh2) Mesh.preview_controller.updateGeometry(mesh2);
 			}
 			Mesh.preview_controller.updateGeometry(mesh);
-			updateSelection();
 		}
 		const stop = (event: MouseEvent) => {
 			document.removeEventListener('pointermove', draw);
 			document.removeEventListener('pointerup', stop);
+			updateSelection();
 
 			Undo.finishEdit('Paint vertex weights');
 		}
@@ -260,18 +260,35 @@ let blend_mode_select = new BarSelect('weight_brush_blend_mode', {
 })
 
 const vertex_weight_view_modes = ['vertex_weight', 'weighted_bone_colors'];
+const stale_weight_preview_meshes = new Set<Mesh>();
 function updateWeightPreview() {
 	if (Toolbox.selected.id == 'weight_brush' || 
 		vertex_weight_view_modes.includes(Project.view_mode)
 	) {
+		let elements: Mesh[] = [];
+		for (let mesh of Mesh.all) {
+			if (!mesh.getArmature()) continue;
+			if (mesh.visibility) {
+				elements.push(mesh);
+				stale_weight_preview_meshes.delete(mesh);
+			} else {
+				stale_weight_preview_meshes.add(mesh);
+			}
+		}
 		Canvas.updateView({
-			elements: Mesh.all.filter(mesh => mesh.getArmature()),
+			elements,
 			element_aspects: {geometry: true},
 		});
 		if (Modes.animate) Animator.preview();
 	}
 }
 Blockbench.on('update_selection', updateWeightPreview);
+Mesh.preview_controller.on('update_visibility', ({element}: {element: Mesh}) => {
+	if (element.visibility && stale_weight_preview_meshes.has(element)) {
+		stale_weight_preview_meshes.delete(element);
+		Mesh.preview_controller.updateGeometry(element);
+	}
+});
 
 declare global {
     interface BarItemRegistry {
