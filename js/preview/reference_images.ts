@@ -540,16 +540,16 @@ export class ReferenceImage {
 						24 / zoom_level
 					];
 					this.size[0] = Math.max(original_size[0] + offset[0] * local_sign_x, max_size[0]);
-					this.position[0] = original_position[0] + offset[0] / 2, 0;
+					this.position[0] = original_position[0] + offset[0] / 2;
 
 					if (!e2.ctrlOrCmd && !Pressing.overrides.ctrl) {
 						offset[1] = local_sign_y * (this.size[0] / this.aspect_ratio - original_size[1]);
 					}
 
 					this.size[1] = Math.max(original_size[1] + offset[1] * local_sign_y, max_size[1]);
-					this.position[1] = original_position[1] + offset[1] / 2, 0;
+					this.position[1] = original_position[1] + offset[1] / 2;
 
-					if (this.view_mode != 'plane') {
+					if (this.view_mode == 'flat_image') {
 						this.position.replace(this.getClampedPosition());
 					}
 
@@ -804,7 +804,7 @@ export class ReferenceImage {
 						this.position[0] = original_position[0] + offset[0] / zoom;
 						this.position[1] = original_position[1] + offset[1] / zoom;
 
-						if (!this.is_blueprint) {
+						if (this.view_mode == 'flat_image') {
 							this.position.replace(this.getClampedPosition());
 						}
 					}
