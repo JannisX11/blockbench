@@ -4094,7 +4094,9 @@ Interface.definePanels(function() {
 						})
 					})
 					let min = this.getSelectedUVBoundingBox();
-					let bounding_size = [min[2]-min[0], min[3]-min[1]]
+					let bounding_size = [min[2]-min[0], min[3]-min[1]];
+					if (Math.abs(bounding_size[0]) < 0.01) bounding_size[0] = 1;
+					if (Math.abs(bounding_size[1]) < 0.01) bounding_size[1] = 1;
 
 					let total_offset = [0, 0];
 					let total_offset_y = 0;
@@ -4276,10 +4278,19 @@ Interface.definePanels(function() {
 				isScalingAvailable() {
 					let element = this.mappable_elements[0];
 					if (element?.getTypeBehavior('cube_faces')) {
-						return UVEditor.isFaceUV() && UVEditor.getSelectedFaces(element).some(fkey => element.faces[fkey] && element.faces[fkey].texture !== null);
+						if (!UVEditor.isFaceUV()) return false;
+						if (!UVEditor.getSelectedFaces(element).some(fkey => element.faces[fkey] && element.faces[fkey].texture !== null)) {
+							return false;
+						}
+						return true;
 
 					} else if (this.mappable_elements[0] instanceof Mesh) {
-						return this.mappable_elements[0].getSelectedFaces().length > 0;
+						if (this.mappable_elements[0].getSelectedFaces().length == 0) return false;
+						let bounding_box = this.getSelectedUVBoundingBox(false);
+						if (bounding_box[0] == bounding_box[2] && bounding_box[1] == bounding_box[3]) {
+							return false;
+						}
+						return true;
 					}
 				},
 				isRotatingAvailable() {
