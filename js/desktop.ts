@@ -92,6 +92,19 @@ export function initializeDesktopApp() {
 		action.toElement('#update_menu');
 	}
 }
+// Protocol
+function openProtocolURL(url: string) {
+	const segments = url.split(/;/);
+	const parameters: Record<string, string|boolean> = {};
+	for (let segment of segments) {
+		let key: string, value: string | boolean;
+		[key, value] = segment.split('=');
+		if (!value) value = true;
+		if (typeof value == 'string') value = value.replace(/[\s/]$/, '');
+		parameters[key] = value;
+	}
+	Blockbench.dispatchEvent('handle_url_parameters', {parameters, type: 'protocol'});
+}
 //Load Model
 export function loadOpenWithBlockbenchFile() {
 	function load(path: string) {
@@ -154,6 +167,9 @@ window.alert = function(message: string, title?: string) {
 		detail: message
 	});
 }
+ipcRenderer.on('open-url', (event, url) => {
+	openProtocolURL(url);
+})
 
 //Recent Projects
 export type RecentProjectData = {

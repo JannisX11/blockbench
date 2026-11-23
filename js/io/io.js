@@ -304,6 +304,56 @@ export function unsupportedFileFormatMessage(file_path) {
 }
 
 
+Blockbench.on('handle_url_parameters', async ({parameters}) => {
+	let model_id = parameters.m || parameters['shared-model'];
+	if (model_id) {
+		$.getJSON(`https://blckbn.ch/api/models/${model_id}`, (model) => {
+			Codecs.project.load(model, {path: '', name: ''});
+
+			if (!isApp && !Blockbench.isMobile) {
+				Blockbench.showToastNotification({
+					text: 'Open on Desktop',
+					expire: 20_000,
+					click() {
+						open(`blockbench://m=${model_id}`);
+					}
+				});
+			}
+
+		}).fail(() => {
+			Blockbench.showMessageBox({
+				title: 'message.invalid_link',
+				message: tl('message.invalid_link.message', ['`'+model_id+'`']),
+				icon: 'running_with_errors'
+			})
+		})
+	} else if (parameters.loadtype) {
+		let file = {
+			content: parameters.loaddata,
+			name: parameters.loadname || 'file',
+			path: parameters.loadname || 'file'
+		};
+		switch (parameters.loadtype) {
+			case 'minecraft_skin': {
+				let dialog = Formats.skin.setup_dialog;
+				dialog.show();
+				dialog.setFormValues({
+					texture: file
+				})
+				break;
+			}
+			case 'image': {
+				loadImages([file]);
+				break;
+			}
+			case 'json': {
+				loadModelFile(file);
+				break;
+			}
+		}
+	}
+});
+
 
 BARS.defineActions(function() {
 	//Import

@@ -133,6 +133,12 @@
 				"mimeType": "application/json",
 				"role": "Editor"
 			}
+		],
+		"protocols": [
+			{
+				"name": "Blockbench",
+				"schemes": ["blockbench"]
+			}
 		]
 	},
 	"scripts": {

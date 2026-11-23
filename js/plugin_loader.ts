@@ -12,6 +12,7 @@ import { Panels } from "./interface/panels";
 import VersionUtil from './util/version_util'
 import { ModelLoader } from "./io/model_loader";
 import { markerColors } from "./marker_colors";
+import { InputFormConfig } from "./interface/form";
 
 
 export const Plugins = {
@@ -1182,6 +1183,55 @@ $.getJSON('https://blckbn.ch/api/stats/plugins?weeks=2', data => {
 	Plugins.download_stats = data;
 	if (Plugins.json) {
 		Plugins.sort();
+	}
+})
+
+Blockbench.on('handle_url_parameters', async ({parameters}) => {
+	if (typeof parameters['show-plugin'] == 'string') {
+		if (Plugins.loading_promise) {
+			await Plugins.loading_promise;
+		}
+		(BarItems.plugins_window as Action).click();
+		let plugin = Plugins.all.find(p => p.id == parameters['show-plugin']);
+		Plugins.dialog.content_vue.selectPlugin(plugin);
+	}
+
+	if (parameters.plugins && typeof parameters.plugins == 'string') {
+		if (Plugins.loading_promise) {
+			await Plugins.loading_promise;
+		}
+		let plugin_ids = parameters.plugins.split(/,/);
+		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
+								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
+		if (plugins.length) {
+			await new Promise<void>(resolve => {
+				let form: InputFormConfig = {
+					info: {type: 'info', text: 'dialog.load_plugins_from_query.text'}
+				}
+				plugins.forEach(plugin => {
+					form[plugin.id.replace(/\./g, '_')] = {type: 'checkbox', label: plugin.name, description: plugin.description, value: true}
+				})
+				new Dialog({
+					id: 'load_plugins_from_query',
+					title: 'dialog.load_plugins_from_query.title',
+					form,
+					buttons: ['dialog.plugins.install', 'dialog.cancel'],
+					onConfirm: async function(result) {
+						let promises = [];
+						plugins.forEach(plugin => {
+							if (result[plugin.id.replace(/\./g, '_')]) {
+								promises.push(plugin.download());
+							}
+						})
+						await Promise.all(promises);
+						resolve();
+					} as any,
+					onCancel() {
+						resolve();
+					}
+				}).show();
+			})
+		}
 	}
 })
 

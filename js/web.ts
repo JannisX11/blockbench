@@ -74,82 +74,10 @@ try {
 }
 
 export async function loadInfoFromURL() {
-	if (typeof Blockbench.queries.session == 'string') {
-		EditSession.token = Blockbench.queries.session;
-		(BarItems.edit_session as Action).click();
-	}
-
-	if (Blockbench.queries.plugins && typeof Blockbench.queries.plugins == 'string') {
-		let plugin_ids = Blockbench.queries.plugins.split(/,/);
-		let plugins = plugin_ids.map(id => Plugins.all.find(plugin => plugin.id == id))
-								.filter(p => p instanceof Plugin && p.installed == false && p.isInstallable() == true);
-		if (plugins.length) {
-			await new Promise<void>(resolve => {
-				let form: InputFormConfig = {
-					info: {type: 'info', text: 'dialog.load_plugins_from_query.text'}
-				}
-				plugins.forEach(plugin => {
-					form[plugin.id.replace(/\./g, '_')] = {type: 'checkbox', label: plugin.name, description: plugin.description, value: true}
-				})
-				new Dialog({
-					id: 'load_plugins_from_query',
-					title: 'dialog.load_plugins_from_query.title',
-					form,
-					buttons: ['dialog.plugins.install', 'dialog.cancel'],
-					onConfirm: async function(result) {
-						let promises = [];
-						plugins.forEach(plugin => {
-							if (result[plugin.id.replace(/\./g, '_')]) {
-								promises.push(plugin.download());
-							}
-						})
-						await Promise.all(promises);
-						resolve();
-					} as any,
-					onCancel() {
-						resolve();
-					}
-				}).show();
-			})
-		}
-	}
-
-	if (Blockbench.queries.m) {
-		$.getJSON(`https://blckbn.ch/api/models/${Blockbench.queries.m}`, (model, b) => {
-			Codecs.project.load(model, {path: '', name: ''});
-		}).fail(() => {
-			Blockbench.showMessageBox({
-				title: 'message.invalid_link',
-				message: tl('message.invalid_link.message', ['`'+Blockbench.queries.m+'`']),
-				icon: 'running_with_errors'
-			})
-		})
-	} else if (Blockbench.queries.loadtype) {
-		let file = {
-			content: Blockbench.queries.loaddata,
-			name: Blockbench.queries.loadname || 'file',
-			path: Blockbench.queries.loadname || 'file'
-		};
-		switch (Blockbench.queries.loadtype) {
-			case 'minecraft_skin': {
-				// @ts-expect-error
-				let dialog = Formats.skin.setup_dialog as Dialog;
-				dialog.show();
-				dialog.setFormValues({
-					texture: file
-				})
-				break;
-			}
-			case 'image': {
-				loadImages([file]);
-				break;
-			}
-			case 'json': {
-				loadModelFile(file);
-				break;
-			}
-		}
-	}
+	Blockbench.dispatchEvent('handle_url_parameters', {
+		parameters: Blockbench.queries,
+		type: 'url_queries'
+	});
 }
 
 //Misc

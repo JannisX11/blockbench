@@ -449,6 +449,14 @@ EditSession.ChatMessage = class {
 	}
 }
 
+Blockbench.on('handle_url_parameters', ({parameters}) => {
+	if (typeof parameters.session == 'string') {
+		EditSession.token = parameters.session;
+		BarItems.edit_session.click();
+	}
+})
+
+
 BARS.defineActions(function() {
 	new Action('edit_session', {
 		icon: 'people',

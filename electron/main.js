@@ -58,6 +58,14 @@ if (LaunchSettings.get('hardware_acceleration') == false) {
 	}
 }
 
+if (process.defaultApp) {
+	if (process.argv.length >= 2) {
+		app.setAsDefaultProtocolClient('blockbench', process.execPath, [path.resolve(process.argv[1])])
+	}
+} else {
+	app.setAsDefaultProtocolClient('blockbench')
+}
+
 function createWindow(second_instance, options = {}) {
 	if (app.requestSingleInstanceLock && !app.requestSingleInstanceLock()) {
 		app.quit()
@@ -192,6 +200,7 @@ app.commandLine.appendSwitch('enable-accelerated-video')
 app.on('second-instance', function (event, argv, cwd) {
 	process.argv = argv;
 	let win = all_wins.find(win => !win.isDestroyed());
+	runProtocol(argv, win);
 	if (win && argv[argv.length-1 || 1] && argv[argv.length-1 || 1].substr(0, 2) !== '--') {
 		win.webContents.send('open-model', argv[argv.length-1 || 1]);
 		win.focus();
@@ -204,6 +213,12 @@ app.on('open-file', function (event, path) {
 	let win = all_wins.find(win => !win.isDestroyed());
 	if (win) {
 		win.webContents.send('open-model', path);
+	}
+})
+app.on('open-url', function (event, url) {
+	let win = all_wins.find(win => !win.isDestroyed());
+	if (win) {
+		win.webContents.send('open-url', path);
 	}
 })
 
@@ -275,6 +290,14 @@ ipcMain.on('open-in-default-app', async (event, path) => {
 	shell.openPath(path);
 })
 
+function runProtocol(args, win) {
+	const PROTOCOL = 'blockbench://';
+	let protocol_arg = args.find(arg => arg.startsWith(PROTOCOL));
+	if (protocol_arg && win && !win.isDestroyed()) {
+		win.webContents.send('open-url', protocol_arg.substring(PROTOCOL.length));
+	}
+}
+
 app.on('ready', () => {
 
 	const dev_mode = process.execPath && process.execPath.match(/node_modules[\\\/]electron/);
@@ -295,6 +318,11 @@ app.on('ready', () => {
 		}
 
 		app_was_loaded = true;
+
+		try {
+			runProtocol(process.argv, orig_win);
+		} catch (err) {console.error(err)}
+
 		if (dev_mode) {
 
 			console.log('[Blockbench] App launched in development mode')

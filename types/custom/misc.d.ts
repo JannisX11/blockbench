@@ -27,6 +27,7 @@ interface BlockbenchEventMap {
 	interpolate_keyframes: {animator: BoneAnimator, t: number, time: number, use_quaternions: boolean, keyframe_before: BBKeyframe, keyframe_after: BBKeyframe}
 	pre_stack_node_animations: {node: OutlinerNode, animations: BBAnimation[], in_loop: boolean, controller_blend_values?: number}
 	before_closing: {}
+	handle_url_parameters: {parameters: Record<string, string | boolean>, type: 'url_queries' | 'protocol'}
 	create_session: {peer: Peer, token: string}
 	join_session: {conn: DataConnection}
 	quit_session: {}
