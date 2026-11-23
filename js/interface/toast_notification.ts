@@ -16,6 +16,11 @@ export interface ToastNotificationOptions {
 	 * Background color, accepts any CSS color string
 	 */
 	color?: string
+	buttons?: {
+		text: string
+		click: (event: PointerEvent) => void
+		close_on_click?: boolean
+	}[]
 	/**
 	 * Method to run on click. 
 	 * @returns Return `true` to close toast
@@ -46,6 +51,21 @@ export class ToastNotification {
 		let text = document.createElement('span');
 		text.innerText = tl(options.text);
 		notification.append(text);
+
+		for (let button of options.buttons??[]) {
+			let button_element = Interface.createElement('button', {}, tl(button.text));
+			button_element.addEventListener('click', (event: PointerEvent) => {
+				button.click(event)
+				if (button.close_on_click) {
+					if (options.onClose) {
+						let result = options.onClose(event);
+						if (result == false) return;
+					}
+					this.delete();
+				}
+			})
+			notification.append(button_element);
+		}
 
 		let close_button = document.createElement('div');
 		close_button.innerHTML = '<i class="material-icons">clear</i>';

@@ -887,14 +887,16 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		background-color: var(--color-accent);
-		color: var(--color-accent_text);
-		min-height: 34px;
-		margin: 4px;
+		background-color: var(--color-ui);
+		min-height: 43px;
+		width: 680px;
+		max-width: calc(100% - 8px);
+		margin: 4px auto;
 		gap: 4px;
-		padding: 5px 5px 5px 10px;
-		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.7);
+		padding: 5px 8px;
+		box-shadow: 0.4px 0.4px 4px rgba(0, 0, 0, 0.5);
 		border-radius: 6px;
+		border-left: 10px solid var(--color-accent);
 	}
 	.toast_notification > span {
 		flex-grow: 1;
