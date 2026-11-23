@@ -115,7 +115,7 @@ export function loadOpenWithBlockbenchFile() {
 				loadImages(files);
 			})
 		} else if (Codec.getAllExtensions().includes(extension)) {
-			Blockbench.read([path], {}, (files) => {
+			Blockbench.read([path], {readtype: Codec.getReadType(path)}, (files) => {
 				loadModelFile(files[0]);
 			})
 		} else {
@@ -668,7 +668,7 @@ BARS.defineActions(() => {
 					}
 				},
 				onConfirm() {
-					Blockbench.read([selected.path], {}, (files) => {
+					Blockbench.read([selected.path], {readtype: Codec.getReadType(selected.path)}, (files) => {
 						loadModelFile(files[0]);
 					})
 					dialog.close();
