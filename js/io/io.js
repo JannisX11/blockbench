@@ -312,11 +312,17 @@ Blockbench.on('handle_url_parameters', async ({parameters}) => {
 
 			if (!isApp && !Blockbench.isMobile) {
 				Blockbench.showToastNotification({
-					text: 'Open on Desktop',
+					text: Project.name,
 					expire: 20_000,
-					click() {
-						open(`blockbench://m=${model_id}`);
-					}
+					buttons: [
+						{
+							text: 'message.shared_model.open_in_program',
+							close_on_click: true,
+							click() {
+								Blockbench.openLink(`blockbench://m=${model_id}`);
+							},
+						}
+					]
 				});
 			}
 
