@@ -301,31 +301,43 @@ export function mirrorSelectedInPlace(axis) {
 }
 
 //Center
-export function centerElements(axis, update) {
-	if (!Outliner.selected.length) return;
+export function centerElements(axis, update = true) {
 	let center = getSelectionCenter()[axis];
-	var difference = (Format.centered_grid ? 0 : 8) - center
+	var difference = (Format.centered_grid ? 0 : 8) - center;
 
-	Outliner.selected.forEach(function(obj) {
-		if (obj.getTypeBehavior('movable')) obj.origin[axis] += difference;
-		if (obj.from) obj.from[axis] = obj.from[axis] + difference;
-		if (obj.to) obj.to[axis] = obj.to[axis] + difference;
-		if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
-			Format.cube_size_limiter.move(obj);
-		}
-	})
-	Group.all.forEach(group => {
-		if (!group.selected) return;
-		if (!Format.bone_rig && Outliner.selected.length) return;
-		group.origin[axis] += difference;
-	})
-	Canvas.updateView({
-		elements: Outliner.selected,
-		groups: Group.all.filter(g => g.selected),
-		element_aspects: {transform: true},
-		group_aspects: {transform: true},
-		selection: true
-	})
+	if (Outliner.selected.length == 0 && Group.selected.length && Format.bone_rig) {
+		Group.all.forEach(group => {
+			if (!group.selected) return;
+			group.origin[axis] += difference;
+		})
+
+	} else if (Outliner.selected.length > 0) {
+		Outliner.selected.forEach(function(obj) {
+			if (obj.getTypeBehavior('movable')) obj.origin[axis] += difference;
+			if (obj.from) obj.from[axis] = obj.from[axis] + difference;
+			if (obj.to) obj.to[axis] = obj.to[axis] + difference;
+			if (obj instanceof Cube && Format.cube_size_limiter && !settings.deactivate_size_limit.value) {
+				Format.cube_size_limiter.move(obj);
+			}
+		})
+		Group.all.forEach(group => {
+			if (!group.selected) return;
+			if (!Format.bone_rig && Outliner.selected.length) return;
+			group.origin[axis] += difference;
+		})
+	} else {
+		return;
+	}
+
+	if (update) {
+		Canvas.updateView({
+			elements: Outliner.selected,
+			groups: Group.all.filter(g => g.selected),
+			element_aspects: {transform: true},
+			group_aspects: {transform: true},
+			selection: true
+		})
+	}
 }
 
 //Move
