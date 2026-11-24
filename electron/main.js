@@ -175,8 +175,8 @@ function createWindow(second_instance, options = {}) {
 		win.show();
 	});
 	win.on('closed', () => {
-		win = null;
 		all_wins.splice(all_wins.indexOf(win), 1);
+		win = null;
 	})
 	if (second_instance === true) {
 		win.webContents.second_instance = true;
