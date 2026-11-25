@@ -3003,6 +3003,7 @@ Interface.definePanels(function() {
 					this.updateTexture();
 				},
 				updateTexture() {
+					// Choose texture
 					let texture;
 					let texture_meshes = TextureMesh.selected;
 					if (texture_meshes.length && !UVEditor.getMappableElements().length) {
@@ -3013,14 +3014,22 @@ Interface.definePanels(function() {
 						let elements = UVEditor.getMappableElements();
 						if (elements.length) {
 							for (let element of elements) {
-								let face = element.faces[ UVEditor.getSelectedFaces(element)[0] || Object.keys(element.faces)[0] ];
-								if (face) texture = face.getTexture() || texture;
+								let face_keys = UVEditor.getSelectedFaces(element);
+								if (!face_keys || !face_keys[0]) face_keys = Object.keys(element.faces);
+								for (let fkey of face_keys) {
+									let face = element.faces[fkey];
+									if (!face || !face.texture) continue;
+									texture = face.getTexture() || texture;
+									if (texture) break;
+								}
 								if (texture) break;
 							}
 						} else if (Modes.paint) {
 							texture = Texture.getDefault();
 						}
 					}
+
+					// Assign texture
 					if (texture === null) {
 						this.texture = null;
 					} else if (texture instanceof Texture && BarItems.view_mode.value == 'material' && texture?.getGroup()?.getTextures()?.includes(Texture.selected)) {
