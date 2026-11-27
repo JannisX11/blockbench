@@ -1648,6 +1648,9 @@ Interface.definePanels(() => {
 					this.controller.states.splice(Math.min(event.newIndex, max_index), 0, item);
 					Undo.finishEdit('Reorder animation controller states');
 				},
+				clearDragData(transfer) {
+					transfer.setData('Text', '');
+				},
 				getStateName(uuid) {
 					let state = this.controller.states.find(s => s.uuid == uuid);
 					return state ? state.name : '';
@@ -2021,7 +2024,7 @@ Interface.definePanels(() => {
 						></div>
 					</div>
 
-					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, touchStartThreshold: 20, animation: 160, handle: '.controller_state_title_bar'}">
+					<ul v-if="controller && controller.states.length" v-sortable="{onUpdate: sortStates, setData: clearDragData, touchStartThreshold: 20, animation: 160, handle: '.controller_state_title_bar'}">
 						<li v-for="state in controller.states" :key="state.uuid"
 							class="controller_state"
 							:class="{selected: controller.selected_state == state, folded: state.folded, initial_state: controller.initial_state == state.uuid}"
@@ -2051,7 +2054,7 @@ Interface.definePanels(() => {
 
 									<div class="text_button" @click.stop="addAnimationButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
-								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
+								<ul v-if="!state.fold.animations" v-sortable="{onUpdate(event) {sortAnimation(state, event)}, setData: clearDragData, animation: 160, handle: '.controller_item_drag_handle'}">
 									<li v-for="(animation, i) in state.animations" :key="animation.uuid" class="controller_animation">
 										<div class="controller_item_drag_handle"></div>
 										<div class="tool" title="" @click="openAnimationMenu(state, state.animations[i], $event.target)"><i class="material-icons">movie</i></div>
@@ -2186,7 +2189,7 @@ Interface.definePanels(() => {
 									<div class="text_button" @click.stop="addTransitionButton(state, $event)"><i class="icon fa fa-plus"></i></div>
 								</div>
 								<template v-if="!state.fold.transitions">
-									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, animation: 160, handle: '.controller_item_drag_handle'}">
+									<ul v-sortable="{onUpdate(event) {sortTransition(state, event)}, setData: clearDragData, animation: 160, handle: '.controller_item_drag_handle'}">
 										<li v-for="(transition, i) in state.transitions" :key="transition.uuid" :uuid="transition.uuid" class="controller_transition"">
 											<div class="controller_item_drag_handle" :style="{'--color-marker': connections.colors[transition.uuid]}"></div>
 											<div class="bb-select" @click="openTransitionMenu(state, state.transitions[i], $event)">{{ getStateName(state.transitions[i].target) }}</div>
