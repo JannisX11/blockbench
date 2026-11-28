@@ -2033,6 +2033,8 @@
 	height: 30px;
 	background-color: var(--color-elevated);
 	border-radius: inherit;
+	border-top-right-radius: 4px;
+	border-top-left-radius: 4px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 	display: flex;
 	cursor: pointer;
