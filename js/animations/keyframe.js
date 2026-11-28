@@ -239,16 +239,20 @@ export class Keyframe {
 	}
 	getBezierLerp(before, after, axis, alpha) {
 		let axis_num = getAxisNumber(axis);
+		function getHandle(kf, vector) {
+			if (kf.interpolation != 'bezier') return 0;
+			return vector[axis_num] || 0;
+		}
 		let val_before = before.calc(axis, 1);
 		let val_after = after.calc(axis, 0);
 		let time_gap = after.time - before.time;
-		let time_handle_before = Math.clamp(before.bezier_right_time[axis_num] || 0, 0, time_gap);
-		let time_handle_after  = Math.clamp(after.bezier_left_time[axis_num]   || 0, -time_gap, 0);
+		let time_handle_before = Math.clamp(getHandle(before, before.bezier_right_time), 0, time_gap);
+		let time_handle_after  = Math.clamp(getHandle(after, after.bezier_left_time), -time_gap, 0);
 		let vectors = [
 			new THREE.Vector2(before.time, val_before),
 
-			new THREE.Vector2(before.time + time_handle_before, val_before + before.bezier_right_value[axis_num] || 0),
-			new THREE.Vector2(after.time  + time_handle_after,  val_after  + after.bezier_left_value[axis_num]   || 0),
+			new THREE.Vector2(before.time + time_handle_before, val_before + getHandle(before, before.bezier_right_value)),
+			new THREE.Vector2(after.time  + time_handle_after,  val_after  + getHandle(after, after.bezier_left_value)),
 
 			new THREE.Vector2(after.time, val_after),
 		];
@@ -1081,6 +1085,12 @@ BARS.defineActions(function() {
 			Timeline.selected.forEach((kf) => {
 				if (kf.transform) {
 					kf.interpolation = sel.value;
+					if (kf.interpolation != 'bezier') {
+						Keyframe.properties.bezier_left_time.reset(kf);
+						Keyframe.properties.bezier_left_value.reset(kf);
+						Keyframe.properties.bezier_right_time.reset(kf);
+						Keyframe.properties.bezier_right_value.reset(kf);
+					}
 				}
 			})
 			Undo.finishEdit('Change keyframes interpolation')
