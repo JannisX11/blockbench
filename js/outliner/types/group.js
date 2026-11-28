@@ -762,19 +762,26 @@ BARS.defineActions(function() {
 			})
 		}
 	})
+	function getGroupElementsTarget() {
+		let add_group = Group.first_selected;
+		if (!add_group && Outliner.selected.length) {
+			add_group = Outliner.selected.last()
+		}
+		return add_group;
+	}
+	function parentRejectsGroups(node) {
+		return node?.parent instanceof OutlinerNode &&
+			node.parent.getTypeBehavior('child_types')?.includes('group') == false;
+	}
 	new Action('group_elements', {
 		icon: 'drive_folder_upload',
 		category: 'edit',
-		condition: () => Modes.edit && (Outliner.selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false),
+		condition: () => Modes.edit && (Outliner.selected.length || Group.first_selected) && !Outliner.selected.some(el => el.getTypeBehavior('parent_types')?.includes('group') == false) && !parentRejectsGroups(getGroupElementsTarget()),
 		keybind: new Keybind({key: 'g', ctrl: true, shift: true}),
 		click: function () {
-			let add_group = Group.first_selected;
-			if (!add_group && Outliner.selected.length) {
-				add_group = Outliner.selected.last()
-			}
-			if (add_group?.parent instanceof OutlinerNode &&
-				add_group.parent.getTypeBehavior('child_types')?.includes('group') == false
-			) {
+			let add_group = getGroupElementsTarget();
+			// Also checked here because click() can be called directly, bypassing the condition
+			if (parentRejectsGroups(add_group)) {
 				return;
 			}
 			Undo.initEdit({outliner: true, groups: [], selection: true});
