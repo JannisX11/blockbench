@@ -451,7 +451,7 @@ export class TextureLayer extends TextureLayerItem {
 	 * Expand the layer to include the listed pixels
 	 * @param points
 	 */
-	expandTo(...points: ArrayVector2[]): void {
+	expandTo(...points: ArrayVector2[]): boolean {
 		let min = this.offset.slice();
 		let max = this.offset.slice().V2_add(this.width, this.height);
 		points.forEach(point => {
@@ -469,8 +469,14 @@ export class TextureLayer extends TextureLayerItem {
 			this.canvas.width = max[0] - min[0];
 			this.canvas.height = max[1] - min[1];
 			this.ctx.drawImage(copy_canvas, this.offset[0] - min[0], this.offset[1] - min[1]);
+			if (this.selected && Painter.current.clear_offset) {
+				Painter.current.clear_offset[0] += this.offset[0] - min[0];
+				Painter.current.clear_offset[1] += this.offset[1] - min[1];
+			}
 			this.offset.replace(min);
+			return true;
 		}
+		return false;
 	}
 	/**
 	 * Flip the texture along an axis

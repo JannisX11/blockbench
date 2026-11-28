@@ -257,6 +257,7 @@ export const Painter = {
 			let {canvas} = texture.getActiveCanvas();
 			Painter.current.clear.width = canvas.width;
 			Painter.current.clear.height = canvas.height;
+			Painter.current.clear_offset = [0, 0];
 			Painter.current.clear.getContext('2d').drawImage(canvas, 0, 0);
 
 		} else {
@@ -472,6 +473,15 @@ export const Painter = {
 			Painter.useBrush(texture, ctx, x, y, event);
 
 		} else {
+			// Expand before using fill tool
+			if (Toolbox.selected.id === 'fill_tool') {
+				let layer = texture.getActiveLayer();
+				let fill_mode = BarItems.fill_mode.get()
+				if (layer && !Painter.erase_mode && !(fill_mode === 'color' || fill_mode === 'color_connected')) {
+					layer.expandTo([0, 0], [texture.width, texture.height])
+				}
+			}
+
 			ctx.beginPath();
 			let rect = Painter.editing_area || Painter.setupRectFromFace(uvTag, texture);
 			var [w, h] = [rect[2] - rect[0], rect[3] - rect[1]]
@@ -1190,19 +1200,22 @@ export const Painter = {
 	},
 	useShapeTool(texture, x, y, event, uvTag) {
 		Painter.brushChanges = true;
+		var width = BarItems.slider_brush_size.get();
+		let shape = BarItems.draw_shape_type.get();
+		let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
+		let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
+		let hollow = shape.substr(-1) == 'h';
+		let blend_mode = BarItems.blend_mode.value;
+		shape = shape.replace(/_h$/, '');
 
 		texture.edit(function(canvas) {
 			let {ctx, offset} = Painter.current;
+			let layer = texture.getActiveLayer();
+			if (layer) {
+				layer.expandTo([x+width, y+width], [x-width, y-width])
+			}
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			ctx.drawImage(Painter.current.clear, 0, 0)
-
-			let color = tinycolor(ColorPanel.get(Keybinds.extra.paint_secondary_color.keybind.isTriggered(event))).toRgb();
-			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
-			var width = BarItems.slider_brush_size.get();
-			let shape = BarItems.draw_shape_type.get();
-			let hollow = shape.substr(-1) == 'h';
-			let blend_mode = BarItems.blend_mode.value;
-			shape = shape.replace(/_h$/, '');
+			ctx.drawImage(Painter.current.clear, ...Painter.current.clear_offset)
 
 			function drawShape(start_x, start_y, x, y, uvTag) {
 
@@ -1331,6 +1344,9 @@ export const Painter = {
 							}
 						}
 					})
+					if (layer) {
+						layer.expandTo([start_x + Math.abs(diff_x) + width, start_y + Math.abs(diff_y) + width]);
+					}
 				}
 
 				if (shape === 'ellipse') {
@@ -1363,7 +1379,7 @@ export const Painter = {
 			ctx.globalAlpha = 1.0;
 			ctx.globalCompositeOperation = 'source-over';
 
-		}, {no_undo: true, use_cache: true});
+		}, {no_undo: true, use_cache: false});
 	},
 	useGradientTool(texture, x, y, event, uvTag) {
 		Painter.brushChanges = true;
@@ -1372,9 +1388,14 @@ export const Painter = {
 			let b_opacity = BarItems.slider_brush_opacity.get()/(settings.opacity_range.value == '255' ? 255 : 100);
 			let {ctx, offset} = Painter.current;
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			ctx.drawImage(Painter.current.clear, 0, 0)
+			ctx.drawImage(Painter.current.clear, ...Painter.current.clear_offset)
 			if (Painter.lock_alpha) {
 				ctx.globalCompositeOperation = 'source-atop';
+			}
+			let layer = texture.getActiveLayer();
+			if (layer) {
+				let initial_offset = offset.slice();
+				layer.expandTo([0, 0], [texture.width, texture.height]);
 			}
 
 			function drawGradient(start_x, start_y, x, y, uvTag) {
