@@ -426,6 +426,12 @@ export const Canvas = {
 		Canvas.monochromaticSolidMaterial.uniforms.BRIGHTNESS.value = settings.brightness.value / 50;
 		Canvas.uvHelperMaterial.uniforms.SHADE.value = settings.shading.value;
 		Canvas.normalHelperMaterial.uniforms.SHADE.value = settings.shading.value;
+		for (let key in displayReferenceObjects.refmodels) {
+			let ref = displayReferenceObjects.refmodels[key];
+			if (ref.material?.uniforms?.SHADE) {
+				ref.material.uniforms.SHADE.value = settings.shading.value;
+			}
+		}
 		Blockbench.dispatchEvent('update_scene_shading');
 	},
 	updateCubeHighlights(hover_cube, force_off) {
