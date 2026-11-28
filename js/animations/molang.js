@@ -103,10 +103,12 @@ Animator.MolangParser.global_variables = {
 const variable_fallbacks = {
 	'query.model_scale': 1/16,
 };
+const resolving_placeholders = new Map();
 Animator.MolangParser.variableHandler = function (variable, variables, args) {
 	let variable_with_args = args?.length && `${variable}(${args.map(arg => isStringNumber(arg) ? arg : "'"+arg+"'").join(',')})`;
 
-	const val = Animator.global_variable_lines[variable] ?? Animator.global_variable_lines[variable_with_args];
+	const key = Animator.global_variable_lines[variable] != null ? variable : variable_with_args;
+	const val = Animator.global_variable_lines[key];
 	if (val === undefined) {
 		if (variable_fallbacks[variable] != undefined) return variable_fallbacks[variable];
 		return;
@@ -122,7 +124,19 @@ Animator.MolangParser.variableHandler = function (variable, variables, args) {
 		)
 		return button ? parseFloat(button.value) : 0
 	} else {
-		return val[0] == `'` ? val : Animator.MolangParser.parse(val, variables)
+		if (val[0] == `'`) return val;
+		if (resolving_placeholders.has(key)) {
+			// A cycle invalidates every placeholder that depends on it.
+			for (let key of resolving_placeholders.keys()) resolving_placeholders.set(key, true);
+			return 0;
+		}
+		resolving_placeholders.set(key, false);
+		try {
+			let result = Animator.MolangParser.parse(val, variables);
+			return resolving_placeholders.get(key) ? 0 : result;
+		} finally {
+			resolving_placeholders.delete(key);
+		}
 	}
 }
 
