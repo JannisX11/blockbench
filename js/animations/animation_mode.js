@@ -272,7 +272,7 @@ export const Animator = {
 			i++;
 			Timeline.time = time;
 			Animator.showDefaultPose(true);
-			Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
+			Animator.stackAnimations(Animation.all.filter(a => a.playing), false, 0, {effects: false});
 			Animator.displayMeshDeformation();
 
 			elements.forEach(obj => {
@@ -297,7 +297,7 @@ export const Animator = {
 		}
 		Timeline.time = last_time;
 		Animator.showDefaultPose(true);
-		Animator.stackAnimations(Animation.all.filter(a => a.playing), false);
+		Animator.stackAnimations(Animation.all.filter(a => a.playing), false, 0, {effects: false});
 
 		scene.add(Animator.onion_skin_object);
 
@@ -312,7 +312,7 @@ export const Animator = {
 			}
 		}
 	},
-	stackAnimations(animations, in_loop, controller_blend_values = 0) {
+	stackAnimations(animations, in_loop, controller_blend_values = {}, options = {}) {
 		if (animations.length > 1 && Animation.selected && animations.includes(Animation.selected)) {
 			// Ensure selected animation is applied last so that transform gizmo gets correct pre rotation
 			animations = animations.slice();
@@ -355,12 +355,14 @@ export const Animator = {
 		Animator.resetLastValues();
 
 		// Effects
-		Animator.resetParticles(true);
-		animations.forEach(animation => {
-			if (animation.animators.effects) {
-				animation.animators.effects.displayFrame(in_loop);
-			}
-		})
+		if (options.effects != false) {
+			Animator.resetParticles(true);
+			animations.forEach(animation => {
+				if (animation.animators.effects) {
+					animation.animators.effects.displayFrame(in_loop);
+				}
+			})
+		}
 	},
 	preview(in_loop) {
 		// Reset
