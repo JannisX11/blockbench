@@ -302,9 +302,11 @@ export class Preview {
 		}
 		(menu.querySelector('.preview_view_options') as HTMLElement).onclick = (event) => {
 			ViewOptionsDialog.show(menu);
-			let preview_rect = Interface.preview.getBoundingClientRect();
-			ViewOptionsDialog.object.style.left = 'auto';
-			ViewOptionsDialog.object.style.right = (window.innerWidth-preview_rect.right) + 'px';
+			if (!Blockbench.isMobile) {
+				let preview_rect = Interface.preview.getBoundingClientRect();
+				ViewOptionsDialog.object.style.left = 'auto';
+				ViewOptionsDialog.object.style.right = (window.innerWidth-preview_rect.right) + 'px';
+			}
 		}
 		(menu.querySelector('.preview_fullscreen_button') as HTMLElement).onclick = (event) => {
 			this.fullscreen();
